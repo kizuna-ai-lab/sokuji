@@ -368,7 +368,7 @@ export const RecordPage: React.FC = () => {
     <RecordNotes
       record={record} notes={open.notes} writing={notesRunning.includes(record.id)} tooShort={span < NOTES_MIN_MS} languages={notesLanguages}
       onWrite={(l) => actions.generateNotes(l)} onCancel={() => actions.cancelNotes()} onShowVersion={(id) => void actions.showNotes(id)}
-      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onFixName={fixName} fixedNames={fixedNames}
+      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onFixName={canFix ? fixName : undefined} fixedNames={fixedNames}
       latest={open.latest ?? null} explainWith={!notesExplained && notesService ? notesService : null}
       onExplained={() => void setNotesExplained(true)}
     />
@@ -669,7 +669,7 @@ export const RecordPage: React.FC = () => {
         </p>
         {speakersPanel}
       </section>
-      <FixWordsPart onJump={(n) => setJumpTo({ n })} />
+      <FixWordsPart onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} />
     </RecordSidePanel>
   );
 

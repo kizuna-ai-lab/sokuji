@@ -73,6 +73,12 @@ describe('telling a one-word swap', () => {
     expect(swapIn('abc', 'abcd')).toEqual({ from: 'abc', to: 'abcd' });
     expect(swapIn('это кот', 'это код')).toEqual({ from: 'кот', to: 'код' });
   });
+  // PR review: punctuation changed alone is not a word to change everywhere.
+  it('punctuation alone is no swap', () => {
+    expect(swapIn('他说。好的', '他说、好的')).toBeNull();
+    expect(swapIn('Yes. Go', 'Yes! Go')).toBeNull();
+    expect(swapIn('Sok. Go', 'Sokuji. Go')).toEqual({ from: 'Sok', to: 'Sokuji' });
+  });
   it('an added or dropped word is no swap', () => {
     expect(swapIn('a b', 'a b c')).toBeNull();
     expect(swapIn('a b c', 'a b')).toBeNull();

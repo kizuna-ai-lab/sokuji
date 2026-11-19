@@ -77,6 +77,15 @@ describe('the toast and undo', () => {
     expect(textOf(1)).toContain('搜库机');
   });
 
+  // PR review: no undo while the record is transcribed again, so the line offers none.
+  it('no Undo on the line while the record is transcribed again', async () => {
+    await show();
+    await act(async () => { await store.getState().editSentence(3, 'Sokuji 已上线', { everywhere: false, words: false }); });
+    await settle();
+    act(() => store.setState({ job: { kind: 'transcribe', recordId: A, name: null, phase: 'uploading' } as never }));
+    expect(within(screen.getByRole('status', { name: 'What changed' })).queryByRole('button', { name: 'Undo' })).toBeNull();
+  });
+
   it('Ctrl+Z, or ⌘Z, undoes the last edit', async () => {
     await show();
     await act(async () => { await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: false }); });
@@ -121,6 +130,21 @@ describe('a word handed to the fix', () => {
 });
 
 // Option C: the notes' names hand their word over; one fixed elsewhere shows "Fixed" (owner, 2026-11-19).
+// PR review: on a narrow page "Show each" is used from the Edit tab; a place shown goes to the Transcript tab.
+describe('fixing words on a narrow page', () => {
+  it('a place shown from the Edit tab opens the Transcript tab', async () => {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(500);
+    await show();
+    fireEvent.click(screen.getByRole('tab', { name: 'Edit' }));
+    const part = screen.getByRole('region', { name: 'Fix words' });
+    fireEvent.change(within(part).getByRole('textbox', { name: 'Heard as' }), { target: { value: '搜库机' } });
+    fireEvent.click(within(part).getByRole('button', { name: 'Show each' }));
+    fireEvent.click(within(part).getAllByRole('button', { name: /^0:0/ })[0]);
+    await settle();
+    expect(screen.getByRole('tab', { name: 'Transcript' })).toHaveAttribute('aria-selected', 'true');
+  });
+});
+
 describe('the notes\' names to check', () => {
   const withNames = (names: Array<Record<string, unknown>>) => {
     const t = real.store.getRecord(A) as { transcripts: Array<{ id: number }> };
@@ -152,6 +176,16 @@ describe('the notes\' names to check', () => {
     const [fixed, unseen] = within(names()).getAllByRole('listitem');
     expect(fixed).toHaveTextContent('Fixed');
     expect(within(unseen).getByRole('button', { name: 'Go fix' })).toBeInTheDocument();
+  });
+
+  // PR review: no "Go fix" where words cannot be fixed (the record is being transcribed again).
+  it('no Go fix while the record is transcribed again', async () => {
+    withNames([{ written: '搜库机', likely: 'Sokuji', sentences: [1] }]);
+    await show();
+    act(() => store.setState({ job: { kind: 'transcribe', recordId: A, name: null, phase: 'uploading' } as never }));
+    await settle();
+    expect(within(names()).queryByRole('button', { name: 'Go fix' })).toBeNull();
+    expect(within(names()).getByRole('button', { name: 'Dismiss' })).toBeInTheDocument();
   });
 
   // Final review I-2: a name whose right form holds it ("搜库" → "搜库机") is Fixed once only the right form is left.

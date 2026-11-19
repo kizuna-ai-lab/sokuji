@@ -85,6 +85,8 @@ export function swapIn(before: string, after: string): { from: string; to: strin
   if (!taken().trim() || !put().trim()) return null;
   const from = taken().trim();
   const to = put().trim();
-  if (from === to || /[\r\n]/.test(from) || /[\r\n]/.test(to)) return null;
+  // Punctuation changed alone is no word (PR review): each side holds a letter or a digit.
+  const worded = (x: string) => /[\p{L}\p{N}]/u.test(x);
+  if (from === to || !worded(from) || !worded(to) || /[\r\n]/.test(from) || /[\r\n]/.test(to)) return null;
   return { from, to };
 }

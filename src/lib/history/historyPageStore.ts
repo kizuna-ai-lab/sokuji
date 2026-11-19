@@ -309,16 +309,23 @@ export function createHistoryPageStore(
   /** A dismissal being written: the next waits for it rather than writing the names it read before. */
   let dismissing = false;
   /** What a fix added to the word list: the entry written so, as it was before (null when the fix made it). */
-  type WordsAdded = { written: string; was: WordEntry | null };
+  type WordsAdded = { written: string; was: WordEntry | null; made: WordEntry };
   /** What undo takes back on the record shown, last first; cleared when the record or transcript shown changes. */
   type UndoStep =
     | { kind: 'fix'; id: number; words: WordsAdded | null }
     /** A fix reverted from the list: undoing it writes the fix again where its sentences read as heard. */
-    | { kind: 'revert'; id: number; from: string; to: string; sentences: number[]; notesId: number | null }
+    | {
+      kind: 'revert'; id: number; from: string; to: string;
+      /** What the revert changed: each place as it is now, and as the fix had it. */
+      sentences: Array<{ n: number; now: string; was: string }>;
+      notes: { id: number; now: string; was: string } | null;
+    }
     | { kind: 'sentence'; n: number; text: string }
     | { kind: 'name'; side: 'mine' | 'other'; speaker: string; name: string }
     | { kind: 'move'; n: number; speaker: string | null };
   let undoSteps: UndoStep[] = [];
+  /** An undo being written: a second press waits for it rather than taking the same step twice. */
+  let undoing = false;
   let toastSeq = 0;
   let dropToast: (() => void) | null = null;
   let draftSeq = 0;
@@ -407,6 +414,76 @@ export function createHistoryPageStore(
     const remember = (step: UndoStep) => {
       undoSteps = [...undoSteps, step].slice(-UNDO_STEPS);
       set({ canUndo: true });
+    };
+
+    /**
+     * Where an edit began. Once it is written, what follows (its undo step, the line, the re-read) is dropped when
+     * another record or transcript is shown by then: those belong to the page as it was (PR review).
+     */
+    const scopeNow = () => ({ seq: openSeq, record: get().open?.record.id ?? null, transcript: get().open?.transcriptId ?? null });
+    const stillIn = (at: ReturnType<typeof scopeNow>) => at.seq === openSeq
+      && (get().open?.record.id ?? null) === at.record && (get().open?.transcriptId ?? null) === at.transcript;
+
+    /**
+     * `written` into the word list, often heard as `heard`, the list read first so one not yet loaded is not written
+     * over: the entry as it was and as it became, for undo, or null when it was not saved (a fix stands without it).
+     */
+    const learnWord = async (written: string, heard: string): Promise<WordsAdded | null> => {
+      try {
+        if (!useWordList.getState().loaded) await useWordList.getState().load();
+        const was = useWordList.getState().entries.find((e) => e.written === written) ?? null;
+        if (!(await addWord({ written, heardAs: heard }))) return null;
+        const made = useWordList.getState().entries.find((e) => e.written === written);
+        return made ? { written, was: was && { ...was }, made: { ...made } } : null;
+      } catch {
+        return null;
+      }
+    };
+    const sameEntry = (a: WordEntry, b: WordEntry) => a.written === b.written
+      && (a.translation ?? '') === (b.translation ?? '') && (a.heardAs ?? '') === (b.heardAs ?? '');
+
+    /**
+     * One undo step written back: what it took back, and nothing else. `done` is called once its own write is made, so
+     * a later part that fails (the word list) does not leave the step to be taken back twice.
+     */
+    const undoStep = async (open: OpenRecord, transcriptId: number, step: UndoStep, done: () => void): Promise<void> => {
+      if (step.kind === 'fix') {
+        await port.revertCorrection({ id: step.id, forget: true });
+        done();
+        // Only the entry the fix changed, and only as the fix left it: another entry written the same way, or a
+        // change made to this one since, stays (PR review).
+        if (step.words) {
+          const { was, made } = step.words;
+          const now = useWordList.getState().entries;
+          const at = now.findIndex((e) => sameEntry(e, made));
+          if (at >= 0) await useWordList.getState().setEntries(was ? now.map((e, i) => (i === at ? was : e)) : now.filter((_, i) => i !== at));
+        }
+      } else if (step.kind === 'revert') {
+        // What the revert changed goes back where it still reads as the revert left it, notes version included.
+        const sentences = step.sentences
+          .filter((x) => open.sentences.find((y) => y.n === x.n)?.text === x.now)
+          .map((x) => ({ n: x.n, before: x.now, after: x.was }));
+        let notes: { id: number; before: string; after: string } | null = null;
+        if (step.notes) {
+          const shown = await port.getNotes({ id: step.notes.id });
+          if (shown?.body && JSON.stringify(shown.body) === step.notes.now) notes = { id: step.notes.id, before: step.notes.now, after: step.notes.was };
+        }
+        if (sentences.length > 0 || notes) {
+          const again = await port.applyCorrection({ transcriptId, from: step.from, to: step.to, sentences, notes });
+          // The fix written again is the one its own undo step now takes back.
+          undoSteps = undoSteps.map((x) => (x.kind === 'fix' && x.id === step.id ? { ...x, id: again } : x));
+        }
+        done();
+      } else if (step.kind === 'sentence') {
+        await port.editSentences({ transcriptId, edits: [{ n: step.n, text: step.text }] });
+        done();
+      } else if (step.kind === 'name') {
+        await port.renameSpeaker({ transcriptId, side: step.side, speaker: step.speaker, name: step.name });
+        done();
+      } else {
+        await port.reassignSentence({ transcriptId, n: step.n, speaker: step.speaker });
+        done();
+      }
     };
 
     /** The change a fix makes to a notes version (as the store takes it), or null when the notes do not hold the word. */
@@ -688,9 +765,14 @@ export function createHistoryPageStore(
         const open = get().open;
         if (!open || open.transcriptId === null) return;
         const was = open.speakers.find((x) => x.side === side && x.speaker === speaker)?.name ?? '';
+        const scope = scopeNow();
         await port.renameSpeaker({ transcriptId: open.transcriptId, side, speaker, name });
-        remember({ kind: 'name', side, speaker, name: was });
-        say({ kind: 'speaker' });
+        if (!stillIn(scope)) return;
+        // A record still running (or being transcribed again) offers no undo.
+        if (editable()) {
+          remember({ kind: 'name', side, speaker, name: was });
+          say({ kind: 'speaker' });
+        }
         await reread();
       }),
 
@@ -698,9 +780,13 @@ export function createHistoryPageStore(
         const open = get().open;
         if (!open || open.transcriptId === null) return;
         const was = open.sentences.find((x) => x.n === n)?.speakerByUser ?? null;
+        const scope = scopeNow();
         await port.reassignSentence({ transcriptId: open.transcriptId, n, speaker });
-        remember({ kind: 'move', n, speaker: was });
-        say({ kind: 'speaker' });
+        if (!stillIn(scope)) return;
+        if (editable()) {
+          remember({ kind: 'move', n, speaker: was });
+          say({ kind: 'speaker' });
+        }
         await reread();
       }),
 
@@ -720,18 +806,14 @@ export function createHistoryPageStore(
         const notesChange = o.notes && o.only == null ? notesFix(open.notes, word, written) : null;
         const learn = o.words && o.only == null;
         let changed = 0;
+        const scope = scopeNow();
         await act(async () => {
           const id = await port.applyCorrection({ transcriptId: open.transcriptId!, from: word, to: written, sentences, notes: notesChange });
-          // The list read first, so one not yet loaded is not written over; what the entry was is kept for undo.
-          let words: WordsAdded | null = null;
-          if (learn) {
-            if (!useWordList.getState().loaded) await useWordList.getState().load();
-            const was = useWordList.getState().entries.find((e) => e.written === written) ?? null;
-            if (await addWord({ written, heardAs: word })) words = { written, was: was && { ...was } };
-          }
+          changed = sentences.length;
+          const words = learn ? await learnWord(written, word) : null;
+          if (!stillIn(scope)) return;
           remember({ kind: 'fix', id, words });
           say({ kind: 'fixed', from: word, to: written, count: sentences.length, words: words !== null });
-          changed = sentences.length;
           // The record's title follows its notes' title: the list shows it (final review I-7).
           if (notesChange) await reload();
           await reread();
@@ -749,8 +831,10 @@ export function createHistoryPageStore(
           await get().fixWords(swap.from, swap.to, { notes: false, words: o.words });
           return;
         }
+        const scope = scopeNow();
         await act(async () => {
           await port.editSentences({ transcriptId: open.transcriptId!, edits: [{ n, text }] });
+          if (!stillIn(scope)) return;
           remember({ kind: 'sentence', n, text: was.text });
           say({ kind: 'edited' });
           await reread();
@@ -762,59 +846,65 @@ export function createHistoryPageStore(
         if (!open || open.transcriptId === null || !editable()) return;
         const was = open.sentences.find((x) => x.n === n);
         if (!was || was.heard === null) return;
+        const scope = scopeNow();
         await port.restoreSentence({ transcriptId: open.transcriptId, n });
+        if (!stillIn(scope)) return;
         remember({ kind: 'sentence', n, text: was.text });
         say({ kind: 'restored' });
         await reread();
       }),
 
       revertCorrection: (id) => act(async () => {
-        const c = get().open?.corrections.find((x) => x.id === id);
-        if (!c || !editable()) return;
+        const open = get().open;
+        const c = open?.corrections.find((x) => x.id === id);
+        if (!open || !c || !editable()) return;
+        const scope = scopeNow();
+        // What the revert changes, read on each side of it, so its undo puts back exactly that (PR review): a place
+        // changed since the fix is kept by the revert and left alone by the undo; the notes version is the fix's,
+        // shown or not.
+        const textBefore = new Map(open.sentences.map((x) => [x.n, x.text]));
+        const notesBefore = c.notesId !== null ? await port.getNotes({ id: c.notesId }) : null;
         const { restored, kept } = await port.revertCorrection({ id });
-        remember({ kind: 'revert', id, from: c.from, to: c.to, sentences: c.sentences, notesId: c.notesId });
-        say({ kind: 'reverted', from: c.from, to: c.to, count: restored, kept });
+        const notesAfter = c.notesId !== null ? await port.getNotes({ id: c.notesId }) : null;
+        if (!stillIn(scope)) return;
         if (c.notesId !== null) await reload();
         await reread();
+        const sentences = (get().open?.sentences ?? [])
+          .filter((x) => c.sentences.includes(x.n) && textBefore.has(x.n) && textBefore.get(x.n) !== x.text)
+          .map((x) => ({ n: x.n, now: x.text, was: textBefore.get(x.n)! }));
+        const was = notesBefore?.body ? JSON.stringify(notesBefore.body) : null;
+        const now = notesAfter?.body ? JSON.stringify(notesAfter.body) : null;
+        const notes = c.notesId !== null && was !== null && now !== null && was !== now ? { id: c.notesId, now, was } : null;
+        remember({ kind: 'revert', id, from: c.from, to: c.to, sentences, notes });
+        say({ kind: 'reverted', from: c.from, to: c.to, count: restored, kept });
       }),
 
       undo: () => act(async () => {
         const open = get().open;
         const step = undoSteps[undoSteps.length - 1];
-        if (!open || open.transcriptId === null || !step) return;
-        undoSteps = undoSteps.slice(0, -1);
-        set({ canUndo: undoSteps.length > 0 });
-        if (step.kind === 'fix') {
-          await port.revertCorrection({ id: step.id, forget: true });
-          // Only what the fix added comes out of the word list; what was added since stays (final review M-8).
-          if (step.words) {
-            const { written, was } = step.words;
-            const now = useWordList.getState().entries;
-            await useWordList.getState().setEntries(was
-              ? now.map((e) => (e.written === written ? was : e))
-              : now.filter((e) => e.written !== written));
-          }
-        } else if (step.kind === 'revert') {
-          const sentences = open.sentences
-            .filter((x) => step.sentences.includes(x.n))
-            .map((x) => ({ n: x.n, before: x.text, after: replaceWord(x.text, step.from, step.to).text }))
-            .filter((x) => x.after !== x.before);
-          const notes = step.notesId !== null && open.notes?.id === step.notesId ? notesFix(open.notes, step.from, step.to) : null;
-          if (sentences.length > 0 || notes) {
-            const again = await port.applyCorrection({ transcriptId: open.transcriptId, from: step.from, to: step.to, sentences, notes });
-            // The fix written again is the one its own undo step now takes back.
-            undoSteps = undoSteps.map((x) => (x.kind === 'fix' && x.id === step.id ? { ...x, id: again } : x));
-          }
-        } else if (step.kind === 'sentence') {
-          await port.editSentences({ transcriptId: open.transcriptId, edits: [{ n: step.n, text: step.text }] });
-        } else if (step.kind === 'name') {
-          await port.renameSpeaker({ transcriptId: open.transcriptId, side: step.side, speaker: step.speaker, name: step.name });
-        } else {
-          await port.reassignSentence({ transcriptId: open.transcriptId, n: step.n, speaker: step.speaker });
+        if (undoing || !open || open.transcriptId === null || !step || !editable()) return;
+        const scope = scopeNow();
+        // Taken off only once its own write is made, so an undo that failed before can be tried again (PR review).
+        let done = false;
+        let failure: unknown = null;
+        undoing = true;
+        try {
+          await undoStep(open, open.transcriptId, step, () => {
+            done = true;
+            undoSteps = undoSteps.filter((x) => x !== step);
+            set({ canUndo: undoSteps.length > 0 });
+          });
+        } catch (error) {
+          failure = error;
+        } finally {
+          undoing = false;
         }
-        say({ kind: 'undone' });
-        if (step.kind === 'fix' || step.kind === 'revert') await reload();
-        await reread();
+        if (done && stillIn(scope)) {
+          say({ kind: 'undone' });
+          if (step.kind === 'fix' || step.kind === 'revert') await reload();
+          await reread();
+        }
+        if (failure !== null) throw failure;
       }),
 
       dismissToast() {

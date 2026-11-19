@@ -158,6 +158,97 @@ describe('editing a sentence', () => {
   });
 });
 
+// PR review (2026-11-19): undo of a revert, the word list, and edits that end late.
+describe('undo, after review', () => {
+  const tid = () => store.getState().open!.transcriptId!;
+
+  it('undo of a revert writes back only what the revert restored', async () => {
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: false });
+    await store.getState().editSentence(2, '搜库机很快很快', { everywhere: false, words: false });
+    await store.getState().revertCorrection(store.getState().open!.corrections[0].id);
+    expect(texts()).toEqual(['我们用搜库机开会', '搜库机很快很快', 'Sokuji 已经上线']);
+    await store.getState().undo();
+    expect(texts()).toEqual(['我们用Sokuji开会', '搜库机很快很快', 'Sokuji 已经上线']);
+  });
+
+  it('undo of a revert puts back the notes version it changed, shown or not', async () => {
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: true, words: false });
+    const first = store.getState().open!.notes!.id;
+    const second = real.store.saveNotes({ recordId: A, transcriptId: tid(), writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete', body: { ...BODY, overview: { text: '第二版', format: 'plain' } } }) as number;
+    await store.getState().showNotes(second);
+    await store.getState().revertCorrection(store.getState().open!.corrections[0].id);
+    expect((await real.port.getNotes({ id: first }))!.body!.overview.text).toBe('搜库机上线');
+    await store.getState().undo();
+    expect((await real.port.getNotes({ id: first }))!.body!.overview.text).toBe('Sokuji上线');
+    expect(store.getState().open!.notes!.id).toBe(second);
+  });
+
+  it('undo takes out only the entry the fix changed, as the fix left it', async () => {
+    useWordList.setState({ entries: [{ written: 'Sokuji', translation: '即刻' }, { written: 'Sokuji', translation: '速记' }] });
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: true });
+    await store.getState().undo();
+    expect(useWordList.getState().entries).toEqual([{ written: 'Sokuji', translation: '即刻' }, { written: 'Sokuji', translation: '速记' }]);
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: true });
+    const changed = useWordList.getState().entries.map((e, i) => (i === 0 ? { ...e, translation: '即时' } : e));
+    await useWordList.getState().setEntries(changed);
+    await store.getState().undo();
+    expect(useWordList.getState().entries).toEqual(changed);
+  });
+
+  it('a fix is kept, and can be undone, when the word list cannot be read', async () => {
+    useWordList.setState({ entries: [], loaded: false });
+    vi.spyOn(useWordList.getState(), 'load').mockRejectedValueOnce(new Error('disk'));
+    expect(await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: true })).toBe(2);
+    expect(store.getState().open!.corrections).toHaveLength(1);
+    expect(store.getState().toast).toMatchObject({ kind: 'fixed', words: false });
+    expect(store.getState().canUndo).toBe(true);
+  });
+
+  it('an edit that ends after another record is shown leaves that record alone', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const write = real.port.editSentences;
+    real.port.editSentences = async (a) => { await gate; return write(a); };
+    const pending = store.getState().editSentence(3, 'Sokuji 已上线', { everywhere: false, words: false });
+    lay(B);
+    await store.getState().openRecord(B);
+    release();
+    await pending;
+    expect(store.getState().open!.record.id).toBe(B);
+    expect(store.getState().canUndo).toBe(false);
+    expect(store.getState().toast).toBeNull();
+  });
+
+  it('an undo that failed can be tried again', async () => {
+    await store.getState().editSentence(3, 'Sokuji 已上线', { everywhere: false, words: false });
+    const write = real.port.editSentences;
+    real.port.editSentences = async () => { real.port.editSentences = write; throw new Error('busy'); };
+    await store.getState().undo();
+    expect(store.getState().error).toBe('failed: busy');
+    expect(store.getState().canUndo).toBe(true);
+    await store.getState().undo();
+    expect(texts()[2]).toBe('Sokuji 已经上线');
+  });
+
+  // An undo whose fix is taken back is done, even when the word list then fails: it is not taken back twice.
+  it('an undo whose word list fails is still done once', async () => {
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: true });
+    vi.spyOn(useWordList.getState(), 'setEntries').mockRejectedValueOnce(new Error('disk'));
+    await store.getState().undo();
+    expect(texts()).toEqual(['我们用搜库机开会', '搜库机很快', 'Sokuji 已经上线']);
+    expect(store.getState().error).toBe('failed: disk');
+    expect(store.getState().canUndo).toBe(false);
+  });
+
+  it('no undo while the record is transcribed again', async () => {
+    await store.getState().editSentence(3, 'Sokuji 已上线', { everywhere: false, words: false });
+    store.setState({ job: { kind: 'transcribe', recordId: A, name: null, phase: 'uploading' } as never });
+    await store.getState().undo();
+    expect(texts()[2]).toBe('Sokuji 已上线');
+    expect(store.getState().canUndo).toBe(true);
+  });
+});
+
 describe('undo', () => {
   // Review focus: an undo never reaches a record other than the one shown.
   it('the undo steps are this record\'s only', async () => {

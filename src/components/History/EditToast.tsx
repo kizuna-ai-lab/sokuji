@@ -11,7 +11,8 @@ export function EditToast() {
   const { t } = useTranslation();
   const { store } = useHistoryPageContext();
   const toast = useStore(store, (s) => s.toast);
-  const canUndo = useStore(store, (s) => s.canUndo);
+  // Not while the record is transcribed again: undo writes nothing then (PR review).
+  const canUndo = useStore(store, (s) => s.canUndo && s.canEdit());
   if (!toast) return null;
   const said = (x: Toast): string => {
     switch (x.kind) {

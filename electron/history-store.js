@@ -593,6 +593,7 @@ function openHistory({ dir, now = () => Date.now() }) {
     restoreSentence({ transcriptId, n } = {}) {
       const t = finishedTranscript(transcriptId);
       if (!isInt(n)) fail('BAD_INPUT', 'A restore needs n');
+      if (!one('select n from sentences where transcript_id = ? and n = ?', t.id, n)) fail('NO_SENTENCE', `No sentence ${n}`);
       run('update sentences set text = heard, heard = null where transcript_id = ? and n = ? and heard is not null', t.id, n);
     },
 

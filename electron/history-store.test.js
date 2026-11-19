@@ -757,6 +757,8 @@ describe('editing a finished record', () => {
     expect(text(2)).toMatchObject({ text: '搜库机很快', heard: null });
     s.restoreSentence({ transcriptId: t, n: 2 });
     expect(text(2).text).toBe('搜库机很快');
+    // PR review: no such sentence is an error, as for every other edit.
+    expect(() => s.restoreSentence({ transcriptId: t, n: 99 })).toThrow(expect.objectContaining({ code: 'NO_SENTENCE' }));
   });
 
   it('fixes the notes too, and search finds the new word', () => {

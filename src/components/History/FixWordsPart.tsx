@@ -37,10 +37,21 @@ export function FixWordsPart({ onJump }: FixWordsPartProps) {
   const [focusAsked, setFocusAsked] = useState(0);
   const partRef = useRef<HTMLElement>(null);
   const toRef = useRef<HTMLInputElement>(null);
+  /** Counts each change to the fields, typed or handed over: a fix that ends after one clears nothing (PR review). */
+  const edits = useRef(0);
+
+  // A selection's place is a sentence of the transcript it was made in: another transcript shown forgets it (PR
+  // review). Before the draft below, so a word handed over in the same render still fills the fields.
+  useEffect(() => {
+    setOnly(null);
+    setScope('all');
+    setFromNotes(false);
+  }, [open?.record.id, open?.transcriptId]);
 
   // A word handed over: the fields filled from it, the draft taken.
   useEffect(() => {
     if (!draft) return;
+    edits.current += 1;
     setHeard(draft.heard);
     setTo(draft.suggestion ?? '');
     setOnly(draft.only);
@@ -73,14 +84,18 @@ export function FixWordsPart({ onJump }: FixWordsPartProps) {
   );
   if (!editable || !open) return null;
 
-  const one = scope === 'one' && only !== null && hits.some((s) => s.n === only);
-  const canFix = hits.length > 0 && target !== '' && target !== word;
+  // "Only the selected one" stays on that place, even once it reads right: then there is nothing to change (PR review).
+  const one = scope === 'one' && only !== null;
+  const canFix = target !== '' && target !== word && (one ? hits.some((s) => s.n === only) : hits.length > 0);
+  /** Sentences holding the word as typed, written right or not: where the choice of scope is offered. */
+  const holding = word ? open.sentences.filter((s) => findWord(s.text, word).length > 0) : [];
   const fixes = open.corrections.filter((c) => c.revertedAt === null);
   const fix = async () => {
+    const mark = edits.current;
     const changed = await store.getState().fixWords(word, target, {
       notes: !one && notesHits > 0 && inNotes, words: !one && words, only: one ? only : null,
     });
-    if (changed === 0) return;
+    if (changed === 0 || edits.current !== mark) return;
     setHeard('');
     setTo('');
     setOnly(null);
@@ -98,12 +113,12 @@ export function FixWordsPart({ onJump }: FixWordsPartProps) {
         <label className="record-fix__field">
           {t('history.fix.heardAs', 'Heard as')}
           <input className="settings-input" value={heard} spellCheck={false}
-            onChange={(e) => { setHeard(e.target.value); setOnly(null); setScope('all'); setFromNotes(false); }} />
+            onChange={(e) => { edits.current += 1; setHeard(e.target.value); setOnly(null); setScope('all'); setFromNotes(false); }} />
         </label>
         <label className="record-fix__field">
           {t('history.fix.changeTo', 'Change to')}
           <input className="settings-input" ref={toRef} value={to} spellCheck={false}
-            onChange={(e) => setTo(e.target.value)}
+            onChange={(e) => { edits.current += 1; setTo(e.target.value); }}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing && canFix) { e.preventDefault(); void fix(); } }} />
         </label>
       </div>
@@ -128,7 +143,7 @@ export function FixWordsPart({ onJump }: FixWordsPartProps) {
           ))}
         </ul>
       )}
-      {only !== null && hits.length > 1 && hits.some((s) => s.n === only) && (
+      {only !== null && holding.length > 1 && holding.some((s) => s.n === only) && (
         <div className="record-fix__scope" role="radiogroup" aria-label={t('history.fix.scope', 'Where')}>
           <label><input type="radio" checked={scope === 'all'} onChange={() => setScope('all')} /> {t('history.fix.all', 'All {{count}} places', { count: hits.length })}</label>
           <label><input type="radio" checked={scope === 'one'} onChange={() => setScope('one')} /> {t('history.fix.onlySelected', 'Only the selected one')}</label>
