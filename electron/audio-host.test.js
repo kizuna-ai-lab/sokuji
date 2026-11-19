@@ -3,6 +3,13 @@ import { EventEmitter } from 'events';
 import { listAppSources, startCapture, stopCapture, ensureUnityGain } from './audio-host.js';
 import { makeSelfIdentity } from './own-app-source.js';
 
+// Every call names the running app's identity. Left out, it defaults to
+// currentSelfIdentity(), whose require('electron') downloads the Electron
+// binary when it is missing (CI's `npm ci` does not run its install script):
+// a network fetch inside a unit test, which timed out the first test of the
+// worker that hit it. Outside Electron this is the identity it would return.
+const SELF = makeSelfIdentity();
+
 function fakeChild() {
   const c = new EventEmitter();
   c.stdout = new EventEmitter();
@@ -21,7 +28,7 @@ describe('listAppSources', () => {
   it('parses the JSON array and prefixes ids with app:', async () => {
     const child = fakeChild();
     const spawn = vi.fn(() => child);
-    const p = listAppSources({ spawn, resolvePath });
+    const p = listAppSources({ selfIdentity: SELF, spawn, resolvePath });
 
     child.stdout.emit('data', Buffer.from('[{"id":"pid:42","label":"Zoom","exe":"Zoom.exe","active":true}]'));
     child.emit('close', 0);
@@ -35,7 +42,7 @@ describe('listAppSources', () => {
 
   it('names two instances of one application apart by pid', async () => {
     const child = fakeChild();
-    const p = listAppSources({ spawn: () => child, resolvePath });
+    const p = listAppSources({ selfIdentity: SELF, spawn: () => child, resolvePath });
 
     // A second Chrome profile is a second, separately capturable Chrome. The
     // helper cannot tell them apart by name and must not try to.
@@ -70,7 +77,7 @@ describe('listAppSources', () => {
 
   it('leaves a non-pid id out of the name', async () => {
     const child = fakeChild();
-    const p = listAppSources({ spawn: () => child, resolvePath });
+    const p = listAppSources({ selfIdentity: SELF, spawn: () => child, resolvePath });
     child.stdout.emit('data', Buffer.from('[{"id":"node:31","label":"Firefox","exe":"firefox"}]'));
     child.emit('close', 0);
     expect((await p)[0].label).toBe('Firefox');
@@ -78,7 +85,7 @@ describe('listAppSources', () => {
 
   it('carries the window titles through for the row tooltip', async () => {
     const child = fakeChild();
-    const p = listAppSources({ spawn: () => child, resolvePath });
+    const p = listAppSources({ selfIdentity: SELF, spawn: () => child, resolvePath });
 
     // One process tree, two windows - the case the label alone cannot express.
     child.stdout.emit('data', Buffer.from(
@@ -96,7 +103,7 @@ describe('listAppSources', () => {
 
   it('keeps non-ASCII labels intact across chunk boundaries', async () => {
     const child = fakeChild();
-    const p = listAppSources({ spawn: () => child, resolvePath });
+    const p = listAppSources({ selfIdentity: SELF, spawn: () => child, resolvePath });
 
     // A UTF-8 label split mid-array; Buffer.toString per chunk must still
     // reassemble into valid JSON.
@@ -113,7 +120,7 @@ describe('listAppSources', () => {
 
   it('falls back to exe when label is empty', async () => {
     const child = fakeChild();
-    const p = listAppSources({ spawn: () => child, resolvePath });
+    const p = listAppSources({ selfIdentity: SELF, spawn: () => child, resolvePath });
     child.stdout.emit('data', Buffer.from('[{"id":"pid:9","label":"","exe":"foo.exe"}]'));
     child.emit('close', 0);
     expect(await p).toEqual([
@@ -122,12 +129,12 @@ describe('listAppSources', () => {
   });
 
   it('returns an empty array when the helper is missing', async () => {
-    expect(await listAppSources({ spawn: vi.fn(), resolvePath: () => null })).toEqual([]);
+    expect(await listAppSources({ selfIdentity: SELF, spawn: vi.fn(), resolvePath: () => null })).toEqual([]);
   });
 
   it('returns an empty array on malformed output rather than throwing', async () => {
     const child = fakeChild();
-    const p = listAppSources({ spawn: () => child, resolvePath });
+    const p = listAppSources({ selfIdentity: SELF, spawn: () => child, resolvePath });
     child.stdout.emit('data', Buffer.from('not json'));
     child.emit('close', 0);
     expect(await p).toEqual([]);
@@ -135,7 +142,7 @@ describe('listAppSources', () => {
 
   it('returns an empty array when spawn itself throws', async () => {
     const spawn = () => { throw new Error('ENOENT'); };
-    expect(await listAppSources({ spawn, resolvePath })).toEqual([]);
+    expect(await listAppSources({ selfIdentity: SELF, spawn, resolvePath })).toEqual([]);
   });
 });
 
@@ -146,7 +153,7 @@ describe('startCapture', () => {
     const onPcm = vi.fn();
 
     // Linux: no Sokuji pids to exclude (darwin adds them; asserted below), so the test reads the same on any host.
-    expect(startCapture('app:pid:42', onPcm, vi.fn(), { spawn, resolvePath, platform: 'linux' })).toBe(true);
+    expect(startCapture('app:pid:42', onPcm, vi.fn(), { selfIdentity: SELF, spawn, resolvePath, platform: 'linux' })).toBe(true);
     expect(spawn.mock.calls[0][1]).toEqual(['--target', 'pid:42']);
 
     const pcm = Buffer.from([1, 2, 3, 4]);
@@ -181,7 +188,7 @@ describe('startCapture', () => {
   it('parses stderr JSON lines, tolerating split chunks', () => {
     const child = fakeChild();
     const onEvent = vi.fn();
-    startCapture('app:pid:42', vi.fn(), onEvent, { spawn: () => child, resolvePath });
+    startCapture('app:pid:42', vi.fn(), onEvent, { selfIdentity: SELF, spawn: () => child, resolvePath });
 
     child.stderr.emit('data', Buffer.from('{"event":"format","sampleRate":240'));
     expect(onEvent).not.toHaveBeenCalled();
@@ -193,7 +200,7 @@ describe('startCapture', () => {
   it('ignores a non-JSON stderr line without dropping the next event', () => {
     const child = fakeChild();
     const onEvent = vi.fn();
-    startCapture('app:pid:42', vi.fn(), onEvent, { spawn: () => child, resolvePath });
+    startCapture('app:pid:42', vi.fn(), onEvent, { selfIdentity: SELF, spawn: () => child, resolvePath });
 
     child.stderr.emit('data', Buffer.from('garbage\n{"event":"error","code":"target_gone"}\n'));
 
@@ -204,7 +211,7 @@ describe('startCapture', () => {
   it('reports the helper exiting as an event', () => {
     const child = fakeChild();
     const onEvent = vi.fn();
-    startCapture('app:pid:42', vi.fn(), onEvent, { spawn: () => child, resolvePath });
+    startCapture('app:pid:42', vi.fn(), onEvent, { selfIdentity: SELF, spawn: () => child, resolvePath });
 
     child.emit('close', 1);
 
@@ -214,7 +221,7 @@ describe('startCapture', () => {
   it('stays quiet about a helper it killed itself', () => {
     const child = fakeChild();
     const onEvent = vi.fn();
-    startCapture('app:pid:42', vi.fn(), onEvent, { spawn: () => child, resolvePath });
+    startCapture('app:pid:42', vi.fn(), onEvent, { selfIdentity: SELF, spawn: () => child, resolvePath });
 
     stopCapture();
     // kill() is asynchronous: the child's close lands a millisecond or two
@@ -233,8 +240,8 @@ describe('startCapture', () => {
     const onEventFirst = vi.fn();
     const onEventSecond = vi.fn();
 
-    startCapture('app:pid:1', vi.fn(), onEventFirst, { spawn, resolvePath });
-    startCapture('app:pid:2', vi.fn(), onEventSecond, { spawn, resolvePath });
+    startCapture('app:pid:1', vi.fn(), onEventFirst, { selfIdentity: SELF, spawn, resolvePath });
+    startCapture('app:pid:2', vi.fn(), onEventSecond, { selfIdentity: SELF, spawn, resolvePath });
     first.emit('close', null);
 
     // Both callbacks post to the one app-audio:event channel, so the renderer
@@ -254,8 +261,8 @@ describe('startCapture', () => {
     const onPcmFirst = vi.fn();
     const onPcmSecond = vi.fn();
 
-    startCapture('app:pid:1', onPcmFirst, vi.fn(), { spawn, resolvePath });
-    startCapture('app:pid:2', onPcmSecond, vi.fn(), { spawn, resolvePath });
+    startCapture('app:pid:1', onPcmFirst, vi.fn(), { selfIdentity: SELF, spawn, resolvePath });
+    startCapture('app:pid:2', onPcmSecond, vi.fn(), { selfIdentity: SELF, spawn, resolvePath });
     // Whatever was buffered in the old pipe would otherwise be mixed into the
     // new application's stream.
     first.stdout.emit('data', Buffer.from([1, 2, 3, 4]));
@@ -270,8 +277,8 @@ describe('startCapture', () => {
     let n = 0;
     const spawn = () => (++n === 1 ? first : second);
 
-    startCapture('app:pid:1', vi.fn(), vi.fn(), { spawn, resolvePath });
-    startCapture('app:pid:2', vi.fn(), vi.fn(), { spawn, resolvePath });
+    startCapture('app:pid:1', vi.fn(), vi.fn(), { selfIdentity: SELF, spawn, resolvePath });
+    startCapture('app:pid:2', vi.fn(), vi.fn(), { selfIdentity: SELF, spawn, resolvePath });
 
     // Two helpers alive at once would mix both applications into one stream.
     expect(first.kill).toHaveBeenCalledTimes(1);
@@ -282,26 +289,26 @@ describe('startCapture', () => {
     const child = fakeChild();
     const spawn = vi.fn(() => child);
 
-    startCapture('desktop-audio-loopback', vi.fn(), vi.fn(), { spawn, resolvePath, platform: 'linux' });
+    startCapture('desktop-audio-loopback', vi.fn(), vi.fn(), { selfIdentity: SELF, spawn, resolvePath, platform: 'linux' });
 
     expect(spawn.mock.calls[0][1]).toEqual(['--target', 'system']);
   });
 
   it('returns false when the helper binary is missing', () => {
-    expect(startCapture('app:pid:42', vi.fn(), vi.fn(), { spawn: vi.fn(), resolvePath: () => null }))
+    expect(startCapture('app:pid:42', vi.fn(), vi.fn(), { selfIdentity: SELF, spawn: vi.fn(), resolvePath: () => null }))
       .toBe(false);
   });
 
   it('returns false when spawn throws', () => {
     const spawn = () => { throw new Error('EACCES'); };
-    expect(startCapture('app:pid:42', vi.fn(), vi.fn(), { spawn, resolvePath })).toBe(false);
+    expect(startCapture('app:pid:42', vi.fn(), vi.fn(), { selfIdentity: SELF, spawn, resolvePath })).toBe(false);
   });
 });
 
 describe('stopCapture', () => {
   it('kills a running helper and is safe to call twice', () => {
     const child = fakeChild();
-    startCapture('app:pid:42', vi.fn(), vi.fn(), { spawn: () => child, resolvePath });
+    startCapture('app:pid:42', vi.fn(), vi.fn(), { selfIdentity: SELF, spawn: () => child, resolvePath });
 
     stopCapture();
     expect(child.kill).toHaveBeenCalledTimes(1);
