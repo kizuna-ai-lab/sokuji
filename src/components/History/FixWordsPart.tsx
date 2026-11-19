@@ -145,8 +145,8 @@ export function FixWordsPart({ onJump }: FixWordsPartProps) {
       )}
       {only !== null && holding.length > 1 && holding.some((s) => s.n === only) && (
         <div className="record-fix__scope" role="radiogroup" aria-label={t('history.fix.scope', 'Where')}>
-          <label><input type="radio" checked={scope === 'all'} onChange={() => setScope('all')} /> {t('history.fix.all', 'All {{count}} places', { count: hits.length })}</label>
-          <label><input type="radio" checked={scope === 'one'} onChange={() => setScope('one')} /> {t('history.fix.onlySelected', 'Only the selected one')}</label>
+          <label><input type="radio" checked={scope === 'all'} onChange={() => { edits.current += 1; setScope('all'); }} /> {t('history.fix.all', 'All {{count}} places', { count: hits.length })}</label>
+          <label><input type="radio" checked={scope === 'one'} onChange={() => { edits.current += 1; setScope('one'); }} /> {t('history.fix.onlySelected', 'Only the selected one')}</label>
         </div>
       )}
       {!one && notesHits > 0 && (

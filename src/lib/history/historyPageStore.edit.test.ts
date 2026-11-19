@@ -219,6 +219,28 @@ describe('undo, after review', () => {
     expect(store.getState().toast).toBeNull();
   });
 
+  // PR review: a revert whose re-read ends after another record is shown records nothing for that record.
+  it('a revert read back after another record is shown leaves that record alone', async () => {
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: false, words: false });
+    const id = store.getState().open!.corrections[0].id;
+    let entered!: () => void;
+    const inRead = new Promise<void>((r) => { entered = r; });
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    let armed = true;
+    const read = real.port.getSentences;
+    real.port.getSentences = async (a) => { if (armed) { armed = false; entered(); await gate; } return read(a); };
+    const pending = store.getState().revertCorrection(id);
+    await inRead;
+    lay(B);
+    await store.getState().openRecord(B);
+    release();
+    await pending;
+    expect(store.getState().open!.record.id).toBe(B);
+    expect(store.getState().canUndo).toBe(false);
+    expect(store.getState().toast).toBeNull();
+  });
+
   it('an undo that failed can be tried again', async () => {
     await store.getState().editSentence(3, 'Sokuji 已上线', { everywhere: false, words: false });
     const write = real.port.editSentences;

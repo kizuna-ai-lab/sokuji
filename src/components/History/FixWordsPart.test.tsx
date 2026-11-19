@@ -163,6 +163,22 @@ describe('fixing words in the edit panel', () => {
     expect(changeTo().value).toBe('佐藤美咲');
   });
 
+  // PR review: choosing where to fix, while a fix is written, is a change to the fields too.
+  it('a scope chosen while a fix is written is kept', async () => {
+    await show();
+    let finish!: (n: number) => void;
+    act(() => store.getState().openFix({ heard: '搜库机', only: 2, source: 'selection' }));
+    await settle();
+    vi.spyOn(store.getState(), 'fixWords').mockImplementation(() => new Promise<number>((r) => { finish = r; }));
+    fireEvent.change(changeTo(), { target: { value: 'Sokuji' } });
+    fireEvent.click(changeAll());
+    fireEvent.click(screen.getByRole('radio', { name: 'Only the selected one' }));
+    await act(async () => { finish(2); });
+    await settle();
+    expect(screen.getByRole('radio', { name: 'Only the selected one' })).toBeChecked();
+    expect(heard().value).toBe('搜库机');
+  });
+
   it('hidden on a live record', async () => {
     lay(B, false);
     await show(B);

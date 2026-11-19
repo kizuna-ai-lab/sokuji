@@ -880,6 +880,8 @@ export function createHistoryPageStore(
         if (!stillIn(scope)) return;
         if (c.notesId !== null) await reload();
         await reread();
+        // Read again after the re-read too: the page may show another record by now (PR review).
+        if (!stillIn(scope)) return;
         const sentences = (get().open?.sentences ?? [])
           .filter((x) => c.sentences.includes(x.n) && textBefore.has(x.n) && textBefore.get(x.n) !== x.text)
           .map((x) => ({ n: x.n, now: x.text, was: textBefore.get(x.n)! }));
