@@ -541,9 +541,12 @@ class LocalSession implements AdapterSession {
 
   /**
    * When the utterance a result ends was heard, on the run's clock: from its
-   * start sample, through the audio handed to the ASR; failing that, ending
-   * when recognition began and starting its length before. Null when the
-   * result says neither.
+   * start sample, through the audio handed to the ASR. Failing that, a
+   * streaming recognizer's result comes as the utterance ends, its
+   * `durationMs` the time since it began (its `recognitionTimeMs` is the same
+   * span, or the run's, never a delay after it); an offline one's comes after
+   * recognition, so its span ends when recognition began. Null when the result
+   * says neither.
    */
   private heardSpan(result: AsrResult, text: string): HeardSpan | null {
     const duration = Math.max(0, result.durationMs);
@@ -556,7 +559,7 @@ class LocalSession implements AdapterSession {
     }
     if (!(duration > 0)) return null;
     const recognition = Number.isFinite(result.recognitionTimeMs) ? Math.max(0, result.recognitionTimeMs) : 0;
-    const endAt = this.request.clock.now() - recognition;
+    const endAt = this.request.clock.now() - (this.config.asr.streaming ? 0 : recognition);
     return { startAt: endAt - duration, endAt, total, taken: 0 };
   }
 

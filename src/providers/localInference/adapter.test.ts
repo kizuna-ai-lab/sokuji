@@ -1463,6 +1463,14 @@ describe('the LocalInference adapter — when an utterance was heard', () => {
     expect(heardOf(t.log)?.pieces.map((p) => [p.startAt, p.endAt])).toEqual([[3700, 4200], [4200, 4700]]);
   });
 
+  it('a streaming recognizer without a start sample: the utterance ends as its result comes, its recognition time no delay', async () => {
+    // Its workers report the time since the utterance (or the run) began as both durationMs and recognitionTimeMs.
+    const t = await open(makeConfig({ asr: { modelId: 'streaming-zipformer', streaming: true } }));
+    t.clock.advance(15_000);
+    t.asr.onResult?.({ text: '晴れ', durationMs: 5000, recognitionTimeMs: 5000 });
+    expect(heardOf(t.log)?.pieces.map((p) => [p.startAt, p.endAt])).toEqual([[10_000, 12_500], [12_500, 15_000]]);
+  });
+
   it('says it even when the final repeats the last partial, the text unchanged', async () => {
     const t = await open();
     feedSecond(t);
