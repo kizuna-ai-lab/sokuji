@@ -1,9 +1,9 @@
-import { AsrEngine } from '../../lib/local-inference/engine/AsrEngine';
+import { AsrEngine, type AsrResult } from '../../lib/local-inference/engine/AsrEngine';
 import { StreamingAsrEngine } from '../../lib/local-inference/engine/StreamingAsrEngine';
 import { TranslationEngine, type TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
 import { TtsEngine, type AudioChunkCallback, type TtsResult } from '../../lib/local-inference/engine/TtsEngine';
 import { turnRuntime, type TurnConnection } from '../../lib/turn/TurnRuntime';
-import type { SegmentEnd, VadWebConfig } from '../../lib/local-inference/types';
+import type { VadWebConfig } from '../../lib/local-inference/types';
 import type { LocalInferenceConfig } from './config';
 
 /**
@@ -25,6 +25,9 @@ export interface AsrInit {
   turnPort?: MessagePort;
 }
 
+/** An utterance the ASR finished: the engine's own shape. */
+export type { AsrResult };
+
 /** `AsrEngine` or `StreamingAsrEngine` behind one shape. */
 export interface AsrLike {
   init(modelId: string, options: AsrInit): Promise<void>;
@@ -33,7 +36,8 @@ export interface AsrLike {
   dispose(): void;
   /** The cumulative hypothesis for the utterance so far, never a delta. */
   onPartialResult: ((text: string) => void) | null;
-  onResult: ((result: { text: string; durationMs: number; recognitionTimeMs: number } & Partial<SegmentEnd>) => void) | null;
+  /** `startSample`: where the utterance began in the audio fed since `init`, at 16 kHz, when the recognizer says. */
+  onResult: ((result: AsrResult) => void) | null;
   onSpeechStart: (() => void) | null;
   /** An error message from the ready worker: one utterance failed, the engine goes on. */
   onError: ((error: string) => void) | null;
@@ -94,7 +98,7 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
     dispose: () => engine.dispose(),
   };
   engine.onPartialResult = (text) => asr.onPartialResult?.(text);
-  engine.onResult = (result: { text: string; durationMs: number; recognitionTimeMs: number } & Partial<SegmentEnd>) => asr.onResult?.(result);
+  engine.onResult = (result: AsrResult) => asr.onResult?.(result);
   engine.onSpeechStart = () => asr.onSpeechStart?.();
   // Two failures, kept apart by the engine's own hook: a ready worker's
   // `error` message is one chunk (the streaming worker resets and goes on);
