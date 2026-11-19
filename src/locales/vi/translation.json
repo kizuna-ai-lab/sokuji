@@ -1313,12 +1313,12 @@
     "steps": {
       "language": {
         "title": "Sokuji nên nói với bạn bằng ngôn ngữ nào?",
-        "desc": "Đây là ngôn ngữ của menu và nút. Bạn sẽ chọn các ngôn ngữ để dịch giữa sau.",
+        "desc": "Đây là ngôn ngữ của menu và nút bấm. Ngôn ngữ cần dịch sẽ chọn ở bước sau.",
         "label": "Ngôn ngữ giao diện"
       },
       "scenario": {
         "title": "Bạn muốn làm gì?",
-        "desc": "Chọn phương án gần đúng nhất. Bạn có thể thay đổi bất kỳ lúc nào sau này."
+        "desc": "Chọn tình huống giống với bạn nhất. Bạn có thể đổi lại bất cứ lúc nào."
       },
       "path": {
         "title": "Chọn nhà cung cấp dịch vụ AI"
@@ -1330,7 +1330,7 @@
       },
       "languagePair": {
         "title": "Ngôn ngữ nào?",
-        "desc": "Ngôn ngữ bạn (hoặc họ) nói, và ngôn ngữ cần dịch sang."
+        "desc": "Bạn (hoặc người kia) nói tiếng gì, và cần dịch sang tiếng gì."
       },
       "finish": {
         "title": "Sẵn sàng",
@@ -1338,75 +1338,75 @@
       }
     },
     "scenarios": {
-      "sets": "Thiết lập: chế độ {{mode}} · {{output}}",
+      "sets": "Áp dụng: chế độ {{mode}} · {{output}}",
       "understand-others": {
-        "title": "Hiểu những gì họ nói",
-        "desc": "Cuộc họp trực tuyến, lớp học, buổi nói chuyện, video, livestream — đọc bản dịch trực tiếp của những gì bạn nghe."
+        "title": "Hiểu người khác nói gì",
+        "desc": "Họp online, lớp học, hội thảo, video, livestream — xem phụ đề dịch ngay khi bạn đang nghe."
       },
       "be-heard": {
-        "title": "Được hiểu trong cuộc họp",
-        "desc": "Họ nghe giọng nói đã dịch của bạn qua micro ảo."
+        "title": "Để người khác hiểu bạn trong cuộc họp",
+        "desc": "Bạn nói tiếng của mình, người nghe nghe giọng đọc bản dịch qua micro ảo."
       },
       "subtitle-myself": {
-        "title": "Phụ đề cho lời nói của tôi",
-        "desc": "Buổi nói chuyện, livestream, thuyết trình — khán giả của bạn đọc phụ đề đã dịch; không có âm thanh nào được tạo ra."
+        "title": "Tạo phụ đề cho lời bạn nói",
+        "desc": "Thuyết trình, hội thảo, livestream — khán giả đọc phụ đề đã dịch; không phát ra giọng đọc."
       },
       "two-way-voice": {
-        "title": "Trò chuyện trực tuyến hai chiều",
-        "desc": "Họ nghe giọng nói đã dịch của bạn; bạn đọc bản dịch của họ dưới dạng phụ đề và cũng có thể nghe."
+        "title": "Họp online hai chiều",
+        "desc": "Người kia nghe giọng đọc bản dịch lời bạn; bạn đọc phụ đề dịch lời họ, và nghe giọng đọc nếu muốn."
       },
       "two-way-text": {
-        "title": "Trò chuyện trực tuyến hai chiều, chỉ phụ đề",
-        "desc": "Phụ đề song ngữ, biên bản cuộc họp — cả hai bên đều ở dạng văn bản, không có giọng nói tổng hợp."
+        "title": "Họp online hai chiều, chỉ phụ đề",
+        "desc": "Phụ đề song ngữ, biên bản cuộc họp — cả hai bên chỉ hiện chữ, không có giọng đọc máy."
       },
-      "setsBeside": "Thiết lập: chế độ {{mode}}, đối phương ngồi cạnh tôi · {{output}}",
+      "setsBeside": "Áp dụng: chế độ {{mode}}, người kia ngồi cạnh bạn · {{output}}",
       "face-to-face-voice": {
-        "title": "Trò chuyện mặt đối mặt",
-        "desc": "Hai người dùng chung một máy tính, mỗi người nói ngôn ngữ của mình; mỗi người đeo một tai nghe và chỉ nghe bản dịch sang ngôn ngữ của mình."
+        "title": "Nói chuyện trực tiếp",
+        "desc": "Hai người ngồi chung một máy tính, mỗi người nói tiếng của mình; mỗi người đeo một bên tai nghe và chỉ nghe bản dịch sang tiếng của mình."
       },
       "face-to-face-text": {
-        "title": "Trò chuyện mặt đối mặt, chỉ phụ đề",
-        "desc": "Cả hai cùng đọc một màn hình, hoặc đối phương mở trang phụ đề LAN trên điện thoại.",
+        "title": "Nói chuyện trực tiếp, chỉ phụ đề",
+        "desc": "Cả hai cùng đọc một màn hình, hoặc người kia mở trang phụ đề qua mạng LAN trên điện thoại.",
         "descScreenOnly": "Cả hai cùng đọc một màn hình."
       }
     },
     "output": {
-      "voice": "giọng nói và phụ đề",
+      "voice": "giọng đọc và phụ đề",
       "subtitles": "chỉ phụ đề"
     },
     "paths": {
-      "recommended": "Được đề xuất",
+      "recommended": "Nên dùng",
       "pickProvider": "Nhà cung cấp nào?",
-      "offlineFlavor": "Công cụ nào?",
+      "offlineFlavor": "Dùng bộ máy nào?",
       "managed": {
         "title": "Bắt đầu ngay",
-        "desc": "Kizuna AI thực hiện việc dịch giúp bạn.",
-        "cost": "Đăng ký bằng địa chỉ email và xác minh — tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư, và việc dịch sẽ được tính phí theo mức sử dụng.",
+        "desc": "Kizuna AI xử lý việc dịch cho bạn.",
+        "cost": "Đăng ký bằng email và xác minh — tài khoản đã xác minh được tặng tiền dùng thử. Sau đó bạn nạp tiền vào tài khoản, dùng bao nhiêu trả bấy nhiêu.",
         "options": {
-          "kizunaai_soniox": "Chép lời theo thời gian thực, dịch nhanh.",
-          "kizunaai_qwen": "Có thể nhìn màn hình của bạn; chép lời và dịch rất chính xác."
+          "kizunaai_soniox": "Chuyển giọng nói thành chữ tức thì, dịch nhanh.",
+          "kizunaai_qwen": "Có thể xem màn hình của bạn; nhận dạng và dịch rất chính xác."
         }
       },
       "own-key": {
         "title": "Tôi có khóa API riêng",
-        "desc": "Mang khóa riêng của bạn từ OpenAI, Gemini, Doubao (Volcengine) và các nhà cung cấp khác.",
-        "cost": "Khóa của bạn ở lại trên thiết bị này và gửi thẳng đến nhà cung cấp từ đây. Bạn là khách hàng của họ: bạn trả tiền cho họ theo mức sử dụng, và không có gì đi qua Kizuna AI."
+        "desc": "Dùng khóa API của bạn từ OpenAI, Gemini, Doubao (Volcengine) và các nhà cung cấp khác.",
+        "cost": "Khóa chỉ lưu trên máy này và kết nối thẳng tới nhà cung cấp. Bạn trả tiền trực tiếp cho họ theo mức dùng; không có gì đi qua Kizuna AI."
       },
       "offline": {
         "title": "Không cần khóa",
-        "desc": "Miễn phí. Nhận dạng chạy trên máy tính này; dịch dùng Bing và giọng nói dùng Edge, là các dịch vụ trực tuyến của Microsoft.",
-        "cost": "Nhận dạng cần tải mô hình xuống ổ đĩa trước. Chạy tốt khi có GPU; chậm rõ rệt nếu chỉ dùng CPU.",
-        "native": "Công cụ Native — nhanh hơn, dùng GPU nếu có.",
-        "wasm": "Công cụ trong ứng dụng — hoạt động mọi nơi, chậm hơn."
+        "desc": "Miễn phí. Nhận dạng giọng nói chạy ngay trên máy này; phần dịch dùng Bing và giọng đọc dùng Edge (dịch vụ online của Microsoft).",
+        "cost": "Cần tải mô hình nhận dạng về máy trước. Chạy tốt nếu có GPU; chỉ có CPU thì chậm hơn nhiều.",
+        "native": "Bộ máy Native — nhanh hơn, dùng GPU nếu máy có.",
+        "wasm": "Bộ máy chạy trong ứng dụng — chạy được ở mọi nơi nhưng chậm hơn."
       },
-      "ownKeyNote": "Chọn nhà cung cấp mà bạn đã có tài khoản. Mỗi nhà cung cấp cấp một khóa riêng:",
-      "ownKeyGuides": "hướng dẫn cho từng nhà cung cấp",
-      "managedPick": "Dùng dịch vụ lưu trữ nào?"
+      "ownKeyNote": "Chọn nhà cung cấp bạn đã có tài khoản. Mỗi nơi cấp khóa API riêng:",
+      "ownKeyGuides": "xem cách lấy khóa của từng nơi",
+      "managedPick": "Chọn dịch vụ nào?"
     },
     "fit": {
-      "cannotSpeak": "Nhà cung cấp này không thể tạo bản dịch bằng giọng nói.",
-      "cannotBeTextOnly": "Nhà cung cấp này luôn tạo giọng nói; không thể chạy ở chế độ chỉ phụ đề.",
-      "cannotFaceToFace": "Nhà cung cấp này không thể dịch cho hai người dùng chung một micro."
+      "cannotSpeak": "Nhà cung cấp này không đọc được bản dịch thành giọng nói.",
+      "cannotBeTextOnly": "Nhà cung cấp này luôn đọc bản dịch thành giọng nói; không dùng được chế độ chỉ phụ đề.",
+      "cannotFaceToFace": "Nhà cung cấp này chưa dịch được khi hai người nói chung một micro."
     },
     "credentials": {
       "apiKey": "Khóa API",
@@ -1415,21 +1415,21 @@
       "appId": "App ID",
       "accessToken": "Access Token",
       "apiSecret": "API Secret",
-      "validate": "Xác thực",
-      "valid": "Đã chấp nhận khóa.",
-      "invalid": "Khóa đã bị từ chối.",
+      "validate": "Kiểm tra",
+      "valid": "Khóa hợp lệ.",
+      "invalid": "Khóa không hợp lệ.",
       "signIn": "Đăng nhập",
       "createAccount": "Tạo tài khoản",
       "signedIn": "Đã đăng nhập. Bạn có thể tiếp tục.",
-      "managedDesc": "Đăng ký bằng địa chỉ email và xác minh qua hộp thư của bạn; tài khoản đã xác minh sẽ nhận được tín dụng dùng thử. Sau đó bạn nạp thêm số dư và chỉ trả tiền theo mức sử dụng.",
-      "offlineNotice": "Mô hình nhận dạng được tải xuống sau khi thiết lập, trong Cài đặt → Mô hình và bộ nhớ. Dịch dùng Bing và giọng nói dùng Edge: không cần tải gì và không cần tài khoản; văn bản cần dịch và bản dịch cần đọc được gửi tới Microsoft.",
-      "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Tài khoản và khóa. Nút bắt đầu bị khóa cho đến khi khóa được xác thực.",
-      "pendingSignIn": "Bạn có thể đăng nhập sau từ nút tài khoản. Bắt đầu vẫn bị khóa cho đến khi đó.",
-      "ownKeyDesc": "Khóa này chỉ được lưu trên thiết bị này, và ứng dụng gọi trực tiếp đến nhà cung cấp từ đây — không bao giờ đi qua Kizuna AI. Bạn trả tiền cho nhà cung cấp theo mức sử dụng.",
+      "managedDesc": "Đăng ký bằng email và bấm liên kết xác minh trong hộp thư; tài khoản đã xác minh được tặng tiền dùng thử. Sau đó bạn nạp tiền vào tài khoản, dùng bao nhiêu trả bấy nhiêu.",
+      "offlineNotice": "Mô hình nhận dạng sẽ được tải sau khi cài đặt xong, trong Cài đặt → Mô hình và bộ nhớ. Phần dịch dùng Bing và giọng đọc dùng Edge: không cần tải gì, không cần tài khoản; nội dung cần dịch và bản dịch cần đọc sẽ được gửi tới Microsoft.",
+      "pendingKey": "Bạn có thể thêm khóa sau trong Cài đặt → Tài khoản và khóa. Nút Bắt đầu chưa bấm được cho đến khi khóa hợp lệ.",
+      "pendingSignIn": "Bạn có thể đăng nhập sau bằng nút tài khoản. Trước đó, nút Bắt đầu chưa bấm được.",
+      "ownKeyDesc": "Khóa chỉ lưu trên máy này, ứng dụng gọi thẳng tới nhà cung cấp — không bao giờ đi qua Kizuna AI. Bạn trả tiền cho nhà cung cấp theo mức dùng.",
       "guide": "Cách lấy khóa này",
-      "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi đã gửi qua email để xác minh địa chỉ của bạn — tín dụng dùng thử sẽ được cấp ngay khi bạn hoàn tất.",
-      "onFile": "Đã có một khóa được lưu — để trống nếu muốn giữ nguyên.",
-      "offlineHardware": "Sokuji chạy tốt khi có GPU và đủ VRAM; chỉ dùng CPU sẽ chậm rõ rệt.",
+      "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi gửi qua email để xác minh — tiền dùng thử sẽ được cộng ngay sau đó.",
+      "onFile": "Đã lưu một khóa — để trống nếu muốn giữ khóa cũ.",
+      "offlineHardware": "Sokuji chạy tốt nếu có GPU và đủ VRAM; chỉ có CPU thì chậm hơn nhiều.",
       "openaiOneKey": "Một khóa này dùng chung cho OpenAI Realtime, Translate và Live."
     },
     "summary": {
