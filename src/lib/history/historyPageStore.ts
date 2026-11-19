@@ -2,7 +2,8 @@
 //
 // The History page's state and actions over a `HistoryPort`, one store per page. Every call can fail: a failure is
 // shown as a line in the interface's words (`errorText`) and leaves what was shown; nothing is retried by itself.
-import { addWord, useWordList } from '../words/list';
+import { addWord, useWordList, type WordEntry } from '../words/list';
+import { findWord, replaceInNotes, replaceWord, swapIn } from './wordFix';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import type { Clock } from '../contract/clock';
 import type { Leg } from '../conversation/types';
@@ -16,7 +17,7 @@ import type { FileRecognitionMissing, FileRecognitionService } from './file/serv
 import { trackTranslation, transcribedTracks, type TranscribePhase } from './file/transcribe';
 import type { HistoryPort } from './port';
 import type {
-  FileTranscriptionOptions,
+  FileTranscriptionOptions, HistoryCorrection,
   HistoryNotes, HistoryRecord, HistoryRecordRow, HistorySearchResult, HistorySentence, HistorySpeaker, HistoryStatus, HistoryUsage,
 } from './types';
 
@@ -39,7 +40,31 @@ export interface OpenRecord {
   notes: HistoryNotes | null;
   /** The newest attempt when it is newer than the version shown (it failed or was stopped). */
   latest?: HistoryNotes | null;
+  /** The shown transcript's fixes of misheard words, newest first (design P0 §3.1). */
+  corrections: readonly HistoryCorrection[];
 }
+
+/** What the page says after an edit, with Undo beside it, for 6 s (design P0 §3.6). */
+export type EditToast = { id: number } & (
+  | { kind: 'fixed'; from: string; to: string; count: number; words: boolean }
+  | { kind: 'reverted'; from: string; to: string; count: number; kept: number }
+  | { kind: 'edited' } | { kind: 'restored' } | { kind: 'speaker' } | { kind: 'undone' }
+);
+
+/** A word handed to the edit panel's "Fix words" (option C): from a name to check or a selection. It changes nothing. */
+export interface FixDraft {
+  seq: number;
+  heard: string;
+  suggestion: string | null;
+  /** The sentence it was selected in, when only that one may be fixed. */
+  only: number | null;
+  source: 'notes' | 'selection';
+}
+
+/** The toast's time on screen. */
+export const TOAST_MS = 6000;
+/** Steps kept for undo on one record page. */
+export const UNDO_STEPS = 20;
 
 /** An import or a transcription running from this page: one at a time. */
 export interface FileJob {
@@ -137,6 +162,10 @@ export interface HistoryPageState {
   filesOffered: boolean;
   busy: boolean;
   error: string | null;
+  toast: EditToast | null;
+  /** There is a step to undo on the record shown. */
+  canUndo: boolean;
+  fixDraft: FixDraft | null;
 }
 
 export interface HistoryPageActions {
@@ -184,6 +213,25 @@ export interface HistoryPageActions {
    * read of the service (and, through Kizuna AI, of its terms). A read that fails answers `unchecked`.
    */
   fileJobCheck(kind: 'import' | 'transcribe'): Promise<FileJobCheck>;
+  /** The open record can be edited: it has ended and is not being transcribed again. */
+  canEdit(): boolean;
+  /**
+   * `from` written as `to` in the shown transcript (only sentence `only` when given), the shown notes too with `notes`,
+   * and into the word list with `words` (a whole-transcript fix only). The sentences changed; 0 when refused or failed.
+   */
+  fixWords(from: string, to: string, o: { notes: boolean; words: boolean; only?: number | null }): Promise<number>;
+  /** Sentence `n` rewritten; with `everywhere` and a one-word swap, the swap is made in every sentence. */
+  editSentence(n: number, text: string, o: { everywhere: boolean; words: boolean }): Promise<void>;
+  /** Sentence `n` back to what was heard. */
+  restoreSentence(n: number): Promise<void>;
+  /** A fix taken back: what it wrote goes back to what it found. */
+  revertCorrection(id: number): Promise<void>;
+  /** The last edit on this record page taken back without a trace. */
+  undo(): Promise<void>;
+  dismissToast(): void;
+  /** Hands a word to the edit panel's "Fix words"; changes nothing. */
+  openFix(o: { heard: string; suggestion?: string | null; only?: number | null; source: 'notes' | 'selection' }): void;
+  clearFixDraft(): void;
   /** Why an import or a transcription cannot start now, or null: `fileJobCheck`'s block. */
   fileJobBlocked(kind: 'import' | 'transcribe'): Promise<FileJobBlock | null>;
   /**
@@ -265,6 +313,16 @@ export function createHistoryPageStore(
   let notesSeq = 0;
   /** A dismissal being written: the next waits for it rather than writing the names it read before. */
   let dismissing = false;
+  /** What undo takes back on the record shown, last first; cleared when the record or transcript shown changes. */
+  type UndoStep =
+    | { kind: 'fix'; id: number; words: WordEntry[] | null }
+    | { kind: 'sentence'; n: number; text: string }
+    | { kind: 'name'; side: 'mine' | 'other'; speaker: string; name: string }
+    | { kind: 'move'; n: number; speaker: string | null };
+  let undoSteps: UndoStep[] = [];
+  let toastSeq = 0;
+  let dropToast: (() => void) | null = null;
+  let draftSeq = 0;
   /** The file job, shared with every page over the same jobs. */
   const jobs = files?.state ?? createFileJobState();
   /** Unsubscribes from the file job. */
@@ -331,11 +389,45 @@ export function createHistoryPageStore(
 
     const newestTranscript = (record: HistoryRecord) => record.transcripts[record.transcripts.length - 1];
 
+    /** The undo steps and the toast go: another record, another transcript, or the page gone. */
+    const forgetEdits = () => {
+      undoSteps = [];
+      dropToast?.();
+      dropToast = null;
+      set({ toast: null, canUndo: false, fixDraft: null });
+    };
+
+    /** Says what an edit did, for TOAST_MS. */
+    const say = (toast: EditToast extends infer T ? (T extends { id: number } ? Omit<T, 'id'> : never) : never) => {
+      dropToast?.();
+      const id = ++toastSeq;
+      set({ toast: { ...toast, id } as EditToast });
+      dropToast = clock.setTimeout(() => { if (get().toast?.id === id) set({ toast: null }); }, TOAST_MS);
+    };
+
+    const remember = (step: UndoStep) => {
+      undoSteps = [...undoSteps, step].slice(-UNDO_STEPS);
+      set({ canUndo: true });
+    };
+
+    /** The open record read again after an edit, its notes version kept. */
+    const reread = async () => {
+      const open = get().open;
+      if (open) await fetchRecord(open.record.id, open.at, open.transcriptId, openSeq, open.notes?.id);
+    };
+
+    const editable = (): boolean => {
+      const open = get().open;
+      if (!open || open.transcriptId === null || open.record.state !== 'closed') return false;
+      const job = get().job;
+      return !(job && job.kind === 'transcribe' && job.recordId === open.record.id);
+    };
+
     /**
      * The record and everything its page shows; set only once all of it has arrived. The transcript shown is the one
      * asked for, else the one a search hit was found in, else the newest; the notes shown are that transcript's.
      */
-    const fetchRecord = async (id: string, at: HitTarget | null, transcriptId?: number | null, seq = openSeq): Promise<void> => {
+    const fetchRecord = async (id: string, at: HitTarget | null, transcriptId?: number | null, seq = openSeq, notesId?: number): Promise<void> => {
       const record = await port.getRecord(id);
       if (!record) throw new Error(`Record ${id} is gone`);
       const legs = await port.getLegs(id);
@@ -350,13 +442,18 @@ export function createHistoryPageStore(
         || (n.transcriptId === null && shownTranscript === newest);
       const byAge = record.notes.filter(own).sort((a, b) => a.createdAt - b.createdAt || a.id - b.id);
       const lastTry = byAge[byAge.length - 1];
-      const chosen = [...byAge].reverse().find((n) => n.state === 'complete') ?? lastTry;
+      // An edit reads the record again with the notes version that was shown, not the newest.
+      const chosen = byAge.find((n) => n.id === notesId) ?? [...byAge].reverse().find((n) => n.state === 'complete') ?? lastTry;
       const shown = chosen ? await port.getNotes({ id: chosen.id }) : null;
       // When the newest attempt failed or was stopped after the version shown, what became of it is said too.
       const latest = lastTry && chosen && lastTry.id !== chosen.id ? await port.getNotes({ id: lastTry.id }) : null;
+      const corrections = shownTranscript ? await port.listCorrections({ transcriptId: shownTranscript.id }) : [];
       // The user closed this record, or opened another, while it was read.
       if (seq !== openSeq) return;
-      set({ open: { record, transcriptId: shownTranscript?.id ?? null, sentences, speakers, legs, at, notes: shown, latest } });
+      // Another record or transcript shown: the undo steps were the other one's.
+      const before = get().open;
+      if (before?.record.id !== record.id || before.transcriptId !== (shownTranscript?.id ?? null)) forgetEdits();
+      set({ open: { record, transcriptId: shownTranscript?.id ?? null, sentences, speakers, legs, at, notes: shown, latest, corrections } });
     };
 
     return {
@@ -370,6 +467,9 @@ export function createHistoryPageStore(
       usage: null,
       open: null,
       notesRunning: notes?.running() ?? [],
+      toast: null,
+      canUndo: false,
+      fixDraft: null,
       job: jobs.getState().job,
       jobFailure: jobs.getState().jobFailure,
       jobKept: jobs.getState().jobKept,
@@ -491,6 +591,7 @@ export function createHistoryPageStore(
 
       closeRecord: () => {
         openSeq += 1;
+        forgetEdits();
         set({ open: null });
       },
 
@@ -591,16 +692,122 @@ export function createHistoryPageStore(
       renameSpeaker: (side, speaker, name) => act(async () => {
         const open = get().open;
         if (!open || open.transcriptId === null) return;
+        const was = open.speakers.find((x) => x.side === side && x.speaker === speaker)?.name ?? '';
         await port.renameSpeaker({ transcriptId: open.transcriptId, side, speaker, name });
-        await fetchRecord(open.record.id, open.at, open.transcriptId);
+        remember({ kind: 'name', side, speaker, name: was });
+        say({ kind: 'speaker' });
+        await reread();
       }),
 
       reassign: (n, speaker) => act(async () => {
         const open = get().open;
         if (!open || open.transcriptId === null) return;
+        const was = open.sentences.find((x) => x.n === n)?.speakerByUser ?? null;
         await port.reassignSentence({ transcriptId: open.transcriptId, n, speaker });
-        await fetchRecord(open.record.id, open.at, open.transcriptId);
+        remember({ kind: 'move', n, speaker: was });
+        say({ kind: 'speaker' });
+        await reread();
       }),
+
+      canEdit: editable,
+
+      async fixWords(from, to, o) {
+        const open = get().open;
+        const word = from.trim();
+        const written = to.trim();
+        if (!open || open.transcriptId === null || !editable() || !word || !written || word === written) return 0;
+        const sentences = open.sentences
+          .filter((x) => (o.only == null || x.n === o.only) && findWord(x.text, word).length > 0)
+          .map((x) => ({ n: x.n, before: x.text, after: replaceWord(x.text, word, written).text }));
+        if (sentences.length === 0) return 0;
+        const body = o.notes && o.only == null ? open.notes?.body ?? null : null;
+        const fixed = body ? replaceInNotes(body, word, written) : null;
+        const notesChange = body && fixed && fixed.count > 0 && open.notes
+          ? { id: open.notes.id, before: JSON.stringify(body), after: JSON.stringify(fixed.body) } : null;
+        const learn = o.words && o.only == null;
+        let changed = 0;
+        await act(async () => {
+          const id = await port.applyCorrection({ transcriptId: open.transcriptId!, from: word, to: written, sentences, notes: notesChange });
+          const words = learn ? useWordList.getState().entries.slice() : null;
+          if (learn) await addWord({ written, heardAs: word });
+          remember({ kind: 'fix', id, words });
+          say({ kind: 'fixed', from: word, to: written, count: sentences.length, words: learn });
+          changed = sentences.length;
+          await reread();
+        });
+        return changed;
+      },
+
+      async editSentence(n, text, o) {
+        const open = get().open;
+        if (!open || open.transcriptId === null || !editable()) return;
+        const was = open.sentences.find((x) => x.n === n);
+        if (!was || was.text === text) return;
+        const swap = o.everywhere ? swapIn(was.text, text) : null;
+        if (swap && open.sentences.some((x) => x.n !== n && findWord(x.text, swap.from).length > 0)) {
+          await get().fixWords(swap.from, swap.to, { notes: false, words: o.words });
+          return;
+        }
+        await act(async () => {
+          await port.editSentences({ transcriptId: open.transcriptId!, edits: [{ n, text }] });
+          remember({ kind: 'sentence', n, text: was.text });
+          say({ kind: 'edited' });
+          await reread();
+        });
+      },
+
+      restoreSentence: (n) => act(async () => {
+        const open = get().open;
+        if (!open || open.transcriptId === null || !editable()) return;
+        const was = open.sentences.find((x) => x.n === n);
+        if (!was || was.heard === null) return;
+        await port.restoreSentence({ transcriptId: open.transcriptId, n });
+        remember({ kind: 'sentence', n, text: was.text });
+        say({ kind: 'restored' });
+        await reread();
+      }),
+
+      revertCorrection: (id) => act(async () => {
+        const c = get().open?.corrections.find((x) => x.id === id);
+        if (!c || !editable()) return;
+        const { restored, kept } = await port.revertCorrection({ id });
+        say({ kind: 'reverted', from: c.from, to: c.to, count: restored, kept });
+        await reread();
+      }),
+
+      undo: () => act(async () => {
+        const open = get().open;
+        const step = undoSteps[undoSteps.length - 1];
+        if (!open || open.transcriptId === null || !step) return;
+        undoSteps = undoSteps.slice(0, -1);
+        set({ canUndo: undoSteps.length > 0 });
+        if (step.kind === 'fix') {
+          await port.revertCorrection({ id: step.id, forget: true });
+          if (step.words) await useWordList.getState().setEntries(step.words);
+        } else if (step.kind === 'sentence') {
+          await port.editSentences({ transcriptId: open.transcriptId, edits: [{ n: step.n, text: step.text }] });
+        } else if (step.kind === 'name') {
+          await port.renameSpeaker({ transcriptId: open.transcriptId, side: step.side, speaker: step.speaker, name: step.name });
+        } else {
+          await port.reassignSentence({ transcriptId: open.transcriptId, n: step.n, speaker: step.speaker });
+        }
+        say({ kind: 'undone' });
+        await reread();
+      }),
+
+      dismissToast() {
+        dropToast?.();
+        dropToast = null;
+        set({ toast: null });
+      },
+
+      openFix(o) {
+        set({ fixDraft: { seq: ++draftSeq, heard: o.heard, suggestion: o.suggestion ?? null, only: o.only ?? null, source: o.source } });
+      },
+
+      clearFixDraft() {
+        set({ fixDraft: null });
+      },
 
       showTranscript: (id) => act(async () => {
         const open = get().open;

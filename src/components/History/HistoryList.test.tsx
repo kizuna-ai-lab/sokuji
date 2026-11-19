@@ -60,6 +60,7 @@ function fakePort(): Fake {
     getLegs: answer('getLegs', () => []),
     getSentences: answer('getSentences', () => []),
     getSpeakers: answer('getSpeakers', () => []),
+    listCorrections: answer('listCorrections', () => []),
   } as unknown as Fake;
 }
 // The bin's rows answer a listing of the bin.

@@ -69,6 +69,7 @@ function fakePort(): Fake {
     getLegs: answer('getLegs', []),
     getSentences: answer('getSentences', []),
     getSpeakers: answer('getSpeakers', []),
+    listCorrections: answer('listCorrections', []),
     renameSpeaker: answer('renameSpeaker', undefined),
     reassignSentence: answer('reassignSentence', undefined),
     getNotes: async (arg: { id: number }) => { calls.push(['getNotes', arg]); return notesOf(arg.id); },
