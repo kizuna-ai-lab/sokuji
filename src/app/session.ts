@@ -305,7 +305,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
   // The switch alone: the line-up always names a notes service (owner, 2026-11-17: no "None").
   const liveWanted = () => useSettingsStore.getState().liveNotes;
   const asHistory = (s: LiveSentence): HistorySentence => ({
-    ...s, segmentId: s.segmentId ?? null, speakerByUser: null, speakerName: null, language: s.language ?? null, translation: null,
+    ...s, segmentId: s.segmentId ?? null, speakerByUser: null, speakerName: null, language: s.language ?? null, translation: null, heard: null,
   });
   /** The speaker labels for a loop, built again only when sentences were added (an update asks for each it sends). */
   const labelsFor = (seen: readonly LiveSentence[]) => {

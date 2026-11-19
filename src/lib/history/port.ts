@@ -6,7 +6,7 @@ import type { Leg, LegName, Notice } from '../conversation/types';
 import { isElectron } from '../../utils/environment';
 import type {
   HistoryLegInput, HistoryNotes, HistoryNotesInput, HistoryNotesRow, HistoryRecord, HistoryRecordInput, HistoryRecordRow,
-  HistorySearchResult, HistorySegment, HistorySentence, HistorySentenceInput, HistorySentenceSide, HistorySpeaker,
+  HistoryCorrection, HistorySearchResult, HistorySegment, HistorySentence, HistorySentenceInput, HistorySentenceSide, HistorySpeaker,
   HistoryRecognizePhase, HistoryRecognizeRequest, HistoryStatus, HistoryTrackPiece, HistoryTranscriptOrigin, HistoryUsage,
   FileToken,
 } from './types';
@@ -26,6 +26,19 @@ export interface HistoryPort {
   deleteTranscript(args: { transcriptId: number }): Promise<void>;
   appendSentences(args: { transcriptId: number; sentences: HistorySentenceInput[] }): Promise<{ added: number }>;
   reviseSentences(args: { transcriptId: number; revisions: Array<{ n: number; text: string }> }): Promise<void>;
+  /** A finished record's sentences rewritten by hand; each keeps what was heard (design §5.2). */
+  editSentences(args: { transcriptId: number; edits: Array<{ n: number; text: string }> }): Promise<void>;
+  /** One fix of a misheard word: its sentences (and notes version) as found and as written; returns its id (§5.1). */
+  applyCorrection(args: {
+    transcriptId: number; from: string; to: string;
+    sentences: Array<{ n: number; before: string; after: string }>;
+    notes: { id: number; before: string; after: string } | null;
+  }): Promise<number>;
+  /** A fix taken back exactly; with `forget` (an undo) it leaves no trace. */
+  revertCorrection(args: { id: number; forget?: boolean }): Promise<{ restored: number; kept: number }>;
+  listCorrections(args: { transcriptId: number }): Promise<HistoryCorrection[]>;
+  /** A sentence back to what was heard. */
+  restoreSentence(args: { transcriptId: number; n: number }): Promise<void>;
   getSentences(args: { transcriptId: number }): Promise<HistorySentence[]>;
   renameSpeaker(args: { transcriptId: number; side: HistorySentenceSide; speaker: string; name: string }): Promise<void>;
   reassignSentence(args: { transcriptId: number; n: number; speaker: string | null }): Promise<void>;
@@ -80,6 +93,11 @@ export const HISTORY_PORT_CHANNELS = [
   ['deleteTranscript', 'history:delete-transcript'],
   ['appendSentences', 'history:append-sentences'],
   ['reviseSentences', 'history:revise-sentences'],
+  ['editSentences', 'history:edit-sentences'],
+  ['applyCorrection', 'history:apply-correction'],
+  ['revertCorrection', 'history:revert-correction'],
+  ['listCorrections', 'history:list-corrections'],
+  ['restoreSentence', 'history:restore-sentence'],
   ['getSentences', 'history:get-sentences'],
   ['renameSpeaker', 'history:rename-speaker'],
   ['reassignSentence', 'history:reassign-sentence'],
@@ -133,6 +151,11 @@ export function electronHistoryPort(invoke: Invoke): HistoryPort {
     deleteTranscript: (a) => call('history:delete-transcript', a),
     appendSentences: (a) => call('history:append-sentences', a),
     reviseSentences: (a) => call('history:revise-sentences', a),
+    editSentences: (a) => call('history:edit-sentences', a),
+    applyCorrection: (a) => call('history:apply-correction', a),
+    revertCorrection: (a) => call('history:revert-correction', a),
+    listCorrections: (a) => call('history:list-corrections', a),
+    restoreSentence: (a) => call('history:restore-sentence', a),
     getSentences: (a) => call('history:get-sentences', a),
     renameSpeaker: (a) => call('history:rename-speaker', a),
     reassignSentence: (a) => call('history:reassign-sentence', a),
@@ -173,6 +196,11 @@ export const nullHistoryPort: HistoryPort = {
   deleteTranscript: async () => {},
   appendSentences: async () => ({ added: 0 }),
   reviseSentences: nothing,
+  editSentences: nothing,
+  applyCorrection: async () => 0,
+  revertCorrection: async () => ({ restored: 0, kept: 0 }),
+  listCorrections: async () => [],
+  restoreSentence: nothing,
   getSentences: async () => [],
   renameSpeaker: nothing,
   reassignSentence: nothing,

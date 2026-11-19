@@ -10,7 +10,7 @@ const labels: SpeakerLabels = {
 
 const s = (n: number, segmentId: string | null, text: string, over: Partial<HistorySentence> = {}): HistorySentence => ({
   n, segmentId, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', speakerByUser: null, speakerName: null,
-  startMs: n * 1000, endMs: n * 1000 + 800, text, language: null, timeKind: 'given', translation: null, ...over,
+  startMs: n * 1000, endMs: n * 1000 + 800, text, language: null, timeKind: 'given', translation: null, heard: null, ...over,
 });
 const seg = (id: string, side: 'source' | 'translation', text: string, origin: string): Segment => ({
   id, ref: Number(id.split(':').pop()), side, text, final: true, openedAt: 0, marks: [], origin, speech: [],

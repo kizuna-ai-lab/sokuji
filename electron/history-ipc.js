@@ -29,6 +29,11 @@ const HISTORY_CHANNELS = Object.freeze({
   'history:delete-transcript': 'deleteTranscript',
   'history:append-sentences': 'appendSentences',
   'history:revise-sentences': 'reviseSentences',
+  'history:edit-sentences': 'editSentences',
+  'history:apply-correction': 'applyCorrection',
+  'history:revert-correction': 'revertCorrection',
+  'history:list-corrections': 'listCorrections',
+  'history:restore-sentence': 'restoreSentence',
   'history:get-sentences': 'getSentences',
   'history:rename-speaker': 'renameSpeaker',
   'history:reassign-sentence': 'reassignSentence',
@@ -95,6 +100,11 @@ function setupHistoryHandlers({
   ipcMain.handle('history:delete-transcript', handle('deleteTranscript'));
   ipcMain.handle('history:append-sentences', handle('appendSentences'));
   ipcMain.handle('history:revise-sentences', handle('reviseSentences'));
+  ipcMain.handle('history:edit-sentences', handle('editSentences'));
+  ipcMain.handle('history:apply-correction', handle('applyCorrection'));
+  ipcMain.handle('history:revert-correction', handle('revertCorrection'));
+  ipcMain.handle('history:list-corrections', handle('listCorrections'));
+  ipcMain.handle('history:restore-sentence', handle('restoreSentence'));
   ipcMain.handle('history:get-sentences', handle('getSentences'));
   ipcMain.handle('history:rename-speaker', handle('renameSpeaker'));
   ipcMain.handle('history:reassign-sentence', handle('reassignSentence'));

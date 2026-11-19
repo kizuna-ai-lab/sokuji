@@ -46,9 +46,20 @@ afterEach(() => {
 describe('the history channels', () => {
   it('registers exactly the channels in the map', () => {
     expect([...handlers.keys()].sort()).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track', 'history:recognize', 'history:recognize-cancel', 'history:recognize-status'].sort());
-    expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(28);
+    expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(33);
     expect(HISTORY_CHANNELS['history:update-notes-names']).toBe('updateNotesNames');
     expect(HISTORY_CHANNELS['history:append-track']).toBe('appendTrack');
+  });
+
+  // Design §5.1–5.3 (2026-11-19): a finished record's text is edited, fixed and reverted from the page.
+  it('handles the editing channels', () => {
+    expect(HISTORY_CHANNELS).toMatchObject({
+      'history:edit-sentences': 'editSentences',
+      'history:apply-correction': 'applyCorrection',
+      'history:revert-correction': 'revertCorrection',
+      'history:list-corrections': 'listCorrections',
+      'history:restore-sentence': 'restoreSentence',
+    });
   });
 
   it('writes every channel out as a literal handle call, the way the registry guard reads them', () => {
