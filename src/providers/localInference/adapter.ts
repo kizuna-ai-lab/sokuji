@@ -544,12 +544,12 @@ class LocalSession implements AdapterSession {
 
   /**
    * When the utterance a result ends was heard, on the run's clock: from its
-   * start sample, through the audio handed to the ASR. Failing that, a
-   * streaming recognizer's result comes as the utterance ends, its
-   * `durationMs` the time since it began (its `recognitionTimeMs` is the same
-   * span, or the run's, never a delay after it); an offline one's comes after
-   * recognition, so its span ends when recognition began. Null when the result
-   * says neither.
+   * start sample, through the audio handed to the ASR. Failing that, an
+   * offline recognizer's result comes after recognition, so its span ends when
+   * recognition began and starts its length before. A streaming recognizer
+   * without a start sample gives none: its timers run from its last reset, not
+   * from speech, so its fields cover idle time too — while its partials arrive
+   * as the words are said, and the times they arrive at are History's estimate.
    */
   private heardSpan(result: AsrResult, text: string): HeardSpan | null {
     const duration = Math.max(0, result.durationMs);
@@ -560,9 +560,9 @@ class LocalSession implements AdapterSession {
       const endAt = this.fed.at(startMs + duration);
       if (startAt !== undefined && endAt !== undefined && endAt >= startAt) return { startAt, endAt, total, taken: 0 };
     }
-    if (!(duration > 0)) return null;
+    if (this.config.asr.streaming || !(duration > 0)) return null;
     const recognition = Number.isFinite(result.recognitionTimeMs) ? Math.max(0, result.recognitionTimeMs) : 0;
-    const endAt = this.request.clock.now() - (this.config.asr.streaming ? 0 : recognition);
+    const endAt = this.request.clock.now() - recognition;
     return { startAt: endAt - duration, endAt, total, taken: 0 };
   }
 

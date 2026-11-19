@@ -230,13 +230,12 @@ describe('the LocalInference adapter — segments and jobs', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('repeats a final equal to the last partial only to say when it was heard: the text is unchanged', async () => {
+  it('sends no second segmentText when the final equals the last partial and says nothing new of when it was heard', async () => {
     const t = await open();
     t.asr.partial('はい');
     t.asr.final(' はい ');
     expect(content(t.log)).toEqual([
       { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
-      { kind: 'segmentText', payload: { ref: 1, text: 'はい' } },
       { kind: 'segmentText', payload: { ref: 1, text: 'はい' } },
       { kind: 'segmentClosed', payload: { ref: 1, origin: 'u1' } },
     ]);
@@ -1464,12 +1463,15 @@ describe('the LocalInference adapter — when an utterance was heard', () => {
     expect(heardOf(t.log)?.pieces.map((p) => [p.startAt, p.endAt])).toEqual([[3700, 4200], [4200, 4700]]);
   });
 
-  it('a streaming recognizer without a start sample: the utterance ends as its result comes, its recognition time no delay', async () => {
-    // Its workers report the time since the utterance (or the run) began as both durationMs and recognitionTimeMs.
+  it('a streaming recognizer without a start sample says nothing of when: its partials arrived as the words were said', async () => {
+    // Its workers' timers run from their last reset, idle time included: a user who waited 10 s, then spoke 5 s, gets
+    // 15 s in durationMs (and recognitionTimeMs the same, or the run's).
     const t = await open(makeConfig({ asr: { modelId: 'streaming-zipformer', streaming: true } }));
     t.clock.advance(15_000);
-    t.asr.onResult?.({ text: '晴れ', durationMs: 5000, recognitionTimeMs: 5000 });
-    expect(heardOf(t.log)?.pieces.map((p) => [p.startAt, p.endAt])).toEqual([[10_000, 12_500], [12_500, 15_000]]);
+    t.asr.partial('晴');
+    t.asr.onResult?.({ text: '晴れ', durationMs: 15_000, recognitionTimeMs: 15_000 });
+    expect(ofKind(t.log, 'segmentText').map((p) => [p.text, p.heard])).toEqual([['晴', undefined], ['晴れ', undefined]]);
+    expectConformant(t.log, t.context);
   });
 
   it('says it even when the final repeats the last partial, the text unchanged', async () => {
