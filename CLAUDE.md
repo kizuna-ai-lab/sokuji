@@ -101,8 +101,6 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - Local Native is the exception until kizuna-ai-lab/sokuji#578: `LocalNativeClient`
      implements the old `IClient` (`src/services/interfaces/IClient.ts`), registered as
      `LocalNativeProviderConfig` in `ProviderConfigFactory`, built through `ClientFactory`;
-     its old settings shell (`ProviderSection`, `LanguageSection`, `ProviderSpecificSettings`)
-     went with the side panel layouts (95edd4a32);
      `src/providers/oldPath.consistency.test.ts` keeps every other file off that path.
      Its folders (`src/services/{clients,providers,interfaces}/`) also hold four shared
      leaves the new code takes — `ProviderConfig` (`LanguageOption`, `VoiceOption`),
@@ -699,7 +697,7 @@ corrected on 2026-09-05.
 
 ### Main Components
 - **SpeechOutputSection** (`src/components/Settings/sections/SpeechOutputSection.tsx`, on the settings page's device categories, `src/components/SettingsPage/DeviceCategories.tsx`): the Speech block — who hears what, each row with its own output device and channel; `textOnly` shows inverted as Translation the other side hears, the monitor as I hear it too, the participant-speech switch as Translation I hear. The mode popover's rows mirror the Speech block (a pick in an outlet row writes the outlet and never flips its switch); the face-to-face ears strip and the conversation's ear tags read the outlets (a centred outlet gives no tag); the wizard's Both scenarios write Translation I hear (voice on, text off). Sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false
-- **MainPanel**: Unified conversation panel: bubble messages and, for everyone, the full footer (waveform and controls); a stored `uiMode` is still read but nothing writes it (95edd4a32)
+- **MainPanel**: Unified conversation panel: bubble messages and, for everyone, the full footer (waveform and controls); a stored `uiMode` is still read but nothing writes it
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
 - **ConnectionStatus**: Real-time connection state indicator
 
