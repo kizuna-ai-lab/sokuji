@@ -1,5 +1,5 @@
 // src/stores/settingsStore.ttsVoice.voice.test.ts (mirror settingsStore.ttsDevice.test.ts mocks)
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { Provider } from '../types/Provider';
 // LOCAL_NATIVE is registered in ProviderConfigFactory only under Electron;
 // createSessionConfig dispatches through the registry, so the descriptor must
@@ -14,6 +14,9 @@ vi.mock('../lib/local-inference/modelManifest', async () => ({ ...(await vi.impo
 const { default: useSettingsStore } = await import('./settingsStore');
 
 describe('ttsVoice setting', () => {
+  // Each test starts from the store's initial state: 'is updatable' changes it,
+  // and the 'defaults to' test must not depend on running first.
+  beforeEach(() => { useSettingsStore.setState(useSettingsStore.getInitialState(), true); });
   it('defaults to empty string', () => {
     expect(useSettingsStore.getState().localNative.ttsVoice).toBe('');
   });
