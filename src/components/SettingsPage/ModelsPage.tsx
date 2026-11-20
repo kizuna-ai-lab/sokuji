@@ -198,7 +198,8 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
           errorMessage={errors[m.id]} isSessionActive={locked} isSelected={inUse.has(m.id) && statuses[m.id] === 'downloaded'}
           isCompatible={runnable} compatibilityHint={runnable ? undefined : t('models.page.cannotRun', "This computer can't run it")}
           canDownload={runnable} deviceFeatures={features}
-          onDownload={() => void useModelStore.getState().downloadModel(m.id)}
+          // The store puts a failed download on the card (`downloadErrors`) and then rejects; nothing is left to do with it here.
+          onDownload={() => void useModelStore.getState().downloadModel(m.id).catch(() => {})}
           onCancel={() => useModelStore.getState().cancelDownload(m.id)}
           onDelete={() => setAsking(m.id)}
           onImport={() => setImportTarget(m)} />
