@@ -10,9 +10,15 @@ import { UserAccountInfo } from './UserAccountInfo';
 const zh: Record<string, string> = {
   'auth.checkYourEmail': '验证邮件已发送。请在邮箱中完成验证后回到 Sokuji，状态会自动更新。',
 };
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (k: string, d?: string) => zh[k] ?? d ?? k }),
-}));
+// One `t` for every render, as react-i18next gives while the language holds.
+// A fresh `t` per call re-ran the "just signed up" effect (it depends on `t`
+// and sets the message) on every render: React aborted the loop after about a
+// second with "Maximum update depth exceeded", and the assertions below read
+// what that aborted loop left.
+vi.mock('react-i18next', () => {
+  const t = (k: string, d?: string) => zh[k] ?? d ?? k;
+  return { useTranslation: () => ({ t }) };
+});
 
 // 59s ago, not 5s: the component starts a resend cooldown of (60 - age)
 // seconds and ticks it once per second, and vitest waits that chain out. A
@@ -54,10 +60,17 @@ beforeEach(cleanup);
 
 describe('verification message tone', () => {
   it('styles a freshly-sent notice as success even when it is not in English', () => {
-    const { container } = render(<UserAccountInfo />);
-    const msg = container.querySelector('.verification-message');
-    expect(msg).not.toBeNull();
-    expect(msg!.className).toContain('success');
-    expect(msg!.className).not.toContain('error');
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { container } = render(<UserAccountInfo />);
+      const msg = container.querySelector('.verification-message');
+      expect(msg).not.toBeNull();
+      expect(msg!.className).toContain('success');
+      expect(msg!.className).not.toContain('error');
+      // The render settles: no update loop for React to report.
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
