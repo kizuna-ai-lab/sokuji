@@ -31,7 +31,7 @@ import FixWordsPart from './FixWordsPart';
 import SentenceEditor from './SentenceEditor';
 import { findWord } from '../../lib/history/wordFix';
 import EditToast from './EditToast';
-import { InlineEdit } from './InlineEdit';
+import { InlineEdit, type InlineEditEnd } from './InlineEdit';
 import PanelResizer from '../MainLayout/PanelResizer';
 import { labelsFit } from './panelSwitchFit';
 import { DIVIDER_PX, NOTES_MIN_PX, notesWidthWithin, readNotesOpen, readNotesWidth, writeNotesOpen, writeNotesWidth } from './notesColumn';
@@ -102,9 +102,17 @@ export const RecordPage: React.FC = () => {
   // The name being typed as it is now: a save that finishes later, or a close waiting on one, reads it here.
   // Design P1 §2: the speaker whose "Merge into…" menu is open, and a new name that is another speaker's, asked about.
   const [mergeFor, setMergeFor] = useState<string | null>(null);
+  // `focus`: the name ended from the keyboard or its Save button, so the question takes the focus; not when focus left
+  // for somewhere else (final review I-2).
   const [twinAsk, setTwinAsk] = useState<{
-    side: HistorySentenceSide; speaker: string; value: string; label: string; into: { speaker: string; label: string };
+    side: HistorySentenceSide; speaker: string; value: string; label: string; into: { speaker: string; label: string }; focus: boolean;
   } | null>(null);
+  // The question as it is now, for a leave or a save that reads it before the next render.
+  const twinAskRef = useRef(twinAsk);
+  const ask = (next: typeof twinAsk) => {
+    twinAskRef.current = next;
+    setTwinAsk(next);
+  };
   const nameDraftRef = useRef(nameDraft);
   nameDraftRef.current = nameDraft;
   const [menuFor, setMenuFor] = useState<number | null>(null);
@@ -163,6 +171,10 @@ export const RecordPage: React.FC = () => {
   }, [hit]);
 
   useEffect(() => { if (confirmDrop) cancelDropRef.current?.focus(); }, [confirmDrop]);
+
+  // The same-name question was about the speakers of the transcript it was asked on: another record or transcript shown
+  // drops it (final review I-2).
+  useEffect(() => { if (twinAskRef.current) ask(null); }, [open?.record.id, open?.transcriptId]);
 
   // "More" closes on a press anywhere outside it.
   useEffect(() => {
@@ -419,7 +431,7 @@ export const RecordPage: React.FC = () => {
   const speakersOf = (side: HistorySentenceSide) => open.speakers
     .filter((s) => s.side === side && labelOf.has(speakerKey(s.side, s.speaker)))
     .map((s) => ({ ...s, label: labelOf.get(speakerKey(s.side, s.speaker))! }));
-  const saveName = (): Promise<boolean> => {
+  const saveName = (how?: InlineEditEnd): Promise<boolean> => {
     if (nameSave.current) return nameSave.current;
     const draft = nameDraftRef.current;
     if (!draft) return Promise.resolve(true);
@@ -430,7 +442,7 @@ export const RecordPage: React.FC = () => {
       : undefined;
     if (twin) {
       const self = speakersOf(draft.side).find((o) => o.speaker === draft.speaker);
-      setTwinAsk({ ...draft, label: self?.label ?? draft.speaker, into: { speaker: twin.speaker, label: twin.label } });
+      ask({ ...draft, label: self?.label ?? draft.speaker, into: { speaker: twin.speaker, label: twin.label }, focus: how !== 'blur' });
       if (nameDraftRef.current === draft) nameDraftRef.current = null;
       setNameDraft(null);
       return Promise.resolve(true);
@@ -461,7 +473,8 @@ export const RecordPage: React.FC = () => {
   const editable = speakerCount > 0;
   // A speaker's name being typed keeps the edit panel in view whatever layout the window changes to: leaving the panel
   // is what saves the name, and a window resized is not leaving it (review).
-  const typingName = editable && nameDraft !== null;
+  // The same-name question is part of the name being typed: it keeps the panel too (final review I-2).
+  const typingName = editable && (nameDraft !== null || twinAsk !== null);
   const shownPane = typingName ? 'edit' : pane === 'edit' && !editable ? 'transcript' : pane;
   const editOn = editable && (sideOpen || typingName);
   // Room for two columns and both panels switched on: they share the left column, a tab each (owner, 2026-11-19).
@@ -488,10 +501,22 @@ export const RecordPage: React.FC = () => {
     for (let i = 0; i < 3 && (nameDraftRef.current || nameSave.current); i += 1) {
       if (!(await saveName())) return false;
     }
-    return !nameDraftRef.current;
+    // A name that became the same-name question waits for its answer, in the panel.
+    return !nameDraftRef.current && !twinAskRef.current;
   };
-  // Nothing being typed or saved: at once, with nothing to wait for.
-  const nameBusy = () => Boolean(nameDraftRef.current || nameSave.current);
+  // Nothing being typed, saved or asked about: at once, with nothing to wait for.
+  const nameBusy = () => Boolean(nameDraftRef.current || nameSave.current || twinAskRef.current);
+  // Back to the list with the same-name question open keeps the two apart, as leaving saves a name as it was typed
+  // (P0); a save that fails stays on the page, which says why.
+  const back = async () => {
+    const pending = twinAskRef.current;
+    if (pending) {
+      ask(null);
+      await actions.renameSpeaker(pending.side, pending.speaker, pending.value);
+      if (store.getState().error) return;
+    }
+    actions.closeRecord();
+  };
   // A panel switched on is the one shown where the two share a column. The switch follows the panel as shown.
   const toggleSide = async () => {
     if (editOn) {
@@ -568,18 +593,18 @@ export const RecordPage: React.FC = () => {
                           if (e.key !== 'Escape' || isComposing(e.nativeEvent)) return;
                           e.preventDefault();
                           e.stopPropagation();
-                          setTwinAsk(null);
+                          ask(null);
                           setNameDraft({ side, speaker: s.speaker, value: asking.value });
                         }}
                       >
                         <span>{t('history.mergeAsk', '{{name}} is already a speaker on this side.', { name: asking.into.label })}</span>
                         <span className="record-speakers__ask-buttons">
-                          <button type="button" className="history-button" autoFocus disabled={busy}
-                            onClick={() => { setTwinAsk(null); void actions.mergeSpeaker(side, s.speaker, asking.into.speaker, { from: asking.label, into: asking.into.label }); }}>
+                          <button type="button" className="history-button" autoFocus={asking.focus} disabled={busy}
+                            onClick={() => { ask(null); void actions.mergeSpeaker(side, s.speaker, asking.into.speaker, { from: asking.label, into: asking.into.label }); }}>
                             {t('history.mergeOne', 'Merge into one')}
                           </button>
                           <button type="button" className="history-button" disabled={busy}
-                            onClick={() => { setTwinAsk(null); void actions.renameSpeaker(side, s.speaker, asking.value); }}>
+                            onClick={() => { ask(null); void actions.renameSpeaker(side, s.speaker, asking.value); }}>
                             {t('history.keepApart', 'Keep apart')}
                           </button>
                         </span>
@@ -758,7 +783,7 @@ export const RecordPage: React.FC = () => {
       id={sideId}
       open={sideShown}
       // A name or the title being typed: Escape is the field's, not the panel's.
-      editing={nameDraft !== null || titleDraft !== null}
+      editing={nameDraft !== null || twinAsk !== null || titleDraft !== null}
       onToggle={columned ? toggleSide : () => choosePane('transcript')}
     >
       <section className="record-side__part" aria-label={t('history.speakers', 'Speakers')}>
@@ -775,7 +800,7 @@ export const RecordPage: React.FC = () => {
   return (
     <div className="record-page" ref={pageRef}>
       <header className="record-page__head" ref={headRef}>
-        <button type="button" className="settings-page__back" onClick={() => actions.closeRecord()}>
+        <button type="button" className="settings-page__back" onClick={() => void back()}>
           <ChevronLeft size={14} aria-hidden="true" /> {t('history.backToList', 'Back to the list')}
         </button>
         <div className="record-page__heading">

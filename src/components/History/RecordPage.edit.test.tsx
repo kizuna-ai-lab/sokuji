@@ -446,6 +446,63 @@ describe('merging speakers', () => {
     expect(rename).not.toHaveBeenCalled();
   });
 
+  // Final review I-2: the question is part of the name being typed. Leaving the panel does not drop it.
+  const askTwin = (end: 'enter' | 'blur') => {
+    fireEvent.click(within(panel()).getByRole('button', { name: 'Rename Other 2' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Other 1' } });
+    if (end === 'enter') fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Enter' });
+    else fireEvent.blur(screen.getByRole('textbox', { name: 'Name' }));
+  };
+
+  it('while the question is open the panel stays: hiding it is refused, and nothing is lost', async () => {
+    await show(B);
+    const rename = vi.spyOn(store.getState(), 'renameSpeaker');
+    askTwin('blur');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await settle();
+    expect(panel()).toBeInTheDocument();
+    expect(screen.getByText('Other 1 is already a speaker on this side.')).toBeInTheDocument();
+    expect(rename).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep apart' }));
+    await settle();
+    expect(rename).toHaveBeenCalledWith('other', '1.2', 'Other 1');
+  });
+
+  it('Back while the question is open keeps them apart: the name is saved as typed', async () => {
+    await show(B);
+    const rename = vi.spyOn(store.getState(), 'renameSpeaker');
+    askTwin('enter');
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the list' }));
+    await settle();
+    expect(rename).toHaveBeenCalledWith('other', '1.2', 'Other 1');
+    expect(store.getState().open).toBeNull();
+  });
+
+  it('another transcript shown drops the question: it was about the transcript it was asked on', async () => {
+    await show(B);
+    const t2 = real.store.createTranscript({ recordId: B, origin: { service: 'soniox', kind: 'file' } });
+    real.store.appendSentences({ transcriptId: t2, sentences: [other(1, '1.1', '你好'), other(2, '1.2', '我也在')] });
+    askTwin('enter');
+    await settle();
+    await act(async () => { await store.getState().showTranscript(t2 as number); });
+    await settle();
+    expect(within(panel()).getByRole('button', { name: 'Rename Other 2' })).toBeInTheDocument();
+    expect(screen.queryByText('Other 1 is already a speaker on this side.')).toBeNull();
+  });
+
+  it('the question takes the focus when the name ended with Enter, not when focus left for somewhere else', async () => {
+    await show(B);
+    askTwin('blur');
+    await settle();
+    expect(screen.getByRole('button', { name: 'Merge into one' })).not.toHaveFocus();
+    // Escape goes back to the name as typed; Enter there asks again, and the question takes the focus.
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Merge into one' }), { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Enter' });
+    await settle();
+    expect(screen.getByRole('button', { name: 'Merge into one' })).toHaveFocus();
+  });
+
   it('keeping them apart saves the name as typed', async () => {
     await show(B);
     const rename = vi.spyOn(store.getState(), 'renameSpeaker');
