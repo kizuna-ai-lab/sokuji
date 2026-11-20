@@ -55,6 +55,8 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
   let seen: ReadonlySet<string> = new Set();
   /** The providers whose inputs changed while a run was on: checked once the runner is idle again. */
   const stale = new Set<string>();
+  /** What each provider's last evaluation read of it: a store change that left both as they were was not about this provider. */
+  const read = new Map<string, { entry: unknown; readiness: unknown }>();
   const idle = () => runner.state.getState().phase === 'idle';
   const current = (): readonly AnyProvider[] => {
     const p = plan();
@@ -99,6 +101,7 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
     }
     for (const id of [...cancel.keys()]) if (!ids.has(id)) drop(id);
     for (const id of [...stale]) if (!ids.has(id)) stale.delete(id);
+    for (const id of [...read.keys()]) if (!ids.has(id)) read.delete(id);
     for (const p of ps) if (!watched.has(p.id)) watched.set(p.id, p.watchReadiness?.(() => inputsChanged(p.id)) ?? (() => {}));
     if (!ps.length) {
       // No plan has loaded: whichever provider comes next has just joined, even the last one.
@@ -110,8 +113,15 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
     seen = ids;
     for (const p of ps) {
       const fresh = !before.has(p.id);
-      const readiness = useProviderStore.getState().readiness[p.id];
-      if (stale.has(p.id) || !readiness || readiness.state === 'unknown') {
+      const { entries, readiness: all } = useProviderStore.getState();
+      const readiness = all[p.id];
+      const was = read.get(p.id);
+      const own = !was || was.entry !== entries[p.id] || was.readiness !== readiness;
+      read.set(p.id, { entry: entries[p.id], readiness });
+      // The store notifies on every provider's change. A pending check is pushed out only by a change to this
+      // provider's own entry or readiness (an edit, a reset): another provider's must not keep moving it later.
+      const unknown = !readiness || readiness.state === 'unknown';
+      if (stale.has(p.id) || (unknown && (own || !cancel.has(p.id)))) {
         stale.delete(p.id);
         schedule(p, fresh);
       }

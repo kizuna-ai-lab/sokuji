@@ -521,6 +521,60 @@ describe('driveReadiness over a plan of two providers', () => {
     detach();
   });
 
+  it("one provider's answer arriving does not push out the other's pending check", async () => {
+    const a = makeProbe('a', 'own-key');
+    const b = makeProbe('b', 'local');
+    setupStore(a.provider, b.provider);
+    const { calls } = spyRefresh();
+    const clock = createVirtualClock(0);
+    const two = planOfTwo(a.provider, b.provider);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [a.provider, b.provider], plan: () => two, auth: () => auth, clock });
+
+    clock.advance(0);
+    await flush();
+    expect(calls('a')).toBe(1);
+
+    // a's answer lands halfway through b's delay: a store update that is none of b's.
+    clock.advance(READINESS_DELAY_MS / 2);
+    useProviderStore.setState((st) => ({ readiness: { ...st.readiness, a: ready } }));
+
+    clock.advance(READINESS_DELAY_MS / 2);
+    await flush();
+    expect(calls('b')).toBe(1);
+
+    detach();
+  });
+
+  it("an edit to one provider still pushes its own pending check out, and not the other's", async () => {
+    const a = makeProbe('a', 'own-key');
+    const b = makeProbe('b', 'own-key');
+    setupStore(a.provider, b.provider);
+    const { calls } = spyRefresh();
+    const clock = createVirtualClock(0);
+    const two = planOfTwo(a.provider, b.provider);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [a.provider, b.provider], plan: () => two, auth: () => auth, clock });
+
+    clock.advance(0);
+    await flush();
+    useProviderStore.setState({ readiness: { a: ready, b: ready } });
+
+    // Both are edited; then a is edited again, 300ms later.
+    useProviderStore.setState({ readiness: { a: { state: 'unknown' }, b: { state: 'unknown' } } });
+    clock.advance(300);
+    useProviderStore.setState((st) => ({ readiness: { ...st.readiness, a: { state: 'unknown' } } }));
+
+    clock.advance(NETWORK_READINESS_DELAY_MS - 300);
+    await flush();
+    expect(calls('b')).toBe(2); // b's own delay, from its own edit
+    expect(calls('a')).toBe(1); // a's was pushed out by its second edit
+
+    clock.advance(300);
+    await flush();
+    expect(calls('a')).toBe(2);
+
+    detach();
+  });
+
   it("a sign-in flip forgets every loaded managed provider's readiness, and checks each managed one of the plan at once", async () => {
     const m1 = makeProbe('m1', 'managed');
     const m2 = makeProbe('m2', 'managed');
