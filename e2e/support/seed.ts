@@ -6,6 +6,7 @@ interface Store {
   openRecord(o: unknown): void;
   createTranscript(o: unknown): number;
   appendSentences(o: unknown): void;
+  saveNotes(o: unknown): number;
   closeRecord(o: unknown): void;
   close(): void;
 }
@@ -18,6 +19,8 @@ export interface SeedSentence {
   endMs: number;
   /** Sentences of one side with the same segment show in one row of the record page. */
   segmentId?: string;
+  /** The recognizer's speaker on its side; '1' when not given. */
+  speaker?: string;
 }
 
 export interface SeedRecord {
@@ -27,6 +30,8 @@ export interface SeedRecord {
   myLanguage?: string;
   targetLanguage?: string;
   sentences: SeedSentence[];
+  /** A complete notes version (a stored notes body: title, overview, topics, points, names), written by "e2e". */
+  notes?: Record<string, unknown>;
 }
 
 /** `count` sentences, one every `everyMs`, alternating sides: a meeting long enough for notes without a session to wait through. */
@@ -58,10 +63,15 @@ export function seedHistory(userData: string, records: SeedRecord[]): void {
       store.appendSentences({
         transcriptId,
         sentences: record.sentences.map((s, i) => ({
-          n: i + 1, side: s.side, sideCertain: true, track: s.side === 'mine' ? 'microphone' : 'other', speaker: '1',
+          n: i + 1, side: s.side, sideCertain: true, track: s.side === 'mine' ? 'microphone' : 'other', speaker: s.speaker ?? '1',
           startMs: s.startMs, endMs: s.endMs, text: s.text, timeKind: 'given', ...(s.segmentId ? { segmentId: s.segmentId } : {}),
         })),
       });
+      if (record.notes) {
+        store.saveNotes({
+          recordId: record.id, transcriptId, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'e2e' }, language: 'en', state: 'complete', body: record.notes,
+        });
+      }
       store.closeRecord({ id: record.id, endedAt: record.startedAt + record.durationMs });
     }
   } finally {
