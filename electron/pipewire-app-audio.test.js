@@ -9,6 +9,14 @@ import {
 } from './pipewire-app-audio.js';
 import { makeSelfIdentity } from './own-app-source.js';
 
+// Every listAppSources call names the running app's identity. Left out, it
+// defaults to currentSelfIdentity(), whose require('electron') downloads the
+// Electron binary when it is missing (CI's `npm ci` does not run its install
+// script): a network fetch inside a unit test, which timed out
+// 'prefers the window title over the bare application name' on CI. Outside
+// Electron this is the identity it would return.
+const SELF = makeSelfIdentity();
+
 // Shapes copied from a real `pw-dump` on PipeWire 1.x.
 const NODE_STREAM = {
   id: 205,
@@ -505,7 +513,7 @@ describe('listAppSources', () => {
   it('prefers the window title over the bare application name', async () => {
     // PipeWire reports "Chromium"/"Playback" for every browser window alike.
     const windowTitles = async () => new Map([[4242, 'YouTube - Chromium']]);
-    const r = await listAppSources({ exec: fakeExec([]), windowTitles });
+    const r = await listAppSources({ selfIdentity: SELF, exec: fakeExec([]), windowTitles });
     // The window title labels the row, but the binary is what identifies the
     // application next launch - titles change with whatever it is showing.
     expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'YouTube - Chromium', appKey: 'chromium' }]);
@@ -516,25 +524,25 @@ describe('listAppSources', () => {
     // trimming here would throw that information away.
     const long = 'x'.repeat(120);
     const windowTitles = async () => new Map([[4242, long]]);
-    const [row] = await listAppSources({ exec: fakeExec([]), windowTitles });
+    const [row] = await listAppSources({ selfIdentity: SELF, exec: fakeExec([]), windowTitles });
     expect(row.label).toBe(long);
   });
 
   it('keeps the application name when no window matches', async () => {
     // Wayland, no xprop, or a process with no window at all.
-    const r = await listAppSources({ exec: fakeExec([]), windowTitles: noTitles });
+    const r = await listAppSources({ selfIdentity: SELF, exec: fakeExec([]), windowTitles: noTitles });
     expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
   });
 
   it('keeps the application name when title lookup throws', async () => {
     const boom = async () => { throw new Error('xprop exploded'); };
-    const r = await listAppSources({ exec: fakeExec([]), windowTitles: boom });
+    const r = await listAppSources({ selfIdentity: SELF, exec: fakeExec([]), windowTitles: boom });
     expect(r).toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
   });
 
   it('returns only playback streams, projected to {deviceId,label}', async () => {
     // The capture sink in FULL_DUMP is an Audio/Sink, so it must not be listed.
-    expect(await listAppSources({ exec: fakeExec([]), windowTitles: noTitles }))
+    expect(await listAppSources({ selfIdentity: SELF, exec: fakeExec([]), windowTitles: noTitles }))
       .toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
   });
 
@@ -581,13 +589,13 @@ describe('listAppSources', () => {
       type: 'PipeWire:Interface:Node',
       info: { props: { 'media.class': 'Stream/Output/Audio', 'application.name': CAPTURE_SINK_DESCRIPTION } },
     };
-    const sources = await listAppSources({ exec: fakeExec([], { dump: [...FULL_DUMP, leaked] }), windowTitles: noTitles });
+    const sources = await listAppSources({ selfIdentity: SELF, exec: fakeExec([], { dump: [...FULL_DUMP, leaked] }), windowTitles: noTitles });
     expect(sources.map((s) => s.label)).toEqual(['Chromium']);
   });
 
   it('returns an empty array when pw-dump is unavailable', async () => {
     const exec = async () => { throw new Error('ENOENT'); };
-    expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
+    expect(await listAppSources({ selfIdentity: SELF, exec, windowTitles: noTitles })).toEqual([]);
   });
 });
 
@@ -603,36 +611,36 @@ describe('pw-dump output that also reports removals', () => {
 
   it('lists the sources when a removal follows the graph', async () => {
     const exec = fakeExec([], { stdout: pwDumpOutput(FULL_DUMP, removedClient) });
-    expect(await listAppSources({ exec, windowTitles: noTitles }))
+    expect(await listAppSources({ selfIdentity: SELF, exec, windowTitles: noTitles }))
       .toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
   });
 
   it('lists the sources when a removal precedes the graph', async () => {
     const exec = fakeExec([], { stdout: pwDumpOutput(removedClient, FULL_DUMP) });
-    expect(await listAppSources({ exec, windowTitles: noTitles }))
+    expect(await listAppSources({ selfIdentity: SELF, exec, windowTitles: noTitles }))
       .toEqual([{ deviceId: 'app:pid:4242', label: 'Chromium', appKey: 'chromium' }]);
   });
 
   it('drops a stream removed after the graph was printed', async () => {
     const exec = fakeExec([], { stdout: pwDumpOutput(FULL_DUMP, [{ id: 205, info: null }]) });
-    expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
+    expect(await listAppSources({ selfIdentity: SELF, exec, windowTitles: noTitles })).toEqual([]);
   });
 
   it('keeps the object that reuses an id removed before the graph', async () => {
     // PipeWire hands a freed id to the next object, so the removal printed
     // first is of an earlier object, not of the stream the graph shows.
     const exec = fakeExec([], { stdout: pwDumpOutput([{ id: 205, info: null }], FULL_DUMP) });
-    expect((await listAppSources({ exec, windowTitles: noTitles })).map((s) => s.label)).toEqual(['Chromium']);
+    expect((await listAppSources({ selfIdentity: SELF, exec, windowTitles: noTitles })).map((s) => s.label)).toEqual(['Chromium']);
   });
 
   it('reads a removal of an object that has props but no info', async () => {
     const exec = fakeExec([], { stdout: pwDumpOutput(FULL_DUMP, [{ id: 205, props: null }]) });
-    expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
+    expect(await listAppSources({ selfIdentity: SELF, exec, windowTitles: noTitles })).toEqual([]);
   });
 
   it('still fails on output that is not pw-dump JSON', async () => {
     const exec = fakeExec([], { stdout: `${pwDumpOutput(FULL_DUMP)}pw-dump: connection lost\n` });
-    expect(await listAppSources({ exec, windowTitles: noTitles })).toEqual([]);
+    expect(await listAppSources({ selfIdentity: SELF, exec, windowTitles: noTitles })).toEqual([]);
   });
 
   it('reports empty output as a graph it could not read', async () => {
