@@ -17,10 +17,10 @@ import { FULL_SCOPE, type TranscriptScope } from '../../lib/export/transcript';
 import { recordCues, type RecordRow } from '../../lib/history/recordView';
 import { renderSrt, renderVtt } from '../../lib/history/subtitles';
 import type { HistoryNotes, HistoryRecord, HistoryTranscriptRow } from '../../lib/history/types';
-import { notesMarkdown, notesText, type NotesWords } from '../../lib/notes/exportNotes';
+import { notesHtml, notesMarkdown, notesText, type NotesWords } from '../../lib/notes/exportNotes';
 import { readNotesBody } from '../../lib/notes/write';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
-import { copyToClipboard, downloadFile, exportFilename, formatTimestampForFilename } from '../../utils/conversationExport';
+import { copyRichToClipboard, copyToClipboard, downloadFile, exportFilename, formatTimestampForFilename } from '../../utils/conversationExport';
 import { playable } from '../../lib/history/playback';
 import { historyPort } from '../../lib/history/port';
 import { modeToToggles, togglesToMode, type ScopeToggles } from '../MainPanel/conversationFilter';
@@ -139,7 +139,8 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
       key: 'notes-copy', label: t('history.copyNotes', 'Copy notes'), Icon: Copy, own: true, enabled: notesBody !== null,
       run: async () => {
         if (!notesBody) return;
-        const ok = await copyToClipboard(notesText(notesBody, notesWords));
+        // Formatted for documents, Markdown for chats (Slack, Notion, WhatsApp…); the app pasted into takes the one it reads.
+        const ok = await copyRichToClipboard({ html: notesHtml(notesBody, notesWords), text: notesMarkdown(notesBody, notesWords) });
         onResult?.(ok ? t('history.copied', 'Copied.') : t('history.copyFailed', 'Could not copy. Check the clipboard permission.'));
       },
     },

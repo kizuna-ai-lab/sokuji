@@ -67,6 +67,28 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 /**
+ * The same content in two forms on the clipboard at once (design P1 §3): HTML for an app that reads formatting (a
+ * document), plain text for one that does not (a chat box). Where the host has no rich clipboard, or refuses it, the
+ * plain text alone is copied. Returns whether anything was copied.
+ */
+export async function copyRichToClipboard({ html, text }: { html: string; text: string }): Promise<boolean> {
+  const Item = (globalThis as { ClipboardItem?: new (data: Record<string, Blob>) => unknown }).ClipboardItem;
+  const clipboard = typeof navigator !== 'undefined' ? navigator.clipboard : undefined;
+  if (Item && clipboard?.write) {
+    try {
+      await clipboard.write([new Item({
+        'text/html': new Blob([html], { type: 'text/html' }),
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+      }) as ClipboardItem]);
+      return true;
+    } catch {
+      // fall through to the plain text
+    }
+  }
+  return copyToClipboard(text);
+}
+
+/**
  * Trigger a file download using a synthetic anchor + blob URL.
  * Works in both Electron renderer and Chrome extension side panel without
  * any extension permissions (uses HTML's standard `download` attribute).

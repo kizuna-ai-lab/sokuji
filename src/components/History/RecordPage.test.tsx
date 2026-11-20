@@ -19,10 +19,11 @@ vi.mock('../../utils/conversationExport', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/conversationExport')>()),
   downloadFile: vi.fn(),
   copyToClipboard: vi.fn(async () => true),
+  copyRichToClipboard: vi.fn(async () => true),
 }));
 
 import i18n from '../../locales';
-import { copyToClipboard, downloadFile } from '../../utils/conversationExport';
+import { copyRichToClipboard, copyToClipboard, downloadFile } from '../../utils/conversationExport';
 import { HistoryPageContext } from './historyContext';
 import RecordPage from './RecordPage';
 import HistoryPage from './HistoryPage';
@@ -718,7 +719,8 @@ describe('a record', () => {
   });
 
   // The text file holds what Copy puts on the clipboard, and both hold the same points as the Markdown.
-  it('saves the notes as text with what Copy gives, and the same points as the Markdown', async () => {
+  // Design P1 §3 (owner, 2026-11-21): Copy gives the Markdown file's text for chats, and HTML for documents beside it.
+  it('copies the notes as the Markdown file and as HTML; the text file has the same points', async () => {
     record = { ...record, notesVersions: 1, notesState: 'complete', notes: [{ id: 7, transcriptId: 1, language: 'en', createdAt: START, state: 'complete' }] };
     port.getNotes = (async () => ({
       id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'en', createdAt: START,
@@ -735,12 +737,12 @@ describe('a record', () => {
     const [txt, txtName, txtType] = vi.mocked(downloadFile).mock.calls[0] as [string, string, string];
     expect([txtName, txtType]).toEqual(['sokuji-notes-20260115-090000.txt', 'text/plain;charset=utf-8']);
     openExport();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy notes' }));
-    await settle();
-    expect(copyToClipboard).toHaveBeenLastCalledWith(txt);
-    openExport();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Save notes (.md)' }));
     const md = vi.mocked(downloadFile).mock.calls[1][0] as string;
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy notes' }));
+    await settle();
+    expect(copyRichToClipboard).toHaveBeenLastCalledWith({ html: expect.stringContaining('<h1>Shipping</h1>'), text: md });
     for (const part of ['Shipping', 'When it ships.', 'Dates', 'Ships by Wednesday', 'Send the tracking number', 'Your side', 'Tuesday']) {
       expect(txt).toContain(part);
       expect(md).toContain(part);
@@ -766,7 +768,11 @@ describe('a record', () => {
     openExport();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Copy notes' }));
     await settle();
-    expect(copyToClipboard).toHaveBeenLastCalledWith(expect.stringContaining('  - Ships by Wednesday (Decision)'));
+    // Design P1 §3: formatted for documents, Markdown for chats, both at once.
+    expect(copyRichToClipboard).toHaveBeenLastCalledWith({
+      html: expect.stringContaining('<li>Ships by Wednesday — Decision</li>'), text: expect.stringContaining('- Ships by Wednesday — Decision'),
+    });
+    expect(screen.getByText('Copied.')).toBeInTheDocument();
   });
 
   it('a record still being written can be refreshed and not binned', async () => {
