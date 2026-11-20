@@ -251,6 +251,9 @@ function setupCaptionShare({
     // `did-start-navigation`, which a navigation the window cancels also starts (a link in the update notes,
     // main-window-navigation.js), and the page it would have ended the share for stays.
     win.webContents.on('did-navigate', end);
+    // A main-frame load that fails (a reload with the dev server down) has no `did-navigate`, and the page is gone
+    // too. A cancelled navigation emits no `did-fail-load`.
+    win.webContents.on('did-fail-load', (_event, _code, _description, _url, isMainFrame) => { if (isMainFrame) end(); });
     win.on('closed', end);
   };
 

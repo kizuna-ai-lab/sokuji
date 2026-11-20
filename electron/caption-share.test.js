@@ -181,6 +181,11 @@ describe('caption share glue', () => {
     main.webContents.emit('did-navigate', {}, 'file:///app/build/index.html');
     await new Promise((r) => setTimeout(r, 0));
     expect(server.running()).toBe(false);
+    // A reload that fails (the dev server down): the load fails, and nothing navigates.
+    await call('caption-share:start', STATE);
+    main.webContents.emit('did-fail-load', {}, -102, 'ERR_CONNECTION_REFUSED', 'http://localhost:5173/', true);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(server.running()).toBe(false);
     await call('caption-share:start', STATE);
     main.webContents.emit('render-process-gone', {}, { reason: 'crashed' });
     await new Promise((r) => setTimeout(r, 0));
