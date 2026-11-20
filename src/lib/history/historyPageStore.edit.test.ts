@@ -360,3 +360,99 @@ describe('handing a word to the fix', () => {
     expect(store.getState().fixDraft).toBeNull();
   });
 });
+
+// Design P1 §1: the notes edited in place, marked "edited by hand", and every change undone with the mark as it was.
+describe('editing the notes', () => {
+  const RICH = {
+    title: '周会', overview: { text: '搜库机上线', format: 'plain' },
+    topics: [{ title: '上线', summary: '下周三。', first: 1 }],
+    points: [{ topic: 0, text: '写发布说明', sentences: [1], kinds: ['todo'], owner: 'My side', due: 'Friday' }],
+    names: [{ written: '搜库机', likely: 'Sokuji', sentences: [1] }],
+  };
+  const notes = () => store.getState().open!.notes!;
+  beforeEach(async () => {
+    const t = store.getState().open!.transcriptId!;
+    real.store.saveNotes({ recordId: A, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete', body: RICH });
+    await store.getState().openRecord(A);
+    clock.advance(1000);
+  });
+
+  it('writes the version shown, marks it, says so, and reads it again', async () => {
+    expect(notes().body!.points).toHaveLength(1);
+    await store.getState().editNotes({ field: { part: 'overview' }, text: 'Sokuji 上线了' });
+    expect(notes().body!.overview.text).toBe('Sokuji 上线了');
+    expect(notes().editedAt).toBe(1000);
+    expect(store.getState().toast).toMatchObject({ kind: 'notesEdited' });
+    expect(store.getState().canUndo).toBe(true);
+    await store.getState().editNotes({ field: { part: 'point', point: 0 }, text: '' });
+    expect(notes().body!.points).toEqual([]);
+    expect(store.getState().toast).toMatchObject({ kind: 'notesRemoved' });
+  });
+
+  it('editing the notes title renames the record when it followed them', async () => {
+    await store.getState().load();
+    await store.getState().editNotes({ field: { part: 'title' }, text: '上线周会' });
+    expect(store.getState().open!.record.title).toBe('上线周会');
+    expect(store.getState().rows.find((r) => r.id === A)!.title).toBe('上线周会');
+  });
+
+  it('undo puts back the text and the mark as it was', async () => {
+    await store.getState().editNotes({ field: { part: 'overview' }, text: '新的' });
+    await store.getState().undo();
+    expect(notes().body!.overview.text).toBe('搜库机上线');
+    expect(notes().editedAt).toBeNull();
+    expect(store.getState().toast).toMatchObject({ kind: 'undone' });
+  });
+
+  it('undo still restores the field after a name was dismissed', async () => {
+    await store.getState().editNotes({ field: { part: 'point', point: 0 }, text: '写发布说明和公告', owner: 'Ana', due: '' });
+    await store.getState().dismissName(0);
+    await store.getState().undo();
+    expect(notes().body!.points[0]).toMatchObject({ text: '写发布说明', owner: 'My side', due: 'Friday' });
+    expect(notes().body!.names[0]).toMatchObject({ dismissed: true });
+  });
+
+  it('undo of a field changed since leaves it and says so', async () => {
+    await store.getState().editNotes({ field: { part: 'overview' }, text: '第一次' });
+    const shown = notes();
+    real.store.editNotes({ id: shown.id, before: JSON.stringify(shown.body), after: JSON.stringify({ ...shown.body, overview: { text: '别处改的', format: 'plain' } }), editedAt: 5 });
+    await store.getState().undo();
+    await store.getState().refreshRecord();
+    expect(notes().body!.overview.text).toBe('别处改的');
+    expect(store.getState().toast).toMatchObject({ kind: 'undoKept' });
+    expect(store.getState().canUndo).toBe(false);
+  });
+
+  it('nothing is edited while a version is being written, the record is open, or it is transcribed again', async () => {
+    expect(store.getState().canEditNotes()).toBe(true);
+    store.setState({ notesRunning: [A] });
+    expect(store.getState().canEditNotes()).toBe(false);
+    await store.getState().editNotes({ field: { part: 'overview' }, text: '不该写进去' });
+    expect((real.store.getNotes({ id: notes().id }) as { body: { overview: { text: string } } }).body.overview.text).toBe('搜库机上线');
+    store.setState({ notesRunning: [] });
+    store.setState({ job: { kind: 'transcribe', recordId: A } as never });
+    expect(store.getState().canEditNotes()).toBe(false);
+    store.setState({ job: null });
+    lay(B, false);
+    await store.getState().openRecord(B);
+    expect(store.getState().canEditNotes()).toBe(false);
+  });
+
+  it('a word fix that changes the notes marks them; its undo takes the mark back', async () => {
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: true, words: false });
+    expect(notes().editedAt).toBe(1000);
+    await store.getState().undo();
+    expect(notes().editedAt).toBeNull();
+  });
+
+  it('a fix reverted from the list marks its notes; undoing the revert puts the earlier mark back', async () => {
+    await store.getState().fixWords('搜库机', 'Sokuji', { notes: true, words: false });
+    clock.advance(500);
+    await store.getState().revertCorrection(store.getState().open!.corrections[0].id);
+    expect(notes()).toMatchObject({ editedAt: 1500 });
+    expect(notes().body!.overview.text).toBe('搜库机上线');
+    await store.getState().undo();
+    expect(notes()).toMatchObject({ editedAt: 1000 });
+    expect(notes().body!.overview.text).toBe('Sokuji上线');
+  });
+});
