@@ -208,6 +208,27 @@ describe('Models and storage — the session models', () => {
     expect(store.downloadModel).toHaveBeenCalledWith('moonshine-tiny-ja-quant');
   });
 
+  // The store has already put the failure on the card when its promise rejects; the page has nothing more to do
+  // with it, and must not leave it as an unhandled rejection.
+  it('leaves no unhandled rejection when a download fails', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      // A plain function: a mock keeps its own handler on the promise it returns, which would hide the rejection.
+      const asked: string[] = [];
+      const downloadModel = (id: string) => { asked.push(id); return Promise.reject(new TypeError('Failed to fetch')); };
+      useModelStore.setState({ downloadModel } as never);
+      mount();
+      more('Recognition');
+      fireEvent.click(within(card('Moonshine Tiny EN (quantized)')).getByRole('button', { name: /^Download/ }));
+      expect(asked).toEqual(['moonshine-tiny-en-quant']);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+  });
+
   it('says a model this computer cannot run, and offers no download for it', () => {
     mount();
     more('Recognition');
