@@ -236,6 +236,21 @@ export interface HistorySentence {
   timeKind: HistoryTimeKind;
   /** A file transcript's translation of what the service translated starting in this sentence; null where none began, and in a session's. */
   translation: string | null;
+  /** What was heard, when the text was changed by hand (design §5.1, §5.2); null when it reads as heard. */
+  heard: string | null;
+}
+
+/** A fix of a misheard word in one transcript (design §5.1): newest first in the page's list. */
+export interface HistoryCorrection {
+  id: number;
+  from: string;
+  to: string;
+  /** The sentences it changed. */
+  sentences: number[];
+  /** The notes version it changed too, or null. */
+  notesId: number | null;
+  createdAt: number;
+  revertedAt: number | null;
 }
 
 export interface HistorySpeaker {

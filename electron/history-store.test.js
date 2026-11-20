@@ -668,3 +668,152 @@ describe('a track file for the player', () => {
     expect(s.trackFile({ recordId: ID, source: 'speaker' })).toBeNull();
   });
 });
+
+// Owner, 2026-11-19 (design §5.1–5.3): a finished record's text can be fixed. A sentence keeps what was heard beside
+// what is shown, and each fix keeps, per sentence and for the notes, what it found and what it wrote, so it is reverted
+// exactly: text right before the fix is never turned back, and a sentence changed since is left alone.
+describe('editing a finished record', () => {
+  const { openDatabase } = nodeRequire('./history-db.js');
+  const { MIGRATIONS } = nodeRequire('./history-schema.js');
+  const sent = (n, text) => ({ n, side: 'mine', sideCertain: true, track: 'microphone', speaker: '1', startMs: n * 1000, endMs: n * 1000 + 800, text, timeKind: 'given' });
+  const BODY = { title: '周会', overview: { text: '搜库机上线', format: 'plain' }, topics: [], points: [], names: [] };
+  let t;
+  const text = (n) => s.getSentences({ transcriptId: t }).find((x) => x.n === n);
+  const fix = (over = {}) => ({
+    transcriptId: t, from: '搜库机', to: 'Sokuji', notes: null,
+    sentences: [{ n: 1, before: '我们用搜库机开会', after: '我们用Sokuji开会' }, { n: 2, before: '搜库机很快', after: 'Sokuji很快' }],
+    ...over,
+  });
+  const open = () => {
+    s.openRecord(rec());
+    t = s.createTranscript({ recordId: ID, origin: { service: 'soniox', kind: 'live' } });
+    s.appendSentences({ transcriptId: t, sentences: [sent(1, '我们用搜库机开会'), sent(2, '搜库机很快'), sent(3, 'Sokuji 已经上线')] });
+  };
+  beforeEach(() => {
+    open();
+    s.closeRecord({ id: ID, endedAt: 1_800_000_060_000 });
+  });
+
+  it('edits a sentence and keeps what was heard', () => {
+    s.editSentences({ transcriptId: t, edits: [{ n: 1, text: '我们用Sokuji开会' }] });
+    expect(text(1)).toMatchObject({ text: '我们用Sokuji开会', heard: '我们用搜库机开会' });
+    expect(text(2).heard).toBeNull();
+    s.editSentences({ transcriptId: t, edits: [{ n: 1, text: '我们用搜库机开会' }] });
+    expect(text(1)).toMatchObject({ text: '我们用搜库机开会', heard: null });
+  });
+
+  it('refuses a record still open', () => {
+    s.close();
+    rmSync(dir, { recursive: true, force: true });
+    dir = mkdtempSync(join(tmpdir(), 'sokuji-history-'));
+    s = openHistory({ dir });
+    open();
+    expect(() => s.editSentences({ transcriptId: t, edits: [{ n: 1, text: 'x' }] })).toThrow(expect.objectContaining({ code: 'RECORD_OPEN' }));
+    expect(() => s.applyCorrection(fix())).toThrow(expect.objectContaining({ code: 'RECORD_OPEN' }));
+    expect(text(1).text).toBe('我们用搜库机开会');
+  });
+
+  it('applies a fix and lists it', () => {
+    const id = s.applyCorrection(fix());
+    expect(text(1)).toMatchObject({ text: '我们用Sokuji开会', heard: '我们用搜库机开会' });
+    expect(s.listCorrections({ transcriptId: t })).toEqual([
+      { id, from: '搜库机', to: 'Sokuji', sentences: [1, 2], notesId: null, createdAt: expect.any(Number), revertedAt: null },
+    ]);
+  });
+
+  it('refuses a stale fix', () => {
+    expect(() => s.applyCorrection(fix({ sentences: [{ n: 1, before: 'not this', after: 'x' }] }))).toThrow(expect.objectContaining({ code: 'STALE' }));
+    expect(text(1).text).toBe('我们用搜库机开会');
+    expect(s.listCorrections({ transcriptId: t })).toEqual([]);
+  });
+
+  it('revert restores only what the fix wrote', () => {
+    const id = s.applyCorrection(fix());
+    expect(s.revertCorrection({ id })).toEqual({ restored: 2, kept: 0 });
+    expect(text(1)).toMatchObject({ text: '我们用搜库机开会', heard: null });
+    expect(text(2)).toMatchObject({ text: '搜库机很快', heard: null });
+    expect(text(3).text).toBe('Sokuji 已经上线');
+    expect(s.listCorrections({ transcriptId: t })[0].revertedAt).toEqual(expect.any(Number));
+  });
+
+  it('revert keeps a sentence changed since', () => {
+    const id = s.applyCorrection(fix());
+    s.editSentences({ transcriptId: t, edits: [{ n: 2, text: 'Sokuji 非常快' }] });
+    expect(s.revertCorrection({ id })).toEqual({ restored: 1, kept: 1 });
+    expect(text(2).text).toBe('Sokuji 非常快');
+    expect(text(1).text).toBe('我们用搜库机开会');
+  });
+
+  it('forgets a fix undone', () => {
+    const id = s.applyCorrection(fix());
+    s.revertCorrection({ id, forget: true });
+    expect(s.listCorrections({ transcriptId: t })).toEqual([]);
+    expect(text(1).text).toBe('我们用搜库机开会');
+  });
+
+  it('restores a sentence to what was heard', () => {
+    s.editSentences({ transcriptId: t, edits: [{ n: 2, text: 'Sokuji很快' }] });
+    s.restoreSentence({ transcriptId: t, n: 2 });
+    expect(text(2)).toMatchObject({ text: '搜库机很快', heard: null });
+    s.restoreSentence({ transcriptId: t, n: 2 });
+    expect(text(2).text).toBe('搜库机很快');
+    // PR review: no such sentence is an error, as for every other edit.
+    expect(() => s.restoreSentence({ transcriptId: t, n: 99 })).toThrow(expect.objectContaining({ code: 'NO_SENTENCE' }));
+  });
+
+  it('fixes the notes too, and search finds the new word', () => {
+    const notesId = s.saveNotes({ recordId: ID, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete', body: BODY });
+    const after = { ...BODY, overview: { text: 'Sokuji上线', format: 'plain' } };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(BODY), after: JSON.stringify(after) } }));
+    expect(s.getNotes({ id: notesId }).body.overview.text).toBe('Sokuji上线');
+    expect(s.listCorrections({ transcriptId: t })[0].notesId).toBe(notesId);
+    expect(s.search({ query: 'Sokuji上线' }).map((r) => r.recordId)).toEqual([ID]);
+    s.revertCorrection({ id });
+    expect(s.getNotes({ id: notesId }).body.overview.text).toBe('搜库机上线');
+  });
+
+  // Final review I-3: the notes go back field by field; a name dismissed since, or another fix of other words, does not
+  // stop it, and a field changed since is kept and counted.
+  it('reverts the notes field by field', () => {
+    const body = { ...BODY, title: '搜库机周会', overview: { text: '搜库机和佐藤米崎上线', format: 'plain' }, names: [{ written: '佐藤米崎' }] };
+    const notesId = s.saveNotes({ recordId: ID, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete', body });
+    const first = { ...body, title: 'Sokuji周会', overview: { text: 'Sokuji和佐藤米崎上线', format: 'plain' } };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(first) } }));
+    s.updateNotesNames({ notesId, names: [{ written: '佐藤米崎', dismissed: true }] });
+    const now = s.getNotes({ id: notesId }).body;
+    const second = { ...now, overview: { text: 'Sokuji和佐藤美咲上线', format: 'plain' } };
+    s.applyCorrection({ transcriptId: t, from: '佐藤米崎', to: '佐藤美咲', sentences: [], notes: { id: notesId, before: JSON.stringify(now), after: JSON.stringify(second) } });
+    expect(s.revertCorrection({ id })).toEqual({ restored: 2, kept: 1 });
+    const back = s.getNotes({ id: notesId }).body;
+    expect(back.title).toBe('搜库机周会');
+    expect(back.overview.text).toBe('Sokuji和佐藤美咲上线');
+    expect(back.names).toEqual([{ written: '佐藤米崎', dismissed: true }]);
+  });
+
+  // Final review I-7: the record's title is the notes' title copied; it is fixed and reverted with it, unless the user
+  // named the record.
+  it('fixes the record title copied from the notes', () => {
+    const body = { ...BODY, title: '搜库机周会' };
+    const notesId = s.saveNotes({ recordId: ID, transcriptId: t, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete', body });
+    const after = { ...body, title: 'Sokuji周会' };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(after) } }));
+    expect(s.getRecord(ID).title).toBe('Sokuji周会');
+    s.revertCorrection({ id });
+    expect(s.getRecord(ID).title).toBe('搜库机周会');
+    s.renameRecord({ id: ID, title: '我的周会' });
+    s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(after) } }));
+    expect(s.getRecord(ID).title).toBe('我的周会');
+  });
+
+  it('opens a version 1 file and adds the columns', () => {
+    s.close();
+    rmSync(dir, { recursive: true, force: true });
+    dir = mkdtempSync(join(tmpdir(), 'sokuji-history-'));
+    mkdirSync(join(dir, 'records'), { recursive: true });
+    openDatabase({ file: join(dir, 'history.db'), migrations: MIGRATIONS.slice(0, 1) }).db.close();
+    s = openHistory({ dir });
+    open();
+    expect(text(1).heard).toBeNull();
+    expect(s.listCorrections({ transcriptId: t })).toEqual([]);
+  });
+});

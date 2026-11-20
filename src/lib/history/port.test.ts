@@ -68,6 +68,17 @@ describe('the history port', () => {
     expect(Object.keys(port).sort()).toEqual(HISTORY_PORT_CHANNELS.map(([method]) => method).sort());
   });
 
+  it('listCorrections sends the transcript and resolves with the rows', async () => {
+    const rows = [{ id: 1, from: '搜库机', to: 'Sokuji', sentences: [1, 2], notesId: null, createdAt: 1, revertedAt: null }];
+    const invoke = vi.fn(async () => ({ ok: true, value: rows }));
+    expect(await electronHistoryPort(invoke).listCorrections({ transcriptId: 3 })).toEqual(rows);
+    expect(invoke).toHaveBeenCalledWith('history:list-corrections', { transcriptId: 3 });
+  });
+
+  it('the null port lists no corrections', async () => {
+    expect(await nullHistoryPort.listCorrections({ transcriptId: 3 })).toEqual([]);
+  });
+
   it('the null port holds nothing and never throws', async () => {
     await nullHistoryPort.openRecord({ id: 'run-0001-aaaa' } as never);
     expect(await nullHistoryPort.listRecords({})).toEqual([]);

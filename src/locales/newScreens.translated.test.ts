@@ -12,7 +12,7 @@ const AREAS = ['history', 'notes', 'notesQuit', 'liveNotes', 'settingsPage.wordL
  * Latin text that is not English left over: names of products and services, keyboard keys, file formats, a model's
  * id, and "key", which the Chinese interface uses for an API key throughout (as in "API key").
  */
-const KEPT = /\{\{\w+\}\}|<\/?\w+>|Kizuna AI|Sokuji|Soniox|OpenAI( Translate| Live)?|Gemini Live|gemini-[\w.-]+|Palabra|Qwen|Markdown|JSON|Enter|Esc|\.(txt|json|md|opus|srt|vtt)|\bAPI\b|\bkey\b|\b[A-Z]{2,4}\b/g;
+const KEPT = /\{\{\w+\}\}|<\/?\w+>|Kizuna AI|Sokuji|Soniox|OpenAI( Translate| Live)?|Gemini Live|gemini-[\w.-]+|Palabra|Qwen|Markdown|JSON|Enter|Shift|Esc|\.(txt|json|md|opus|srt|vtt)|\bAPI\b|\bkey\b|\b[A-Z]{2,4}\b/g;
 
 function leaves(tree: Tree, prefix: string): Array<[string, string]> {
   return Object.entries(tree).flatMap(([k, v]) => (typeof v === 'string' ? [[`${prefix}${k}`, v] as [string, string]] : leaves(v, `${prefix}${k}.`)));

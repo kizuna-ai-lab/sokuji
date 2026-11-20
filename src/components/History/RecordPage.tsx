@@ -27,6 +27,10 @@ import { useNotesExplained, useSetNotesExplained } from '../../stores/settingsSt
 import { audible, playable, rowAt, startFor } from '../../lib/history/playback';
 import { notesServiceOf } from '../../lib/notes/notesService';
 import { RecordSidePanel } from './RecordSidePanel';
+import FixWordsPart from './FixWordsPart';
+import SentenceEditor from './SentenceEditor';
+import { findWord } from '../../lib/history/wordFix';
+import EditToast from './EditToast';
 import { InlineEdit } from './InlineEdit';
 import PanelResizer from '../MainLayout/PanelResizer';
 import { labelsFit } from './panelSwitchFit';
@@ -223,6 +227,59 @@ export const RecordPage: React.FC = () => {
     // A hit in the notes shows them in columns too; the closed choice stays saved for ordinary openings.
     if (hitKind === 'notes') { setNotesOpen(true); setShared('notes'); }
   }, [open?.record.id, hitKind]);
+  // A word handed to "Fix words" (option C: from a name to check or a selection) shows the edit panel, wherever it
+  // stands in this layout; the part fills itself from it.
+  const fixDraftSeq = useStore(store, (s) => s.fixDraft?.seq ?? null);
+  useEffect(() => {
+    if (fixDraftSeq === null) return;
+    if (columned) {
+      writeSideOpen(true);
+      setSideOpen(true);
+      setShared('edit');
+    } else {
+      setPane('edit');
+    }
+  }, [fixDraftSeq]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A word selected in one sentence of the transcript (at most 40 characters, not only spaces) offers "Fix…", above it,
+  // which hands it to the edit panel's "Fix words" with that sentence (option C, owner 2026-11-19).
+  const canFix = useStore(store, (s) => s.canEdit());
+  const [selectedWord, setSelectedWord] = useState<{ text: string; n: number; top: number; left: number } | null>(null);
+  // The sentence being rewritten in place, and the one whose original is shown (design draft P0 §3.4–3.5).
+  const [editingSentence, setEditingSentence] = useState<number | null>(null);
+  const [originalOf, setOriginalOf] = useState<number | null>(null);
+  useEffect(() => {
+    const onSelection = () => {
+      const column = transcriptRef.current;
+      const sel = document.getSelection();
+      if (!column || !sel || sel.isCollapsed || sel.rangeCount === 0) { setSelectedWord(null); return; }
+      const range = sel.getRangeAt(0);
+      const sentenceOf = (node: Node) => (node.nodeType === Node.ELEMENT_NODE ? node as Element : node.parentElement)?.closest('.record-sentence') ?? null;
+      const start = sentenceOf(range.startContainer);
+      const text = sel.toString().trim();
+      if (!start || start !== sentenceOf(range.endContainer) || !column.contains(start) || !text || [...text].length > 40) {
+        setSelectedWord(null);
+        return;
+      }
+      const at = range.getBoundingClientRect?.() ?? { top: 0, left: 0 };
+      const box = column.getBoundingClientRect();
+      setSelectedWord({ text, n: Number(start.getAttribute('data-n')), top: at.top - box.top + column.scrollTop, left: at.left - box.left + column.scrollLeft });
+    };
+    document.addEventListener('selectionchange', onSelection);
+    return () => document.removeEventListener('selectionchange', onSelection);
+  }, []);
+  // Ctrl/⌘+Z undoes the last edit of this record, except in a field, whose own undo it is (design draft P0 §3.6).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'z' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || isComposing(e)) return;
+      const at = e.target as Element | null;
+      if (at?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+      if (!store.getState().canUndo) return;
+      e.preventDefault();
+      void store.getState().undo();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [store]);
   const [jumpTo, setJumpTo] = useState<{ n: number } | null>(null);
   useEffect(() => {
     const el = pageRef.current;
@@ -283,6 +340,27 @@ export const RecordPage: React.FC = () => {
   const notesExplained = useNotesExplained();
   const setNotesExplained = useSetNotesExplained();
 
+  // The notes' names to check, as the shown transcript has them (option C, owner 2026-11-19): one whose heard form was
+  // heard and no longer is shows "Fixed"; one never seen as written keeps "Go fix" (the notes may spell it otherwise).
+  const fixedNames = useMemo(() => {
+    const fixed = new Set<number>();
+    for (const [i, n] of (open?.notes?.body?.names ?? []).entries()) {
+      const word = typeof n.written === 'string' ? n.written : '';
+      if (!word || !open) continue;
+      // A place reading the likely form is not the misheard one ("搜库" inside "搜库机").
+      const right = typeof n.likely === 'string' && n.likely ? n.likely : undefined;
+      const now = open.sentences.some((s) => findWord(s.text, word, right).length > 0);
+      const heard = open.sentences.some((s) => findWord(s.heard ?? s.text, word, right).length > 0);
+      if (!now && heard) fixed.add(i);
+    }
+    return fixed;
+  }, [open]);
+  const fixName = (i: number) => {
+    const n = open?.notes?.body?.names?.[i];
+    if (!n || typeof n.written !== 'string') return;
+    actions.openFix({ heard: n.written, suggestion: typeof n.likely === 'string' ? n.likely : null, source: 'notes' });
+  };
+
   if (!open) return null;
   const { record } = open;
   const span = open.sentences.length > 0
@@ -291,7 +369,7 @@ export const RecordPage: React.FC = () => {
     <RecordNotes
       record={record} notes={open.notes} writing={notesRunning.includes(record.id)} tooShort={span < NOTES_MIN_MS} languages={notesLanguages}
       onWrite={(l) => actions.generateNotes(l)} onCancel={() => actions.cancelNotes()} onShowVersion={(id) => void actions.showNotes(id)}
-      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onAddName={(i, spelling) => actions.addName(i, spelling)}
+      onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onFixName={canFix ? fixName : undefined} fixedNames={fixedNames}
       latest={open.latest ?? null} explainWith={!notesExplained && notesService ? notesService : null}
       onExplained={() => void setNotesExplained(true)}
     />
@@ -489,6 +567,17 @@ export const RecordPage: React.FC = () => {
       // Escape closes the menu, from its button or from inside it, and goes no further.
       onKeyDown={(e) => { if (e.key === 'Escape' && menuFor === n && !isComposing(e.nativeEvent)) { e.preventDefault(); setMenuFor(null); } }}
     >
+      {canFix && (
+        <button
+          type="button"
+          className="record-sentence__menu-button"
+          aria-label={t('history.editSentence', 'Edit this sentence')}
+          title={t('history.editSentence', 'Edit this sentence')}
+          onClick={() => { setMenuFor(null); setOriginalOf(null); setEditingSentence(n); }}
+        >
+          <Pencil size={12} />
+        </button>
+      )}
       <button
         type="button"
         className="record-sentence__menu-button"
@@ -512,6 +601,7 @@ export const RecordPage: React.FC = () => {
     </span>
   );
 
+  const heardOf = new Map(open.sentences.map((x) => [x.n, x.heard]));
   const transcript = rows.length === 0
     ? <p className="history-list__empty">{t('history.noTranscript', 'Nothing was said in this record.')}</p>
     : rows.map((row) => {
@@ -537,8 +627,26 @@ export const RecordPage: React.FC = () => {
               <React.Fragment key={s.n}>
                 {i > 0 && spaceBetween(row.sentences[i - 1].text, s.text) ? ' ' : null}
                 <span className={`record-sentence${hit === `[data-n="${s.n}"]` ? ' is-hit' : ''}`} data-n={s.n}>
-                  {s.text}
-                  {sentenceMenu(row, s.n)}
+                  {editingSentence === s.n ? <SentenceEditor n={s.n} text={s.text} onDone={() => setEditingSentence((at) => (at === s.n ? null : at))} /> : s.text}
+                  {editingSentence !== s.n && heardOf.get(s.n) != null && (
+                    <button type="button" className="record-sentence__edited" aria-expanded={originalOf === s.n}
+                      title={t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}
+                      onClick={() => setOriginalOf(originalOf === s.n ? null : s.n)}>
+                      {t('history.edited', 'Edited')}
+                    </button>
+                  )}
+                  {editingSentence !== s.n && sentenceMenu(row, s.n)}
+                  {/* The original opens under the sentence, after its buttons, which stay beside the mark. */}
+                  {editingSentence !== s.n && originalOf === s.n && heardOf.get(s.n) != null && (
+                    <span className="record-sentence__original" role="group" aria-label={t('history.original', 'Original')}>
+                      <span>{t('history.editedOriginal', 'Original: {{heard}}', { heard: heardOf.get(s.n) })}</span>
+                      {canFix && (
+                        <button type="button" className="history-button" onClick={() => { setOriginalOf(null); void actions.restoreSentence(s.n); }}>
+                          {t('history.restoreOriginal', 'Restore original')}
+                        </button>
+                      )}
+                    </span>
+                  )}
                 </span>
               </React.Fragment>
             ))}
@@ -565,6 +673,7 @@ export const RecordPage: React.FC = () => {
         </p>
         {speakersPanel}
       </section>
+      <FixWordsPart onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} />
     </RecordSidePanel>
   );
 
@@ -731,7 +840,20 @@ export const RecordPage: React.FC = () => {
             }}
           />
         )}
-        <div className="record-page__transcript" ref={transcriptRef} hidden={!columned && shownPane !== 'transcript'}>
+        <div className="record-page__transcript" ref={transcriptRef} hidden={!columned && shownPane !== 'transcript'}
+          onScroll={() => setSelectedWord(null)}>
+          {selectedWord && canFix && (
+            <button type="button" className="history-button record-page__fix-chip" style={{ top: Math.max(0, selectedWord.top - 34), left: selectedWord.left }}
+              // Pressed, the selection stays: the click is the button's.
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                actions.openFix({ heard: selectedWord.text, only: selectedWord.n, source: 'selection' });
+                setSelectedWord(null);
+                document.getSelection()?.removeAllRanges();
+              }}>
+              {t('history.fix.selection', 'Fix…')}
+            </button>
+          )}
           <TranscriptAsked />
           {transcript}
         </div>
@@ -753,6 +875,7 @@ export const RecordPage: React.FC = () => {
         {!sharing && sidePanel}
       </div>
       </div>
+      <EditToast />
       <div className="record-page__player">
         {hasPlayer && <RecordPlayer recordId={record.id} tracks={record.tracks} onPosition={setPosition} seekRef={seekRef} />}
       </div>
