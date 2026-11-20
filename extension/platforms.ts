@@ -4,7 +4,7 @@
 //   - src/components/Subtitle/surfaces/ExtensionContentScriptSubtitleSurface.ts SUPPORTED_HOSTS (bundled import)
 //   - extension/popup.js SITE_INFO / SITE_GROUPS / ENABLED_SITES (bundled import)
 //   - extension/manifest.json content_scripts / web_accessible matches (guarded by manifest.consistency.test.ts, not generated)
-//   - extension/background.js ENABLED_SITES + content.js guidance chain (via the build-emitted platforms.generated.js global)
+//   - extension/background/background.js ENABLED_SITES + content.js guidance chain (via the build-emitted platforms.generated.js global)
 //   - extension/content/site-plugins.js HOST_TO_PLUGIN_KEY (inline — runs in the page MAIN world, can't read the global; guarded by platforms.consistency.test.ts)
 //
 // Display names and short names were copied verbatim from popup.js's SITE_INFO.
