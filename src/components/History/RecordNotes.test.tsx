@@ -521,6 +521,21 @@ describe('editing the notes in place', () => {
     expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 3 }, text: 'Customs will hold it' });
   });
 
+  // Final review I-1: moving to the next field while the one before is still saving keeps the new one open.
+  it('a field opened while the one before is still saving stays open, with what was typed', async () => {
+    let finish!: () => void;
+    const edit = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the title')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Supplier call' } });
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Title' }));
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: 'Typed while the title saved' } });
+    await act(async () => { finish(); await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledTimes(1);
+    expect((screen.getByRole('textbox', { name: 'Overview' }) as HTMLTextAreaElement).value).toBe('Typed while the title saved');
+  });
+
   it('the title edits as the others do, and an edited version says so', () => {
     const { unmount } = render(<RecordNotes {...props({ onEdit: onEdit(), notes: { ...complete, editedAt: 5 } })} />);
     expect(screen.getByText('Edited by hand')).toBeInTheDocument();

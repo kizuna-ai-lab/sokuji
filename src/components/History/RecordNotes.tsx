@@ -133,7 +133,8 @@ export function RecordNotes(p: RecordNotesProps) {
       label={label}
       text={text}
       todo={todo}
-      onDone={() => setEditing(null)}
+      // Closes its own editor only: another field opened while this one was saving stays open.
+      onDone={() => setEditing((cur) => (cur === keyOf(f) ? null : cur))}
       onSave={async (v) => {
         await p.onEdit?.(todo ? { field: f, text: v.text, owner: storedOwner(v.owner ?? ''), due: v.due ?? '' } : { field: f, text: v.text });
       }}
