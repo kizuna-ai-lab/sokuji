@@ -2243,7 +2243,10 @@
       "restored": "Original rétabli",
       "speaker": "Intervenant modifié",
       "undone": "Annulé",
-      "undo": "Annuler"
+      "undo": "Annuler",
+      "notesEdited": "Notes modifiées",
+      "notesRemoved": "Point supprimé",
+      "undoKept": "Modifié depuis, laissé tel quel"
     },
     "notesGoFix": "Corriger",
     "notesFixed": "Corrigé",
@@ -2257,7 +2260,24 @@
     "edited": "Modifiée",
     "editedOriginal": "Original : {{heard}}",
     "original": "Original",
-    "restoreOriginal": "Rétablir l’original"
+    "restoreOriginal": "Rétablir l’original",
+    "notesEdit": {
+      "title": "Modifier le titre",
+      "overview": "Modifier la vue d’ensemble",
+      "topicTitle": "Modifier le titre du sujet",
+      "topicSummary": "Modifier le résumé",
+      "point": "Modifier le point"
+    },
+    "notesField": {
+      "title": "Titre",
+      "overview": "Vue d’ensemble",
+      "topicTitle": "Titre du sujet",
+      "topicSummary": "Résumé",
+      "point": "Point"
+    },
+    "notesOwner": "Responsable",
+    "notesDue": "Échéance",
+    "notesEdited": "Modifié à la main"
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",

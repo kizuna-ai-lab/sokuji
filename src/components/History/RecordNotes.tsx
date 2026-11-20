@@ -6,6 +6,7 @@
 // sentence that says it. Without notes the page offers to write them; while a version is written it says so and can
 // stop it; after a failure it says why and can try again.
 import { useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { notesExplanation } from './notesExplain';
@@ -17,6 +18,8 @@ import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
 import { playable } from '../../lib/history/playback';
 import { selectChrome, selectMinWidth } from './selectWidth';
+import type { NotesEdit, NotesField } from '../../lib/notes/editNotes';
+import { NotesFieldEditor } from './NotesFieldEditor';
 
 export interface RecordNotesProps {
   record: HistoryRecord;
@@ -45,6 +48,8 @@ export interface RecordNotesProps {
   explainWith: string | null;
   /** The explanation was shown and accepted. */
   onExplained(): void;
+  /** Saves one part of the version shown, changed by hand (design P1 §1); absent, nothing can be edited. */
+  onEdit?(edit: NotesEdit): Promise<void>;
 }
 
 /** The program's own reasons, by code (`notes:<code>`); a service's words are shown as they are. */
@@ -97,6 +102,43 @@ export function RecordNotes(p: RecordNotesProps) {
   ) : null);
   const sides = { mySide: t('history.sideMine', 'Your side'), otherSide: t('history.sideOther', 'The other side') };
   const again = (language: string) => () => write({ code: language, name: englishLanguageName(language) });
+
+  // Design P1 §1: each part of the notes edited in place, one at a time, from its pencil.
+  const [editing, setEditing] = useState<string | null>(null);
+  const keyOf = (f: NotesField) => JSON.stringify(f);
+  const isEditing = (f: NotesField) => !!p.onEdit && editing === keyOf(f);
+  const TITLE: NotesField = { part: 'title' };
+  const OVERVIEW: NotesField = { part: 'overview' };
+  const editWords = {
+    title: t('history.notesEdit.title', 'Edit the title'), overview: t('history.notesEdit.overview', 'Edit the overview'),
+    topicTitle: t('history.notesEdit.topicTitle', 'Edit the topic title'), topicSummary: t('history.notesEdit.topicSummary', 'Edit the summary'),
+    point: t('history.notesEdit.point', 'Edit the point'),
+  };
+  const fieldWords = {
+    title: t('history.notesField.title', 'Title'), overview: t('history.notesField.overview', 'Overview'),
+    topicTitle: t('history.notesField.topicTitle', 'Topic title'), topicSummary: t('history.notesField.topicSummary', 'Summary'),
+    point: t('history.notesField.point', 'Point'),
+  };
+  const pencil = (f: NotesField, label: string) => p.onEdit && (
+    <button type="button" className="record-notes__edit" aria-label={label} title={label} onClick={() => setEditing(keyOf(f))}>
+      <Pencil size={12} />
+    </button>
+  );
+  // After running text the pencil is bound to its last word, never on a line of its own (as P0's sentence buttons).
+  const tail = (f: NotesField, label: string) => p.onEdit && <span className="record-notes__tail">{pencil(f, label)}</span>;
+  // A side, as the interface words it, is stored as the side it stands for.
+  const storedOwner = (owner: string) => (owner === sides.mySide ? 'My side' : owner === sides.otherSide ? 'Other side' : owner);
+  const editor = (f: NotesField, label: string, text: string, todo: { owner: string; due: string } | null = null) => (
+    <NotesFieldEditor
+      label={label}
+      text={text}
+      todo={todo}
+      onDone={() => setEditing(null)}
+      onSave={async (v) => {
+        await p.onEdit?.(todo ? { field: f, text: v.text, owner: storedOwner(v.owner ?? ''), due: v.due ?? '' } : { field: f, text: v.text });
+      }}
+    />
+  );
 
   const kindWord: Record<NoteKind, string> = {
     decision: t('history.notesKind.decision', 'Decision'),
@@ -217,8 +259,18 @@ export function RecordNotes(p: RecordNotesProps) {
             <button type="button" className="history-button" onClick={again(latest.language)}>{t('history.notesTryAgain', 'Try again')}</button>
           </div>
         )}
-        <h3 className="record-notes__title">{body.title}</h3>
-        {body.overview.text && <p className="record-notes__overview">{body.overview.text}</p>}
+        {isEditing(TITLE) ? editor(TITLE, fieldWords.title, body.title) : (
+          <div className="record-notes__title-row record-notes__editable">
+            <h3 className="record-notes__title">{body.title}</h3>
+            {p.notes.editedAt !== null && p.notes.editedAt !== undefined && (
+              <span className="record-notes__edited">{t('history.notesEdited', 'Edited by hand')}</span>
+            )}
+            {pencil(TITLE, editWords.title)}
+          </div>
+        )}
+        {isEditing(OVERVIEW) ? editor(OVERVIEW, fieldWords.overview, body.overview.text) : body.overview.text && (
+          <p className="record-notes__overview record-notes__editable">{body.overview.text}{tail(OVERVIEW, editWords.overview)}</p>
+        )}
         <div className="record-notes__filter" role="group" aria-label={t('history.notesFilterLabel', 'Show')}>
           {filters.map(([f, label]) => (
             <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>{label}</button>
@@ -233,16 +285,34 @@ export function RecordNotes(p: RecordNotesProps) {
           if (filter !== 'all' && points.length === 0) return null;
           return (
             <section className="record-notes__topic" key={index}>
-              <h4><button type="button" className="record-notes__jump" onClick={() => p.onJump(topic.first)}>{topic.title}</button></h4>
-              {topic.summary && <p className="record-notes__summary">{topic.summary}</p>}
+              {isEditing({ part: 'topicTitle', topic: index }) ? editor({ part: 'topicTitle', topic: index }, fieldWords.topicTitle, topic.title) : (
+                <div className="record-notes__topic-head record-notes__editable">
+                  <h4><button type="button" className="record-notes__jump" onClick={() => p.onJump(topic.first)}>{topic.title}</button></h4>
+                  {pencil({ part: 'topicTitle', topic: index }, editWords.topicTitle)}
+                </div>
+              )}
+              {isEditing({ part: 'topicSummary', topic: index })
+                ? editor({ part: 'topicSummary', topic: index }, fieldWords.topicSummary, topic.summary)
+                : topic.summary && (
+                  <p className="record-notes__summary record-notes__editable">{topic.summary}{tail({ part: 'topicSummary', topic: index }, editWords.topicSummary)}</p>
+                )}
               {points.length > 0 && (
                 <ul className="record-notes__points">
                   {points.map((pt, i) => {
                     // Who and when belong to a to-do; a point that is no longer one shows neither.
                     const todo = pt.kinds.includes('todo');
                     const who = todo ? [ownerWord(pt.owner, sides), pt.due].filter(Boolean).join(' · ') : '';
+                    // The stored point's own place: a filter shows some of them only.
+                    const field: NotesField = { part: 'point', point: body.points.indexOf(pt) };
+                    if (isEditing(field)) {
+                      return (
+                        <li key={i} className="record-notes__point">
+                          {editor(field, fieldWords.point, pt.text, todo ? { owner: ownerWord(pt.owner, sides) ?? '', due: pt.due ?? '' } : null)}
+                        </li>
+                      );
+                    }
                     return (
-                      <li key={i} className="record-notes__point">
+                      <li key={i} className="record-notes__point record-notes__editable">
                         {/* Inline text, not a <button>: a button is laid out as a box of its own, which put the bullet at
                             its last line and the kinds on a line of their own (owner, 2026-11-17). */}
                         <span
@@ -264,6 +334,7 @@ export function RecordNotes(p: RecordNotesProps) {
                             {who && <span className="record-notes__who">{who}</span>}
                           </span>
                         )}
+                        {tail(field, editWords.point)}
                       </li>
                     );
                   })}

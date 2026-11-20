@@ -2243,7 +2243,10 @@
       "restored": "已改回原文",
       "speaker": "说话人已更改",
       "undone": "已撤销",
-      "undo": "撤销"
+      "undo": "撤销",
+      "notesEdited": "纪要已修改",
+      "notesRemoved": "已删除一条要点",
+      "undoKept": "之后又改过，保留现状"
     },
     "notesGoFix": "去改正",
     "notesFixed": "已改正",
@@ -2257,7 +2260,24 @@
     "edited": "已改",
     "editedOriginal": "原文：{{heard}}",
     "original": "原文",
-    "restoreOriginal": "改回原文"
+    "restoreOriginal": "改回原文",
+    "notesEdit": {
+      "title": "编辑标题",
+      "overview": "编辑概述",
+      "topicTitle": "编辑话题标题",
+      "topicSummary": "编辑摘要",
+      "point": "编辑要点"
+    },
+    "notesField": {
+      "title": "标题",
+      "overview": "概述",
+      "topicTitle": "话题标题",
+      "topicSummary": "摘要",
+      "point": "要点"
+    },
+    "notesOwner": "负责人",
+    "notesDue": "截止",
+    "notesEdited": "已手动修改"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

@@ -2243,7 +2243,10 @@
       "restored": "Originale ripristinato",
       "speaker": "Interlocutore cambiato",
       "undone": "Annullato",
-      "undo": "Annulla"
+      "undo": "Annulla",
+      "notesEdited": "Note modificate",
+      "notesRemoved": "Punto rimosso",
+      "undoKept": "Modificato nel frattempo, lasciato com’è"
     },
     "notesGoFix": "Correggi",
     "notesFixed": "Corretto",
@@ -2257,7 +2260,24 @@
     "edited": "Modificata",
     "editedOriginal": "Originale: {{heard}}",
     "original": "Originale",
-    "restoreOriginal": "Ripristina l’originale"
+    "restoreOriginal": "Ripristina l’originale",
+    "notesEdit": {
+      "title": "Modifica il titolo",
+      "overview": "Modifica la panoramica",
+      "topicTitle": "Modifica il titolo dell’argomento",
+      "topicSummary": "Modifica il riepilogo",
+      "point": "Modifica il punto"
+    },
+    "notesField": {
+      "title": "Titolo",
+      "overview": "Panoramica",
+      "topicTitle": "Titolo dell’argomento",
+      "topicSummary": "Riepilogo",
+      "point": "Punto"
+    },
+    "notesOwner": "Responsabile",
+    "notesDue": "Scadenza",
+    "notesEdited": "Modificato a mano"
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",

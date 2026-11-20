@@ -2243,7 +2243,10 @@
       "restored": "Đã khôi phục bản gốc",
       "speaker": "Đã đổi người nói",
       "undone": "Đã hoàn tác",
-      "undo": "Hoàn tác"
+      "undo": "Hoàn tác",
+      "notesEdited": "Đã thay đổi ghi chú",
+      "notesRemoved": "Đã xóa một ý",
+      "undoKept": "Đã bị đổi sau đó, giữ nguyên"
     },
     "notesGoFix": "Sửa ngay",
     "notesFixed": "Đã sửa",
@@ -2257,7 +2260,24 @@
     "edited": "Đã chỉnh sửa",
     "editedOriginal": "Bản gốc: {{heard}}",
     "original": "Bản gốc",
-    "restoreOriginal": "Khôi phục bản gốc"
+    "restoreOriginal": "Khôi phục bản gốc",
+    "notesEdit": {
+      "title": "Sửa tiêu đề",
+      "overview": "Sửa phần tổng quan",
+      "topicTitle": "Sửa tiêu đề chủ đề",
+      "topicSummary": "Sửa phần tóm tắt",
+      "point": "Sửa ý"
+    },
+    "notesField": {
+      "title": "Tiêu đề",
+      "overview": "Tổng quan",
+      "topicTitle": "Tiêu đề chủ đề",
+      "topicSummary": "Tóm tắt",
+      "point": "Ý"
+    },
+    "notesOwner": "Người phụ trách",
+    "notesDue": "Hạn",
+    "notesEdited": "Đã sửa thủ công"
   },
   "notesQuit": {
     "named": "Đang viết ghi chú cho “{{title}}”. Vẫn thoát? Ghi chú sẽ được đánh dấu là đã hủy.",

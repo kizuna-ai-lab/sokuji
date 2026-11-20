@@ -2243,7 +2243,10 @@
       "restored": "Alkuperäinen palautettu",
       "speaker": "Puhuja vaihdettu",
       "undone": "Kumottu",
-      "undo": "Kumoa"
+      "undo": "Kumoa",
+      "notesEdited": "Muistiinpanoja muutettu",
+      "notesRemoved": "Kohta poistettu",
+      "undoKept": "Muutettu sen jälkeen, jätetty ennalleen"
     },
     "notesGoFix": "Korjaa",
     "notesFixed": "Korjattu",
@@ -2257,7 +2260,24 @@
     "edited": "Muokattu",
     "editedOriginal": "Alkuperäinen: {{heard}}",
     "original": "Alkuperäinen",
-    "restoreOriginal": "Palauta alkuperäinen"
+    "restoreOriginal": "Palauta alkuperäinen",
+    "notesEdit": {
+      "title": "Muokkaa otsikkoa",
+      "overview": "Muokkaa yleiskatsausta",
+      "topicTitle": "Muokkaa aiheen otsikkoa",
+      "topicSummary": "Muokkaa tiivistelmää",
+      "point": "Muokkaa kohtaa"
+    },
+    "notesField": {
+      "title": "Otsikko",
+      "overview": "Yleiskatsaus",
+      "topicTitle": "Aiheen otsikko",
+      "topicSummary": "Tiivistelmä",
+      "point": "Kohta"
+    },
+    "notesOwner": "Vastuuhenkilö",
+    "notesDue": "Määräaika",
+    "notesEdited": "Muokattu käsin"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

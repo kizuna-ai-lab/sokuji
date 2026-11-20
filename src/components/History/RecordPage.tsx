@@ -243,6 +243,8 @@ export const RecordPage: React.FC = () => {
   // A word selected in one sentence of the transcript (at most 40 characters, not only spaces) offers "Fix…", above it,
   // which hands it to the edit panel's "Fix words" with that sentence (option C, owner 2026-11-19).
   const canFix = useStore(store, (s) => s.canEdit());
+  // The notes edit only when complete and no version is being written for the record (design P1 §1).
+  const canEditNotes = useStore(store, (s) => s.canEditNotes());
   const [selectedWord, setSelectedWord] = useState<{ text: string; n: number; top: number; left: number } | null>(null);
   // The sentence being rewritten in place, and the one whose original is shown (design draft P0 §3.4–3.5).
   const [editingSentence, setEditingSentence] = useState<number | null>(null);
@@ -372,6 +374,7 @@ export const RecordPage: React.FC = () => {
       onJump={(n) => { setPane('transcript'); setJumpTo({ n }); }} onDismissName={(i) => void actions.dismissName(i)} onFixName={canFix ? fixName : undefined} fixedNames={fixedNames}
       latest={open.latest ?? null} explainWith={!notesExplained && notesService ? notesService : null}
       onExplained={() => void setNotesExplained(true)}
+      onEdit={canEditNotes ? (e) => actions.editNotes(e) : undefined}
     />
   );
   const hasPlayer = playable(record.tracks).length > 0 && !releasing;

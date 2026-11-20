@@ -2243,7 +2243,10 @@
       "restored": "تمت استعادة الأصل",
       "speaker": "تم تغيير المتحدث",
       "undone": "تم التراجع",
-      "undo": "تراجع"
+      "undo": "تراجع",
+      "notesEdited": "تم تغيير الملاحظات",
+      "notesRemoved": "أُزيلت النقطة",
+      "undoKept": "تغيّر منذ ذلك الحين، فتُرك كما هو"
     },
     "notesGoFix": "تصحيح",
     "notesFixed": "صُحّح",
@@ -2257,7 +2260,24 @@
     "edited": "معدّلة",
     "editedOriginal": "الأصل: {{heard}}",
     "original": "الأصل",
-    "restoreOriginal": "استعادة الأصل"
+    "restoreOriginal": "استعادة الأصل",
+    "notesEdit": {
+      "title": "تعديل العنوان",
+      "overview": "تعديل النظرة العامة",
+      "topicTitle": "تعديل عنوان الموضوع",
+      "topicSummary": "تعديل الملخص",
+      "point": "تعديل النقطة"
+    },
+    "notesField": {
+      "title": "العنوان",
+      "overview": "النظرة العامة",
+      "topicTitle": "عنوان الموضوع",
+      "topicSummary": "الملخص",
+      "point": "النقطة"
+    },
+    "notesOwner": "المسؤول",
+    "notesDue": "الموعد النهائي",
+    "notesEdited": "عُدّلت يدويًا"
   },
   "notesQuit": {
     "named": "تُكتب الآن ملاحظات «{{title}}». هل تريد الخروج على أي حال؟ ستُعلَّم بأنها أُلغيت.",

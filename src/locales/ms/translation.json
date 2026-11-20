@@ -2243,7 +2243,10 @@
       "restored": "Asal dipulihkan",
       "speaker": "Penutur ditukar",
       "undone": "Dibuat asal",
-      "undo": "Buat asal"
+      "undo": "Buat asal",
+      "notesEdited": "Nota diubah",
+      "notesRemoved": "Perkara dibuang",
+      "undoKept": "Sudah diubah sejak itu, dibiarkan seperti sedia ada"
     },
     "notesGoFix": "Betulkan",
     "notesFixed": "Sudah dibetulkan",
@@ -2257,7 +2260,24 @@
     "edited": "Diedit",
     "editedOriginal": "Asal: {{heard}}",
     "original": "Asal",
-    "restoreOriginal": "Pulihkan asal"
+    "restoreOriginal": "Pulihkan asal",
+    "notesEdit": {
+      "title": "Edit tajuk",
+      "overview": "Edit gambaran keseluruhan",
+      "topicTitle": "Edit tajuk topik",
+      "topicSummary": "Edit ringkasan",
+      "point": "Edit perkara"
+    },
+    "notesField": {
+      "title": "Tajuk",
+      "overview": "Gambaran keseluruhan",
+      "topicTitle": "Tajuk topik",
+      "topicSummary": "Ringkasan",
+      "point": "Perkara"
+    },
+    "notesOwner": "Pemilik tugas",
+    "notesDue": "Tarikh akhir",
+    "notesEdited": "Disunting secara manual"
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

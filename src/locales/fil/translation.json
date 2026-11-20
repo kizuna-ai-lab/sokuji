@@ -2243,7 +2243,10 @@
       "restored": "Naibalik ang orihinal",
       "speaker": "Pinalitan ang nagsasalita",
       "undone": "Na-undo",
-      "undo": "I-undo"
+      "undo": "I-undo",
+      "notesEdited": "Nabago ang mga tala",
+      "notesRemoved": "Inalis ang punto",
+      "undoKept": "Nabago na mula noon, iniwan gaya ng dati"
     },
     "notesGoFix": "Ayusin",
     "notesFixed": "Naayos na",
@@ -2257,7 +2260,24 @@
     "edited": "Na-edit",
     "editedOriginal": "Orihinal: {{heard}}",
     "original": "Orihinal",
-    "restoreOriginal": "Ibalik ang orihinal"
+    "restoreOriginal": "Ibalik ang orihinal",
+    "notesEdit": {
+      "title": "I-edit ang pamagat",
+      "overview": "I-edit ang pangkalahatang-ideya",
+      "topicTitle": "I-edit ang pamagat ng paksa",
+      "topicSummary": "I-edit ang buod",
+      "point": "I-edit ang punto"
+    },
+    "notesField": {
+      "title": "Pamagat",
+      "overview": "Pangkalahatang-ideya",
+      "topicTitle": "Pamagat ng paksa",
+      "topicSummary": "Buod",
+      "point": "Punto"
+    },
+    "notesOwner": "May-ari",
+    "notesDue": "Takdang petsa",
+    "notesEdited": "Inedit nang mano-mano"
   },
   "notesQuit": {
     "named": "Isinusulat ang mga tala para sa “{{title}}”. Isara pa rin? Mamarkahan itong kinansela.",

@@ -352,3 +352,40 @@ describe('editing one sentence', () => {
     expect(editButton(1)).toBeNull();
   });
 });
+
+// Design P1 §1: the notes column edits only when the store allows it, and says what an edit did, with Undo.
+describe('editing the notes', () => {
+  const lay = () => {
+    const t = real.store.getRecord(A) as { transcripts: Array<{ id: number }> };
+    real.store.saveNotes({ recordId: A, transcriptId: t.transcripts[0].id, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', state: 'complete',
+      body: { title: '周会', overview: { text: '上线', format: 'plain' }, topics: [{ title: '上线', summary: '周三', first: 1 }], points: [{ topic: 0, text: '写说明', sentences: [1], kinds: [] }], names: [] } });
+  };
+
+  it('saves through the store and says so, with Undo', async () => {
+    lay();
+    await show();
+    const edit = vi.spyOn(store.getState(), 'editNotes');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit the overview' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: '下周上线' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Enter' });
+    await settle();
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'overview' }, text: '下周上线' });
+    const toast = screen.getByRole('status', { name: 'What changed' });
+    expect(within(toast).getByText('Notes changed')).toBeInTheDocument();
+    expect(screen.getByText('Edited by hand')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit the point' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: '' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    await settle();
+    expect(within(screen.getByRole('status', { name: 'What changed' })).getByText('Point removed')).toBeInTheDocument();
+    expect(within(screen.getByRole('status', { name: 'What changed' })).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+  });
+
+  it('no pencils while a version is being written', async () => {
+    lay();
+    await show();
+    expect(screen.getByRole('button', { name: 'Edit the overview' })).toBeInTheDocument();
+    act(() => store.setState({ notesRunning: [A] }));
+    expect(screen.queryByRole('button', { name: 'Edit the overview' })).toBeNull();
+  });
+});

@@ -2243,7 +2243,10 @@
       "restored": "Original wiederhergestellt",
       "speaker": "Sprecher geändert",
       "undone": "Rückgängig gemacht",
-      "undo": "Rückgängig"
+      "undo": "Rückgängig",
+      "notesEdited": "Notizen geändert",
+      "notesRemoved": "Punkt entfernt",
+      "undoKept": "Inzwischen geändert, so belassen"
     },
     "notesGoFix": "Korrigieren",
     "notesFixed": "Korrigiert",
@@ -2257,7 +2260,24 @@
     "edited": "Bearbeitet",
     "editedOriginal": "Original: {{heard}}",
     "original": "Original",
-    "restoreOriginal": "Original wiederherstellen"
+    "restoreOriginal": "Original wiederherstellen",
+    "notesEdit": {
+      "title": "Titel bearbeiten",
+      "overview": "Überblick bearbeiten",
+      "topicTitle": "Thementitel bearbeiten",
+      "topicSummary": "Zusammenfassung bearbeiten",
+      "point": "Punkt bearbeiten"
+    },
+    "notesField": {
+      "title": "Titel",
+      "overview": "Überblick",
+      "topicTitle": "Thementitel",
+      "topicSummary": "Zusammenfassung",
+      "point": "Punkt"
+    },
+    "notesOwner": "Zuständig",
+    "notesDue": "Fällig",
+    "notesEdited": "Von Hand bearbeitet"
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",

@@ -2243,7 +2243,10 @@
       "restored": "Origineel teruggezet",
       "speaker": "Spreker gewijzigd",
       "undone": "Ongedaan gemaakt",
-      "undo": "Ongedaan maken"
+      "undo": "Ongedaan maken",
+      "notesEdited": "Notities gewijzigd",
+      "notesRemoved": "Punt verwijderd",
+      "undoKept": "Sindsdien gewijzigd, zo gelaten"
     },
     "notesGoFix": "Verbeteren",
     "notesFixed": "Verbeterd",
@@ -2257,7 +2260,24 @@
     "edited": "Bewerkt",
     "editedOriginal": "Origineel: {{heard}}",
     "original": "Origineel",
-    "restoreOriginal": "Origineel terugzetten"
+    "restoreOriginal": "Origineel terugzetten",
+    "notesEdit": {
+      "title": "Titel bewerken",
+      "overview": "Overzicht bewerken",
+      "topicTitle": "Onderwerptitel bewerken",
+      "topicSummary": "Samenvatting bewerken",
+      "point": "Punt bewerken"
+    },
+    "notesField": {
+      "title": "Titel",
+      "overview": "Overzicht",
+      "topicTitle": "Onderwerptitel",
+      "topicSummary": "Samenvatting",
+      "point": "Punt"
+    },
+    "notesOwner": "Eigenaar",
+    "notesDue": "Deadline",
+    "notesEdited": "Met de hand bewerkt"
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",

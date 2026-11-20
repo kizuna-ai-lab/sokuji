@@ -2243,7 +2243,10 @@
       "restored": "Orijinal geri yüklendi",
       "speaker": "Konuşmacı değiştirildi",
       "undone": "Geri alındı",
-      "undo": "Geri al"
+      "undo": "Geri al",
+      "notesEdited": "Notlar değiştirildi",
+      "notesRemoved": "Madde kaldırıldı",
+      "undoKept": "Sonradan değiştirilmiş, olduğu gibi bırakıldı"
     },
     "notesGoFix": "Düzelt",
     "notesFixed": "Düzeltildi",
@@ -2257,7 +2260,24 @@
     "edited": "Düzenlendi",
     "editedOriginal": "Orijinal: {{heard}}",
     "original": "Orijinal",
-    "restoreOriginal": "Orijinali geri yükle"
+    "restoreOriginal": "Orijinali geri yükle",
+    "notesEdit": {
+      "title": "Başlığı düzenle",
+      "overview": "Genel bakışı düzenle",
+      "topicTitle": "Konu başlığını düzenle",
+      "topicSummary": "Özeti düzenle",
+      "point": "Maddeyi düzenle"
+    },
+    "notesField": {
+      "title": "Başlık",
+      "overview": "Genel bakış",
+      "topicTitle": "Konu başlığı",
+      "topicSummary": "Özet",
+      "point": "Madde"
+    },
+    "notesOwner": "Sorumlu",
+    "notesDue": "Son tarih",
+    "notesEdited": "Elle düzenlendi"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

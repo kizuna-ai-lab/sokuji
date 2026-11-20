@@ -451,3 +451,83 @@ describe('RecordNotes styles: the language and the button', () => {
     expect(picker).toMatch(/box-sizing:\s*border-box/);
   });
 });
+
+// Design P1 §1: each part of the notes edited in place, from a pencil; Enter saves, Shift+Enter is a new line, Escape
+// cancels, a click elsewhere saves; a to-do's owner and date beside its text; the version marked once edited.
+describe('editing the notes in place', () => {
+  const onEdit = () => vi.fn(async () => {});
+  const pencils = (name: string) => screen.queryAllByRole('button', { name });
+
+  it('a pencil on every part when editing is allowed, none otherwise', () => {
+    const { unmount } = render(<RecordNotes {...props({ onEdit: onEdit() })} />);
+    expect(pencils('Edit the title')).toHaveLength(1);
+    expect(pencils('Edit the overview')).toHaveLength(1);
+    expect(pencils('Edit the topic title')).toHaveLength(2);
+    expect(pencils('Edit the summary')).toHaveLength(2);
+    expect(pencils('Edit the point')).toHaveLength(4);
+    expect(screen.getByRole('heading', { name: 'Supplier sync' })).toBeInTheDocument();
+    unmount();
+    render(<RecordNotes {...props()} />);
+    expect(pencils('Edit the point')).toHaveLength(0);
+    expect(pencils('Edit the title')).toHaveLength(0);
+  });
+
+  it('a to-do opens with its owner and date; a decision with its text only', () => {
+    render(<RecordNotes {...props({ onEdit: onEdit() })} />);
+    fireEvent.click(pencils('Edit the point')[1]);
+    expect((screen.getByRole('textbox', { name: 'Point' }) as HTMLTextAreaElement).value).toBe('Send the tracking number');
+    expect((screen.getByRole('textbox', { name: 'Owner' }) as HTMLInputElement).value).toBe('Your side');
+    expect((screen.getByRole('textbox', { name: 'Due' }) as HTMLInputElement).value).toBe('Tuesday');
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Escape' });
+    fireEvent.click(pencils('Edit the point')[0]);
+    expect(screen.queryByRole('textbox', { name: 'Owner' })).toBeNull();
+  });
+
+  it('Enter saves, Shift+Enter keeps editing, Escape cancels, a click elsewhere saves, composing never saves', async () => {
+    const edit = onEdit();
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the point')[1]);
+    const field = () => screen.getByRole('textbox', { name: 'Point' });
+    fireEvent.change(field(), { target: { value: 'Send the tracking link' } });
+    fireEvent.keyDown(field(), { key: 'Enter', shiftKey: true });
+    fireEvent.keyDown(field(), { key: 'Enter', isComposing: true });
+    expect(edit).not.toHaveBeenCalled();
+    fireEvent.keyDown(field(), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    // The owner shown as the interface words it is stored again as the side it stands for.
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 1 }, text: 'Send the tracking link', owner: 'My side', due: 'Tuesday' });
+    expect(screen.queryByRole('textbox', { name: 'Point' })).toBeNull();
+
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: 'not this' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Escape' });
+    expect(edit).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(pencils('Edit the summary')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Summary' }), { target: { value: 'The new date.' } });
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Summary' }));
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenLastCalledWith({ field: { part: 'topicSummary', topic: 0 }, text: 'The new date.' });
+  });
+
+  it('a point edited under a filter is the stored one', async () => {
+    const edit = onEdit();
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Risks' }));
+    fireEvent.click(pencils('Edit the point')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: 'Customs will hold it' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 3 }, text: 'Customs will hold it' });
+  });
+
+  it('the title edits as the others do, and an edited version says so', () => {
+    const { unmount } = render(<RecordNotes {...props({ onEdit: onEdit(), notes: { ...complete, editedAt: 5 } })} />);
+    expect(screen.getByText('Edited by hand')).toBeInTheDocument();
+    fireEvent.click(pencils('Edit the title')[0]);
+    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLTextAreaElement).value).toBe('Supplier sync');
+    unmount();
+    render(<RecordNotes {...props()} />);
+    expect(screen.queryByText('Edited by hand')).toBeNull();
+  });
+});

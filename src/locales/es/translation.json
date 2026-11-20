@@ -2243,7 +2243,10 @@
       "restored": "Original restaurado",
       "speaker": "Hablante cambiado",
       "undone": "Deshecho",
-      "undo": "Deshacer"
+      "undo": "Deshacer",
+      "notesEdited": "Notas cambiadas",
+      "notesRemoved": "Punto eliminado",
+      "undoKept": "Cambiado después; se deja como está"
     },
     "notesGoFix": "Corregir",
     "notesFixed": "Corregido",
@@ -2257,7 +2260,24 @@
     "edited": "Editada",
     "editedOriginal": "Original: {{heard}}",
     "original": "Original",
-    "restoreOriginal": "Restaurar el original"
+    "restoreOriginal": "Restaurar el original",
+    "notesEdit": {
+      "title": "Editar el título",
+      "overview": "Editar la visión general",
+      "topicTitle": "Editar el título del tema",
+      "topicSummary": "Editar el resumen",
+      "point": "Editar el punto"
+    },
+    "notesField": {
+      "title": "Título",
+      "overview": "Visión general",
+      "topicTitle": "Título del tema",
+      "topicSummary": "Resumen",
+      "point": "Punto"
+    },
+    "notesOwner": "Responsable",
+    "notesDue": "Fecha límite",
+    "notesEdited": "Editado a mano"
   },
   "notesQuit": {
     "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",

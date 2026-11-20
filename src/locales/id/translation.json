@@ -2243,7 +2243,10 @@
       "restored": "Aslinya dipulihkan",
       "speaker": "Pembicara diganti",
       "undone": "Diurungkan",
-      "undo": "Urungkan"
+      "undo": "Urungkan",
+      "notesEdited": "Catatan diubah",
+      "notesRemoved": "Poin dihapus",
+      "undoKept": "Sudah diubah sejak itu, dibiarkan apa adanya"
     },
     "notesGoFix": "Perbaiki",
     "notesFixed": "Sudah diperbaiki",
@@ -2257,7 +2260,24 @@
     "edited": "Diedit",
     "editedOriginal": "Asli: {{heard}}",
     "original": "Asli",
-    "restoreOriginal": "Pulihkan yang asli"
+    "restoreOriginal": "Pulihkan yang asli",
+    "notesEdit": {
+      "title": "Edit judul",
+      "overview": "Edit ikhtisar",
+      "topicTitle": "Edit judul topik",
+      "topicSummary": "Edit ringkasan",
+      "point": "Edit poin"
+    },
+    "notesField": {
+      "title": "Judul",
+      "overview": "Ikhtisar",
+      "topicTitle": "Judul topik",
+      "topicSummary": "Ringkasan",
+      "point": "Poin"
+    },
+    "notesOwner": "Penanggung jawab",
+    "notesDue": "Tenggat",
+    "notesEdited": "Diedit manual"
   },
   "notesQuit": {
     "named": "Catatan untuk “{{title}}” sedang ditulis. Tetap keluar? Catatan akan ditandai dibatalkan.",

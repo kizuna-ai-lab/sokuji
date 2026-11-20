@@ -2243,7 +2243,10 @@
       "restored": "Оригінал відновлено",
       "speaker": "Мовця змінено",
       "undone": "Скасовано",
-      "undo": "Скасувати"
+      "undo": "Скасувати",
+      "notesEdited": "Нотатки змінено",
+      "notesRemoved": "Пункт видалено",
+      "undoKept": "Відтоді змінено, залишено як є"
     },
     "notesGoFix": "Виправити",
     "notesFixed": "Виправлено",
@@ -2257,7 +2260,24 @@
     "edited": "Змінено",
     "editedOriginal": "Оригінал: {{heard}}",
     "original": "Оригінал",
-    "restoreOriginal": "Відновити оригінал"
+    "restoreOriginal": "Відновити оригінал",
+    "notesEdit": {
+      "title": "Змінити заголовок",
+      "overview": "Змінити огляд",
+      "topicTitle": "Змінити заголовок теми",
+      "topicSummary": "Змінити короткий зміст",
+      "point": "Змінити пункт"
+    },
+    "notesField": {
+      "title": "Заголовок",
+      "overview": "Огляд",
+      "topicTitle": "Заголовок теми",
+      "topicSummary": "Короткий зміст",
+      "point": "Пункт"
+    },
+    "notesOwner": "Відповідальний",
+    "notesDue": "Термін",
+    "notesEdited": "Змінено вручну"
   },
   "notesQuit": {
     "named": "Пишуться нотатки для «{{title}}». Усе одно вийти? Їх буде позначено як скасовані.",
