@@ -300,7 +300,14 @@ describe('runner — acquire', () => {
   it("reads every leg's credentials from the lease before any leg starts: one it cannot give fails the start, naming no leg", async () => {
     const start = vi.fn();
     const provider = withHooks(
-      { acquire: async () => ({ credentials: () => { throw new Error('no key for this leg'); }, release: async () => {} }) },
+      // The first leg's credentials are there, the second's are not: a run that read each leg's just before
+      // starting it would have started the first by now.
+      {
+        acquire: async () => ({
+          credentials: (leg: LegName) => { if (leg === 'participant') throw new Error('no key for this leg'); return {}; },
+          release: async () => {},
+        }),
+      },
       { start },
     );
     const { runner } = setup(provider, ['speaker', 'participant']);
