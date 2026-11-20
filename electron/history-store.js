@@ -511,7 +511,8 @@ function openHistory({ dir, now = () => Date.now() }) {
       const t = finishedTranscript(transcriptId);
       if (!isString(from) || !from || !isString(to) || !Array.isArray(sentences)
         || sentences.some((x) => !isPlainObject(x) || !isInt(x.n) || !isString(x.before) || !isString(x.after))
-        || !(notes === null || (isPlainObject(notes) && isInt(notes.id) && isString(notes.before) && isString(notes.after)))) {
+        || !(notes === null || (isPlainObject(notes) && isInt(notes.id) && isString(notes.before) && isString(notes.after)
+          && (notes.editedAt === undefined || notes.editedAt === null || isInt(notes.editedAt))))) {
         fail('BAD_INPUT', 'A fix needs from, to, its sentences as { n, before, after } and notes as { id, before, after } or null');
       }
       return transaction(db, () => {
@@ -526,6 +527,8 @@ function openHistory({ dir, now = () => Date.now() }) {
           if (!n || n.body === null) fail('NO_NOTES', `No notes ${notes.id}`);
           if (n.body !== notes.before) fail('STALE', `Notes ${notes.id} changed`);
           writeNotesBody(notes.id, notes.after);
+          // A fix is made by hand: the version is marked when the page says when (P1); P0 callers leave the mark be.
+          if (notes.editedAt !== undefined) run('update notes set edited_at = ? where id = ?', notes.editedAt, notes.id);
           followTitle(t.record_id, JSON.parse(notes.before).title ?? '', JSON.parse(notes.after).title ?? '');
         }
         const { lastInsertRowid } = run(
@@ -537,9 +540,10 @@ function openHistory({ dir, now = () => Date.now() }) {
     },
 
     /** A fix taken back: what it wrote goes back to what it found; what changed since stays. `forget`: no trace left. */
-    revertCorrection({ id, forget = false } = {}) {
+    revertCorrection({ id, forget = false, notesEditedAt } = {}) {
       const c = isInt(id) ? one('select * from corrections where id = ?', id) : undefined;
       if (!c) fail('NO_CORRECTION', `No correction ${id}`);
+      if (!(notesEditedAt === undefined || notesEditedAt === null || isInt(notesEditedAt))) fail('BAD_INPUT', 'notesEditedAt must be a time or null');
       const t = finishedTranscript(c.transcript_id);
       return transaction(db, () => {
         let restored = 0;
@@ -566,6 +570,8 @@ function openHistory({ dir, now = () => Date.now() }) {
             }
             if (back > 0) {
               writeNotesBody(notes.id, JSON.stringify(body));
+              // Only when it changed the notes back: the mark is what the page says it is now (P1).
+              if (notesEditedAt !== undefined) run('update notes set edited_at = ? where id = ?', notesEditedAt, notes.id);
               if (body.title === before.title) followTitle(t.record_id, after.title ?? '', before.title ?? '');
             }
           }
@@ -612,6 +618,20 @@ function openHistory({ dir, now = () => Date.now() }) {
       if (Number(changes) === 0) fail('NO_SENTENCE', `No sentence ${n}`);
     },
 
+    /** Many sentences to another speaker (or back to the recognizer's, null) in one write: a merge and its undo (P1). */
+    reassignSentences({ transcriptId, moves } = {}) {
+      transcriptOrFail(transcriptId);
+      if (!Array.isArray(moves) || moves.some((m) => !isPlainObject(m) || !isInt(m.n) || !(m.speaker === null || isString(m.speaker)))) {
+        fail('BAD_INPUT', 'moves must be { n, speaker } with a speaker or null');
+      }
+      transaction(db, () => {
+        for (const m of moves) {
+          const { changes } = run('update sentences set speaker_by_user = ? where transcript_id = ? and n = ?', m.speaker, transcriptId, m.n);
+          if (Number(changes) === 0) fail('NO_SENTENCE', `No sentence ${m.n}`);
+        }
+      });
+    },
+
     getSpeakers({ transcriptId } = {}) {
       transcriptOrFail(transcriptId);
       return all(
@@ -622,6 +642,25 @@ function openHistory({ dir, now = () => Date.now() }) {
          order by k.side = 'other', k.speaker`,
         transcriptId,
       ).map((x) => ({ side: x.side, speaker: x.speaker, name: x.name, sentences: x.sentence_count }));
+    },
+
+    /**
+     * A notes version written back whole after an edit by hand (P1), refused when it is no longer the body the page read;
+     * marked with `editedAt` (null takes the mark away, for an undo). The record's title follows the notes' title.
+     */
+    editNotes({ id, before, after, editedAt } = {}) {
+      if (!isInt(id) || !isString(before) || !isString(after) || !(editedAt === null || isInt(editedAt))) {
+        fail('BAD_INPUT', 'An edit needs id, before, after and editedAt (a time or null)');
+      }
+      const n = one('select n.body, n.record_id, r.state from notes n join records r on r.id = n.record_id where n.id = ?', id);
+      if (!n || n.body === null) fail('NO_NOTES', `No notes ${id}`);
+      if (n.state !== 'closed') fail('RECORD_OPEN', `Record ${n.record_id} is not finished`);
+      if (n.body !== before) fail('STALE', `Notes ${id} changed`);
+      transaction(db, () => {
+        writeNotesBody(id, after);
+        run('update notes set edited_at = ? where id = ?', editedAt, id);
+        followTitle(n.record_id, JSON.parse(before).title ?? '', JSON.parse(after).title ?? '');
+      });
     },
 
     saveNotes({ recordId, transcriptId, writtenBy, language, state, failure = null, requestIds = [], body = null } = {}) {
@@ -676,6 +715,7 @@ function openHistory({ dir, now = () => Date.now() }) {
         id: n.id, recordId: n.record_id, transcriptId: n.transcript_id, writtenBy: JSON.parse(n.written_by), language: n.language,
         createdAt: n.created_at, state: n.state, failure: n.failure, requestIds: JSON.parse(n.request_ids),
         body: n.body === null ? null : JSON.parse(n.body),
+        editedAt: n.edited_at ?? null,
       };
     },
 

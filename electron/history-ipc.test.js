@@ -46,7 +46,7 @@ afterEach(() => {
 describe('the history channels', () => {
   it('registers exactly the channels in the map', () => {
     expect([...handlers.keys()].sort()).toEqual([...Object.keys(HISTORY_CHANNELS), 'history:status', 'history:save-track', 'history:recognize', 'history:recognize-cancel', 'history:recognize-status'].sort());
-    expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(33);
+    expect(Object.keys(HISTORY_CHANNELS)).toHaveLength(35);
     expect(HISTORY_CHANNELS['history:update-notes-names']).toBe('updateNotesNames');
     expect(HISTORY_CHANNELS['history:append-track']).toBe('appendTrack');
   });
@@ -59,6 +59,9 @@ describe('the history channels', () => {
       'history:revert-correction': 'revertCorrection',
       'history:list-corrections': 'listCorrections',
       'history:restore-sentence': 'restoreSentence',
+      // P1: a notes version edited by hand; a speaker merged (and the merge undone) in one write.
+      'history:edit-notes': 'editNotes',
+      'history:reassign-sentences': 'reassignSentences',
     });
   });
 

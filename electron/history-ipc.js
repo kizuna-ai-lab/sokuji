@@ -37,6 +37,8 @@ const HISTORY_CHANNELS = Object.freeze({
   'history:get-sentences': 'getSentences',
   'history:rename-speaker': 'renameSpeaker',
   'history:reassign-sentence': 'reassignSentence',
+  'history:reassign-sentences': 'reassignSentences',
+  'history:edit-notes': 'editNotes',
   'history:get-speakers': 'getSpeakers',
   'history:save-notes': 'saveNotes',
   'history:list-notes': 'listNotes',
@@ -108,6 +110,8 @@ function setupHistoryHandlers({
   ipcMain.handle('history:get-sentences', handle('getSentences'));
   ipcMain.handle('history:rename-speaker', handle('renameSpeaker'));
   ipcMain.handle('history:reassign-sentence', handle('reassignSentence'));
+  ipcMain.handle('history:reassign-sentences', handle('reassignSentences'));
+  ipcMain.handle('history:edit-notes', handle('editNotes'));
   ipcMain.handle('history:get-speakers', handle('getSpeakers'));
   ipcMain.handle('history:save-notes', handle('saveNotes'));
   ipcMain.handle('history:list-notes', handle('listNotes'));

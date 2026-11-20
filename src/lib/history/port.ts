@@ -32,16 +32,22 @@ export interface HistoryPort {
   applyCorrection(args: {
     transcriptId: number; from: string; to: string;
     sentences: Array<{ n: number; before: string; after: string }>;
-    notes: { id: number; before: string; after: string } | null;
+    /** `editedAt`: when the notes version is marked edited by hand; absent leaves the mark as it is. */
+    notes: { id: number; before: string; after: string; editedAt?: number | null } | null;
   }): Promise<number>;
   /** A fix taken back exactly; with `forget` (an undo) it leaves no trace. */
-  revertCorrection(args: { id: number; forget?: boolean }): Promise<{ restored: number; kept: number }>;
+  /** `notesEditedAt`: the notes version's mark once the revert changed it back; absent leaves the mark as it is. */
+  revertCorrection(args: { id: number; forget?: boolean; notesEditedAt?: number | null }): Promise<{ restored: number; kept: number }>;
   listCorrections(args: { transcriptId: number }): Promise<HistoryCorrection[]>;
   /** A sentence back to what was heard. */
   restoreSentence(args: { transcriptId: number; n: number }): Promise<void>;
   getSentences(args: { transcriptId: number }): Promise<HistorySentence[]>;
   renameSpeaker(args: { transcriptId: number; side: HistorySentenceSide; speaker: string; name: string }): Promise<void>;
   reassignSentence(args: { transcriptId: number; n: number; speaker: string | null }): Promise<void>;
+  /** Many sentences to another speaker (null: the recognizer's) in one write; refused whole when one is missing. */
+  reassignSentences(args: { transcriptId: number; moves: Array<{ n: number; speaker: string | null }> }): Promise<void>;
+  /** A notes version written back whole, refused (STALE) when it is no longer `before`; `editedAt` marks it (null: unmarked). */
+  editNotes(args: { id: number; before: string; after: string; editedAt: number | null }): Promise<void>;
   getSpeakers(args: { transcriptId: number }): Promise<HistorySpeaker[]>;
   saveNotes(args: HistoryNotesInput): Promise<number>;
   listNotes(args: { recordId: string }): Promise<HistoryNotesRow[]>;
@@ -101,6 +107,8 @@ export const HISTORY_PORT_CHANNELS = [
   ['getSentences', 'history:get-sentences'],
   ['renameSpeaker', 'history:rename-speaker'],
   ['reassignSentence', 'history:reassign-sentence'],
+  ['reassignSentences', 'history:reassign-sentences'],
+  ['editNotes', 'history:edit-notes'],
   ['getSpeakers', 'history:get-speakers'],
   ['saveNotes', 'history:save-notes'],
   ['listNotes', 'history:list-notes'],
@@ -159,6 +167,8 @@ export function electronHistoryPort(invoke: Invoke): HistoryPort {
     getSentences: (a) => call('history:get-sentences', a),
     renameSpeaker: (a) => call('history:rename-speaker', a),
     reassignSentence: (a) => call('history:reassign-sentence', a),
+    reassignSentences: (a) => call('history:reassign-sentences', a),
+    editNotes: (a) => call('history:edit-notes', a),
     getSpeakers: (a) => call('history:get-speakers', a),
     saveNotes: (a) => call('history:save-notes', a),
     listNotes: (a) => call('history:list-notes', a),
@@ -204,6 +214,8 @@ export const nullHistoryPort: HistoryPort = {
   getSentences: async () => [],
   renameSpeaker: nothing,
   reassignSentence: nothing,
+  reassignSentences: nothing,
+  editNotes: nothing,
   getSpeakers: async () => [],
   saveNotes: async () => 0,
   listNotes: async () => [],

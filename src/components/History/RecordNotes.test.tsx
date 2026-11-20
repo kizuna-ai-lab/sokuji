@@ -15,7 +15,7 @@ const record = (notes: HistoryRecord['notes'] = []): HistoryRecord => ({
 });
 const complete: HistoryNotes = {
   id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'gpt-6-luna' }, language: 'en', createdAt: 0,
-  state: 'complete', failure: null, requestIds: [],
+  state: 'complete', failure: null, requestIds: [], editedAt: null,
   body: {
     title: 'Supplier sync', overview: { text: 'Delivery and packaging.', format: 'plain' },
     topics: [{ title: 'Delivery', summary: 'The date.', first: 1 }, { title: 'Packaging', summary: 'The fix.', first: 5 }],
