@@ -2246,7 +2246,9 @@
       "undo": "撤销",
       "notesEdited": "纪要已修改",
       "notesRemoved": "已删除一条要点",
-      "undoKept": "之后又改过，保留现状"
+      "undoKept": "之后又改过，保留现状",
+      "merged": "{{from}} 已并入 {{into}}（{{count}} 句）",
+      "merged_one": "{{from}} 已并入 {{into}}（{{count}} 句）"
     },
     "notesGoFix": "去改正",
     "notesFixed": "已改正",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "负责人",
     "notesDue": "截止",
-    "notesEdited": "已手动修改"
+    "notesEdited": "已手动修改",
+    "mergeSpeaker": "把 {{name}} 并入…",
+    "mergeInto": "并入…",
+    "mergeMenu": "并入",
+    "mergeAsk": "{{name}} 已经是这一侧的说话人了。",
+    "mergeOne": "并成一个",
+    "keepApart": "分开保留"
   },
   "notesQuit": {
     "named": "正在为“{{title}}”写纪要。仍然退出吗？这份纪要会记为已取消。",

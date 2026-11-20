@@ -2246,7 +2246,9 @@
       "undo": "실행 취소",
       "notesEdited": "메모를 바꿨습니다",
       "notesRemoved": "요점을 삭제했습니다",
-      "undoKept": "그 뒤에 바뀌어서 그대로 두었습니다"
+      "undoKept": "그 뒤에 바뀌어서 그대로 두었습니다",
+      "merged": "{{from}}을(를) {{into}}에 합쳤습니다({{count}}문장)",
+      "merged_one": "{{from}}을(를) {{into}}에 합쳤습니다({{count}}문장)"
     },
     "notesGoFix": "고치기",
     "notesFixed": "수정됨",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "담당자",
     "notesDue": "기한",
-    "notesEdited": "직접 수정됨"
+    "notesEdited": "직접 수정됨",
+    "mergeSpeaker": "{{name}} 합치기…",
+    "mergeInto": "합치기…",
+    "mergeMenu": "합칠 대상",
+    "mergeAsk": "{{name}}은(는) 이미 이쪽 화자입니다.",
+    "mergeOne": "한 사람으로 합치기",
+    "keepApart": "따로 두기"
   },
   "notesQuit": {
     "named": "“{{title}}”의 메모를 작성하는 중입니다. 그래도 종료할까요? 취소된 것으로 표시됩니다.",

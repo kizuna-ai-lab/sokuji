@@ -2246,7 +2246,9 @@
       "undo": "Rückgängig",
       "notesEdited": "Notizen geändert",
       "notesRemoved": "Punkt entfernt",
-      "undoKept": "Inzwischen geändert, so belassen"
+      "undoKept": "Inzwischen geändert, so belassen",
+      "merged": "{{from}} mit {{into}} zusammengeführt ({{count}} Sätze)",
+      "merged_one": "{{from}} mit {{into}} zusammengeführt ({{count}} Satz)"
     },
     "notesGoFix": "Korrigieren",
     "notesFixed": "Korrigiert",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Zuständig",
     "notesDue": "Fällig",
-    "notesEdited": "Von Hand bearbeitet"
+    "notesEdited": "Von Hand bearbeitet",
+    "mergeSpeaker": "{{name}} zusammenführen mit…",
+    "mergeInto": "Zusammenführen mit…",
+    "mergeMenu": "Zusammenführen mit",
+    "mergeAsk": "{{name}} ist schon ein Sprecher auf dieser Seite.",
+    "mergeOne": "Zu einem zusammenführen",
+    "keepApart": "Getrennt lassen"
   },
   "notesQuit": {
     "named": "Für „{{title}}“ werden gerade Notizen geschrieben. Trotzdem beenden? Sie werden als abgebrochen markiert.",

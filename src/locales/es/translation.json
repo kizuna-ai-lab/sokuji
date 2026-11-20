@@ -2246,7 +2246,9 @@
       "undo": "Deshacer",
       "notesEdited": "Notas cambiadas",
       "notesRemoved": "Punto eliminado",
-      "undoKept": "Cambiado después; se deja como está"
+      "undoKept": "Cambiado después; se deja como está",
+      "merged": "{{from}} unido a {{into}} ({{count}} frases)",
+      "merged_one": "{{from}} unido a {{into}} ({{count}} frase)"
     },
     "notesGoFix": "Corregir",
     "notesFixed": "Corregido",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Responsable",
     "notesDue": "Fecha límite",
-    "notesEdited": "Editado a mano"
+    "notesEdited": "Editado a mano",
+    "mergeSpeaker": "Unir {{name}} a…",
+    "mergeInto": "Unir a…",
+    "mergeMenu": "Unir a",
+    "mergeAsk": "{{name}} ya es un hablante de este lado.",
+    "mergeOne": "Unir en uno",
+    "keepApart": "Mantener separados"
   },
   "notesQuit": {
     "named": "Se están escribiendo las notas de «{{title}}». ¿Salir de todos modos? Se marcarán como canceladas.",

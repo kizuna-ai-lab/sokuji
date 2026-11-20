@@ -2246,7 +2246,9 @@
       "undo": "Geri al",
       "notesEdited": "Notlar değiştirildi",
       "notesRemoved": "Madde kaldırıldı",
-      "undoKept": "Sonradan değiştirilmiş, olduğu gibi bırakıldı"
+      "undoKept": "Sonradan değiştirilmiş, olduğu gibi bırakıldı",
+      "merged": "{{from}}, {{into}} ile birleştirildi ({{count}} cümle)",
+      "merged_one": "{{from}}, {{into}} ile birleştirildi ({{count}} cümle)"
     },
     "notesGoFix": "Düzelt",
     "notesFixed": "Düzeltildi",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Sorumlu",
     "notesDue": "Son tarih",
-    "notesEdited": "Elle düzenlendi"
+    "notesEdited": "Elle düzenlendi",
+    "mergeSpeaker": "{{name}} kişisini şununla birleştir…",
+    "mergeInto": "Şununla birleştir…",
+    "mergeMenu": "Şununla birleştir",
+    "mergeAsk": "{{name}} zaten bu taraftaki bir konuşmacı.",
+    "mergeOne": "Tek kişi yap",
+    "keepApart": "Ayrı tut"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

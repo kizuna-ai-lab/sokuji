@@ -2246,7 +2246,9 @@
       "undo": "Buat asal",
       "notesEdited": "Nota diubah",
       "notesRemoved": "Perkara dibuang",
-      "undoKept": "Sudah diubah sejak itu, dibiarkan seperti sedia ada"
+      "undoKept": "Sudah diubah sejak itu, dibiarkan seperti sedia ada",
+      "merged": "{{from}} digabungkan dengan {{into}} ({{count}} ayat)",
+      "merged_one": "{{from}} digabungkan dengan {{into}} ({{count}} ayat)"
     },
     "notesGoFix": "Betulkan",
     "notesFixed": "Sudah dibetulkan",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Pemilik tugas",
     "notesDue": "Tarikh akhir",
-    "notesEdited": "Disunting secara manual"
+    "notesEdited": "Disunting secara manual",
+    "mergeSpeaker": "Gabungkan {{name}} dengan…",
+    "mergeInto": "Gabungkan dengan…",
+    "mergeMenu": "Gabungkan dengan",
+    "mergeAsk": "{{name}} sudah menjadi penutur di sebelah ini.",
+    "mergeOne": "Gabungkan menjadi satu",
+    "keepApart": "Biarkan berasingan"
   },
   "notesQuit": {
     "named": "Nota untuk “{{title}}” sedang ditulis. Keluar juga? Nota akan ditandakan dibatalkan.",

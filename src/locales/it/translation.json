@@ -2246,7 +2246,9 @@
       "undo": "Annulla",
       "notesEdited": "Note modificate",
       "notesRemoved": "Punto rimosso",
-      "undoKept": "Modificato nel frattempo, lasciato com’è"
+      "undoKept": "Modificato nel frattempo, lasciato com’è",
+      "merged": "{{from}} unito a {{into}} ({{count}} frasi)",
+      "merged_one": "{{from}} unito a {{into}} ({{count}} frase)"
     },
     "notesGoFix": "Correggi",
     "notesFixed": "Corretto",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Responsabile",
     "notesDue": "Scadenza",
-    "notesEdited": "Modificato a mano"
+    "notesEdited": "Modificato a mano",
+    "mergeSpeaker": "Unisci {{name}} a…",
+    "mergeInto": "Unisci a…",
+    "mergeMenu": "Unisci a",
+    "mergeAsk": "{{name}} è già un interlocutore di questo lato.",
+    "mergeOne": "Unisci in uno",
+    "keepApart": "Tieni separati"
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",

@@ -2246,7 +2246,9 @@
       "undo": "Ongedaan maken",
       "notesEdited": "Notities gewijzigd",
       "notesRemoved": "Punt verwijderd",
-      "undoKept": "Sindsdien gewijzigd, zo gelaten"
+      "undoKept": "Sindsdien gewijzigd, zo gelaten",
+      "merged": "{{from}} samengevoegd met {{into}} ({{count}} zinnen)",
+      "merged_one": "{{from}} samengevoegd met {{into}} ({{count}} zin)"
     },
     "notesGoFix": "Verbeteren",
     "notesFixed": "Verbeterd",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Eigenaar",
     "notesDue": "Deadline",
-    "notesEdited": "Met de hand bewerkt"
+    "notesEdited": "Met de hand bewerkt",
+    "mergeSpeaker": "{{name}} samenvoegen met…",
+    "mergeInto": "Samenvoegen met…",
+    "mergeMenu": "Samenvoegen met",
+    "mergeAsk": "{{name}} is al een spreker aan deze kant.",
+    "mergeOne": "Samenvoegen tot één",
+    "keepApart": "Apart houden"
   },
   "notesQuit": {
     "named": "Er worden notities geschreven voor ‘{{title}}’. Toch afsluiten? Ze worden als geannuleerd gemarkeerd.",

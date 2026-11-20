@@ -2246,7 +2246,9 @@
       "undo": "واگرد",
       "notesEdited": "یادداشت‌ها تغییر کرد",
       "notesRemoved": "نکته حذف شد",
-      "undoKept": "از آن زمان تغییر کرده؛ همان‌طور ماند"
+      "undoKept": "از آن زمان تغییر کرده؛ همان‌طور ماند",
+      "merged": "{{from}} با {{into}} ادغام شد ({{count}} جمله)",
+      "merged_one": "{{from}} با {{into}} ادغام شد ({{count}} جمله)"
     },
     "notesGoFix": "اصلاح",
     "notesFixed": "اصلاح شد",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "مسئول",
     "notesDue": "مهلت",
-    "notesEdited": "دستی ویرایش شده"
+    "notesEdited": "دستی ویرایش شده",
+    "mergeSpeaker": "ادغام {{name}} با…",
+    "mergeInto": "ادغام با…",
+    "mergeMenu": "ادغام با",
+    "mergeAsk": "{{name}} از قبل گوینده‌ای در این طرف است.",
+    "mergeOne": "یکی کردن",
+    "keepApart": "جدا نگه داشتن"
   },
   "notesQuit": {
     "named": "یادداشت‌های «{{title}}» در حال نوشته شدن است. باز هم خارج می‌شوید؟ لغوشده علامت می‌خورند.",

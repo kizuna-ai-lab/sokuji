@@ -100,6 +100,11 @@ export const RecordPage: React.FC = () => {
   const nameSave = useRef<Promise<boolean> | null>(null);
   const [nameDraft, setNameDraft] = useState<{ side: HistorySentenceSide; speaker: string; value: string } | null>(null);
   // The name being typed as it is now: a save that finishes later, or a close waiting on one, reads it here.
+  // Design P1 §2: the speaker whose "Merge into…" menu is open, and a new name that is another speaker's, asked about.
+  const [mergeFor, setMergeFor] = useState<string | null>(null);
+  const [twinAsk, setTwinAsk] = useState<{
+    side: HistorySentenceSide; speaker: string; value: string; label: string; into: { speaker: string; label: string };
+  } | null>(null);
   const nameDraftRef = useRef(nameDraft);
   nameDraftRef.current = nameDraft;
   const [menuFor, setMenuFor] = useState<number | null>(null);
@@ -166,6 +171,17 @@ export const RecordPage: React.FC = () => {
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
   }, [moreOpen]);
+
+  // A speaker's "Merge into…" menu closes on a press anywhere outside it.
+  useEffect(() => {
+    if (mergeFor === null) return undefined;
+    const onDown = (e: PointerEvent) => {
+      const inside = (e.target as Element | null)?.closest?.('.record-speakers__merge');
+      if (!inside || inside.getAttribute('data-for') !== mergeFor) setMergeFor(null);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [mergeFor]);
 
   // A sentence's menu closes on a press anywhere outside it.
   useEffect(() => {
@@ -407,6 +423,18 @@ export const RecordPage: React.FC = () => {
     if (nameSave.current) return nameSave.current;
     const draft = nameDraftRef.current;
     if (!draft) return Promise.resolve(true);
+    // A name another speaker of the side already shows (spaces and case aside): ask whether they are one person.
+    const same = (x: string) => x.trim().toLocaleLowerCase();
+    const twin = canFix && draft.value.trim()
+      ? speakersOf(draft.side).find((o) => o.speaker !== draft.speaker && same(o.label) === same(draft.value))
+      : undefined;
+    if (twin) {
+      const self = speakersOf(draft.side).find((o) => o.speaker === draft.speaker);
+      setTwinAsk({ ...draft, label: self?.label ?? draft.speaker, into: { speaker: twin.speaker, label: twin.label } });
+      if (nameDraftRef.current === draft) nameDraftRef.current = null;
+      setNameDraft(null);
+      return Promise.resolve(true);
+    }
     const run = (async () => {
       await actions.renameSpeaker(draft.side, draft.speaker, draft.value);
       if (store.getState().error) return false;
@@ -525,6 +553,40 @@ export const RecordPage: React.FC = () => {
             <ul>
               {list.map((s) => {
                 const editing = nameDraft && nameDraft.side === side && nameDraft.speaker === s.speaker;
+                const key = speakerKey(side, s.speaker);
+                const asking = twinAsk && twinAsk.side === side && twinAsk.speaker === s.speaker ? twinAsk : null;
+                if (asking) {
+                  return (
+                    <li key={s.speaker} className="record-speakers__ask-row">
+                      <div
+                        className="record-speakers__ask"
+                        role="group"
+                        aria-label={t('history.renameSpeaker', 'Rename {{name}}', { name: s.label })}
+                        // Escape goes back to the name as it was typed; the panel leaves it to this.
+                        data-escape-own=""
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Escape' || isComposing(e.nativeEvent)) return;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setTwinAsk(null);
+                          setNameDraft({ side, speaker: s.speaker, value: asking.value });
+                        }}
+                      >
+                        <span>{t('history.mergeAsk', '{{name}} is already a speaker on this side.', { name: asking.into.label })}</span>
+                        <span className="record-speakers__ask-buttons">
+                          <button type="button" className="history-button" autoFocus disabled={busy}
+                            onClick={() => { setTwinAsk(null); void actions.mergeSpeaker(side, s.speaker, asking.into.speaker, { from: asking.label, into: asking.into.label }); }}>
+                            {t('history.mergeOne', 'Merge into one')}
+                          </button>
+                          <button type="button" className="history-button" disabled={busy}
+                            onClick={() => { setTwinAsk(null); void actions.renameSpeaker(side, s.speaker, asking.value); }}>
+                            {t('history.keepApart', 'Keep apart')}
+                          </button>
+                        </span>
+                      </div>
+                    </li>
+                  );
+                }
                 return (
                   <li key={s.speaker}>
                     {editing ? (
@@ -551,6 +613,36 @@ export const RecordPage: React.FC = () => {
                       </button>
                     )}
                     <span className="record-speakers__count">{t('history.sentenceCount', '{{count}} sentences', { count: s.sentences })}</span>
+                    {canFix && list.length >= 2 && (
+                      <span
+                        className="record-speakers__merge"
+                        data-for={key}
+                        data-escape-own={mergeFor === key ? '' : undefined}
+                        onKeyDown={(e) => { if (e.key === 'Escape' && mergeFor === key && !isComposing(e.nativeEvent)) { e.preventDefault(); setMergeFor(null); } }}
+                      >
+                        <button
+                          type="button"
+                          className="record-speakers__merge-button"
+                          aria-haspopup="menu"
+                          aria-expanded={mergeFor === key}
+                          aria-label={t('history.mergeSpeaker', 'Merge {{name}} into…', { name: s.label })}
+                          disabled={busy}
+                          onClick={() => setMergeFor(mergeFor === key ? null : key)}
+                        >
+                          {t('history.mergeInto', 'Merge into…')}
+                        </button>
+                        {mergeFor === key && (
+                          <span className="record-speakers__menu" role="menu" aria-label={t('history.mergeMenu', 'Merge into')}>
+                            {list.filter((o) => o.speaker !== s.speaker).map((o) => (
+                              <button key={o.speaker} type="button" role="menuitem" disabled={busy}
+                                onClick={() => { setMergeFor(null); void actions.mergeSpeaker(side, s.speaker, o.speaker, { from: s.label, into: o.label }); }}>
+                                {o.label}
+                              </button>
+                            ))}
+                          </span>
+                        )}
+                      </span>
+                    )}
                   </li>
                 );
               })}

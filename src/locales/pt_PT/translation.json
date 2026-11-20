@@ -2246,7 +2246,9 @@
       "undo": "Anular",
       "notesEdited": "Notas alteradas",
       "notesRemoved": "Ponto removido",
-      "undoKept": "Alterado entretanto; deixado como está"
+      "undoKept": "Alterado entretanto; deixado como está",
+      "merged": "{{from}} juntado a {{into}} ({{count}} frases)",
+      "merged_one": "{{from}} juntado a {{into}} ({{count}} frase)"
     },
     "notesGoFix": "Corrigir",
     "notesFixed": "Corrigido",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Responsável",
     "notesDue": "Prazo",
-    "notesEdited": "Editado manualmente"
+    "notesEdited": "Editado manualmente",
+    "mergeSpeaker": "Juntar {{name}} a…",
+    "mergeInto": "Juntar a…",
+    "mergeMenu": "Juntar a",
+    "mergeAsk": "{{name}} já é um orador deste lado.",
+    "mergeOne": "Juntar num só",
+    "keepApart": "Manter separados"
   },
   "notesQuit": {
     "named": "As notas de «{{title}}» estão a ser escritas. Sair mesmo assim? Serão marcadas como canceladas.",

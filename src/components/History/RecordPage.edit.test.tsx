@@ -389,3 +389,72 @@ describe('editing the notes', () => {
     expect(screen.queryByRole('button', { name: 'Edit the overview' })).toBeNull();
   });
 });
+
+// Design P1 §2: a speaker merged into another of its side from the edit panel, or when a new name matches another's.
+describe('merging speakers', () => {
+  const B = 'run-0002-bbbb';
+  const other = (n: number, speaker: string, text: string) => ({ ...sent(n, text), side: 'other', track: 'other', speaker });
+  beforeEach(() => {
+    const s = real.store;
+    s.openRecord({ id: B, startedAt: START, mode: 'both', myLanguage: 'zh', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    const t = s.createTranscript({ recordId: B, origin: { service: 'soniox', kind: 'live' } });
+    s.appendSentences({ transcriptId: t, sentences: [sent(1, '我先说'), other(2, '1.1', '好的'), other(3, '1.2', '我补充'), other(4, '1.2', '还有一点')] });
+    s.closeRecord({ id: B, endedAt: START + 10_000 });
+  });
+  const panel = () => screen.getByRole('complementary', { name: 'Edit' });
+
+  it('offers the side’s other speakers and merges into the one chosen, with Undo', async () => {
+    await show(B);
+    expect(within(panel()).queryByRole('button', { name: 'Merge Me into…' })).toBeNull();
+    const merge = vi.spyOn(store.getState(), 'mergeSpeaker');
+    fireEvent.click(within(panel()).getByRole('button', { name: 'Merge Other 2 into…' }));
+    const menu = screen.getByRole('menu', { name: 'Merge into' });
+    expect(within(menu).getAllByRole('menuitem').map((b) => b.textContent)).toEqual(['Other 1']);
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Other 1' }));
+    await settle();
+    expect(merge).toHaveBeenCalledWith('other', '1.2', '1.1', { from: 'Other 2', into: 'Other 1' });
+    const toast = screen.getByRole('status', { name: 'What changed' });
+    expect(within(toast).getByText('Other 2 merged into Other 1 (2 sentences)')).toBeInTheDocument();
+    expect(within(toast).getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    expect(within(panel()).queryByRole('button', { name: 'Merge Other 2 into…' })).toBeNull();
+  });
+
+  it('no merging while the record is transcribed again', async () => {
+    await show(B);
+    act(() => store.setState({ job: { kind: 'transcribe', recordId: B } as never }));
+    expect(within(panel()).queryByRole('button', { name: 'Merge Other 2 into…' })).toBeNull();
+  });
+
+  it('a new name that is another speaker’s on the side asks whether to merge', async () => {
+    await show(B);
+    const merge = vi.spyOn(store.getState(), 'mergeSpeaker');
+    const rename = vi.spyOn(store.getState(), 'renameSpeaker');
+    fireEvent.click(within(panel()).getByRole('button', { name: 'Rename Other 2' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: ' other 1 ' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Enter' });
+    await settle();
+    expect(screen.getByText('Other 1 is already a speaker on this side.')).toBeInTheDocument();
+    expect(rename).not.toHaveBeenCalled();
+    // Escape goes back to the name, as typed.
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Merge into one' }), { key: 'Escape' });
+    expect((screen.getByRole('textbox', { name: 'Name' }) as HTMLInputElement).value).toBe(' other 1 ');
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Enter' });
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'Merge into one' }));
+    await settle();
+    expect(merge).toHaveBeenCalledWith('other', '1.2', '1.1', { from: 'Other 2', into: 'Other 1' });
+    expect(rename).not.toHaveBeenCalled();
+  });
+
+  it('keeping them apart saves the name as typed', async () => {
+    await show(B);
+    const rename = vi.spyOn(store.getState(), 'renameSpeaker');
+    fireEvent.click(within(panel()).getByRole('button', { name: 'Rename Other 2' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Name' }), { target: { value: 'Other 1' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Name' }), { key: 'Enter' });
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep apart' }));
+    await settle();
+    expect(rename).toHaveBeenCalledWith('other', '1.2', 'Other 1');
+  });
+});

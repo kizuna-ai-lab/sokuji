@@ -2246,7 +2246,9 @@
       "undo": "ביטול פעולה",
       "notesEdited": "ההערות שונו",
       "notesRemoved": "הנקודה הוסרה",
-      "undoKept": "שונה מאז, נשאר כמו שהוא"
+      "undoKept": "שונה מאז, נשאר כמו שהוא",
+      "merged": "{{from}} מוזג עם {{into}} (משפטים: {{count}})",
+      "merged_one": "{{from}} מוזג עם {{into}} (משפטים: {{count}})"
     },
     "notesGoFix": "לתיקון",
     "notesFixed": "תוקן",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "אחראי",
     "notesDue": "תאריך יעד",
-    "notesEdited": "נערך ידנית"
+    "notesEdited": "נערך ידנית",
+    "mergeSpeaker": "מיזוג {{name}} עם…",
+    "mergeInto": "מיזוג עם…",
+    "mergeMenu": "מיזוג עם",
+    "mergeAsk": "{{name}} כבר דובר בצד הזה.",
+    "mergeOne": "מיזוג לאחד",
+    "keepApart": "להשאיר בנפרד"
   },
   "notesQuit": {
     "named": "נכתבות הערות עבור „{{title}}”. לצאת בכל זאת? הן יסומנו כמבוטלות.",

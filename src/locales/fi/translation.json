@@ -2246,7 +2246,9 @@
       "undo": "Kumoa",
       "notesEdited": "Muistiinpanoja muutettu",
       "notesRemoved": "Kohta poistettu",
-      "undoKept": "Muutettu sen jälkeen, jätetty ennalleen"
+      "undoKept": "Muutettu sen jälkeen, jätetty ennalleen",
+      "merged": "{{from}} yhdistetty puhujaan {{into}} ({{count}} lausetta)",
+      "merged_one": "{{from}} yhdistetty puhujaan {{into}} ({{count}} lause)"
     },
     "notesGoFix": "Korjaa",
     "notesFixed": "Korjattu",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Vastuuhenkilö",
     "notesDue": "Määräaika",
-    "notesEdited": "Muokattu käsin"
+    "notesEdited": "Muokattu käsin",
+    "mergeSpeaker": "Yhdistä {{name}} puhujaan…",
+    "mergeInto": "Yhdistä puhujaan…",
+    "mergeMenu": "Yhdistä puhujaan",
+    "mergeAsk": "{{name}} on jo puhuja tällä puolella.",
+    "mergeOne": "Yhdistä yhdeksi",
+    "keepApart": "Pidä erillään"
   },
   "notesQuit": {
     "named": "Kohteen ”{{title}}” muistiinpanoja kirjoitetaan. Lopetetaanko silti? Ne merkitään peruutetuiksi.",

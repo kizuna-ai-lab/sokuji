@@ -2246,7 +2246,9 @@
       "undo": "تراجع",
       "notesEdited": "تم تغيير الملاحظات",
       "notesRemoved": "أُزيلت النقطة",
-      "undoKept": "تغيّر منذ ذلك الحين، فتُرك كما هو"
+      "undoKept": "تغيّر منذ ذلك الحين، فتُرك كما هو",
+      "merged": "تم دمج {{from}} في {{into}} (عدد الجمل: {{count}})",
+      "merged_one": "تم دمج {{from}} في {{into}} (عدد الجمل: {{count}})"
     },
     "notesGoFix": "تصحيح",
     "notesFixed": "صُحّح",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "المسؤول",
     "notesDue": "الموعد النهائي",
-    "notesEdited": "عُدّلت يدويًا"
+    "notesEdited": "عُدّلت يدويًا",
+    "mergeSpeaker": "دمج {{name}} في…",
+    "mergeInto": "دمج في…",
+    "mergeMenu": "دمج في",
+    "mergeAsk": "{{name}} متحدث موجود بالفعل في هذا الجانب.",
+    "mergeOne": "دمجهما في واحد",
+    "keepApart": "إبقاؤهما منفصلين"
   },
   "notesQuit": {
     "named": "تُكتب الآن ملاحظات «{{title}}». هل تريد الخروج على أي حال؟ ستُعلَّم بأنها أُلغيت.",

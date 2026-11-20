@@ -2246,7 +2246,9 @@
       "undo": "取り消す",
       "notesEdited": "メモを変更しました",
       "notesRemoved": "要点を削除しました",
-      "undoKept": "その後に変更されていたため、そのままにしました"
+      "undoKept": "その後に変更されていたため、そのままにしました",
+      "merged": "{{from}} を {{into}} に統合しました（{{count}} 文）",
+      "merged_one": "{{from}} を {{into}} に統合しました（{{count}} 文）"
     },
     "notesGoFix": "修正する",
     "notesFixed": "修正済み",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "担当",
     "notesDue": "期限",
-    "notesEdited": "手動で修正済み"
+    "notesEdited": "手動で修正済み",
+    "mergeSpeaker": "{{name}} を統合…",
+    "mergeInto": "統合先…",
+    "mergeMenu": "統合先",
+    "mergeAsk": "{{name}} はすでにこちら側の話者です。",
+    "mergeOne": "一人にまとめる",
+    "keepApart": "別々のままにする"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",

@@ -2246,7 +2246,9 @@
       "undo": "Annuler",
       "notesEdited": "Notes modifiées",
       "notesRemoved": "Point supprimé",
-      "undoKept": "Modifié depuis, laissé tel quel"
+      "undoKept": "Modifié depuis, laissé tel quel",
+      "merged": "{{from}} fusionné avec {{into}} ({{count}} phrases)",
+      "merged_one": "{{from}} fusionné avec {{into}} ({{count}} phrase)"
     },
     "notesGoFix": "Corriger",
     "notesFixed": "Corrigé",
@@ -2277,7 +2279,13 @@
     },
     "notesOwner": "Responsable",
     "notesDue": "Échéance",
-    "notesEdited": "Modifié à la main"
+    "notesEdited": "Modifié à la main",
+    "mergeSpeaker": "Fusionner {{name}} avec…",
+    "mergeInto": "Fusionner avec…",
+    "mergeMenu": "Fusionner avec",
+    "mergeAsk": "{{name}} est déjà un intervenant de ce côté.",
+    "mergeOne": "Fusionner en un seul",
+    "keepApart": "Garder séparés"
   },
   "notesQuit": {
     "named": "Les notes de « {{title}} » sont en cours de rédaction. Quitter quand même ? Elles seront marquées comme annulées.",
