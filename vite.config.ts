@@ -148,6 +148,7 @@ export default defineConfig(({ command, mode }) => {
             'distribution-channel': 'electron/distribution-channel.js',
             'macos-audio-utils': 'electron/macos-audio-utils.js',
             'main': 'electron/main.js',
+            'main-window-navigation': 'electron/main-window-navigation.js',
             'native-host-manager': 'electron/native-host-manager.js',
             'sidecar-sku': 'electron/sidecar-sku.js',
             'sidecar-bundle': 'electron/sidecar-bundle.js',
