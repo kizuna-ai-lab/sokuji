@@ -5,11 +5,15 @@ import i18n, { changeLanguageWithLoad, showLanguageUncached } from './index';
  * Vitest isolates modules per file, so turning the language detector's cache
  * off here (a one-way switch, plan 1e-4 ruling 5) touches no other test file.
  */
-describe('showLanguageUncached', () => {
-  let setItem: MockInstance;
+// In this order, on purpose: the first test needs the detector's cache still
+// on for its control step, and showLanguageUncached turns it off for good; the
+// second relies on 'ja' having been loaded by the first. Kept out of
+// `--sequence.shuffle`, which would run them the other way round.
+describe('showLanguageUncached', { shuffle: false }, () => {
+  let setItem: MockInstance | undefined;
 
   afterAll(() => {
-    setItem.mockRestore();
+    setItem?.mockRestore();
     localStorage.removeItem('i18nextLng');
   });
 
