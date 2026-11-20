@@ -1,10 +1,12 @@
 const { app, BrowserWindow, ipcMain, Menu, dialog, shell, session, systemPreferences, desktopCapturer, nativeTheme, powerMonitor, protocol } = require('electron');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const { betterAuthAdapter, PACKAGED_ORIGIN } = require('./better-auth-adapter');
 const { setupSubtitleHandlers } = require('./subtitle-window.js');
 const { setupCaptionDoubleClick } = require('./window-caption-dblclick.js');
 const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
+const { isAppPage, guardMainWindowNavigation } = require('./main-window-navigation.js');
 const { setupHistoryHandlers, openHistoryAtLaunch } = require('./history-ipc.js');
 const { HISTORY_SCHEME, registerHistoryScheme, trackResponse } = require('./history-audio.js');
 
@@ -51,6 +53,10 @@ const isDevBuild = () => !IS_E2E && (import.meta.env.MODE === 'development' || !
 // development build has no such line, and started by the tests it would clean and recreate the
 // system's virtual audio devices.
 if (IS_E2E) process.env.SOKUJI_E2E_BUILD = '1';
+// The page the main window loads (createWindow), and the only one it may show (main-window-navigation.js).
+const mainPageUrl = () => (isDevBuild() ? 'http://localhost:5173' : pathToFileURL(path.join(app.getAppPath(), 'build/index.html')).href);
+// An IPC call from the main window's own page: the webContents alone would also pass a page the window was taken to.
+const isMainPageSender = (sender) => sender === mainWindow?.webContents && isAppPage(sender.getURL(), mainPageUrl());
 
 const { UpdateManager } = require('./update-manager');
 const { NativeHostManager } = require('./native-host-manager');
@@ -63,7 +69,7 @@ const captionShare = setupCaptionShare({
   ipcMain,
   BrowserWindow,
   app,
-  isTrustedSender: (sender) => sender === mainWindow?.webContents,
+  isTrustedSender: isMainPageSender,
   getMainWindow: () => mainWindow,
   isDev: isDevBuild(),
 });
@@ -517,6 +523,7 @@ function createWindow() {
   // The page draws the window's edge itself (no system frame does), but not while it is maximized or full screen.
   watchWindowState(mainWindow);
   setupPopoverWindowHandlers(mainWindow);
+  guardMainWindowNavigation(mainWindow, mainPageUrl());
   captionShare.attachWindow(mainWindow);
   closeHandshake.attachWindow(mainWindow);
   // A reload keeps the window: a question the old page was asking will never be answered.
@@ -701,7 +708,7 @@ app.whenReady().then(async () => {
   setupHistoryHandlers({
     ipcMain,
     getStore: () => historyStore,
-    isTrustedSender: (sender) => sender === mainWindow?.webContents,
+    isTrustedSender: isMainPageSender,
     dir: historyDir,
     getUnavailableReason: () => historyUnavailable,
     // Saving a recording: the system's Save dialog over the window, opening in Downloads.

@@ -168,9 +168,22 @@ describe('caption share glue', () => {
     expect(server.present.wifi).toBeNull();
   });
 
-  it('ends the share when the main page navigates or its renderer is gone', async () => {
+  it('keeps the share when the main page starts a navigation the window cancels (a link in the update notes)', async () => {
     await call('caption-share:start', STATE);
+    // What Electron emits for it: the start, and no `did-navigate`.
     main.webContents.emit('did-start-navigation', { isMainFrame: true, isSameDocument: false });
+    await new Promise((r) => setTimeout(r, 0));
+    expect(server.running()).toBe(true);
+  });
+
+  it('ends the share when the main page is replaced or its renderer is gone', async () => {
+    await call('caption-share:start', STATE);
+    main.webContents.emit('did-navigate', {}, 'file:///app/build/index.html');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(server.running()).toBe(false);
+    // A reload that fails (the dev server down): the load fails, and nothing navigates.
+    await call('caption-share:start', STATE);
+    main.webContents.emit('did-fail-load', {}, -102, 'ERR_CONNECTION_REFUSED', 'http://localhost:5173/', true);
     await new Promise((r) => setTimeout(r, 0));
     expect(server.running()).toBe(false);
     await call('caption-share:start', STATE);
