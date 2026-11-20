@@ -74,6 +74,25 @@ describe('main window navigation', () => {
     expect(openExternal).toHaveBeenCalledWith(PR_LINK);
   });
 
+  it('sends a mail link to the mail program and keeps the app', () => {
+    const win = makeFakeWindow();
+    mod.guardMainWindowNavigation(win, PACKAGED);
+
+    expect(win.navigate('will-navigate', 'mailto:support@kizuna.ai')).toBe(true);
+    expect(openExternal).toHaveBeenCalledWith('mailto:support@kizuna.ai');
+  });
+
+  it('cancels any other link and hands nothing to the system', () => {
+    const win = makeFakeWindow();
+    mod.guardMainWindowNavigation(win, PACKAGED);
+
+    // Another file, a script, and a scheme that would start whatever program is registered for it.
+    for (const url of ['file:///etc/hostname', 'javascript:alert(1)', 'ms-settings:privacy', 'smb://host/share']) {
+      expect(win.navigate('will-navigate', url)).toBe(true);
+    }
+    expect(openExternal).not.toHaveBeenCalled();
+  });
+
   it('keeps the app when the system browser cannot be launched', async () => {
     // Linux with no xdg-open: Electron rejects. Unhandled, the rejection would quit the app.
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -83,7 +102,7 @@ describe('main window navigation', () => {
 
     expect(win.navigate('will-navigate', PR_LINK)).toBe(true);
     await new Promise((r) => setTimeout(r, 0));
-    expect(error).toHaveBeenCalledWith('[Sokuji] [Main] Could not open the link in the browser:', expect.any(Error));
+    expect(error).toHaveBeenCalledWith('[Sokuji] [Main] Could not open the link:', expect.any(Error));
     error.mockRestore();
   });
 });
