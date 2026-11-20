@@ -476,7 +476,43 @@ describe('a record', () => {
     expect(calls('reassignSentence')).toEqual([{ transcriptId: 1, n: 2, speaker: 'u1' }]);
   });
 
-  it("exports the same text as today's exporter on the stored conversation: started when the record did, exported now", async () => {
+  it('exports the conversation as the page shows it: an edited sentence and a renamed speaker are in it', async () => {
+    // The page's text, not the conversation recorded live: the second sentence was edited, the other person named.
+    port.getSentences = async () => [
+      { ...sentences[0], speakerName: 'Ana' }, { ...sentences[1], text: '还有两个问题。', speakerName: 'Ana' }, sentences[2],
+    ];
+    port.getSpeakers = async () => [speakers[0], { ...speakers[1], name: 'Ana' }];
+    await renderRecord();
+    const exportedAt = START + 3_600_000;
+    const now = vi.spyOn(Date, 'now').mockReturnValue(exportedAt);
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save the conversation (.txt)' }));
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save the conversation (.json)' }));
+    now.mockRestore();
+    const [txt, txtName, txtType] = vi.mocked(downloadFile).mock.calls[0];
+    expect([txtName, txtType]).toEqual(['sokuji-conversation-20260115-090000.txt', 'text/plain;charset=utf-8']);
+    expect(txt).toContain('Sokuji conversation export');
+    expect(txt).toContain('Provider: soniox');
+    expect(txt).toContain('还有两个问题。');
+    expect(txt).not.toContain('还有一个问题。');
+    expect(txt).toContain('Ana');
+    expect(txt).toContain('Can you ship by Wednesday?');
+    const json = JSON.parse(vi.mocked(downloadFile).mock.calls[1][0]);
+    expect(json).toMatchObject({ format: 'sokuji-transcript/1', provider: 'soniox', exportedAt: new Date(exportedAt).toISOString() });
+    expect(JSON.stringify(json.groups)).toContain('还有两个问题。');
+
+    openExport();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy the conversation' }));
+    await settle();
+    const copied = vi.mocked(copyToClipboard).mock.calls[0][0];
+    expect(copied).toContain('还有两个问题。');
+    expect(copied).not.toContain('Sokuji conversation export');
+  });
+
+  it('a record with no transcript yet exports its stored conversation', async () => {
+    record = { ...record, transcripts: [] };
+    port.getSentences = async () => [];
     await renderRecord();
     const exportedAt = START + 3_600_000;
     const now = vi.spyOn(Date, 'now').mockReturnValue(exportedAt);
@@ -488,11 +524,17 @@ describe('a record', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Save the conversation (.txt)' }));
     now.mockRestore();
     expect(downloadFile).toHaveBeenCalledWith(expectedTxt, 'sokuji-conversation-20260115-090000.txt', 'text/plain;charset=utf-8');
+  });
 
+  it('a transcript cut from the translation exports its sentences once, not as narrowed', async () => {
+    record = { ...record, transcripts: [{ ...record.transcripts[0], textKind: 'translation' }] };
+    port.getSentences = async () => [sentence(1, `${A}:participant:2`, 'Can you ship by Wednesday?')];
+    await renderRecord();
     openExport();
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Copy the conversation' }));
-    await settle();
-    expect(copyToClipboard).toHaveBeenCalledWith(expect.stringContaining('Can you ship by Wednesday?'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Save the conversation (.txt)' }));
+    const [txt] = vi.mocked(downloadFile).mock.calls[0];
+    expect(txt.split('Can you ship by Wednesday?')).toHaveLength(2);
+    expect(txt).not.toContain('narrowed');
   });
 
   it('saves subtitles from the transcript rows', async () => {

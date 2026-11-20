@@ -1,9 +1,9 @@
 // src/components/History/RecordExportMenu.tsx
 //
-// A record's export: the per-side choice of today's export menu, then the text, the JSON and the subtitles. The text
-// and JSON are today's exporter run on the stored conversation, or, for a file transcript (an imported file's, or a
-// record transcribed again), written from the rows the page shows; the subtitles come from the transcript rows. Files
-// are named after the record's start.
+// A record's export: the per-side choice of today's export menu, then the text, the JSON and the subtitles. All of them
+// are written from the transcript rows the page shows, so a fixed word, an edited sentence or a renamed speaker is in
+// them too; only a record with no transcript yet exports its stored conversation with today's exporter. Files are
+// named after the record's start.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioLines, Captions, ChevronDown, Copy, Download, FileJson, FileText } from 'lucide-react';
@@ -39,12 +39,17 @@ export interface RecordExportMenuProps {
 }
 
 /**
- * The scope a transcript's rows are cut to for subtitles. A transcript cut from the translation keeps the translation
- * as its sentences and has no second line: the sides that show the translation show its sentences once.
+ * The scope a transcript's rows are cut to. A transcript cut from the translation keeps the translation as its
+ * sentences and has no second line: the sides that show the translation show its sentences once. `whole` is what a
+ * side shown whole becomes: one line for subtitles; still whole for the text and JSON, so an export of everything is
+ * not marked as narrowed.
  */
-function cueScope(scope: TranscriptScope, textKind: 'original' | 'translation'): TranscriptScope {
+function rowsScope(scope: TranscriptScope, textKind: 'original' | 'translation', whole: 'source' | 'both'): TranscriptScope {
   if (textKind === 'original') return scope;
-  const one = (s: TranscriptScope['speaker']) => (s === 'both' || s === 'translation' ? 'source' : 'none');
+  const one = (s: TranscriptScope['speaker']): TranscriptScope['speaker'] => {
+    if (s === 'both') return whole;
+    return s === 'translation' ? 'source' : 'none';
+  };
   return { speaker: one(scope.speaker), participant: one(scope.participant) };
 }
 
@@ -58,7 +63,6 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
   const scope: TranscriptScope = useMemo(() => ({ speaker: togglesToMode(speaker), participant: togglesToMode(participant) }), [speaker, participant]);
   const shown = transcript ?? record.transcripts[record.transcripts.length - 1] ?? null;
   const textKind = shown?.textKind ?? 'original';
-  // A file transcript has no conversation behind it: its text is the rows the page shows.
   const fromFile = shown?.origin.kind === 'file';
 
   const exporter = useMemo(() => {
@@ -69,14 +73,15 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
       // A saved file says when its session started and when it was saved; its name is the session's start (below).
       now: () => Date.now(),
     };
-    return fromFile && shown
-      ? rowsExporter({ ...common, rows, startedAt: record.startedAt, info: { provider: shown.origin.service, models: {}, startedAt: record.startedAt } })
-      : conversationExporter({
-        ...common,
-        entries: createProjector().project(legs, DEFAULT_PROJECTION),
-        info: { provider: record.services.provider, models: record.services.models, startedAt: record.startedAt },
-      });
+    // The session's own service and models for a transcript made live; a file transcript names its service.
+    const info = fromFile && shown
+      ? { provider: shown.origin.service, models: {}, startedAt: record.startedAt }
+      : { provider: record.services.provider, models: record.services.models, startedAt: record.startedAt };
+    return shown
+      ? rowsExporter({ ...common, rows, startedAt: record.startedAt, info })
+      : conversationExporter({ ...common, entries: createProjector().project(legs, DEFAULT_PROJECTION), info });
   }, [legs, record, rows, shown, fromFile, t]);
+  const textScope = rowsScope(scope, textKind, 'both');
 
   useEffect(() => { if (isOpen) setActiveIndex(0); }, [isOpen]);
 
@@ -105,7 +110,7 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
     { key: 'participant', label: t('mainPanel.displayMode.participant', 'Other'), toggles: participant, set: setParticipant },
   ];
   const scopeRing = scopeRows.length * lines.length;
-  const hasScoped = exporter.hasScopedContent(scope);
+  const hasScoped = exporter.hasScopedContent(textScope);
   const file = (ext: 'txt' | 'json' | 'srt' | 'vtt') => exportFilename(ext, record.startedAt);
   const recorded = playable(record.tracks);
   // The notes shown, when they are complete: their own items, not narrowed by the choice above.
@@ -121,19 +126,19 @@ export function RecordExportMenu({ record, legs, rows, transcript, notes = null,
       // Each item says what it copies or saves, as the subtitles' and the notes' do; copying first (owner, 2026-11-17).
       key: 'copy', label: t('history.copyConversation', 'Copy the conversation'), Icon: Copy,
       run: async () => {
-        const ok = await copyToClipboard(exporter.text(scope, false));
+        const ok = await copyToClipboard(exporter.text(textScope, false));
         onResult?.(ok ? t('history.copied', 'Copied.') : t('history.copyFailed', 'Could not copy. Check the clipboard permission.'));
       },
     },
-    { key: 'txt', label: t('history.saveConversationTxt', 'Save the conversation (.txt)'), Icon: FileText, run: () => downloadFile(exporter.text(scope, true), file('txt'), 'text/plain;charset=utf-8') },
-    { key: 'json', label: t('history.saveConversationJson', 'Save the conversation (.json)'), Icon: FileJson, run: () => downloadFile(exporter.json(scope), file('json'), 'application/json') },
+    { key: 'txt', label: t('history.saveConversationTxt', 'Save the conversation (.txt)'), Icon: FileText, run: () => downloadFile(exporter.text(textScope, true), file('txt'), 'text/plain;charset=utf-8') },
+    { key: 'json', label: t('history.saveConversationJson', 'Save the conversation (.json)'), Icon: FileJson, run: () => downloadFile(exporter.json(textScope), file('json'), 'application/json') },
     {
       key: 'srt', label: t('history.saveSrt', 'Save subtitles (.srt)'), Icon: Captions,
-      run: () => downloadFile(renderSrt(recordCues(rows, cueScope(scope, textKind))), file('srt'), 'application/x-subrip;charset=utf-8'),
+      run: () => downloadFile(renderSrt(recordCues(rows, rowsScope(scope, textKind, 'source'))), file('srt'), 'application/x-subrip;charset=utf-8'),
     },
     {
       key: 'vtt', label: t('history.saveVtt', 'Save subtitles (.vtt)'), Icon: Captions,
-      run: () => downloadFile(renderVtt(recordCues(rows, cueScope(scope, textKind))), file('vtt'), 'text/vtt;charset=utf-8'),
+      run: () => downloadFile(renderVtt(recordCues(rows, rowsScope(scope, textKind, 'source'))), file('vtt'), 'text/vtt;charset=utf-8'),
     },
     {
       key: 'notes-copy', label: t('history.copyNotes', 'Copy notes'), Icon: Copy, own: true, enabled: notesBody !== null,
