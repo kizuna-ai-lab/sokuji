@@ -52,6 +52,8 @@ export type EditToast = { id: number } & (
   | { kind: 'edited' } | { kind: 'restored' } | { kind: 'speaker' } | { kind: 'undone' }
   /** Design P1: a notes field changed, a point removed, an undo that found its field changed since (left as it is). */
   | { kind: 'notesEdited' } | { kind: 'notesRemoved' } | { kind: 'undoKept' }
+  /** Design P1 §2: `from` merged into `into` (their labels as shown), `count` sentences moved. */
+  | { kind: 'merged'; from: string; into: string; count: number }
 );
 
 /** A word handed to the edit panel's "Fix words" (option C): from a name to check or a selection. It changes nothing. */
@@ -218,6 +220,11 @@ export interface HistoryPageActions {
   /** One field of the shown notes changed by hand (design P1 §1): marked edited, undoable. */
   editNotes(edit: NotesEdit): Promise<void>;
   /**
+   * Every sentence of `side` whose speaker is `from` moved to `into` in one write (design P1 §2), undoable sentence by
+   * sentence; `labels` name them as the page shows them. Returns how many moved (0: nothing to do, or not editable).
+   */
+  mergeSpeaker(side: 'mine' | 'other', from: string, into: string, labels: { from: string; into: string }): Promise<number>;
+  /**
    * `from` written as `to` in the shown transcript (only sentence `only` when given), the shown notes too with `notes`,
    * and into the word list with `words` (a whole-transcript fix only). The sentences changed; 0 when refused or failed.
    */
@@ -334,7 +341,9 @@ export function createHistoryPageStore(
     | { kind: 'name'; side: 'mine' | 'other'; speaker: string; name: string }
     | { kind: 'move'; n: number; speaker: string | null }
     /** A notes field edited (design P1): taken back on the version as it is then; `editedAt` the mark before. */
-    | { kind: 'notes'; id: number; undo: NotesUndo; editedAt: number | null };
+    | { kind: 'notes'; id: number; undo: NotesUndo; editedAt: number | null }
+    /** A merge (design P1): each moved sentence and the speaker it had set by hand (null: the recognizer's). */
+    | { kind: 'merge'; moves: Array<{ n: number; speaker: string | null }> };
   let undoSteps: UndoStep[] = [];
   /** An undo being written: a second press waits for it rather than taking the same step twice. */
   let undoing = false;
@@ -511,6 +520,9 @@ export function createHistoryPageStore(
         done();
       } else if (step.kind === 'sentence') {
         await port.editSentences({ transcriptId, edits: [{ n: step.n, text: step.text }] });
+        done();
+      } else if (step.kind === 'merge') {
+        await port.reassignSentences({ transcriptId, moves: step.moves });
         done();
       } else if (step.kind === 'name') {
         await port.renameSpeaker({ transcriptId, side: step.side, speaker: step.speaker, name: step.name });
@@ -832,6 +844,24 @@ export function createHistoryPageStore(
       canEditNotes() {
         const open = get().open;
         return editable() && open?.notes?.state === 'complete' && open.notes.body !== null && !get().notesRunning.includes(open.record.id);
+      },
+
+      async mergeSpeaker(side, from, into, labels) {
+        const open = get().open;
+        if (!open || open.transcriptId === null || !editable() || from === into) return 0;
+        const moving = open.sentences.filter((x) => x.side === side && (x.speakerByUser ?? x.speaker) === from);
+        if (moving.length === 0) return 0;
+        const scope = scopeNow();
+        let moved = 0;
+        await act(async () => {
+          await port.reassignSentences({ transcriptId: open.transcriptId!, moves: moving.map((x) => ({ n: x.n, speaker: into })) });
+          moved = moving.length;
+          if (!stillIn(scope)) return;
+          remember({ kind: 'merge', moves: moving.map((x) => ({ n: x.n, speaker: x.speakerByUser })) });
+          say({ kind: 'merged', from: labels.from, into: labels.into, count: moving.length });
+          await reread();
+        });
+        return moved;
       },
 
       async editNotes(edit) {

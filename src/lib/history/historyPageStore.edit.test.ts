@@ -456,3 +456,57 @@ describe('editing the notes', () => {
     expect(notes().body!.overview.text).toBe('Sokuji上线');
   });
 });
+
+// Design P1 §2: one speaker's sentences all moved to another of the same side, in one write; undo puts each back.
+describe('merging speakers', () => {
+  const C = 'run-000c-cccc';
+  let t: number;
+  const other = (n: number, speaker: string, text: string) => sent(n, text, { side: 'other', track: 'other', speaker });
+  const who = () => store.getState().open!.sentences.map((x) => [x.n, x.speakerByUser ?? x.speaker]);
+  beforeEach(async () => {
+    const s = real.store;
+    s.openRecord({ id: C, startedAt: START, mode: 'both', myLanguage: 'zh', targetLanguage: 'en', services: { provider: 'soniox', models: {} }, appVersion: '1.2.3' });
+    t = s.createTranscript({ recordId: C, origin: { service: 'soniox', kind: 'live' } }) as number;
+    s.appendSentences({ transcriptId: t, sentences: [
+      sent(1, '我先说'), other(2, '1.1', '好的'), other(3, '1.2', '我补充'), other(4, '1.2', '还有一点'), other(5, '1.1', '这句其实是她说的'),
+    ] });
+    s.reassignSentence({ transcriptId: t, n: 5, speaker: '1.2' });
+    s.reassignSentence({ transcriptId: t, n: 4, speaker: 'u1' });
+    s.reassignSentence({ transcriptId: t, n: 4, speaker: '1.2' });
+    s.closeRecord({ id: C, endedAt: START + 10_000 });
+    await store.getState().openRecord(C);
+  });
+
+  it('moves every sentence of the speaker in one write, and says how many', async () => {
+    const spy = vi.spyOn(real.port, 'reassignSentences');
+    expect(await store.getState().mergeSpeaker('other', '1.2', '1.1', { from: '对方 2', into: '对方 1' })).toBe(3);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(who()).toEqual([[1, '1'], [2, '1.1'], [3, '1.1'], [4, '1.1'], [5, '1.1']]);
+    expect(store.getState().toast).toMatchObject({ kind: 'merged', from: '对方 2', into: '对方 1', count: 3 });
+    expect(store.getState().canUndo).toBe(true);
+  });
+
+  it('undo puts each sentence back to its own speaker, set by hand or not', async () => {
+    const before = store.getState().open!.sentences.map((x) => [x.n, x.speakerByUser]);
+    await store.getState().mergeSpeaker('other', '1.2', '1.1', { from: 'a', into: 'b' });
+    await store.getState().undo();
+    expect(store.getState().open!.sentences.map((x) => [x.n, x.speakerByUser])).toEqual(before);
+  });
+
+  it('a name given to the merged speaker comes back with the undo', async () => {
+    await store.getState().renameSpeaker('other', '1.2', 'Ana');
+    await store.getState().mergeSpeaker('other', '1.2', '1.1', { from: 'Ana', into: '对方 1' });
+    expect(store.getState().open!.speakers.find((x) => x.side === 'other' && x.speaker === '1.2')?.sentences ?? 0).toBe(0);
+    await store.getState().undo();
+    expect(store.getState().open!.speakers.find((x) => x.side === 'other' && x.speaker === '1.2')).toMatchObject({ name: 'Ana', sentences: 3 });
+  });
+
+  it('only within one side, never a speaker into itself, and only in a finished record', async () => {
+    expect(await store.getState().mergeSpeaker('mine', '1.2', '1', { from: 'a', into: 'b' })).toBe(0);
+    expect(await store.getState().mergeSpeaker('other', '1.1', '1.1', { from: 'a', into: 'a' })).toBe(0);
+    expect(store.getState().canUndo).toBe(false);
+    lay(B, false);
+    await store.getState().openRecord(B);
+    expect(await store.getState().mergeSpeaker('other', '1.1', '9', { from: 'a', into: 'b' })).toBe(0);
+  });
+});
