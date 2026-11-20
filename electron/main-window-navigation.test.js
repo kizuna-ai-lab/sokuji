@@ -10,7 +10,8 @@ const nodeRequire = createRequire(import.meta.url);
 const electronPath = nodeRequire.resolve('electron');
 const modulePath = nodeRequire.resolve('./main-window-navigation.js');
 
-const openExternal = vi.fn();
+// Electron's shell.openExternal answers with a promise.
+const openExternal = vi.fn(async () => {});
 
 function loadModule() {
   nodeRequire.cache[electronPath] = {
@@ -71,5 +72,18 @@ describe('main window navigation', () => {
 
     expect(win.navigate('will-navigate', PR_LINK)).toBe(true);
     expect(openExternal).toHaveBeenCalledWith(PR_LINK);
+  });
+
+  it('keeps the app when the system browser cannot be launched', async () => {
+    // Linux with no xdg-open: Electron rejects. Unhandled, the rejection would quit the app.
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    openExternal.mockRejectedValueOnce(new Error('Failed to open'));
+    const win = makeFakeWindow();
+    mod.guardMainWindowNavigation(win, PACKAGED);
+
+    expect(win.navigate('will-navigate', PR_LINK)).toBe(true);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(error).toHaveBeenCalledWith('[Sokuji] [Main] Could not open the link in the browser:', expect.any(Error));
+    error.mockRestore();
   });
 });

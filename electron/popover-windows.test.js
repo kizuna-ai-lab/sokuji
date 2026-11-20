@@ -16,7 +16,8 @@ const electronPath = nodeRequire.resolve('electron');
 const modulePath = nodeRequire.resolve('./popover-windows.js');
 
 const ipcHandlers = new Map();
-const openExternal = vi.fn();
+// Electron's shell.openExternal answers with a promise.
+const openExternal = vi.fn(async () => {});
 const fakeElectron = {
   ipcMain: {
     handle: (channel, fn) => ipcHandlers.set(channel, fn),
@@ -178,6 +179,16 @@ describe('popover child-window visibility bridge', () => {
     const weird = main.__open('', 'file:///etc/passwd');
     expect(weird.action).toBe('deny');
     expect(openExternal).not.toHaveBeenCalled();
+  });
+
+  it('keeps the app when the system browser cannot be launched', async () => {
+    // Linux with no xdg-open: Electron rejects. Unhandled, the rejection would quit the app.
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    openExternal.mockRejectedValueOnce(new Error('Failed to open'));
+    expect(main.__open('some-other-window', 'https://sokuji.kizuna.ai/docs').action).toBe('deny');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(error).toHaveBeenCalledWith('[Sokuji] [Main] Could not open the link in the browser:', expect.any(Error));
+    error.mockRestore();
   });
 
   it('shows and hides a registered popover window on demand', () => {

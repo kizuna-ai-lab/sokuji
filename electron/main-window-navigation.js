@@ -46,7 +46,10 @@ function guardMainWindowNavigation(win, appUrl) {
     const target = url ?? event?.url;
     if (isAppPage(target, appUrl)) return;
     event.preventDefault();
-    if (/^https?:\/\//i.test(target ?? '')) void shell.openExternal(target);
+    // A browser that cannot be launched (no xdg-open, say) rejects: caught, or the unhandled rejection quits the app.
+    if (/^https?:\/\//i.test(target ?? '')) {
+      shell.openExternal(target).catch((error) => console.error('[Sokuji] [Main] Could not open the link in the browser:', error));
+    }
   });
 }
 

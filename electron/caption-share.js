@@ -247,13 +247,10 @@ function setupCaptionShare({
       if (server.running()) void stop();
     };
     win.webContents.on('render-process-gone', end);
-    // Electron passes a details object first; older versions also pass
-    // (url, isInPlace, isMainFrame) positionally.
-    win.webContents.on('did-start-navigation', (details, _url, isInPlace, isMainFrame) => {
-      const main = details && typeof details.isMainFrame === 'boolean' ? details.isMainFrame : isMainFrame;
-      const same = details && typeof details.isSameDocument === 'boolean' ? details.isSameDocument : isInPlace;
-      if (main && !same) end();
-    });
+    // The page replaced (a reload, say): `did-navigate` is the main frame's, a new document's, and committed. Not
+    // `did-start-navigation`, which a navigation the window cancels also starts (a link in the update notes,
+    // main-window-navigation.js), and the page it would have ended the share for stays.
+    win.webContents.on('did-navigate', end);
     win.on('closed', end);
   };
 

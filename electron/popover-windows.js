@@ -91,8 +91,9 @@ function setupPopoverWindowHandlers(mainWindow) {
     // calls (help links, update downloads) belong in the system browser,
     // and a compromised renderer must not be able to conjure arbitrary
     // Electron windows. Only web URLs reach the OS.
+    // A browser that cannot be launched (no xdg-open, say) rejects: caught, or the unhandled rejection quits the app.
     if (/^https?:\/\//i.test(details.url ?? '')) {
-      void shell.openExternal(details.url);
+      shell.openExternal(details.url).catch((error) => console.error('[Sokuji] [Main] Could not open the link in the browser:', error));
     }
     return { action: 'deny' };
   });
