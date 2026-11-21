@@ -218,6 +218,35 @@ describe('checkConformance rules', () => {
     expect(v.map((x) => x.index)).toEqual([3]);
   });
 
+  describe('stableLen (how much of a text will not change)', () => {
+    const stable = (ref: number, t: string, stableLen?: number) => ({ kind: 'segmentText' as const, payload: { ref, text: t, stableLen } });
+
+    it('accepts a stable length that grows over a prefix that holds, and a text that states none', () => {
+      const log: ConformanceLog = [opened(1, 'translation'), stable(1, 'Hel', 0), stable(1, 'Hello, wor', 7), stable(1, 'Hello, world'), stable(1, 'Hello, world.', 13), closed(1)];
+      expect(rules(log)).toEqual([]);
+    });
+
+    it('flags a stable length beyond the text, or one that is no length', () => {
+      expect(rules([opened(1, 'translation'), stable(1, 'Hi.', 4)])).toEqual(['stable-len-in-text']);
+      expect(rules([opened(1, 'translation'), stable(1, 'Hi.', -1)])).toEqual(['stable-len-in-text']);
+      expect(rules([opened(1, 'translation'), stable(1, 'Hi.', 1.5)])).toEqual(['stable-len-in-text']);
+    });
+
+    it('flags a stable length that decreases', () => {
+      expect(rules([opened(1, 'translation'), stable(1, 'Hello, wor', 7), stable(1, 'Hello, world', 5)])).toEqual(['stable-len-holds']);
+    });
+
+    it('flags a later text that changes what was stable, whether or not it states a length', () => {
+      expect(rules([opened(1, 'translation'), stable(1, 'Hello, wor', 7), stable(1, 'Hallo, world', 7)])).toEqual(['stable-len-holds']);
+      expect(rules([opened(1, 'translation'), stable(1, 'Hello, wor', 7), stable(1, 'Hello')])).toEqual(['stable-len-holds']);
+    });
+
+    it('holds each ref to its own stable text', () => {
+      const log: ConformanceLog = [opened(1, 'translation'), opened(2, 'translation'), stable(1, 'Hello', 5), stable(2, 'Bye', 0), stable(1, 'Hello.', 6)];
+      expect(rules(log)).toEqual([]);
+    });
+  });
+
   describe('speechRanges (ranges filled in after the audio)', () => {
     const ranges = (ref: number, list: Array<[number, [number, number]]>) => ({ kind: 'speechRanges' as const, payload: { ref, ranges: list.map(([index, range]) => ({ index, range })) } });
 
