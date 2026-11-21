@@ -31,10 +31,12 @@ const O_SERIES = /^o\d(?:-|$)/;
 /**
  * The `reasoning_effort` that asks `model` for the least reasoning it takes, or null to send none. OpenAI: 'minimal'
  * for GPT-5, mini and nano; 'none' for GPT-5.1 and later ('low' for the listed models that refuse 'none'); 'low' for
- * the o-series; none for a model that does not reason. Gemini and a compatible service: 'none'. A service that refuses
+ * the o-series; none for a model that does not reason. Gemini: 'none'. A compatible service: none sent. A service that refuses
  * the value is asked again by the client, with 'low', then with none.
  */
 export function lowestReasoningEffort(service: TextModelService, model: string): string | null {
+  // A compatible service's model is unknown: an unexpected member may fail every request, so none is sent.
+  if (service === 'compatible') return null;
   if (service !== 'openai') return 'none';
   if (GPT5.test(model)) return 'minimal';
   if (takesReasoningEffort(model)) return refusesNone(model) ? 'low' : 'none';

@@ -27,9 +27,9 @@ describe('the lowest reasoning a model is asked for', () => {
     }
   });
 
-  it("asks Gemini and a compatible service for 'none'", () => {
+  it("asks Gemini for 'none', and sends a compatible service none", () => {
     expect(lowestReasoningEffort('gemini', 'gemini-3.8-flash')).toBe('none');
-    expect(lowestReasoningEffort('compatible', 'qwen3:8b')).toBe('none');
+    expect(lowestReasoningEffort('compatible', 'qwen3:8b')).toBeNull();
   });
 
   it("keeps the notes' rule for which models take an effort", () => {

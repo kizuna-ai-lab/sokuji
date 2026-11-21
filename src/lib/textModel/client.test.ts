@@ -85,7 +85,7 @@ describe('a chat completion: what each service is sent', () => {
     await ask(s.transport, { service: 'compatible', baseUrl: 'http://localhost:11434/v1/', apiKey: undefined, model: 'qwen3:8b' });
     expect(s.sent[0].url).toBe('http://localhost:11434/v1/chat/completions');
     expect(s.sent[0].init.headers).toEqual({ 'Content-Type': 'application/json' });
-    expect(s.sent[0].body).toEqual({ model: 'qwen3:8b', messages: MESSAGES, max_tokens: 400, reasoning_effort: 'none' });
+    expect(s.sent[0].body).toEqual({ model: 'qwen3:8b', messages: MESSAGES, max_tokens: 400 });
   });
 
   it('OpenAI and Gemini go to their own endpoints whatever address is given: a key is never sent elsewhere', async () => {
@@ -135,10 +135,16 @@ describe('a chat completion: a member the service refuses is left out and asked 
     expect(s.sent.map((r) => r.body!.reasoning_effort)).toEqual(['none', 'low', undefined]);
   });
 
+  it('a compatible service is sent no reasoning_effort: its model is unknown, and the member may fail every request', async () => {
+    const s = service(reply('ok'));
+    await ask(s.transport, { service: 'compatible', baseUrl: 'https://api.example.com/v1', model: 'm' });
+    expect(s.sent[0].body).not.toHaveProperty('reasoning_effort');
+  });
+
   it('a third refusal is the answer: no request is sent a fourth time', async () => {
     const named = refusal(400, { message: 'Unrecognized request argument supplied: reasoning_effort' });
     const s = service(named, named, named);
-    expect(await ask(s.transport, { service: 'compatible', baseUrl: 'https://api.example.com/v1', model: 'm' })).toMatchObject({ ok: false, failure: { code: 'refused', status: 400 } });
+    expect(await ask(s.transport, { service: 'gemini', model: 'm' })).toMatchObject({ ok: false, failure: { code: 'refused', status: 400 } });
     expect(s.sent).toHaveLength(3);
   });
 
@@ -149,7 +155,7 @@ describe('a chat completion: a member the service refuses is left out and asked 
       refusal(400, { message: 'response_format: extra inputs are not permitted' }),
       reply('{}'),
     );
-    await expect(ask(s.transport, { service: 'compatible', baseUrl: 'https://api.example.com/v1', model: 'm', json: true })).resolves.toEqual({ ok: true, text: '{}' });
+    await expect(ask(s.transport, { service: 'gemini', model: 'm', json: true })).resolves.toEqual({ ok: true, text: '{}' });
     expect(s.sent.map((r) => [r.body!.reasoning_effort, 'response_format' in r.body!])).toEqual([['none', true], ['low', true], [undefined, true], [undefined, false]]);
   });
 
@@ -161,7 +167,7 @@ describe('a chat completion: a member the service refuses is left out and asked 
       refusal(400, { message: 'response_format is not supported' }),
       reply('{}'),
     );
-    const where = { service: 'compatible' as const, baseUrl: 'https://api.example.com/v1', model: 'm', json: true, memo };
+    const where = { service: 'gemini' as const, model: 'm', json: true, memo };
     await ask(first.transport, where);
     expect(memo).toEqual({ reasoningEffort: null, responseFormat: false });
     const next = service(reply('{}'));

@@ -33,6 +33,11 @@ type Invoke = (channel: string, data?: unknown) => Promise<unknown>;
 /** The client's code for each of the main process's failures. An answer too large to read is the service's trouble. */
 const CODES: Record<string, TextModelFailureCode> = { network: 'network', timeout: 'timeout', too_large: 'server', refused: 'refused', cancelled: 'network' };
 
+/**
+ * Request ids are unique across page loads: the main process keys a request by the page and this id, and a new
+ * request under a key still in flight cancels the old one (a reload restarting the count would cancel a stranger).
+ */
+const LOAD = Math.random().toString(36).slice(2, 10);
 let nextId = 0;
 
 /** The transport over the desktop bridge's `invoke`. */
@@ -49,7 +54,7 @@ export function desktopTextModelTransport(invoke: Invoke): TextModelTransport {
       return;
     }
     nextId += 1;
-    const id = `text-model-${nextId}`;
+    const id = `text-model-${LOAD}-${nextId}`;
     const request: TextModelIpcRequest = {
       id, baseUrl: url.slice(0, -path.length), path, method: init.method, headers: init.headers, ...(init.body === undefined ? {} : { body: init.body }),
     };
