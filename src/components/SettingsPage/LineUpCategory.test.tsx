@@ -254,8 +254,8 @@ describe('languages and line-up', () => {
       expect(tracked).toContainEqual(['lineup_changed', { stage: 'transcription', from: 'kizunaai_soniox', to: 'soniox', moved: ['translation', 'speech'], during_session: false }]);
       const status = await within(cardOf('Speech')).findByRole('status');
       expect(status).toHaveTextContent('Speech switched to Soniox. The previous speech service only supports its own translations.');
-      // News, not a refusal: it wears the joint lines' plain tone.
-      expect(status).toHaveClass('lineup-stage__joint');
+      // News, not a refusal and not a standing rule: the joint line's shape in the secondary text colour.
+      expect(status).toHaveClass('lineup-stage__joint', 'lineup-stage__joint--news');
       expect(screen.getAllByRole('status')).toHaveLength(1);
       // The next choice, which makes nothing follow, takes the line away.
       fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'edge' } });
