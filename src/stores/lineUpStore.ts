@@ -64,8 +64,9 @@ export interface LineUpStore {
   choose(stage: StageName, providerId: string | null): Promise<Choice | null>;
   /**
    * The setup wizard's whole line-up (Plan 6): the stored notes choice kept, the line-up then stored, so a local
-   * migration still waiting on its scan writes nothing over it. False, and nothing kept, during a run or when the
-   * write did not land.
+   * migration still waiting on its scan writes nothing over it. False, and nothing kept, during a run (also one
+   * that starts before the line-up is shown) or when the write did not land: the line-up of before is then put
+   * back, once the run ends when one started on the new line-up meanwhile.
    */
   replace(stages: Pick<LineUp, RunStage>): Promise<boolean>;
 }
@@ -135,16 +136,19 @@ let migrationWrite: Promise<boolean> | null = null;
 
 export const useLineUpStore = create<LineUpStore>()((set, get) => {
   /**
-   * The one migration's write. A line-up stored meanwhile (the setup wizard) stands: none is written over it, and
-   * one stored while this write is in flight is not replaced in memory either (the wizard waits for this write, so
-   * its own lands last in storage).
+   * The one migration's write, of the line-up worked out for `provider`. A line-up stored meanwhile (the setup
+   * wizard) stands: none is written over it, and one stored while this write is in flight is not replaced in
+   * memory either (the wizard waits for this write, so its own lands last in storage). The same for another
+   * provider that came to run meanwhile (`runUnstored`): the line-up was worked out for a provider that no longer
+   * runs, and what runs now is left as it is.
    */
-  const migrate = async (lineUp: LineUp): Promise<void> => {
-    if (get().stored || replacing > 0) return;
+  const migrate = async (provider: string, lineUp: LineUp): Promise<void> => {
+    const superseded = () => get().stored || replacing > 0 || get().unstoredProvider !== provider;
+    if (superseded()) return;
     migrationWrite = write(lineUp);
     const landed = await migrationWrite;
     migrationWrite = null;
-    if (get().stored || replacing > 0) return;
+    if (superseded()) return;
     set(landed ? { lineUp, stored: true, unstoredProvider: null } : { lineUp, stored: false });
   };
   return {
@@ -199,7 +203,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     }
     set({ unstoredProvider: provider });
     if (provider !== 'local_inference') {
-      await migrate(lineUpFromToday({ provider, local: null }));
+      await migrate(provider, lineUpFromToday({ provider, local: null }));
       return;
     }
     // The local provider: what today's automatic choices pick is known only after the scan of downloaded
@@ -213,7 +217,8 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       // Today's choices are read from the local provider's own settings and pair: its entry is loaded first.
       const local = presentHosts().find((p) => p.id === provider);
       if (local && !useProviderStore.getState().entries[provider]) await useProviderStore.getState().load(local);
-      await migrate(lineUpFromToday({ provider, local: todayLocal() }));
+      // What runs may have changed during the waits above: `migrate` writes only for the provider this started for.
+      await migrate(provider, lineUpFromToday({ provider, local: todayLocal() }));
     })().catch((error: unknown) => {
       // The scan or the local entry's load failed: as after a failed scan, nothing is written and the next start
       // tries again.
@@ -229,6 +234,8 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     try {
       if (migrationWrite) await migrationWrite;
       const value = await ServiceFactory.getSettingsService().getSetting<unknown>(LINEUP_KEY, null);
+      // A run that started during the waits above froze the line-up as it stood: nothing is shown or written over it.
+      if (get().locked) return false;
       const summarisation = isStoredLineUp(value) ? value.stages.summarisation : get().lineUp?.summarisation ?? null;
       const lineUp: LineUp = { ...stages, summarisation };
       const before = { lineUp: get().lineUp, stored: get().stored, unstoredProvider: get().unstoredProvider };
@@ -237,7 +244,16 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
         await writeProvider(lineUp);
         return true;
       }
-      set(before);
+      // Not stored: the line-up of before is put back, so what is shown is what is kept. A run that started
+      // meanwhile froze the new line-up and locks it: it stays what the run started with until the run ends.
+      const undo = () => {
+        if (get().lineUp !== lineUp) return;
+        set(before);
+      };
+      if (!get().locked) undo();
+      else {
+        const off = useLineUpStore.subscribe((s) => { if (!s.locked) { off(); undo(); } });
+      }
       return false;
     } finally {
       replacing -= 1;
