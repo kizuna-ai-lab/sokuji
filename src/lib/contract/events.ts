@@ -1,21 +1,24 @@
-import type { AdapterEvents } from './adapter';
+import type { AdapterEventKind, AdapterEvents } from './adapter';
 
-type PayloadOf<K extends keyof AdapterEvents> = Parameters<AdapterEvents[K]>[0];
+type PayloadOf<K extends AdapterEventKind> = Parameters<AdapterEvents[K]>[0];
 
-/** One adapter event as a value: `{ kind, payload }`. What L1 folds. */
+/**
+ * One adapter event as a value: `{ kind, payload }`. What L1 folds. `lateSpeech` is not one of them: it is for a
+ * voice outside the adapter, and nothing above the contract takes it.
+ */
 export type AdapterEvent = {
-  [K in keyof AdapterEvents]: { kind: K; payload: PayloadOf<K> };
-}[keyof AdapterEvents];
+  [K in AdapterEventKind]: { kind: K; payload: PayloadOf<K> };
+}[AdapterEventKind];
 
 const KINDS = {
   segmentOpened: true, segmentText: true, segmentClosed: true, audio: true, speechRanges: true,
   closed: true, reconnecting: true, reconnected: true, failed: true, degraded: true,
   loading: true, busy: true, frame: true,
-} satisfies Record<keyof AdapterEvents, true>;
+} satisfies Record<AdapterEventKind, true>;
 
-export const EVENT_KINDS = Object.keys(KINDS) as ReadonlyArray<keyof AdapterEvents>;
+export const EVENT_KINDS = Object.keys(KINDS) as ReadonlyArray<AdapterEventKind>;
 
-/** An `AdapterEvents` object whose every method forwards one tagged event. */
+/** An `AdapterEvents` object whose every method forwards one tagged event; it takes no `lateSpeech`. */
 export function eventsFrom(listener: (event: AdapterEvent) => void): AdapterEvents {
   const out: Record<string, (payload?: unknown) => void> = {};
   for (const kind of EVENT_KINDS) {

@@ -68,13 +68,25 @@ describe('createSpeechFeed', () => {
     expect(calls).toEqual(['ja']);
   });
 
-  it('on close speaks what is left of the last text, then ends the utterance', () => {
+  it('on close reads no further than the last stable length the segment stated, then ends the utterance', () => {
     const { feed: f, calls } = feed();
     f.opened({ ref: 1, side: 'translation' });
     f.text({ ref: 1, text: 'Hello, wor', stableLen: 7 });
     f.text({ ref: 1, text: 'Hello, world.' });
     f.closed({ ref: 1 });
-    expect(calls).toEqual([['speak', 1, 'Hello, ', [0, 7], 'en'], ['speak', 1, 'world.', [7, 13], 'en'], ['end', 1]]);
+    // What lies past the stable length was never said to stay: it is not read.
+    expect(calls).toEqual([['speak', 1, 'Hello, ', [0, 7], 'en'], ['end', 1]]);
+  });
+
+  it('on close reads up to the last stable length stated, when a later text has outgrown what was read', () => {
+    const { feed: f, calls } = feed();
+    f.opened({ ref: 1, side: 'translation' });
+    f.text({ ref: 1, text: 'Hello, world.', stableLen: 13 });
+    // A revised row, shorter than what was read; then the row grows again without stating a stable length.
+    f.text({ ref: 1, text: 'Hello.', stableLen: 6 });
+    f.text({ ref: 1, text: 'Hello. And more to come' });
+    f.closed({ ref: 1 });
+    expect(calls).toEqual([['speak', 1, 'Hello, world.', [0, 13], 'en'], ['end', 1]]);
   });
 
   it('on close speaks a text that never stated a stable length whole, in the language it last stated', () => {

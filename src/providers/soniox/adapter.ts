@@ -109,6 +109,8 @@ interface CoreLeg {
   noTtsKey: boolean;
   /** Its utterances carry their people (`config.diarize`). */
   labels: boolean;
+  /** Its config asks this adapter to speak, with a key or without. */
+  ownSpeech: boolean;
 }
 
 /** One segment event to its leg, called on its own events object with its payload's own type. */
@@ -117,6 +119,7 @@ function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
     case 'segmentOpened': events.segmentOpened(event.payload); break;
     case 'segmentText': events.segmentText(event.payload); break;
     case 'segmentClosed': events.segmentClosed(event.payload); break;
+    case 'lateSpeech': events.lateSpeech?.(event.payload); break;
     default: {
       // A kind added to `SegmentEvent` must be routed here: unhandled, it would be dropped without a word.
       const unhandled: never = event;
@@ -127,7 +130,7 @@ function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
 
 /** Face-to-face's sides are its two people, and shared Both's speaker leg is me: a diarization label there would only ever name a phantom (spec, slice 3). A leg whose speaker labels are off carries none either. */
 function withoutPerson(event: SegmentEvent): SegmentEvent {
-  if (event.kind === 'segmentClosed' || !('person' in event.payload)) return event;
+  if (event.kind === 'segmentClosed' || event.kind === 'lateSpeech' || !('person' in event.payload)) return event;
   const { person: _person, ...payload } = event.payload;
   return { ...event, payload } as SegmentEvent;
 }
@@ -138,7 +141,7 @@ function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCreden
   const speech = tts && key
     ? new LegSpeech({ leg: name, region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket, ...(counts ? { counts } : {}) })
     : null;
-  return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key, labels: request.config.diarize };
+  return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key, labels: request.config.diarize, ownSpeech: tts !== undefined };
 }
 
 interface CoreOptions {
@@ -238,6 +241,9 @@ class SonioxCore {
         segment: (leg, event) => {
           if (this.ended) return;
           const core = this.leg(leg);
+          // A leg that speaks here was handed the late chunk through `speak` below: only a leg whose voice is
+          // outside this adapter is told of it.
+          if (event.kind === 'lateSpeech' && core.ownSpeech) return;
           emitSegment(core.events, !core.labels || this.o.faceToFace || (this.o.shared && leg === 'speaker') ? withoutPerson(event) : event);
         },
         speak: (leg, ref, text, span, language) => {

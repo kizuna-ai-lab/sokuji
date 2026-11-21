@@ -24,11 +24,13 @@ import type { SonioxToken } from './sttStream';
 /** How long a translation stays open after `<fin>` for the last words' tokens (ruling 5). A judgement: the owner checks it live. */
 export const FIN_TRANSLATION_GRACE_MS = 2_000;
 
-type PayloadOf<K extends keyof AdapterEvents> = Parameters<AdapterEvents[K]>[0];
+type PayloadOf<K extends keyof AdapterEvents> = Parameters<NonNullable<AdapterEvents[K]>>[0];
+/** What the utterances say of a leg's segments. `lateSpeech`: a final translation chunk that came after its segment closed. */
 export type SegmentEvent =
   | { kind: 'segmentOpened'; payload: PayloadOf<'segmentOpened'> }
   | { kind: 'segmentText'; payload: PayloadOf<'segmentText'> }
-  | { kind: 'segmentClosed'; payload: PayloadOf<'segmentClosed'> };
+  | { kind: 'segmentClosed'; payload: PayloadOf<'segmentClosed'> }
+  | { kind: 'lateSpeech'; payload: PayloadOf<'lateSpeech'> };
 
 export interface UtteranceSink {
   segment(leg: LegName, event: SegmentEvent): void;
@@ -289,10 +291,13 @@ export class Utterances {
     if (to <= from) return;
     u.spokenUpTo = to;
     const language = u.speechLanguage ?? this.o.targetFor(u.leg);
-    this.o.sink.speak(u.leg, u.translationRef, u.translationFinal.slice(from, to), [from, to], language);
+    const text = u.translationFinal.slice(from, to);
+    this.o.sink.speak(u.leg, u.translationRef, text, [from, to], language);
     if (u.translation === 'closed') {
-      // A late chunk on a closed translation: nothing more follows it.
+      // A late chunk on a closed translation: nothing more follows it. The segment can say no more text, so a
+      // reader of the segments alone is told of the chunk by an event of its own.
       this.o.sink.endSpeech(u.leg, u.translationRef);
+      this.emit(u, { kind: 'lateSpeech', payload: { ref: u.translationRef, text, span: [from, to], language } });
     } else if (u.translationLanguage !== undefined && u.translationLanguage !== language) {
       this.emit(u, { kind: 'segmentText', payload: { ref: u.translationRef, text: u.translationFinal, stableLen: to, language, ...personField(u) } });
     }

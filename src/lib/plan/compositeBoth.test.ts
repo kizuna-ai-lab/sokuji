@@ -200,6 +200,25 @@ describe('startCompositeBoth: which voice reads a translation (spec §7.2)', () 
     expect(h.of('speaker', 'audio')[1]).toEqual({ pcm: expect.any(Int16Array), ref: 4, range: [0, 5] });
   });
 
+  it("shared: text that came after its segment closed is read by the voice that reads its language, on the row's leg, and both voices end the utterance", async () => {
+    const h = await both();
+    translate(h.emit('speaker'), 2, 'おはよう');
+    h.emit('speaker').lateSpeech!({ ref: 2, text: ' Fine.', span: [4, 10], language: 'en' });
+    expect(only(h.calls, 'voice.speak', 'voice.endUtterance')).toEqual([
+      ['voice.speak', 'speaker', 2, 'おはよう', [0, 4], 'ja', undefined],
+      ['voice.endUtterance', 'speaker', 2],
+      ['voice.speak', 'participant', 2, ' Fine.', [4, 10], 'en', 'speaker'],
+      ['voice.endUtterance', 'speaker', 2],
+      ['voice.endUtterance', 'participant', 2],
+    ]);
+    // Its audio returns on the speaker's row, naming the participant's voice, numbered after the row's own.
+    expect(h.of('speaker', 'audio')).toEqual([
+      { pcm: expect.any(Int16Array), ref: 2, range: [0, 4] },
+      { pcm: expect.any(Int16Array), ref: 2, range: [4, 10], voice: 'participant' },
+    ]);
+    expect(h.of('speaker', 'lateSpeech')).toEqual([]);
+  });
+
   it('shared: a row both voices read is numbered once, by the count they share', async () => {
     const h = await both();
     const e = h.emit('speaker');

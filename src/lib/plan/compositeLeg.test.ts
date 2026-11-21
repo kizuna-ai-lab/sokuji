@@ -202,7 +202,7 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     e.segmentClosed({ ref: 1 });
     e.segmentOpened({ ref: 2, side: 'translation' });
     e.segmentText({ ref: 2, text: 'こんにちは、世', stableLen: 6 });
-    e.segmentText({ ref: 2, text: 'こんにちは、世界。', stableLen: 6 });
+    e.segmentText({ ref: 2, text: 'こんにちは、世界。', stableLen: 9 });
     e.segmentClosed({ ref: 2 });
     expect(h.calls.filter((c) => c[0] === 'voice.speak' || c[0] === 'voice.endUtterance')).toEqual([
       ['voice.speak', 'speaker', 2, 'こんにちは、', [0, 6], 'ja', undefined],
@@ -317,6 +317,67 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     const h = leg({ voice: { fails: new Error('no model') }, text: { fails: error } });
     await expect(h.starting).rejects.toBe(error);
     expect(h.rec.log).toEqual([]);
+  });
+
+  it('holds what the speech session says of itself while the text unit opens, and says it once the leg is open', async () => {
+    const h = leg({ text: { held: true } });
+    await flush();
+    // A voice with no key says so as it opens, before the text unit has.
+    const noKey = { code: 'tts_degraded' as const, message: 'No key for speech.' };
+    const lost = { code: 'tts_stopped' as const, message: 'The voice is gone.', reason: 'tts_408' };
+    h.voice.voices[0].events.degraded(noKey);
+    h.voice.voices[0].events.degraded(lost);
+    expect(h.rec.log).toEqual([]);
+    h.text.starts[0].open();
+    await h.starting;
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: noKey }, { kind: 'degraded', payload: lost }]);
+    // Once open, a degradation passes on at once, and the held ones are not said again.
+    h.voice.voices[0].events.degraded(lost);
+    expect(h.said()).toEqual(['degraded', 'degraded', 'degraded']);
+  });
+
+  it('says nothing of what the speech session said of itself when the text unit fails to start', async () => {
+    const error = new Error('refused');
+    const h = leg({ text: { held: true } });
+    await flush();
+    h.voice.voices[0].events.degraded({ code: 'tts_degraded', message: 'No key for speech.' });
+    h.text.starts[0].refuse(error);
+    await expect(h.starting).rejects.toBe(error);
+    expect(h.rec.log).toEqual([]);
+  });
+
+  it('holds the loss of a speech session whose open rejects while the text unit opens', async () => {
+    const cause = new Error('refused');
+    const h = leg({ voice: { openFails: cause }, text: { held: true } });
+    await flush();
+    expect(h.rec.log).toEqual([]);
+    h.text.starts[0].open();
+    await h.starting;
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause } }]);
+  });
+
+  it('reads text that came after its segment closed, then ends the utterance again, and passes nothing of it on', async () => {
+    const h = leg();
+    await h.starting;
+    translate(h.emit(), 2, 'こんにちは');
+    h.emit().lateSpeech!({ ref: 2, text: '。', span: [5, 6], language: 'ja' });
+    expect(h.calls.filter((c) => c[0] === 'voice.speak' || c[0] === 'voice.endUtterance')).toEqual([
+      ['voice.speak', 'speaker', 2, 'こんにちは', [0, 5], 'ja', undefined],
+      ['voice.endUtterance', 'speaker', 2],
+      ['voice.speak', 'speaker', 2, '。', [5, 6], 'ja', undefined],
+      ['voice.endUtterance', 'speaker', 2],
+    ]);
+    expect(h.said()).toEqual(['segmentOpened', 'segmentText', 'segmentClosed']);
+  });
+
+  it('does not read late text in a language that is not the leg\'s target, and still ends its utterance; nothing once stopped', async () => {
+    const h = leg();
+    const session = await h.starting;
+    h.emit().lateSpeech!({ ref: 2, text: 'Fine.', span: [0, 5], language: 'en' });
+    expect(h.calls.filter((c) => c[0] === 'voice.speak' || c[0] === 'voice.endUtterance')).toEqual([['voice.endUtterance', 'speaker', 2]]);
+    await session.stop();
+    h.emit().lateSpeech!({ ref: 2, text: '。', span: [5, 6], language: 'ja' });
+    expect(only(h.calls, 'voice.speak')).toEqual([]);
   });
 
   it('starts no speech session for a leg that does not speak', async () => {
