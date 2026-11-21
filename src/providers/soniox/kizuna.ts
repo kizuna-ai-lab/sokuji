@@ -10,6 +10,7 @@ import { createSonioxSettingsView } from './SonioxSettings';
 import { sonioxUnitsFor } from './units';
 import { createSonioxVoiceSummary } from './SonioxVoiceSummary';
 import { createKizunaVoiceClaim } from './voiceClaim';
+import { voiceLeaseMemory } from './voiceLeaseMemory';
 
 /** Kizuna Soniox's settings: Soniox's own, with the managed copy and the account's one cached voice (Plan A choice 12). */
 export const KizunaSonioxSettingsView = createSonioxSettingsView({ providerId: 'kizunaai_soniox', managed: true, useVoiceSource: useManagedVoiceSource });
@@ -53,7 +54,8 @@ export function createKizunaSonioxProvider({ participantSpeech }: { participantS
     }),
     session: {
       prepare: createKizunaVoiceClaim(),
-      acquire: createKizunaLease({ participantSpeech, apiUrl: getApiUrl }),
+      // A voice-only lease is remembered in the app's storage until it is ended, for a launch after a crash to end.
+      acquire: createKizunaLease({ participantSpeech, apiUrl: getApiUrl, voiceLeases: voiceLeaseMemory }),
       minimumBalance: (shape, s) => kizunaSonioxMinimumBalance(shape, s, participantSpeech),
     },
   });

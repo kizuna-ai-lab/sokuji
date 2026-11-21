@@ -3,7 +3,7 @@
  * whole provider's, and its sessions over `LegSpeech`, driven on
  * `FakeSocket` and a virtual clock and held to the speech rules.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { Ref } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import type { SpeechStartRequest } from '../../lib/contract/speech';
@@ -14,7 +14,7 @@ import type { LegName } from '../../lib/conversation/types';
 import { isSpeechUnit } from '../../lib/plan/types';
 import type { SharedSettings } from '../../lib/provider/types';
 import type { SonioxTtsConfig } from './config';
-import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
+import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxLeasePort, type SonioxSettings, type SonioxVoiceCredentials } from './settings';
 import { AUTO_CTX, b64, KEY, SHARED, type Json } from './testing';
 import { createSonioxTtsUnit, sonioxSpeaks, sonioxTtsUnit, sonioxTtsUnitFor, type SonioxTtsUnitConfig } from './ttsUnit';
 
@@ -22,12 +22,12 @@ const REVERSED: SharedSettings = { ...SHARED, reversed: () => true };
 const BACK = { ...AUTO_CTX, direction: { source: 'ja', target: 'en' } };
 
 /** A recorded session of the unit, its socket not opened yet: `opening` is its `open()`. */
-function create(over: { leg?: LegName; credentials?: SonioxCredentials; config?: SonioxTtsConfig; counts?: Map<Ref, number> } = {}) {
+function create(over: { leg?: LegName; credentials?: SonioxCredentials | SonioxVoiceCredentials; config?: SonioxTtsConfig; counts?: Map<Ref, number> } = {}) {
   const clock = createVirtualClock(0);
   const sockets = fakeSockets();
   const unit = createSonioxTtsUnit({ openSocket: sockets.create });
   const counts = over.counts ?? new Map<Ref, number>();
-  const request: SpeechStartRequest<SonioxTtsConfig, SonioxCredentials> = {
+  const request: SpeechStartRequest<SonioxTtsConfig, SonioxVoiceCredentials> = {
     leg: over.leg ?? 'speaker',
     context: AUTO_CTX,
     config: over.config ?? { voice: 'Adrian', speed: 1 },
@@ -146,6 +146,49 @@ describe("a session of Soniox's speech unit", () => {
     expect(tts().protocols).toEqual(['soniox-api-key', 'tts-key']);
     session.speak(2, 'Hi.', [0, 3], 'en');
     expect(tts().sentJson<Json>()[0]).toMatchObject({ voice: 'Maya', speed: 1.2, model: 'tts-rt-v2', client_reference_id: 'ref-1', sample_rate: 24000 });
+  });
+
+  it("a voice-only lease's voice: its speech key, that stream's client reference, and its start reported once when the socket first opens", async () => {
+    const voiceLease = { streamAccepted: vi.fn() };
+    const made = create({ credentials: { region: 'jp', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_tts', voiceLease } });
+    await flush();
+    expect(voiceLease.streamAccepted).not.toHaveBeenCalled();
+    made.sockets.last().open();
+    await made.opening;
+    expect(made.sockets.last().url).toBe('wss://tts-rt.jp.soniox.com/tts-websocket');
+    expect(made.sockets.last().protocols).toEqual(['soniox-api-key', 'k-spk_tts']);
+    expect(voiceLease.streamAccepted).toHaveBeenCalledTimes(1);
+    made.session.speak(2, 'Hi.', [0, 3], 'en');
+    expect(made.sockets.last().sentJson<Json>()[0]).toMatchObject({ client_reference_id: 'ref-spk_tts' });
+    // A dropped socket reopened for the next text is the same voice: nothing more is reported.
+    made.sockets.last().serverClose(1006);
+    made.session.speak(3, 'Again.', [0, 6], 'en');
+    await flush();
+    made.sockets.last().open();
+    await flush();
+    expect(made.sockets.all).toHaveLength(2);
+    expect(voiceLease.streamAccepted).toHaveBeenCalledTimes(1);
+  });
+
+  it("a session lease's voice reports nothing: its port is the transcription socket's, which says the start itself", async () => {
+    const lease: SonioxLeasePort = {
+      streamAccepted: vi.fn(), streamEnded: vi.fn(), atGrantEnd: vi.fn(() => false), cutoff: vi.fn(),
+      reissue: vi.fn(async () => ({ ok: false as const, retry: true as const, message: 'unused' })),
+    };
+    const leased: SonioxCredentials = { region: 'us', stt: 'k-spk_stt', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_stt', lease };
+    const { session, tts } = await setup({ credentials: leased });
+    session.speak(2, 'Hi.', [0, 3], 'en');
+    tts().receive(chunk('utt-1-1', 2400));
+    session.close();
+    await flush();
+    for (const called of Object.values(lease)) expect(called).not.toHaveBeenCalled();
+  });
+
+  it("a voice-only lease's leg that holds no key says nothing and reports nothing", async () => {
+    const { sockets, opening, log } = create({ credentials: { region: 'us' } });
+    await opening;
+    expect(sockets.all).toEqual([]);
+    expect(degradedOf(log)).toHaveLength(1);
   });
 
   it("asks in Soniox's own language code", async () => {
@@ -303,7 +346,7 @@ describe("a session of Soniox's speech unit", () => {
   it('with no key for speech, a session closed before it opens says nothing', async () => {
     const clock = createVirtualClock(0);
     const { session, log } = recordSpeech(sonioxTtsUnit.startSpeech!, {
-      leg: 'speaker', context: AUTO_CTX, config: { voice: 'Adrian', speed: 1 }, credentials: { region: 'us', stt: 'stt-key' }, clock, signal: new AbortController().signal, counts: new Map(),
+      leg: 'speaker', context: AUTO_CTX, config: { voice: 'Adrian', speed: 1 }, credentials: { region: 'us', stt: 'stt-key' } satisfies SonioxCredentials as SonioxVoiceCredentials, clock, signal: new AbortController().signal, counts: new Map(),
     });
     session.close();
     await session.open();

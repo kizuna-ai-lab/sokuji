@@ -72,6 +72,15 @@ describe('compose runs these checks after its own, the voice first', () => {
     expect(compose(mix('soniox', 'kizunaai_soniox'), given(twoUnits('soniox'), twoUnits('kizunaai_soniox', 'managed'))))
       .toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
   });
+  it("the same line-up composes under a catalog whose option offers that voice alone: the composer reads the option, nothing else", () => {
+    const catalog = CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: true } : c));
+    const plan = compose(mix('soniox', 'kizunaai_soniox'), { ...given(twoUnits('soniox'), twoUnits('kizunaai_soniox', 'managed')), catalog }) as RunPlan;
+    expect(isRefusal(plan)).toBe(false);
+    expect(plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([['soniox', 'stt', ['transcription', 'translation']], ['kizunaai_soniox', 'tts', ['speech']]]);
+    // An id the given catalog does not hold is a stage left unset, as with the app's own.
+    expect(compose(mix('soniox', 'kizunaai_soniox'), { ...given(twoUnits('soniox')), catalog: catalog.filter((c) => c.id !== 'kizunaai_soniox') }))
+      .toEqual({ refused: 'lineup_incomplete', stage: 'speech' });
+  });
   it('an end-to-end text side with Edge is refused: it takes no other voice', () => {
     expect(compose(mix('gemini', 'edge'), given(stubProvider('gemini'), twoUnits('local_inference', 'local'))))
       .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'gemini' });

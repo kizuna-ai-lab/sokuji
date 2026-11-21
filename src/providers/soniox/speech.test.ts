@@ -6,7 +6,7 @@
  * on `FakeSocket` and a virtual clock from the first run — no network, no
  * fake timers, no stubbed global.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { LegSpeech, tileSpan, type LegSpeechOptions } from './speech';
 import type { AdapterFrame } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
@@ -798,5 +798,57 @@ describe('LegSpeech switched off and on mid-run (Translation I hear, #595)', () 
     speech.setOn(false);
     speech.setOn(true);
     expect(frames('tts.speech').map((f) => [f.direction, payloadOf(f)])).toEqual([['out', { on: false }], ['out', { on: true }]]);
+  });
+});
+
+describe("LegSpeech says when its connection first opens (a voice-only lease's start)", () => {
+  it('once the socket opens, and never before', async () => {
+    const opened = vi.fn();
+    const { sockets, opening } = create({ opened });
+    await flush();
+    expect(opened).not.toHaveBeenCalled();
+    sockets.last().open();
+    await opening;
+    expect(opened).toHaveBeenCalledTimes(1);
+  });
+
+  it('once in all: a reconnect after a drop, or a recycle, is the same voice on the same key', async () => {
+    const opened = vi.fn();
+    const { speech, sockets, tts } = await setup({ opened });
+    tts().serverClose(1006);
+    speech.speak(2, 'Hello.', [0, 6], 'en');
+    await flush();
+    sockets.last().open();
+    await flush();
+    expect(sockets.all).toHaveLength(2);
+    speech.recycle();
+    speech.speak(3, 'Again.', [0, 6], 'en');
+    await flush();
+    sockets.last().open();
+    await flush();
+    expect(sockets.all).toHaveLength(3);
+    expect(opened).toHaveBeenCalledTimes(1);
+  });
+
+  it("a start whose socket fails says nothing; the socket the first text opens is the first to open", async () => {
+    const opened = vi.fn();
+    const { speech, sockets, opening } = create({ opened });
+    sockets.last().drop();
+    await opening;
+    expect(opened).not.toHaveBeenCalled();
+    speech.speak(2, 'Hello.', [0, 6], 'en');
+    await flush();
+    sockets.last().open();
+    await flush();
+    expect(opened).toHaveBeenCalledTimes(1);
+  });
+
+  it('a voice closed while its socket opens says nothing', async () => {
+    const opened = vi.fn();
+    const { speech, opening } = create({ opened });
+    speech.close();
+    await opening;
+    await flush();
+    expect(opened).not.toHaveBeenCalled();
   });
 });

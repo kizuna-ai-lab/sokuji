@@ -17,6 +17,11 @@ export interface ComposeInput {
   providers: readonly AnyProvider[];
   /** A provider's settings; undefined while its entry has not loaded. */
   settings(providerId: string): unknown;
+  /**
+   * The options a line-up may name; the app's own catalog by default. Given by a test that composes under an
+   * option the app does not offer yet.
+   */
+  catalog?: readonly ProviderCaps[];
 }
 
 /**
@@ -55,7 +60,7 @@ function sharings(asked: readonly RunStage[], options: Readonly<Record<RunStage,
 export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): RunPlan | PlanRefusal {
   const options = {} as Record<RunStage, ProviderCaps>;
   for (const stage of RUN_STAGES) {
-    const option = optionFor(lineUp, stage);
+    const option = optionFor(lineUp, stage, input.catalog);
     if (!option) return { refused: 'lineup_incomplete', stage };
     options[stage] = option;
   }

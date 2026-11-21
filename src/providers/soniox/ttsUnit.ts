@@ -15,7 +15,7 @@ import { AUTO } from '../../lib/provider/languages';
 import { sameStages, type UnitDefinition } from '../../lib/plan/types';
 import { describeSonioxTts, sonioxTts, type SonioxTtsConfig } from './config';
 import { sonioxWire } from './languages';
-import type { SonioxCredentials, SonioxSettings } from './settings';
+import type { SonioxSettings, SonioxVoiceCredentials } from './settings';
 import { nativeSocket, type OpenSocket } from './socket';
 import { LegSpeech, NO_TTS_KEY_MESSAGE } from './speech';
 
@@ -29,7 +29,8 @@ export interface SonioxTtsUnitDeps {
 /** The unit's config: the leg's voice and speed. `off`: built for a leg that does not speak, which starts no voice and names no speech model. */
 export type SonioxTtsUnitConfig = SonioxTtsConfig & { off?: true };
 
-export type SonioxTtsUnit = UnitDefinition<SonioxSettings, SonioxCredentials, SonioxTtsUnitConfig>;
+/** Its credentials are the voice's part of a leg's: an own key's and a session lease's carry it, a voice-only lease's are nothing else. */
+export type SonioxTtsUnit = UnitDefinition<SonioxSettings, SonioxVoiceCredentials, SonioxTtsUnitConfig>;
 
 /** The members of `AdapterEvents` a voice has no business calling. */
 type NotSpeech = Exclude<keyof AdapterEvents, keyof SpeechEvents>;
@@ -81,7 +82,7 @@ function silentSession(events: SpeechEvents): SpeechSession {
   };
 }
 
-function startSonioxSpeech(openSocket: OpenSocket, request: SpeechStartRequest<SonioxTtsUnitConfig, SonioxCredentials>, events: SpeechEvents): SpeechSession {
+function startSonioxSpeech(openSocket: OpenSocket, request: SpeechStartRequest<SonioxTtsUnitConfig, SonioxVoiceCredentials>, events: SpeechEvents): SpeechSession {
   const { config, credentials } = request;
   const key = credentials.tts;
   if (!key) return silentSession(events);
@@ -97,6 +98,9 @@ function startSonioxSpeech(openSocket: OpenSocket, request: SpeechStartRequest<S
     events: own,
     clock: request.clock,
     openSocket,
+    // A voice-only lease's port, the only one a voice reports to: with a session's lease the credentials carry none
+    // (its port is `lease`, the transcription socket's, which reports the start itself), and an own key has none.
+    ...(credentials.voiceLease ? { opened: () => credentials.voiceLease?.streamAccepted() } : {}),
   });
   /** One view per home leg: `LegSpeech` keeps the object it was handed for as long as the row is being read. */
   const homes = new Map<LegName, AdapterEvents>();
@@ -148,7 +152,8 @@ export function sonioxSpeaks(language: string): boolean {
 
 /**
  * Soniox's speech unit: speech, and only when asked for exactly that. Its config is the leg's voice and speed
- * (`sonioxTts`); its key is the credentials' `tts`.
+ * (`sonioxTts`); its key is the credentials' `tts`. Under a voice-only lease it reports its start through the
+ * credentials' `voiceLease`, once its connection first opens.
  */
 export function createSonioxTtsUnit(deps: SonioxTtsUnitDeps = {}): SonioxTtsUnit {
   const openSocket = deps.openSocket ?? nativeSocket;

@@ -70,3 +70,17 @@ describe('whether a plan asks a provider for speech', () => {
     expect(servesSpeech(wholePlan(alone), { id: 'elsewhere' })).toBe(false);
   });
 });
+
+describe('whether a plan asks a provider to transcribe', () => {
+  it('is true of the provider whose unit serves the transcription stage, and of no other', async () => {
+    const { servesTranscription } = await import('./read');
+    const { stubProvider, stubTextUnit, stubSpeechUnit, textAndSpeechPlan } = await import('./testing');
+    const { wholePlan } = await import('./wholeUnit');
+    const plan = textAndSpeechPlan(stubTextUnit().planned, stubSpeechUnit().planned);
+    expect(servesTranscription(plan, { id: 'stub_text' })).toBe(true);
+    expect(servesTranscription(plan, { id: 'stub_voice' })).toBe(false);
+    const alone = stubProvider('alone');
+    expect(servesTranscription(wholePlan(alone), alone)).toBe(true);
+    expect(servesTranscription(wholePlan(alone), { id: 'elsewhere' })).toBe(false);
+  });
+});
