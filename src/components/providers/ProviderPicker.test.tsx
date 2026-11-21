@@ -50,6 +50,8 @@ import { localInferenceProvider } from '../../providers/localInference/provider'
 import type { EngineSummaryProps, Readiness } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { ProviderPicker } from './ProviderPicker';
 
 const noAuth = { signedIn: false, getToken: async () => null };
@@ -58,13 +60,14 @@ beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
   trackEvent.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
   localStorage.clear();
   baseSelectSupported.value = false;
 });
 
 describe('ProviderPicker', () => {
-  it('switches providers: loads the new one, selects it, persists the pick and tracks it', async () => {
+  it('switches providers: loads the new one, runs it, persists the pick and tracks it', async () => {
     stored.set('settings.second.script', 'long');
     const second = { ...fakeProvider, id: 'second', settings: { ...fakeProvider.settings, key: 'second' } };
     render(<ProviderPicker providers={[fakeProvider, second]} auth={noAuth} />);
@@ -72,7 +75,7 @@ describe('ProviderPicker', () => {
 
     fireEvent.change(screen.getByLabelText('simpleSettings.provider'), { target: { value: 'second' } });
 
-    expect(useProviderStore.getState().selected).toBe('second');
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'second' });
     await waitFor(() => expect(useProviderStore.getState().entries.second).toBeDefined());
     expect(useProviderStore.getState().entries.second?.settings).toMatchObject({ script: 'long' });
     await waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'second'));
@@ -80,11 +83,11 @@ describe('ProviderPicker', () => {
     expect(trackEvent).not.toHaveBeenCalledWith('settings_modified', expect.anything());
   });
 
-  it('with nothing selected, shows the first offered provider and selects nothing (a load, not a pick)', async () => {
+  it('before anything has loaded, shows the first offered provider and runs nothing (a load, not a pick)', async () => {
     render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
     await screen.findByTitle('simpleSettings.validate');
     expect(screen.getByLabelText('simpleSettings.provider')).toHaveValue('fake');
-    expect(useProviderStore.getState().selected).toBeNull();
+    expect(useLineUpStore.getState().unstoredProvider).toBeNull();
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
   });
 
@@ -178,7 +181,8 @@ describe('ProviderPicker', () => {
     unmount();
 
     trackEvent.mockClear();
-    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+    runsOn(null);
+    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
     stored.set('settings.fake.checkFails', true);
     render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
     fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
@@ -263,7 +267,8 @@ describe('ProviderPicker', () => {
     expect(screen.queryByLabelText('setup.credentials.apiKey')).toBeNull();
     unmount();
 
-    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+    runsOn(null);
+    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
     render(<ProviderPicker providers={[managed]} auth={{ ...noAuth, signedIn: true }} />);
     expect(await screen.findByText('simpleSettings.autoAuthenticated')).toBeInTheDocument();
   });

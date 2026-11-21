@@ -14,6 +14,7 @@ import { kizunaQwenProvider } from '../../providers/qwen_livetranslate/kizuna';
 import { kizunaSonioxProvider } from '../../providers/soniox/kizuna';
 import { sonioxProvider } from '../../providers/soniox/provider';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 const reportWarning = vi.hoisted(() => vi.fn());
@@ -28,7 +29,8 @@ beforeEach(async () => {
   registerRunPhase(() => 'idle');
   useRegionChangeStore.setState({ question: null });
   useRegionRecommendationStore.setState({ records: {} });
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined });
   await useProviderStore.getState().load(kizunaSonioxProvider);
   await useProviderStore.getState().load(sonioxProvider);
   await useProviderStore.getState().load(kizunaQwenProvider);

@@ -71,7 +71,11 @@ type Main = typeof globalThis & { e2eFakes: Fakes };
 export async function fakeTranscription(sokuji: Sokuji): Promise<FakeTranscription> {
   const { app } = sokuji;
   // The fake of the service the line-up transcribes with: the tests read the same whichever it is.
-  const service = await sokuji.page.evaluate(() => (JSON.parse(localStorage.getItem('settings.lineup') ?? '{}') as { transcription?: string }).transcription ?? '');
+  // A seed holds either the stored form (`{ version, stages }`) or the bare stages, which the app does not take for a stored line-up.
+  const service = await sokuji.page.evaluate(() => {
+    const seeded = JSON.parse(localStorage.getItem('settings.lineup') ?? '{}') as { transcription?: string; stages?: { transcription?: string } };
+    return seeded.stages?.transcription ?? seeded.transcription ?? '';
+  });
   const known = await app.evaluate((_e, id) => {
     const fakes = (globalThis as Partial<Main>).e2eFakes;
     return fakes ? (id in fakes.services ? 'yes' : Object.keys(fakes.services).join(', ')) : null;
@@ -123,5 +127,9 @@ export async function addTranscriptionKey(sokuji: Sokuji, page: Page = sokuji.pa
   for (let i = sokuji.errors.length - 1; i >= before; i--) if (/status of 401/.test(sokuji.errors[i])) sokuji.errors.splice(i, 1);
 }
 
-/** The line-up that transcribes with the service that has file transcription. */
+/**
+ * The line-up that transcribes with the service that has file transcription. Seeded bare, not in the stored form:
+ * the app does not take it for a stored line-up, shows the stored provider's stages and runs that provider. A stored
+ * line-up with no speech stage would be one the app keeps and cannot start.
+ */
 export const transcriptionLineUp = { transcription: 'soniox', translation: 'soniox', speech: null, summarisation: null };

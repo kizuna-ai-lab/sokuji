@@ -8,12 +8,11 @@
  */
 import { create } from 'zustand';
 import type { LegName } from '../lib/conversation/types';
-import { describeCause, reportError, reportWarning } from '../lib/diagnostics/report';
+import { describeCause, reportError } from '../lib/diagnostics/report';
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption, Readiness } from '../lib/provider/types';
 import { languageContext, type SpeechInputs } from '../lib/session/shape';
-import { selectionToPersist } from '../lib/session/storedSettings';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 
@@ -58,12 +57,11 @@ export interface ProviderStore {
   /**
    * Writes again every value whose last write did not land, then waits for
    * every write started so far, those included. True when nothing it answers
-   * for is left unsaved. With `p`, only `p`'s own settings and the selection
-   * are written again and answered for, and so are the global pair keys
-   * (every provider reads them); with `fields` too, only those of `p`'s
-   * fields (`PAIR_FIELDS` for its pair, which are the global pair keys) and
-   * the selection. A value this
-   * caller did not write is not its to fail on.
+   * for is left unsaved. With `p`, only `p`'s own settings are written again
+   * and answered for, and so are the global pair keys (every provider reads
+   * them); with `fields` too, only those of `p`'s fields (`PAIR_FIELDS` for
+   * its pair, which are the global pair keys). A value this caller did not
+   * write is not its to fail on.
    */
   flush(p?: AnyProvider, fields?: readonly string[]): Promise<boolean>;
   /**
@@ -84,13 +82,6 @@ export interface ProviderStore {
   speech: SpeechInputs;
   /** Every loaded entry's pair is derived again from the intent, nothing written; a provider whose pair moved forgets its readiness when its check reads the pair. The same inputs change nothing. */
   setSpeech(inputs: SpeechInputs): void;
-  /** The provider the panel shows and a run starts. A person's pick persists (old enum spelling, `storedSettings.ts`); a load never writes (1e-3 ruling 2). */
-  selected: string | null;
-  /** Refused, with a warning, while `selectionLocked`. */
-  select(id: string, how?: 'load' | 'pick'): void;
-  /** True while a run is not idle (the app session's `attach()` keeps it): the provider is fixed then. */
-  selectionLocked: boolean;
-  setSelectionLocked(locked: boolean): void;
 }
 
 const SOURCE = 'sourceLanguage';
@@ -203,23 +194,6 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     intent: undefined,
     readiness: {},
     models: {},
-    selected: null,
-    select(id, how = 'load') {
-      if (get().selectionLocked) {
-        // Spec, "What may change during a run": the provider is fixed while the phase is not idle.
-        reportWarning('ProviderStore', `The provider cannot change during a session; "${id}" was not selected.`, { dedupeKey: 'select:locked' });
-        return;
-      }
-      set({ selected: id });
-      const value = selectionToPersist(id, how);
-      if (value !== null) write('settings.common.provider', value);
-    },
-    selectionLocked: false,
-    setSelectionLocked(locked) {
-      // Called on every runner state change: an unchanged value notifies no one.
-      if (get().selectionLocked === locked) return;
-      set({ selectionLocked: locked });
-    },
     legs: ['speaker'],
 
     setLegs(legs) {
@@ -337,7 +311,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
 
     async flush(p, fields) {
       const pairKey = (field: string) => (field === SOURCE ? PAIR_KEYS.source : field === TARGET ? PAIR_KEYS.target : undefined);
-      const covers = (key: string) => !p || key === 'settings.common.provider'
+      const covers = (key: string) => !p
         || (fields
           ? fields.some((field) => key === storageKey(p, field) || key === credentialKey(p, field) || key === pairKey(field))
           : key.startsWith(`settings.${p.settings.key}.`) || key === PAIR_KEYS.source || key === PAIR_KEYS.target

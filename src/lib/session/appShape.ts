@@ -7,11 +7,11 @@
 import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
-import { stageIdsFor, storedLineUpRuns } from '../lineup/catalog';
+import { stageIdsFor } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
-import { planFromStores } from '../plan/fromStores';
+import { planFromStores, subscribePlan } from '../plan/fromStores';
 import { accountOf, capabilitiesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
-import type { UnitCapabilities } from '../plan/types';
+import type { PlanRefusal, UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import { accountPayer } from './payerChoice';
@@ -30,14 +30,6 @@ import type { RunShape } from './types';
 
 export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
   return mode === 'both' ? ['speaker', 'participant'] : [mode];
-}
-
-/** The provider a start would run and its loaded entry: the plan's transcription provider, as `planFromStores` finds it; null until the plan is ready. */
-export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEntry } | null {
-  const found = planFromStores();
-  if (found.state !== 'ready') return null;
-  const provider = transcriptionProvider(found.plan);
-  return { provider, entry: found.accounts[provider.id] };
 }
 
 /** The providers that take a capture area: Qwen, with your own key and managed; they share one settings shape. */
@@ -149,13 +141,13 @@ export function watchSpeechFromStores(): () => void {
   const apply = () => useProviderStore.getState().setSpeech(speechInputsFromStores());
   apply();
   // Whole-store listeners: `setSpeech` ignores inputs that did not change.
-  // A provider change, or its entry landing after the pick, can turn
+  // A change of the line-up, or a provider's entry landing after it, can turn
   // face-to-face on or off.
   const offs = [
     useSettingsStore.subscribe(apply),
     useRoutingStore.subscribe(apply),
     useAudioStore.subscribe(apply),
-    useProviderStore.subscribe(apply),
+    subscribePlan(apply),
   ];
   return () => { for (const off of offs) off(); };
 }
@@ -166,7 +158,7 @@ export function watchSpeechFromStores(): () => void {
  * Null until the plan is ready. The run's shape, the live gate and the
  * account button's floor all read it.
  */
-export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
+export function runPlanFromStores(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
   const found = planFromStores();
   if (found.state !== 'ready') return null;
   // A run's account is a provider's settings and credentials; its pair is the shape's own.
@@ -175,7 +167,7 @@ export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { ent
 }
 
 export function readShapeFromStores(auth: AuthContext): RunShape | null {
-  const found = planFromSelection();
+  const found = runPlanFromStores();
   if (!found) return null;
   const { plan, accounts, entry } = found;
   const heard = transcriptionProvider(plan);
@@ -186,13 +178,13 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const account = useAccountStore.getState().account;
   const payer = accountPayer(account);
   const frames = screenContextWanted() ? useScreenContextStore.getState().sampler?.source : undefined;
-  // The selected provider runs the session; the stored line-up names its stages only when it runs on that provider.
+  // A stored line-up is what runs, and names the run's stages; until one is stored, the provider that runs does.
   const { lineUp, stored } = useLineUpStore.getState();
   return {
     plan,
     accounts,
     lineUp: stageIdsFor(lineUp, stored, heard.id),
-    lineUpStored: storedLineUpRuns(lineUp, stored, heard.id),
+    lineUpStored: stored,
     pair: entry.pair,
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
@@ -215,18 +207,34 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   };
 }
 
+/** A line-up the composer refuses, as the start gate's refusal: the composer's code, and diagnostic English that names the stage. */
+function planRefused(refusal: PlanRefusal): Refusal {
+  const { refused, stage, provider } = refusal;
+  const message: Record<PlanRefusal['refused'], string> = {
+    lineup_incomplete: `The line-up names no provider for ${stage}.`,
+    lineup_not_offered: `The line-up names ${provider ?? 'a provider'} for ${stage}, which is not offered here.`,
+    lineup_stage_split: `The line-up gives ${stage} to another provider than the stage it goes with.`,
+    lineup_no_unit: `The provider the line-up names for ${stage} cannot serve it beside the other stages.`,
+  };
+  return { code: refused, message: message[refused], params: { stage, ...(provider ? { provider } : {}) } };
+}
+
 /**
  * The start gate over the stores as they stand (F7): what a start would be
- * refused before anything is checked — no leg, a turn mode the provider
+ * refused before anything is checked — a stored line-up the composer cannot
+ * run, no leg, a turn mode the provider
  * does not offer, the participant leg on the web or for a pair that does
  * not reverse (D20), and a managed provider's wallet still loading,
  * unknown, frozen or below its floor. The surfaces keep Start off and show
  * why; the runner still gates the frozen shape at start. Null when nothing
- * is refused, or before the provider's entry has loaded (`providerLoaded`
- * keeps Start off then).
+ * is refused, or while the plan is loading (`providerLoaded` keeps Start
+ * off then).
  */
 export function liveGate(platform: Platform = getEnvironment()): Refusal | null {
-  const found = planFromSelection();
+  // A stored line-up the composer refuses: Start stays off, and says the composer's reason.
+  const state = planFromStores();
+  if (state.state === 'refused') return planRefused(state.refusal);
+  const found = runPlanFromStores();
   if (!found) return null;
   const account = useAccountStore.getState().account;
   return gate({

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
@@ -11,10 +12,10 @@ vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await import
 import { useFaceToFace, earsLegend, voicedEars, type FaceToFaceView } from './useFaceToFace';
 
 describe('useFaceToFace', () => {
-  const pick = (selected: string) => useProviderStore.setState({
-    selected,
-    entries: { [selected]: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
-  } as never);
+  const pick = (id: string) => {
+    runsOn(id);
+    useProviderStore.setState({ entries: { [id]: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } } } as never);
+  };
   beforeEach(() => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     useRoutingStore.setState({ participantSpeech: null });

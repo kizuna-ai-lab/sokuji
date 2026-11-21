@@ -24,6 +24,7 @@ import { providersIn } from '../lib/plan/read';
 import type { RunPlan } from '../lib/plan/types';
 import type { AnyProvider, AuthContext } from '../lib/provider/types';
 import type { Runner } from '../lib/session/runner';
+import { useLineUpStore } from '../stores/lineUpStore';
 import { useProviderStore } from '../stores/providerStore';
 
 export const READINESS_DELAY_MS = 150;
@@ -138,11 +139,14 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
       schedule(p, true);
     }
   };
+  // The plan follows the line-up as well as the provider store's entries.
+  const offLineUp = useLineUpStore.subscribe(evaluate);
   const offStore = useProviderStore.subscribe(evaluate);
   const offRun = runner.state.subscribe(evaluate);
   const offSignIn = watchSignIn?.(signInChanged) ?? (() => {});
   evaluate();
   return () => {
+    offLineUp();
     offStore();
     offRun();
     offSignIn();

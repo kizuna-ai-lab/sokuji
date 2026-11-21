@@ -26,6 +26,7 @@ vi.mock('../../contexts/UserProfileContext', () => ({ useOptionalUserProfile: ()
 
 import { AccountsCategory } from './AccountsCategory';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useAccountStore } from '../../stores/accountStore';
 import { useModelStore } from '../../stores/modelStore';
 import { setUseOwnBalance } from '../../lib/session/payerChoice';
@@ -39,8 +40,9 @@ beforeEach(() => {
   localStorage.clear();
   useAccountStore.setState({ account: null });
   useModelStore.setState({ initialized: true } as never);
+  runsOn('soniox');
   useProviderStore.setState({
-    selected: 'soniox', selectionLocked: false, readiness: { soniox: { state: 'ready', models: [] } } as never,
+    readiness: { soniox: { state: 'ready', models: [] } } as never,
     refreshReadiness: (async () => ({ state: 'unknown' })) as never,
     entries: {
       soniox: { settings: { region: 'us' }, credentials: { apiKey: 'sk-us', apiKeyEu: '', apiKeyJp: '', apiKeyIn: '' }, pair: { source: 'ja', target: 'en' } },

@@ -36,7 +36,9 @@ export function baseStorage(provider = 'fake'): Record<string, string> {
     'settings.setup': JSON.stringify({ version: 1, scenario: 'subtitle-myself', providerPath: 'own-key', provider, completedAt: now() }),
     'settings.tour': JSON.stringify({ version: 1, completedChapters: ['basics'], completedAt: now(), method: 'skipped' }),
     'settings.common.provider': provider,
-    'settings.lineup': JSON.stringify({ transcription: provider, translation: provider, speech: provider, summarisation: null }),
+    // The stored form of a line-up: the provider on every stage. The app runs what the line-up says; the provider
+    // beside it is what an older version of the app would open.
+    'settings.lineup': JSON.stringify({ version: 2, stages: { transcription: provider, translation: provider, speech: provider, summarisation: null } }),
     // The interface language: the app reads it from `i18nextLng` (the setting beside it is what Settings shows).
     // Without it the app follows the machine's language, and specs that find elements by their English names fail.
     i18nextLng: 'en',

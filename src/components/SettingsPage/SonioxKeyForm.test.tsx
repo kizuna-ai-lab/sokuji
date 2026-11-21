@@ -23,6 +23,7 @@ vi.mock('../../lib/region/regionChange', () => ({
 import '../../locales';
 import { SonioxKeyForm } from './SonioxKeyForm';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { registerRunPhase } from '../../app/runPhase';
 import { presentProviders } from '../../providers/registry';
 import type { KeyRegions } from '../../providers/soniox/keyRegion';
@@ -35,9 +36,10 @@ let checked = 0;
 const check = async () => { checked += 1; return { state: 'unknown' }; };
 function given(region: string, credentials: Record<string, string>, readiness?: unknown) {
   checked = 0;
+  runsOn('soniox');
   useProviderStore.setState({
     refreshReadiness: check as never,
-    selected: 'soniox', selectionLocked: false, readiness: (readiness ? { soniox: readiness } : {}) as never,
+    readiness: (readiness ? { soniox: readiness } : {}) as never,
     entries: { soniox: { settings: { region }, credentials: { apiKey: '', apiKeyEu: '', apiKeyJp: '', apiKeyIn: '', ...credentials }, pair: { source: 'ja', target: 'en' } } } as never,
   });
 }

@@ -19,6 +19,7 @@ import { registerRunPhase } from '../../app/runPhase';
 import { sonioxProvider } from '../../providers/soniox/provider';
 import type { KeyRegions } from '../../providers/soniox/keyRegion';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
 import { SonioxKeyForm } from './SonioxKeyForm';
 
@@ -31,7 +32,8 @@ const inJapan = async (): Promise<KeyRegions> => ({ accepted: ['jp'], unreachabl
 beforeEach(async () => {
   registerRunPhase(() => 'idle');
   useRegionChangeStore.setState({ question: null });
-  useProviderStore.setState({ entries: {}, selected: 'soniox', selectionLocked: false, intent: undefined, readiness: {} });
+  runsOn('soniox');
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
   await useProviderStore.getState().load(sonioxProvider);
   await useProviderStore.getState().updateSettings(sonioxProvider, { region: 'us', voice: 'uuid-us' });
   useProviderStore.getState().setCredential(sonioxProvider, 'apiKey', 'sk-us');

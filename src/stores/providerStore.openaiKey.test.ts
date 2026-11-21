@@ -16,6 +16,7 @@ vi.mock('../services/ServiceFactory', () => ({
 }));
 
 import { useProviderStore } from './providerStore';
+import { runsOn } from './lineUpStore.testing';
 import { openaiProvider } from '../providers/openai/provider';
 import { openaiTranslateProvider } from '../providers/openai_translate/provider';
 import { openaiLiveProvider } from '../providers/openai_live/provider';
@@ -32,7 +33,8 @@ beforeEach(() => {
     stored.set(key, value);
     return { success: true };
   });
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined });
 });
 
 describe('one OpenAI key', () => {

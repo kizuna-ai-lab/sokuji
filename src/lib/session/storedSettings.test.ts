@@ -6,7 +6,6 @@ import {
   migrateTurnMode,
   providerIdFromStored,
   selectionFromStored,
-  selectionToPersist,
   turnModeFromLegacy,
 } from './storedSettings';
 
@@ -73,21 +72,6 @@ describe('selectionFromStored', () => {
     // Same offered/managedDefault as the legacy-managed case above: an id
     // outside MANAGED_LEGACY_IDS must not also ride the managed-default branch.
     expect(selectionFromStored('openai', ['local_inference', 'kizunaai_soniox'], 'kizunaai_soniox')).toEqual({ id: 'local_inference', fromStorage: false });
-  });
-});
-
-describe('selectionToPersist', () => {
-  it('writes nothing for a load', () => {
-    expect(selectionToPersist('local_inference', 'load')).toBeNull();
-    expect(selectionToPersist('fake', 'load')).toBeNull();
-  });
-
-  it('writes the id for an explicit pick', () => {
-    expect(selectionToPersist('local_inference', 'pick')).toBe('local_inference');
-  });
-
-  it('writes the id itself for an explicit pick when it has no legacy spelling', () => {
-    expect(selectionToPersist('fake', 'pick')).toBe('fake');
   });
 });
 

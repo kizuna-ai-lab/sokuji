@@ -18,6 +18,7 @@ import { useConversationDisplayStore } from '../../stores/conversationDisplaySto
 import { useSubtitleStore } from '../../stores/subtitleStore';
 import useSettingsStore from '../../stores/settingsStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { SAMPLE_LINES } from './displaySamples';
 
 beforeEach(() => {
@@ -25,7 +26,8 @@ beforeEach(() => {
   useSubtitleStore.setState({ fontSize: 24, compactMode: false });
   useSettingsStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both' } as never);
   // No pair to speak: the sample takes the interface language.
-  useProviderStore.setState({ selected: null, entries: {} });
+  runsOn(null);
+  useProviderStore.setState({ entries: {} });
 });
 afterEach(async () => { cleanup(); await changeLanguageWithLoad('en'); });
 

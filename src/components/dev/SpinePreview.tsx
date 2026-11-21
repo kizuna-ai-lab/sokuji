@@ -3,7 +3,7 @@ import type { Playback } from '../../lib/audio/playback';
 import { realClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { usePlanOnceSelected } from '../../lib/plan/fromStores';
+import { usePlan } from '../../lib/plan/fromStores';
 import { transcriptionProvider } from '../../lib/plan/read';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, type DirectionSelection } from '../../lib/local-inference/selection/types';
@@ -23,6 +23,7 @@ import { setManagedVoiceStandIn } from '../../providers/soniox/managedVoiceSourc
 import useAudioStore from '../../stores/audioStore';
 import { useConversationDisplayStore, useConversationColours } from '../../stores/conversationDisplayStore';
 import { toneOf } from '../../lib/view/tone';
+import { runUnstored, stageProviderId } from '../../stores/lineUpStore';
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -296,7 +297,7 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * a signed-in stand-in with no network, so a managed provider (the leased
  * fake) can start here — and to the `&settings=` blocks; Kizuna Soniox's
  * voice library runs on a stand-in that calls nothing; `&script=` applies to
- * whichever fake is selected — `fake_leased` when it is picked
+ * whichever fake runs — `fake_leased` when it is picked
  * (`&provider=fake_leased`), `fake` otherwise.
  */
 export function SpinePreview() {
@@ -304,30 +305,29 @@ export function SpinePreview() {
   const providers = useMemo(() => presentProviders(), []);
   // This page's probes run on the fake unless a parameter asks for another
   // provider (plan 1e-2 ruling 10, `&provider=<id>`). ProviderPanel is a
-  // child, so its own mount effect selects nothing (1e-3b-2 Task 1, P3) — this
-  // effect, together with `loadSessionStores` below, owns the page's
-  // selection; covering the `local_inference` case too (not just "nothing
-  // selected yet") undoes LocalInference's stored default, and `&provider=`
-  // overrides it the other way.
+  // child, and runs nothing at its own mount (1e-3b-2 Task 1, P3): this
+  // effect owns what the page runs, and `loadSessionStores` below leaves a
+  // provider already running in memory as it is. Covering the
+  // `local_inference` case too (not just "nothing runs yet") undoes
+  // LocalInference's stored default, and `&provider=` overrides it the other
+  // way.
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get('provider');
-    // Both calls below are loads: the preview never writes the app's stored provider.
+    // Both calls below are in memory: the preview never writes the app's stored provider or its line-up.
     if (wanted && providers.some((p) => p.id === wanted)) {
-      useProviderStore.getState().select(wanted);
+      runUnstored(wanted);
       return;
     }
-    const selected = useProviderStore.getState().selected;
-    if (selected === null || selected === 'local_inference') {
-      useProviderStore.getState().select('fake');
-    }
+    const running = stageProviderId('transcription');
+    if (running === null || running === 'local_inference') runUnstored('fake');
   }, [providers]);
   const session = getAppSession();
   const { runner } = session;
   const phase = useRunPhase();
   const turnMode = useTurnModeStore((s) => s.turnMode);
-  // The plan a start would run, ready once a provider is selected and its entry has loaded: the gate of the URL's
+  // The plan a start would run, ready once the line-up and its providers' entries have loaded: the gate of the URL's
   // settings and of autostart.
-  const plan = usePlanOnceSelected();
+  const plan = usePlan();
   const [audio, setAudio] = useState<LoadedAudio | null>(null);
   const autostarted = useRef(false);
   // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2);

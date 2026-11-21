@@ -28,6 +28,7 @@ import { SCENARIOS, type ScenarioPreset } from '../../lib/setup/scenarios';
 import { speechFromStores } from '../../lib/session/appShape';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { stageProviderId, useLineUpStore } from '../../stores/lineUpStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { SETUP_STORAGE_KEY } from '../../stores/setupStore';
@@ -59,7 +60,8 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null, locked: false });
+  useProviderStore.setState({ entries: {}, intent: undefined });
 });
 
 afterEach(async () => {
@@ -100,16 +102,19 @@ describe('the setup guide: what each scenario writes, and what a run would speak
     const audio = useAudioStore.getState();
     const participantSpeech = useRoutingStore.getState().participantSpeech;
     const provider = useProviderStore.getState();
-    const pair = provider.entries[provider.selected!]?.pair;
+    // The provider that runs is the one the wizard's line-up names for transcription.
+    const running = stageProviderId('transcription');
+    const pair = provider.entries[running!]?.pair;
     const speaks = speechFromStores();
-    rows.push(`| ${id} | ${audio.mode} | ${audio.otherSide} | ${audio.bothPopoverSeen} | ${useSettingsStore.getState().textOnly} | ${participantSpeech} | ${provider.selected} · ${pair?.source}→${pair?.target} | ${speaks.other}/${speaks.me}/${speaks.them} |`);
+    rows.push(`| ${id} | ${audio.mode} | ${audio.otherSide} | ${audio.bothPopoverSeen} | ${useSettingsStore.getState().textOnly} | ${participantSpeech} | ${running} · ${pair?.source}→${pair?.target} | ${speaks.other}/${speaks.me}/${speaks.them} |`);
 
     expect(audio.mode).toBe(want.mode);
     expect(audio.otherSide).toBe(want.otherSide);
     expect(audio.bothPopoverSeen).toBe(want.popoverSeen);
     expect(useSettingsStore.getState().textOnly).toBe(want.textOnly);
     expect(participantSpeech).toBe(want.participantSpeech === 'kept' ? PRIOR_PARTICIPANT_SPEECH : want.participantSpeech);
-    expect(provider.selected).toBe('soniox');
+    expect(running).toBe('soniox');
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, unstoredProvider: null, lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox' } });
     expect(pair).toEqual({ source: 'ja', target: 'en' });
     expect(speaks).toEqual(want.speaks);
     expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'soniox');

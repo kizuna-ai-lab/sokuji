@@ -3,7 +3,8 @@
 //
 // applyProvider writes through the provider store, the one writer of the
 // session's provider settings, and resolves once those writes have landed;
-// readiness re-checks on the store's own reset.
+// readiness re-checks on the store's own reset. It does not say which
+// provider runs: applyLineUp does, through the line-up store.
 import { useCallback } from 'react';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -47,8 +48,7 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
           written.push(key);
         }
         store.setPair(p, pair);
-        // A wizard choice is a person's: it persists (1e-3b-1 ruling 8).
-        store.select(p.id, 'pick');
+        // What runs is the line-up's to say: `applyLineUp` stores it next, and the provider's id beside it.
         // The record comes last and says setup is done: never over what this
         // Finish wrote before it is on disk (the extension's storage is
         // asynchronous, and a closed side panel would keep the record alone).
@@ -56,7 +56,9 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
         // refused for its size, say — is not its to fail on.
         if (!await store.flush(p, written)) throw new SetupPersistError();
       },
-      // The line-up of the chosen path, stored before the record: one that did not land fails Finish as a provider write does.
+      // The line-up of the chosen path, stored before the record, and with it the id of the provider that
+      // transcribes (for an older version of the app): from here on the chosen provider runs. One that did not land
+      // fails Finish as a provider write does.
       applyLineUp: async (lineUp) => {
         if (!await useLineUpStore.getState().replace(lineUp)) throw new SetupPersistError();
       },

@@ -13,13 +13,13 @@ vi.mock('../Settings/sections/SystemAudioSection', () => ({ default: () => <div 
 vi.mock('./AudioModeSwitch', () => ({ AudioModeSwitch: ({ locked }: { locked: boolean }) => <div data-testid="mode-switch" data-locked={String(locked)} /> }));
 
 import { AudioCategory, ModelsCategory } from './DeviceCategories';
-import { useProviderStore } from '../../stores/providerStore';
 
+import { runsOn } from '../../stores/lineUpStore.testing';
 afterEach(() => { cleanup(); scan.initialize.mockClear(); scan.initialized = false; });
 
 describe('models and storage', () => {
   it('scans the downloaded models on opening, with a network provider selected', () => {
-    useProviderStore.setState({ selected: 'soniox' });
+    runsOn('soniox');
     render(<ModelsCategory locked={false} />);
     expect(scan.initialize).toHaveBeenCalledTimes(1);
   });

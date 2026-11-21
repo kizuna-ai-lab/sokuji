@@ -24,6 +24,7 @@ import { planOf } from '../../lib/plan/testing';
 import { contextsFor, gate } from '../../lib/session/shape';
 import type { RunShape } from '../../lib/session/types';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { PROVIDERS } from '../registry';
 import { buildPalabra, describePalabra, type PalabraConfig } from './config';
 import { PalabraSettingsView } from './PalabraSettings';
@@ -39,7 +40,8 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>

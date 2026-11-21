@@ -33,6 +33,7 @@ vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: () =>
 import { LineUpCategory } from './LineUpCategory';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' };
@@ -42,7 +43,9 @@ const states = (card: HTMLElement) => [...card.querySelectorAll('.lineup-stage__
 
 beforeEach(() => {
   authState.signedIn = true;
-  useProviderStore.setState({ selected: 'soniox', selectionLocked: false, entries: {}, readiness: {} });
+  runsOn('soniox');
+  useLineUpStore.setState({ locked: false });
+  useProviderStore.setState({ entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
   useSettingsStore.setState({ settingsNavigationTarget: null });
 });
@@ -67,7 +70,7 @@ describe('the line-up during a session and after it', () => {
   });
 
   it('refuses a line-up change while the provider is locked by a running session', async () => {
-    useProviderStore.setState({ selectionLocked: true });
+    useLineUpStore.setState({ locked: true });
     expect(await useLineUpStore.getState().choose('speech', 'edge')).toBeNull();
     expect(useLineUpStore.getState().lineUp).toEqual(soniox);
   });

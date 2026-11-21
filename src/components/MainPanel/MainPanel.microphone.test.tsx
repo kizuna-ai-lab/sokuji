@@ -79,6 +79,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import MainPanel from './MainPanel';
 
 const clock = createVirtualClock(0);
@@ -92,7 +93,7 @@ configureAppSession({
 
 beforeAll(async () => {
   await useProviderStore.getState().load(fakeProvider);
-  useProviderStore.getState().select('fake');
+  runsOn('fake');
 });
 
 describe('MainPanel without a microphone', () => {

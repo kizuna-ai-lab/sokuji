@@ -17,6 +17,8 @@ import { Banners } from '../Banner/useBanners';
 import useAudioSystemStore from '../../stores/audioSystemStore';
 import useUpdateStore from '../../stores/updateStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 import type { RegionRecord } from '../../lib/region/record';
 import { usableHint } from './useRegionHint';
@@ -25,8 +27,9 @@ const hint: RegionRecord = { status: 'hint', medians: { us: 177, eu: 237, jp: 13
 
 function seed(opts: { selected?: string | null; region?: string; locked?: boolean; record?: RegionRecord | null } = {}) {
   const { selected = 'kizunaai_soniox', region = 'us', locked = false, record = hint } = opts;
+  runsOn(selected);
+  useLineUpStore.setState({ locked });
   useProviderStore.setState({
-    selected, selectionLocked: locked,
     entries: { kizunaai_soniox: { settings: { region }, credentials: {}, pair: {} }, soniox: { settings: { region: 'us' }, credentials: {}, pair: {} } },
   } as never);
   useRegionRecommendationStore.setState({ records: record ? { kizunaai_soniox: record } : {}, listOpen: null });
@@ -84,9 +87,9 @@ describe('the region hint strip', () => {
   it('hides the hint while another provider is selected and shows it again on return', () => {
     render(<Banners />);
     expect(screen.queryByText("See each region's speed")).toBeTruthy();
-    act(() => { useProviderStore.setState({ selected: 'soniox' } as never); });
+    act(() => { runsOn('soniox'); });
     expect(screen.queryByText("See each region's speed")).toBeNull();
-    act(() => { useProviderStore.setState({ selected: 'kizunaai_soniox' } as never); });
+    act(() => { runsOn('kizunaai_soniox'); });
     expect(screen.queryByText("See each region's speed")).toBeTruthy();
   });
 

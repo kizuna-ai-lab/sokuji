@@ -11,8 +11,8 @@ vi.mock('react-i18next', async (importOriginal) => ({
 
 import RegionChangeConfirm from './RegionChangeConfirm';
 import { useRegionChangeStore, type RegionChangeQuestion } from '../../stores/regionChangeStore';
-import { useProviderStore } from '../../stores/providerStore';
 
+import { useLineUpStore } from '../../stores/lineUpStore';
 const realAnswer = useRegionChangeStore.getState().answer;
 
 const ask = (q: Partial<RegionChangeQuestion> = {}) =>
@@ -24,7 +24,7 @@ const ask = (q: Partial<RegionChangeQuestion> = {}) =>
 
 beforeEach(() => {
   useRegionChangeStore.setState({ question: null, answer: realAnswer });
-  useProviderStore.setState({ selectionLocked: false });
+  useLineUpStore.setState({ locked: false });
 });
 
 describe('RegionChangeConfirm', () => {
@@ -79,7 +79,7 @@ describe('RegionChangeConfirm', () => {
       answered = useRegionChangeStore.getState().ask({ providerId: 'kizunaai_soniox', managed: true, from: 'us', to: 'jp', warning: { kind: 'built-in', name: 'Adrian' } });
     });
     expect(screen.getByRole('dialog')).toBeTruthy();
-    act(() => { useProviderStore.setState({ selectionLocked: true }); });
+    act(() => { useLineUpStore.setState({ locked: true }); });
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(useRegionChangeStore.getState().question).toBeNull();
     await expect(answered).resolves.toBe(false);

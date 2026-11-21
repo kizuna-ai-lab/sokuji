@@ -9,9 +9,13 @@ vi.mock('../services/ServiceFactory', () => ({
 const { useConversationDisplayStore } = await import('../stores/conversationDisplayStore');
 const { useSubtitleStore } = await import('../stores/subtitleStore');
 const { useProviderStore } = await import('../stores/providerStore');
+const { runsOn } = await import('../stores/lineUpStore.testing');
 const { bindReadings } = await import('./readings');
 
-const choose = (target: string) => useProviderStore.setState({ selected: 'soniox', entries: { soniox: { pair: { source: 'zh', target } } } } as never);
+const choose = (target: string) => {
+  runsOn('soniox');
+  useProviderStore.setState({ entries: { soniox: { pair: { source: 'zh', target } } } } as never);
+};
 
 describe('bindReadings', () => {
   beforeEach(() => {

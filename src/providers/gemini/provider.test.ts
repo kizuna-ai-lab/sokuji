@@ -22,6 +22,7 @@ import { planOf } from '../../lib/plan/testing';
 import { contextsFor } from '../../lib/session/shape';
 import type { RunShape } from '../../lib/session/types';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { PROVIDERS } from '../registry';
 import { checkGemini } from './check';
 import { buildGemini, describeGemini, type GeminiConfig } from './config';
@@ -36,7 +37,8 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, selected: null, selectionLocked: false });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined });
 });
 
 describe('the Gemini definition', () => {
