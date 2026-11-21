@@ -5,6 +5,7 @@
 // each stage. Types and two small checks on them; the composer that builds a
 // plan lives elsewhere.
 import type { Adapter, SessionContext } from '../contract/adapter';
+import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../contract/speech';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider, ProviderRefusal, SharedSettings } from '../provider/types';
 
@@ -37,7 +38,15 @@ export interface UnitDefinition<S = any, K = any, C = any> {
   capabilities(s: S): UnitCapabilities;
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
-  start: Adapter<C, K>['start'];
+  /** Absent on a unit that occupies only `speech`: exactly one of `start` and `startSpeech` is present. */
+  start?: Adapter<C, K>['start'];
+  /** A unit that occupies only `speech`: started through this, and has no `start`. */
+  startSpeech?(request: SpeechStartRequest<C, K>, events: SpeechEvents): SpeechSession;
+}
+
+/** Whether a unit is started through the speech contract (`startSpeech`), not the adapter contract. */
+export function isSpeechUnit(unit: UnitDefinition): unit is UnitDefinition & { startSpeech: NonNullable<UnitDefinition['startSpeech']> } {
+  return unit.startSpeech !== undefined;
 }
 
 /** A unit chosen for a run, with its provider and the stages it serves there. */

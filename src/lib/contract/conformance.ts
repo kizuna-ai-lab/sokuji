@@ -48,6 +48,8 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
   const sideOf = new Map<number, 'source' | 'translation'>();
   const textOf = new Map<number, string>();
   const pending: PendingText[] = [];
+  /** Per ref, the start of its text that a `stableLen` said will not change: every later text must begin with it. */
+  const stableOf = new Map<number, string>();
   let ended = false;
   let stopped = false;
   /** Where `stop()` returned, if the log says so: a frame after an ending is admitted only before this marker. */
@@ -129,9 +131,20 @@ export function checkConformance(log: ConformanceLog, context: SessionContext): 
         break;
       }
       case 'segmentText': {
-        const { ref, text } = entry.payload;
+        const { ref, text, stableLen } = entry.payload;
         if (!opened.has(ref)) flag('text-before-open', `text for ref ${ref} before segmentOpened`, index);
         textOf.set(ref, text);
+        const held = stableOf.get(ref) ?? '';
+        const inText = stableLen === undefined || (Number.isInteger(stableLen) && stableLen >= 0 && stableLen <= text.length);
+        if (!inText) {
+          flag('stable-len-in-text', `stableLen ${stableLen} is not a length within text of length ${text.length}`, index);
+        } else if (stableLen !== undefined && stableLen < held.length) {
+          flag('stable-len-holds', `ref ${ref}: stableLen went back from ${held.length} to ${stableLen}`, index);
+        } else if (!text.startsWith(held)) {
+          flag('stable-len-holds', `ref ${ref}: the first ${held.length} characters, said to be stable, changed`, index);
+        } else if (stableLen !== undefined) {
+          stableOf.set(ref, text.slice(0, stableLen));
+        }
         if (sideOf.get(ref) === 'source') {
           const p = pending.find((q) => q.sourceRef === undefined && q.text === text);
           if (p) p.sourceRef = ref;
