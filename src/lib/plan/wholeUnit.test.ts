@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { RUN_STAGES, TR_TL } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
-import { unitsOf, wholeUnit } from './wholeUnit';
+import { unitsOf, wholePlan, wholeUnit } from './wholeUnit';
 
 const stub = (over: Record<string, unknown> = {}): AnyProvider => ({
   speech: 'optional',
@@ -59,7 +59,28 @@ describe('wholeUnit', () => {
     expect(p.build).toHaveBeenCalledWith(context, s, shared);
   });
 
+  it('asks the definition when used: a capability read calls only its own function, and start and describe are the ones the definition holds then', () => {
+    const q = stub();
+    const caps = wholeUnit(q).capabilities(s);
+    expect(caps.textInput).toBe(true);
+    expect(q.textInput).toHaveBeenCalledTimes(1);
+    expect(q.turns).not.toHaveBeenCalled();
+    expect(q.boundaries).not.toHaveBeenCalled();
+    const u = unitsOf(q)[0];
+    const start = vi.fn();
+    const describe = vi.fn();
+    Object.assign(q, { start, describe });
+    expect(u.start).toBe(start);
+    expect(u.describe).toBe(describe);
+  });
+
   it('is the same object for the same provider', () => expect(unitsOf(p)).toBe(unitsOf(p)));
+
+  it("plans a provider alone: its first unit on all three stages", () => {
+    const plan = wholePlan(p);
+    expect(plan.units).toEqual([{ provider: p, unit: unitsOf(p)[0], stages: RUN_STAGES }]);
+    expect(RUN_STAGES.map((stage) => plan.byStage[stage])).toEqual([plan.units[0], plan.units[0], plan.units[0]]);
+  });
 
   it("uses a provider's own list when it declares one", () => {
     const own = [wholeUnit(p)];

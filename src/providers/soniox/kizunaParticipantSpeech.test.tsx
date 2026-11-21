@@ -42,6 +42,7 @@ import type { LegName } from '../../lib/conversation/types';
 import type { AnyProvider } from '../../lib/provider/types';
 import { contextsFor } from '../../lib/session/shape';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
+import { shapeWith } from '../../lib/plan/testing';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -80,11 +81,11 @@ function shapeFor(provider: AnyProvider, legs: LegName[], shared: boolean): { sh
   const s: SonioxSettings = { ...SONIOX_DEFAULTS, bothModeSharedSession: shared };
   return {
     s,
-    shape: {
-      provider, settings: s, credentials: {}, pair: { source: 'en', target: 'ja' }, legs, turnMode: 'auto', textOnly: false,
+    shape: shapeWith(provider, {
+      settings: s, credentials: {}, pair: { source: 'en', target: 'ja' }, legs, turnMode: 'auto', textOnly: false,
       participantSpeech: true, keepReplayAudio: true, shared: SHARED,
       auth: { signedIn: true, userId: 'u1', getToken: async () => 'tok' },
-    },
+    }),
   };
 }
 

@@ -5,12 +5,14 @@ import type { Punctuator } from '../conversation/fillIn';
 import type { AnyProvider, Readiness, SharedSettings } from '../provider/types';
 import { createVirtualClock } from '../contract/clock';
 import { fakeFrameSource } from '../contract/testing/fakeFrames';
+import { transcriptionProvider } from '../plan/read';
+import { shapeWith } from '../plan/testing';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
 import { RUN_NOTICE_CODES } from './codes';
 import { SourceOpenError, type OpenSource, type Source } from './source';
-import type { FramePort, PlaybackPort } from './ports';
+import type { FramePort, PlaybackPort, RunnerDeps } from './ports';
 import { createRunner } from './runner';
 import { buildSharedSettings } from './shared';
 import type { LeaseContext, RunEnd, RunNotice, RunShape } from './types';
@@ -50,11 +52,12 @@ function hangingStop() {
 }
 
 interface Options {
-  shape?: Partial<RunShape>;
+  /** The shape's own fields, and the provider the run plans alone (absent: the fake). */
+  shape?: Partial<Omit<RunShape, 'plan' | 'accounts'>> & { provider?: AnyProvider };
   settings?: Partial<FakeSettings>;
   openSource?: OpenSource;
   ready?: Readiness;
-  ensureReady?: () => Promise<Readiness>;
+  ensureReady?: RunnerDeps['ensureReady'];
   onRunEnded?: (legs: readonly Leg[]) => void;
   punctuate?: Punctuator;
   punctuationReady?: () => boolean;
@@ -79,8 +82,15 @@ function setup(o: Options = {}) {
   const tracked: Array<[string, unknown]> = [];
   // Every request the provider's `start` receives, in order: what each leg was handed.
   const startRequests: StartRequest<unknown, unknown>[] = [];
-  const provider = (o.shape?.provider ?? fakeProvider) as AnyProvider;
-  const shape: RunShape = {
+  const { provider: given, ...patch } = o.shape ?? {};
+  const provider = (given ?? fakeProvider) as AnyProvider;
+  const shape: RunShape = shapeWith({
+    ...provider,
+    start: (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
+      startRequests.push(request);
+      return provider.start(request as never, events);
+    },
+  } as AnyProvider, {
     settings: { ...FAKE_DEFAULTS, ...o.settings },
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
@@ -95,15 +105,8 @@ function setup(o: Options = {}) {
       segmentation: { mode: 'off', sentencesPerRow: 0 },
     },
     auth: { signedIn: false, getToken: async () => null },
-    ...o.shape,
-    provider: {
-      ...provider,
-      start: (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
-        startRequests.push(request);
-        return provider.start(request as never, events);
-      },
-    } as AnyProvider,
-  };
+    ...patch,
+  });
   let runs = 0;
   const persistIfUnchanged = vi.fn();
   const runner = createRunner({
@@ -134,6 +137,17 @@ function setup(o: Options = {}) {
 }
 
 describe('runner — starting', () => {
+  it("checks the readiness of the plan's provider on the frozen shape, with the run's signal", async () => {
+    const ensureReady = vi.fn<RunnerDeps['ensureReady']>(async () => ({ state: 'ready', models: [] }));
+    const { runner, shape } = setup({ ensureReady });
+    await runner.start();
+    expect(ensureReady).toHaveBeenCalledTimes(1);
+    const [provider, frozen, signal] = ensureReady.mock.calls[0];
+    expect(provider).toBe(transcriptionProvider(shape.plan));
+    expect(frozen).toBe(shape);
+    expect(signal).toBeInstanceOf(AbortSignal);
+  });
+
   it('tells every builder whether some leg of the run speaks, fixed at start (shared.speaks: Soniox asks for agent text on it with its own setting, spec 2026-11-05 §4.3)', async () => {
     const cases = [
       // textOnly, participantSpeech, legs, expected

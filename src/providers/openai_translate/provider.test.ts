@@ -19,6 +19,7 @@ import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import { readCredentials } from '../../lib/provider/credentials';
+import { planOf } from '../../lib/plan/testing';
 import { contextsFor, gate } from '../../lib/session/shape';
 import type { RunShape } from '../../lib/session/types';
 import { useProviderStore } from '../../stores/providerStore';
@@ -38,7 +39,7 @@ afterEach(() => {
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>
-  ({ provider: openaiTranslateProvider, settings: TRANSLATE_DEFAULTS, pair, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: false, turnMode: 'auto', ...patch }) as unknown as RunShape;
+  ({ plan: planOf(openaiTranslateProvider), accounts: { [openaiTranslateProvider.id]: { settings: TRANSLATE_DEFAULTS, credentials: {} } }, pair, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: false, turnMode: 'auto', ...patch }) as unknown as RunShape;
 
 describe('the OpenAI Translate definition', () => {
   it('is OpenAI Translate with your own key, on every platform, under its old id and slice, linking the OpenAI setup guide (ruling 12)', () => {

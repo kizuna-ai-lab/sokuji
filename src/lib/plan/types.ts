@@ -8,7 +8,11 @@ import type { Adapter, SessionContext } from '../contract/adapter';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider, ProviderRefusal, SharedSettings } from '../provider/types';
 
-/** What a unit can do under its settings, in the words generic code reads. */
+/**
+ * What a unit can do under its settings, in the words generic code reads.
+ * A member may be computed when read (a whole-provider unit asks its provider each time), so generic code reads
+ * the member it needs and never spreads or serialises the object.
+ */
 export interface UnitCapabilities {
   speech: 'always' | 'optional' | 'never';
   turns: ReadonlyArray<'auto' | 'manual'>;

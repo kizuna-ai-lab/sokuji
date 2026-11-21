@@ -1,7 +1,7 @@
 // src/lib/plan/read.test.ts
 import { describe, expect, it } from 'vitest';
 import { RUN_STAGES } from '../lineup/types';
-import { providersIn, transcriptionProvider, unitFor } from './read';
+import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from './read';
 import { planOf, stubProvider } from './testing';
 import type { PlannedUnit, RunPlan } from './types';
 
@@ -16,5 +16,26 @@ describe('reading a plan', () => {
     expect(providersIn(planOf(soniox))).toEqual([soniox]);
     expect(RUN_STAGES.map((stage) => unitFor(plan, stage))).toEqual([text, text, voice]);
     expect(transcriptionProvider(plan)).toBe(soniox);
+  });
+
+  it("answers a provider's account as the run froze it, and throws for a provider not in the plan", () => {
+    const account = { settings: { region: 'eu' }, credentials: { apiKey: 'k' } };
+    const shape = { accounts: { soniox: account } };
+    expect(accountOf(shape, stubProvider('soniox'))).toBe(account);
+    expect(() => accountOf(shape, stubProvider('openai'))).toThrow(/openai/);
+  });
+
+  it("asks a stage's unit for its capabilities under its own provider's settings", () => {
+    const local = stubProvider('local_inference', { speech: 'always', turns: (s: { manual: boolean }) => (s.manual ? ['manual'] : ['auto']) });
+    const soniox = stubProvider('soniox', { turns: (s: { manual: boolean }) => (s.manual ? ['auto', 'manual'] : ['auto']) });
+    const text: PlannedUnit = { ...planOf(soniox).units[0], stages: ['transcription', 'translation'] };
+    const voice: PlannedUnit = { ...planOf(local).units[0], stages: ['speech'] };
+    const shape = {
+      plan: { units: [text, voice], byStage: { transcription: text, translation: text, speech: voice } },
+      accounts: { soniox: { settings: { manual: true }, credentials: {} }, local_inference: { settings: { manual: false }, credentials: {} } },
+    };
+    expect(capabilitiesOf(shape, 'transcription').turns).toEqual(['auto', 'manual']);
+    expect(capabilitiesOf(shape, 'speech').speech).toBe('always');
+    expect(capabilitiesOf(shape, 'speech').turns).toEqual(['auto']);
   });
 });

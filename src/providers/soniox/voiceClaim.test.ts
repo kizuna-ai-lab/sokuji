@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { LegName } from '../../lib/conversation/types';
 import type { RunShape } from '../../lib/session/types';
+import { shapeWith, stubProvider } from '../../lib/plan/testing';
 import type { ManagedVoicesClient } from './managedVoicesClient';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 import { createKizunaVoiceClaim } from './voiceClaim';
 import type { prepareManagedVoice } from './voicePrep';
 
-const shapeFor = (legs: LegName[], textOnly = false): RunShape => ({
-  provider: {} as RunShape['provider'], settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
+const shapeFor = (legs: LegName[], textOnly = false): RunShape => shapeWith(stubProvider('kizunaai_soniox'), {
+  settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
   turnMode: 'auto', textOnly, participantSpeech: false, keepReplayAudio: true,
   shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
   auth: { signedIn: true, userId: 'u1', getToken: vi.fn(async () => 'tok') },

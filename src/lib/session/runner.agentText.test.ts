@@ -4,6 +4,7 @@ import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import type { AnyProvider, SharedSettings } from '../provider/types';
+import { shapeWith } from '../plan/testing';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -71,8 +72,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; mutePort?: boo
   };
   // Translation I hear, live (#595).
   const hear = { value: true, listeners: new Set<() => void>() };
-  const shape: RunShape = {
-    provider: { ...fakeProvider, start, build: (c: never, st: never, shared: SharedSettings) => { asked.push(shared.speaks); return fakeProvider.build(c, st, shared); } } as unknown as AnyProvider,
+  const shape: RunShape = shapeWith({ ...fakeProvider, start, build: (c: never, st: never, shared: SharedSettings) => { asked.push(shared.speaks); return fakeProvider.build(c, st, shared); } } as unknown as AnyProvider, {
     settings: FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
@@ -87,7 +87,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; mutePort?: boo
       segmentation: { mode: 'off', sentencesPerRow: 0 },
     },
     auth: { signedIn: false, getToken: async () => null },
-  };
+  });
   const runner = createRunner({
     clock,
     platform: 'electron',

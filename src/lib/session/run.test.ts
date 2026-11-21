@@ -3,6 +3,7 @@ import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/ad
 import { createVirtualClock } from '../contract/clock';
 import type { DropInfo } from '../contract/reconnect';
 import type { LegName } from '../conversation/types';
+import { shapeWith } from '../plan/testing';
 import type { AnyProvider } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
@@ -84,8 +85,7 @@ function setup(o: {
     },
   } : undefined;
   const tracked: Array<[string, unknown]> = [];
-  const shape: RunShape = {
-    provider: { ...fakeProvider, start, session: hooks } as unknown as AnyProvider,
+  const shape: RunShape = shapeWith({ ...fakeProvider, start, session: hooks } as unknown as AnyProvider, {
     settings: FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
@@ -100,7 +100,7 @@ function setup(o: {
       segmentation: { mode: 'off', sentencesPerRow: 0 },
     },
     auth: { signedIn: false, getToken: async () => null },
-  };
+  });
   const runner = createRunner({
     clock,
     platform: 'electron',

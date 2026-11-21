@@ -8,6 +8,8 @@ import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
+import { accountOf, capabilitiesOf, transcriptionProvider } from '../plan/read';
+import { wholePlan } from '../plan/wholeUnit';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import { presentProviders } from '../../providers/registry';
@@ -142,10 +144,24 @@ export function watchSpeechFromStores(): () => void {
   return () => { for (const off of offs) off(); };
 }
 
-export function readShapeFromStores(auth: AuthContext): RunShape | null {
+/**
+ * The plan a start would run and its providers' accounts, as the stores
+ * stand: the selected provider as one whole-provider unit, until the
+ * line-up decides the plan. Null until its entry has loaded. The run's
+ * shape, the live gate and the account button's floor all read it.
+ */
+export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
   const selected = selectedFromStores();
   if (!selected) return null;
   const { provider, entry } = selected;
+  return { plan: wholePlan(provider), accounts: { [provider.id]: { settings: entry.settings, credentials: entry.credentials } }, entry };
+}
+
+export function readShapeFromStores(auth: AuthContext): RunShape | null {
+  const found = planFromSelection();
+  if (!found) return null;
+  const { plan, accounts, entry } = found;
+  const heard = transcriptionProvider(plan);
   const st = useSettingsStore.getState();
   const faceToFace = faceToFaceFromStores();
   // Put there before Start, and only once its first frame was in hand (`prepareScreenContext`); a sampler left there
@@ -154,18 +170,17 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const payer = accountPayer(account);
   const frames = screenContextWanted() ? useScreenContextStore.getState().sampler?.source : undefined;
   return {
-    provider,
-    settings: entry.settings,
-    credentials: entry.credentials,
+    plan,
+    accounts,
     pair: entry.pair,
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: st.textOnly,
-    participantSpeech: speechFromStores(provider).them,
+    participantSpeech: speechFromStores(capabilitiesOf(found, 'speech')).them,
     faceToFace,
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
-      reversedPair(provider, entry.settings, entry.pair),
+      reversedPair(heard, accountOf(found, heard).settings, entry.pair),
       { sourceSeconds: st.segmentationSourcePause, translationSeconds: st.segmentationTranslationPause },
       { mode: st.segmentationMode, sentencesPerRow: st.sentenceSegmentationChunkSentences },
       faceToFace,
@@ -190,17 +205,17 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
  * keeps Start off then).
  */
 export function liveGate(platform: Platform = getEnvironment()): Refusal | null {
-  const selected = selectedFromStores();
-  if (!selected) return null;
+  const found = planFromSelection();
+  if (!found) return null;
   const account = useAccountStore.getState().account;
   return gate({
-    provider: selected.provider,
-    settings: selected.entry.settings,
-    pair: selected.entry.pair,
+    plan: found.plan,
+    accounts: found.accounts,
+    pair: found.entry.pair,
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
     textOnly: useSettingsStore.getState().textOnly,
-    participantSpeech: speechFromStores(selected.provider).them,
+    participantSpeech: speechFromStores(capabilitiesOf(found, 'speech')).them,
     faceToFace: faceToFaceFromStores(),
     account,
     // The stores as they stand: the payer a Start now would choose.
@@ -208,11 +223,12 @@ export function liveGate(platform: Platform = getEnvironment()): Refusal | null 
   }, platform);
 }
 
-/** The runner's `ensureReady` in the app: the shape's own inputs, through the provider store's cache. */
-export function ensureReadyFromStores(shape: RunShape, signal: AbortSignal): Promise<Readiness> {
+/** The runner's `ensureReady` in the app: one provider of the shape, with its own inputs from the shape, through the provider store's cache. */
+export function ensureReadyFromStores(provider: AnyProvider, shape: RunShape, signal: AbortSignal): Promise<Readiness> {
+  const { settings, credentials } = accountOf(shape, provider);
   return useProviderStore.getState().refreshReadiness(
-    shape.provider, shape.auth,
-    { settings: shape.settings, credentials: shape.credentials, pair: shape.pair, legs: shape.legs },
+    provider, shape.auth,
+    { settings, credentials, pair: shape.pair, legs: shape.legs },
     signal,
   );
 }
