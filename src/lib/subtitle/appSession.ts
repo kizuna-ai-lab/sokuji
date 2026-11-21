@@ -7,7 +7,7 @@
  * The only module under `src/lib/subtitle` that reads a store.
  */
 import { describeCause, reportError } from '../diagnostics/report';
-import { planOnceSelected } from '../plan/fromStores';
+import { planFromStores, subscribePlan } from '../plan/fromStores';
 import { providersIn, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import { legsFor, liveGate } from '../session/appShape';
 import type { Runner } from '../session/runner';
@@ -31,9 +31,9 @@ export function appSubtitleSession(
   } = {},
 ): Readable<SubtitleSession> & { dispose(): void } {
   const read = (): SubtitleSession => {
-    // The plan a start would run: loaded once a provider is selected and every provider of the plan has its entry.
+    // The plan a start would run: ready once the line-up has loaded and every provider of the plan has its entry.
     // Its pair is the transcription provider's.
-    const found = planOnceSelected();
+    const found = planFromStores();
     const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : undefined;
     const pair = found.state === 'ready' ? transcriptionAccount(found).pair : null;
     // Start needs every provider of the plan ready: the readiness the gate reads is the first one not ready (its
@@ -74,7 +74,8 @@ export function appSubtitleSession(
   };
   const offs = [
     runner.state.subscribe(update),
-    useProviderStore.subscribe(update),
+    // The plan's two stores: the line-up, and the provider store (its entries and their readiness).
+    subscribePlan(update),
     useTurnModeStore.subscribe(update),
     useAudioStore.subscribe(update),
     view.subscribe(update),

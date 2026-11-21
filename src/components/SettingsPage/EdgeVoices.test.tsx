@@ -19,12 +19,13 @@ vi.mock('../../app/voicePreview', () => ({ appVoicePreview: { play: preview.play
 import '../../locales';
 import { EdgeVoices } from './EdgeVoices';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 
 const local = (voices: Record<string, { edge?: string }> = {}) => ({ ...LOCAL_INFERENCE_DEFAULTS, voices });
 function given(o: { voices?: Record<string, { edge?: string }>; legs?: string[]; participantSpeech?: boolean } = {}) {
+  runsOn('local_inference');
   useProviderStore.setState({
-    selected: 'local_inference',
     legs: (o.legs ?? ['speaker', 'participant']) as never,
     speech: { textOnly: false, participantSpeech: o.participantSpeech ?? true },
     entries: { local_inference: { settings: local(o.voices), credentials: {}, pair: { source: 'ja', target: 'en' } } } as never,

@@ -32,6 +32,7 @@ import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { AuthContext, EngineProps, SettingsProps } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { appVoicePreview } from '../../app/voicePreview';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from './ProviderOwnSettings';
 
@@ -44,7 +45,8 @@ const signIn = (userId: string | null = 'u1', signedIn = true, token = 't'): Aut
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
+  runsOn('fake');
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, legs: ['speaker'] });
 });
 
 describe('ProviderOwnSettings', () => {

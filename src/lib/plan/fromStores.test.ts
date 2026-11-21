@@ -25,7 +25,8 @@ import { localInferenceProvider } from '../../providers/localInference/provider'
 import { sonioxProvider } from '../../providers/soniox/provider';
 import { storedLocalStages, useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
-import { planFromStores, planOnceSelected, usePlan, usePlanOnceSelected, useStageUnit, useStageUnitOnceSelected } from './fromStores';
+import { runsOn } from '../../stores/lineUpStore.testing';
+import { planFromStores, usePlan, useStageUnit } from './fromStores';
 import { providersIn, transcriptionProvider } from './read';
 import { planOf } from './testing';
 import { unitsOf } from './wholeUnit';
@@ -37,25 +38,29 @@ const geminiEntry = { settings: geminiProvider.settings.defaults, credentials: {
 beforeEach(() => {
   offered.none = false;
   offered.instead = null;
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
-  useLineUpStore.setState({ lineUp: null, stored: false });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, legs: ['speaker'] });
+  useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
 });
 
 describe('planFromStores', () => {
   it('is loading before a provider resolves: none is offered here', () => {
     offered.none = true;
-    useProviderStore.setState({ selected: 'soniox', entries: { soniox: sonioxEntry } });
+    runsOn('soniox');
+    useProviderStore.setState({ entries: { soniox: sonioxEntry } });
     expect(planFromStores()).toEqual({ state: 'loading' });
   });
 
   it("is loading while the plan's provider has not loaded, whatever else has", () => {
     expect(planFromStores()).toEqual({ state: 'loading' });
-    useProviderStore.setState({ selected: 'soniox', entries: { gemini: geminiEntry } });
+    runsOn('soniox');
+    useProviderStore.setState({ entries: { gemini: geminiEntry } });
     expect(planFromStores()).toEqual({ state: 'loading' });
   });
 
   it('is ready with the selected provider as one whole-provider unit, and its entry as its account', () => {
-    useProviderStore.setState({ selected: 'soniox', entries: { soniox: sonioxEntry, gemini: geminiEntry } });
+    runsOn('soniox');
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry } });
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
     expect(found.plan).toEqual(planOf(sonioxProvider));
@@ -67,7 +72,8 @@ describe('planFromStores', () => {
     const provider = presentProviders().find((p) => p.id === id);
     // Kizuna AI's providers are offered only where the build has the hosted service.
     if (!provider) return;
-    useProviderStore.setState({ selected: id, entries: { [id]: { ...sonioxEntry, credentials: {} } } });
+    runsOn(id);
+    useProviderStore.setState({ entries: { [id]: { ...sonioxEntry, credentials: {} } } });
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
     expect(found.plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([[id, 'stt', ['transcription', 'translation']], [id, 'tts', ['speech']]]);
@@ -79,7 +85,8 @@ describe('planFromStores', () => {
   // Before a line-up is stored the plan is the selection's, never one composed from the line-up the settings
   // show: while the local scan runs, they show the local host's defaults, Bing and Edge.
   it('runs the selected local provider whole before a line-up is stored, not the line-up shown', () => {
-    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair } } });
+    runsOn('local_inference');
+    useProviderStore.setState({ entries: { local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair } } });
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: false });
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
@@ -89,7 +96,8 @@ describe('planFromStores', () => {
   });
 
   it('answers a new plan for another provider object offered under the same id, with the same entry', () => {
-    useProviderStore.setState({ selected: 'soniox', entries: { soniox: sonioxEntry } });
+    runsOn('soniox');
+    useProviderStore.setState({ entries: { soniox: sonioxEntry } });
     const before = planFromStores();
     const other = { ...sonioxProvider };
     offered.instead = other;
@@ -103,7 +111,8 @@ describe('planFromStores', () => {
   it('runs the first offered provider for a retired id when nothing is stored', () => {
     // OpenAI Compatible, retired (Stage 2 OpenAI Realtime, ruling 1): no build registers it.
     const first = presentProviders()[0];
-    useProviderStore.setState({ selected: 'openai_compatible', entries: { [first.id]: { settings: first.settings.defaults, credentials: {}, pair } } });
+    runsOn('openai_compatible');
+    useProviderStore.setState({ entries: { [first.id]: { settings: first.settings.defaults, credentials: {}, pair } } });
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
     expect(transcriptionProvider(found.plan)).toBe(first);
@@ -113,7 +122,8 @@ describe('planFromStores', () => {
 
 describe('usePlan', () => {
   it("keeps its identity across an unrelated provider's settings change, and follows its own entry", () => {
-    useProviderStore.setState({ selected: 'soniox', entries: { soniox: sonioxEntry, gemini: geminiEntry } });
+    runsOn('soniox');
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry } });
     const { result } = renderHook(() => usePlan());
     const first = result.current;
     expect(first.state).toBe('ready');
@@ -128,7 +138,7 @@ describe('usePlan', () => {
   });
 
   it("is loading until the plan's provider has loaded", () => {
-    useProviderStore.setState({ selected: 'soniox' });
+    runsOn('soniox');
     const { result } = renderHook(() => usePlan());
     expect(result.current).toEqual({ state: 'loading' });
     act(() => useProviderStore.setState({ entries: { soniox: sonioxEntry } }));
@@ -138,7 +148,7 @@ describe('usePlan', () => {
 
 describe('useStageUnit', () => {
   it('is null while the plan is not ready, then the unit that serves the stage, with its provider, settings and capabilities', () => {
-    useProviderStore.setState({ selected: 'soniox' });
+    runsOn('soniox');
     const { result } = renderHook(() => useStageUnit('speech'));
     expect(result.current).toBeNull();
 
@@ -148,45 +158,104 @@ describe('useStageUnit', () => {
   });
 });
 
-// Before the launch load selects a provider, a reader that never fell back to the first offered one answers nothing,
-// even once that provider's entry has loaded.
-describe('the plan once a provider is selected', () => {
-  const firstLoaded = () => {
+// The line-up store has not loaded: no reader falls back to the first offered provider, even once its entry has loaded.
+describe('the plan before the line-up store has loaded', () => {
+  it('is loading, for the function and both hooks, then the plan of the provider that runs', () => {
     const first = presentProviders()[0];
-    useProviderStore.setState({ selected: null, entries: { [first.id]: { settings: first.settings.defaults, credentials: {}, pair } } });
-    return first;
-  };
-
-  it("planOnceSelected is loading while nothing is selected, where planFromStores falls back to the first offered provider", () => {
-    firstLoaded();
-    expect(planFromStores().state).toBe('ready');
-    expect(planOnceSelected()).toEqual({ state: 'loading' });
-  });
-
-  it('planOnceSelected answers the same object as planFromStores once a provider is selected', () => {
-    const first = firstLoaded();
-    useProviderStore.setState({ selected: first.id });
-    const found = planOnceSelected();
-    expect(found.state).toBe('ready');
-    expect(found).toBe(planFromStores());
-  });
-
-  it('usePlanOnceSelected is loading while nothing is selected, then the same object usePlan returns', () => {
-    const first = firstLoaded();
-    const { result } = renderHook(() => ({ once: usePlanOnceSelected(), plan: usePlan() }));
+    useProviderStore.setState({ entries: { [first.id]: { settings: first.settings.defaults, credentials: {}, pair } } });
+    const { result } = renderHook(() => ({ plan: usePlan(), unit: useStageUnit('transcription') }));
+    expect(planFromStores()).toEqual({ state: 'loading' });
+    expect(result.current.plan).toEqual({ state: 'loading' });
+    expect(result.current.unit).toBeNull();
+    act(() => runsOn(first.id));
     expect(result.current.plan.state).toBe('ready');
-    expect(result.current.once).toEqual({ state: 'loading' });
-    act(() => useProviderStore.setState({ selected: first.id }));
-    expect(result.current.once.state).toBe('ready');
-    expect(result.current.once).toBe(result.current.plan);
+    expect(result.current.plan).toBe(planFromStores());
+    expect(result.current.unit).toMatchObject({ provider: first, unit: unitsOf(first)[0], settings: first.settings.defaults });
+  });
+});
+
+describe('the plan of a stored line-up', () => {
+  const localEntry = { settings: localInferenceProvider.settings.defaults, credentials: {}, pair };
+  const stored = (transcription: string | null, translation: string | null, speech: string | null) =>
+    useLineUpStore.setState({ lineUp: { transcription, translation, speech, summarisation: null }, stored: true, unstoredProvider: null });
+
+  it('is what the composer makes of it, with the entry of each of its providers', () => {
+    stored('soniox', 'soniox', 'edge');
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, local_inference: localEntry, gemini: geminiEntry } });
+    const found = planFromStores();
+    if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
+    expect(found.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['local_inference', ['speech']]]);
+    expect(providersIn(found.plan)).toEqual([sonioxProvider, localInferenceProvider]);
+    expect(found.accounts).toEqual({ soniox: sonioxEntry, local_inference: localEntry });
+    expect(planFromStores()).toBe(found);
   });
 
-  it('useStageUnitOnceSelected is null while nothing is selected, then the unit useStageUnit gives', () => {
-    const first = firstLoaded();
-    const { result } = renderHook(() => ({ once: useStageUnitOnceSelected('transcription'), unit: useStageUnit('transcription') }));
-    expect(result.current.unit).not.toBeNull();
-    expect(result.current.once).toBeNull();
-    act(() => useProviderStore.setState({ selected: first.id }));
-    expect(result.current.once).toMatchObject({ provider: first, unit: unitsOf(first)[0], settings: first.settings.defaults });
+  it('all on one provider, is the plan of that provider alone', () => {
+    stored('soniox', 'soniox', 'soniox');
+    useProviderStore.setState({ entries: { soniox: sonioxEntry } });
+    const found = planFromStores();
+    if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
+    expect(found.plan).toEqual(planOf(sonioxProvider));
+    stored('local_inference', 'bing', 'edge');
+    useProviderStore.setState({ entries: { local_inference: localEntry } });
+    const local = planFromStores();
+    if (local.state !== 'ready') throw new Error(`expected a ready plan, got ${local.state}`);
+    expect(local.plan).toEqual(planOf(localInferenceProvider));
+  });
+
+  it('decides what runs, whatever provider ran before it was stored', () => {
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry } });
+    useLineUpStore.setState({ lineUp: { transcription: 'gemini', translation: 'gemini', speech: 'gemini', summarisation: null }, stored: true, unstoredProvider: 'soniox' });
+    const found = planFromStores();
+    if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
+    expect(transcriptionProvider(found.plan)).toBe(geminiProvider);
+  });
+
+  it('is loading until every provider it names has loaded', () => {
+    stored('soniox', 'soniox', 'edge');
+    expect(planFromStores()).toEqual({ state: 'loading' });
+    useProviderStore.setState({ entries: { soniox: sonioxEntry } });
+    expect(planFromStores()).toEqual({ state: 'loading' });
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, local_inference: localEntry } });
+    expect(planFromStores().state).toBe('ready');
+  });
+
+  it('is refused with the reason of the composer when it leaves a stage out, the same object each time', () => {
+    stored('soniox', 'soniox', null);
+    useProviderStore.setState({ entries: { soniox: sonioxEntry } });
+    const found = planFromStores();
+    expect(found).toEqual({ state: 'refused', refusal: { refused: 'lineup_incomplete', stage: 'speech' } });
+    expect(planFromStores()).toBe(found);
+  });
+
+  it('is refused, not loading, when it names a provider that is not offered here', () => {
+    offered.instead = null;
+    stored('soniox', 'soniox', 'soniox');
+    useProviderStore.setState({ entries: {} });
+    offered.none = true;
+    expect(planFromStores()).toEqual({ state: 'refused', refusal: { refused: 'lineup_not_offered', stage: 'transcription', provider: 'soniox' } });
+  });
+
+  it('is refused when no unit of a provider serves the stages it is given', () => {
+    // Gemini is one connection for all three stages: it cannot be asked for speech alone.
+    stored('soniox', 'soniox', 'gemini');
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry } });
+    const found = planFromStores();
+    expect(found.state).toBe('refused');
+  });
+
+  it('usePlan follows the line-up, and keeps its identity while the line-up and its entries stand', () => {
+    stored('soniox', 'soniox', 'soniox');
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry, local_inference: localEntry } });
+    const { result } = renderHook(() => usePlan());
+    const first = result.current;
+    expect(first.state).toBe('ready');
+    act(() => useProviderStore.setState((st) => ({ entries: { ...st.entries, gemini: { ...geminiEntry } } })));
+    expect(result.current).toBe(first);
+    act(() => stored('soniox', 'soniox', 'edge'));
+    expect(result.current).not.toBe(first);
+    expect(result.current.state === 'ready' && providersIn(result.current.plan)).toEqual([sonioxProvider, localInferenceProvider]);
+    act(() => stored('soniox', 'soniox', null));
+    expect(result.current.state).toBe('refused');
   });
 });

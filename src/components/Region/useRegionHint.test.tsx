@@ -17,6 +17,7 @@ import { Banners } from '../Banner/useBanners';
 import useAudioSystemStore from '../../stores/audioSystemStore';
 import useUpdateStore from '../../stores/updateStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 import type { RegionRecord } from '../../lib/region/record';
 import { usableHint } from './useRegionHint';
@@ -84,9 +85,9 @@ describe('the region hint strip', () => {
   it('hides the hint while another provider is selected and shows it again on return', () => {
     render(<Banners />);
     expect(screen.queryByText("See each region's speed")).toBeTruthy();
-    act(() => { useProviderStore.setState({ selected: 'soniox' } as never); });
+    act(() => { runsOn('soniox'); });
     expect(screen.queryByText("See each region's speed")).toBeNull();
-    act(() => { useProviderStore.setState({ selected: 'kizunaai_soniox' } as never); });
+    act(() => { runsOn('kizunaai_soniox'); });
     expect(screen.queryByText("See each region's speed")).toBeTruthy();
   });
 

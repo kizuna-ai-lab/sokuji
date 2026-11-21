@@ -23,6 +23,7 @@ import { planOf } from '../../lib/plan/testing';
 import { contextsFor } from '../../lib/session/shape';
 import type { RunShape } from '../../lib/session/types';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { PROVIDERS } from '../registry';
 import { Ast2SettingsView } from './Ast2Settings';
 import { buildAst2, describeAst2, type Ast2Config } from './config';
@@ -35,7 +36,8 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
 });
 
 describe('the Doubao AST 2.0 definition', () => {

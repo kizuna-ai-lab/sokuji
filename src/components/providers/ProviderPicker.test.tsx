@@ -50,6 +50,7 @@ import { localInferenceProvider } from '../../providers/localInference/provider'
 import type { EngineSummaryProps, Readiness } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { ProviderPicker } from './ProviderPicker';
 
 const noAuth = { signedIn: false, getToken: async () => null };
@@ -58,7 +59,8 @@ beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
   trackEvent.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
   localStorage.clear();
   baseSelectSupported.value = false;
 });
@@ -178,7 +180,8 @@ describe('ProviderPicker', () => {
     unmount();
 
     trackEvent.mockClear();
-    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+    runsOn(null);
+    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
     stored.set('settings.fake.checkFails', true);
     render(<ProviderPicker providers={[fakeProvider]} auth={noAuth} />);
     fireEvent.click(await screen.findByTitle('simpleSettings.validate'));
@@ -263,7 +266,8 @@ describe('ProviderPicker', () => {
     expect(screen.queryByLabelText('setup.credentials.apiKey')).toBeNull();
     unmount();
 
-    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+    runsOn(null);
+    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
     render(<ProviderPicker providers={[managed]} auth={{ ...noAuth, signedIn: true }} />);
     expect(await screen.findByText('simpleSettings.autoAuthenticated')).toBeInTheDocument();
   });

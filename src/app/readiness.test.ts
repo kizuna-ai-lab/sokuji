@@ -8,6 +8,7 @@ import type { RunState } from '../lib/session/types';
 import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../providers/fake/settings';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS } from './readiness';
 import { readinessPlan } from './session';
 
@@ -51,10 +52,10 @@ function makeProbe(id = 'probe', kind: 'local' | 'own-key' | 'managed' = 'local'
 
 function setupStore(...providers: Array<{ id: string }>) {
   offered.list = providers;
+  runsOn(providers[0]?.id ?? null);
   useProviderStore.setState({
     entries: Object.fromEntries(providers.map((p) => [p.id, { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } }])),
     readiness: {},
-    selected: providers[0]?.id ?? null,
     legs: ['speaker'],
   });
 }
@@ -74,7 +75,8 @@ const realRefresh = useProviderStore.getState().refreshReadiness;
 
 beforeEach(() => {
   offered.list = [];
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'], refreshReadiness: realRefresh });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, legs: ['speaker'], refreshReadiness: realRefresh });
 });
 
 /**
@@ -230,7 +232,7 @@ describe('driveReadiness', () => {
     await flush();
     expect(calls('o1')).toBe(1);
 
-    useProviderStore.setState({ selected: 'o2' });
+    runsOn('o2');
     clock.advance(0);
     await flush();
     expect(calls('o2')).toBe(1);
@@ -255,7 +257,7 @@ describe('driveReadiness', () => {
 
     useProviderStore.setState({ readiness: { o1: { state: 'unknown' }, o2: ready } }); // an edit to o1: 800 ms armed
     clock.advance(300);
-    useProviderStore.setState({ selected: 'o2' });
+    runsOn('o2');
     clock.advance(NETWORK_READINESS_DELAY_MS);
     await flush();
     expect(calls('o2')).toBe(0);
@@ -273,7 +275,7 @@ describe('driveReadiness', () => {
     const clock = createVirtualClock(0);
     const detach = driveReadiness({ runner, providers: () => [n.provider, l.provider], plan: readinessPlan, auth: () => auth, clock });
 
-    useProviderStore.setState({ selected: 'l' }); // the same turn: n's at-once check is still pending
+    runsOn('l'); // the same turn: n's at-once check is still pending
     clock.advance(0);
     await flush();
     expect(calls('l')).toBe(0);
@@ -289,10 +291,10 @@ describe('driveReadiness', () => {
   it('an answer found without a check is not asked for again', async () => {
     // The real refreshReadiness, counted: a missing key answers synchronously, with no check.
     const refresh = vi.fn(realRefresh);
+    runsOn('fake');
     useProviderStore.setState({
       entries: { fake: { settings: { ...FAKE_DEFAULTS, requireKey: true }, credentials: { apiKey: '' }, pair: { source: 'en', target: 'ja' } } },
       readiness: {},
-      selected: 'fake',
       refreshReadiness: refresh,
     });
     offered.list = [fakeProvider];
@@ -326,9 +328,9 @@ describe('driveReadiness', () => {
     await flush();
     expect(calls('y')).toBe(1);
 
-    useProviderStore.setState({ selected: 'x' });
+    runsOn('x');
     useProviderStore.setState({ readiness: { y: { state: 'unknown' } } });
-    useProviderStore.setState({ selected: 'y' });
+    runsOn('y');
     clock.advance(0);
     await flush();
     expect(calls('y')).toBe(2);
@@ -454,7 +456,7 @@ describe('driveReadiness', () => {
 
     expect(probe1.off).not.toHaveBeenCalled();
 
-    useProviderStore.setState({ selected: 'probe2' });
+    runsOn('probe2');
     expect(probe1.off).toHaveBeenCalledTimes(1);
     expect(probe2.off).not.toHaveBeenCalled();
 
@@ -751,7 +753,7 @@ describe("readinessPlan: the plan the app's driver checks", () => {
     const second = makeProbe('second', 'own-key');
     setupStore(first.provider);
     offered.list = [first.provider, second.provider];
-    useProviderStore.setState({ selected: 'not_offered_here' });
+    runsOn('not_offered_here');
     const { calls } = spyRefresh();
     const clock = createVirtualClock(0);
     const detach = driveReadiness({ runner: idleRunner(), providers: () => [first.provider, second.provider], plan: readinessPlan, auth: () => auth, clock });
@@ -768,7 +770,7 @@ describe("readinessPlan: the plan the app's driver checks", () => {
     const first = makeProbe('first', 'own-key');
     setupStore(first.provider);
     offered.list = [first.provider];
-    useProviderStore.setState({ selected: null });
+    runsOn(null);
     expect(readinessPlan()).toBeNull();
   });
 });

@@ -1,10 +1,10 @@
 // src/stores/lineUpStore.ts
 //
 // The line-up: which provider serves each stage. Stored as one value,
-// `settings.lineup`; when it is absent it is worked out once from today's
-// values and written (the one migration, owner 2026-11-15). The session runs
-// through the provider store's selected provider: a choice here keeps that
-// selection in step.
+// `settings.lineup`, and what a session runs: the plan is composed from it
+// (`src/lib/plan/fromStores.ts`). When none is stored it is worked out once
+// from today's values and written (the one migration, owner 2026-11-15);
+// until then the provider that ran before runs, alone (`unstoredProvider`).
 //
 // Stored as `{ version: 2, stages }`. Version 1 is still read: it was written
 // by a version of the app that stored the provider before the line-up, so a
@@ -139,8 +139,14 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     ]);
     // The wizard stored a line-up while this was reading: what it read is older, and changes nothing.
     if (get().stored || replacing > 0) return;
-    // A provider already selected in memory is the one that runs; otherwise the stored one, after today's fallback.
-    const selected = useProviderStore.getState().selected ?? providerFromToday(storedProvider);
+    // A provider the page already runs in memory (the development preview's) stays: nothing stored is applied over
+    // it, and nothing is written.
+    const already = get().unstoredProvider;
+    if (already !== null) {
+      if (!get().lineUp) set({ lineUp: shownFor(already) });
+      return;
+    }
+    const selected = providerFromToday(storedProvider);
     if (isStoredLineUp(value)) {
       // Version 2 is used as stored, whatever the stored provider says: a line-up that cannot run here is still the
       // user's, to be changed on the line-up page. Version 1 was written after its provider, so a save cut short by
@@ -158,6 +164,12 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       return;
     }
     if (!selected) return;
+    // A provider the catalog does not hold (a development build's fake) has no line-up to store: it runs as it
+    // is, and the settings show what they showed before.
+    if (!caps(selected)) {
+      set({ lineUp: shownFor(selected), stored: false, unstoredProvider: selected });
+      return;
+    }
     set({ unstoredProvider: selected });
     if (selected !== 'local_inference') {
       await migrate(lineUpFromToday({ selected, local: null }));
@@ -236,6 +248,19 @@ async function chooseNow(stage: StageName, providerId: string | null): Promise<C
     const off = useProviderStore.subscribe((s) => { if (!s.selectionLocked) { off(); undo(); } });
   }
   return null;
+}
+
+/**
+ * For the development preview and its picker only: `providerId` runs alone with no line-up stored, in memory, as a
+ * launch leaves a provider whose line-up is not written yet (the only way to run a provider the catalog does not
+ * hold). A pick also writes the provider an older version of the app opens; the stored line-up is never touched, so
+ * the next launch runs it again. Refused (false) during a run.
+ */
+export function runUnstored(providerId: string, how: 'load' | 'pick' = 'load'): boolean {
+  if (useProviderStore.getState().selectionLocked) return false;
+  useLineUpStore.setState({ lineUp: shownFor(providerId), stored: false, unstoredProvider: providerId });
+  useProviderStore.getState().select(providerId, how);
+  return true;
 }
 
 /** The same, for a component: it re-renders when the stored line-up changes. */

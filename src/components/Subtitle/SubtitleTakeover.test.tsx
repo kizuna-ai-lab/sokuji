@@ -98,6 +98,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import useAudioStore from '../../stores/audioStore';
 import { usePanelNotesStore } from '../../stores/panelNotesStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
@@ -118,7 +119,7 @@ configureAppSession({
 
 beforeAll(async () => {
   await useProviderStore.getState().load(fakeProvider);
-  useProviderStore.getState().select('fake');
+  runsOn('fake');
 });
 
 beforeEach(() => {

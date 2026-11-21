@@ -22,6 +22,7 @@ vi.mock('../../../lib/local-inference/modelManifest', async (importOriginal) => 
 import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
 import { useModelStore } from '../../../stores/modelStore';
 import { useProviderStore } from '../../../stores/providerStore';
+import { runsOn } from '../../../stores/lineUpStore.testing';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { SpeechSection } from './SpeechSection';
@@ -30,7 +31,8 @@ const localEntry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentia
 const originalResolve = useModelStore.getState().resolve;
 
 beforeEach(() => {
-  useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry() }, readiness: {} });
+  runsOn('local_inference');
+  useProviderStore.setState({ entries: { local_inference: localEntry() }, readiness: {} });
   useSettingsStore.setState({ settingsNavigationTarget: null });
   useTurnModeStore.setState({ turnMode: 'auto' });
   asr.entry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
@@ -38,7 +40,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  useProviderStore.setState({ selected: null, entries: {}, readiness: {} });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, readiness: {} });
   useModelStore.setState({ resolve: originalResolve });
 });
 

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import MainLayout from './MainLayout';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useLineUpStore } from '../../stores/lineUpStore';
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
@@ -38,7 +39,8 @@ const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox
 beforeEach(() => {
   cleanup();
   auth.isSignedIn = false;
-  useProviderStore.setState({ selected: 'soniox', selectionLocked: false });
+  runsOn('soniox');
+  useProviderStore.setState({ selectionLocked: false });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
 });
 

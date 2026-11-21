@@ -47,10 +47,10 @@ vi.mock('../services/providers/astGuard', () => ({
     guard.translation === undefined ? raw : { ...raw, translation: guard.translation ? { modelId: guard.translation, source: 'auto' } : null },
 }));
 
-import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent } from './lineUpStore';
+import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent, runUnstored } from './lineUpStore';
 import { useProviderStore } from './providerStore';
 import { registerPresentProviders } from '../lib/plan/present';
-import { stubHosts } from '../lib/plan/testing';
+import { stubHosts, stubProvider } from '../lib/plan/testing';
 
 // The registry stays out of these tests: every host is offered, as a stub, so a choice composes as it does in the app.
 const hosts = stubHosts().providers;
@@ -182,6 +182,36 @@ describe('the line-up store', () => {
     useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
     stored.set(LINEUP_KEY, { version: 1, stages: soniox });
     await expect(useLineUpStore.getState().load()).resolves.toBeUndefined();
+  });
+
+  // A development build's fake is in no catalog: there is no line-up to store for it, and it runs as it is.
+  it('a stored provider the catalog does not hold runs with no line-up stored, and nothing is written', async () => {
+    registerPresentProviders(() => [...hosts, stubProvider('fake')]);
+    try {
+      stored.set(PROVIDER_KEY, 'fake');
+      await useLineUpStore.getState().load();
+      expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'fake' });
+      expect(setSetting).not.toHaveBeenCalled();
+      // A version-1 line-up an earlier build wrote beside it does not run in its place.
+      stored.set(LINEUP_KEY, { version: 1, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
+      useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
+      await useLineUpStore.getState().load();
+      expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'fake' });
+      expect(setSetting).not.toHaveBeenCalled();
+    } finally {
+      registerPresentProviders(() => hosts);
+    }
+  });
+
+  // The development preview runs a provider in memory before the launch load: what is stored is not applied over it.
+  it('a provider the page already runs in memory stays, and nothing stored is read over it or written', async () => {
+    stored.set(LINEUP_KEY, { version: 2, stages: soniox });
+    stored.set(PROVIDER_KEY, 'soniox');
+    expect(runUnstored('openai')).toBe(true);
+    await useLineUpStore.getState().load();
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'openai', lineUp: { transcription: 'openai' } });
+    expect(setSetting).not.toHaveBeenCalledWith(LINEUP_KEY, expect.anything());
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: soniox });
   });
 
   it('the local migration waits for the scan, then writes what today resolves to', async () => {

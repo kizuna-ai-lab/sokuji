@@ -70,23 +70,16 @@ export function allStagesBy(id: string): StageIds {
 }
 
 /**
- * Whether the stored line-up is what a run on `providerId` runs: one is stored and that provider is its sole host.
- * While the provider store's selection runs the session, a line-up not stored yet, or one the selection does not
- * run, is not what runs.
- */
-export function storedLineUpRuns(lineUp: Pick<LineUp, RunStage> | null, stored: boolean, providerId: string): boolean {
-  return stored && lineUp !== null && soleHost(lineUp) === providerId;
-}
-
-/**
- * The ids that served the stages of a run on `providerId`: the stored line-up's when it is what runs
- * (`storedLineUpRuns`), otherwise that provider's on every stage: a line-up that is not what ran names nothing
+ * The ids that serve the stages of a run: the stored line-up's, which is what runs; while none is stored, the id
+ * of the provider that runs meanwhile (`providerId`) on every stage: a line-up that is only shown names nothing
  * about the run.
  */
 export function stageIdsFor(lineUp: Pick<LineUp, RunStage> | null, stored: boolean, providerId: string): StageIds {
-  if (lineUp === null || !storedLineUpRuns(lineUp, stored, providerId)) return allStagesBy(providerId);
-  // A sole host means every stage names a known option, so none is null here.
-  return { transcription: lineUp.transcription!, translation: lineUp.translation!, speech: lineUp.speech! };
+  if (!stored || lineUp === null) return allStagesBy(providerId);
+  const { transcription, translation, speech } = lineUp;
+  // A stored line-up that runs names every stage; one that leaves a stage out does not start.
+  if (transcription === null || translation === null || speech === null) return allStagesBy(providerId);
+  return { transcription, translation, speech };
 }
 
 /** The line-up a host runs when nothing finer is chosen. */

@@ -30,6 +30,7 @@ vi.mock('../stores/modelStore', () => ({
 
 import { useLineUpStore, storedLocalStages, LINEUP_KEY } from '../stores/lineUpStore';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { loadSessionStores } from './loadStores';
 
@@ -42,7 +43,8 @@ beforeEach(() => {
   model.resolve.mockImplementation(() => ({
     asr: null, translation: { modelId: 'bing-translator', source: 'auto' }, tts: { modelId: 'edge-tts', source: 'auto' }, notes: [], prunes: [],
   }));
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
   useLineUpStore.setState({ lineUp: null, stored: false });
   useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 });

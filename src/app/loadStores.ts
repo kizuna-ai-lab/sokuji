@@ -54,15 +54,15 @@ function loadOnce(p: AnyProvider): Promise<void> {
 }
 
 /**
- * The entry of every provider the line-up names is loaded: a provider that serves a stage of the plan without being
- * the selected one (the local provider reading another provider's text) has its settings at hand for the plan, the
- * start and the settings that show them. A provider already loaded, or not offered here, is left alone; one being
+ * The entry of every provider the line-up names is loaded, and that of the provider that runs while no line-up is
+ * stored: each provider of the plan has its settings at hand for the plan, the start and the settings that show
+ * them. A provider already loaded, or not offered here, is left alone; one being
  * loaded by an earlier call is waited for, not loaded again.
  */
 export async function loadLineUpProviders(offered: readonly AnyProvider[]): Promise<void> {
-  const { lineUp } = useLineUpStore.getState();
-  if (!lineUp) return;
-  const hosts = new Set(RUN_STAGES.map((stage) => optionFor(lineUp, stage)?.host));
+  const { lineUp, unstoredProvider } = useLineUpStore.getState();
+  // The provider that runs while no line-up is stored is not always one the line-up shown names.
+  const hosts = new Set<string | undefined>([...(lineUp ? RUN_STAGES.map((stage) => optionFor(lineUp, stage)?.host) : []), unstoredProvider ?? undefined]);
   const { entries } = useProviderStore.getState();
   await Promise.all(offered.filter((p) => hosts.has(p.id) && !entries[p.id]).map(loadOnce));
 }
@@ -74,7 +74,7 @@ let stopWatchingLineUp: (() => void) | null = null;
 function watchLineUpProviders(offered: readonly AnyProvider[]): void {
   stopWatchingLineUp?.();
   stopWatchingLineUp = useLineUpStore.subscribe((now, before) => {
-    if (now.lineUp === before.lineUp) return;
+    if (now.lineUp === before.lineUp && now.unstoredProvider === before.unstoredProvider) return;
     loadLineUpProviders(offered).catch((error: unknown) =>
       reportWarning('AppSession', `Loading the line-up's providers failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'load:line-up-providers' }));
   });

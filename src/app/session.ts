@@ -27,7 +27,7 @@ import { notesSpeakerLabel } from '../lib/notes/runner';
 import type { HistorySentence } from '../lib/history/types';
 import { askQuitWhileNotes, type QuitAnswer, type QuitRecord } from '../lib/notes/quitQuestion';
 import type { NotesRunner } from '../lib/notes/runner';
-import { planOnceSelected } from '../lib/plan/fromStores';
+import { planFromStores } from '../lib/plan/fromStores';
 import type { RunPlan } from '../lib/plan/types';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
@@ -144,12 +144,11 @@ const HISTORY_CLOSE_WAIT_MS = 2000;
 const NOTES_CANCEL_WAIT_MS = 5000;
 
 /**
- * The plan the app's readiness driver checks: the plan as the stores stand once a provider is selected
- * (`planOnceSelected`), else none. A selection this build does not offer falls back, as the plan does, to the first
- * provider offered.
+ * The plan the app's readiness driver checks: the plan as the stores stand (`planFromStores`), none while it is
+ * loading or the stored line-up is refused.
  */
 export function readinessPlan(): RunPlan | null {
-  const found = planOnceSelected();
+  const found = planFromStores();
   return found.state === 'ready' ? found.plan : null;
 }
 

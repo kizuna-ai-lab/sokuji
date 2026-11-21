@@ -20,6 +20,7 @@ import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { readShapeFromStores } from '../../lib/session/appShape';
 import { useWordList } from '../../lib/words/list';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { createSonioxAdapter } from './adapter';
 import { buildSoniox } from './config';
 import { SONIOX_DEFAULTS } from './settings';
@@ -47,8 +48,8 @@ async function firstFrame(entries: Array<{ written: string; translation?: string
 }
 
 beforeEach(() => {
+  runsOn('soniox');
   useProviderStore.setState({
-    selected: 'soniox',
     entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: { apiKey: 'k', apiKeyEu: '', apiKeyJp: '', apiKeyIn: '' }, pair: { source: 'en', target: 'ja' } } } as never,
     readiness: {},
     legs: ['speaker'],

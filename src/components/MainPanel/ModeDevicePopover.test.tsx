@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { stubProvider } from '../../lib/plan/testing';
+import { useLineUpStore as useLineUpStoreMock } from '../../stores/lineUpStore';
 import { useProviderStore as useProviderStoreMock } from '../../stores/providerStore';
 import ModeDevicePopover from './ModeDevicePopover';
 
@@ -92,7 +93,12 @@ vi.mock('../../lib/language/useLanguageLabel', () => ({ useLanguageLabel: () => 
 
 vi.mock('../../stores/providerStore', async () => {
   const { create: make } = await import('zustand');
-  return { useProviderStore: make(() => ({ selected: 'p', entries: {} as Record<string, unknown> })) };
+  return { useProviderStore: make(() => ({ entries: {} as Record<string, unknown> })) };
+});
+// The provider that runs, as the plan reads it: none of the real store's storage is loaded here.
+vi.mock('../../stores/lineUpStore', async () => {
+  const { create: make } = await import('zustand');
+  return { useLineUpStore: make(() => ({ lineUp: null, stored: false, unstoredProvider: 'p' as string | null })) };
 });
 const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
 vi.mock('../../app/useRun', () => ({ useRunParticipantSpeech: () => runSpeech.value }));
@@ -129,7 +135,8 @@ beforeEach(() => {
   providerState.participantSpeech = undefined;
   realUnit.on = false;
   realUnit.offered = [];
-  useProviderStoreMock.setState({ selected: 'p', entries: {} });
+  useLineUpStoreMock.setState({ unstoredProvider: 'p' } as never);
+  useProviderStoreMock.setState({ entries: {} });
   runSpeech.value = null;
   settings.textOnly = false;
   settings.navigate.mockReset();
@@ -448,10 +455,10 @@ describe('ModeDevicePopover — the speech rows in Me and Other', () => {
     realUnit.on = true;
     realUnit.offered = [stubProvider('p'), stubProvider('q', { participantSpeech: false })];
     const entry = { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } };
-    useProviderStoreMock.setState({ selected: 'p', entries: { p: entry, q: entry } });
+    useProviderStoreMock.setState({ entries: { p: entry, q: entry } });
     mount('participant');
     expect(screen.getByRole('button', { name: 'Turn on Translation I hear' })).toBeEnabled();
-    act(() => useProviderStoreMock.setState({ selected: 'q' })); // q does not speak the other side
+    act(() => useLineUpStoreMock.setState({ unstoredProvider: 'q' } as never)); // q does not speak the other side
     const button = screen.getByRole('button', { name: 'Turn on Translation I hear' });
     expect(button).toBeDisabled();
     expect(button.getAttribute('title')).toMatch(/does not speak/);

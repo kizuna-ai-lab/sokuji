@@ -5,6 +5,7 @@ import { useAnalytics } from '../../lib/analytics';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
 import { openExternalUrl } from '../../utils/openExternalUrl';
+import { runUnstored } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import Tooltip from '../Tooltip/Tooltip';
 import { CredentialForm } from './CredentialForm';
@@ -73,7 +74,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
 
   if (!selection) return null;
   const { provider, entry, readiness } = selection;
-  const { setCredential, refreshReadiness, select, updateSettings } = useProviderStore.getState();
+  const { setCredential, refreshReadiness, updateSettings } = useProviderStore.getState();
   const credentialChoice = provider.credentials.choice;
   // The first managed provider offered, as the wizard's managed card recommends it (today's ProviderSection.tsx:553-580).
   const recommendedId = providers.find((p) => p.kind === 'managed')?.id;
@@ -135,7 +136,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
             // Today's series (ProviderSection.tsx:512-520). A pick is refused during a run (1e-3b-1 ruling 7), so never during one.
             trackEvent('provider_switched', { from_provider: provider.id, to_provider: next, during_session: false });
             // A person's pick: it persists (1e-3b-1 ruling 8).
-            select(next, 'pick');
+            runUnstored(next, 'pick');
           }}
           aria-label={t('simpleSettings.provider')}
           disabled={disabled}

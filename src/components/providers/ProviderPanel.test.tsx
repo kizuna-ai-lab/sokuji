@@ -39,6 +39,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import type { FakeSettings } from '../../providers/fake/settings';
 import type { SettingsProps } from '../../lib/provider/types';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { ProviderPanel } from './ProviderPanel';
 
 const noAuth = { signedIn: false, getToken: async () => null };
@@ -46,11 +47,13 @@ const noAuth = { signedIn: false, getToken: async () => null };
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
 });
 
 describe('ProviderPanel', () => {
   it("loads the provider and shows its language pair and its own settings", async () => {
+    runsOn('fake');
     stored.set('settings.fake.script', 'long');
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
     expect(await screen.findByLabelText('Script')).toHaveValue('long');
@@ -88,6 +91,7 @@ describe('ProviderPanel', () => {
   });
 
   it('saves a new language pair', async () => {
+    runsOn('fake');
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
     fireEvent.change(await screen.findByLabelText('settings.sourceLanguage'), { target: { value: 'ja' } });
     await waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.sourceLanguage', 'ja'));
@@ -100,7 +104,7 @@ describe('ProviderPanel', () => {
 
   it('shows the provider the store has chosen, and records a new choice there', async () => {
     const other = { ...fakeProvider, id: 'fake2', settings: { ...fakeProvider.settings, key: 'fake2' } };
-    useProviderStore.setState({ selected: 'fake2' });
+    runsOn('fake2');
     render(<ProviderPanel providers={[fakeProvider, other]} auth={noAuth} />);
     expect(await screen.findByLabelText('simpleSettings.provider')).toHaveValue('fake2');
     fireEvent.change(screen.getByLabelText('simpleSettings.provider'), { target: { value: 'fake' } });
@@ -124,6 +128,7 @@ describe('ProviderPanel', () => {
   });
 
   it('locks every control while disabled', async () => {
+    runsOn('fake');
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} disabled />);
     expect(await screen.findByLabelText('Script')).toBeDisabled();
     expect(screen.getByLabelText('simpleSettings.provider')).toBeDisabled();

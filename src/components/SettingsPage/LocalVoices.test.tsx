@@ -40,6 +40,7 @@ vi.mock('../Settings/sections/VoiceLibrarySection', () => ({
 import '../../locales';
 import { LocalVoices } from './LocalVoices';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useModelStore } from '../../stores/modelStore';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
@@ -51,8 +52,8 @@ const SINGLE = 'piper-en-amy-low';
 
 function given(o: { tts?: Record<string, string>; voices?: Record<string, { speaker?: number }>; legs?: string[]; participantSpeech?: boolean } = {}) {
   const tts = o.tts ?? { 'ja→en': SUPERTONIC, 'en→ja': SUPERTONIC };
+  runsOn('local_inference');
   useProviderStore.setState({
-    selected: 'local_inference',
     legs: (o.legs ?? ['speaker', 'participant']) as never,
     speech: { textOnly: false, participantSpeech: o.participantSpeech ?? true },
     entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: o.voices ?? {} }, credentials: {}, pair: { source: 'ja', target: 'en' } } } as never,

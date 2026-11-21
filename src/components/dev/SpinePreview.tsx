@@ -3,7 +3,7 @@ import type { Playback } from '../../lib/audio/playback';
 import { realClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
-import { usePlanOnceSelected } from '../../lib/plan/fromStores';
+import { usePlan } from '../../lib/plan/fromStores';
 import { transcriptionProvider } from '../../lib/plan/read';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { directionKey, emptyDirection, type DirectionSelection } from '../../lib/local-inference/selection/types';
@@ -23,6 +23,7 @@ import { setManagedVoiceStandIn } from '../../providers/soniox/managedVoiceSourc
 import useAudioStore from '../../stores/audioStore';
 import { useConversationDisplayStore, useConversationColours } from '../../stores/conversationDisplayStore';
 import { toneOf } from '../../lib/view/tone';
+import { runUnstored, useLineUpStore } from '../../stores/lineUpStore';
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -311,23 +312,21 @@ export function SpinePreview() {
   // overrides it the other way.
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get('provider');
-    // Both calls below are loads: the preview never writes the app's stored provider.
+    // Both calls below are in memory: the preview never writes the app's stored provider or its line-up.
     if (wanted && providers.some((p) => p.id === wanted)) {
-      useProviderStore.getState().select(wanted);
+      runUnstored(wanted);
       return;
     }
-    const selected = useProviderStore.getState().selected;
-    if (selected === null || selected === 'local_inference') {
-      useProviderStore.getState().select('fake');
-    }
+    const { stored, unstoredProvider } = useLineUpStore.getState();
+    if (!stored && (unstoredProvider === null || unstoredProvider === 'local_inference')) runUnstored('fake');
   }, [providers]);
   const session = getAppSession();
   const { runner } = session;
   const phase = useRunPhase();
   const turnMode = useTurnModeStore((s) => s.turnMode);
-  // The plan a start would run, ready once a provider is selected and its entry has loaded: the gate of the URL's
+  // The plan a start would run, ready once the line-up and its providers' entries have loaded: the gate of the URL's
   // settings and of autostart.
-  const plan = usePlanOnceSelected();
+  const plan = usePlan();
   const [audio, setAudio] = useState<LoadedAudio | null>(null);
   const autostarted = useRef(false);
   // `&subtitle=1`, `&overlay=1`, `&compact=1`: which subtitle surfaces this page draws (plan 1d-2);

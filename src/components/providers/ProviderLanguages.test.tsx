@@ -22,6 +22,7 @@ vi.mock('../../providers/registry', async (importOriginal) => {
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { ProviderLanguages } from './ProviderLanguages';
@@ -30,10 +31,10 @@ beforeEach(() => {
   trackEvent.mockClear();
   run.participantSpeech = null;
   present.extra = [];
+  runsOn('fake');
   useProviderStore.setState({
     entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
     readiness: {},
-    selected: 'fake',
     intent: { source: 'auto', target: 'en' },
   });
 });
@@ -89,9 +90,9 @@ describe('ProviderLanguages — the language context (Stage 2 Volcengine AST2, c
 
   it("offers the languages of the store's context: its legs, and whether they speak", () => {
     present.extra = [moody];
+    runsOn('moody');
     useProviderStore.setState({
       entries: { moody: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
-      selected: 'moody',
       legs: ['speaker'],
       speech: { textOnly: false, participantSpeech: false },
     });

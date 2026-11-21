@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { allStagesBy, CAPS, caps, hostDefaults, optionFor, soleHost, stageIdsFor, storedLineUpRuns } from './catalog';
+import { allStagesBy, CAPS, caps, hostDefaults, optionFor, soleHost, stageIdsFor } from './catalog';
 import { oldRunOf } from './oldRules.testing';
 import type { LineUp, RunStage } from './types';
 
@@ -65,7 +65,7 @@ describe('the ids that served a run', () => {
     expect(allStagesBy('openai')).toEqual({ transcription: 'openai', translation: 'openai', speech: 'openai' });
   });
 
-  it("are the stored line-up's when it runs on the provider that runs", () => {
+  it("are the stored line-up's: a stored line-up is what runs", () => {
     expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'local_inference'))
       .toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
     expect(stageIdsFor(L('openai', 'openai', 'openai'), true, 'openai'))
@@ -78,18 +78,12 @@ describe('the ids that served a run', () => {
     expect(stageIdsFor(null, true, 'soniox')).toEqual(allStagesBy('soniox'));
   });
 
-  it('are the running provider on every stage when the stored line-up runs on another, or on none', () => {
-    expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'openai')).toEqual(allStagesBy('openai'));
-    expect(stageIdsFor(L('soniox', 'soniox', 'edge'), true, 'soniox')).toEqual(allStagesBy('soniox'));
-    expect(stageIdsFor(L('local_inference', null, 'edge'), true, 'local_inference')).toEqual(allStagesBy('local_inference'));
+  it("are the stored line-up's on a line-up of two providers, whichever provider is named beside it", () => {
+    expect(stageIdsFor(L('soniox', 'soniox', 'edge'), true, 'soniox')).toEqual({ transcription: 'soniox', translation: 'soniox', speech: 'edge' });
+    expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'openai')).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
   });
 
-  it('the stored line-up is what runs exactly where its ids are the ones named', () => {
-    expect(storedLineUpRuns(L('local_inference', 'bing', 'edge'), true, 'local_inference')).toBe(true);
-    expect(storedLineUpRuns(L('local_inference', 'local_inference', 'local_inference'), true, 'local_inference')).toBe(true);
-    expect(storedLineUpRuns(L('local_inference', 'bing', 'edge'), false, 'local_inference')).toBe(false);
-    expect(storedLineUpRuns(null, true, 'soniox')).toBe(false);
-    expect(storedLineUpRuns(L('local_inference', 'bing', 'edge'), true, 'openai')).toBe(false);
-    expect(storedLineUpRuns(L('soniox', 'soniox', 'edge'), true, 'soniox')).toBe(false);
+  it('are the named provider on every stage for a stored line-up that leaves a stage out: it does not start', () => {
+    expect(stageIdsFor(L('local_inference', null, 'edge'), true, 'local_inference')).toEqual(allStagesBy('local_inference'));
   });
 });

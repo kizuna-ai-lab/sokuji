@@ -24,6 +24,7 @@ function parts(select: HTMLSelectElement) {
 }
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { presentProviders } from '../../providers/registry';
 import en from '../../locales/en/translation.json';
 import zhCN from '../../locales/zh_CN/translation.json';
@@ -114,9 +115,11 @@ describe('myLanguageNow', () => {
     const first = presentProviders()[0];
     const loaded = (source: string) => ({ [first.id]: { settings: first.settings.defaults, credentials: {}, pair: { source, target: 'zh' } } });
     // Nothing selected yet: the first service offered is not read, even once its entry has loaded.
-    useProviderStore.setState({ selected: null, entries: loaded('ja-JP') });
+    runsOn(null);
+    useProviderStore.setState({ entries: loaded('ja-JP') });
     expect(myLanguageNow('en-US')).toBe('en');
-    useProviderStore.setState({ selected: first.id, entries: {} });
+    runsOn(first.id);
+    useProviderStore.setState({ entries: {} });
     expect(myLanguageNow('en-US')).toBe('en');
     useProviderStore.setState({ entries: loaded('ja-JP') });
     expect(myLanguageNow('en-US')).toBe('ja');
@@ -124,7 +127,8 @@ describe('myLanguageNow', () => {
     expect(myLanguageNow('en-US')).toBe('en');
     useProviderStore.setState({ entries: loaded('ja+en') });
     expect(myLanguageNow('en-US')).toBe('en');
-    useProviderStore.setState({ selected: before.selected, entries: before.entries });
+    runsOn(before.selected);
+    useProviderStore.setState({ entries: before.entries });
   });
 });
 

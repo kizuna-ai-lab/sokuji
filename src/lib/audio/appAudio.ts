@@ -9,10 +9,10 @@
  */
 import { SAMPLE_RATE } from '../contract/adapter';
 import type { Platform } from '../provider/types';
+import { subscribePlan } from '../plan/fromStores';
 import { faceToFaceFromStores, speechFromStores } from '../session/appShape';
 import type { TurnMode } from '../session/types';
 import useAudioStore from '../../stores/audioStore';
-import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
@@ -100,7 +100,7 @@ export function createAppRouting(platform: Platform): RoutingSource {
       const offSwitches = useRoutingStore.subscribe(notify);
       const offSettings = useSettingsStore.subscribe(notify);
       const offTurnMode = useTurnModeStore.subscribe(notify);
-      const offProvider = useProviderStore.subscribe(() => { if (key() !== last) notify(); });
+      const offProvider = subscribePlan(() => { if (key() !== last) notify(); });
       return () => {
         offAudio();
         offSwitches();

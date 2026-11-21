@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
 import { RUN_STAGES, type RunStage } from '../../lib/lineup/types';
-import { planOnceSelected } from '../../lib/plan/fromStores';
+import { planFromStores } from '../../lib/plan/fromStores';
 import { transcriptionProvider } from '../../lib/plan/read';
 import type { AnyProvider } from '../../lib/provider/types';
 import { presentProviders } from '../../providers/registry';
@@ -85,7 +85,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     if (named) { setOpen(accountKeyOf(named)); return; }
     if (openedBy !== 'provider') return;
     // The plan's transcription provider; the selection while the plan loads, as before.
-    const found = planOnceSelected();
+    const found = planFromStores();
     const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : useProviderStore.getState().selected;
     const p = providers.find((x) => x.id === id);
     if (p?.kind === 'managed') setOpen('kizuna');

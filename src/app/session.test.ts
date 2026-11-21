@@ -150,6 +150,7 @@ import { useScreenContextStore, type PickedSource } from '../stores/screenContex
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useLineUpStore } from '../stores/lineUpStore';
@@ -174,7 +175,8 @@ const segmentationBefore = useSegmentationStore.getState();
 const turnModeBefore = useTurnModeStore.getState();
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, legs: ['speaker'] });
   useAudioStore.setState({ mode: 'speaker', selectedInputDevice: null });
   devices.next = null;
   vi.clearAllMocks();
@@ -192,7 +194,7 @@ afterEach(() => {
 async function setup(options: AppSessionOptions = {}) {
   const clock = createVirtualClock(0);
   await useProviderStore.getState().load(fakeProvider);
-  useProviderStore.getState().select('fake');
+  runsOn('fake');
   const session = createAppSession({
     clock,
     newSessionId: () => 'run1',
@@ -492,7 +494,7 @@ describe('start — screen context (spec 2026-10-22 §3.1)', () => {
   async function qwen(screenContext: boolean, withPicker = true) {
     const clock = createVirtualClock(0);
     await useProviderStore.getState().load(qwenLiveTranslateProvider);
-    useProviderStore.getState().select('qwen_livetranslate');
+    runsOn('qwen_livetranslate');
     useProviderStore.getState().updateSettings(qwenLiveTranslateProvider, { screenContext });
     const session = createAppSession({
       clock,
@@ -750,8 +752,8 @@ describe('attach', () => {
   it('checks a local provider by itself', async () => {
     const { session, clock } = await setup();
     const spy = vi.fn(async () => ({ state: 'unknown' as const }));
+    runsOn('local_inference');
     useProviderStore.setState({
-      selected: 'local_inference',
       entries: { local_inference: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
       readiness: {},
       refreshReadiness: spy,
@@ -768,8 +770,8 @@ describe('attach', () => {
 
   it("forgets a managed provider's readiness when the sign-in or the account flips — after the render, not during it", async () => {
     const { session } = await setup();
+    runsOn('fake_leased');
     useProviderStore.setState({
-      selected: 'fake_leased',
       entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
       readiness: { fake_leased: { state: 'ready', models: [] } },
     });
@@ -795,8 +797,8 @@ describe('attach', () => {
 
   it('forgets it too when the sign-in finishes loading', async () => {
     const { session } = await setup();
+    runsOn('fake_leased');
     useProviderStore.setState({
-      selected: 'fake_leased',
       entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
       readiness: { fake_leased: { state: 'ready', models: [] } },
     });
@@ -1619,7 +1621,7 @@ describe('attach', () => {
   async function refusedLease(code: string) {
     const { session } = await setup();
     await useProviderStore.getState().load(fakeLeasedProvider);
-    useProviderStore.getState().select('fake_leased');
+    runsOn('fake_leased');
     const refetchQuota = vi.fn(async () => {});
     session.setBridges({ refetchQuota, auth: { signedIn: true, userId: 'u1', getToken: async () => 't' } });
     const acquire = vi.spyOn(fakeLeasedProvider.session!, 'acquire').mockRejectedValueOnce(new AdapterStartError('The service refused the lease.', code));
@@ -1713,7 +1715,7 @@ describe('getAppSession', () => {
     const { currentRunPhase } = await import('./runPhase');
     // A provider a start could open, so only `refuse` stands between a start and a run.
     await freshProviders.getState().load(freshFake);
-    freshProviders.getState().select('fake');
+    (await import('../stores/lineUpStore')).useLineUpStore.setState({ unstoredProvider: 'fake' });
     let refusing = true;
     const clock = createVirtualClock(0);
     m.configureAppSession({ refuse: () => refusing, clock, capture: () => async () => createFakeSource(clock) });

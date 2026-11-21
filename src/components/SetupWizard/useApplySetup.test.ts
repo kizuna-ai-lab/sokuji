@@ -29,6 +29,7 @@ import { readCredentials } from '../../lib/provider/credentials';
 import { volcengineAst2Provider } from '../../providers/volcengine_ast2/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { SetupPersistError } from '../../stores/setupStore';
@@ -49,7 +50,8 @@ beforeEach(() => {
   stored.set('settings.common.targetLanguage', 'en');
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, selectionLocked: false, intent: undefined });
 });
 
 const landNow = async (key: string, value: unknown) => {

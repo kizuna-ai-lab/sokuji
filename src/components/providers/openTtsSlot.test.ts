@@ -19,12 +19,15 @@ import { selectedFromStores } from '../../lib/session/appShape';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { openLocalVoices, openTtsSlot } from './openTtsSlot';
 
-const select = (id: string, settings: object, pair = { source: 'ja', target: 'en' }) =>
-  useProviderStore.setState({ selected: id, entries: { [id]: { settings, credentials: {}, pair } } } as never);
+const select = (id: string, settings: object, pair = { source: 'ja', target: 'en' }) => {
+  runsOn(id);
+  useProviderStore.setState({ entries: { [id]: { settings, credentials: {}, pair } } } as never);
+};
 
 beforeEach(() => {
   useSettingsStore.setState({ engineSlotTarget: null, settingsNavigationTarget: null });

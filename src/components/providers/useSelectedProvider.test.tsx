@@ -14,17 +14,20 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { sonioxProvider } from '../../providers/soniox/provider';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { ownProps, useSelectedProvider } from './useSelectedProvider';
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
+  runsOn('fake');
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, legs: ['speaker'] });
 });
 
 describe('useSelectedProvider', () => {
   it('shows the bare selection while the plan is loading, so that its entry loads', () => {
     const realLoad = useProviderStore.getState().load;
     const load = vi.fn(async () => {});
-    useProviderStore.setState({ selected: 'soniox', entries: {}, load });
+    runsOn('soniox');
+    useProviderStore.setState({ entries: {}, load });
     const { result } = renderHook(() => useSelectedProvider([fakeProvider, sonioxProvider]));
     expect(result.current!.provider).toBe(sonioxProvider);
     expect(result.current!.entry).toBeUndefined();
@@ -35,8 +38,8 @@ describe('useSelectedProvider', () => {
 
 describe('ownProps', () => {
   it("hands a provider's components its settings, update, lock, pair and the models its readiness found", () => {
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
       models: { fake: [{ id: 'm1' }] },
     });

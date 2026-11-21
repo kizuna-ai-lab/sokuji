@@ -33,6 +33,7 @@ vi.mock('../Settings/sections/SystemAudioSection', () => ({ default: () => <div 
 import { AudioCategory } from './DeviceCategories';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
@@ -41,8 +42,8 @@ import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 const ZOOM = { deviceId: 'app:pid:7', label: 'Zoom' };
 
 beforeEach(() => {
+  runsOn('soniox');
   useProviderStore.setState({
-    selected: 'soniox',
     entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
   } as never);
   useAudioStore.setState({

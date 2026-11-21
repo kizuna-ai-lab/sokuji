@@ -33,6 +33,7 @@ vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: () =>
 import { LineUpCategory } from './LineUpCategory';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' };
@@ -42,7 +43,8 @@ const states = (card: HTMLElement) => [...card.querySelectorAll('.lineup-stage__
 
 beforeEach(() => {
   authState.signedIn = true;
-  useProviderStore.setState({ selected: 'soniox', selectionLocked: false, entries: {}, readiness: {} });
+  runsOn('soniox');
+  useProviderStore.setState({ selectionLocked: false, entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
   useSettingsStore.setState({ settingsNavigationTarget: null });
 });

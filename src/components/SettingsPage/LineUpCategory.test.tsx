@@ -45,6 +45,7 @@ import type { ReceiveChoices } from '../providers/LanguagePairSection';
 import { useWordList } from '../../lib/words/list';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -59,7 +60,8 @@ beforeEach(() => {
   notesPricing.value = null;
   noHosted.value = false;
   tracked.length = 0;
-  useProviderStore.setState({ selected: 'soniox', selectionLocked: false, entries: {}, readiness: {} });
+  runsOn('soniox');
+  useProviderStore.setState({ selectionLocked: false, entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
   useSettingsStore.setState({ settingsNavigationTarget: null, textOnly: false });
   useAudioStore.setState({ mode: 'speaker' });
@@ -82,7 +84,7 @@ describe('the translation mode and the speech stage', () => {
   it("says speech is not used this time when nothing is read aloud: the Other mode, Translation I hear off", () => {
     useAudioStore.setState({ mode: 'participant' });
     useRoutingStore.setState({ participantSpeech: false });
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     useLineUpStore.setState({ lineUp: local, stored: true });
     render(<LineUpCategory locked={false} />);
     const card = speechCard();
@@ -96,7 +98,7 @@ describe('the translation mode and the speech stage', () => {
   it('keeps speech in use, with its options, while my translation is read to the other side', () => {
     useAudioStore.setState({ mode: 'speaker' });
     useSettingsStore.setState({ textOnly: false });
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     useLineUpStore.setState({ lineUp: local, stored: true });
     render(<LineUpCategory locked={false} />);
     const card = speechCard();
@@ -107,7 +109,7 @@ describe('the translation mode and the speech stage', () => {
   it("says speech is not used this time in the Me mode when the other side reads", () => {
     useAudioStore.setState({ mode: 'speaker' });
     useSettingsStore.setState({ textOnly: true });
-    useProviderStore.setState({ selected: 'gemini' });
+    runsOn('gemini');
     useLineUpStore.setState({ lineUp: { transcription: 'gemini', translation: 'gemini', speech: 'gemini', summarisation: null }, stored: true });
     render(<LineUpCategory locked={false} />);
     // One card for the three stages of one connection: only its speech part is not used, the others keep their state.
@@ -216,7 +218,7 @@ describe('languages and line-up', () => {
 
   it('a navigation target inside the provider options unfolds them', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'local_inference', summarisation: null }, stored: true });
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     render(<LineUpCategory locked={false} />);
     expect(document.getElementById('model-tts-section')).toBeNull();
     act(() => { useSettingsStore.getState().navigateToSettings('model-tts'); });
@@ -225,7 +227,7 @@ describe('languages and line-up', () => {
 
   it("with Edge speaking, the speech card holds Edge's voices in place of the engine's speech slot", () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     render(<LineUpCategory locked={false} />);
     expect(document.getElementById('edge-voices-section')).toBeNull();
     act(() => { useSettingsStore.getState().navigateToSettings('edge-voices'); });
@@ -238,7 +240,7 @@ describe('languages and line-up', () => {
   // B-20: the local engine's voices moved out of its model library into the speech card's own options.
   it("with this device speaking, the speech card holds the local engine's voices under its speech slot", () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'local_inference', summarisation: null }, stored: true });
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     render(<LineUpCategory locked={false} />);
     expect(document.getElementById('local-voices-section')).toBeNull();
     act(() => { useSettingsStore.getState().navigateToSettings('local-voices'); });
@@ -249,7 +251,7 @@ describe('languages and line-up', () => {
 
   it("with Edge speaking, the speech card has no local voices", () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     render(<LineUpCategory locked={false} />);
     act(() => { useSettingsStore.getState().navigateToSettings('edge-voices'); });
     expect(document.getElementById('local-voices-section')).toBeNull();
@@ -257,8 +259,8 @@ describe('languages and line-up', () => {
 
   it('says so when Granite Speech turns speech straight into the translation', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'edge', summarisation: null }, stored: true });
+    runsOn('local_inference');
     useProviderStore.setState({
-      selected: 'local_inference',
       entries: { local_inference: { settings: { selections: { 'ja→en': { asr: { modelId: 'granite-speech' }, translation: { modelId: 'granite-speech' }, tts: { modelId: '' } } } }, credentials: {}, pair: { source: 'ja', target: 'en' } } } as never,
     });
     render(<LineUpCategory locked={false} />);
@@ -344,7 +346,7 @@ describe('languages and line-up — the way in from a notice', () => {
   it("hands a pending engine slot to the provider's engine, and clears it once the engine has opened it", () => {
     engineProps.length = 0;
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     useSettingsStore.setState({ engineSlotTarget: { dir: 'ja→en', stage: 'tts' } });
     render(<LineUpCategory locked={false} />);
     act(() => { useSettingsStore.getState().navigateToSettings('provider-options'); });
@@ -356,7 +358,8 @@ describe('languages and line-up — the way in from a notice', () => {
 
   it('Bing and Edge need no model: their rows read Ready while the local models are missing', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
-    useProviderStore.setState({ selected: 'local_inference', readiness: { local_inference: { state: 'not-ready' } } as never });
+    runsOn('local_inference');
+    useProviderStore.setState({ readiness: { local_inference: { state: 'not-ready' } } as never });
     render(<LineUpCategory locked={false} />);
     // The three stages' cards (the notes card after them has its own state).
     const states = [...document.querySelectorAll('.lineup-stage')].slice(0, 3).map((c) => c.querySelector('.lineup-stage__state')?.textContent);
@@ -407,7 +410,7 @@ describe('languages and line-up — options inside each stage card', () => {
 describe('languages and line-up — the detailed turn detection', () => {
   it("the summary link's target unfolds the provider's options, where the detailed block is", () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     render(<LineUpCategory locked={false} />);
     expect(document.getElementById('turn-detection-tuning-section')).toBeNull();
     act(() => { useSettingsStore.getState().navigateToSettings('turn-detection-tuning'); });

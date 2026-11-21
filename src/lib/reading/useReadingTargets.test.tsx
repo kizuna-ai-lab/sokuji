@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { currentReadingTarget, useReadingTargets } from './useReadingTargets';
 
-const choose = (target: string | null) => useProviderStore.setState({
-  selected: target ? 'soniox' : null,
-  entries: target ? { soniox: { pair: { source: 'zh', target } } } : {},
-} as never);
+const choose = (target: string | null) => {
+  runsOn(target ? 'soniox' : null);
+  useProviderStore.setState({ entries: target ? { soniox: { pair: { source: 'zh', target } } } : {} } as never);
+};
 
 describe('the current reading target', () => {
   it("is the selected provider's pair target, and its reading languages", () => {

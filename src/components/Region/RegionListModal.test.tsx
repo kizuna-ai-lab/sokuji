@@ -20,14 +20,16 @@ vi.mock('../providers/useAuthContext', () => ({
 
 import RegionListModal from './RegionListModal';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 import type { RegionRecord } from '../../lib/region/record';
 
 const hint: RegionRecord = { status: 'hint', medians: { us: 177, eu: 237, jp: 13, in: 136 }, recommended: 'jp', at: 1, attempts: 1 };
 
 function open(record: RegionRecord = hint) {
+  runsOn('kizunaai_soniox');
   useProviderStore.setState({
-    selected: 'kizunaai_soniox', selectionLocked: false,
+    selectionLocked: false,
     entries: { kizunaai_soniox: { settings: { region: 'us' }, credentials: {}, pair: {} } },
   } as never);
   useRegionRecommendationStore.setState({ records: { kizunaai_soniox: record }, listOpen: 'kizunaai_soniox' });
@@ -169,7 +171,7 @@ describe('RegionListModal', () => {
 
   it('closes without writing when its provider is deselected', () => {
     render(<RegionListModal />);
-    act(() => { useProviderStore.setState({ selected: 'soniox' } as never); });
+    act(() => { runsOn('soniox'); });
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(state().listOpen).toBeNull();
     expect(state().records.kizunaai_soniox?.status).toBe('hint');

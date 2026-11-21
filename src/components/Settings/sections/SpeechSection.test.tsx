@@ -47,6 +47,7 @@ import { presentProviders } from '../../../providers/registry';
 import useAudioStore from '../../../stores/audioStore';
 import { useModelStore } from '../../../stores/modelStore';
 import { useProviderStore } from '../../../stores/providerStore';
+import { runsOn } from '../../../stores/lineUpStore.testing';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { ProviderTurnDetectionControls } from '../../providers/ProviderOwnSettings';
@@ -59,7 +60,8 @@ const originalResolve = useModelStore.getState().resolve;
 beforeEach(() => {
   trackEvent.mockClear();
   tooltipContents.length = 0;
-  useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry() }, readiness: {} });
+  runsOn('local_inference');
+  useProviderStore.setState({ entries: { local_inference: localEntry() }, readiness: {} });
   useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, settingsNavigationTarget: null } as Partial<ReturnType<typeof useSettingsStore.getState>>);
   useTurnModeStore.setState({ turnMode: 'auto' });
   useAudioStore.setState({ mode: 'speaker' } as Partial<ReturnType<typeof useAudioStore.getState>>);
@@ -68,7 +70,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  useProviderStore.setState({ selected: null, entries: {}, readiness: {} });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, readiness: {} });
   useModelStore.setState({ resolve: originalResolve });
 });
 
@@ -194,7 +197,8 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
   });
 
   it('a provider without TurnDetection shows neither', () => {
-    useProviderStore.setState({ selected: 'fake', entries: { fake: entry() } });
+    runsOn('fake');
+    useProviderStore.setState({ entries: { fake: entry() } });
     const { container } = render(<SpeechSection locked={false} />);
     expect(screen.queryByText(/VAD Settings/)).toBeNull();
     expect(link(container)).toBeNull();
@@ -292,7 +296,8 @@ describe('SpeechSection — the box under the modes, as the mock lists it', () =
   });
 
   it('a provider without TurnDetection draws no box under Auto', () => {
-    useProviderStore.setState({ selected: 'fake', entries: { fake: entry() } });
+    runsOn('fake');
+    useProviderStore.setState({ entries: { fake: entry() } });
     const { container } = render(<SpeechSection locked={false} />);
     expect(box(container)).toBeNull();
   });

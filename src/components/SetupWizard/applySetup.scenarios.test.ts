@@ -28,6 +28,7 @@ import { SCENARIOS, type ScenarioPreset } from '../../lib/setup/scenarios';
 import { speechFromStores } from '../../lib/session/appShape';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { SETUP_STORAGE_KEY } from '../../stores/setupStore';
@@ -59,7 +60,8 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, selectionLocked: false, intent: undefined });
 });
 
 afterEach(async () => {

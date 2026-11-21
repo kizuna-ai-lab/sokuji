@@ -29,9 +29,12 @@ import { ServiceFactory } from '../services/ServiceFactory';
 import { useLineUpStore } from '../stores/lineUpStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { useRoutingStore } from '../stores/routingStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
+import { planFromStores } from '../lib/plan/fromStores';
+import { liveGate, readShapeFromStores } from '../lib/session/appShape';
 import { loadLineUpProviders, loadSelectedProvider, loadSessionStores } from './loadStores';
 
 /** The keys written, besides the line-up — the one migration a load makes (owner, 2026-11-15). */
@@ -45,9 +48,10 @@ const turnModeBefore = useTurnModeStore.getState();
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
   // Each test starts with no line-up in memory, as a launch does.
-  useLineUpStore.setState({ lineUp: null, stored: false });
+  useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
 });
 
 afterEach(() => {
@@ -100,7 +104,7 @@ describe('loadSessionStores', () => {
   });
 
   it("loads the selected provider's entry instead of the first offered, when the page already selected one", async () => {
-    useProviderStore.setState({ selected: 'fake' });
+    runsOn('fake');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 
     await loadSessionStores();
@@ -197,6 +201,57 @@ describe('loadSessionStores', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
     // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
+  });
+});
+
+// The stored line-up decides what runs: a launch reads it, runs it, and writes nothing.
+describe('a launch with a stored line-up', () => {
+  const lineUpOf = (transcription: string, translation: string, speech: string | null) => ({ version: 2, stages: { transcription, translation, speech, summarisation: null } });
+
+  it('runs the stored line-up, whatever provider is stored beside it, and writes nothing', async () => {
+    stored.set('settings.common.provider', 'local_inference');
+    stored.set('settings.lineup', lineUpOf('soniox', 'soniox', 'edge'));
+    stored.set('settings.common.turnMode', 'auto');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    const found = planFromStores();
+    if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
+    expect(found.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['local_inference', ['speech']]]);
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, unstoredProvider: null });
+    expect(setSetting).not.toHaveBeenCalled();
+  });
+
+  it('keeps a stored line-up the composer refuses: the plan is refused, Start says why, and storage is untouched', async () => {
+    const refused = lineUpOf('soniox', 'soniox', null);
+    stored.set('settings.common.provider', 'soniox');
+    stored.set('settings.lineup', refused);
+    stored.set('settings.common.turnMode', 'auto');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    expect(planFromStores()).toEqual({ state: 'refused', refusal: { refused: 'lineup_incomplete', stage: 'speech' } });
+    expect(liveGate()).toMatchObject({ code: 'lineup_incomplete', params: { stage: 'speech' } });
+    expect(readShapeFromStores({ signedIn: false, getToken: async () => null })).toBeNull();
+    // The line-up page shows the stored choices, to be changed.
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: refused.stages });
+    expect(setSetting).not.toHaveBeenCalled();
+    expect(stored.get('settings.lineup')).toBe(refused);
+  });
+
+  it('with none stored and a development provider the catalog does not hold, runs that provider and stores no line-up', async () => {
+    stored.set('settings.common.provider', 'fake');
+    stored.set('settings.common.turnMode', 'auto');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+
+    await loadSessionStores();
+
+    const found = planFromStores();
+    expect(found.state === 'ready' && found.plan.units.map((u) => u.provider.id)).toEqual(['fake']);
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'fake' });
+    expect(setSetting).not.toHaveBeenCalled();
   });
 });
 
