@@ -317,6 +317,16 @@ describe('appStartInputs and the line-up', () => {
     useLineUpStore.setState({ lineUp: local, stored: true });
     expect(appStartInputs(false).lineUp).toBeNull();
   });
+  it('names the provider of every stage of an end-to-end provider on translation_session_start', () => {
+    useProviderStore.setState({ selected: 'openai', entries: {} });
+    useLineUpStore.setState({ lineUp: { transcription: 'openai', translation: 'openai', speech: 'openai', summarisation: null }, stored: true });
+    const track = vi.fn();
+    decorateSessionAnalytics(() => track, { frames: createFrameLog(), startInputs: () => appStartInputs(false) })
+      .track('translation_session_start', { source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'openai' });
+    expect(track).toHaveBeenCalledWith('translation_session_start', expect.objectContaining({
+      provider: 'openai', stages: { transcription: 'openai', translation: 'openai', speech: 'openai' },
+    }));
+  });
 });
 
 describe('appStartInputs', () => {

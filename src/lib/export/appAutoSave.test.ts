@@ -42,7 +42,7 @@ const participantLeg: Leg = {
     seg({ id: 'r:participant:2', side: 'translation', text: 'こんにちは。', origin: 'p1', openedAt: 1_700_000_010_400 }),
   ],
 };
-const info = { provider: 'fake', models: { asrModel: 'fake' }, startedAt: 0 };
+const info = { provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, models: { asrModel: 'fake' }, startedAt: 0 };
 const invoke = vi.fn();
 const note = vi.fn();
 

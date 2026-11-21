@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 vi.mock('../../services/ServiceFactory', () => ({
   ServiceFactory: {
@@ -27,9 +27,11 @@ import { useScreenContextStore } from '../../stores/screenContextStore';
 import { planOf } from '../plan/testing';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
+import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useAccountStore } from '../../stores/accountStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -162,6 +164,32 @@ describe('readShapeFromStores', () => {
     const shape = readShapeFromStores(auth)!;
     expect(shape.shared.reversed({ source: 'en', target: 'ja' })).toBe(true);
     expect(shape.shared.reversed({ source: 'en-US', target: 'ja' })).toBe(false);
+  });
+});
+
+// The stored line-up names the stages only where it is what runs: in this step the selected provider runs the session
+// (ruling 26), so a line-up not stored, or one it does not run, names nothing about the run.
+describe('readShapeFromStores — the line-up id that serves each stage', () => {
+  const localEntry = { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } };
+  const bingAndEdge = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
+  afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
+
+  it("freezes the stored line-up's ids when it runs on the provider that runs: a local run with Bing and Edge", () => {
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } });
+    useLineUpStore.setState({ lineUp: bingAndEdge, stored: true });
+    expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
+  });
+
+  it('freezes the running provider on every stage while no line-up is stored', () => {
+    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } });
+    useLineUpStore.setState({ lineUp: bingAndEdge, stored: false });
+    expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' });
+  });
+
+  it('freezes the running provider on every stage when the stored line-up runs on another', () => {
+    useProviderStore.setState({ selected: 'fake', entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } } });
+    useLineUpStore.setState({ lineUp: bingAndEdge, stored: true });
+    expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'fake', translation: 'fake', speech: 'fake' });
   });
 });
 
