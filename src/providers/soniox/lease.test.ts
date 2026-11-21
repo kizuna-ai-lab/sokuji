@@ -1679,6 +1679,16 @@ describe("Kizuna Soniox lease: the voice alone (another provider's text)", () =>
       }
     });
 
+    it.each([401, 408, 429])('stays remembered when session-end is turned away unserved (HTTP %i): the request said nothing about the lease', async (status) => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+      const releasing = a.resources.release();
+      a.to('/soniox/session-end')[0].respond(status);
+      await releasing;
+      expect(a.to('/soniox/session-end')).toHaveLength(1);
+      expect(voiceLeases.forget).not.toHaveBeenCalled();
+    });
+
     it('stays remembered when session-end never reached the backend', async () => {
       const voiceLeases = memory();
       const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });

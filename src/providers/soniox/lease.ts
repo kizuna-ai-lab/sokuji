@@ -243,7 +243,11 @@ function wait(clock: Clock, ms: number, signal: AbortSignal): Promise<void> {
 }
 
 interface Ending {
-  /** Whether the backend answered: any status below 500. False when no attempt reached it, or it was cancelled first. */
+  /**
+   * Whether the backend answered about the lease: any status below 500 but a 401, 408 or 429, which say the request
+   * was not served (the token cached at acquire may have expired by Stop). False too when no attempt reached it, or
+   * it was cancelled first.
+   */
   done: Promise<boolean>;
   cancel(): void;
 }
@@ -266,6 +270,8 @@ function signalEnd(
   // CORS preflight fails it that way, and a plain request still reaches the backend on a normal Stop, as the
   // old client's did. A 5xx is the backend's answer, so it keeps the flag.
   let keepalive = true;
+  /** The final answer was not about the lease: the request was turned away unserved. */
+  let unserved = false;
   const deadline = clock.now() + SESSION_END_BUDGET_MS;
   const attempt = async (): Promise<boolean> => {
     const controller = new AbortController();
@@ -287,6 +293,7 @@ function signalEnd(
       status = res.status;
       outcome = 'response';
       if (res.status >= 500) return false;
+      unserved = res.status === 401 || res.status === 408 || res.status === 429;
       if (!res.ok) frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-end', message: `HTTP ${res.status}` } });
       return true;
     } catch {
@@ -301,7 +308,7 @@ function signalEnd(
   const done = (async (): Promise<boolean> => {
     for (let i = 0; ; i += 1) {
       if (cancelled) return false;
-      if (await attempt()) return true;
+      if (await attempt()) return !unserved;
       const delay = SESSION_END_RETRY_DELAYS_MS[i];
       if (cancelled || delay === undefined || clock.now() + delay >= deadline) break;
       await new Promise<void>((resolve) => { clock.setTimeout(resolve, delay); });
@@ -711,7 +718,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       previous = ending;
       const answered = await ending.done;
       if (previous === ending) previous = null;
-      // Answered, a refusal included: nothing is left for a later launch to end. Unanswered, it stays remembered.
+      // Answered about the lease, a refusal included: nothing is left for a later launch to end. Unanswered or turned away unserved, it stays remembered.
       if (answered && request.mode === 'voice_only') deps.voiceLeases?.forget(grant.leaseId);
     };
     const budget = { totalMs, endsAt: startedAt + totalMs };

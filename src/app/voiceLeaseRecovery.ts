@@ -2,7 +2,9 @@
  * A voice-only lease the app took and never ended (it crashed, or was killed, before `session-end` went out) keeps
  * the account held. At launch, once the sign-in is there, the lease remembered from before is ended and forgotten.
  * What was remembered is read once, when the page attaches: a lease taken later in this launch is never the one
- * ended here.
+ * ended here. The request names the lease, and a service that grants voice-only leases ends only the lease a
+ * `session-end` names: one that arrives after a newer session has started changes nothing of that session, so this
+ * need not wait for, or be cancelled by, a start.
  */
 import { reportWarning } from '../lib/diagnostics/report';
 import type { AuthContext } from '../lib/provider/types';
