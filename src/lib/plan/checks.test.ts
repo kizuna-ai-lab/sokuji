@@ -13,8 +13,8 @@ import { wholePlan } from './wholeUnit';
 const options = (transcription: string, speech: string) => ({ transcription: caps(transcription)!, translation: caps(transcription)!, speech: caps(speech)! });
 
 describe('the catalog says which voices stand alone and which text sides take another voice', () => {
-  it('a voice alone: Soniox with an own key, Edge and this device', () => {
-    expect(CAPS.filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'local_inference', 'soniox']);
+  it("a voice alone: Kizuna AI's Soniox, Soniox with an own key, Edge and this device", () => {
+    expect(CAPS.filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'soniox']);
   });
   it("another voice is taken by Kizuna AI's Soniox, Soniox and this device (Bing runs on this device)", () => {
     expect(CAPS.filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'local_inference', 'soniox']);
@@ -30,12 +30,15 @@ describe('a voice beside another host\'s text', () => {
     ['a local voice reads Soniox', 'soniox', 'local_inference', null],
     ["Soniox's voice reads this device's text", 'local_inference', 'soniox', null],
     ["Soniox's voice (own key) reads Kizuna AI's Soniox", 'kizunaai_soniox', 'soniox', null],
-    ["Kizuna AI's Soniox voice is not offered alone", 'soniox', 'kizunaai_soniox', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' }],
+    ["Kizuna AI's Soniox voice reads Soniox with an own key", 'soniox', 'kizunaai_soniox', null],
+    ["Kizuna AI's Soniox voice reads this device's text", 'local_inference', 'kizunaai_soniox', null],
     ["an end-to-end provider's voice is not offered alone", 'soniox', 'gemini', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'gemini' }],
     ["Kizuna AI's Qwen voice is not offered alone", 'local_inference', 'kizunaai_qwen', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_qwen' }],
     ['an end-to-end provider takes no other voice', 'gemini', 'edge', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'gemini' }],
     ["Kizuna AI's Qwen takes no other voice", 'kizunaai_qwen', 'soniox', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'kizunaai_qwen' }],
-    ['the voice is judged first', 'openai', 'kizunaai_soniox', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' }],
+    ["Kizuna AI's Qwen takes no other voice, Kizuna AI's Soniox voice included: the two hosted services never run together", 'kizunaai_qwen', 'kizunaai_soniox', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'kizunaai_qwen' }],
+    ["an end-to-end provider takes no other voice, Kizuna AI's Soniox voice included", 'openai', 'kizunaai_soniox', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'openai' }],
+    ['the voice is judged first', 'openai', 'gemini', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'gemini' }],
   ] as const)('%s', (_name, transcription, speech, expected) => {
     expect(voiceRefusal(options(transcription, speech))).toEqual(expected);
   });
@@ -68,18 +71,22 @@ describe('compose runs these checks after its own, the voice first', () => {
     expect(isRefusal(plan)).toBe(false);
     expect(plan.units.map((u) => [u.provider.id, u.unit.id])).toEqual([['soniox', 'stt'], ['local_inference', 'tts']]);
   });
-  it("Kizuna AI's Soniox voice under own-key Soniox text is refused, though its units would serve", () => {
-    expect(compose(mix('soniox', 'kizunaai_soniox'), given(twoUnits('soniox'), twoUnits('kizunaai_soniox', 'managed'))))
-      .toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
-  });
-  it("the same line-up composes under a catalog whose option offers that voice alone: the composer reads the option, nothing else", () => {
-    const catalog = CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: true } : c));
-    const plan = compose(mix('soniox', 'kizunaai_soniox'), { ...given(twoUnits('soniox'), twoUnits('kizunaai_soniox', 'managed')), catalog }) as RunPlan;
+  it("Kizuna AI's Soniox voice under own-key Soniox text composes: the text unit of one, the voice of the other", () => {
+    const plan = compose(mix('soniox', 'kizunaai_soniox'), given(twoUnits('soniox'), twoUnits('kizunaai_soniox', 'managed'))) as RunPlan;
     expect(isRefusal(plan)).toBe(false);
     expect(plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([['soniox', 'stt', ['transcription', 'translation']], ['kizunaai_soniox', 'tts', ['speech']]]);
+  });
+  it("the same line-up is refused under a catalog whose option does not offer that voice alone, though its units would serve: the composer reads the option, nothing else", () => {
+    const catalog = CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c));
+    expect(compose(mix('soniox', 'kizunaai_soniox'), { ...given(twoUnits('soniox'), twoUnits('kizunaai_soniox', 'managed')), catalog }))
+      .toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
     // An id the given catalog does not hold is a stage left unset, as with the app's own.
     expect(compose(mix('soniox', 'kizunaai_soniox'), { ...given(twoUnits('soniox')), catalog: catalog.filter((c) => c.id !== 'kizunaai_soniox') }))
       .toEqual({ refused: 'lineup_incomplete', stage: 'speech' });
+  });
+  it("Kizuna AI's Qwen text with Kizuna AI's Soniox voice is refused before the two managed providers are counted: Qwen takes no other voice", () => {
+    expect(compose(mix('kizunaai_qwen', 'kizunaai_soniox'), given(stubProvider('kizunaai_qwen', { kind: 'managed' }), twoUnits('kizunaai_soniox', 'managed'))))
+      .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'kizunaai_qwen' });
   });
   it('an end-to-end text side with Edge is refused: it takes no other voice', () => {
     expect(compose(mix('gemini', 'edge'), given(stubProvider('gemini'), twoUnits('local_inference', 'local'))))

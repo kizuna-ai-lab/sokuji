@@ -57,6 +57,19 @@ vi.mock('../../services/persistSetting', async (importOriginal) => {
     },
   };
 });
+// A catalog in which Kizuna AI's Soniox voice is not offered alone, when a test asks for it: no released option
+// makes speech follow a choice or is held back for its voice any more, and the page keeps both for a voice that
+// reads only its own translation. The page's candidate check and the store's choice both build theirs here.
+const voiceNotAlone = vi.hoisted(() => ({ on: false }));
+vi.mock('../../lib/plan/choice', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/plan/choice')>();
+  const { CAPS } = await import('../../lib/lineup/catalog');
+  const choiceInput: typeof actual.choiceInput = (providers, entries) => {
+    const input = actual.choiceInput(providers, entries);
+    return voiceNotAlone.on ? { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) } : input;
+  };
+  return { ...actual, choiceInput };
+});
 const tracked = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: (name: string, props: unknown) => tracked.push([name, props]) }) }));
 
@@ -70,8 +83,11 @@ import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
+import { providerTarget } from './accountRows';
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null };
+/** What the composer answers for a voice that is not offered alone: no released line-up is refused so. */
+const NOT_ALONE = { code: 'lineup_voice_not_alone', message: '', params: { stage: 'speech', provider: 'kizunaai_soniox', vendor: 'Soniox' }, stage: 'speech' };
 const optionTexts = (name: string) => within(screen.getByRole('combobox', { name })).getAllByRole('option').map((o) => o.textContent ?? '');
 
 beforeEach(() => {
@@ -82,6 +98,7 @@ beforeEach(() => {
   noHosted.value = false;
   tracked.length = 0;
   forcedRefusal.value = null;
+  voiceNotAlone.on = false;
   lineUpSave.held = null;
   runsOn('soniox');
   useProviderStore.setState({ entries: {}, readiness: {} });
@@ -242,9 +259,19 @@ describe('languages and line-up', () => {
     };
     const cardOf = (name: string) => screen.getByRole('combobox', { name }).closest('.lineup-stage') as HTMLElement;
 
-    it("Kizuna AI's Soniox voice under own-key Soniox text: on the speech card, in the start gate's words", () => {
+    it("Kizuna AI's Soniox voice under own-key Soniox text runs: nothing is said on either card", () => {
       load();
       useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      expect(screen.getByRole('combobox', { name: 'Speech' })).toHaveValue('kizunaai_soniox');
+      expect(screen.getByRole('combobox', { name: 'Transcription and translation' })).toHaveValue('soniox');
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+
+    it("a voice that is not offered alone, under another service's text: on the speech card, in the start gate's words", () => {
+      load();
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      forcedRefusal.value = NOT_ALONE;
       render(<LineUpCategory locked={false} />);
       const status = within(cardOf('Speech')).getByRole('status');
       expect(status).toHaveTextContent('Use KizunaAI (Soniox) for transcription and translation, or choose another speech service.');
@@ -252,7 +279,29 @@ describe('languages and line-up', () => {
       expect(within(cardOf('Transcription and translation')).queryByRole('status')).toBeNull();
     });
 
-    it("another service for the text can be chosen from Kizuna AI's Soniox on every stage: speech follows it, and the speech card says so until the next choice", async () => {
+    it("another service for the text can be chosen from Kizuna AI's Soniox on every stage, and Kizuna AI's voice stays: nothing is said to have switched", async () => {
+      load();
+      const everyStage = { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null };
+      useLineUpStore.setState({ lineUp: everyStage, stored: true });
+      render(<LineUpCategory locked={false} />);
+      fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'soniox' } });
+      await waitFor(() => expect(tracked).toHaveLength(1));
+      // Own-key Soniox for the text, read by Kizuna AI's Soniox voice: only the stage that goes with the choice moved.
+      expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'kizunaai_soniox' });
+      expect(tracked).toContainEqual(['lineup_changed', { stage: 'transcription', from: 'kizunaai_soniox', to: 'soniox', moved: ['translation'], during_session: false }]);
+      expect(screen.getByRole('combobox', { name: 'Speech' })).toHaveValue('kizunaai_soniox');
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.queryByRole('status')).toBeNull();
+      // This device for the text: the same.
+      fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'local_inference' } });
+      await waitFor(() => expect(tracked).toHaveLength(2));
+      expect(useLineUpStore.getState().lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'kizunaai_soniox', summarisation: null });
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.queryByText(/Speech switched to/)).toBeNull();
+    });
+
+    it("a voice that is not offered alone follows another service chosen for the text, and the speech card says so until the next choice", async () => {
+      voiceNotAlone.on = true;
       load();
       useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null }, stored: true });
       render(<LineUpCategory locked={false} />);
@@ -280,6 +329,7 @@ describe('languages and line-up', () => {
     describe('the line that says speech followed belongs to the line-up it was said about', () => {
       const everyStage = { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null };
       const follow = async () => {
+        voiceNotAlone.on = true;
         load();
         useLineUpStore.setState({ lineUp: everyStage, stored: true });
         render(<LineUpCategory locked={false} />);
@@ -322,6 +372,7 @@ describe('languages and line-up', () => {
       describe('while the choice that made speech follow is still being saved', () => {
         // The choice is shown at once and its save held: `saved` lets it complete.
         const followHeld = () => {
+          voiceNotAlone.on = true;
           load();
           const openai = { settings: RELEASED.find((p) => p.id === 'openai')!.settings.defaults, credentials: { apiKey: 'k' }, pair };
           useProviderStore.setState((s) => ({ entries: { ...s.entries, openai } as never }));
@@ -354,7 +405,8 @@ describe('languages and line-up', () => {
       });
     });
 
-    it("this device for the text, from Kizuna AI's Soniox on every stage: speech follows to Edge", async () => {
+    it("this device for the text, from a voice that is not offered alone on every stage: speech follows to Edge", async () => {
+      voiceNotAlone.on = true;
       load();
       useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null }, stored: true });
       render(<LineUpCategory locked={false} />);
@@ -462,8 +514,42 @@ describe('languages and line-up', () => {
     it("a voice that is not offered alone: \"Can't be combined\" on the speech card", () => {
       load();
       useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      forcedRefusal.value = NOT_ALONE;
       render(<LineUpCategory locked={false} />);
       expectReason(stateOfCard('Speech'), "Can't be combined");
+    });
+
+    // Own-key text read by Kizuna AI's voice needs two things, and each card says its own.
+    it("Kizuna AI's Soniox voice beside own-key Soniox text: the text card says the key's state, the speech card the sign-in's, each leading to its own account row", () => {
+      load();
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      const ready = render(<LineUpCategory locked={false} />);
+      expect(screen.queryByRole('status')).toBeNull();
+      const tags = () => [...document.querySelectorAll('.lineup-section .lineup-stage__state')].slice(0, 3).map((s) => [s.textContent, s.tagName]);
+      // A key that works and a sign-in: every stage is ready.
+      expect(tags()).toEqual([['Ready', 'EM'], ['Ready', 'EM'], ['Ready', 'EM']]);
+      ready.unmount();
+
+      // Neither: the key is asked for on the text card, the sign-in on the speech card.
+      load('ja', {});
+      authState.signedIn = false;
+      const neither = render(<LineUpCategory locked={false} />);
+      expect(tags()).toEqual([['Needs a key', 'BUTTON'], ['Needs a key', 'BUTTON'], ['Needs a sign-in', 'BUTTON']]);
+      fireEvent.click(within(cardOf('Speech')).getByRole('button', { name: 'Needs a sign-in' }));
+      expect(useSettingsStore.getState().settingsNavigationTarget).toBe(providerTarget('kizunaai_soniox'));
+      fireEvent.click(within(cardOf('Transcription and translation')).getAllByRole('button', { name: 'Needs a key' })[0]);
+      expect(useSettingsStore.getState().settingsNavigationTarget).toBe(providerTarget('soniox'));
+      neither.unmount();
+
+      // The key alone: the speech card still asks for the sign-in; the sign-in alone: the text card still asks for the key.
+      load();
+      const keyOnly = render(<LineUpCategory locked={false} />);
+      expect(tags()).toEqual([['Ready', 'EM'], ['Ready', 'EM'], ['Needs a sign-in', 'BUTTON']]);
+      keyOnly.unmount();
+      load('ja', {});
+      authState.signedIn = true;
+      render(<LineUpCategory locked={false} />);
+      expect(tags()).toEqual([['Needs a key', 'BUTTON'], ['Needs a key', 'BUTTON'], ['Ready', 'EM']]);
     });
 
     it("a stage given to another service than the one it goes with: \"Can't be combined\" on that stage's card, not Bing's Ready", () => {
@@ -508,6 +594,7 @@ describe('languages and line-up', () => {
       load('ja', {});
       authState.signedIn = false;
       useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      forcedRefusal.value = NOT_ALONE;
       render(<LineUpCategory locked={false} />);
       // Speech: refused, and its service waits for a sign-in. The refusal is said; it is no link.
       expectReason(stateOfCard('Speech'), "Can't be combined");
@@ -568,7 +655,48 @@ describe('languages and line-up', () => {
       expect(options(text).filter((o) => o.disabled).every((o) => /needs a key/.test(o.textContent ?? ''))).toBe(true);
     });
 
-    it("Soniox with an own key on every stage: Kizuna AI's Soniox cannot be chosen for speech alone, and says why", () => {
+    it("Soniox with an own key on every stage, signed in: Kizuna AI's Soniox can be chosen for speech alone, and choosing it moves nothing else", async () => {
+      load();
+      render(<LineUpCategory locked={false} />);
+      expect(option('Speech', 'kizunaai_soniox').disabled).toBe(false);
+      expect(option('Speech', 'kizunaai_soniox').textContent).toBe('KizunaAI (Soniox)');
+      // The other hosted service is still one that takes every stage with it; no option says it cannot be combined.
+      expect(options('Speech').filter((o) => o.disabled).every((o) => /needs a key/.test(o.textContent ?? ''))).toBe(true);
+      fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'kizunaai_soniox' } });
+      await waitFor(() => expect(tracked).toHaveLength(1));
+      expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'kizunaai_soniox' });
+      expect(tracked).toContainEqual(['lineup_changed', { stage: 'speech', from: 'soniox', to: 'kizunaai_soniox', moved: [], during_session: false }]);
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+
+    it("this device on every stage, signed in: Kizuna AI's Soniox can be chosen for speech alone", () => {
+      load();
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      expect(option('Speech', 'kizunaai_soniox').disabled).toBe(false);
+      expect(option('Speech', 'kizunaai_soniox').textContent).toBe('KizunaAI (Soniox)');
+    });
+
+    it("Kizuna AI's Qwen on every stage: choosing Kizuna AI's Soniox moves every stage to it, so the two hosted services are never chosen together", async () => {
+      load();
+      useLineUpStore.setState({ lineUp: all('kizunaai_qwen'), stored: true });
+      render(<LineUpCategory locked={false} />);
+      // One card for the three stages Qwen carries together, and one choice.
+      const every = screen.getByRole('combobox', { name: /speech/i }) as HTMLSelectElement;
+      expect(screen.queryByRole('combobox', { name: 'Speech' })).toBeNull();
+      expect(([...every.options].find((o) => o.value === 'kizunaai_soniox') as HTMLOptionElement).disabled).toBe(false);
+      fireEvent.change(every, { target: { value: 'kizunaai_soniox' } });
+      await waitFor(() => expect(tracked).toHaveLength(1));
+      // Qwen holds all three stages over one connection: losing speech, it loses the rest, to the chosen service.
+      expect(useLineUpStore.getState().lineUp).toEqual(all('kizunaai_soniox'));
+      // And back: Qwen for the text takes speech with it.
+      fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'kizunaai_qwen' } });
+      await waitFor(() => expect(tracked).toHaveLength(2));
+      expect(useLineUpStore.getState().lineUp).toEqual(all('kizunaai_qwen'));
+    });
+
+    it("a voice that is not offered alone cannot be chosen for speech under another service's text, and says why", () => {
+      voiceNotAlone.on = true;
       load();
       render(<LineUpCategory locked={false} />);
       expect(option('Speech', 'kizunaai_soniox').disabled).toBe(true);
@@ -589,8 +717,10 @@ describe('languages and line-up', () => {
     });
 
     it('a stored line-up that is refused: its reason on the card, the current choice not held back, and the voices that fix it can be chosen', () => {
+      voiceNotAlone.on = true;
       load();
       useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      forcedRefusal.value = NOT_ALONE;
       render(<LineUpCategory locked={false} />);
       const card = screen.getByRole('combobox', { name: 'Speech' }).closest('.lineup-stage') as HTMLElement;
       expect(within(card).getByRole('status')).toHaveTextContent(REASON);
@@ -605,6 +735,7 @@ describe('languages and line-up', () => {
 
     it('where the select draws rich options, the reason is the option\'s muted note', () => {
       baseSelect.rich = true;
+      voiceNotAlone.on = true;
       try {
         load();
         render(<LineUpCategory locked={false} />);
@@ -644,6 +775,18 @@ describe('languages and line-up', () => {
       expect(own(text).length).toBeGreaterThan(0);
       for (const drawn of own(text)) expect(drawn).toMatch(/^kizunaai_soniox:(transcription|translation):transcription,translation$/);
       expect(text.querySelector('#edge-voices-section, #local-voices-section')).toBeNull();
+    });
+
+    it("Soniox with an own key read by Kizuna AI's Soniox voice: Kizuna AI's voice options under Speech, the own key's options under the text", () => {
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      open(cardOf('Speech'));
+      expect(within(cardOf('Speech')).getByText('KizunaAI options')).toBeTruthy();
+      expect(own(cardOf('Speech'))).toEqual(['kizunaai_soniox:speech:speech']);
+      const text = cardOf('Transcription and translation');
+      open(text);
+      expect(own(text).length).toBeGreaterThan(0);
+      for (const drawn of own(text)) expect(drawn).toMatch(/^soniox:(transcription|translation):transcription,translation$/);
     });
 
     it("Soniox with an own key read by a voice of this device: this device's speech model and voices under Speech", () => {

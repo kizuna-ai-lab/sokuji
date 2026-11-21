@@ -27,7 +27,7 @@ function runnerWithNoShape(planRefusal?: () => RunNotice | null) {
 
 describe('a start that finds no shape', () => {
   it("answers the line-up's refusal when the line-up is why", async () => {
-    const notice = refusalNotice({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
+    const notice = refusalNotice({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'kizunaai_qwen' });
     const { runner } = runnerWithNoShape(() => notice);
     await runner.start();
     expect(runner.state.getState()).toEqual({ phase: 'idle', lastEnd: { reason: 'refused', notice } });
