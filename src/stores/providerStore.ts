@@ -204,6 +204,16 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     const initial = p.languages.initial?.(settings) ?? {};
     return normalizePair(p, settings, { source: intent?.source || initial.source, target: intent?.target || initial.target }, languageContext(get().speakers[p.id] ?? p, get().legs, get().speech));
   };
+  /**
+   * The pair a provider is checked for when another provider transcribes in the plan (its stages are told, and
+   * transcription is not among them): the pair as picked, which is the transcription provider's, not the nearest
+   * its own lists offer. Undefined for a provider that transcribes, or serves everything, or while no pair is picked.
+   */
+  const heardElsewhere = (id: string): LanguagePair | undefined => {
+    const served = get().stages[id];
+    const intent = get().intent;
+    return served && !served.includes('transcription') && intent?.source && intent.target ? intent : undefined;
+  };
   /** The intent or the context moved: every loaded entry's pair derived again, nothing written. */
   const rederive = () => {
     for (const [id, entry] of Object.entries(get().entries)) {
@@ -358,6 +368,14 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       persistPair(before, kept);
       rederive();
       if (readsDirection(p)) forgetReadiness(p);
+      // A provider that is checked for the pair as picked (another one transcribes) answered about the other pair,
+      // whether or not its own entry's pair moved.
+      if (before?.source !== kept.source || before?.target !== kept.target) {
+        for (const id of Object.keys(get().stages)) {
+          const other = loadedProviders.get(id);
+          if (other && other.id !== p.id && heardElsewhere(id) && readsDirection(other)) forgetReadiness(other);
+        }
+      }
     },
 
     async flush(p, fields) {
@@ -378,7 +396,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     async refreshReadiness(p, auth, from, signal) {
       const served = get().stages[p.id];
       const servedIds = served ? get().stageIds[p.id] : undefined;
-      const inputs: ReadinessInputs = from ?? { ...loaded(p), legs: get().legs, ...(served ? { stages: served } : {}), ...(servedIds ? { stageIds: servedIds } : {}) };
+      const inputs: ReadinessInputs = from ?? { ...loaded(p), ...(heardElsewhere(p.id) ? { pair: heardElsewhere(p.id)! } : {}), legs: get().legs, ...(served ? { stages: served } : {}), ...(servedIds ? { stageIds: servedIds } : {}) };
       // A run's check (`from`) asks about its own shape: it starts no new
       // generation, so a panel check or an edit meanwhile keeps its answer
       // out of the store, but never replaces the answer the run gets back.
