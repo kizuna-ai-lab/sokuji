@@ -83,3 +83,30 @@ export function exchange(o: ExchangeOptions): ScriptBlock {
   steps.push({ at, close: { ref: tr, origin: o.origin } });
   return { startAt: o.startAt, steps };
 }
+
+export interface UtteranceOptions {
+  startAt: number;
+  ref: number;
+  origin: string;
+  /**
+   * The source's successive texts, the last one final; beside a text, how much of it will not change any more
+   * (`heard.stableLen`). A text given alone states none.
+   */
+  source: ReadonlyArray<string | readonly [text: string, stableLen: number]>;
+  /** Milliseconds between the texts, and before the close. */
+  partialEvery?: number;
+}
+
+/** One utterance as a unit that only transcribes says it: a source segment that grows and closes, and nothing else. */
+export function utterance(o: UtteranceOptions): ScriptBlock {
+  const every = o.partialEvery ?? 200;
+  const steps: ScriptStep[] = [{ at: 0, open: { ref: o.ref, side: 'source', origin: o.origin } }];
+  let at = 0;
+  for (const said of o.source) {
+    const [text, stableLen] = typeof said === 'string' ? [said, undefined] : said;
+    steps.push({ at, text: { ref: o.ref, text, ...(stableLen === undefined ? {} : { heard: { pieces: [], stableLen } }) } });
+    at += every;
+  }
+  steps.push({ at, close: { ref: o.ref, origin: o.origin } });
+  return { startAt: o.startAt, steps };
+}
