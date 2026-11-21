@@ -5,6 +5,7 @@
 // list what they are asked. Imported by tests only.
 import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from '../contract/adapter';
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../contract/speech';
+import type { SourceSnapshot, TranslationEvents, TranslationSession, TranslationStartRequest } from '../contract/translation';
 import type { LegName } from '../conversation/types';
 import { allStagesBy, CAPS } from '../lineup/catalog';
 import type { StageIds } from '../lineup/types';
@@ -144,6 +145,62 @@ export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fa
   const [whole] = wholePlan(stubProvider('stub_voice', o.provider)).units;
   const planned: PlannedUnit = { ...whole, unit: { ...whole.unit, start: undefined, startSpeech }, stages: ['speech'] };
   return { planned, voices };
+}
+
+/** One session of a stub translation unit. */
+export interface StubTranslation {
+  request: TranslationStartRequest<unknown, unknown>;
+  events: TranslationEvents;
+  /** The snapshots it was handed, in order. */
+  sources: SourceSnapshot[];
+  /** A held open resolves. */
+  open(): void;
+  /** A held open rejects. */
+  refuse(error: unknown): void;
+}
+
+/**
+ * A translation unit of a stub provider: every call is listed as `translation.<call>` with its leg. A test emits
+ * its events through `sessions[n].events`. `held`: an open stays pending until the test opens or refuses it.
+ * `fails`: `startTranslation` throws it. `openFails`: every open rejects with it. `session`: members that replace
+ * the stub session's.
+ */
+export function stubTranslationUnit(calls: StubCalls = [], o: { held?: boolean; fails?: unknown; openFails?: unknown; session?: Partial<TranslationSession>; provider?: Record<string, unknown> } = {}) {
+  const sessions: StubTranslation[] = [];
+  const startTranslation = (request: TranslationStartRequest<unknown, unknown>, events: TranslationEvents): TranslationSession => {
+    const note = (what: string, ...rest: unknown[]) => { calls.push([`translation.${what}`, request.leg, ...rest]); };
+    note('start');
+    if (o.fails !== undefined) throw o.fails;
+    const sources: SourceSnapshot[] = [];
+    let settle!: { resolve(): void; reject(error: unknown): void };
+    const opening = new Promise<void>((resolve, reject) => { settle = { resolve, reject }; });
+    // A held open nobody refuses must not be an unhandled rejection when the test ends.
+    opening.catch(() => {});
+    sessions.push({ request, events, sources, open: () => settle.resolve(), refuse: (error) => settle.reject(error) });
+    return {
+      open: () => {
+        note('open');
+        if (o.openFails !== undefined) return Promise.reject(o.openFails);
+        if (!o.held) settle.resolve();
+        return opening;
+      },
+      source: (snapshot) => { sources.push({ ...snapshot }); note('source', snapshot.origin, snapshot.text, snapshot.stableLen, snapshot.closed); },
+      stop: async () => note('stop'),
+      ...o.session,
+    };
+  };
+  const [whole] = wholePlan(stubProvider('stub_translation', o.provider)).units;
+  const planned: PlannedUnit = { ...whole, unit: { ...whole.unit, start: undefined, startTranslation }, stages: ['translation'] };
+  return { planned, sessions };
+}
+
+/**
+ * The plan of a unit that only transcribes, a unit that translates and a unit that speaks. `transcription`: a stub
+ * text unit, taken here for transcription alone.
+ */
+export function separatePlan(transcription: PlannedUnit, translation: PlannedUnit, speech: PlannedUnit): RunPlan {
+  const alone: PlannedUnit = { ...transcription, stages: ['transcription'] };
+  return { units: [alone, translation, speech], byStage: { transcription: alone, translation, speech } };
 }
 
 /** The plan of a text unit that transcribes and translates and a speech unit that speaks. */

@@ -71,6 +71,8 @@ export class CompositeLeg {
     private readonly request: PlanRequest,
     private readonly events: AdapterEvents,
     private readonly voices: Voices = OWN_VOICE,
+    /** True: what the voice says of itself names its stage (`runStage`), as every unit's does in a plan whose stages are apart. */
+    private readonly tagged = false,
   ) {
     this.feed = createSpeechFeed({
       speak: (ref, stretch, span, language) => voices.speak(this, ref, stretch, span, language),
@@ -251,7 +253,7 @@ export class CompositeLeg {
         if (this.voiceState === 'live') this.row(home)?.rowRanges({ ref, ranges });
       },
       degraded: (e) => { if (this.voiceState === 'live') this.degraded(e); },
-      frame: (e) => { if (this.voiceState === 'live' || this.voiceState === 'closing') this.events.frame(e); },
+      frame: (e) => { if (this.voiceState === 'live' || this.voiceState === 'closing') this.events.frame(this.tagged ? { ...e, runStage: 'speech' } : e); },
     };
   }
 
@@ -263,7 +265,7 @@ export class CompositeLeg {
   /** Speech is degraded: said at once on an open leg, held while the text unit is still opening, dropped once the leg is over. */
   private degraded(e: Parameters<AdapterEvents['degraded']>[0]): void {
     if (this.ended) return;
-    if (this.isOpen) this.events.degraded(e);
+    if (this.isOpen) this.events.degraded(this.tagged ? { ...e, runStage: 'speech' } : e);
     else this.held.push(e);
   }
 
