@@ -10,7 +10,8 @@ import { expect, test } from '../support/test';
 // A line-up of two services against the services themselves. Soniox transcribes and translates, and Edge reads the
 // translations aloud: once with the user's own Soniox key (E2E_SONIOX_KEY), once with Kizuna AI's Soniox, signed in
 // (E2E_ACCOUNT_EMAIL and E2E_ACCOUNT_PASSWORD). And Soniox with the user's own key, read aloud by Kizuna AI's
-// Soniox voice: that one needs the key and the account both.
+// Soniox voice: that one needs the key and the account both. And transcription and translation apart: Soniox with
+// the user's own key transcribes, Bing translates what it heard, and Edge reads the translations (the key alone).
 //
 // The ones with Kizuna AI need an E2E build that offers the hosted service and knows where it is:
 //
@@ -21,7 +22,8 @@ import { expect, test } from '../support/test';
 // What each checks: the sentences said are heard and translated (nine in ten, a real service being what it is),
 // the voice's audio arrived for at least one translation, and History holds one record whose stages name the two
 // services. Read by Edge, no connection to Soniox's own voice was ever opened (the session asks Soniox for text
-// only); read by Kizuna AI's Soniox voice, one was.
+// only); read by Kizuna AI's Soniox voice, one was. Translated by Bing, Soniox was asked for no translation: what
+// its connection is first sent has no `translation` member.
 
 const KEY = process.env.E2E_SONIOX_KEY ?? '';
 const EMAIL = process.env.E2E_ACCOUNT_EMAIL ?? '';
@@ -32,12 +34,13 @@ const ROUNDS = 2;
 // A key is typed into the app, or an account signed in: a trace or a screenshot would keep it.
 test.use({ trace: 'off', screenshot: 'off' });
 
-const lineUp = (text: string, speech: string) => JSON.stringify({ version: 2, stages: { transcription: text, translation: text, speech, summarisation: null } });
+const lineUp = (text: string, speech: string, translation: string) => JSON.stringify({ version: 2, stages: { transcription: text, translation, speech, summarisation: null } });
 
-const seed = (text: string, speech = 'edge') => ({
+/** `text` transcribes, and translates too unless `translation` names another service. */
+const seed = (text: string, speech = 'edge', translation = text) => ({
   storage: {
     ...baseStorage(text),
-    'settings.lineup': lineUp(text, speech),
+    'settings.lineup': lineUp(text, speech, translation),
     'settings.common.sourceLanguage': 'ja',
     'settings.common.targetLanguage': 'en',
     // What is read aloud is kept for replay, so a row shows whether it has audio.
@@ -58,6 +61,28 @@ function socketsOf(page: Page): string[] {
     }
   });
   return opened;
+}
+
+/**
+ * The members of the first message sent on each connection to Soniox for transcription, from now on: its
+ * configuration. Only the members' names are kept: the message itself holds the key.
+ */
+function sttConfigsOf(page: Page): string[][] {
+  const configs: string[][] = [];
+  page.on('websocket', (socket) => {
+    if (!socket.url().split('?')[0].endsWith('/transcribe-websocket')) return;
+    let first = true;
+    socket.on('framesent', (frame) => {
+      if (!first || typeof frame.payload !== 'string') return;
+      first = false;
+      try {
+        configs.push(Object.keys(JSON.parse(frame.payload) as Record<string, unknown>));
+      } catch {
+        configs.push(['unreadable']);
+      }
+    });
+  });
+  return configs;
 }
 
 /**
@@ -95,17 +120,18 @@ async function runSession(sokuji: Sokuji): Promise<number[]> {
 }
 
 /**
- * What the session left: one record that names both services, the sentences heard and translated, and a connection
+ * What the session left: one record that names its services, the sentences heard and translated, and a connection
  * to Soniox's voice exactly when a Soniox voice is the line-up's (`speech`: the line-up's id for the speech stage).
+ * `translation`: the line-up's id for the translation stage, where it is not the service that transcribes.
  */
-function checkOutcome(sokuji: Sokuji, text: string, speech: string, spoken: readonly number[], sockets: readonly string[]): void {
+function checkOutcome(sokuji: Sokuji, text: string, speech: string, spoken: readonly number[], sockets: readonly string[], translation = text): void {
   const stored = readHistory(sokuji.userData);
   expect(stored).toHaveLength(1);
   const [record] = stored;
   expect(record.state).toBe('closed');
   const services = JSON.parse(record.services) as { provider: string; stages?: Record<string, string> };
   expect(services.provider).toBe(text);
-  expect(services.stages).toEqual({ transcription: text, translation: text, speech });
+  expect(services.stages).toEqual({ transcription: text, translation, speech });
 
   const { heard, translated } = heardAndTranslated(record, spoken);
   test.info().annotations.push({ type: 'sentences said / heard / translated', description: `${spoken.length} / ${heard} / ${translated}` });
@@ -217,6 +243,41 @@ test('@real Soniox with an own key is read aloud by Kizuna AI\'s Soniox voice, s
     checkOutcome(sokuji, 'soniox', 'kizunaai_soniox', spoken, sockets);
   } finally {
     // The key and the sign-in are kept in the profile: whatever happened, they do not stay on disk.
+    await sokuji.kill();
+    forgetSecrets(sokuji.userData);
+  }
+});
+
+test('@real Soniox with an own key transcribes, Bing translates what it heard, and Edge reads it aloud: Soniox is asked for no translation', async ({ launchApp }) => {
+  test.skip(!KEY, 'E2E_SONIOX_KEY is not set');
+  test.setTimeout(10 * 60_000);
+  const sokuji = await launchApp({ seed: seed('soniox', 'edge', 'bing') });
+  const { page } = sokuji;
+  try {
+    await addSonioxKey(page);
+    // Finding the key's region asks every region, and the ones the key does not belong to refuse it: expected.
+    sokuji.errors.length = 0;
+
+    const sockets = socketsOf(page);
+    const configs = sttConfigsOf(page);
+    // The sentences are heard by Soniox and shown as source rows; their translations are Bing's (the round's first
+    // sentence, translated, is waited for on the screen), and at least one is read aloud by Edge.
+    const spoken = await runSession(sokuji);
+    await sokuji.close();
+    // The record names the three stages, under the provider that transcribes; no connection to Soniox's voice.
+    checkOutcome(sokuji, 'soniox', 'edge', spoken, sockets, 'bing');
+    // Soniox transcribed alone: its connection was configured, and never asked to translate.
+    expect(configs.length, 'a configured connection to Soniox for transcription').toBeGreaterThan(0);
+    for (const members of configs) {
+      expect(members).toContain('model');
+      expect(members).not.toContain('translation');
+    }
+    // The record names each stage's model: Soniox's recognition, and Bing for the translation.
+    const [record] = readHistory(sokuji.userData);
+    const services = JSON.parse(record.services) as { models?: Record<string, string> };
+    expect(services.models?.translationModel).toBe('bing-translator');
+  } finally {
+    // The app keeps the key in its settings: whatever happened, it does not stay on disk.
     await sokuji.kill();
     forgetSecrets(sokuji.userData);
   }
