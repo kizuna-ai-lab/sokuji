@@ -6,6 +6,7 @@ import { optionFor } from '../lineup/catalog';
 import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, ProviderCaps, RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
+import { twoManaged, voiceRefusal } from './checks';
 import { sameStages } from './types';
 import type { PlannedUnit, PlanRefusal, RunPlan } from './types';
 import { unitsOf } from './wholeUnit';
@@ -102,5 +103,9 @@ export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): Ru
       for (const stage of unit.stages) byStage[stage] = unit;
     }
   }
+  // Every stage has its unit. What remains is about the plan as a whole: a voice beside another host's text, then
+  // two managed providers.
+  const refusal = voiceRefusal(options) ?? twoManaged(units);
+  if (refusal) return refusal;
   return { units, byStage };
 }

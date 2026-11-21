@@ -13,6 +13,15 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   // stage rows, a key or a sign-in is "Accounts and keys" ('provider'), and models, memory and voices are
   // the provider's own options under the line-up ('provider-options').
   no_provider: 'lineup',
+  // A line-up that cannot run is changed where it is chosen.
+  lineup_incomplete: 'lineup',
+  lineup_not_offered: 'lineup',
+  lineup_stage_split: 'lineup',
+  lineup_no_unit: 'lineup',
+  lineup_voice_not_alone: 'lineup',
+  lineup_voice_not_taken: 'lineup',
+  lineup_two_managed: 'lineup',
+  lineup_language_not_spoken: 'lineup',
   credentials_missing: 'provider',
   // A managed provider signed out: the provider section's account row carries the sign-in link (Stage 2 Kizuna Soniox).
   sign_in_required: 'provider',

@@ -1,6 +1,7 @@
 import type { SessionContext } from '../contract/adapter';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
+import { checkPlan, refusalNotice } from '../plan/checks';
 import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
 import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
@@ -8,6 +9,7 @@ import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
 import { payerBalance } from './orgNotice';
 import { ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, orgNoticeParams } from './orgNotice';
+import type { PlanRefusal } from '../plan/types';
 import type { RunNotice, RunShape } from './types';
 
 /** Why a start was refused before anything opened. */
@@ -104,7 +106,7 @@ function planLanguages(shape: Pick<RunShape, 'plan' | 'accounts'>): Pick<AnyProv
  * participant leg runs the reverse — the provider's own where it states one
  * (Stage 2 Palabra, ruling 9) — always with automatic turns.
  */
-export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionContext>> {
+export function contextsFor(shape: Pick<RunShape, 'plan' | 'accounts' | 'pair' | 'legs' | 'turnMode' | 'textOnly' | 'participantSpeech'>): Partial<Record<LegName, SessionContext>> {
   const { pair } = shape;
   const speaking = capabilitiesOf(shape, 'speech');
   const contexts: Partial<Record<LegName, SessionContext>> = {};
@@ -126,8 +128,17 @@ export function contextsFor(shape: RunShape): Partial<Record<LegName, SessionCon
   return contexts;
 }
 
-/** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. `textOnly`, `participantSpeech` and `account` feed a managed provider's balance floor (Stage 2 Kizuna Soniox); absent, nothing is gated on a balance. */
-export type GateInput = Pick<RunShape, 'plan' | 'accounts' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer'>>;
+/** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. `textOnly`, `participantSpeech` and `account` feed a managed provider's balance floor (Stage 2 Kizuna Soniox); absent, nothing is gated on a balance. `lineUp` names the option a refusal of the plan is about. */
+export type GateInput = Pick<RunShape, 'plan' | 'accounts' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer' | 'lineUp'>>;
+
+/**
+ * What the plan cannot do for this run (`checkPlan`): a leg that is read aloud in a language the voice does not
+ * speak. Null when the plan can run it. The gate refuses with it; a surface shows it on the line-up's card.
+ */
+export function planRefusalFor(shape: GateInput): PlanRefusal | null {
+  const contexts = contextsFor({ ...shape, textOnly: shape.textOnly ?? false, participantSpeech: shape.participantSpeech ?? false });
+  return checkPlan(shape.plan, { accounts: shape.accounts, contexts, ...(shape.lineUp ? { lineUp: shape.lineUp } : {}) });
+}
 
 /** A start refused below a managed provider's floor: worded by the old gate's "Insufficient balance: {{balance}}" (ruling 6). */
 export const BALANCE_BELOW_FLOOR = 'balance_below_floor';
@@ -181,7 +192,9 @@ export function balanceRefusal(input: Pick<GateInput, 'plan' | 'accounts' | 'leg
  * or opened — over a run's frozen shape at start (`Run.open`), and over the
  * stores as they stand while idle (`liveGate`, F7), so the surfaces keep
  * Start off and say why before it is pressed. Credentials, readiness, the
- * build and `admit` are refused by the run's later steps. The gate's own
+ * build and `admit` are refused by the run's later steps. After the legs,
+ * the turns and the reversed pair comes the plan itself (a voice that does
+ * not speak a leg's target). The gate's own
  * last check is a managed provider's balance: the wallet loading or
  * unknown, frozen, or below the floor.
  */
@@ -215,6 +228,9 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
       return { code: 'participant_unsupported' satisfies RunNoticeCode, message, leg: 'participant' };
     }
   }
+  // The plan against this run's languages: a leg read aloud in a language the voice does not speak.
+  const unserved = planRefusalFor(shape);
+  if (unserved) return refusalNotice(unserved, shape.lineUp ?? null, providersIn(shape.plan));
   const refusal = balanceRefusal(shape);
   // An organization payer below the floor is not refused here: the status can be minutes old and cannot tell money held
   // by colleagues' running sessions from an empty organization, so the server answers precisely. A frozen one still is.

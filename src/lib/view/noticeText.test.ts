@@ -6,6 +6,8 @@ import { APP_CAPTURE_LOST, APP_MONITOR_MISSING, LOOPBACK_DENIED, SILENT_NO_PERMI
 import { MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING } from '../audio/capture/mic';
 import { MIC_BLOCKED, MIC_IN_USE, MIC_UNREADABLE } from '../audio/capture/micFailure';
 import { CLIENT_DIAGNOSTICS } from '../diagnostics/clientDiagnostics';
+import { refusalNotice } from '../plan/checks';
+import { PLAN_REFUSAL_CODES } from '../plan/types';
 import { RUN_NOTICE_CODES } from '../session/codes';
 import { NO_MICROPHONE } from '../session/shape';
 import { languageLabel } from '../language/label';
@@ -62,6 +64,41 @@ describe('noticeText', () => {
     expect(noticeText(plainT, { code: MIC_UNREADABLE, message: 'x', params: { device: 'Microphone (AU05)' } }))
       .toMatch(/^Windows could not open the microphone “Microphone \(AU05\)”\./);
     expect(noticeText(plainT, { code: MIC_BLOCKED, message: 'x' })).toMatch(/^Windows is not letting Sokuji use the microphone\./);
+  });
+
+  describe('a line-up that cannot run', () => {
+    /** A catalog of one language: the stage and service names a locale has, the sentences as their English. */
+    const names: Record<string, string> = { 'settingsPage.lineup.stages.speech': 'Speech', 'settingsPage.lineup.stages.translation': 'Translation', 'providers.kizunaai_soniox.name': 'KizunaAI', 'providers.soniox.name': 'Soniox' };
+    const catalogT = ((key: string, options: Record<string, unknown>) =>
+      String(names[key] ?? options.defaultValue).replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(options[name]))) as unknown as TFunction;
+    const words = (refusal: Parameters<typeof refusalNotice>[0], ...rest: unknown[]) => noticeText(catalogT, refusalNotice(refusal, ...(rest as [])));
+
+    it('names the stage as it reads inside a sentence', () => {
+      expect(words({ refused: 'lineup_incomplete', stage: 'speech' })).toBe('Choose a service for speech first.');
+    });
+    it("names the service by the line-up page's name, a managed one with its engine, Bing and Edge by theirs", () => {
+      const kizuna = { id: 'kizunaai_soniox', kind: 'managed', vendor: 'Soniox' };
+      expect(words({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' }, null, [kizuna]))
+        .toBe("KizunaAI (Soniox)'s voice only reads its own translation. Choose another voice, or use the same service for transcription and translation too.");
+      expect(words({ refused: 'lineup_not_offered', stage: 'translation', provider: 'soniox' })).toBe('Soniox is not available in this version. Choose another service for translation.');
+      expect(words({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'gemini' }))
+        .toBe('gemini reads its translation with its own voice only. Choose the same service for speech, or another service for transcription and translation.');
+    });
+    it('names the language the way every language menu does', () => {
+      expect(words({ refused: 'lineup_language_not_spoken', stage: 'speech', provider: 'edge', language: 'eu' }))
+        .toBe(`Edge has no voice for ${languageLabel('eu', 'en')}. Choose another voice, or turn speech off for this session.`);
+    });
+    it('has a sentence for every refusal, the same in the English catalog', () => {
+      const enNotices = (en as unknown as { notices: Record<string, string> }).notices;
+      for (const code of PLAN_REFUSAL_CODES) {
+        expect(NOTICE_WORDS[code], code).toBeDefined();
+        expect(enNotices[code], code).toBe(NOTICE_WORDS[code]);
+      }
+    });
+    it('leaves a stage or provider param of any other notice as it is', () => {
+      const capture = ((key: string, options: Record<string, unknown>) => `${key}:${String(options.stage)}:${String(options.provider)}`) as unknown as TFunction;
+      expect(noticeText(capture, { code: 'source_ended', message: 'x', params: { stage: 'speech', provider: 'soniox' } })).toBe('notices.source_ended:speech:soniox');
+    });
   });
 
   it('puts the five API error types into words', () => {

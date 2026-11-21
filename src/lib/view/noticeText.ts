@@ -8,6 +8,7 @@
 import type { TFunction } from 'i18next';
 import i18next from 'i18next';
 import { languageLabel } from '../language/label';
+import { stageInSentence } from '../lineup/stageWords';
 
 export interface NoticeWords {
   code?: string;
@@ -16,11 +17,32 @@ export interface NoticeWords {
 }
 
 /** Params that carry a language code: shown by the name every language menu uses (`no_asr`'s `{{source}}`, roadmap 1e-2 → 1e-3). */
-const LANGUAGE_PARAMS = new Set(['source', 'target']);
+const LANGUAGE_PARAMS = new Set(['source', 'target', 'language']);
 
-function named(params: Record<string, string | number> | undefined): Record<string, string | number> | undefined {
+/** The English of a line-up stage, where a catalog lacks it. */
+const STAGE_NAMES: Readonly<Record<string, string>> = { transcription: 'Transcription', translation: 'Translation', speech: 'Speech' };
+/** The names of the two options no provider definition carries: they run on this device's provider. */
+const OPTION_NAMES: Readonly<Record<string, string>> = { bing: 'Bing', edge: 'Edge' };
+
+/**
+ * A refusal of the line-up names a stage and a service the way the line-up page does: the stage as it reads
+ * inside a sentence, the service by its name, with its engine where two services share a name (`vendor`).
+ */
+function lineUpNamed(t: TFunction, params: Record<string, string | number>): Record<string, string | number> {
+  const out = { ...params };
+  const { stage, provider, vendor } = params;
+  if (typeof stage === 'string') out.stage = stageInSentence(String(t(`settingsPage.lineup.stages.${stage}`, { defaultValue: STAGE_NAMES[stage] ?? stage })), i18next.language ?? 'en');
+  if (typeof provider === 'string') {
+    const name = String(t(`providers.${provider}.name`, { defaultValue: OPTION_NAMES[provider] ?? provider }));
+    out.provider = typeof vendor === 'string' && vendor !== '' ? `${name} (${vendor})` : name;
+  }
+  return out;
+}
+
+function named(t: TFunction, code: string | undefined, params: Record<string, string | number> | undefined): Record<string, string | number> | undefined {
   if (!params) return params;
-  return Object.fromEntries(Object.entries(params).map(([key, value]) => [key, LANGUAGE_PARAMS.has(key) && typeof value === 'string' ? languageLabel(value, i18next.language) : value]));
+  const languages = Object.fromEntries(Object.entries(params).map(([key, value]) => [key, LANGUAGE_PARAMS.has(key) && typeof value === 'string' ? languageLabel(value, i18next.language) : value]));
+  return code?.startsWith('lineup_') ? lineUpNamed(t, languages) : languages;
 }
 
 /** The English for every code a surface puts into words; `src/locales/en/translation.json`'s `notices` holds the same, word for word. */
@@ -41,6 +63,15 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   source_ended: 'The audio source went away (unplugged, closed or stopped).',
   still_stopping: 'The last session is still stopping; try again in a moment.',
   connection_restored: 'Connection lost and restored',
+  // A line-up that cannot run (the composer's refusals): the stage and the service by the line-up page's names.
+  lineup_incomplete: 'Choose a service for {{stage}} first.',
+  lineup_not_offered: '{{provider}} is not available in this version. Choose another service for {{stage}}.',
+  lineup_stage_split: '{{provider}} only works when it also does {{stage}}. Choose it for that stage too, or choose another service.',
+  lineup_no_unit: '{{provider}} cannot do {{stage}} on its own here. Choose it for the stages it does together, or choose another service.',
+  lineup_voice_not_alone: "{{provider}}'s voice only reads its own translation. Choose another voice, or use the same service for transcription and translation too.",
+  lineup_voice_not_taken: '{{provider}} reads its translation with its own voice only. Choose the same service for speech, or another service for transcription and translation.',
+  lineup_two_managed: 'Two Kizuna AI services cannot run in one session yet. Choose one of them.',
+  lineup_language_not_spoken: '{{provider}} has no voice for {{language}}. Choose another voice, or turn speech off for this session.',
   // A managed lease refused a start, by what blocks the account (its 409's `blocker`).
   session_in_use: 'Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.',
   previous_session_ending: 'Your previous session is still ending. Please try again in a minute.',
@@ -180,9 +211,9 @@ function wordsKey(code: string, params: Record<string, string | number> | undefi
 export function noticeText(t: TFunction, notice: NoticeWords): string {
   const alias = notice.code === undefined ? undefined : NOTICE_ALIASES[notice.code];
   // A catalog lacking the key shows the diagnostic English, as a code with no words does.
-  if (alias !== undefined) return t(alias, { defaultValue: notice.message, ...named(notice.params), detail: notice.message });
+  if (alias !== undefined) return t(alias, { defaultValue: notice.message, ...named(t, notice.code, notice.params), detail: notice.message });
   const key = notice.code === undefined ? undefined : wordsKey(notice.code, notice.params);
   const words = key === undefined ? undefined : NOTICE_WORDS[key];
   if (key === undefined || words === undefined) return notice.message;
-  return t(`notices.${key}`, { defaultValue: words, ...named(notice.params), detail: notice.message });
+  return t(`notices.${key}`, { defaultValue: words, ...named(t, notice.code, notice.params), detail: notice.message });
 }

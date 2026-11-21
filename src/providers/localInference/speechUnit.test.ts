@@ -49,6 +49,8 @@ vi.mock('../../lib/local-inference/modelManifest', async (original) => ({
 import { buildLocalInference, type LocalInferenceConfig, type LocalTtsConfig } from './config';
 import { FakeTts } from './fakeEngines';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from './settings';
+import { EDGE_TTS_LANGUAGES } from '../../lib/local-inference/languageSupport';
+import { getTtsModelsForLanguage } from '../../lib/local-inference/modelManifest';
 import { admitLocalSpeech, areLocalSpeechConfigs, createLocalSpeechUnit, localSpeechUnit, type LocalSpeechConfig } from './speechUnit';
 
 const JA_EN = { source: 'ja', target: 'en' };
@@ -127,6 +129,29 @@ describe("the local provider's speech unit", () => {
   it('says what the voice can do', () => {
     expect(localSpeechUnit.capabilities(SETTINGS)).toEqual({
       speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'silence', textInput: false, faceToFace: true, participantSpeech: true,
+      speaks: expect.any(Function),
+    });
+  });
+
+  describe('the languages it speaks', () => {
+    const speaks = (language: string) => localSpeechUnit.capabilities(SETTINGS).speaks!(language);
+    // Basque: no speech model of the catalog and no Edge voice. Javanese: an Edge voice, and no speech model.
+    it("Edge's own list where the line-up gives speech to Edge", () => {
+      mockStored = { translation: 'local', speech: 'edge' };
+      expect(['en', 'ja', 'jv', 'pt-BR'].map(speaks)).toEqual([true, true, true, true]);
+      expect(['eu', 'xx'].map(speaks)).toEqual([false, false]);
+      expect(EDGE_TTS_LANGUAGES).toContain('jv');
+      expect(EDGE_TTS_LANGUAGES).not.toContain('eu');
+    });
+    it('the languages some speech model of the catalog speaks, downloaded or not, where a model on this machine speaks', () => {
+      mockStored = { translation: 'local', speech: 'local' };
+      expect(getTtsModelsForLanguage('en').some((m) => !m.isCloudModel)).toBe(true);
+      expect(getTtsModelsForLanguage('jv').some((m) => !m.isCloudModel)).toBe(false);
+      expect(['en', 'jv', 'eu'].map(speaks)).toEqual([true, false, false]);
+    });
+    it('either while no line-up is stored: Edge is among the local choices then', () => {
+      mockStored = null;
+      expect(['en', 'jv', 'eu'].map(speaks)).toEqual([true, true, false]);
     });
   });
 

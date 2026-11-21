@@ -383,6 +383,39 @@ describe('a plan of several units: each question asked of the unit that answers 
     expect(gate(several(['en'], { legs: ['speaker', 'participant'] }), 'electron')).toBeNull();
   });
 
+  describe('a voice that says which languages it speaks', () => {
+    /** The plan of `several`, its speech unit speaking English only, under an optional-speech provider. */
+    const withVoice = (patch: Patch = {}): RunShape => {
+      const base = several(['en', 'ja'], patch);
+      const speaker = stubProvider('speaker_only_english', { speech: 'optional' });
+      const [whole] = planOf(speaker).units;
+      const speech: PlannedUnit = { ...whole, unit: { ...whole.unit, capabilities: (s) => ({ ...whole.unit.capabilities(s), speaks: (language) => language === 'en' }) }, stages: ['speech'] };
+      const [a, b] = base.plan.units;
+      return { ...base, plan: { units: [a, b, speech], byStage: { transcription: a, translation: b, speech } }, accounts: { ...base.accounts, [speaker.id]: { settings: undefined, credentials: {} } } };
+    };
+
+    it('refuses a start whose speaker leg is read in a language the voice lacks, and names the option of the line-up', () => {
+      expect(gate(withVoice({ pair: { source: 'en', target: 'ja' }, lineUp: { transcription: 'heard', translation: 'translated', speech: 'edge' } }), 'electron'))
+        .toEqual({ code: 'lineup_language_not_spoken', message: 'edge has no voice for ja.', params: { stage: 'speech', provider: 'edge', language: 'ja' } });
+    });
+    it('starts when the leg is read in a language the voice has', () => {
+      expect(gate(withVoice({ pair: { source: 'ja', target: 'en' } }), 'electron')).toBeNull();
+    });
+    it('starts a text-only session in any language: no leg is read aloud', () => {
+      expect(gate(withVoice({ pair: { source: 'en', target: 'ja' }, textOnly: true }), 'electron')).toBeNull();
+    });
+    it("judges the participant leg by its own target, only when the other side's translation is spoken", () => {
+      const both = { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] as LegName[] };
+      expect(gate(withVoice({ ...both, participantSpeech: true }), 'electron')).toMatchObject({ code: 'lineup_language_not_spoken', params: { language: 'ja' } });
+      expect(gate(withVoice({ ...both, participantSpeech: false }), 'electron')).toBeNull();
+    });
+    it('is said before the balance, and after the turns', () => {
+      const low = { account: { status: 'known' as const, balanceMicroUsd: 0, frozen: false } };
+      expect(gate(withVoice({ pair: { source: 'en', target: 'ja' }, ...low }), 'electron')).toMatchObject({ code: 'lineup_language_not_spoken' });
+      expect(gate(withVoice({ pair: { source: 'en', target: 'ja' }, turnMode: 'push-to-talk' }), 'electron')).toMatchObject({ code: 'turn_mode_unsupported' });
+    });
+  });
+
   it("takes the highest floor among the plan's providers", () => {
     const below = balanceRefusal({ ...several(['en']), account: { status: 'known', balanceMicroUsd: 200, frozen: false } });
     expect(below).toMatchObject({ code: BALANCE_BELOW_FLOOR, message: "The balance (200 µUSD) is below this start's floor (300 µUSD)." });

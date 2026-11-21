@@ -11,6 +11,7 @@ import type { AdapterEvents } from '../../lib/contract/adapter';
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../../lib/contract/speech';
 import type { LegName } from '../../lib/conversation/types';
 import { SP } from '../../lib/lineup/types';
+import { AUTO } from '../../lib/provider/languages';
 import { sameStages, type UnitDefinition } from '../../lib/plan/types';
 import { describeSonioxTts, sonioxTts, type SonioxTtsConfig } from './config';
 import { sonioxWire } from './languages';
@@ -134,6 +135,17 @@ function startSonioxSpeech(openSocket: OpenSocket, request: SpeechStartRequest<S
   };
 }
 
+/** Whether Soniox's voice reads `language`: the languages its table has a code for, which `speak` sends. */
+export function sonioxSpeaks(language: string): boolean {
+  if (language === AUTO) return false;
+  try {
+    sonioxWire.toWire(language);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Soniox's speech unit: speech, and only when asked for exactly that. Its config is the leg's voice and speed
  * (`sonioxTts`); its key is the credentials' `tts`.
@@ -153,6 +165,7 @@ export function createSonioxTtsUnit(deps: SonioxTtsUnitDeps = {}): SonioxTtsUnit
       textInput: false,
       faceToFace: true,
       participantSpeech,
+      speaks: sonioxSpeaks,
     }),
     build: (context, s, shared) => (context.speech ? sonioxTts(context, s, shared) : { ...sonioxTts(context, s, shared), off: true }),
     describe: (c) => (c.off ? {} : describeSonioxTts()),

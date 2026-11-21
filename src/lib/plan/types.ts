@@ -24,6 +24,11 @@ export interface UnitCapabilities {
   faceToFace: boolean;
   /** False: the participant leg never speaks, whatever its switch says. */
   participantSpeech: boolean;
+  /**
+   * A unit that speaks: whether it has a voice for `language` (an app code). Absent: the unit speaks whatever its
+   * provider translates into (a whole-provider unit).
+   */
+  speaks?(language: string): boolean;
 }
 
 /**
@@ -59,10 +64,24 @@ export interface RunPlan {
   byStage: Readonly<Record<RunStage, PlannedUnit>>;
 }
 
-export type PlanRefusalCode = 'lineup_incomplete' | 'lineup_not_offered' | 'lineup_stage_split' | 'lineup_no_unit';
+export const PLAN_REFUSAL_CODES = [
+  'lineup_incomplete',
+  'lineup_not_offered',
+  'lineup_stage_split',
+  'lineup_no_unit',
+  'lineup_voice_not_alone',
+  'lineup_voice_not_taken',
+  'lineup_two_managed',
+  'lineup_language_not_spoken',
+] as const;
 
-/** Why no plan could be made, and for which stage. */
-export interface PlanRefusal { refused: PlanRefusalCode; stage: RunStage; provider?: string }
+export type PlanRefusalCode = (typeof PLAN_REFUSAL_CODES)[number];
+
+/**
+ * Why no plan could be made, or why a plan cannot run a session, and for which stage. `provider`: the line-up id
+ * the refusal is about, where it names one. `language`: the language no voice speaks (`lineup_language_not_spoken`).
+ */
+export interface PlanRefusal { refused: PlanRefusalCode; stage: RunStage; provider?: string; language?: string }
 
 export const isRefusal = (p: RunPlan | PlanRefusal): p is PlanRefusal => 'refused' in p;
 
