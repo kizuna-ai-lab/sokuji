@@ -346,14 +346,35 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     expect(h.rec.log).toEqual([]);
   });
 
-  it('holds the loss of a speech session whose open rejects while the text unit opens', async () => {
+  it('a voice whose open rejects while the text unit is still starting says so only once the leg is open', async () => {
     const cause = new Error('refused');
     const h = leg({ voice: { openFails: cause }, text: { held: true } });
     await flush();
+    // The voice is already closed, and nothing has been said of it: the start can still fail.
+    expect(named(h.calls)).toEqual(['voice.start', 'voice.open', 'text.start', 'voice.close']);
     expect(h.rec.log).toEqual([]);
     h.text.starts[0].open();
-    await h.starting;
-    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause } }]);
+    const session = await h.starting;
+    await flush();
+    const lost = { kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause } };
+    expect(h.rec.log).toEqual([lost]);
+    // Said once: nothing more of the voice follows, whatever the leg goes on to do.
+    translate(h.emit(), 2, 'こんにちは。');
+    await session.stop();
+    expect(h.rec.log.filter((e) => e.kind === 'degraded')).toEqual([lost]);
+    expect(only(h.calls, 'voice.close')).toHaveLength(1);
+  });
+
+  it('a voice whose open rejects while the text unit is still starting says nothing when the text unit then fails to start', async () => {
+    const error = new Error('no connection');
+    const h = leg({ voice: { openFails: new Error('refused') }, text: { held: true } });
+    await flush();
+    expect(h.rec.log).toEqual([]);
+    h.text.starts[0].refuse(error);
+    await expect(h.starting).rejects.toBe(error);
+    await flush();
+    expect(h.rec.log).toEqual([]);
+    expect(only(h.calls, 'voice.close')).toHaveLength(1);
   });
 
   it('reads text that came after its segment closed, then ends the utterance again, and passes nothing of it on', async () => {

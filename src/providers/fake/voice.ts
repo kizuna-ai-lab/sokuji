@@ -87,7 +87,8 @@ const voiceUnit: UnitDefinition<FakeVoiceSettings, FakeVoiceCredentials, FakeVoi
   id: 'voice',
   occupies: (_s, want) => (sameStages(SP, want) ? SP : null),
   capabilities: () => ({
-    speech: 'always',
+    // The user's switch says whether a leg is read aloud: with 'always' a text-only session would be read anyway.
+    speech: 'optional',
     turns: ['auto', 'manual'],
     turnOwner: 'either',
     boundaries: 'silence',
@@ -124,7 +125,7 @@ export const fakeVoiceProvider: Provider<FakeVoiceSettings, FakeVoiceCredentials
 
   languages: FAKE_LANGUAGES,
 
-  speech: 'always',
+  speech: 'optional',
   textInput: () => false,
   boundaries: () => 'silence',
   turns: () => ['auto', 'manual'],

@@ -127,8 +127,9 @@ export interface AdapterEvents {
   segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string; heard?: Heard; stableLen?: number }): void;
   segmentClosed(e: { ref: Ref; origin?: string }): void;
   /**
-   * Translation text that arrived after its segment closed: it is not shown, and a voice that reads this leg
-   * reads it, then ends the row's utterance. `span`: where it sits after the segment's text. Absent: none is sent.
+   * Translation text that arrived after its segment closed. An adapter may also send it as the closed segment's
+   * text. A voice that reads this leg reads it, then ends the row's utterance. `span`: where it sits after the
+   * segment's text. Absent: none is sent.
    */
   lateSpeech?(e: { ref: Ref; text: string; span: TextRange; language: string }): void;
   /** `ref` absent: attributable to no segment (plays, pairs with nothing).
