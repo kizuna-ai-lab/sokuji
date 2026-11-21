@@ -18,8 +18,9 @@ const JOINT: readonly RunStage[] = ['transcription', 'translation'];
 const endToEnd = (id: string, account: ProviderCaps['account']): ProviderCaps => ({ id, stages: ALL, host: id, joint: ALL, account, voiceAlone: false, takesVoice: false });
 
 export const CAPS: readonly ProviderCaps[] = [
-  // Its text may be read by another voice (a text-only session of it); its own voice is not offered alone yet.
-  { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', joint: JOINT, account: 'kizuna', voiceAlone: false, takesVoice: true },
+  // Its text may be read by another voice (a text-only session of it), and its voice may read another provider's
+  // text (a session of it that holds speech keys only).
+  { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', joint: JOINT, account: 'kizuna', voiceAlone: true, takesVoice: true },
   endToEnd('kizunaai_qwen', 'kizuna'),
   { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: true },
   { id: 'bing', stages: ['translation'], host: 'local_inference', account: 'none', voiceAlone: false, takesVoice: true },

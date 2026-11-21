@@ -4,9 +4,11 @@
 // jointly, and a provider that loses part of a joint group loses all of it.
 // One more stage may change: when the text side was chosen and the voice left
 // in place cannot run beside it, speech follows to the chosen host's voice.
-// Nothing else moves. Any other choice the composer refuses is kept as chosen:
-// the line-up page shows the refusal, and the user changes what they want
-// (design section 8).
+// No option offered today brings that about (every voice with a unit of its
+// own is offered alone, Kizuna AI's Soniox included); the rule stays for a
+// voice that reads only its own translation. Nothing else moves. Any other
+// choice the composer refuses is kept as chosen: the line-up page shows the
+// refusal, and the user changes what they want (design section 8).
 import { compose } from '../plan/compose';
 import type { ComposeInput } from '../plan/compose';
 import { isRefusal } from '../plan/types';

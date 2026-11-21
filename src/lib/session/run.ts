@@ -805,6 +805,9 @@ export class Run {
   /**
    * What every reconnect event carries (spec 2026-11-05 reconnect §4.5), and the region the leg's session says it
    * dialled (`info.region`). None from a provider without regions, or for a drop before its leg's start settled.
+   * `managed` is about the connection that dropped, which is the transcription's: whether it runs on a key of a
+   * lease. A voice reports no drop of its own, so beside an own-key text side a hosted voice leaves it false; the
+   * event's `stages` (`stagedAnalytics`) name the voice's provider.
    */
   private reconnectEvent(leg: LegName, managed: boolean) {
     const region = this.sessions.get(leg)?.info.region;
