@@ -22,7 +22,7 @@ import type { SetupDraft } from './setupDraft';
 import { useApplySetup } from './useApplySetup';
 import { lineUpOf, offersRecord, pathOf, providerFits } from './providerPaths';
 import { useLineUpStore } from '../../stores/lineUpStore';
-import { runOf } from '../../lib/lineup/catalog';
+import { soleHost } from '../../lib/lineup/catalog';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import type { ProviderType } from '../../types/Provider';
 import StepLanguage from './steps/StepLanguage';
@@ -55,11 +55,11 @@ function stagesOf(provider: string): { transcription: string; translation: strin
 function lineUpInUse(scenario: ScenarioId | null): { provider: string; providerPath: ProviderPath } | 'not-offered' | null {
   const { lineUp, stored } = useLineUpStore.getState();
   if (!stored || !lineUp) return null;
-  const run = runOf(lineUp);
-  const providerPath = run.ok ? pathOf(run.provider) : null;
-  if (!run.ok || !providerPath) return 'not-offered';
-  if (scenario && !providerFits(run.provider as ProviderType, scenario)) return 'not-offered';
-  return { provider: run.provider, providerPath };
+  const provider = soleHost(lineUp);
+  const providerPath = provider !== null ? pathOf(provider) : null;
+  if (provider === null || !providerPath) return 'not-offered';
+  if (scenario && !providerFits(provider as ProviderType, scenario)) return 'not-offered';
+  return { provider, providerPath };
 }
 
 const SetupWizard: React.FC<SetupWizardProps> = ({ variant, onClose }) => {

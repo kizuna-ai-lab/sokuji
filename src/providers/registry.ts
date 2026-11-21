@@ -3,6 +3,7 @@
  * picker shows, `ProviderId` is derived from it, and `isPresent` decides what
  * this build and platform offer.
  */
+import { registerPresentProviders } from '../lib/plan/present';
 import { isPresent, type PresenceEnv } from '../lib/provider/presence';
 import type { AnyProvider } from '../lib/provider/types';
 import { debugSwitchOn, enabledProviderIds, getEnvironment, isDevelopmentMode, isKizunaAIEnabled } from '../utils/environment';
@@ -46,3 +47,7 @@ export function presentProviders(env: PresenceEnv = currentPresenceEnv()): reado
 export function getProvider(id: string): AnyProvider | undefined {
   return PROVIDERS.find((p) => p.id === id);
 }
+
+// The line-up store composes over the providers offered here, but cannot import this module (the local provider
+// reads that store: a cycle). It reads them through `presentHosts()`.
+registerPresentProviders(presentProviders);
