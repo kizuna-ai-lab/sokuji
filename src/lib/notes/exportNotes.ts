@@ -59,16 +59,18 @@ const escape = (text: string) => text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;'
  * headings and list. The same parts and marks as `notesMarkdown`.
  */
 export function notesHtml(body: NotesBody, words: NotesWords): string {
-  const out = [`<h1>${escape(body.title)}</h1>`];
-  if (body.overview.text) out.push(`<p>${escape(body.overview.text)}</p>`);
+  // A line started with Shift+Enter stays a line: HTML would fold it into a space (PR review).
+  const html = (text: string) => escape(text).replace(/\r?\n/g, '<br>');
+  const out = [`<h1>${html(body.title)}</h1>`];
+  if (body.overview.text) out.push(`<p>${html(body.overview.text)}</p>`);
   body.topics.forEach((t, i) => {
-    out.push(`<h2>${escape(t.title)}</h2>`);
-    if (t.summary) out.push(`<p>${escape(t.summary)}</p>`);
+    out.push(`<h2>${html(t.title)}</h2>`);
+    if (t.summary) out.push(`<p>${html(t.summary)}</p>`);
     const points = pointsOf(body, i);
     if (points.length > 0) {
       out.push(`<ul>${points.map((p) => {
         const m = marks(p, words);
-        return `<li>${escape(p.text)}${m ? ` — ${escape(m)}` : ''}</li>`;
+        return `<li>${html(p.text)}${m ? ` — ${html(m)}` : ''}</li>`;
       }).join('')}</ul>`);
     }
   });

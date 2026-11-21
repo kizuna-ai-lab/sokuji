@@ -29,6 +29,20 @@ describe('the notes exported', () => {
     ].join(''));
   });
 
+  // PR review: a line started with Shift+Enter is kept in the rich copy, where HTML would fold it into a space.
+  it('as HTML: a line break in any field is a <br>', () => {
+    const body = {
+      ...BODY, overview: { text: 'First line\nSecond <line>', format: 'plain' },
+      topics: [{ title: 'Delivery', summary: 'The date.\nThe place.', first: 1 }],
+      points: [{ topic: 0, text: 'Ship it\nby Tuesday', sentences: [2], kinds: [] }],
+    } as NotesBody;
+    expect(notesHtml(body, WORDS)).toBe([
+      '<h1>Supplier sync</h1>', '<p>First line<br>Second &lt;line&gt;</p>',
+      '<h2>Delivery</h2>', '<p>The date.<br>The place.</p>',
+      '<ul><li>Ship it<br>by Tuesday</li></ul>',
+    ].join(''));
+  });
+
   it('as Markdown: the title, the overview, each topic and its points with what they are', () => {
     expect(notesMarkdown(BODY, WORDS)).toBe([
       '# Supplier sync', '', 'Delivery and packaging.', '',
