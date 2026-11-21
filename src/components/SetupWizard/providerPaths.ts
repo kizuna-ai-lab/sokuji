@@ -8,6 +8,7 @@ import type { ProviderType } from '../../types/Provider';
 import type { AnyProvider } from '../../lib/provider/types';
 import { providerIdFromStored } from '../../lib/session/storedSettings';
 import { presentProviders } from '../../providers/registry';
+import { unitsOf } from '../../lib/plan/wholeUnit';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import { getScenario, providerFitForScenario } from '../../lib/setup/scenarios';
 import type { ProviderFit } from '../../lib/setup/scenarios';
@@ -50,11 +51,14 @@ export function providerFits(provider: ProviderType, scenario: ScenarioId): bool
   return p !== undefined && providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true).ok;
 }
 
-/** The registry's own-key providers, in its order, each with its fit for the scenario — unfit ones greyed with the reason, never hidden. */
+/** Whether a provider can run a session by itself: one of its units takes audio and gives text. A provider that only speaks is not a path. */
+const runsAlone = (p: AnyProvider): boolean => unitsOf(p).some((unit) => unit.start !== undefined);
+
+/** The registry's own-key providers that can run a session alone, in its order, each with its fit for the scenario — unfit ones greyed with the reason, never hidden. */
 export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {
   const preset = getScenario(scenario);
   return presentProviders()
-    .filter((p) => p.kind === 'own-key')
+    .filter((p) => p.kind === 'own-key' && runsAlone(p))
     .map((p) => ({ id: p.id as ProviderType, fit: providerFitForScenario(textOnlyCapabilityOf(p), preset, p.faceToFace === true) }));
 }
 

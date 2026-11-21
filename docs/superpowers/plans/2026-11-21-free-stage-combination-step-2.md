@@ -351,4 +351,18 @@ Branch `feat/free-speech-surfaces`.
 
 ## Decisions made while Part A was built
 
-(filled in as the part is built)
+They replace the text of Tasks A2 to A7 where the two differ; Parts B to E build on them.
+
+- **The composite feeds the voice whether speech is on or off.** `speak` and `endUtterance` are always called; the unit decides what to drop and where to resume (Soniox's voice tracks the open sentence while off). `setSpeech` only calls `setOn`.
+- **A reconnect of the text unit does not reset the feed.** The composite calls `recycle?.()` on each voice, then forwards `reconnected`. The feed is reset when the composite stops.
+- **`counts` is keyed by `Ref` alone.** One map for both voices when the text sessions say `info.shared`; one per leg otherwise. Soniox's shared core has one ref counter for both legs, so refs do not collide there; in split Both each leg has its own core and nothing crosses legs.
+- **Both legs: the voices start right after `startBoth` resolves**, not before it as §7.4 says for one leg: whether the legs share a connection is known only from the started sessions' `info.shared`, and `counts` is fixed when a voice starts. That is still before the run sends audio. `startCompositeBoth(plan, requests, events)` has no `shared` parameter and calls the text provider's `session.startBoth` itself with the text unit's configs and credentials: a text unit's config must keep whatever its provider's `startBoth` reads.
+- **`startComposite(plan, request, events, leg = 'speaker')`**: the leg is passed because a `StartRequest` carries none and a voice is told its leg. The run passes it.
+- **A voice that throws at start** is reported as `tts_degraded` once the text unit has opened; a start that fails says nothing of it. When the text unit fails or closes, the leg's voice is closed.
+- **A lone leg does not read a translation whose language is not its target**; `endUtterance` is still sent.
+- **`speak` carries an app language code and the home leg's name.** A unit converts to its own wire code.
+- **The speech feed keeps a segment's stated language** for its later texts and for the close, clamps `stableLen` to the text, ignores a text after the close, and always calls `end(ref)` on close.
+- **The rule suite**: `recordSpeech(start, request, forward?, log = [])` returns `{ session, log }`; `checkSpeech(log)` reads one session's log. `audio-index-counts` assumes the voice advances the counter before it emits. Two voices sharing one `counts` map cannot be checked from one log by the rules keyed by ref; they are checked each from its own log, with a fresh map.
+- **Each unit's `shared.models`** is its own provider's readiness answer. `buildPlan`'s `shared` may be a function of the unit.
+- **`fake_voice`** is registered among the development-only providers and in the catalog under the same build condition as `fake`. The setup wizard's own-key list holds only providers that can run a session alone (a unit with `start`), so a voice is never offered as a path. `registry.test.ts`'s "a development build adds exactly the two fakes" became three, on purpose.
+- **Not done here, for Part B:** `wholePlan(p)` gives a provider's first unit all three stages, which is wrong once a provider declares several units: its callers (`planOf`, `shapeWith`, the selection's plan) must compose instead. `units` is read from a provider through a cast; Part B declares it on the provider type.
