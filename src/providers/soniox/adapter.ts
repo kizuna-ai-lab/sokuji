@@ -31,7 +31,7 @@ import { closeCodeAction, createReconnector, refusalResult, reissueFailed, type 
 import { PcmMixer } from './pcmMixer';
 import { SonioxSideTracker } from './sideTracker';
 import { nativeSocket, type OpenSocket } from './socket';
-import { LegSpeech } from './speech';
+import { LegSpeech, NO_TTS_KEY_MESSAGE } from './speech';
 import { SonioxSttConnectTimeout, SonioxSttStream, type SonioxSttConfig, type SonioxSttMessage, type SonioxToken } from './sttStream';
 import { tokenFrames, Utterances, type SegmentEvent } from './utterances';
 import type { SonioxConfig } from './config';
@@ -470,7 +470,7 @@ class SonioxCore {
     // comes before the session (`run.ts` `onEvent`).
     queueMicrotask(() => {
       for (const leg of this.o.legs) {
-        if (leg.noTtsKey && !this.ended) leg.events.degraded({ code: 'tts_degraded', message: 'No TTS key was issued for this leg: it runs text-only.' });
+        if (leg.noTtsKey && !this.ended) leg.events.degraded({ code: 'tts_degraded', message: NO_TTS_KEY_MESSAGE });
       }
     });
   }
