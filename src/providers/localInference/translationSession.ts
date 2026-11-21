@@ -108,6 +108,8 @@ export function startLocalTranslation(
         if (ended) return;
         try {
           frame('out', 'local.init.translation.ready', { model: config.modelId, initDurationMs: clock.now() - startedAt });
+          // A listener of that frame stopped the session: nothing is said after a stop, and the open is already settled.
+          if (ended) return;
           events.loading({ stage: 'translation', done: 1, total: 1 });
         } catch (error) {
           // A listener that throws must not leave the open pending: the open fails with it, and the engine is let go.
@@ -123,7 +125,11 @@ export function startLocalTranslation(
       (error: unknown) => {
         if (ended) return;
         const message = describeCause(error);
-        frame('out', 'local.init.translation.error', { model: config.modelId, error: message });
+        try {
+          frame('out', 'local.init.translation.error', { model: config.modelId, error: message });
+        } catch {
+          // The Logs line is the lesser thing: a listener that throws must not keep the open from failing.
+        }
         if (isGpuOutOfMemory(message)) fail(new AdapterStartError(GPU_OUT_OF_MEMORY, 'gpu_out_of_memory', undefined, { cause: error }));
         else fail(new Error(`Translation engine init failed: ${message}`));
       },
