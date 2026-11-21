@@ -38,4 +38,8 @@ export interface ProviderCaps {
   /** The stages one connection of it carries together; choosing it for one of them chooses it for all (the vendor's interface). Absent: each stage alone. */
   joint?: readonly RunStage[];
   account: 'kizuna' | 'key' | 'none';
+  /** True: this option may serve `speech` while another host transcribes and translates. */
+  voiceAlone: boolean;
+  /** True: this host's transcription and translation may be read aloud by another host's voice. */
+  takesVoice: boolean;
 }

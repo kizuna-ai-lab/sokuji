@@ -15,6 +15,8 @@ import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-reac
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
 import { usePlan } from '../../lib/plan/fromStores';
+import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
+import { noticeText } from '../../lib/view/noticeText';
 import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
@@ -102,8 +104,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // the same rules (useHearingRows); the speech stage is used only while a running leg is read aloud.
   const hearing = useHearingRows(locked);
   // The sentence shows once the plan is ready, its providers' entries loaded (ProviderLanguages); until then nothing points to it.
-  const sentenceShown = usePlan().state === 'ready';
+  const plan = usePlan();
+  const sentenceShown = plan.state === 'ready';
   const setTextOnly = useSetTextOnly();
+  // A line-up that cannot run is never silent: the composer's refusal of it, or what its plan cannot do for the
+  // pair and the legs a start would open, in the start gate's words. The hook follows everything it is read from:
+  // the plan, a provider's pair, the mode and who hears.
+  const refusal = useLineUpNotice();
   const model = useOptionModel();
   const [rich] = useState(() => supportsBaseSelect());
   // Which stage cards have their provider's options open (mock v19: each card its own).
@@ -111,7 +118,6 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // A slot a notice asked for (a voice to fix, #619): the engine opens it, then it is spent.
   const engineSlotTarget = useEngineSlotTarget();
   const setEngineSlotTarget = useSetEngineSlotTarget();
-  const [moved, setMoved] = useState<{ stage: StageName; text: string } | null>(null);
 
   // Every provider with a key is loaded, so that its row can say whether the key is there.
   useEffect(() => {
@@ -182,18 +188,6 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     const choice = await useLineUpStore.getState().choose(stage, id);
     if (!choice || !before) return;
     trackEvent('lineup_changed', lineUpChangedEvent(stage, before, choice));
-    // The stages the chosen provider holds jointly are said by the joint line; say only what else moved (owner, 2026-11-15).
-    const group = jointOf(id, stage) ?? [stage];
-    const extra = choice.moved.filter((s) => !group.includes(s as RunStage));
-    if (!extra.length) { setMoved(null); return; }
-    const names = extra.map((s, i) => (i === 0 ? t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage]) : stageName(s)));
-    const providerNames = [...new Set(extra.map((s) => model(choice.lineUp[s] ?? '', providers.find((p) => p.id === choice.lineUp[s])).name))];
-    setMoved({
-      stage,
-      text: t('settingsPage.lineup.moved', '{{stages}} moved to {{providers}} too: they cannot be combined with this choice yet. Mixing will be supported later.', {
-        stages: names.join(t('settingsPage.lineup.and', ' and ')), providers: providerNames.join(t('settingsPage.lineup.and', ' and ')),
-      }),
-    });
     // A one-shot target that opened this page is spent once something is chosen here.
     if (target) navigateToSettings(null);
   };
@@ -417,7 +411,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           const title = joint ? [titleOf(first), ...stages.slice(1).map(stageName)].join(t('settingsPage.lineup.and', ' and ')) : titleOf(first);
           // The speech stage, not used this time (nothing a running leg says is read aloud).
           const idle = (stage: RunStage) => stage === 'speech' && speechIdle;
-          const movedLine = (stage: RunStage) => moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>;
+          // Why the line-up cannot run a session now, on the card of the stage it is about.
+          const refusalLine = (stage: RunStage) => refusal?.stage === stage && <p className="lineup-stage__refusal" role="status">{noticeText(t, refusal)}</p>;
           const head = (stage: RunStage) => (
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{titleOf(stage)}</span>
@@ -426,10 +421,10 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                 : stateTag(id)}
             </div>
           );
-          // Idle: what moved with a choice, and why it is not used; no options (the choice stays for next time).
+          // Idle: why the line-up cannot run, and why speech is not used; no options (the choice stays for next time).
           const idleBody = (stage: RunStage) => (
             <>
-              {movedLine(stage)}
+              {refusalLine(stage)}
               {speechUnusedNote}
             </>
           );
@@ -475,7 +470,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                   </p>
                 );
               })()}
-              {movedLine(stage)}
+              {refusalLine(stage)}
               {stageOptions(stage, id, stages)}
             </>
           ));

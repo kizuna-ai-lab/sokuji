@@ -32,7 +32,7 @@ import type { RunPlan } from '../lib/plan/types';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
-import { appMicMuted, appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
+import { appMicMuted, appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, planRefusalFromStores, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
 import type { LegName } from '../lib/conversation/types';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
@@ -188,6 +188,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     platform: getEnvironment(),
     network: createBrowserNetwork(),
     readShape: () => (options.refuse?.() ? null : readShapeFromStores(bridges.auth)),
+    planRefusal: () => (options.refuse?.() ? null : planRefusalFromStores()),
     ensureReady: ensureReadyFromStores,
     persistIfUnchanged,
     replayAudio: appReplayAudio,

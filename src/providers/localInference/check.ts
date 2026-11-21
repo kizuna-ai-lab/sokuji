@@ -3,6 +3,7 @@ import { guardAstCrossStage } from '../../services/providers/astGuard';
 import { storedLocalStages } from '../../stores/lineUpStore';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
+import type { LocalStages } from '../../lib/lineup/localStages';
 import type { LocalInferenceSettings } from './settings';
 
 /** The mandatory direction lacks ASR or translation: the code for this check's "selected language pair" refusal. */
@@ -36,7 +37,10 @@ export async function checkLocalInference(
     await raceInitialize(ctx.signal);
   }
 
-  const stages = storedLocalStages();
+  const stages = effectiveStages(ctx);
+  // This provider only speaks: it needs no recognition and no translation model. A speech model that is missing
+  // does not stop a start: the leg says so when it opens, and its subtitles go on.
+  if (stages?.translation === null) return { ok: true };
   const resolve = (src: string, tgt: string, selections: Selections) =>
     useModelStore.getState().resolve(src, tgt, selections, stages);
   // AST cross-stage guard (see astGuard.ts): `build` applies this same guard
@@ -74,6 +78,22 @@ export async function checkLocalInference(
     };
   }
   return { ok: true };
+}
+
+/**
+ * The one set of stages the check answers about, for its shortcut and for the resolution alike. Told the stages
+ * this provider serves in the plan (`ctx.stages`), they are those: a start checks the plan it froze, which the
+ * stored line-up may no longer match (or none may be stored). Translation goes to Bing, and speech to Edge, where
+ * the plan's line-up names them (`ctx.stageIds`), else to a model on this machine; a stage the provider is not
+ * told is another provider's. Told none, the stored line-up says, and null (none stored) resolves as today.
+ */
+function effectiveStages(ctx: Pick<CheckContext, 'stages' | 'stageIds'>): LocalStages | null {
+  const told = ctx.stages;
+  if (!told) return storedLocalStages();
+  return {
+    translation: !told.includes('translation') ? null : ctx.stageIds?.translation === 'bing' ? 'bing' : 'local',
+    speech: !told.includes('speech') ? null : ctx.stageIds?.speech === 'edge' ? 'edge' : 'local',
+  };
 }
 
 /** `check` reads the model store: a download, a delete or the store's first load can change its answer. */

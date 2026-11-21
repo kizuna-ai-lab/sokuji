@@ -9,12 +9,14 @@ import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { stageIdsFor } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
+import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
-import { accountOf, capabilitiesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, checkStageIdsOf, checkStagesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import type { PlanRefusal, UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
 import { accountPayer } from './payerChoice';
+import { presentProviders } from '../../providers/registry';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
@@ -25,7 +27,7 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment } from '../../utils/environment';
 import { buildSharedSettings } from './shared';
-import { gate, participantSpeechInput, speakFor, type Refusal, type SpeechInputs } from './shape';
+import { gate, participantSpeechInput, planRefusalFor, speakFor, type GateInput, type Refusal, type SpeechInputs } from './shape';
 import type { RunShape } from './types';
 
 export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
@@ -207,39 +209,22 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   };
 }
 
-/** A line-up the composer refuses, as the start gate's refusal: the composer's code, and diagnostic English that names the stage. */
+/** A refusal of the line-up as the stores stand, as the notice every surface words: it names the stored line-up's option. */
 function planRefused(refusal: PlanRefusal): Refusal {
-  const { refused, stage, provider } = refusal;
-  const message: Record<PlanRefusal['refused'], string> = {
-    lineup_incomplete: `The line-up names no provider for ${stage}.`,
-    lineup_not_offered: `The line-up names ${provider ?? 'a provider'} for ${stage}, which is not offered here.`,
-    lineup_stage_split: `The line-up gives ${stage} to another provider than the stage it goes with.`,
-    lineup_no_unit: `The provider the line-up names for ${stage} cannot serve it beside the other stages.`,
-  };
-  return { code: refused, message: message[refused], params: { stage, ...(provider ? { provider } : {}) } };
+  const { lineUp, stored } = useLineUpStore.getState();
+  return refusalNotice(refusal, stored ? lineUp : null, presentProviders());
 }
 
-/**
- * The start gate over the stores as they stand (F7): what a start would be
- * refused before anything is checked — a stored line-up the composer cannot
- * run, no leg, a turn mode the provider
- * does not offer, the participant leg on the web or for a pair that does
- * not reverse (D20), and a managed provider's wallet still loading,
- * unknown, frozen or below its floor. The surfaces keep Start off and show
- * why; the runner still gates the frozen shape at start. Null when nothing
- * is refused, or while the plan is loading (`providerLoaded` keeps Start
- * off then).
- */
-export function liveGate(platform: Platform = getEnvironment()): Refusal | null {
-  // A stored line-up the composer refuses: Start stays off, and says the composer's reason.
-  const state = planFromStores();
-  if (state.state === 'refused') return planRefused(state.refusal);
+/** What `gate` reads, from the stores as they stand; null until the plan is ready. */
+function gateInputFromStores(): GateInput | null {
   const found = runPlanFromStores();
   if (!found) return null;
   const account = useAccountStore.getState().account;
-  return gate({
+  const { lineUp, stored } = useLineUpStore.getState();
+  return {
     plan: found.plan,
     accounts: found.accounts,
+    lineUp: stageIdsFor(lineUp, stored, transcriptionProvider(found.plan).id),
     pair: found.entry.pair,
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,
@@ -249,15 +234,64 @@ export function liveGate(platform: Platform = getEnvironment()): Refusal | null 
     account,
     // The stores as they stand: the payer a Start now would choose.
     payer: accountPayer(account),
-  }, platform);
+  };
+}
+
+/**
+ * Why the line-up as the stores stand cannot run a session now, for the line-up's own surface: the composer's
+ * refusal of the stored line-up, else what its plan cannot do for the pair and the legs a start would open (a
+ * voice that does not speak a leg's target). Null when nothing about the line-up is refused, or while the plan
+ * is loading.
+ */
+export function lineUpRefusalFromStores(): PlanRefusal | null {
+  const state = planFromStores();
+  if (state.state === 'refused') return state.refusal;
+  const input = gateInputFromStores();
+  return input ? planRefusalFor(input) : null;
+}
+
+/** `lineUpRefusalFromStores` as the notice a surface words, with the stage it is about; null when nothing is refused. */
+export function lineUpNoticeFromStores(): (Refusal & { stage: PlanRefusal['stage'] }) | null {
+  const refusal = lineUpRefusalFromStores();
+  return refusal ? { ...planRefused(refusal), stage: refusal.stage } : null;
+}
+
+/** The runner's `planRefusal` in the app: why a start has no shape, when the stored line-up is why. */
+export function planRefusalFromStores(): Refusal | null {
+  const state = planFromStores();
+  return state.state === 'refused' ? planRefused(state.refusal) : null;
+}
+
+/**
+ * The start gate over the stores as they stand (F7): what a start would be
+ * refused before anything is checked — a stored line-up the composer cannot
+ * run, no leg, a turn mode the provider
+ * does not offer, the participant leg on the web or for a pair that does
+ * not reverse (D20), a voice that does not speak a leg's target, and a
+ * managed provider's wallet still loading,
+ * unknown, frozen or below its floor. The surfaces keep Start off and show
+ * why; the runner still gates the frozen shape at start. Null when nothing
+ * is refused, or while the plan is loading (`providerLoaded` keeps Start
+ * off then).
+ */
+export function liveGate(platform: Platform = getEnvironment()): Refusal | null {
+  // A stored line-up the composer refuses: Start stays off, and says the composer's reason.
+  const state = planFromStores();
+  if (state.state === 'refused') return planRefused(state.refusal);
+  const input = gateInputFromStores();
+  return input ? gate(input, platform) : null;
 }
 
 /** The runner's `ensureReady` in the app: one provider of the shape, with its own inputs from the shape, through the provider store's cache. */
 export function ensureReadyFromStores(provider: AnyProvider, shape: RunShape, signal: AbortSignal): Promise<Readiness> {
   const { settings, credentials } = accountOf(shape, provider);
+  // The stages it serves in the run's plan, when another provider serves the rest.
+  const stages = checkStagesOf(shape.plan, provider);
+  // The ids the run's frozen line-up gives those stages, when a stored line-up is what runs.
+  const stageIds = checkStageIdsOf(stages, shape.lineUpStored ? shape.lineUp : null);
   return useProviderStore.getState().refreshReadiness(
     provider, shape.auth,
-    { settings, credentials, pair: shape.pair, legs: shape.legs },
+    { settings, credentials, pair: shape.pair, legs: shape.legs, ...(stages ? { stages } : {}), ...(stageIds ? { stageIds } : {}) },
     signal,
   );
 }

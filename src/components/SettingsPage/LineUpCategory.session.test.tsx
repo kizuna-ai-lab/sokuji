@@ -123,18 +123,26 @@ describe('languages and line-up: the four cards', () => {
     expect(scss).toMatch(/&\.is-joint \{ border-color: vars\.\$color-primary; \}/);
   });
 
-  it("after a service change the cards' hints follow: states, the joint line and what moved", async () => {
+  it("after a service change the cards' hints follow: states and the joint line, and no other stage moves", async () => {
     useProviderStore.setState({ entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never });
     render(<LineUpCategory locked={false} />);
     expect(screen.getAllByText('Needs a key').length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText('Transcription and translation go over one connection; they change together.')).toBeInTheDocument();
 
+    // A voice of another service: Soniox keeps transcription and translation, and its card its hints.
     fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'edge' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'soniox', translation: 'soniox', speech: 'edge' }));
+    expect(screen.getByText('Transcription and translation go over one connection; they change together.')).toBeInTheDocument();
+    expect(screen.queryByText(/moved/)).toBeNull();
+    await waitFor(() => expect(states(cardOf('Speech'))).toEqual(['Ready']));
+
+    // Transcription to this device: Soniox's translation goes with it, over the one connection they shared.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'local_inference' } });
     await waitFor(() => expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'local_inference', translation: 'bing', speech: 'edge' }));
-    expect(await screen.findByText(/Transcription and translation moved/)).toBeInTheDocument();
     // The Soniox hints are gone with Soniox; each stage now has its own card and says Ready.
-    expect(screen.queryByText('Transcription and translation go over one connection; they change together.')).toBeNull();
+    await waitFor(() => expect(screen.queryByText('Transcription and translation go over one connection; they change together.')).toBeNull());
     expect(document.querySelector('.lineup-stage.is-joint')).toBeNull();
     for (const name of ['Transcription', 'Translation', 'Speech']) expect(states(cardOf(name))).toEqual(['Ready']);
   });
+
 });

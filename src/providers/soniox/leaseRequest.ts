@@ -5,12 +5,16 @@
  * (`ManagedSonioxSession.ts:707-711`), and its expansion into roles
  * (`BE:config/soniox.ts:372-393`). The floor (`kizunaBudget.ts`) prices
  * these roles and the lease (`lease.ts`) asks for them, so the two agree.
+ * The request reads whether the plan asks this provider for speech, not
+ * whether the run speaks: with another provider's voice it is a text-only
+ * session's request.
  *
  * Participant speech is built and shipped off (ruling 2): with the flag
  * on, the body carries the participant's intent and the roles gain
  * `par_tts`; with it off, the body is byte for byte today's.
  */
 import type { LegName } from '../../lib/conversation/types';
+import { servesSpeech } from '../../lib/plan/read';
 import type { Payer, RunShape } from '../../lib/session/types';
 import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSharedBoth, type SonioxSettings } from './settings';
@@ -38,21 +42,39 @@ export interface LeaseRequest {
   participantSpeaks?: boolean;
 }
 
-/** This start's request: its legs; the speaker's speech; split Both from the settings `startBoth` reads; the settings' region; and, the flag on, whether the participant speaks. */
+/** Kizuna AI's Soniox as a plan names it: the provider this request, its floor and its voice claim are for. */
+export const KIZUNA_SONIOX = { id: 'kizunaai_soniox' } as const;
+
+/**
+ * Whether this start asks Kizuna AI's Soniox for speech: its unit serves the plan's speech stage. With another
+ * provider's voice (Edge, a local model, Soniox with an own key) it does not, however much the run speaks. A shape
+ * that carries no plan is a session on Kizuna AI's Soniox alone.
+ */
+export function asksSpeech(shape: Partial<Pick<RunShape, 'plan'>>): boolean {
+  return shape.plan === undefined || servesSpeech(shape.plan, KIZUNA_SONIOX);
+}
+
+/**
+ * This start's request: its legs; the speaker's speech, when the plan asks this provider for it; split Both from
+ * the settings `startBoth` reads; the settings' region; and, the flag on, whether the participant speaks through
+ * this provider. A plan that gives speech to another provider makes it exactly a text-only session's request: no
+ * speech role is asked for.
+ */
 export function leaseRequest(
-  shape: Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace'>,
+  shape: Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace'> & Partial<Pick<RunShape, 'plan'>>,
   s: Pick<SonioxSettings, 'region' | 'bothModeSharedSession'>,
   participantSpeech: boolean,
 ): LeaseRequest {
   const both = shape.legs.length === 2;
+  const speech = asksSpeech(shape);
   return {
     mode: both ? 'both' : shape.legs[0] === 'participant' ? 'participant' : 'speaker',
-    textOnly: !shape.legs.includes('speaker') || shape.textOnly,
+    textOnly: !speech || !shape.legs.includes('speaker') || shape.textOnly,
     // Must agree with the adapter's `config.sharedBoth` (`startBoth`): both read the settings the run built from,
     // and face-to-face is always one shared stream (`buildSoniox`).
     bothSplit: both && !sonioxSharedBoth(shape.faceToFace === true, s),
     region: asSonioxRegion(s.region),
-    ...(participantSpeech ? { participantSpeaks: shape.legs.includes('participant') && shape.participantSpeech } : {}),
+    ...(participantSpeech ? { participantSpeaks: speech && shape.legs.includes('participant') && shape.participantSpeech } : {}),
   };
 }
 

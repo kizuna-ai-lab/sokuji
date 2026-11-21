@@ -116,6 +116,17 @@ export interface CheckContext {
   pair: LanguagePair;
   /** The legs a run would open, speaker first: the participant leg runs the pair's reverse. */
   legs: readonly LegName[];
+  /**
+   * The stages this provider serves in the plan, when another provider serves the rest: a provider that only
+   * speaks needs nothing it would need to transcribe. Absent: every stage it can serve.
+   */
+  stages?: readonly RunStage[];
+  /**
+   * The line-up id each of `stages` was given to, where the plan runs a stored line-up: a provider that runs a
+   * stage in more than one way reads which here (the local provider: Bing or a local model, Edge or a local voice).
+   * Absent: `stages` is absent, or no stored line-up is what runs.
+   */
+  stageIds?: Readonly<Partial<StageIds>>;
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }

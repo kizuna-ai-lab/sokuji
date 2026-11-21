@@ -49,6 +49,8 @@ vi.mock('../services/providers/astGuard', () => ({
 
 import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent, runUnstored } from './lineUpStore';
 import { useProviderStore } from './providerStore';
+import useLogStore from './logStore';
+import { settleReports } from '../lib/diagnostics/report';
 import { registerPresentProviders } from '../lib/plan/present';
 import { stubHosts, stubProvider } from '../lib/plan/testing';
 
@@ -228,6 +230,34 @@ describe('the line-up store', () => {
     expect(useLineUpStore.getState().unstoredProvider).toBeNull();
   });
 
+  // The provider that runs may change while the migration waits for the scan (the development preview's picker).
+  it('the local migration writes nothing over a provider that came to run while it waited for the scan', async () => {
+    let finishScan!: () => void;
+    model.scan = new Promise<void>((resolve) => { finishScan = resolve; });
+    stored.set(PROVIDER_KEY, 'local_inference');
+    useProviderStore.setState({ entries: { local_inference: localEntry } as never });
+    await useLineUpStore.getState().load();
+    expect(runUnstored('openai')).toBe(true);
+    finishScan();
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'openai', lineUp: { transcription: 'openai' } });
+    expect(setSetting).not.toHaveBeenCalledWith(LINEUP_KEY, expect.anything());
+  });
+
+  it('the local migration shows nothing over a provider that came to run while its line-up was being written', async () => {
+    stored.set(PROVIDER_KEY, 'local_inference');
+    useProviderStore.setState({ entries: { local_inference: localEntry } as never });
+    let release!: () => void;
+    setSetting.mockImplementation((key: string, value: unknown) =>
+      new Promise((resolve) => { release = () => { stored.set(key, value); resolve({ success: true }); }; }));
+    await useLineUpStore.getState().load();
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith(LINEUP_KEY, expect.anything()));
+    expect(runUnstored('openai')).toBe(true);
+    release();
+    await new Promise((resolve) => { setTimeout(resolve, 0); });
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'openai', lineUp: { transcription: 'openai' } });
+  });
+
   it('works out the local line-up as a session would, through the AST guard', async () => {
     model.resolved = { translation: 'granite-speech', tts: 'edge-tts' };
     guard.translation = 'bing-translator'; // today's guard drops a mismatched Granite pick back to automatic: Bing
@@ -261,6 +291,27 @@ describe('the line-up store', () => {
     expect(useLineUpStore.getState().stored).toBe(false);
   });
 
+  it("reports a local entry that would not load, and writes nothing: the next start tries again", async () => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    stored.set(PROVIDER_KEY, 'local_inference');
+    const load = vi.spyOn(useProviderStore.getState(), 'load').mockRejectedValue(new Error('disk'));
+    try {
+      await useLineUpStore.getState().load();
+      await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await settleReports();
+    } finally {
+      load.mockRestore();
+    }
+    const warnings = useLogStore.getState().allLogs.filter((l) => l.message.includes('line-up'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatchObject({ type: 'warning' });
+    expect(warnings[0].message).toContain('disk');
+    expect(setSetting).not.toHaveBeenCalled();
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'local_inference' });
+  });
+
   it('the first choice on a line-up that is shown but not stored yet stores it', async () => {
     model.scan = new Promise<void>(() => {});
     stored.set(PROVIDER_KEY, 'local_inference');
@@ -291,11 +342,28 @@ describe('the line-up store', () => {
   it('a choice stores the whole line-up, then the provider that transcribes beside it', async () => {
     stored.set(PROVIDER_KEY, 'soniox');
     useLineUpStore.setState({ lineUp: soniox, stored: true });
-    expect(await useLineUpStore.getState().choose('speech', 'edge')).not.toBeNull();
-    expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
+    expect(await useLineUpStore.getState().choose('transcription', 'local_inference')).not.toBeNull();
+    // Soniox's translation went with its transcription; its voice stays.
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { transcription: 'local_inference', translation: 'bing', speech: 'soniox', summarisation: null } });
     // For an older version of the app, which opens the stored provider: both keys, the line-up first.
     expect(stored.get(PROVIDER_KEY)).toBe('local_inference');
     expect(setSetting.mock.calls.map(([key]) => key)).toEqual([LINEUP_KEY, PROVIDER_KEY]);
+  });
+
+  it('a voice chosen under another provider\'s text is stored as chosen: nothing else moves, and the provider written is still the one that transcribes', async () => {
+    stored.set(PROVIDER_KEY, 'openai');
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    expect(await useLineUpStore.getState().choose('speech', 'edge')).toEqual({ lineUp: { ...soniox, speech: 'edge' }, moved: [] });
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { ...soniox, speech: 'edge' } });
+    expect(stored.get(PROVIDER_KEY)).toBe('soniox');
+  });
+
+  it('a choice the composer refuses is stored as chosen', async () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null }, stored: true });
+    // Kizuna AI's voice under own-key Soniox text: not offered alone, and still what the user chose.
+    expect(await useLineUpStore.getState().choose('transcription', 'soniox')).not.toBeNull();
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { ...soniox, speech: 'kizunaai_soniox' } });
+    expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'kizunaai_soniox' });
   });
 
   it('the provider written is the host of what transcribes, also when the choice was of another stage', async () => {
@@ -331,11 +399,11 @@ describe('the line-up store', () => {
     });
     const choosing = useLineUpStore.getState().choose('speech', 'edge');
     await new Promise((resolve) => { setTimeout(resolve, 0); });
-    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } });
     expect(stored.has(PROVIDER_KEY)).toBe(false);
     release();
     expect(await choosing).not.toBeNull();
-    expect(stored.get(PROVIDER_KEY)).toBe('local_inference');
+    expect(stored.get(PROVIDER_KEY)).toBe('soniox');
   });
 
   // A run that starts while the line-up is being saved froze the new line-up and locks it; a failed save is undone
@@ -353,7 +421,7 @@ describe('the line-up store', () => {
     fail();
     expect(await choosing).toBeNull();
     // The run goes on with what it started with.
-    expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'local_inference', speech: 'edge' });
+    expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'soniox', speech: 'edge' });
     useLineUpStore.getState().setLocked(false);
     expect(useLineUpStore.getState().lineUp).toEqual(soniox);
     expect(setSetting).not.toHaveBeenCalledWith(PROVIDER_KEY, expect.anything());
@@ -455,6 +523,53 @@ describe('replace (the setup wizard)', () => {
     useLineUpStore.setState({ locked: true });
     expect(await useLineUpStore.getState().replace(openaiLive)).toBe(false);
     expect(setSetting).not.toHaveBeenCalled();
+  });
+
+  // A run may start while the stored notes choice is being read: it froze the line-up of before, which stays.
+  it('is refused when a run started while it was reading, before anything is shown or written', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    let finishRead!: () => void;
+    getSetting.mockImplementationOnce(() => new Promise((resolve) => { finishRead = () => resolve(null); }));
+    const replacing = useLineUpStore.getState().replace(openaiLive);
+    await vi.waitFor(() => expect(getSetting).toHaveBeenCalled());
+    useLineUpStore.getState().setLocked(true);
+    finishRead();
+    expect(await replacing).toBe(false);
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: soniox });
+    expect(setSetting).not.toHaveBeenCalled();
+  });
+
+  // A run that starts while the line-up is being written froze the new line-up and locks it; a write that did not
+  // land is undone once the run ends, and until then the line-up stays what the run started with.
+  it('a line-up not stored while a run started is put back when the run ends', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: false, unstoredProvider: 'soniox' });
+    let fail!: () => void;
+    setSetting.mockImplementation(() => new Promise((resolve) => { fail = () => resolve({ success: false }); }));
+    const replacing = useLineUpStore.getState().replace(openaiLive);
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalled());
+    useLineUpStore.getState().setLocked(true);
+    fail();
+    expect(await replacing).toBe(false);
+    // The run goes on with what it started with.
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: openaiLive });
+    useLineUpStore.getState().setLocked(false);
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'soniox', lineUp: soniox });
+    expect(setSetting).not.toHaveBeenCalledWith(PROVIDER_KEY, expect.anything());
+  });
+
+  it('a line-up not stored is not put back over one that was shown after it', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
+    let fail!: () => void;
+    setSetting.mockImplementation(() => new Promise((resolve) => { fail = () => resolve({ success: false }); }));
+    const replacing = useLineUpStore.getState().replace(openaiLive);
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalled());
+    useLineUpStore.getState().setLocked(true);
+    fail();
+    expect(await replacing).toBe(false);
+    const later = { ...soniox, speech: 'edge' };
+    useLineUpStore.setState({ lineUp: later });
+    useLineUpStore.getState().setLocked(false);
+    expect(useLineUpStore.getState().lineUp).toBe(later);
   });
 
   it('says so when the write did not land', async () => {

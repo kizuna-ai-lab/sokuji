@@ -396,7 +396,7 @@ describe("the line-up a run froze at its start", () => {
   it("a line-up whose text is another provider's answers for the stage this provider serves, and one that gives it no stage says nothing", () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
     buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } }));
-    expect(stagesSeen()).toEqual([{ translation: 'local', speech: 'edge' }]);
+    expect(stagesSeen()).toEqual([{ translation: null, speech: 'edge' }]);
     mockResolve.mockClear();
     buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox' } }));
     expect(stagesSeen()).toEqual([null]);
