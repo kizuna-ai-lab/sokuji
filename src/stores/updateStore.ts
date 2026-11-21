@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { currentRunPhase } from '../app/runPhase';
 import { isElectron } from '../utils/environment';
 
 export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
@@ -33,6 +34,8 @@ interface UpdateState {
    * none of these.
    */
   errorFrom: UpdateErrorFrom | null;
+  /** Who started the check now running or last run: the user (Check for Updates), or the app itself after launch. */
+  lastCheckBy: 'user' | 'auto';
 }
 
 interface UpdateActions {
@@ -51,6 +54,8 @@ type UpdateStore = UpdateState & UpdateActions;
 // Store handler references for cleanup
 let statusHandler: ((...args: any[]) => void) | null = null;
 let progressHandler: ((...args: any[]) => void) | null = null;
+/** Counts the checks the user started here, so that a check's timeout knows whether it is still the latest. */
+let checkSeq = 0;
 
 const useUpdateStore = create<UpdateStore>()(
   subscribeWithSelector((set, get) => ({
@@ -72,16 +77,19 @@ const useUpdateStore = create<UpdateStore>()(
     bannerDismissed: false,
     dialogOpen: false,
     errorFrom: null,
+    lastCheckBy: 'auto',
 
     // Actions
     checkForUpdates: () => {
       if (!isElectron()) return;
-      set({ status: 'checking', bannerDismissed: false });
+      set({ status: 'checking', bannerDismissed: false, lastCheckBy: 'user' });
       (window as any).electron?.invoke('update-check');
-      // Timeout: if no response in 15s, reset to idle (e.g. dev mode without AppImage)
+      // Timeout: if no response in 15s, reset to idle (e.g. dev mode without AppImage).
+      // Only this check's own: an earlier check's timer must not end a later check.
+      const mine = ++checkSeq;
       setTimeout(() => {
-        if (get().status === 'checking') {
-          set({ status: 'idle' });
+        if (mine === checkSeq && get().status === 'checking') {
+          set({ status: 'idle', lastCheckBy: 'auto' });
         }
       }, 15_000);
     },
@@ -144,10 +152,26 @@ const useUpdateStore = create<UpdateStore>()(
         if (data.debUrl !== undefined) update.debUrl = data.debUrl;
         if (data.releasePageUrl !== undefined) update.releasePageUrl = data.releasePageUrl;
 
+        // A check the main process says the user asked for (the Help menu) is the user's. Any other one the
+        // user did not start here (the store is not already `checking`) is the app's own.
+        if (data.status === 'checking') {
+          if (data.by === 'user') {
+            update.lastCheckBy = 'user';
+            // A newer check than any started here: an earlier one's timeout must not end it.
+            checkSeq++;
+          }
+          else if (get().status !== 'checking') update.lastCheckBy = 'auto';
+        }
+
         // Reset banner dismissed when new update is available
         if (data.status === 'available') {
           update.bannerDismissed = false;
+          // The update's notes open with the news: always for a check the user asked for, and for the app's own
+          // check only while no session is on, so that a session is never covered. The banner opens them later.
+          if (get().status !== 'available' && (get().lastCheckBy === 'user' || currentRunPhase() === 'idle')) update.dialogOpen = true;
         }
+        // The check is over: what is found later, with no check announced, is not the user's.
+        if (data.status === 'available' || data.status === 'not-available' || data.status === 'error') update.lastCheckBy = 'auto';
 
         // What an error interrupted; a repeated error (one failure reported twice) keeps the first's.
         if (data.status === 'error') {
@@ -194,6 +218,18 @@ const useUpdateStore = create<UpdateStore>()(
 
 // Individual selectors (following logStore.ts pattern — avoids new object refs on every render)
 export const useUpdateStatus = () => useUpdateStore(state => state.status);
+
+/**
+ * The status the banner and the dialog draw: a failed download is `available` again (Download Now is the retry),
+ * a failed install stays `downloaded`; any other error is drawn as it is (Ruling 9).
+ */
+export function shownUpdateStatus(status: UpdateStatus, errorFrom: UpdateErrorFrom | null): UpdateStatus {
+  if (status !== 'error') return status;
+  if (errorFrom === 'downloading') return 'available';
+  if (errorFrom === 'downloaded') return 'downloaded';
+  return status;
+}
+export const useShownUpdateStatus = () => useUpdateStore(state => shownUpdateStatus(state.status, state.errorFrom));
 export const useUpdateNewVersion = () => useUpdateStore(state => state.newVersion);
 export const useUpdateChangelog = () => useUpdateStore(state => state.changelog);
 export const useUpdateProgressPercent = () => useUpdateStore(state => state.downloadProgress);

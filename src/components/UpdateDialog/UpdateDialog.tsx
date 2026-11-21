@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isElectron } from '../../utils/environment';
 import {
-  useUpdateStatus,
+  useShownUpdateStatus,
   useUpdateNewVersion,
   useUpdateChangelog,
   useUpdateProgressPercent,
@@ -23,7 +23,8 @@ import './UpdateDialog.scss';
 
 const UpdateDialog: React.FC = () => {
   const { t } = useTranslation();
-  const status = useUpdateStatus();
+  // As the banner draws it: after a failed download or install the dialog still shows the update and its way on.
+  const status = useShownUpdateStatus();
   const newVersion = useUpdateNewVersion();
   const changelog = useUpdateChangelog();
   const percent = useUpdateProgressPercent();

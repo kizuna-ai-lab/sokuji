@@ -6,9 +6,9 @@ import {
   useAudioSystemRepairing, useAudioSystemRetry, useAudioSystemRetrying, useAudioSystemStatus,
 } from '../../stores/audioSystemStore';
 import {
-  useDismissBanner, useDownloadUpdate, useInstallUpdate, useOpenUpdateDialog, useUpdateBannerDismissed, useUpdateErrorFrom,
+  useDismissBanner, useDownloadUpdate, useInstallUpdate, useOpenUpdateDialog, useShownUpdateStatus, useUpdateBannerDismissed,
   useUpdateNewVersion, useUpdateProgressPercent,
-  useUpdateProgressIndeterminate, useUpdateStatus, useUpdateSupportsAutoUpdate,
+  useUpdateProgressIndeterminate, useUpdateSupportsAutoUpdate,
 } from '../../stores/updateStore';
 import { useRegionHint } from '../Region/useRegionHint';
 import { Banner, type BannerProps } from './Banner';
@@ -55,13 +55,8 @@ export function useBanners(): BannerProps[] {
     });
   }
 
-  const storeStatus = useUpdateStatus();
-  const errorFrom = useUpdateErrorFrom();
   // A failed download is `available` again; a failed install stays `downloaded`; any other error draws nothing.
-  const status = storeStatus !== 'error' ? storeStatus
-    : errorFrom === 'downloading' ? 'available'
-    : errorFrom === 'downloaded' ? 'downloaded'
-    : storeStatus;
+  const status = useShownUpdateStatus();
   const newVersion = useUpdateNewVersion();
   const percent = useUpdateProgressPercent();
   const indeterminate = useUpdateProgressIndeterminate();
@@ -78,8 +73,9 @@ export function useBanners(): BannerProps[] {
       id: 'update', tone: 'brand', icon: <Download size={14} aria-hidden="true" />,
       text: supportsAutoUpdate ? t('update.available', { version: newVersion }) : t('update.linuxMigrateTitle', { version: newVersion }),
       // Auto-update builds download here; the others open the dialog, which holds the AppImage/deb links.
+      // Pressing the words opens the dialog with the update's notes, in every state of the update.
       action: supportsAutoUpdate ? { label: t('update.downloadNow'), onClick: downloadUpdate } : { label: t('update.goToDownload'), onClick: openDialog },
-      onDismiss: dismissBanner, dismissLabel,
+      onDismiss: dismissBanner, dismissLabel, onOpen: openDialog,
     });
   } else if (shown && status === 'downloading') {
     // Squirrel on Windows reports no byte counts: say so without a percentage and draw no bar.
@@ -87,12 +83,12 @@ export function useBanners(): BannerProps[] {
     const progress = indeterminate ? undefined : Math.min(100, Math.max(0, percent));
     banners.push({
       id: 'update', tone: 'brand', icon: <RefreshCw size={14} aria-hidden="true" className="spinning" />,
-      text, progress, dismissLabel,
+      text, progress, dismissLabel, onOpen: openDialog,
     });
   } else if (shown && status === 'downloaded') {
     banners.push({
       id: 'update', tone: 'brand', icon: <RefreshCw size={14} aria-hidden="true" />, text: t('update.downloaded'),
-      action: { label: t('update.restartNow'), onClick: installUpdate }, onDismiss: dismissBanner, dismissLabel,
+      action: { label: t('update.restartNow'), onClick: installUpdate }, onDismiss: dismissBanner, dismissLabel, onOpen: openDialog,
     });
   }
   const regionHint = useRegionHint();

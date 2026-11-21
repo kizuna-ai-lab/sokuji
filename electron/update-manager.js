@@ -463,6 +463,16 @@ class UpdateManager {
   /**
    * Public method to check for updates (used by Help menu).
    */
+  /**
+   * A check the user asked for outside the page (the Help menu): the page is
+   * told so before the check announces itself, since an update found by a
+   * check of the user's opens its notes also during a session.
+   */
+  checkForUpdatesByUser() {
+    this._sendStatus({ status: 'checking', by: 'user' });
+    return this.checkForUpdates();
+  }
+
   checkForUpdates() {
     return autoUpdater.checkForUpdates().catch((err) => {
       console.error('Update check failed:', err);

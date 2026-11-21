@@ -23,6 +23,12 @@
     flex: 1;
     min-width: 0;
     > svg { flex-shrink: 0; }
+
+    // The icon and the words open something (the update's notes).
+    &--opens {
+      cursor: pointer;
+      &:focus-visible { outline: 1px solid tk.$color-on-primary; outline-offset: 2px; border-radius: 2px; }
+    }
   }
 
   &__text {

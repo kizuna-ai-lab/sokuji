@@ -6,6 +6,7 @@ vi.mock('../utils/environment', async (importOriginal) => ({
   isElectron: () => true,
 }));
 
+import { registerRunPhase } from '../app/runPhase';
 import useUpdateStore from './updateStore';
 
 describe('updateStore', () => {
@@ -143,5 +144,123 @@ describe('indeterminate download', () => {
     const handlers = listen();
     handlers['update-status']({ status: 'downloading' });
     expect(useUpdateStore.getState().downloadIndeterminate).toBe(false);
+  });
+});
+
+// The update's notes open with the news of an update, unless a session would be covered by them.
+describe("the update's notes open when an update is found", () => {
+  let status: (data: Record<string, unknown>) => void = () => {};
+  beforeEach(() => {
+    registerRunPhase(() => 'idle');
+    useUpdateStore.setState({ status: 'idle', dialogOpen: false, bannerDismissed: false, errorFrom: null, lastCheckBy: 'auto' });
+    (window as unknown as { electron: unknown }).electron = {
+      receive: vi.fn((channel: string, fn: (data: Record<string, unknown>) => void) => { if (channel === 'update-status') status = fn; }),
+      removeListener: vi.fn(),
+      invoke: vi.fn(),
+    };
+    useUpdateStore.getState().initListeners();
+  });
+  afterEach(() => {
+    useUpdateStore.getState().cleanupListeners();
+    delete (window as unknown as { electron?: unknown }).electron;
+    registerRunPhase(() => 'idle');
+    vi.useRealTimers();
+  });
+
+  it("opens them for the app's own check after launch, while no session is on", () => {
+    status({ status: 'checking' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState()).toMatchObject({ status: 'available', dialogOpen: true, lastCheckBy: 'auto' });
+  });
+
+  it("leaves them closed for the app's own check while a session is starting, running or stopping", () => {
+    for (const phase of ['starting', 'running', 'stopping'] as const) {
+      useUpdateStore.setState({ status: 'idle', dialogOpen: false });
+      registerRunPhase(() => phase);
+      status({ status: 'checking' });
+      status({ status: 'available', version: '0.52.0' });
+      expect(useUpdateStore.getState()).toMatchObject({ status: 'available', dialogOpen: false });
+    }
+  });
+
+  it('opens them for a check the user asked for, also during a session', () => {
+    vi.useFakeTimers();
+    registerRunPhase(() => 'running');
+    useUpdateStore.getState().checkForUpdates();
+    expect(useUpdateStore.getState().lastCheckBy).toBe('user');
+    // The main process announces the check it was asked for: still the user's.
+    status({ status: 'checking' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState()).toMatchObject({ dialogOpen: true, lastCheckBy: 'auto' });
+  });
+
+  it("an update announced with no check before it, after a check the user asked for ended, is the app's own", () => {
+    vi.useFakeTimers();
+    useUpdateStore.getState().checkForUpdates();
+    status({ status: 'not-available' });
+    registerRunPhase(() => 'running');
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState().dialogOpen).toBe(false);
+  });
+
+  it('a check the user asked for that never answers is forgotten with its timeout', () => {
+    vi.useFakeTimers();
+    useUpdateStore.getState().checkForUpdates();
+    vi.advanceTimersByTime(15_000);
+    expect(useUpdateStore.getState()).toMatchObject({ status: 'idle', lastCheckBy: 'auto' });
+  });
+
+  it("a later check of the app's own is its own again", () => {
+    vi.useFakeTimers();
+    useUpdateStore.getState().checkForUpdates();
+    status({ status: 'not-available' });
+    registerRunPhase(() => 'running');
+    status({ status: 'checking' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState()).toMatchObject({ dialogOpen: false, lastCheckBy: 'auto' });
+  });
+
+  it("opens them during a session for a check the main process says the user asked for (the Help menu)", () => {
+    registerRunPhase(() => 'running');
+    status({ status: 'checking', by: 'user' });
+    expect(useUpdateStore.getState().lastCheckBy).toBe('user');
+    // The check announcing itself afterwards does not make it the app's own.
+    status({ status: 'checking' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState().dialogOpen).toBe(true);
+  });
+
+  it("an earlier check's timeout does not end a later check the user asked for", () => {
+    vi.useFakeTimers();
+    registerRunPhase(() => 'running');
+    useUpdateStore.getState().checkForUpdates();
+    status({ status: 'not-available' });
+    vi.advanceTimersByTime(10_000);
+    useUpdateStore.getState().checkForUpdates();
+    // The first check's 15 s are up while the second is still unanswered.
+    vi.advanceTimersByTime(5_000);
+    expect(useUpdateStore.getState()).toMatchObject({ status: 'checking', lastCheckBy: 'user' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState().dialogOpen).toBe(true);
+  });
+
+  it("an earlier check's timeout does not end a later check asked for from the Help menu", () => {
+    vi.useFakeTimers();
+    registerRunPhase(() => 'running');
+    useUpdateStore.getState().checkForUpdates();
+    status({ status: 'not-available' });
+    vi.advanceTimersByTime(10_000);
+    status({ status: 'checking', by: 'user' });
+    vi.advanceTimersByTime(5_000);
+    expect(useUpdateStore.getState()).toMatchObject({ status: 'checking', lastCheckBy: 'user' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState().dialogOpen).toBe(true);
+  });
+
+  it('does not open them again for an update already announced, once closed', () => {
+    status({ status: 'available', version: '0.52.0' });
+    useUpdateStore.getState().closeDialog();
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState().dialogOpen).toBe(false);
   });
 });
