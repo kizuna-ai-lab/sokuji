@@ -18,8 +18,8 @@ import { expect, test } from '../support/test';
 // On the ordinary E2E build it is skipped: that build has no sign-in.
 //
 // What each checks: the sentences said are heard and translated (nine in ten, a real service being what it is),
-// History holds one record whose stages name the two services, and no connection to Soniox's own voice was ever
-// opened (the session asks Soniox for text only).
+// Edge's audio arrived for at least one translation, History holds one record whose stages name the two services,
+// and no connection to Soniox's own voice was ever opened (the session asks Soniox for text only).
 
 const KEY = process.env.E2E_SONIOX_KEY ?? '';
 const EMAIL = process.env.E2E_ACCOUNT_EMAIL ?? '';
@@ -38,6 +38,8 @@ const seed = (text: string) => ({
     'settings.lineup': lineUp(text),
     'settings.common.sourceLanguage': 'ja',
     'settings.common.targetLanguage': 'en',
+    // What is read aloud is kept for replay, so a row shows whether it has audio.
+    'settings.common.keepReplayAudio': 'true',
     'e2e.mic': 'speech',
   },
 });
@@ -79,6 +81,11 @@ async function runSession(sokuji: Sokuji): Promise<number[]> {
   }
   await page.waitForTimeout(8_000); // the last sentence's translation arriving
 
+  // Edge read something aloud. Soniox's voice is not asked for in this line-up, so a row's audio is Edge's: a row
+  // can be replayed only once Edge's audio for it has arrived. One row is enough: Edge now and then refuses a
+  // sentence, which leaves that row without audio.
+  await expect(page.getByRole('button', { name: "Play this item's audio", disabled: false }).first()).toBeVisible({ timeout: 30_000 });
+
   await mainAction(page).click();
   await expect(mainAction(page)).toHaveText(/^\s*(Start Session|Start)\s*$/, { timeout: 60_000 });
   await expect(mainAction(page)).toBeEnabled({ timeout: 60_000 });
@@ -97,8 +104,10 @@ function checkOutcome(sokuji: Sokuji, text: string, spoken: readonly number[], s
 
   const { heard, translated } = heardAndTranslated(record, spoken);
   test.info().annotations.push({ type: 'sentences said / heard / translated', description: `${spoken.length} / ${heard} / ${translated}` });
-  expect(heard).toBeGreaterThanOrEqual(Math.floor(spoken.length * 0.9));
-  expect(translated).toBeGreaterThanOrEqual(Math.floor(spoken.length * 0.9));
+  // Nine in ten, rounded up: of 16 sentences, 15.
+  const enough = Math.ceil(spoken.length * 0.9);
+  expect(heard).toBeGreaterThanOrEqual(enough);
+  expect(translated).toBeGreaterThanOrEqual(enough);
 
   // Soniox was reached for the text, and never for its voice.
   expect(sockets.some((address) => address.endsWith('/transcribe-websocket')), 'a connection to Soniox for transcription').toBe(true);
