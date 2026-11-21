@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
+import { currentRunPhase } from '../app/runPhase';
 import { isElectron } from '../utils/environment';
 
 export type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'not-available' | 'error';
@@ -33,6 +34,8 @@ interface UpdateState {
    * none of these.
    */
   errorFrom: UpdateErrorFrom | null;
+  /** Who started the check now running or last run: the user (Check for Updates), or the app itself after launch. */
+  lastCheckBy: 'user' | 'auto';
 }
 
 interface UpdateActions {
@@ -72,16 +75,17 @@ const useUpdateStore = create<UpdateStore>()(
     bannerDismissed: false,
     dialogOpen: false,
     errorFrom: null,
+    lastCheckBy: 'auto',
 
     // Actions
     checkForUpdates: () => {
       if (!isElectron()) return;
-      set({ status: 'checking', bannerDismissed: false });
+      set({ status: 'checking', bannerDismissed: false, lastCheckBy: 'user' });
       (window as any).electron?.invoke('update-check');
       // Timeout: if no response in 15s, reset to idle (e.g. dev mode without AppImage)
       setTimeout(() => {
         if (get().status === 'checking') {
-          set({ status: 'idle' });
+          set({ status: 'idle', lastCheckBy: 'auto' });
         }
       }, 15_000);
     },
@@ -144,10 +148,18 @@ const useUpdateStore = create<UpdateStore>()(
         if (data.debUrl !== undefined) update.debUrl = data.debUrl;
         if (data.releasePageUrl !== undefined) update.releasePageUrl = data.releasePageUrl;
 
+        // A check the user did not start (the store is not already `checking`) is the app's own.
+        if (data.status === 'checking' && get().status !== 'checking') update.lastCheckBy = 'auto';
+
         // Reset banner dismissed when new update is available
         if (data.status === 'available') {
           update.bannerDismissed = false;
+          // The update's notes open with the news: always for a check the user asked for, and for the app's own
+          // check only while no session is on, so that a session is never covered. The banner opens them later.
+          if (get().status !== 'available' && (get().lastCheckBy === 'user' || currentRunPhase() === 'idle')) update.dialogOpen = true;
         }
+        // The check is over: what is found later, with no check announced, is not the user's.
+        if (data.status === 'available' || data.status === 'not-available' || data.status === 'error') update.lastCheckBy = 'auto';
 
         // What an error interrupted; a repeated error (one failure reported twice) keeps the first's.
         if (data.status === 'error') {

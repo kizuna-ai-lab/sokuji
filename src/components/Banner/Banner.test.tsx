@@ -21,6 +21,32 @@ describe('Banner', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
+  it('opens what it has to open when its icon or words are pressed, with the keyboard too, and not when its buttons are', () => {
+    const onOpen = vi.fn(); const onClick = vi.fn(); const onDismiss = vi.fn();
+    const { container } = render(
+      <Banner id="update" tone="brand" icon={<i data-testid="icon" />} text="New version" action={{ label: 'Download Now', onClick }} onDismiss={onDismiss} dismissLabel="Dismiss" onOpen={onOpen} />,
+    );
+    const content = container.querySelector('.banner__content') as HTMLElement;
+    expect(content.getAttribute('role')).toBe('button');
+    expect(content.tabIndex).toBe(0);
+    fireEvent.click(container.querySelector('.banner__text')!);
+    fireEvent.keyDown(content, { key: 'Enter' });
+    fireEvent.keyDown(content, { key: ' ' });
+    fireEvent.keyDown(content, { key: 'a' });
+    expect(onOpen).toHaveBeenCalledTimes(3);
+    fireEvent.click(container.querySelector('.banner__btn')!);
+    fireEvent.click(container.querySelector('.banner__dismiss')!);
+    expect(onOpen).toHaveBeenCalledTimes(3);
+  });
+
+  it('is not pressed anywhere but its buttons when it has nothing to open', () => {
+    const { container } = render(<Banner id="x" tone="attention" icon={<i />} text="body" dismissLabel="Dismiss" />);
+    const content = container.querySelector('.banner__content') as HTMLElement;
+    expect(content.className).toBe('banner__content');
+    expect(content.getAttribute('role')).toBeNull();
+    expect(content.getAttribute('tabindex')).toBeNull();
+  });
+
   it('a busy action is disabled; no onDismiss means no dismiss button; progress draws a bar', () => {
     const { container } = render(
       <Banner id="x" tone="brand" icon={null} text="downloading" action={{ label: 'Wait', onClick: vi.fn(), busy: true }} progress={42} dismissLabel="Dismiss" />,

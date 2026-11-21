@@ -75,6 +75,15 @@ describe('Banners — the update (spec 2026-10-05 §4)', () => {
     fireEvent.click(container.querySelector('.banner__dismiss')!);
     expect(useUpdateStore.getState().dismissBanner).toHaveBeenCalled();
   });
+  it("pressing the update's words opens its notes, whatever the update's state; the audio banner opens nothing", () => {
+    for (const status of ['available', 'downloading', 'downloaded'] as const) {
+      update({ status });
+      const { container, unmount } = render(<Banners />);
+      fireEvent.click(container.querySelector('.banner--brand .banner__text')!);
+      unmount();
+    }
+    expect(useUpdateStore.getState().openDialog).toHaveBeenCalledTimes(3);
+  });
   it('available without auto-update: the Linux title and Go to Download opens the dialog', () => {
     update({ status: 'available', supportsAutoUpdate: false });
     render(<Banners />);

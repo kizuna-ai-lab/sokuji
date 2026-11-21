@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { X } from 'lucide-react';
 import './Banner.scss';
 
@@ -14,20 +14,34 @@ export interface BannerProps {
   progress?: number;
   onDismiss?(): void;
   dismissLabel: string;
+  /** The icon and the words open something when pressed (the update's notes). */
+  onOpen?(): void;
 }
 
 /**
  * The one app-level banner (spec 2026-10-05 §4): an environment condition
  * unrelated to the session, drawn at the top of the panel. Today's
- * AudioSystemBanner geometry; the text is never a button — the action is.
+ * AudioSystemBanner geometry. The action is a button; the icon and the words
+ * are pressed only where the banner has something to open (`onOpen`).
  * Every line of words is an element of its own (a plain string is wrapped,
  * the action's label too): the stylesheet centres a line by trimming its box,
  * which cannot reach bare text inside a flex container.
  */
-export function Banner({ tone, icon, text, action, progress, onDismiss, dismissLabel }: BannerProps) {
+export function Banner({ tone, icon, text, action, progress, onDismiss, dismissLabel, onOpen }: BannerProps) {
+  // Pressed like a button, with the keyboard too. Its name is its own words.
+  const opens = onOpen
+    ? {
+        role: 'button', tabIndex: 0, onClick: onOpen,
+        onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+          if (e.key !== 'Enter' && e.key !== ' ') return;
+          e.preventDefault();
+          onOpen();
+        },
+      }
+    : {};
   return (
     <div className={`banner banner--${tone}`}>
-      <div className="banner__content">
+      <div className={onOpen ? 'banner__content banner__content--opens' : 'banner__content'} {...opens}>
         {icon}
         <div className="banner__text">{typeof text === 'string' ? <span>{text}</span> : text}</div>
         {progress !== undefined && (
