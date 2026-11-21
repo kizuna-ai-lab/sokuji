@@ -82,7 +82,7 @@ describe('Utterances', () => {
       { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1' } },
       { kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'u1' } },
       { kind: 'segmentText', payload: { ref: 1, text: 'Hi.', language: 'en' } },
-      { kind: 'segmentText', payload: { ref: 2, text: 'やあ。', language: 'ja' } },
+      { kind: 'segmentText', payload: { ref: 2, text: 'やあ。', stableLen: 3, language: 'ja' } },
     ]);
   });
 
@@ -99,7 +99,7 @@ describe('Utterances', () => {
   it('a partial translation is shown, never spoken', () => {
     const { machine, spoken, textsOf } = setup();
     machine.message([orig('x'), tr('部分', false)]);
-    expect(textsOf(2)).toEqual([{ ref: 2, text: '部分', language: 'ja' }]);
+    expect(textsOf(2)).toEqual([{ ref: 2, text: '部分', stableLen: 0, language: 'ja' }]);
     expect(spoken()).toEqual([]);
   });
 
@@ -137,7 +137,7 @@ describe('Utterances', () => {
 
     machine.message([tr('やあ。')]);
     expect(segments()).toContainEqual({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'u1' } });
-    expect(textsOf(2)).toEqual([{ ref: 2, text: 'やあ。', language: 'ja' }]);
+    expect(textsOf(2)).toEqual([{ ref: 2, text: 'やあ。', stableLen: 3, language: 'ja' }]);
     expect(calls.some(seg('segmentClosed', 2))).toBe(false);
 
     machine.message([orig('Next')]);
@@ -169,7 +169,7 @@ describe('Utterances', () => {
     machine.message([tr('。')]);
     expect(lastWhere(calls, seg('segmentText', 2))).toBeGreaterThan(where(seg('segmentClosed', 2)));
     const texts = textsOf(2);
-    expect(texts[texts.length - 1]).toEqual({ ref: 2, text: 'やあ。', language: 'ja' });
+    expect(texts[texts.length - 1]).toEqual({ ref: 2, text: 'やあ。', stableLen: 3, language: 'ja' });
     const chunks = spoken();
     expect(chunks[chunks.length - 1]).toEqual([2, '。', [2, 3], 'ja']);
     const lastSpeak = lastWhere(calls, (c) => 'speak' in c);
@@ -295,7 +295,7 @@ describe('Utterances', () => {
     const closed = where(seg('segmentClosed', 2));
     const opened = where(seg('segmentOpened', 3));
     const endSpeech = where(ended(2));
-    expect(calls[text]).toEqual({ leg: 'speaker', segment: { kind: 'segmentText', payload: { ref: 2, text: 'やあ。', language: 'ja' } } });
+    expect(calls[text]).toEqual({ leg: 'speaker', segment: { kind: 'segmentText', payload: { ref: 2, text: 'やあ。', stableLen: 3, language: 'ja' } } });
     expect(calls[speak]).toEqual({ leg: 'speaker', speak: [2, 'やあ。', [0, 3], 'ja'] });
     expect(calls[closed]).toEqual({ leg: 'speaker', segment: { kind: 'segmentClosed', payload: { ref: 2, origin: 'u1' } } });
     expect(calls[opened]).toEqual({ leg: 'speaker', segment: { kind: 'segmentOpened', payload: { ref: 3, side: 'source', origin: 'u2' } } });
@@ -311,7 +311,7 @@ describe('Utterances', () => {
     const before = calls.length;
     machine.message([tr('。'), orig('Next')]);
     const late = calls.slice(before, where(seg('segmentOpened', 3)));
-    expect(late).toContainEqual({ leg: 'speaker', segment: { kind: 'segmentText', payload: { ref: 2, text: 'やあ。', language: 'ja' } } });
+    expect(late).toContainEqual({ leg: 'speaker', segment: { kind: 'segmentText', payload: { ref: 2, text: 'やあ。', stableLen: 3, language: 'ja' } } });
     expect(late).toContainEqual({ leg: 'speaker', speak: [2, '。', [2, 3], 'ja'] });
     expect(late).toContainEqual({ leg: 'speaker', endSpeech: 2 });
     expect(late.findIndex(said('。'))).toBeLessThan(late.findIndex(ended(2)));
@@ -341,7 +341,7 @@ describe('Utterances', () => {
     expect(calls).toHaveLength(before);
     machine.message([tr('やあ。')]);
     expect(segments()).toContainEqual({ kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'u1' } });
-    expect(segments()).toContainEqual({ kind: 'segmentText', payload: { ref: 2, text: 'やあ。', language: 'ja' } });
+    expect(segments()).toContainEqual({ kind: 'segmentText', payload: { ref: 2, text: 'やあ。', stableLen: 3, language: 'ja' } });
   });
 
   it('a translation token after the grace closed its translation revises it, and is spoken', () => {
@@ -352,7 +352,7 @@ describe('Utterances', () => {
     machine.message([tr('あ。')]);
     expect(lastWhere(calls, seg('segmentText', 2))).toBeGreaterThan(where(seg('segmentClosed', 2)));
     const texts = textsOf(2);
-    expect(texts[texts.length - 1]).toEqual({ ref: 2, text: 'やあ。', language: 'ja' });
+    expect(texts[texts.length - 1]).toEqual({ ref: 2, text: 'やあ。', stableLen: 3, language: 'ja' });
     const chunks = spoken();
     expect(chunks[chunks.length - 1]).toEqual([2, 'あ。', [1, 3], 'ja']);
     const lastSpeak = lastWhere(calls, (c) => 'speak' in c);
@@ -399,7 +399,7 @@ describe('Utterances', () => {
       { kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'u1', person: '1.2' } },
       { kind: 'segmentOpened', payload: { ref: 2, side: 'translation', origin: 'u1', person: '1.2' } },
       { kind: 'segmentText', payload: { ref: 1, text: 'Hello', language: 'en', person: '1.2' } },
-      { kind: 'segmentText', payload: { ref: 2, text: 'こんにちは', language: 'ja', person: '1.2' } },
+      { kind: 'segmentText', payload: { ref: 2, text: 'こんにちは', stableLen: 5, language: 'ja', person: '1.2' } },
     ]);
   });
 

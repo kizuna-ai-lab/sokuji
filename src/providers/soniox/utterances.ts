@@ -276,15 +276,26 @@ export class Utterances {
     this.closeTranslation(p);
   }
 
+  /**
+   * Hands speech the final translation text it has not had yet, as one chunk. The translation's text says the
+   * same to a reader of the segments alone: the snapshot that follows states the new stable length, and the
+   * stretch is in the language that snapshot names. Where it would name another (a run handed over before a
+   * language switch, finals beside a partial in another language), the stretch gets a snapshot of its own here.
+   */
   private speakFinals(u: Utterance): void {
     if (u.translationRef === undefined) return;
     const from = u.spokenUpTo;
     const to = u.translationFinal.length;
     if (to <= from) return;
     u.spokenUpTo = to;
-    this.o.sink.speak(u.leg, u.translationRef, u.translationFinal.slice(from, to), [from, to], u.speechLanguage ?? this.o.targetFor(u.leg));
-    // A late chunk on a closed translation: nothing more follows it.
-    if (u.translation === 'closed') this.o.sink.endSpeech(u.leg, u.translationRef);
+    const language = u.speechLanguage ?? this.o.targetFor(u.leg);
+    this.o.sink.speak(u.leg, u.translationRef, u.translationFinal.slice(from, to), [from, to], language);
+    if (u.translation === 'closed') {
+      // A late chunk on a closed translation: nothing more follows it.
+      this.o.sink.endSpeech(u.leg, u.translationRef);
+    } else if (u.translationLanguage !== undefined && u.translationLanguage !== language) {
+      this.emit(u, { kind: 'segmentText', payload: { ref: u.translationRef, text: u.translationFinal, stableLen: to, language, ...personField(u) } });
+    }
   }
 
   private show(u: Utterance, sourcePartial: string, translationPartial: string): void {
@@ -307,10 +318,12 @@ export class Utterances {
   private showTranslation(u: Utterance, partial: string): void {
     if (u.translationRef === undefined) return;
     const text = u.translationFinal + partial;
-    const key = JSON.stringify([text, u.translationLanguage, personOf(u)]);
+    // How much is final is part of what is stated: a partial that turns final with the same words is a new snapshot.
+    const stableLen = u.translationFinal.length;
+    const key = JSON.stringify([text, u.translationLanguage, personOf(u), stableLen]);
     if (key === u.translationShown) return;
     u.translationShown = key;
-    this.emit(u, { kind: 'segmentText', payload: { ref: u.translationRef, text, ...(u.translationLanguage ? { language: u.translationLanguage } : {}), ...personField(u) } });
+    this.emit(u, { kind: 'segmentText', payload: { ref: u.translationRef, text, stableLen, ...(u.translationLanguage ? { language: u.translationLanguage } : {}), ...personField(u) } });
   }
 
   private emit(u: Utterance, event: SegmentEvent): void {
