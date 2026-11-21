@@ -14,6 +14,9 @@ import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
+import { refusalNotice } from '../../lib/plan/checks';
+import { refusedChoice } from '../../lib/plan/choice';
+import type { ComposeInput } from '../../lib/plan/compose';
 import { usePlan } from '../../lib/plan/fromStores';
 import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
 import { noticeText } from '../../lib/view/noticeText';
@@ -133,15 +136,27 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
 
   const stageName = (s: StageName) => stageInSentence(t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage] ?? s), i18n?.language ?? 'en');
 
+  // What the composer is asked with for a choice not made yet: a provider whose entry has not loaded answers under
+  // its default settings.
+  const composing: ComposeInput = { providers, settings: (id) => entries[id]?.settings ?? providers.find((p) => p.id === id)?.settings.defaults };
+
   const optionsFor = (stage: RunStage): ProviderOptionModel[] => {
-    void entries; // re-render when an entry loads, so the key state is current
     return providers.flatMap((p) => (p.id === 'local_inference' ? [p.id, 'bing', 'edge'] : [p.id]))
       .filter((id) => offered.has(id) && caps(id)?.stages.includes(stage))
       .map((id) => {
         const p = providers.find((x) => x.id === id);
-        const missing = credentialsMissing(p, auth.signedIn);
         const m = model(id, p);
-        if (missing && lineUp?.[stage] !== id) m.blocked = missing === 'key' ? t('settingsPage.lineup.needsKey', 'needs a key') : t('settingsPage.lineup.needsSignIn', 'needs a sign-in');
+        // The current choice is never held back: it is shown, and can be left.
+        if (lineUp?.[stage] === id) return m;
+        const missing = credentialsMissing(p, auth.signedIn);
+        if (missing) {
+          m.blocked = missing === 'key' ? t('settingsPage.lineup.needsKey', 'needs a key') : t('settingsPage.lineup.needsSignIn', 'needs a sign-in');
+          return m;
+        }
+        // A choice that would leave a line-up the composer refuses, the other stages as they are: said before it
+        // is made, in the refusal's own words.
+        const refused = lineUp ? refusedChoice(lineUp, stage, id, composing) : null;
+        if (refused) m.blocked = noticeText(t, refusalNotice(refused.refusal, refused.lineUp, providers));
         return m;
       });
   };

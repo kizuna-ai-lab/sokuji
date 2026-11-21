@@ -4,7 +4,7 @@ import { Info, Play, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
-import { ownProps, useProviderEntry, useStageProvider } from '../../providers/useProviderEntry';
+import { ownProps, useProviderEntry, useRunPair, useStageProvider } from '../../providers/useProviderEntry';
 import { openLocalVoices } from '../../providers/openTtsSlot';
 import { getAppAudio } from '../../../lib/audio/appAudio';
 import type { OutletName } from '../../../lib/audio/outlets';
@@ -51,6 +51,8 @@ function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
   const speechUnit = useStageUnit('speech');
   const speaking = useStageProvider(providers, 'speech');
   const selection = useProviderEntry(speechUnit?.provider ?? speaking);
+  // The voice named is the one for the session's pair, whichever provider speaks.
+  const runPair = useRunPair();
   const navigateToSettings = useNavigateToSettings();
   const Summary = selection?.provider.VoiceSummary;
   if (!speechUnit || !selection?.entry || !Summary) return null;
@@ -69,7 +71,7 @@ function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
     <div className="setting-row__voice">
       <span>{t('audioPanel.voiceLine', 'Voice')}</span>
       <button type="button" className="setting-row__voice-link" onClick={openVoices}>
-        <Summary {...ownProps(selection, selection.entry, locked)} leg={leg} />
+        <Summary {...ownProps(selection, selection.entry, locked, runPair)} leg={leg} />
       </button>
     </div>
   );
