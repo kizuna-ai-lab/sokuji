@@ -20,8 +20,8 @@ const LANGUAGES: readonly LanguageOption[] = [
 // against D24, "compiled into development builds only" (final review, M1).
 let adapter: Adapter<FakeConfig, FakeCredentials> | null = null;
 
-/** The fake's language lists: `AUTO` and three languages as sources, never a source as its own target. */
-export const FAKE_LANGUAGES: Provider<FakeSettings, FakeCredentials, FakeConfig>['languages'] = {
+/** The fakes' language lists, whatever their settings: `AUTO` and three languages as sources, never a source as its own target. */
+export const FAKE_LANGUAGES: Provider<unknown, FakeCredentials, FakeConfig>['languages'] = {
   sources: () => [{ value: AUTO }, ...LANGUAGES],
   targets: (source) => LANGUAGES.filter((l) => l.value !== source),
   wire: identityWire(),
