@@ -11,7 +11,7 @@ import { stageIdsFor } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
-import { accountOf, capabilitiesOf, checkStageIdsOf, checkStagesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, checkStageIdsOf, checkStagesOf, providersIn, servesSpeech, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import type { PlanRefusal, UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
@@ -27,7 +27,7 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment } from '../../utils/environment';
 import { buildSharedSettings } from './shared';
-import { gate, participantSpeechInput, planRefusalFor, speakFor, type GateInput, type Refusal, type SpeechInputs } from './shape';
+import { gate, participantSpeechInput, planRefusalFor, speakFor, type GateInput, type Refusal, type Speaking, type SpeechInputs } from './shape';
 import type { RunShape } from './types';
 
 export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
@@ -138,11 +138,30 @@ export function speechInputsFromStores(): SpeechInputs {
   };
 }
 
-/** Keeps the provider store's speech inputs on the stores', now and on every change, so each provider's pair is one its run could start. Returns the unsubscribe. */
+/**
+ * Whether each provider of the plan speaks, as the stores stand, for its own language lists: the speech unit's
+ * rules under the provider that serves the speech stage, and never under any other, which is read by that
+ * provider's voice and asked its text offer (`contextFor`). None until the plan is ready: each provider then
+ * answers with its own.
+ */
+export function speakersFromStores(): Record<string, Speaking> {
+  const found = planFromStores();
+  if (found.state !== 'ready') return {};
+  const { speech, participantSpeech } = capabilitiesOf(found, 'speech');
+  return Object.fromEntries(providersIn(found.plan).map((p) => [p.id, servesSpeech(found.plan, p) ? { speech, participantSpeech } : { speech: 'never' }]));
+}
+
+/**
+ * Keeps the provider store's speech inputs on the stores', and who speaks for each provider of the plan, now and
+ * on every change, so each provider's pair is one its run could start. Returns the unsubscribe.
+ */
 export function watchSpeechFromStores(): () => void {
-  const apply = () => useProviderStore.getState().setSpeech(speechInputsFromStores());
+  const apply = () => {
+    useProviderStore.getState().setSpeakers(speakersFromStores());
+    useProviderStore.getState().setSpeech(speechInputsFromStores());
+  };
   apply();
-  // Whole-store listeners: `setSpeech` ignores inputs that did not change.
+  // Whole-store listeners: `setSpeech` and `setSpeakers` ignore inputs that did not change.
   // A change of the line-up, or a provider's entry landing after it, can turn
   // face-to-face on or off.
   const offs = [

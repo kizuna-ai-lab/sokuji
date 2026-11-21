@@ -3,13 +3,15 @@ import { readHistory } from '../support/history';
 import { expect, test } from '../support/test';
 
 // A line-up of two services: the fake service transcribes and translates, the fake voice reads the translations.
-// The stored line-up decides what runs, and the record names who did each stage.
-test('a session on the fake service with the fake voice runs, and its record names both', async ({ launchApp }) => {
+// The stored line-up decides what runs, each translation is read aloud, and the record names who did each stage.
+test('a session on the fake service with the fake voice reads each translation aloud, and its record names both', async ({ launchApp }) => {
   const sokuji = await launchApp({
     seed: {
       storage: {
         ...baseStorage('fake'),
         'settings.lineup': JSON.stringify({ version: 2, stages: { transcription: 'fake', translation: 'fake', speech: 'fake_voice', summarisation: null } }),
+        // What is read aloud is kept for replay, so a row shows whether it has audio.
+        'settings.common.keepReplayAudio': 'true',
       },
     },
   });
@@ -22,7 +24,13 @@ test('a session on the fake service with the fake voice runs, and its record nam
   // The voice is handed a translation when its row closes (the fake states no stable length before that).
   await expect(page.getByText('こんにちは、お元気ですか？').first()).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText('元気です。ありがとう。').first()).toBeVisible({ timeout: 30_000 });
-  await page.waitForTimeout(2_000); // the last row closes and is read
+  // Speech was made for each translation. The fake service's own audio is not used in this line-up, so a row's
+  // audio is the voice's: a row can be replayed only once the voice's audio for it has arrived and its text is
+  // final. (The record keeps no trace of what was read aloud: this is where it shows.)
+  const replay = page.getByRole('button', { name: "Play this item's audio" });
+  await expect(replay).toHaveCount(2, { timeout: 30_000 });
+  await expect(replay.nth(0)).toBeEnabled({ timeout: 30_000 });
+  await expect(replay.nth(1)).toBeEnabled({ timeout: 30_000 });
   await mainAction(page).click();
   await expect(mainAction(page)).toBeEnabled({ timeout: 30_000 });
   await sokuji.close();

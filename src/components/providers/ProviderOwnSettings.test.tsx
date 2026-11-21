@@ -63,6 +63,23 @@ describe('ProviderOwnSettings', () => {
     expect(seen[0].models).toEqual([]);
   });
 
+  it("hands a provider shown for another stage the session's pair: the pair of the provider that transcribes", () => {
+    // `fake` transcribes (it runs); another provider is shown beside it, with a pair of its own.
+    const other = { ...fakeProvider, id: 'other' };
+    useProviderStore.setState({ entries: {
+      fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'de' } },
+      other: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } },
+    } });
+    const seen: SettingsProps<FakeSettings>[] = [];
+    const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return null; };
+    const engines: EngineProps<FakeSettings>[] = [];
+    const Engine = (props: EngineProps<FakeSettings>) => { engines.push(props); return null; };
+    const providers = [fakeProvider, { ...other, Settings, Engine }];
+    render(<><ProviderOwnSettings providers={providers} auth={AUTH} providerId="other" /><ProviderEngine providers={providers} providerId="other" /></>);
+    expect(seen[0].pair).toEqual({ source: 'en', target: 'de' });
+    expect(engines[0].pair).toEqual({ source: 'en', target: 'de' });
+  });
+
   it('renders nothing before the entry loads', () => {
     const { container } = render(<ProviderOwnSettings providers={[fakeProvider]} auth={AUTH} />);
     expect(container).toBeEmptyDOMElement();

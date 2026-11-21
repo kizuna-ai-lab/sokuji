@@ -5,6 +5,7 @@
  */
 import { formatLocalDateTime, formatLocalTime } from '../../utils/conversationExport';
 import type { Leg } from '../conversation/types';
+import { severalHosts } from '../lineup/catalog';
 import type { Entry } from '../projection/types';
 import type { ConversationInfo } from '../session/conversationSet';
 import { showsSide } from '../view/filter';
@@ -80,11 +81,19 @@ function modelsOf(info: ConversationInfo | null): Record<string, string> {
   return models;
 }
 
+/**
+ * Who served each stage, for a run on two services; nothing for a run on one, whose file names its provider as
+ * before (a record on this device, with Bing or Edge or without, is a run on one).
+ */
+function stagesOf(info: ConversationInfo | null): Pick<TranscriptMeta, 'stages'> {
+  return info && severalHosts(info.stages) ? { stages: info.stages } : {};
+}
+
 const formatTime = (ms: number) => `[${formatLocalTime(ms)}]`;
 
 export function conversationExporter({ entries, legs, info, words, appVersion, now }: ConversationExportInput): Exporter {
   const meta = (): TranscriptMeta => ({
-    sessionStartedAt: info?.startedAt ?? null, exportedAt: now(), appVersion, provider: info?.provider ?? null, models: modelsOf(info),
+    sessionStartedAt: info?.startedAt ?? null, exportedAt: now(), appVersion, provider: info?.provider ?? null, ...stagesOf(info), models: modelsOf(info),
   });
   return {
     // Answered from the entries' rows, not a render: an exchange always has
@@ -122,7 +131,7 @@ export interface RowsExportInput extends Omit<ConversationExportInput, 'entries'
  */
 export function rowsExporter({ rows, startedAt, legs, info, words, appVersion, now }: RowsExportInput): Exporter {
   const meta = (): TranscriptMeta => ({
-    sessionStartedAt: startedAt, exportedAt: now(), appVersion, provider: info?.provider ?? null, models: modelsOf(info),
+    sessionStartedAt: startedAt, exportedAt: now(), appVersion, provider: info?.provider ?? null, ...stagesOf(info), models: modelsOf(info),
   });
   return {
     hasContent: rows.length > 0,

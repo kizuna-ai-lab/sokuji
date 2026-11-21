@@ -54,7 +54,7 @@ function idleState(idle: SubtitleIdleModel | undefined, t: TFunction): SubtitleI
   if (!idle) return { kind: 'ended' };
   // An uncoded reason stays as it is — `noticeText` returns the message.
   // The code goes with it: a pending one draws as progress (`SubtitleIdle`).
-  if (idle.kind === 'unready') return { kind: 'unready', message: noticeText(t, idle), target: settingsTargetForCode(idle.code), ...(idle.code ? { code: idle.code } : {}) };
+  if (idle.kind === 'unready') return { kind: 'unready', message: noticeText(t, idle), target: settingsTargetForCode(idle.code, idle.params), ...(idle.code ? { code: idle.code } : {}) };
   if (idle.kind === 'failed') {
     // start_failed's own message is already "the session didn't start:
     // <detail>" (NOTICE_WORDS); noticeText would wrap it a second time

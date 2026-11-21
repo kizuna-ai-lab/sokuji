@@ -9,7 +9,10 @@ npm run e2e:build   # the E2E build: build/ and dist-electron/
 npm run e2e         # every spec in e2e/specs
 npm run e2e -- session-to-history   # one spec
 npm run e2e:long    # the meeting-length session (15 minutes; E2E_LONG_MINUTES=3 for a shorter one)
-E2E_SONIOX_KEY=... npm run e2e:real   # the same length against Soniox itself (skipped without the key)
+E2E_SONIOX_KEY=... npm run e2e:real   # every spec against real services (each skipped without what it needs)
+E2E_SONIOX_KEY=... npm run e2e:real -- real-soniox.spec          # the meeting-length Soniox session alone
+E2E_SONIOX_KEY=... npm run e2e:real -- real-mixed-line-up -g "own key"   # Soniox with an own key, read by Edge
+E2E_ACCOUNT_EMAIL=... E2E_ACCOUNT_PASSWORD=... npm run e2e:real -- real-mixed-line-up -g "Kizuna AI"   # needs the hosted build, below
 ```
 
 Node 22.20 or newer (the history reader uses `node:sqlite`; 22.19's has a bug).
@@ -26,12 +29,35 @@ plays the fake service's long script for fifteen minutes and checks what only sh
 a recording as long as the meeting that plays to its end, and the page's memory (as the system counts it) not
 running away. Its readings are attached to the report as annotations.
 
-A spec whose title carries `@real` talks to a real service and is run by `npm run e2e:real` only. The one there is
-types a Soniox key (`E2E_SONIOX_KEY`) into Settings as a user would, then holds a fifteen-minute Japanese-to-English
+A spec whose title carries `@real` talks to a real service and is run by `npm run e2e:real` only; each is skipped
+without what it needs from the environment.
+
+`real-soniox.spec.ts` types a Soniox key (`E2E_SONIOX_KEY`) into Settings as a user would, then holds a fifteen-minute Japanese-to-English
 session: the repository's eight recorded sentences are played into the microphone in rounds, with over a minute of
 silence in the middle, and the record must carry the words heard and translated before and after it, nothing made up
 during it, and a whole recording. It costs fifteen minutes of Soniox usage a run. The test leaves the key nowhere: that spec records no trace, and the app's settings
 (where the app keeps the key) are deleted from its user-data directory when it ends, passed or failed.
+
+`real-mixed-line-up.spec.ts` runs a line-up of two services: Soniox transcribes and translates, Edge reads the
+translations aloud. The eight sentences are said twice (about two minutes of usage a test). Each test checks that
+the sentences are heard and translated, that History holds one record whose stages name both services, and that no
+connection to Soniox's own voice is opened. Two tests:
+
+- Soniox with an own key (`E2E_SONIOX_KEY`), on the ordinary E2E build.
+- Kizuna AI's Soniox, signed in through the title bar as a user signs in (`E2E_ACCOUNT_EMAIL`,
+  `E2E_ACCOUNT_PASSWORD`: a test account with a balance). It needs an E2E build that offers the hosted service and
+  knows its address:
+
+  ```bash
+  VITE_ENABLE_KIZUNA_AI=true VITE_BACKEND_URL=<the backend's address> npm run e2e:build
+  ```
+
+  On the ordinary E2E build this test is skipped: that build shows no sign-in. Build the ordinary one again
+  afterwards (`npm run e2e:build`) before running the rest of the suite.
+
+Neither records a trace or a screenshot, and both delete the page's storage and the session's cookies from the
+user-data directory when they end (`forgetSecrets`), passed or failed. Credentials are read from the environment
+only; never put them in a file of the repository.
 
 ## The E2E build
 
@@ -43,7 +69,7 @@ folds to `false`:
 |---|---|
 | `electron/main.js` | Loads `build/index.html` although the app is not packaged (no dev server, no DevTools, web security on). Does not create or clean the system's virtual audio devices. Does not check for updates. |
 | `src/providers/registry.ts` | Keeps the fake providers (`src/providers/fake`). |
-| `src/lib/lineup/catalog.ts` | A line-up may name the fake providers. |
+| `src/lib/lineup/catalog.ts` | A line-up may name the fake providers: the fake service, the leased fake, and the fake voice (speech only). |
 | `src/config/analytics.ts` | Never reports. |
 | `vite.react-grab.ts` | The development toolbar stays out. |
 
@@ -69,7 +95,12 @@ audio away from any Sokuji already running on the machine.
   on disk only when Chromium gets to them (seconds), as for a user.
 - `sokuji.answerSaveDialog(path)` / `answerOpenDialog(paths)` set what the system dialog answers (`null` is Cancel);
   Playwright cannot click a native dialog.
-- `mainAction(page)` is the Start / End session button.
+- `mainAction(page)` is the Start / End session button. A session is on when it says "End Session"; wait for that,
+  not for time (a start can be held some seconds by a session that has just ended on the same account).
+- `support/speech.ts` holds the repository's eight recorded Japanese sentences for a spec against a real service:
+  `clip(name)`, `say(page, clip)`, and `heardAndTranslated(record, spoken)`, which counts them in a record.
+- `forgetSecrets(userData)` deletes what a profile keeps of a key or a sign-in; call it in `finally` in a spec that
+  typed a real key or signed in.
 - `fakeOpenAi(sokuji)` (`support/openai.ts`) answers the app's requests to api.openai.com from the test, in the page's network
   layer: notes (a chat-completions request) and the key check (the model list). The app is not changed and nothing leaves the
   machine. By default every notes prompt gets a usable answer; `answerChat(...)` swaps in a refusal (`{ status, message }`) or
@@ -105,6 +136,11 @@ stream.
 The fake provider speaks from its script, not from the microphone, so what the
 conversation shows does not depend on the injected sound; the recording does.
 
+What is read aloud is not in the record. A spec that must see it seeds
+`'settings.common.keepReplayAudio': 'true'`: a translation's row then has a
+"Play this item's audio" button, enabled once audio for that row has arrived
+(`mixed-line-up.spec.ts`, where the audio is the fake voice's).
+
 ## Writing a spec
 
 - Name the test after the behaviour it checks, in words a reader of the repository understands (no tracker or checklist ids).
@@ -117,6 +153,6 @@ conversation shows does not depend on the injected sound; the recording does.
 - The microphone plays a synthetic tone. For real speech seed `'e2e.mic': 'speech'` and play clips with
   `navigator.mediaDevices.__e2eSay(pcm16Base64, rate)` from the page (see `real-soniox.spec.ts`).
 
-Not covered here: the other side's audio (system capture), sign-in and balance,
-Kizuna AI's own notes service, real providers other than Soniox.
+Not covered here: the other side's audio (system capture), the balance,
+Kizuna AI's own notes service, real providers other than Soniox and Edge. The sign-in is used by one `@real` test only.
 Transcribing files through Kizuna AI's Soniox is not covered end to end, because the suite has no sign-in; unit tests cover the main-process path against a faked service.

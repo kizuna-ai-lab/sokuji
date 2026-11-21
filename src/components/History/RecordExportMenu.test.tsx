@@ -99,6 +99,12 @@ describe("a record's export", () => {
       expect(before).toHaveLength(2);
       expect(before[0]).toContain('Provider: local_inference');
       expect(await files(named)).toEqual(before);
+      // A record of a session on two services: its file says who served each stage; the provider stays the one
+      // that transcribed.
+      const mixed = { ...without, services: { ...without.services, provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } } } as unknown as HistoryRecord;
+      const [text, json] = await files(mixed);
+      expect(text).toContain('Provider: transcription=soniox, translation=soniox, speech=edge\n');
+      expect(JSON.parse(json)).toMatchObject({ provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } });
     } finally {
       URL.createObjectURL = createObjectURL;
       URL.revokeObjectURL = revokeObjectURL;

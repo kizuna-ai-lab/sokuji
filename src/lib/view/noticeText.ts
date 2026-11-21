@@ -66,12 +66,12 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   // A line-up that cannot run (the composer's refusals): the stage and the service by the line-up page's names.
   lineup_incomplete: 'Choose a service for {{stage}} first.',
   lineup_not_offered: '{{provider}} is not available in this version. Choose another service for {{stage}}.',
-  lineup_stage_split: '{{provider}} only works when it also does {{stage}}. Choose it for that stage too, or choose another service.',
+  lineup_stage_split: '{{provider}} must also do {{stage}}. Choose {{provider}} for {{stage}}, or use another service instead of {{provider}}.',
   lineup_no_unit: '{{provider}} cannot do {{stage}} on its own here. Choose it for the stages it does together, or choose another service.',
-  lineup_voice_not_alone: "{{provider}}'s voice only reads its own translation. Choose another voice, or use the same service for transcription and translation too.",
-  lineup_voice_not_taken: '{{provider}} reads its translation with its own voice only. Choose the same service for speech, or another service for transcription and translation.',
+  lineup_voice_not_alone: 'Use {{provider}} for transcription and translation, or choose another speech service.',
+  lineup_voice_not_taken: 'Choose {{provider}} for speech too, or choose another service for transcription and translation.',
   lineup_two_managed: 'Two Kizuna AI services cannot run in one session yet. Choose one of them.',
-  lineup_language_not_spoken: '{{provider}} has no voice for {{language}}. Choose another voice, or turn speech off for this session.',
+  lineup_language_not_spoken: '{{provider}} has no voice for {{language}}. Choose another speech service, or turn speech off for this session.',
   // A managed lease refused a start, by what blocks the account (its 409's `blocker`).
   session_in_use: 'Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.',
   previous_session_ending: 'Your previous session is still ending. Please try again in a minute.',

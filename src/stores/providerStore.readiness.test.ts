@@ -81,14 +81,15 @@ describe('refreshReadiness', () => {
     } as AnyProvider;
     await store.useProviderStore.getState().load(signIn);
     await expect(store.useProviderStore.getState().refreshReadiness(signIn, noAuth)).resolves.toEqual({
-      state: 'not-ready', reason: 'Sign in first.', code: 'sign_in_required', params: { who: 'you' },
+      // It names the provider it is about, for the notice's way to that provider's account row.
+      state: 'not-ready', reason: 'Sign in first.', code: 'sign_in_required', params: { who: 'you', provider: signIn.id },
     });
     expect(signInCheck).not.toHaveBeenCalled();
 
     const check = vi.fn(async (): Promise<CheckResult> => ({ ok: true }));
     const p = probe('own-key', check);
     await store.useProviderStore.getState().load(p);
-    await expect(store.useProviderStore.getState().refreshReadiness(p, noAuth)).resolves.toEqual({ state: 'not-ready', reason: 'no key', code: 'credentials_missing' });
+    await expect(store.useProviderStore.getState().refreshReadiness(p, noAuth)).resolves.toEqual({ state: 'not-ready', reason: 'no key', code: 'credentials_missing', params: { provider: p.id } });
     expect(check).not.toHaveBeenCalled();
   });
 

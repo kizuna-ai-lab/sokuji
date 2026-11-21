@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { allStagesBy, CAPS, caps, hostDefaults, optionFor, soleHost, stageIdsFor } from './catalog';
+import { allStagesBy, CAPS, caps, hostDefaults, optionFor, severalHosts, soleHost, stageIdsFor } from './catalog';
 import { oldRunOf } from './oldRules.testing';
 import type { LineUp, RunStage } from './types';
 
@@ -61,6 +61,15 @@ describe('the sole host of a line-up', () => {
 });
 
 describe('the ids that served a run', () => {
+  it('are on several hosts only when two services ran: Bing and Edge run on this device, an unknown id is its own host', () => {
+    expect(severalHosts(allStagesBy('soniox'))).toBe(false);
+    expect(severalHosts({ transcription: 'local_inference', translation: 'bing', speech: 'edge' })).toBe(false);
+    expect(severalHosts(allStagesBy('gone'))).toBe(false);
+    expect(severalHosts({ transcription: 'soniox', translation: 'soniox', speech: 'edge' })).toBe(true);
+    expect(severalHosts({ transcription: 'local_inference', translation: 'bing', speech: 'soniox' })).toBe(true);
+    expect(severalHosts({ transcription: 'gone', translation: 'gone', speech: 'edge' })).toBe(true);
+  });
+
   it('names one provider on every stage', () => {
     expect(allStagesBy('openai')).toEqual({ transcription: 'openai', translation: 'openai', speech: 'openai' });
   });

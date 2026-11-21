@@ -16,6 +16,9 @@ import { noticeText } from '../view/noticeText';
 import { createRunner } from './runner';
 import type { LeaseContext, RunShape, SessionHooks } from './types';
 
+// Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
+const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
+
 const DROP: DropInfo = { cause: 'close', closeCode: 1006, retryable: true, managed: true };
 const RESTORED = { attempts: 2, credentialsReissued: true, reissueMs: 120, budgetShared: false };
 
@@ -178,7 +181,7 @@ describe('run — the leg state while it reconnects (spec §4.3)', () => {
     events().reconnected();
     expect(runner.state.getState()).toMatchObject({ legs: { speaker: 'live' } });
     expect(notices()).toEqual([]);
-    expect(tracks('connection_status')).toContainEqual({ status: 'reconnecting', provider: 'fake', channel: 'speaker' });
+    expect(tracks('connection_status')).toContainEqual({ status: 'reconnecting', provider: 'fake', stages: STAGES, channel: 'speaker' });
     expect([...tracks('connection_dropped'), ...tracks('connection_reconnected')]).toEqual([]);
   });
 });
@@ -191,7 +194,7 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     events().reconnecting({ attempt: 2 });
     events().reconnecting({ attempt: 3 });
     expect(tracks('connection_status').filter((p) => (p as { status: string }).status === 'reconnecting')).toEqual([
-      { status: 'reconnecting', provider: 'fake', channel: 'speaker' },
+      { status: 'reconnecting', provider: 'fake', stages: STAGES, channel: 'speaker' },
     ]);
     clock.advance(1000);
     events().reconnected(RESTORED);
@@ -210,11 +213,11 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     events().reconnecting({ attempt: 1, drop: { cause: 'error', errorCode: 'socket_error', retryable: true, managed: true } });
     expect(tracks('connection_dropped')).toEqual([
       {
-        session_id: 'run1', provider: 'fake', managed: true, channel: 'speaker', cause: 'close', close_code: 1006, retryable: true,
+        session_id: 'run1', provider: 'fake', stages: STAGES, managed: true, channel: 'speaker', cause: 'close', close_code: 1006, retryable: true,
         session_elapsed_ms: 1000, drop_index: 1, online: true, client: 'desktop', network: 'wifi',
       },
       {
-        session_id: 'run1', provider: 'fake', managed: true, channel: 'speaker', cause: 'error', error_code: 'socket_error', retryable: true,
+        session_id: 'run1', provider: 'fake', stages: STAGES, managed: true, channel: 'speaker', cause: 'error', error_code: 'socket_error', retryable: true,
         session_elapsed_ms: 4000, drop_index: 2, since_last_reconnect_ms: 2500, online: true, client: 'desktop', network: 'wifi',
       },
     ]);
@@ -292,8 +295,8 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     expect(tracks('connection_dropped')).toEqual([expect.objectContaining({ channel: 'shared', drop_index: 1 })]);
     // `connection_status` stays per leg, as today.
     expect(tracks('connection_status').filter((p) => (p as { status: string }).status === 'reconnecting')).toEqual([
-      { status: 'reconnecting', provider: 'fake', channel: 'speaker' },
-      { status: 'reconnecting', provider: 'fake', channel: 'participant' },
+      { status: 'reconnecting', provider: 'fake', stages: STAGES, channel: 'speaker' },
+      { status: 'reconnecting', provider: 'fake', stages: STAGES, channel: 'participant' },
     ]);
   });
 
@@ -308,7 +311,7 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     expect(notices('speaker')).toEqual([expect.objectContaining({ severity: 'info', code: 'connection_restored', message: 'Connection lost and restored' })]);
     expect(notices('participant')).toEqual([]);
     expect(tracks('connection_reconnected')).toEqual([{
-      session_id: 'run1', provider: 'fake', managed: true, channel: 'speaker', down_ms: 1800, attempts: 2,
+      session_id: 'run1', provider: 'fake', stages: STAGES, managed: true, channel: 'speaker', down_ms: 1800, attempts: 2,
       credentials_reissued: true, reissue_ms: 120, drop_index: 1, budget_shared: false, client: 'desktop', network: 'cellular',
     }]);
   });
@@ -361,7 +364,7 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     clock.advance(30_000);
     events().failed({ message: 'The connection was lost.', code: 'connection_lost', giveUp: { attempts: 9, reason: 'timeout', errorCode: '1006' } });
     expect(tracks('connection_reconnect_failed')).toEqual([{
-      session_id: 'run1', provider: 'fake', managed: true, channel: 'speaker', down_ms: 30_000, attempts: 9,
+      session_id: 'run1', provider: 'fake', stages: STAGES, managed: true, channel: 'speaker', down_ms: 30_000, attempts: 9,
       reason: 'timeout', error_code: '1006', drop_index: 1, client: 'desktop',
     }]);
     expect(order('connection_reconnect_failed', 'api_error')).toEqual(['connection_reconnect_failed', 'api_error']);
@@ -377,6 +380,15 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     events().reconnecting({ attempt: 1, drop: DROP });
     events().failed({ message: 'Sign in again.', code: 'sign_in_required', giveUp: { attempts: 1, reason: 'refused', errorCode: 'sign_in_required', refusalCode: 'sign_in_required' } });
     expect(tracks('connection_reconnect_failed')).toEqual([expect.objectContaining({ reason: 'refused', error_code: 'sign_in_required', refusal_code: 'sign_in_required', attempts: 1 })]);
+  });
+
+  it('a give-up refused for the sign-in names the provider that transcribes, on the row and on the end', async () => {
+    const { runner, events } = setup();
+    await runner.start();
+    events().reconnecting({ attempt: 1, drop: DROP });
+    events().failed({ message: 'Sign in again.', code: 'sign_in_required', giveUp: { attempts: 1, reason: 'refused', errorCode: 'sign_in_required', refusalCode: 'sign_in_required' } });
+    await runner.settled();
+    expect(runner.state.getState()).toMatchObject({ lastEnd: { reason: 'leg-failed', notice: { code: 'sign_in_required', params: { provider: 'fake' } } } });
   });
 
   it('a refusal give-up puts its notice params on the run\'s notice (a frozen organization named mid-session)', async () => {
@@ -406,7 +418,7 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     clock.advance(2000);
     events().failed({ message: 'The key was refused.', code: 'auth', drop: { cause: 'close', closeCode: 1008, errorCode: '401', retryable: false, managed: false } });
     expect(tracks('connection_dropped')).toEqual([{
-      session_id: 'run1', provider: 'fake', managed: false, channel: 'speaker', cause: 'close', close_code: 1008, error_code: '401',
+      session_id: 'run1', provider: 'fake', stages: STAGES, managed: false, channel: 'speaker', cause: 'close', close_code: 1008, error_code: '401',
       retryable: false, session_elapsed_ms: 2000, drop_index: 1, client: 'desktop',
     }]);
     expect(tracks('connection_reconnect_failed')).toEqual([]);
@@ -420,7 +432,7 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     events().failed({ message: 'Connection lost', code: 'connection_lost', drop: DROP, giveUp: { attempts: 0, reason: 'session_cap' } });
     expect(tracks('connection_dropped')).toEqual([expect.objectContaining({ retryable: true, drop_index: 1, session_elapsed_ms: 3000 })]);
     expect(tracks('connection_reconnect_failed')).toEqual([{
-      session_id: 'run1', provider: 'fake', managed: true, channel: 'speaker', down_ms: 0, attempts: 0,
+      session_id: 'run1', provider: 'fake', stages: STAGES, managed: true, channel: 'speaker', down_ms: 0, attempts: 0,
       reason: 'session_cap', drop_index: 1, client: 'desktop',
     }]);
     expect(order('connection_dropped', 'connection_reconnect_failed', 'api_error')).toEqual(['connection_dropped', 'connection_reconnect_failed', 'api_error']);
@@ -471,7 +483,7 @@ describe('run — the reconnect analytics (spec §4.5)', () => {
     events().reconnecting({ attempt: 3 });
     await runner.stop();
     expect(tracks('connection_reconnect_failed')).toEqual([{
-      session_id: 'run1', provider: 'fake', managed: true, channel: 'speaker', down_ms: 1250, attempts: 3,
+      session_id: 'run1', provider: 'fake', stages: STAGES, managed: true, channel: 'speaker', down_ms: 1250, attempts: 3,
       reason: 'stopped', drop_index: 1, client: 'desktop',
     }]);
     expect(tracks('api_error')).toEqual([]);
@@ -549,7 +561,7 @@ describe('run — the session totals', () => {
     clock.advance(900);
     events().reconnected(RESTORED);
     await runner.stop();
-    expect(end(tracks)).toEqual({ session_id: 'run1', duration: 5500, provider: 'fake', reconnect_count: 2, reconnect_down_ms: 1500, reconnect_failed: false });
+    expect(end(tracks)).toEqual({ session_id: 'run1', duration: 5500, provider: 'fake', stages: STAGES, reconnect_count: 2, reconnect_down_ms: 1500, reconnect_failed: false });
   });
 
   it('a run that ended because reconnecting gave up says so; one stopped while reconnecting does not', async () => {

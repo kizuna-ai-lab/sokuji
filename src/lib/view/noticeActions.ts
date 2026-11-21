@@ -9,11 +9,13 @@ import type { LegName } from '../conversation/types';
 import { ORG_INSUFFICIENT_BALANCE } from '../session/orgNotice';
 import { BALANCE_BELOW_FLOOR } from '../session/shape';
 import { settingsTargetForCode } from './noticeTargets';
+import { providerTarget } from './providerTarget';
 
 export type NoticeActionSpec =
   | { kind: 'settings'; target: string }
   | { kind: 'top-up' }
-  | { kind: 'sign-in' }
+  /** `provider`: the managed provider the notice is about; signed in already, its account row is where to look. */
+  | { kind: 'sign-in'; provider?: string }
   | { kind: 'system-settings'; pane: 'screen-recording' | 'audio-capture' }
   | { kind: 'show-in-folder'; dir: string }
   | { kind: 'engine-slot'; leg: LegName; stage: 'tts' }
@@ -30,18 +32,33 @@ const TTS_SLOT_LEGS: ReadonlyMap<string, LegName> = new Map([
   ['participant_tts_over_budget', 'participant'],
 ]);
 
-/** `params` is the notice's own: an organization's low balance is the owner's to top up, so it offers Top up by `role` (a member is told to ask the owner). */
+/**
+ * `params` is the notice's own: an organization's low balance is the owner's to top up, so it offers Top up by
+ * `role` (a member is told to ask the owner); a notice about a key or a sign-in names its provider, and opens
+ * that provider's account row.
+ */
 export function actionForCode(code: string | undefined, params?: Record<string, string | number>): NoticeActionSpec | null {
   if (code === undefined) return null;
   if (code === ORG_INSUFFICIENT_BALANCE) return params?.role === 'owner' ? { kind: 'top-up' } : null;
   if (code === LOOPBACK_DENIED) return { kind: 'system-settings', pane: 'screen-recording' };
   if (code === MIC_BLOCKED) return { kind: 'windows-settings', page: 'microphone-privacy' };
   if (TOP_UP_CODES.has(code)) return { kind: 'top-up' };
-  if (code === 'sign_in_required') return { kind: 'sign-in' };
+  if (code === 'sign_in_required') {
+    const provider = params?.provider;
+    return typeof provider === 'string' && provider !== '' ? { kind: 'sign-in', provider } : { kind: 'sign-in' };
+  }
   const leg = TTS_SLOT_LEGS.get(code);
   if (leg) return { kind: 'engine-slot', leg, stage: 'tts' };
-  const target = settingsTargetForCode(code);
+  const target = settingsTargetForCode(code, params);
   return target ? { kind: 'settings', target } : null;
+}
+
+/**
+ * Where a sign-in action leads: the Settings target of the account row of the provider it is about, for a user who
+ * is signed in and was still refused; null for the sign-in itself (signed out, or no provider named).
+ */
+export function signedInTarget(spec: Extract<NoticeActionSpec, { kind: 'sign-in' }>, signedIn: boolean): string | null {
+  return signedIn && spec.provider ? providerTarget(spec.provider) : null;
 }
 
 /** The action's label: a key every catalog has, and the English `defaultValue`. */

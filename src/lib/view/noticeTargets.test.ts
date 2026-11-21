@@ -17,6 +17,16 @@ describe('settingsTargetForCode', () => {
     }
   });
 
+  it("sends a key or a sign-in that names its provider to that provider's row", () => {
+    expect(settingsTargetForCode('credentials_missing', { provider: 'soniox' })).toBe('provider:soniox');
+    expect(settingsTargetForCode('sign_in_required', { provider: 'kizunaai_soniox' })).toBe('provider:kizunaai_soniox');
+    expect(settingsTargetForCode('credentials_missing', {})).toBe('provider');
+    expect(settingsTargetForCode('credentials_missing', { provider: '' })).toBe('provider');
+    // Only a target in the accounts is narrowed to a row.
+    expect(settingsTargetForCode('lineup_voice_not_alone', { provider: 'kizunaai_soniox', stage: 'speech' })).toBe('lineup');
+    expect(settingsTargetForCode('no_asr', { provider: 'local_inference' })).toBe('provider-options');
+  });
+
   it('sends every refusal of the line-up to the line-up', () => {
     for (const code of PLAN_REFUSAL_CODES) expect(settingsTargetForCode(code), code).toBe('lineup');
   });

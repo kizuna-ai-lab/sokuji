@@ -2,14 +2,14 @@ import type { SessionContext } from '../contract/adapter';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { checkPlan, refusalNotice } from '../plan/checks';
-import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
+import { accountOf, capabilitiesOf, providersIn, servesSpeech, transcriptionProvider, unitFor } from '../plan/read';
 import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
 import { payerBalance } from './orgNotice';
 import { ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, orgNoticeParams } from './orgNotice';
-import type { PlanRefusal } from '../plan/types';
+import type { PlanRefusal, RunPlan } from '../plan/types';
 import type { RunNotice, RunShape } from './types';
 
 /** Why a start was refused before anything opened. */
@@ -26,7 +26,8 @@ export interface Refusal extends RunNotice {
  */
 export interface SpeechInputs { textOnly: boolean; participantSpeech: boolean }
 
-type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech'>;
+/** What decides whether a leg speaks, of the one that speaks: a provider, or the capabilities of a plan's speech unit. */
+export type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech'>;
 
 /** Whether a leg speaks: the one rule `contextsFor`, the gate and the language offer read. */
 export function legSpeaks(p: Speaking, leg: LegName, inputs: SpeechInputs): boolean {
@@ -80,12 +81,23 @@ export function languageContext(p: Speaking, legs: readonly LegName[], inputs: S
 }
 
 /**
+ * The language context one provider of a plan is asked its lists under, from the context of the run or of a
+ * leg: it speaks only when a unit of that provider serves the plan's speech stage. A provider whose lists are
+ * narrower when it speaks (Doubao AST 2.0) does not speak beside another provider's voice, and is asked its
+ * text offer; what that voice reads is checked apart (`checkPlan`). No context stays none: the widest offer.
+ */
+export function contextFor(plan: RunPlan, provider: Pick<AnyProvider, 'id'>, context: LanguageContext | undefined): LanguageContext | undefined {
+  return context && { speech: context.speech && servesSpeech(plan, provider) };
+}
+
+/**
  * The plan's languages in one provider's shape, each list from the provider
  * that answers it: the sources and the reverse of a pair from the
  * transcription provider, the targets from the translation provider, each
- * under its own settings at start (the settings argument is not read).
+ * under its own settings at start (the settings argument is not read) and
+ * told that it speaks only when it is the provider that does (`contextFor`).
  */
-function planLanguages(shape: Pick<RunShape, 'plan' | 'accounts'>): Pick<AnyProvider, 'languages'> {
+export function planLanguages(shape: Pick<RunShape, 'plan' | 'accounts'>): Pick<AnyProvider, 'languages'> {
   const heard = transcriptionProvider(shape.plan);
   const translated = unitFor(shape.plan, 'translation').provider;
   const sHeard = accountOf(shape, heard).settings;
@@ -94,8 +106,8 @@ function planLanguages(shape: Pick<RunShape, 'plan' | 'accounts'>): Pick<AnyProv
   return {
     languages: {
       ...heard.languages,
-      sources: (_s, context) => heard.languages.sources(sHeard, context),
-      targets: (source, _s, context) => translated.languages.targets(source, sTranslated, context),
+      sources: (_s, context) => heard.languages.sources(sHeard, contextFor(shape.plan, heard, context)),
+      targets: (source, _s, context) => translated.languages.targets(source, sTranslated, contextFor(shape.plan, translated, context)),
       reverse: reverse && ((pair) => reverse(pair, sHeard)),
     },
   };

@@ -20,6 +20,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useDeviceFeatures, useModelStatuses, useModelStore, useWebGPUAvailable } from '../../stores/modelStore';
 import { storedLocalStages, useStoredLocalStages } from '../../stores/lineUpStore';
 import { languageNameFor } from '../Settings/engine/languageName';
+import { useRunPair } from '../providers/useProviderEntry';
 
 /** Supertonic's imported voices are kept under this engine name. */
 const SUPERTONIC_VOICES = 'supertonic-3';
@@ -42,7 +43,10 @@ export function LocalVoices({ disabled }: { disabled: boolean }) {
   const [changed, setChanged] = useState(false);
 
   const settings = entry?.settings as LocalInferenceSettings | undefined;
-  const pair = entry?.pair;
+  // The session's pair, the transcription provider's: the voices are for the language that will be spoken, also when
+  // this device only reads another provider's translation. Each voice is still kept in this device's settings, under
+  // its direction.
+  const pair = useRunPair();
   // The directions that speak, as a session opens them (EdgeVoices' rule), each with the speech model it runs — kept
   // only where there is a voice to choose.
   const rows = useMemo(() => {
