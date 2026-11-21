@@ -45,6 +45,9 @@ export interface LegSpeechOptions {
   openSocket: OpenSocket;
 }
 
+/** Said when a leg is asked to speak and holds no TTS key (a managed lease that issued none). */
+export const NO_TTS_KEY_MESSAGE = 'No TTS key was issued for this leg: it runs text-only.';
+
 type Pending = { kind: 'text'; text: string; language: string; tag: TextTag } | { kind: 'end' };
 
 /** Lifted to the contract at its second user (Stage 2 Palabra, choice 2); re-exported, so this module's importers are unchanged. */
@@ -292,6 +295,8 @@ export class LegSpeech {
 
   private onAudio(pcm: Int16Array, streamId: string, ref: Ref | undefined, span: TextRange | undefined): void {
     if (this.closed || ref === undefined || pcm.length === 0) return;
+    this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
+    // Counted after the Logs line, right before the audio is said: a reader of a shared counter sees it move with the audio and at no other time.
     const index = this.counts.get(ref) ?? 0;
     this.counts.set(ref, index + 1);
     const entries = this.segments.get(streamId) ?? [];
@@ -300,7 +305,6 @@ export class LegSpeech {
     // Speech flows again: a later failure is a new episode.
     this.reported = null;
     this.readable = true;
-    this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
     const range = span ? this.provisional(streamId, ref, span, pcm.length) : undefined;
     const home = this.homes.get(ref);
     (home ?? this.o.events).audio({ ref, pcm, ...(range ? { range } : {}), ...(home ? { voice: this.o.leg } : {}) });

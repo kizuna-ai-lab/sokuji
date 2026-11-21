@@ -4,6 +4,10 @@
  * session said (its events), in order. Each entry carries the audio counter
  * as it stood then, so the rules about numbering can be checked from the log
  * alone.
+ *
+ * The suite reads ONE session's log, with a counter that only that session
+ * advances. Two voices that share a counter are checked where both are
+ * visible: in the tests of the composite that runs them.
  */
 import type { LegName } from '../conversation/types';
 import type { Ref, TextRange } from './adapter';
@@ -77,7 +81,9 @@ const validRange = ([start, end]: TextRange) => start >= 0 && start <= end;
  * - `ranges-entry-exists`: a `speechRanges` names entries this session emitted for the ref.
  * - `ranges-ascend`: a ref's ranged entries ascend without overlapping, in entry order.
  * - `range-in-span`: a range, carried or filled in, lies within the spans spoken for its ref; spans that touch are one.
- * - `silent-when-off`: no `audio` while speech is off, and none afterwards for a ref until text is spoken for it with speech on.
+ * - `silent-when-off`: no `audio` while speech is off, and none afterwards for a ref until text is spoken for it
+ *   with speech on. Audio that carries a range lies within what was spoken for its ref with speech on since then:
+ *   a stretch handed over before or during the time off is not read once the row is spoken again.
  * - `nothing-after-close`: no event once `close()` has returned, and only a `frame` while it runs. A log with no
  *   `closed` entry admits nothing after `close`.
  */
@@ -90,8 +96,10 @@ export function checkSpeech(log: SpeechLog): Violation[] {
   /** Per ref, the entries this session emitted, and the range each holds. */
   const emitted = new Map<Ref, Set<number>>();
   const entryRanges = new Map<Ref, Map<number, TextRange>>();
-  /** Per ref, the spans spoken, merged where they touch or overlap, in order. */
+  /** Per ref, every span ever spoken, merged where they touch or overlap, in order: what a range may name. */
   const spans = new Map<Ref, TextRange[]>();
+  /** Per ref, the spans spoken with speech on since it was last switched off: what audio may still read. */
+  const audible = new Map<Ref, TextRange[]>();
   /** Offending pairs already flagged: every later ranged event re-reads the whole ref. */
   const flaggedOrder = new Set<string>();
   let on = true;
@@ -101,21 +109,22 @@ export function checkSpeech(log: SpeechLog): Violation[] {
   let closing = false;
   const returnedAt = log.findIndex((e) => e.kind === 'closed');
 
-  const addSpan = (ref: Ref, span: TextRange) => {
+  const addSpan = (to: Map<Ref, TextRange[]>, ref: Ref, span: TextRange) => {
     const merged: TextRange[] = [];
-    for (const next of [...(spans.get(ref) ?? []), span].sort((a, b) => a[0] - b[0])) {
+    for (const next of [...(to.get(ref) ?? []), span].sort((a, b) => a[0] - b[0])) {
       const last = merged[merged.length - 1];
       if (last && next[0] <= last[1]) last[1] = Math.max(last[1], next[1]);
       else merged.push([next[0], next[1]]);
     }
-    spans.set(ref, merged);
+    to.set(ref, merged);
   };
+  const within = (of: Map<Ref, TextRange[]>, ref: Ref, range: TextRange) => (of.get(ref) ?? []).some(([a, b]) => a <= range[0] && range[1] <= b);
   const checkSpan = (ref: Ref, range: TextRange, index: number): boolean => {
     if (!validRange(range)) {
       flag('range-in-span', `range [${range[0]}, ${range[1]}] is not a valid range`, index);
       return false;
     }
-    if (!(spans.get(ref) ?? []).some(([a, b]) => a <= range[0] && range[1] <= b)) {
+    if (!within(spans, ref, range)) {
       flag('range-in-span', `ref ${ref}: range [${range[0]}, ${range[1]}] is outside the spans spoken for it`, index);
     }
     return true;
@@ -156,14 +165,19 @@ export function checkSpeech(log: SpeechLog): Violation[] {
     switch (entry.kind) {
       case 'speak':
         // A malformed span is not merged: it would make a range outside the spoken text look spoken.
-        if (validRange(entry.span)) addSpan(entry.ref, entry.span);
-        else flag('range-in-span', `ref ${entry.ref}: the spoken span [${entry.span[0]}, ${entry.span[1]}] is not a range`, index);
+        if (validRange(entry.span)) {
+          addSpan(spans, entry.ref, entry.span);
+          if (on) addSpan(audible, entry.ref, entry.span);
+        } else flag('range-in-span', `ref ${entry.ref}: the spoken span [${entry.span[0]}, ${entry.span[1]}] is not a range`, index);
         spoken.add(entry.ref);
         if (on) live.add(entry.ref);
         break;
       case 'setOn':
         on = entry.on;
-        if (!on) live.clear();
+        if (!on) {
+          live.clear();
+          audible.clear();
+        }
         break;
       case 'close':
         closing = true;
@@ -173,8 +187,14 @@ export function checkSpeech(log: SpeechLog): Violation[] {
           flag('audio-has-ref', 'audio names no ref', index);
           break;
         }
+        const quiet = 'audio for text spoken before speech was switched off, or while it was off';
         if (!on) flag('silent-when-off', `ref ${audioRef}: audio with speech off`, index);
-        else if (spoken.has(audioRef) && !live.has(audioRef)) flag('silent-when-off', `ref ${audioRef}: audio for text spoken before speech was switched off, or while it was off`, index);
+        else if (spoken.has(audioRef) && !live.has(audioRef)) flag('silent-when-off', `ref ${audioRef}: ${quiet}`, index);
+        else if (live.has(audioRef) && entry.payload.range && validRange(entry.payload.range) && within(spans, audioRef, entry.payload.range) && !within(audible, audioRef, entry.payload.range)) {
+          // A range outside everything spoken is `range-in-span`'s; this one names text that was spoken, but not to be read.
+          const [a, b] = entry.payload.range;
+          flag('silent-when-off', `ref ${audioRef}: range [${a}, ${b}]: ${quiet}`, index);
+        }
         const mine = emitted.get(audioRef) ?? new Set<number>();
         mine.add(place);
         emitted.set(audioRef, mine);

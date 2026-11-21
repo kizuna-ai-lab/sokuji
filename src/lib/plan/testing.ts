@@ -154,8 +154,9 @@ export function textAndSpeechPlan(text: PlannedUnit, speech: PlannedUnit): RunPl
 /**
  * A `startBoth` for a stub text provider: one stub session per leg, each listing its calls with its leg, and the
  * events each leg was given. `shared`: the sessions say they share one connection (`info.shared`).
+ * `during`: called with the legs' events before the start resolves, for what a leg says while the legs start.
  */
-export function stubStartBoth(calls: StubCalls = [], o: { shared?: boolean; fails?: unknown } = {}) {
+export function stubStartBoth(calls: StubCalls = [], o: { shared?: boolean; fails?: unknown; during?: (events: Record<LegName, AdapterEvents>) => void } = {}) {
   const started: Array<{ requests: Record<LegName, StartRequest<unknown, unknown>>; events: Record<LegName, AdapterEvents>; sessions: Record<LegName, AdapterSession> }> = [];
   const startBoth = async (requests: Record<LegName, StartRequest<unknown, unknown>>, events: Record<LegName, AdapterEvents>): Promise<Record<LegName, AdapterSession>> => {
     calls.push(['text.startBoth']);
@@ -163,6 +164,7 @@ export function stubStartBoth(calls: StubCalls = [], o: { shared?: boolean; fail
     const info = { transport: 'stub', ...(o.shared ? { shared: true } : {}) };
     const sessions = { speaker: stubTextSession(calls, { leg: 'speaker', session: { info } }), participant: stubTextSession(calls, { leg: 'participant', session: { info } }) };
     started.push({ requests, events, sessions });
+    o.during?.(events);
     return sessions;
   };
   return { startBoth, started };

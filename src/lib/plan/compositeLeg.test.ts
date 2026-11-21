@@ -8,6 +8,7 @@ import { runScenario, scenarioNames, type AdapterHarness } from '../contract/tes
 import type { LegName } from '../conversation/types';
 import type { SharedSettings } from '../provider/types';
 import { buildPlan, startComposite, type PlanConfigs } from './composite';
+import { CompositeLeg } from './compositeLeg';
 import { planOf, stubProvider, stubSpeechUnit, stubTextUnit, textAndSpeechPlan, type StubCalls } from './testing';
 import type { PlannedUnit, RunPlan } from './types';
 
@@ -202,7 +203,7 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     e.segmentClosed({ ref: 1 });
     e.segmentOpened({ ref: 2, side: 'translation' });
     e.segmentText({ ref: 2, text: 'こんにちは、世', stableLen: 6 });
-    e.segmentText({ ref: 2, text: 'こんにちは、世界。', stableLen: 6 });
+    e.segmentText({ ref: 2, text: 'こんにちは、世界。', stableLen: 9 });
     e.segmentClosed({ ref: 2 });
     expect(h.calls.filter((c) => c[0] === 'voice.speak' || c[0] === 'voice.endUtterance')).toEqual([
       ['voice.speak', 'speaker', 2, 'こんにちは、', [0, 6], 'ja', undefined],
@@ -319,6 +320,88 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     expect(h.rec.log).toEqual([]);
   });
 
+  it('holds what the speech session says of itself while the text unit opens, and says it once the leg is open', async () => {
+    const h = leg({ text: { held: true } });
+    await flush();
+    // A voice with no key says so as it opens, before the text unit has.
+    const noKey = { code: 'tts_degraded' as const, message: 'No key for speech.' };
+    const lost = { code: 'tts_stopped' as const, message: 'The voice is gone.', reason: 'tts_408' };
+    h.voice.voices[0].events.degraded(noKey);
+    h.voice.voices[0].events.degraded(lost);
+    expect(h.rec.log).toEqual([]);
+    h.text.starts[0].open();
+    await h.starting;
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: noKey }, { kind: 'degraded', payload: lost }]);
+    // Once open, a degradation passes on at once, and the held ones are not said again.
+    h.voice.voices[0].events.degraded(lost);
+    expect(h.said()).toEqual(['degraded', 'degraded', 'degraded']);
+  });
+
+  it('says nothing of what the speech session said of itself when the text unit fails to start', async () => {
+    const error = new Error('refused');
+    const h = leg({ text: { held: true } });
+    await flush();
+    h.voice.voices[0].events.degraded({ code: 'tts_degraded', message: 'No key for speech.' });
+    h.text.starts[0].refuse(error);
+    await expect(h.starting).rejects.toBe(error);
+    expect(h.rec.log).toEqual([]);
+  });
+
+  it('a voice whose open rejects while the text unit is still starting says so only once the leg is open', async () => {
+    const cause = new Error('refused');
+    const h = leg({ voice: { openFails: cause }, text: { held: true } });
+    await flush();
+    // The voice is already closed, and nothing has been said of it: the start can still fail.
+    expect(named(h.calls)).toEqual(['voice.start', 'voice.open', 'text.start', 'voice.close']);
+    expect(h.rec.log).toEqual([]);
+    h.text.starts[0].open();
+    const session = await h.starting;
+    await flush();
+    const lost = { kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause } };
+    expect(h.rec.log).toEqual([lost]);
+    // Said once: nothing more of the voice follows, whatever the leg goes on to do.
+    translate(h.emit(), 2, 'こんにちは。');
+    await session.stop();
+    expect(h.rec.log.filter((e) => e.kind === 'degraded')).toEqual([lost]);
+    expect(only(h.calls, 'voice.close')).toHaveLength(1);
+  });
+
+  it('a voice whose open rejects while the text unit is still starting says nothing when the text unit then fails to start', async () => {
+    const error = new Error('no connection');
+    const h = leg({ voice: { openFails: new Error('refused') }, text: { held: true } });
+    await flush();
+    expect(h.rec.log).toEqual([]);
+    h.text.starts[0].refuse(error);
+    await expect(h.starting).rejects.toBe(error);
+    await flush();
+    expect(h.rec.log).toEqual([]);
+    expect(only(h.calls, 'voice.close')).toHaveLength(1);
+  });
+
+  it('reads text that came after its segment closed, then ends the utterance again, and passes nothing of it on', async () => {
+    const h = leg();
+    await h.starting;
+    translate(h.emit(), 2, 'こんにちは');
+    h.emit().lateSpeech!({ ref: 2, text: '。', span: [5, 6], language: 'ja' });
+    expect(h.calls.filter((c) => c[0] === 'voice.speak' || c[0] === 'voice.endUtterance')).toEqual([
+      ['voice.speak', 'speaker', 2, 'こんにちは', [0, 5], 'ja', undefined],
+      ['voice.endUtterance', 'speaker', 2],
+      ['voice.speak', 'speaker', 2, '。', [5, 6], 'ja', undefined],
+      ['voice.endUtterance', 'speaker', 2],
+    ]);
+    expect(h.said()).toEqual(['segmentOpened', 'segmentText', 'segmentClosed']);
+  });
+
+  it('does not read late text in a language that is not the leg\'s target, and still ends its utterance; nothing once stopped', async () => {
+    const h = leg();
+    const session = await h.starting;
+    h.emit().lateSpeech!({ ref: 2, text: 'Fine.', span: [0, 5], language: 'en' });
+    expect(h.calls.filter((c) => c[0] === 'voice.speak' || c[0] === 'voice.endUtterance')).toEqual([['voice.endUtterance', 'speaker', 2]]);
+    await session.stop();
+    h.emit().lateSpeech!({ ref: 2, text: '。', span: [5, 6], language: 'ja' });
+    expect(only(h.calls, 'voice.speak')).toEqual([]);
+  });
+
   it('starts no speech session for a leg that does not speak', async () => {
     const h = leg({ context: { ...SPEAKS, speech: false } });
     const session = await h.starting;
@@ -374,6 +457,40 @@ describe('startComposite over a text unit and a speech unit: after the end', () 
     await start(failed);
     text.starts[1].events.failed({ message: 'gone' });
     expect(failed.log.map((e) => e.kind)).toEqual(['failed']);
+  });
+});
+
+describe('CompositeLeg: a voice is not started for a leg that has ended', () => {
+  /** A leg whose voice the caller opens itself, as both legs started together have theirs opened. */
+  function made() {
+    const calls: StubCalls = [];
+    const text = stubTextUnit(calls);
+    const voice = stubSpeechUnit(calls);
+    const request = { context: SPEAKS, config: new Map<PlannedUnit, unknown>(), credentials: () => ({}), clock: createVirtualClock(0), signal: new AbortController().signal };
+    const rec = recordEvents();
+    return { calls, rec, leg: new CompositeLeg('speaker', text.planned, voice.planned, request, rec.events) };
+  }
+
+  it('starts the voice of a leg that goes on', () => {
+    const h = made();
+    h.leg.openVoice(new Map());
+    expect(named(h.calls)).toEqual(['voice.start', 'voice.open']);
+    expect(h.leg.speaks).toBe(true);
+  });
+
+  it.each([
+    ['its text session failed', (leg: CompositeLeg) => leg.textEvents.failed({ message: 'gone' })],
+    ['its text session closed', (leg: CompositeLeg) => leg.textEvents.closed({ reason: 'server' })],
+    ['it was cut', (leg: CompositeLeg) => leg.cut()],
+  ] as const)('starts none once %s, and says nothing of it', (_what, end) => {
+    const h = made();
+    end(h.leg);
+    const said = h.rec.log.length;
+    h.leg.openVoice(new Map());
+    h.leg.opened();
+    expect(h.calls).toEqual([]);
+    expect(h.leg.speaks).toBe(false);
+    expect(h.rec.log).toHaveLength(said);
   });
 });
 

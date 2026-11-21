@@ -2,6 +2,7 @@ import {
   AdapterStartError,
   SAMPLE_RATE,
   type Adapter,
+  type AdapterEventKind,
   type AdapterEvents,
   type AdapterSession,
   type Heard,
@@ -849,7 +850,7 @@ class LocalSession implements AdapterSession {
     this.emit('frame', { direction, type, payload: framePayload(payload) });
   }
 
-  private emit<K extends keyof AdapterEvents>(kind: K, payload: Parameters<AdapterEvents[K]>[0]): void {
+  private emit<K extends AdapterEventKind>(kind: K, payload: Parameters<AdapterEvents[K]>[0]): void {
     if (this.ended) return;
     (this.events[kind] as (p: typeof payload) => void)(payload);
   }

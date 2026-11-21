@@ -87,7 +87,8 @@ const voiceUnit: UnitDefinition<FakeVoiceSettings, FakeVoiceCredentials, FakeVoi
   id: 'voice',
   occupies: (_s, want) => (sameStages(SP, want) ? SP : null),
   capabilities: () => ({
-    speech: 'always',
+    // The user's switch says whether a leg is read aloud: with 'always' a text-only session would be read anyway.
+    speech: 'optional',
     turns: ['auto', 'manual'],
     turnOwner: 'either',
     boundaries: 'silence',
@@ -104,7 +105,7 @@ const voiceUnit: UnitDefinition<FakeVoiceSettings, FakeVoiceCredentials, FakeVoi
  * The fake voice provider: no key, always ready, the fake's languages. It is never a text provider: generic code
  * reads its `units`, and its own `start` rejects.
  */
-export const fakeVoiceProvider: Provider<FakeVoiceSettings, FakeVoiceCredentials, FakeVoiceConfig> & { id: 'fake_voice'; units: readonly UnitDefinition[] } = {
+export const fakeVoiceProvider: Provider<FakeVoiceSettings, FakeVoiceCredentials, FakeVoiceConfig> & { id: 'fake_voice' } = {
   id: 'fake_voice',
   kind: 'own-key',
   platforms: ['electron', 'extension', 'web'],
@@ -124,7 +125,7 @@ export const fakeVoiceProvider: Provider<FakeVoiceSettings, FakeVoiceCredentials
 
   languages: FAKE_LANGUAGES,
 
-  speech: 'always',
+  speech: 'optional',
   textInput: () => false,
   boundaries: () => 'silence',
   turns: () => ['auto', 'manual'],

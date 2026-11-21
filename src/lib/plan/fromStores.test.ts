@@ -63,6 +63,19 @@ describe('planFromStores', () => {
     expect(found.accounts).toEqual({ soniox: { settings: sonioxEntry.settings, credentials: { apiKey: 'k' }, pair } });
   });
 
+  it.each(['soniox', 'kizunaai_soniox'])("the plan the selection gives for %s is its text unit and its voice", (id) => {
+    const provider = presentProviders().find((p) => p.id === id);
+    // Kizuna AI's providers are offered only where the build has the hosted service.
+    if (!provider) return;
+    useProviderStore.setState({ selected: id, entries: { [id]: { ...sonioxEntry, credentials: {} } } });
+    const found = planFromStores();
+    if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
+    expect(found.plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([[id, 'stt', ['transcription', 'translation']], [id, 'tts', ['speech']]]);
+    expect(found.plan.byStage.transcription).toBe(found.plan.byStage.translation);
+    expect(found.plan.byStage.speech.unit).toBe(unitsOf(provider)[1]);
+    expect(providersIn(found.plan)).toEqual([provider]);
+  });
+
   // Before a line-up is stored the plan is the selection's, never one composed from the line-up the settings
   // show: while the local scan runs, they show the local host's defaults, Bing and Edge.
   it('runs the selected local provider whole before a line-up is stored, not the line-up shown', () => {
@@ -130,7 +143,7 @@ describe('useStageUnit', () => {
     expect(result.current).toBeNull();
 
     act(() => useProviderStore.setState({ entries: { soniox: sonioxEntry } }));
-    expect(result.current).toMatchObject({ provider: sonioxProvider, unit: unitsOf(sonioxProvider)[0], settings: sonioxEntry.settings });
+    expect(result.current).toMatchObject({ provider: sonioxProvider, unit: unitsOf(sonioxProvider).find((u) => u.id === 'tts'), settings: sonioxEntry.settings });
     expect(result.current!.capabilities.speech).toBe(sonioxProvider.speech);
   });
 });

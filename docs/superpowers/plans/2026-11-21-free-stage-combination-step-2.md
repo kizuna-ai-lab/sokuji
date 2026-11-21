@@ -366,3 +366,21 @@ They replace the text of Tasks A2 to A7 where the two differ; Parts B to E build
 - **Each unit's `shared.models`** is its own provider's readiness answer. `buildPlan`'s `shared` may be a function of the unit.
 - **`fake_voice`** is registered among the development-only providers and in the catalog under the same build condition as `fake`. The setup wizard's own-key list holds only providers that can run a session alone (a unit with `start`), so a voice is never offered as a path. `registry.test.ts`'s "a development build adds exactly the two fakes" became three, on purpose.
 - **Not done here, for Part B:** `wholePlan(p)` gives a provider's first unit all three stages, which is wrong once a provider declares several units: its callers (`planOf`, `shapeWith`, the selection's plan) must compose instead. `units` is read from a provider through a cast; Part B declares it on the provider type.
+
+---
+
+## Decisions made while Part B was built
+
+They replace the text of Tasks B1 to B5 where the two differ; Parts C to E build on them.
+
+- **The feed reads, at a segment's close, only up to the last stable length the segment stated**, when it ever stated one; a segment that never stated one is read whole at its close. A translation cut short with a partial showing (a reconnect) is not read past its finals, as before.
+- **A late chunk on a closed translation is carried by `AdapterEvents.lateSpeech`** (optional): the composite hands it to the voice that reads the row, then ends the row's utterance, and passes nothing of it upward. Soniox emits it where its adapter used to speak such a chunk.
+- **Soniox's text side sends a translation snapshot wherever it used to hand text to its voice**, with `stableLen`, plus one extra snapshot (finals only, in the spoken language) when the next regular snapshot would name another language. Above the contract a row may show that language for the length of one message.
+- **A voice's `degraded` waits for the leg**: held until the text unit has opened, dropped when the start fails, for a voice that reports it during `open()` and for one whose `open()` rejects.
+- **`units` is a declared, optional member of a provider.** `wholePlan(p)` and `compose` give a provider with a text unit and a speech unit the plan of both when it is asked for all three stages; a provider with one unit is as before.
+- **The Soniox voice unit's `speech` capability is `'optional'`**, not `'always'`: the text-only switch must still silence it. On a leg that does not speak its config is `{ off: true }` and it names no model. `fake_voice` is `'optional'` too.
+- **Shown equal, then deleted.** Thirty cases drove the adapter with its voice inside and the composite of `stt` + `tts` from one script, comparing segment events exactly and the Logs frames in order; a real hosted session on each path heard and translated the same sixteen sentences, sent the same sixty text frames for speech and received audio within 5 % of each other. The cases live on in `src/providers/soniox/composite.test.ts` as the composite's own expectations. Three differences were accepted, none above the contract: a Both start cancelled before the transcription socket opens asks for no voice (the adapter had opened and closed one socket per leg); nothing is logged after `failed` (the adapter still logged `tts.end`); the `session.opened` frame no longer lists who speaks.
+- **Temporary, for Task D5 to remove:** `src/lib/lineup/choose.ts` treats a plan of more than one provider as not runnable, so that a choice still moves the other stages while the plan follows the selection. Without it, real units made the composer accept mixes (Kizuna AI's text with an own-key Soniox voice) and the line-up page stopped moving stages.
+- **Open until Tasks D4 and D6:** the composer accepts Kizuna AI's voice alone and plans of two providers; a managed lease still asks for a speech role when another provider speaks.
+- **For Part C:** `sessionSide.consistency.test.ts` roots Soniox's walk at `speech.ts` as well as the adapter; a new speech unit's files must be registered the same way. `silent-when-off` rejects ranged audio over a stretch handed over while speech was off, also after the row resumed: a voice must drop what is in flight when switched off.
+

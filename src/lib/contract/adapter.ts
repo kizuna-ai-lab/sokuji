@@ -126,6 +126,12 @@ export interface AdapterEvents {
   /** `stableLen`: on a translation segment, the first `stableLen` characters of `text` will not change. Absent: nothing is known to be stable until the segment closes. */
   segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string; heard?: Heard; stableLen?: number }): void;
   segmentClosed(e: { ref: Ref; origin?: string }): void;
+  /**
+   * Translation text that arrived after its segment closed. An adapter may also send it as the closed segment's
+   * text. A voice that reads this leg reads it, then ends the row's utterance. `span`: where it sits after the
+   * segment's text. Absent: none is sent.
+   */
+  lateSpeech?(e: { ref: Ref; text: string; span: TextRange; language: string }): void;
   /** `ref` absent: attributable to no segment (plays, pairs with nothing).
    *  `range` absent: this segment's audio, which characters unknown.
    *  `voice`: the leg whose voice reads this audio and whose ear plays it, when it is not this leg's — a
@@ -160,6 +166,9 @@ export interface AdapterEvents {
   /** Wire traffic for the Logs panel. Never audio, never a credential. */
   frame(e: AdapterFrame): void;
 }
+
+/** The events every receiver takes: every member but `lateSpeech`, which only a reader of speech takes. */
+export type AdapterEventKind = Exclude<keyof AdapterEvents, 'lateSpeech'>;
 
 export interface Adapter<C, K> {
   start(request: StartRequest<C, K>, events: AdapterEvents): Promise<AdapterSession>;

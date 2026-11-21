@@ -1,4 +1,4 @@
-import type { Adapter, AdapterEvents, AdapterSession, SessionContext } from '../../lib/contract/adapter';
+import type { Adapter, AdapterEventKind, AdapterEvents, AdapterSession, SessionContext } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
 import type { FakeScript, ScriptBlock, ScriptStep } from './script';
 import { msForText, synthPcm } from './synth';
@@ -159,7 +159,7 @@ class FakeSession implements AdapterSession {
     else if ('frame' in step) this.emit('frame', step.frame);
   }
 
-  private emit<K extends keyof AdapterEvents>(kind: K, payload: Parameters<AdapterEvents[K]>[0]): void {
+  private emit<K extends AdapterEventKind>(kind: K, payload: Parameters<AdapterEvents[K]>[0]): void {
     if (this.ended) return;
     (this.events[kind] as (p: typeof payload) => void)(payload);
   }

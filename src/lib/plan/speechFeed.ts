@@ -1,8 +1,9 @@
 // src/lib/plan/speechFeed.ts
 //
 // From a text unit's translation segments to what a voice is asked to read:
-// each stretch of a translation once it is stable, the rest when the segment
-// closes, then the end of the utterance. Pure state per leg.
+// each stretch of a translation once it is stable, then the end of the
+// utterance when the segment closes. A segment that never says how much of it
+// is stable is read whole at its close. Pure state per leg.
 import type { AdapterEvents, Ref, TextRange } from '../contract/adapter';
 
 type Opened = Parameters<AdapterEvents['segmentOpened']>[0];
@@ -23,8 +24,11 @@ export interface SpeechFeed {
   reset(): void;
 }
 
-/** One open translation segment: how far it has been spoken, its last text, and the language it last stated. */
-interface Open { spoken: number; text: string; language?: string }
+/**
+ * One open translation segment: how far it has been spoken, its last text, the language it last stated, and the
+ * last stable length it stated, if it ever stated one.
+ */
+interface Open { spoken: number; text: string; language?: string; stable?: number }
 
 /**
  * A feed for one leg, handed the text unit's segment events as they come. Only a segment opened as a translation
@@ -52,13 +56,17 @@ export function createSpeechFeed(sink: SpeechFeedSink, target: () => string): Sp
       segment.text = e.text;
       if (e.language !== undefined) segment.language = e.language;
       // No stable length: nothing is known to stay until the segment closes.
-      if (e.stableLen !== undefined) speakTo(e.ref, segment, e.stableLen);
+      if (e.stableLen === undefined) return;
+      segment.stable = e.stableLen;
+      speakTo(e.ref, segment, e.stableLen);
     },
     closed(e) {
       const segment = open.get(e.ref);
       if (!segment) return;
       open.delete(e.ref);
-      speakTo(e.ref, segment, segment.text.length);
+      // A segment that stated a stable length is read up to the last one it stated: what lies past it was never
+      // said to stay (a partial showing when the segment was cut short). One that stated none is read whole.
+      speakTo(e.ref, segment, segment.stable ?? segment.text.length);
       sink.end(e.ref);
     },
     reset() {
