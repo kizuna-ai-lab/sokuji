@@ -63,5 +63,7 @@ export function startComposite(
 ): Promise<AdapterSession> {
   if (plan.units.length !== 1) return Promise.reject(new AdapterStartError('A plan of several units cannot start yet.', 'plan_unsupported'));
   const [unit] = plan.units;
-  return unit.unit.start({ ...request, config: request.config.get(unit), credentials: request.credentials(unit) }, events);
+  const start = unit.unit.start;
+  if (!start) return Promise.reject(new AdapterStartError('A plan of a speech unit alone cannot start.', 'plan_unsupported'));
+  return start({ ...request, config: request.config.get(unit), credentials: request.credentials(unit) }, events);
 }
