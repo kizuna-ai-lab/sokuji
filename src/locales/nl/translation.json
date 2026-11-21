@@ -508,6 +508,7 @@
     "microphone": "Microfoon",
     "microphoneDesc": "Selecteer de microfoon om uw spraak op te vangen. Spreek uw taal in deze microfoon, en Sokuji zal alles wat het hoort in realtime vertalen.",
     "swapLanguages": "Talen wisselen",
+    "swapNotSpoken": "De stem leest dit paar niet voor in omgekeerde richting.",
     "textOnly": "Alleen tekst",
     "textOnlyDesc": "Vertaal alleen naar tekst — geen spraakuitvoer",
     "textOnlyForcedByMode": "De modus \"{{mode}}\" zet alleen om wat deelnemers zeggen in tekst voor jou en genereert nooit audio, dus \"Alleen tekst\" blijft aan. Wissel van vertaalmodus om je eigen stem met spraak te vertalen.",

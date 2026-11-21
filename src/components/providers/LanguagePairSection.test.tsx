@@ -500,12 +500,83 @@ describe('LanguagePairSection — what the voice reads', () => {
     expect(codesOf(mine)).toEqual([AUTO, 'en', 'zh'].sort());
   });
 
-  it('the swap is off when a voice would not read the swapped pair', () => {
+  it('the swap is off when a voice would not read the swapped pair, and says why', () => {
     draw({ source: 'ja', target: 'en' }, vi.fn(), { spoken: { speaker: notJapanese } });
-    expect(screen.getByTitle('simpleConfig.swapLanguages')).toBeDisabled();
+    const off = screen.getByRole('button', { name: 'simpleConfig.swapLanguages' });
+    expect(off).toBeDisabled();
+    expect(off).toHaveAttribute('title', 'simpleConfig.swapNotSpoken');
     cleanup();
     draw({ source: 'zh', target: 'en' }, vi.fn(), { spoken: { speaker: notJapanese } });
-    expect(screen.getByTitle('simpleConfig.swapLanguages')).toBeEnabled();
+    const on = screen.getByRole('button', { name: 'simpleConfig.swapLanguages' });
+    expect(on).toBeEnabled();
+    expect(on).toHaveAttribute('title', 'simpleConfig.swapLanguages');
+    cleanup();
+    // A pair the provider does not run the other way round is not the voice's doing.
+    draw({ source: AUTO, target: 'en' }, vi.fn(), { spoken: { speaker: notJapanese } });
+    expect(screen.getByRole('button', { name: 'simpleConfig.swapLanguages' })).toHaveAttribute('title', 'simpleConfig.swapLanguages');
+  });
+
+  describe("a reverse that depends on the target: the other side's voice is asked about the pair a choice makes", () => {
+    // Their leg of a pair into English is read in a code of its own (`<source>-wide`); any other, in the source.
+    const all = ['en', 'ja', 'zh', 'ko'];
+    const provider = {
+      ...fakeProvider,
+      languages: {
+        ...fakeProvider.languages,
+        sources: () => all.map((value) => ({ value })),
+        targets: (source: string) => all.filter((value) => value !== source).map((value) => ({ value })),
+        reverse: ({ source, target }: { source: string; target: string }) => ({ source: target, target: target === 'en' ? `${source}-wide` : source }),
+      },
+    } as unknown as typeof fakeProvider;
+    const notWide = (language: string) => !language.endsWith('-wide');
+    const both = { mode: 'both', textOnly: false } as const;
+    const rows = () => [...document.querySelectorAll('.language-pair-row')].map((row) => [...row.querySelectorAll('select.language-select')] as HTMLSelectElement[]);
+    // My row: the language I speak, then the one they get. Their row: the one they speak, then the one I get.
+    const mySource = () => rows()[0][0];
+    const myTarget = () => rows()[0][1];
+    const iGet = () => rows()[1][1];
+
+    it('Both: a source whose choice moves the target to one their voice does not read the reverse of is not offered, in either row', () => {
+      // English → Japanese, then Japanese as the source: the target moves to English, and their leg would be read in ja-wide.
+      const onChange = draw({ source: 'en', target: 'ja' }, vi.fn(), { provider, sentence: both, receive: { theirs: choice(true), mine: choice(true) }, spoken: { participant: notWide } });
+      expect(codesOf(mySource())).toEqual(['en', 'ko', 'zh']);
+      expect(codesOf(iGet())).toEqual(['en', 'ko', 'zh']);
+      fireEvent.change(mySource(), { target: { value: 'zh' } });
+      expect(onChange).toHaveBeenLastCalledWith({ source: 'zh', target: 'ja' });
+      fireEvent.change(iGet(), { target: { value: 'ko' } });
+      expect(onChange).toHaveBeenLastCalledWith({ source: 'ko', target: 'ja' });
+    });
+
+    it('Both: a target that must move goes to one both voices read before one only mine does', () => {
+      // Japanese as the source: English is first but my voice does not read it; Chinese is next and both read it.
+      const notEnglish = (language: string) => language !== 'en';
+      const onChange = draw({ source: 'en', target: 'ja' }, vi.fn(), { provider, sentence: both, receive: { theirs: choice(true), mine: choice(true) }, spoken: { speaker: notEnglish, participant: notWide } });
+      expect(codesOf(mySource())).toContain('ja');
+      fireEvent.change(mySource(), { target: { value: 'ja' } });
+      expect(onChange).toHaveBeenLastCalledWith({ source: 'ja', target: 'zh' });
+    });
+
+    it('Both: a target that would take the reverse away from their voice is not offered; one already lost holds none back', () => {
+      draw({ source: 'ja', target: 'zh' }, vi.fn(), { provider, sentence: both, receive: { theirs: choice(true), mine: choice(true) }, spoken: { participant: notWide } });
+      expect(codesOf(myTarget())).toEqual(['ko', 'zh']);
+      cleanup();
+      draw({ source: 'ja', target: 'en' }, vi.fn(), { provider, sentence: both, receive: { theirs: choice(true), mine: choice(true) }, spoken: { participant: notWide } });
+      expect(myTarget()).toHaveValue('en');
+      expect(codesOf(myTarget())).toEqual(['en', 'ko', 'zh']);
+    });
+
+    it('a pick no voice reads a target for is still the pick: the pair the provider makes of it, once', () => {
+      // Chinese as the source: the target must move, and my voice reads none of its targets.
+      const onChange = draw({ source: 'en', target: 'zh' }, vi.fn(), { provider, sentence: both, receive: { theirs: choice(true), mine: choice(true) }, spoken: { speaker: (language) => language === 'zh', participant: () => false } });
+      // Their voice reads nothing: no source is offered but the one held, shown unchosen.
+      expect(disabledValues(mySource())).toEqual(['en']);
+      cleanup();
+      const picked = draw({ source: 'en', target: 'zh' }, vi.fn(), { provider, sentence: both, receive: { theirs: choice(true), mine: choice(true) }, spoken: { speaker: (language) => language === 'zh' } });
+      fireEvent.change(mySource(), { target: { value: 'zh' } });
+      expect(picked).toHaveBeenCalledTimes(1);
+      expect(picked).toHaveBeenCalledWith({ source: 'zh', target: 'en' });
+      expect(onChange).not.toHaveBeenCalled();
+    });
   });
 
   it("the sentence follows the speaking unit's rule, not the provider's own", () => {

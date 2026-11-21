@@ -62,13 +62,21 @@ export function retentionFor(keep: boolean): Retention {
  * A run's analytics: every event that names the run's provider also says who serves each stage (`stages`), and
  * `provider` stays the one that transcribes. An event that names no provider passes as it is.
  */
-export function stagedAnalytics(analytics: AnalyticsPort, stages: StageIds): AnalyticsPort {
+export function stagedAnalytics(analytics: AnalyticsPort, stages: StageIds): RunAnalytics {
   return {
-    track: ((event: keyof AnalyticsEvents, properties: AnalyticsEvents[keyof AnalyticsEvents]) => {
+    track: ((event: keyof AnalyticsEvents, properties: object) => {
       const named = 'provider' in properties ? { ...properties, stages } : properties;
       (analytics as { track(event: string, properties: unknown): void }).track(event, named);
-    }) as AnalyticsPort['track'],
+    }) as RunAnalytics['track'],
   };
+}
+
+/** An event's properties without `stages`, each member of a union apart. */
+type WithoutStages<P> = P extends unknown ? Omit<P, 'stages'> : never;
+
+/** A run's analytics as the run's code sends to it: `stages` is not the sender's to give, `stagedAnalytics` adds it. */
+export interface RunAnalytics {
+  track<E extends keyof AnalyticsEvents>(event: E, properties: WithoutStages<AnalyticsEvents[E]>): void;
 }
 
 /** The start was refused before anything opened. */
@@ -152,10 +160,10 @@ export class Run {
     return task;
   }
 
-  /** `host` is a factory because the runner's host closes over the run it serves. */
   /** The analytics of this run: its events name who serves each stage (`stagedAnalytics`). */
-  readonly analytics: AnalyticsPort;
+  readonly analytics: RunAnalytics;
 
+  /** `host` is a factory because the runner's host closes over the run it serves. */
   constructor(private readonly deps: RunnerDeps, host: (run: Run) => RunHost, readonly shape: RunShape) {
     this.analytics = stagedAnalytics(deps.analytics, shape.lineUp);
     this.id = deps.newSessionId();

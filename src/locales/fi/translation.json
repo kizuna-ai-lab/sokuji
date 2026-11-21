@@ -508,6 +508,7 @@
     "microphone": "Mikrofoni",
     "microphoneDesc": "Valitse mikrofoni puheesi kaappaamiseen. Puhu kielelläsi tähän mikrofoniin, niin Sokuji kääntää kaiken mitä se kuulee reaaliajassa.",
     "swapLanguages": "Vaihda kielet",
+    "swapNotSpoken": "Ääni ei lue tätä paria toisin päin.",
     "textOnly": "Vain teksti",
     "textOnlyDesc": "Käännä vain tekstiksi — ei puhuttua ääntä",
     "textOnlyForcedByMode": "Tila \"{{mode}}\" muuttaa osallistujien puheen vain tekstiksi sinulle eikä koskaan tuota ääntä, joten \"Vain teksti\" pysyy päällä. Vaihda käännöstilaa kääntääksesi oman äänesi puheena.",

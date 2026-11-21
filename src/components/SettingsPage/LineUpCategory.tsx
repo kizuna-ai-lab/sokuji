@@ -122,8 +122,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const engineSlotTarget = useEngineSlotTarget();
   const setEngineSlotTarget = useSetEngineSlotTarget();
   // Speech followed the last choice (its voice could not stay beside the chosen text side): said on the speech
-  // card until the next choice.
-  const [followed, setFollowed] = useState<string | null>(null);
+  // card while the line-up is the one that choice made, and until the next choice.
+  const [followedBy, setFollowedBy] = useState<{ text: string; lineUp: LineUp } | null>(null);
+  const followed = followedBy && lineUp && RUN_STAGES.every((s) => lineUp[s] === followedBy.lineUp[s]) ? followedBy.text : null;
+  // Once the line-up is another one, the line is spent: it is not said again should the line-up come back.
+  useEffect(() => {
+    if (followedBy && !followed) setFollowedBy(null);
+  }, [followedBy, followed]);
 
   // Every provider with a key is loaded, so that its row can say whether the key is there.
   useEffect(() => {
@@ -203,21 +208,27 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     }] : []),
   ];
   const chooseNotes = async (id: string) => {
+    setFollowedBy(null);
     const before: LineUp | null = useLineUpStore.getState().lineUp;
     const choice = await useLineUpStore.getState().choose('summarisation', id);
     if (choice && before) trackEvent('lineup_changed', lineUpChangedEvent('summarisation', before, choice));
   };
 
   const choose = async (stage: RunStage, id: string) => {
+    // What the last choice made speech do is not said of this one, whatever comes of it.
+    setFollowedBy(null);
     const before: LineUp | null = useLineUpStore.getState().lineUp;
     const choice = await useLineUpStore.getState().choose(stage, id);
     if (!choice || !before) return;
     trackEvent('lineup_changed', lineUpChangedEvent(stage, before, choice));
     // Named as an option's text names it: a hosted provider with its engine.
     const name = (option: string) => optionText(model(option, providers.find((p) => p.id === option)));
-    setFollowed(choice.followed
-      ? t('settingsPage.lineup.voiceFollowed', "Speech changed to {{provider}} too: {{previous}}'s voice only reads its own translation.", { provider: name(choice.followed.to), previous: name(choice.followed.from) })
-      : null);
+    if (choice.followed) {
+      setFollowedBy({
+        text: t('settingsPage.lineup.voiceFollowed', "Speech changed to {{provider}} too: {{previous}}'s voice only reads its own translation.", { provider: name(choice.followed.to), previous: name(choice.followed.from) }),
+        lineUp: choice.lineUp,
+      });
+    }
     // A one-shot target that opened this page is spent once something is chosen here.
     if (target) navigateToSettings(null);
   };

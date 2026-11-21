@@ -508,6 +508,7 @@
     "microphone": "麦克风",
     "microphoneDesc": "选择用于捕获您语音的麦克风。对着此麦克风说您的语言，Sokuji会实时翻译麦克风接收到的所有内容。",
     "swapLanguages": "交换语言",
+    "swapNotSpoken": "该语音无法朗读反向的语言对。",
     "textOnly": "仅文本",
     "textOnlyDesc": "仅翻译为文本 — 不生成语音",
     "textOnlyForcedByMode": "「{{mode}}」模式只把参会者说的话转成文字给你看，不会生成语音，因此「仅文本」始终开启。切换翻译模式即可让自己的语音带声音输出。",

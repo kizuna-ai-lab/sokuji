@@ -508,6 +508,7 @@
     "microphone": "Microfono",
     "microphoneDesc": "Seleziona il microfono per catturare il tuo parlato. Parla nella tua lingua in questo microfono, e Sokuji tradurrà tutto ciò che sente in tempo reale.",
     "swapLanguages": "Scambia lingue",
+    "swapNotSpoken": "La voce non legge questa coppia nel verso opposto.",
     "textOnly": "Solo testo",
     "textOnlyDesc": "Traduci solo in testo — nessuna uscita vocale",
     "textOnlyForcedByMode": "La modalità \"{{mode}}\" trasforma ciò che dicono i partecipanti in testo per te e non genera mai audio, quindi \"Solo testo\" resta attivo. Cambia la modalità di traduzione per tradurre la tua voce con l'audio.",

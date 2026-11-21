@@ -64,7 +64,7 @@ beforeEach(() => {
   tracked.length = 0;
   runsOn('soniox');
   useProviderStore.setState({ entries: {}, readiness: {} });
-  useLineUpStore.setState({ lineUp: soniox, stored: true });
+  useLineUpStore.setState({ lineUp: soniox, stored: true, locked: false });
   useSettingsStore.setState({ settingsNavigationTarget: null, textOnly: false });
   useAudioStore.setState({ mode: 'speaker' });
   useRoutingStore.setState({ participantSpeech: null });
@@ -254,6 +254,49 @@ describe('languages and line-up', () => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'edge' } });
       await waitFor(() => expect(tracked).toHaveLength(2));
       await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
+    });
+
+    describe('the line that says speech followed belongs to the line-up it was said about', () => {
+      const everyStage = { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null };
+      const follow = async () => {
+        load();
+        useLineUpStore.setState({ lineUp: everyStage, stored: true });
+        render(<LineUpCategory locked={false} />);
+        fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'soniox' } });
+        expect(await within(cardOf('Speech')).findByRole('status')).toHaveTextContent('Speech changed to Soniox too');
+      };
+
+      it('a line-up replaced from outside takes the line away', async () => {
+        await follow();
+        // The same line-up stored again (another window's copy) is still the one the choice made.
+        act(() => useLineUpStore.setState({ lineUp: { ...soniox } }));
+        expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Speech changed to Soniox too');
+        act(() => useLineUpStore.setState({ lineUp: { ...soniox, speech: 'edge' } }));
+        expect(screen.queryByText(/Speech changed to/)).toBeNull();
+        // Back by another way: the line was about the choice, and is not said again.
+        act(() => useLineUpStore.setState({ lineUp: soniox }));
+        expect(screen.queryByText(/Speech changed to/)).toBeNull();
+      });
+
+      it('a choice that is refused takes the line away', async () => {
+        await follow();
+        // A session holds the line-up: the store refuses the choice.
+        act(() => useLineUpStore.setState({ locked: true }));
+        const before = tracked.length;
+        fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'edge' } });
+        await waitFor(() => expect(screen.queryByText(/Speech changed to/)).toBeNull());
+        expect(useLineUpStore.getState().lineUp).toEqual(soniox);
+        expect(tracked).toHaveLength(before);
+      });
+
+      it('a choice for the notes takes the line away', async () => {
+        await follow();
+        const openai = { settings: RELEASED.find((p) => p.id === 'openai')!.settings.defaults, credentials: { apiKey: 'k' }, pair };
+        act(() => useProviderStore.setState((s) => ({ entries: { ...s.entries, openai } as never })));
+        expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Speech changed to Soniox too');
+        fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
+        await waitFor(() => expect(screen.queryByText(/Speech changed to/)).toBeNull());
+      });
     });
 
     it("this device for the text, from Kizuna AI's Soniox on every stage: speech follows to Edge", async () => {

@@ -508,6 +508,7 @@
     "microphone": "Microphone",
     "microphoneDesc": "Chọn microphone để ghi lại giọng nói của bạn. Nói bằng ngôn ngữ của bạn vào microphone này, và Sokuji sẽ dịch mọi thứ nó nghe thấy theo thời gian thực.",
     "swapLanguages": "Đổi ngôn ngữ",
+    "swapNotSpoken": "Giọng nói không đọc cặp này theo chiều ngược lại.",
     "textOnly": "Chỉ văn bản",
     "textOnlyDesc": "Chỉ dịch sang văn bản — không phát âm thanh",
     "textOnlyForcedByMode": "Chế độ \"{{mode}}\" chỉ chuyển lời người tham gia thành văn bản cho bạn và không bao giờ tạo âm thanh, nên \"Chỉ văn bản\" luôn bật. Hãy chuyển chế độ dịch để dịch giọng nói của bạn kèm âm thanh.",

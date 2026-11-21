@@ -508,6 +508,7 @@
     "microphone": "Mikrofon",
     "microphoneDesc": "Välj mikrofon för att fånga ditt tal. Tala ditt språk i denna mikrofon, och Sokuji kommer att översätta allt den hör i realtid.",
     "swapLanguages": "Byt språk",
+    "swapNotSpoken": "Rösten läser inte upp det här paret åt andra hållet.",
     "textOnly": "Endast text",
     "textOnlyDesc": "Översätt till text — inget talat ljud",
     "textOnlyForcedByMode": "Läget \"{{mode}}\" gör bara om det deltagarna säger till text åt dig och genererar aldrig ljud, så \"Endast text\" förblir på. Byt översättningsläge för att översätta din egen röst med tal.",

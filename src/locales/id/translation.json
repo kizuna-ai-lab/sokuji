@@ -508,6 +508,7 @@
     "microphone": "Mikrofon",
     "microphoneDesc": "Pilih mikrofon untuk menangkap ucapan Anda. Berbicara dalam bahasa Anda ke mikrofon ini, dan Sokuji akan menerjemahkan semua yang didengarnya secara real-time.",
     "swapLanguages": "Tukar bahasa",
+    "swapNotSpoken": "Suara tidak membacakan pasangan ini dalam arah sebaliknya.",
     "textOnly": "Teks saja",
     "textOnlyDesc": "Terjemahkan ke teks saja — tanpa keluaran suara",
     "textOnlyForcedByMode": "Mode \"{{mode}}\" hanya mengubah ucapan peserta menjadi teks untuk Anda dan tidak pernah menghasilkan audio, jadi \"Teks saja\" tetap aktif. Ubah mode terjemahan untuk menerjemahkan suara Anda sendiri dengan ucapan.",

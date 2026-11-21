@@ -279,8 +279,6 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     run.analytics.track('translation_session_start', {
       session_id: run.id,
       provider: run.providerId,
-      // Who serves each stage: what the run froze at start.
-      stages: shape.lineUp,
       source_language: shape.pair.source,
       target_language: shape.pair.target,
       asr_model: run.models.asrModel,

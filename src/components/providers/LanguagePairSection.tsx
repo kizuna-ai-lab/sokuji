@@ -1,5 +1,5 @@
 import { ArrowLeftRight, Languages } from 'lucide-react';
-import { useId, useMemo } from 'react';
+import { useCallback, useId, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip/Tooltip';
 import { pairSentence } from '../SetupWizard/languageSentence';
@@ -137,22 +137,60 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   const label = useLanguageLabel();
   // The other side's leg runs the pair's reverse as the provider states it (`reversedPair`: Palabra's is its own codes,
   // not a swap).
-  const leg = (p: LanguagePair) => reversedPair(provider, settings, p) ?? { source: p.target, target: p.source };
-  const everySource = provider.languages.sources(settings, context);
-  const everyTarget = provider.languages.targets(pair.source, settings, context);
+  const leg = useCallback(
+    (p: LanguagePair) => reversedPair(provider, settings, p) ?? { source: p.target, target: p.source },
+    [provider, settings],
+  );
+  // The context by what it says, not by the object the caller built for this render.
+  const speaks = context?.speech;
+  const offerContext = useMemo((): LanguageContext | undefined => (speaks === undefined ? undefined : { speech: speaks }), [speaks]);
+  const everySource = useMemo(() => provider.languages.sources(settings, offerContext), [provider, settings, offerContext]);
+  const everyTarget = useMemo(() => provider.languages.targets(pair.source, settings, offerContext), [provider, settings, pair.source, offerContext]);
   // A leg that is read aloud is offered the languages its voice reads: my leg's are the targets, the other side's
   // what each source makes its reverse translate into. An automatic source has no reverse to read.
   const mySpoken = spoken?.speaker;
   const theirSpoken = spoken?.participant;
-  const sources = useMemo(
-    () => (theirSpoken ? everySource.filter((o) => o.value === AUTO || theirSpoken(leg({ source: o.value, target: pair.target }).target)) : everySource),
-    [everySource, theirSpoken, pair.target, provider, settings], // eslint-disable-line react-hooks/exhaustive-deps
+  // Whether a list is cut down to what a voice reads: what it holds now may then be missing from it.
+  const sourcesNarrowed = Boolean(theirSpoken);
+  const targetsNarrowed = Boolean(mySpoken || theirSpoken);
+  /** Whether the other side's voice reads what a pair's reverse would have it read. */
+  const theirsRead = useCallback(
+    (p: LanguagePair) => !theirSpoken || p.source === AUTO || theirSpoken(leg(p).target),
+    [theirSpoken, leg],
   );
-  const targets = useMemo(() => (mySpoken ? everyTarget.filter((o) => mySpoken(o.value)) : everyTarget), [everyTarget, mySpoken]);
   /** Whether both legs' voices read what a pair would have them read. */
-  const read = (p: LanguagePair) => (!mySpoken || mySpoken(p.target)) && (!theirSpoken || p.source === AUTO || theirSpoken(leg(p).target));
+  const read = useCallback((p: LanguagePair) => (!mySpoken || mySpoken(p.target)) && theirsRead(p), [mySpoken, theirsRead]);
+  /**
+   * The pair a new source makes, as `by` answers: the target kept where the provider offers it with that source,
+   * else the first it does; where that one is not read by my leg's voice, the first that is, one both voices read
+   * before one only mine does. Nothing else is changed for a voice: a pair one does not read is still the pair.
+   */
+  const pairWith = useCallback((source: string, by: AnyProvider): LanguagePair => {
+    const next = normalizePair(by, settings, { source, target: pair.target }, offerContext);
+    if (next.target === pair.target || !mySpoken || mySpoken(next.target)) return next;
+    const mine = by.languages.targets(next.source, settings, offerContext).filter((o) => mySpoken(o.value));
+    const target = (mine.find((o) => theirsRead({ source: next.source, target: o.value })) ?? mine[0])?.value;
+    return target === undefined ? next : { source: next.source, target };
+  }, [settings, pair.target, offerContext, mySpoken, theirsRead]);
+  // A source is offered when the other side's voice reads the reverse of the pair choosing it makes: the target
+  // can move with the source, and a provider's reverse can depend on the target.
+  const sources = useMemo(() => {
+    if (!theirSpoken) return everySource;
+    const asked = answeringOnce(provider);
+    return everySource.filter((o) => theirsRead(pairWith(o.value, asked)));
+  }, [everySource, theirSpoken, theirsRead, pairWith, provider]);
+  // A target is offered when my leg's voice reads it, and it does not take the pair's reverse away from the other
+  // side's voice (a provider's reverse can depend on the target); a reverse that voice does not read as the pair
+  // stands holds no target back.
+  const targets = useMemo(() => {
+    if (!mySpoken && !theirSpoken) return everyTarget;
+    const theirsReadNow = theirsRead({ source: pair.source, target: pair.target });
+    return everyTarget.filter((o) => (!mySpoken || mySpoken(o.value)) && (!theirsReadNow || theirsRead({ source: pair.source, target: o.value })));
+  }, [everyTarget, mySpoken, theirSpoken, theirsRead, pair.source, pair.target]);
   const swappedPair = swapped(provider, settings, pair, context);
   const reversed = swappedPair && read(swappedPair) ? swappedPair : null;
+  // The provider runs the swapped pair, but a voice does not read it: the button says so.
+  const swapNotSpoken = Boolean(swappedPair) && !reversed;
   // Display only: the dropdowns use the app-wide order, while the provider's own
   // order still decides normalizePair's first option.
   const ui = i18n?.language ?? 'en';
@@ -253,15 +291,9 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   };
   // The Other mode: my word leads the first row.
   const mineLeads = Boolean(mine) && sentence?.mode === 'participant';
-  // A new source keeps the target where the provider offers it with that source, else takes the first it does:
-  // the first my leg's voice reads, where it is read aloud.
-  const chooseSource = (source: string) => {
-    const next = normalizePair(provider, settings, { source, target: pair.target }, context);
-    const readable = next.target !== pair.target && mySpoken && !mySpoken(next.target)
-      ? provider.languages.targets(next.source, settings, context).find((o) => mySpoken(o.value))
-      : undefined;
-    onChange(readable ? { source: next.source, target: readable.value } : next);
-  };
+  // A new source makes the pair the lists were judged by (`pairWith`). The pick is kept even where a voice does
+  // not read the pair it makes: the line-up says so, and nothing here says otherwise.
+  const chooseSource = (source: string) => onChange(pairWith(source, provider));
   const chooseTarget = (target: string) => onChange({ source: pair.source, target });
   const sourceSelect = (selectId: string, ariaLabel?: string) => (
     <select
@@ -273,7 +305,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       disabled={disabled}
     >
       {/* What it is now when the voice that reads it does not read it: shown, unchosen. */}
-      {sources !== everySource && !sources.some((o) => o.value === pair.source) && <option value={pair.source} disabled>{label(pair.source)}</option>}
+      {sourcesNarrowed && !sources.some((o) => o.value === pair.source) && <option value={pair.source} disabled>{label(pair.source)}</option>}
       {options(sourceOptions)}
     </select>
   );
@@ -286,7 +318,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       onChange={(e) => chooseTarget(e.target.value)}
       disabled={disabled}
     >
-      {targets !== everyTarget && !targets.some((o) => o.value === pair.target) && <option value={pair.target} disabled>{label(pair.target)}</option>}
+      {targetsNarrowed && !targets.some((o) => o.value === pair.target) && <option value={pair.target} disabled>{label(pair.target)}</option>}
       {options(targetOptions)}
     </select>
   );
@@ -302,7 +334,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
     if (!theirRow) return null;
     const asked = answeringOnce(provider);
     const runs = (p: LanguagePair) => reverseSupported(asked, settings, p, reverseContext);
-    const withSource = (source: string) => normalizePair(asked, settings, { source, target: pair.target }, context);
+    const withSource = (source: string) => pairWith(source, asked);
     return {
       theyCanSpeak: only(targetOptions, (o) => runs({ source: pair.source, target: o.value })),
       iCanGet: only(sourceOptions, (o) => runs(withSource(o.value))),
@@ -338,7 +370,8 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
         className="language-swap-btn"
         onClick={() => reversed && onChange(reversed)}
         disabled={disabled || !reversed}
-        title={t('simpleConfig.swapLanguages')}
+        aria-label={t('simpleConfig.swapLanguages')}
+        title={swapNotSpoken ? t('simpleConfig.swapNotSpoken', 'The voice does not read this pair the other way round.') : t('simpleConfig.swapLanguages')}
       >
         <ArrowLeftRight size={18} />
       </button>
