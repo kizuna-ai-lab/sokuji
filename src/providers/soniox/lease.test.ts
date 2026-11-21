@@ -1679,13 +1679,41 @@ describe("Kizuna Soniox lease: the voice alone (another provider's text)", () =>
       }
     });
 
-    it.each([401, 408, 429])('stays remembered when session-end is turned away unserved (HTTP %i): the request said nothing about the lease', async (status) => {
+    it('stays remembered when session-end is refused for the sign-in (HTTP 401): final, and it said nothing about the lease', async () => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+      const releasing = a.resources.release();
+      a.to('/soniox/session-end')[0].respond(401);
+      await releasing;
+      expect(a.to('/soniox/session-end')).toHaveLength(1);
+      expect(voiceLeases.forget).not.toHaveBeenCalled();
+    });
+
+    it.each([408, 429])('tries session-end again after HTTP %i, and forgets the lease once it is answered', async (status) => {
       const voiceLeases = memory();
       const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
       const releasing = a.resources.release();
       a.to('/soniox/session-end')[0].respond(status);
+      await flush();
+      a.clock.advance(500);
+      await flush();
+      expect(a.to('/soniox/session-end')).toHaveLength(2);
+      a.to('/soniox/session-end')[1].respond(200);
       await releasing;
-      expect(a.to('/soniox/session-end')).toHaveLength(1);
+      expect(voiceLeases.forget.mock.calls).toEqual([['lease-1']]);
+    });
+
+    it.each([408, 429])('stays remembered when HTTP %i is still the answer when the tries run out', async (status) => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+      const releasing = a.resources.release();
+      for (let i = 0; i < 6; i += 1) {
+        for (const call of a.to('/soniox/session-end')) call.respond(status);
+        await flush();
+        a.clock.advance(SESSION_END_BUDGET_MS);
+        await flush();
+      }
+      await releasing;
       expect(voiceLeases.forget).not.toHaveBeenCalled();
     });
 

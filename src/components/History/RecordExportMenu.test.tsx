@@ -110,6 +110,12 @@ describe("a record's export", () => {
       const [hostedText, hostedJson] = await files(hostedVoice);
       expect(hostedText).toContain('Provider: transcription=soniox, translation=soniox, speech=kizunaai_soniox\n');
       expect(JSON.parse(hostedJson)).toMatchObject({ provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' } });
+      // Soniox transcribed, Bing translated, Edge spoke: Bing and Edge run on this device, which is another host
+      // than Soniox, so the file names the three.
+      const apart = { ...without, services: { ...without.services, provider: 'soniox', stages: { transcription: 'soniox', translation: 'bing', speech: 'edge' } } } as unknown as HistoryRecord;
+      const [apartText, apartJson] = await files(apart);
+      expect(apartText).toContain('Provider: transcription=soniox, translation=bing, speech=edge\n');
+      expect(JSON.parse(apartJson)).toMatchObject({ provider: 'soniox', stages: { transcription: 'soniox', translation: 'bing', speech: 'edge' } });
     } finally {
       URL.createObjectURL = createObjectURL;
       URL.revokeObjectURL = revokeObjectURL;

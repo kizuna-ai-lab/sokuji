@@ -244,9 +244,9 @@ function wait(clock: Clock, ms: number, signal: AbortSignal): Promise<void> {
 
 interface Ending {
   /**
-   * Whether the backend answered about the lease: any status below 500 but a 401, 408 or 429, which say the request
-   * was not served (the token cached at acquire may have expired by Stop). False too when no attempt reached it, or
-   * it was cancelled first.
+   * Whether the backend answered about the lease: any status below 500 but a 401 (the token cached at acquire may
+   * have expired by Stop), or a 408 or 429 that was still the answer when the tries ran out: none of them says the
+   * request was served. False too when no attempt reached it, or it was cancelled first.
    */
   done: Promise<boolean>;
   cancel(): void;
@@ -257,8 +257,8 @@ interface Ending {
  * sweep settle the lease before expiry (`routes/soniox.ts:820-864`). The
  * first attempt goes with `keepalive`, so it outlives a closing page, and
  * the token cached at acquire, so `pagehide`'s synchronous release sends it
- * before any await. A transport failure or a 5xx is retried, three attempts
- * at most within `SESSION_END_BUDGET_MS`; a 4xx is final.
+ * before any await. A transport failure, a 5xx, a 408 or a 429 is retried,
+ * three attempts at most within `SESSION_END_BUDGET_MS`; any other 4xx is final.
  */
 function signalEnd(
   doFetch: NonNullable<KizunaLeaseDeps['fetch']>, url: string, token: string, leaseId: string, ctx: LeaseContext,
@@ -292,8 +292,10 @@ function signalEnd(
       });
       status = res.status;
       outcome = 'response';
-      if (res.status >= 500) return false;
-      unserved = res.status === 401 || res.status === 408 || res.status === 429;
+      // A 408 or 429 was not served, and may be served a moment later: tried again like a 5xx.
+      if (res.status >= 500 || res.status === 408 || res.status === 429) return false;
+      // A 401 will not change with the same token: final, and it says nothing about the lease.
+      unserved = res.status === 401;
       if (!res.ok) frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-end', message: `HTTP ${res.status}` } });
       return true;
     } catch {

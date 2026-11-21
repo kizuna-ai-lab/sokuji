@@ -8,6 +8,7 @@ import { VoicePreviewContext } from '../../components/providers/VoicePreviewCont
 import type { ProviderAccount, PreviewPort, SettingsProps } from '../../lib/provider/types';
 import type { SonioxVoiceSectionProps } from '../../components/Settings/sections/SonioxVoiceSection';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
+import { useLineUpStore } from '../../stores/lineUpStore';
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
@@ -179,6 +180,27 @@ describe('createSonioxSettingsView', () => {
     rerender(<BYOK {...props({ update, disabled: true })} />);
     expect(sharedPills().getByRole('button', { name: 'Enabled' })).toBeDisabled();
     expect(sharedPills().getByRole('button', { name: 'Disabled' })).toBeDisabled();
+  });
+
+  it('transcribing for another service\'s translation, the shared-session choice is not drawn, and agent text reads as in split Both', () => {
+    const stages = { transcription: 'soniox', translation: 'bing', speech: 'soniox', summarisation: null };
+    useLineUpStore.setState({ lineUp: stages, stored: true });
+    try {
+      const { unmount } = render(<BYOK {...props({ settings: { ...SONIOX_DEFAULTS, agentText: true, bothModeSharedSession: true } })} />);
+      expect(document.getElementById('soniox-settings-section')).toBeNull();
+      expect(screen.queryByText('Shared session in Both mode')).toBeNull();
+      // Both, each direction on a session of its own: the setting shows off and locked, as in split Both.
+      const agent = within(document.getElementById('soniox-agent-text-section')!);
+      expect(agent.getByRole('button', { name: 'Enabled' })).toBeDisabled();
+      expect(agent.getByRole('button', { name: 'Disabled' })).toHaveAttribute('aria-pressed', 'true');
+      unmount();
+      // The other Soniox is not the one this view is of: it draws the choice as before.
+      useLineUpStore.setState({ lineUp: { ...stages, transcription: 'kizunaai_soniox' }, stored: true });
+      render(<BYOK {...props()} />);
+      expect(document.getElementById('soniox-settings-section')).not.toBeNull();
+    } finally {
+      useLineUpStore.setState({ lineUp: null, stored: false });
+    }
   });
 
   const SHARED_HELP = 'Both mode can run on one shared Soniox session or a separate session per direction.\n\nEnabled: a single session translates both sides with automatic speaker separation — lower cost and latency.\n\nDisabled: a separate session per direction — more reliable when both people talk at once, but about twice the cost.\n\nOnly affects Both mode.';

@@ -80,6 +80,12 @@ export function faceToFaceFromStores(): boolean {
   return isFaceToFace(found.state === 'ready' ? capabilitiesOf(found, 'transcription') : undefined, mode, otherSide);
 }
 
+/** Whether Both with the other side beside me is what the stores ask for, whatever the unit that transcribes offers. */
+export function faceToFaceAskedFromStores(): boolean {
+  const { mode, otherSide } = useAudioStore.getState();
+  return mode === 'both' && otherSide === 'beside';
+}
+
 /** `faceToFaceFromStores`' rule over given values, for a surface that subscribes to them. */
 export function isFaceToFace(provider: { faceToFace?: boolean } | undefined, mode: AudioMode, otherSide: string): boolean {
   return provider?.faceToFace === true && mode === 'both' && otherSide === 'beside';
@@ -212,6 +218,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     textOnly: st.textOnly,
     participantSpeech: speechFromStores(capabilitiesOf(found, 'speech')).them,
     faceToFace,
+    ...(faceToFaceAskedFromStores() ? { faceToFaceAsked: true } : {}),
     keepReplayAudio: st.keepReplayAudio,
     shared: buildSharedSettings(
       reversedPair(heard, accountOf(found, heard).settings, entry.pair),
@@ -250,6 +257,7 @@ function gateInputFromStores(): GateInput | null {
     textOnly: useSettingsStore.getState().textOnly,
     participantSpeech: speechFromStores(capabilitiesOf(found, 'speech')).them,
     faceToFace: faceToFaceFromStores(),
+    ...(faceToFaceAskedFromStores() ? { faceToFaceAsked: true } : {}),
     account,
     // The stores as they stand: the payer a Start now would choose.
     payer: accountPayer(account),

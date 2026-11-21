@@ -563,6 +563,57 @@ describe('the stages a provider serves in the plan', () => {
   });
 });
 
+describe('the pair a provider is checked for when another provider transcribes', () => {
+  const auth = { signedIn: false, getToken: async () => null };
+  const pairsAsked = (check: { mock: { calls: unknown[][] } }) => check.mock.calls.map((call) => (call[2] as CheckContext).pair);
+
+  beforeEach(() => { useProviderStore.setState({ stages: {}, stageIds: {}, readiness: {} }); });
+
+  it('is the pair of the provider that transcribes, which Start runs, where that pair is not the one picked', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    // The one that transcribes offers en and de only; the one that translates offers more.
+    const heard = { ...narrow, id: 'heard' } as unknown as AnyProvider;
+    const translator = { ...probe, id: 'translator', kind: 'local', checkReadsDirection: true, check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(heard);
+    await useProviderStore.getState().load(translator);
+    useProviderStore.getState().setPair(translator, { source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().entries.heard.pair).toEqual({ source: 'en', target: 'de' });
+    useProviderStore.getState().setStages({ heard: ['transcription'], translator: ['translation', 'speech'] });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)).toEqual([{ source: 'en', target: 'de' }]);
+  });
+
+  it('is the pair as picked, not the nearest its own lists offer, and a new pick forgets its answer though its own pair did not move', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    // It offers en and de only; the provider that transcribes offers more.
+    const translator = { ...narrow, id: 'translator', kind: 'local', checkReadsDirection: true, check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(probe);
+    await useProviderStore.getState().load(translator);
+    useProviderStore.getState().setPair(probe, { source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().entries.translator.pair).toEqual({ source: 'en', target: 'de' });
+
+    // Serving every stage it can, it is checked for its own pair.
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    // It only translates: the pair is the one picked, which the provider that transcribes runs.
+    useProviderStore.getState().setStages({ translator: ['translation', 'speech'] });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)).toEqual([{ source: 'en', target: 'de' }, { source: 'en', target: 'ja' }]);
+    expect(useProviderStore.getState().readiness.translator).toMatchObject({ state: 'ready' });
+
+    // Another pick that leaves its own pair where it was: the answer was about the other pair.
+    useProviderStore.getState().setPair(probe, { source: 'en', target: 'fr' });
+    expect(useProviderStore.getState().entries.translator.pair).toEqual({ source: 'en', target: 'de' });
+    expect(useProviderStore.getState().readiness.translator).toEqual({ state: 'unknown' });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)[2]).toEqual({ source: 'en', target: 'fr' });
+
+    // It transcribes again: its own pair.
+    useProviderStore.getState().setStages({ translator: ['transcription', 'translation'] });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)[3]).toEqual({ source: 'en', target: 'de' });
+  });
+});
+
 describe('flush', () => {
   const landNow = async (key: string, value: unknown) => {
     stored.set(key, value);

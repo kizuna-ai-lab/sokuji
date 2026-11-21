@@ -85,11 +85,15 @@ export const PLAN_REFUSAL_CODES = [
   'lineup_incomplete',
   'lineup_not_offered',
   'lineup_stage_split',
+  'lineup_translation_bound',
   'lineup_no_unit',
   'lineup_voice_not_alone',
   'lineup_voice_not_taken',
   'lineup_two_managed',
   'lineup_language_not_spoken',
+  'lineup_source_not_fixed',
+  'lineup_pair_not_translated',
+  'lineup_face_to_face_apart',
 ] as const;
 
 export type PlanRefusalCode = (typeof PLAN_REFUSAL_CODES)[number];
@@ -97,8 +101,9 @@ export type PlanRefusalCode = (typeof PLAN_REFUSAL_CODES)[number];
 /**
  * Why no plan could be made, or why a plan cannot run a session, and for which stage. `provider`: the line-up id
  * the refusal is about, where it names one. `language`: the language no voice speaks (`lineup_language_not_spoken`).
+ * `source` and `target`: the pair the translation unit does not translate (`lineup_pair_not_translated`).
  */
-export interface PlanRefusal { refused: PlanRefusalCode; stage: RunStage; provider?: string; language?: string }
+export interface PlanRefusal { refused: PlanRefusalCode; stage: RunStage; provider?: string; language?: string; source?: string; target?: string }
 
 export const isRefusal = (p: RunPlan | PlanRefusal): p is PlanRefusal => 'refused' in p;
 

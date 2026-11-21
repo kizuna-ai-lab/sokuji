@@ -380,6 +380,41 @@ describe('a session of the local translation unit', () => {
     expect(engine.disposes).toBe(1);
   });
 
+  it('a listener that stops the session at the ready frame hears no loading after it', async () => {
+    const engine = new FakeTranslation();
+    const built = createLocalTranslationUnit({ engines: { translation: () => engine } });
+    const said: string[] = [];
+    let session: ReturnType<NonNullable<typeof built.startTranslation>> | undefined;
+    const events = {
+      translationOpened: () => {}, translationText: () => {}, translationClosed: () => {},
+      failed: () => {}, degraded: () => {},
+      loading: () => { said.push('loading'); },
+      frame: (f: { type: string }) => { if (f.type === 'local.init.translation.ready') void session?.stop(); },
+    };
+    session = built.startTranslation!({ leg: 'speaker', context: ctx(EN_JA), config: MODEL, credentials: {}, clock: createVirtualClock(0), signal: new AbortController().signal }, events);
+    const opening = session.open();
+    opening.catch(() => {});
+    engine.ready();
+    await flush();
+    expect(said).toEqual([]);
+    expect(engine.disposes).toBe(1);
+  });
+
+  it('a Logs listener that throws at a load failure does not keep the open from failing', async () => {
+    const engine = new FakeTranslation();
+    const built = createLocalTranslationUnit({ engines: { translation: () => engine } });
+    const events = {
+      translationOpened: () => {}, translationText: () => {}, translationClosed: () => {},
+      failed: () => {}, degraded: () => {}, loading: () => {},
+      frame: (f: { type: string }) => { if (f.type === 'local.init.translation.error') throw new Error('listener broke'); },
+    };
+    const session = built.startTranslation!({ leg: 'speaker', context: ctx(EN_JA), config: MODEL, credentials: {}, clock: createVirtualClock(0), signal: new AbortController().signal }, events);
+    const opening = session.open();
+    engine.failInit('no such file');
+    await expect(opening).rejects.toThrow('Translation engine init failed: no such file');
+    expect(engine.disposes).toBe(1);
+  });
+
   it('defensively refuses a pair it cannot translate, before any engine is made', async () => {
     const bing = create({ config: BING, direction: { source: 'la', target: 'en' } });
     await expect(bing.session.open()).rejects.toMatchObject({ message: 'Bing Translator does not support this language pair.', code: 'build_refused' });

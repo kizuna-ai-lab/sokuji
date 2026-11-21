@@ -78,7 +78,7 @@ describe('planFromStores', () => {
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
     expect(found.plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([[id, 'stt', ['transcription', 'translation']], [id, 'tts', ['speech']]]);
     expect(found.plan.byStage.transcription).toBe(found.plan.byStage.translation);
-    expect(found.plan.byStage.speech.unit).toBe(unitsOf(provider)[1]);
+    expect(found.plan.byStage.speech.unit).toBe(unitsOf(provider).find((u) => u.id === 'tts'));
     expect(providersIn(found.plan)).toEqual([provider]);
   });
 
