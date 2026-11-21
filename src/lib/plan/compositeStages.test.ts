@@ -118,9 +118,18 @@ describe('a leg of three units: order (spec §7.4)', () => {
     expect(request).toMatchObject({ leg: 'speaker', config: { unit: 'translation' }, credentials: { key: 'translation' } });
     expect(request.context).toEqual({ ...SPEAKS, speech: false });
     expect(request.clock).toBe(h.request.clock);
-    expect(request.signal).toBe(h.request.signal);
     expect(h.text.starts[0].request).toMatchObject({ config: { unit: 'text' }, credentials: { key: 'text' } });
     expect(h.text.starts[0].request.context).toEqual({ ...SPEAKS, speech: false });
+  });
+
+  it('hands the units that translate and transcribe a signal of the leg\'s own, which the run\'s cancels', async () => {
+    const h = leg();
+    await h.starting;
+    const signals = [h.translation.sessions[0].request.signal, h.text.starts[0].request.signal];
+    expect(signals.map((s) => s.aborted)).toEqual([false, false]);
+    const reason = new Error('cancelled');
+    h.controller.abort(reason);
+    expect(signals.map((s) => s.reason)).toEqual([reason, reason]);
   });
 
   it('names the leg it was told to the units that translate and speak', async () => {
@@ -153,6 +162,26 @@ describe('a leg of three units: order (spec §7.4)', () => {
     expect(named(h.calls)).toEqual(['text.stop', 'translation.stop', 'voice.close']);
     await stopping;
     expect(named(h.calls)).toEqual(['text.stop', 'translation.stop', 'voice.close']);
+  });
+
+  it('a stop still hears both stops when the voice throws as it closes: the transcription\'s rejection is the one handed on, and the leg is over', async () => {
+    const stuck = new Error('stuck');
+    const h = leg({ text: { session: { stop: () => Promise.reject(stuck) } }, voice: { closeFails: new Error('voice stuck') } });
+    const session = await h.starting;
+    h.calls.length = 0;
+    await expect(session.stop()).rejects.toBe(stuck);
+    expect(named(h.calls)).toEqual(['translation.stop', 'voice.close']);
+    // Over: not even a frame passes on.
+    h.translated().frame({ direction: 'out', type: 'translation.late' });
+    expect(h.rec.log).toEqual([]);
+  });
+
+  it('a stop whose voice alone throws rejects with that, once the two stops have settled', async () => {
+    const stuck = new Error('voice stuck');
+    const h = leg({ voice: { closeFails: stuck } });
+    const session = await h.starting;
+    await expect(session.stop()).rejects.toBe(stuck);
+    expect(named(h.calls)).toEqual(expect.arrayContaining(['text.stop', 'translation.stop', 'voice.close']));
   });
 
   it('a stop rejects with what the transcription said, after everything was still closed', async () => {
@@ -212,6 +241,19 @@ describe('a leg of three units: the source reaches the translation', () => {
     expect(opened).toEqual({ ref: 1, side: 'source', origin: 'composite-1' });
     expect(h.of('segmentClosed')).toEqual([{ ref: 1, origin: 'composite-1' }]);
     expect(h.translation.sessions[0].sources.map((s) => s.origin)).toEqual(['composite-1', 'composite-1']);
+  });
+
+  it('an origin it states can never be one a unit states: a unit\'s origin that looks like one is told apart', async () => {
+    const h = leg();
+    await h.starting;
+    hear(h.heard(), 7, 'Hello.');
+    hear(h.heard(), 8, 'Bye.', 'composite-1');
+    hear(h.heard(), 9, 'Again.', 'composite-=composite-1');
+    const rows = h.of('segmentOpened').map((e) => e.origin);
+    expect(rows).toEqual(['composite-1', 'composite-=composite-1', 'composite-=composite-=composite-1']);
+    expect(h.of('segmentClosed').map((e) => e.origin)).toEqual(rows);
+    // The translation is handed each under the origin its row has: three sources, none taken for another.
+    expect(h.translation.sessions[0].sources.filter((s) => s.closed).map((s) => s.origin)).toEqual(rows);
   });
 
   it('typed text, audio, the turns and agent text are the transcription session\'s', async () => {
@@ -307,6 +349,46 @@ describe('a leg of three units: one numbering of the leg\'s rows (spec §4.4)', 
       { ref: 2, side: 'translation', origin: 'u1' },
       { ref: 3, side: 'translation', origin: 'u1' },
     ]);
+    expect(only(h.calls, 'voice.speak').map((c) => c.slice(2, 4))).toEqual([[2, 'いち。'], [3, 'に。']]);
+  });
+
+  it('forgets a translation\'s ref once it closed: whatever its unit says of it afterwards is nobody\'s row', async () => {
+    const h = leg();
+    await h.starting;
+    hear(h.heard(), 1, 'Hello.', 'u1');
+    translate(h.translated(), 1, 'u1', 'こんにちは。');
+    const said = h.rec.log.length;
+    h.translated().translationText({ ref: 1, text: 'こんにちは。', stableLen: 6 });
+    h.translated().translationClosed({ ref: 1 });
+    h.translated().translationClosed({ ref: 5 });
+    expect(h.rec.log).toHaveLength(said);
+    // A source's ref is kept: its unit may revise a closed row.
+    h.heard().segmentText({ ref: 1, text: 'Hello!' });
+    expect(h.of('segmentText').slice(-1)).toEqual([{ ref: 1, text: 'Hello!' }]);
+  });
+
+  it('a speaker corrected while the source is open is corrected on the translations it already has, and stated on those that come', async () => {
+    const h = leg();
+    await h.starting;
+    h.heard().segmentOpened({ ref: 1, side: 'source', origin: 'u1', person: 'A' });
+    h.heard().segmentText({ ref: 1, text: 'One. Two', heard: { pieces: [], stableLen: 8 } });
+    translate(h.translated(), 1, 'u1', 'いち。');
+    expect(h.of('segmentOpened')[1]).toEqual({ ref: 2, side: 'translation', origin: 'u1', person: 'A' });
+    const said = h.of('segmentText').length;
+    h.heard().segmentText({ ref: 1, text: 'One. Two.', person: 'B' });
+    // The source's own text first, then the translation said again as it was, with who spoke it.
+    expect(h.of('segmentText').slice(said)).toEqual([
+      { ref: 1, text: 'One. Two.', person: 'B' },
+      { ref: 2, text: 'いち。', stableLen: 3, person: 'B' },
+    ]);
+    // The same speaker again says nothing twice.
+    h.heard().segmentText({ ref: 1, text: 'One. Two.', person: 'B' });
+    expect(h.of('segmentText')).toHaveLength(said + 3);
+    h.heard().segmentClosed({ ref: 1, origin: 'u1' });
+    translate(h.translated(), 2, 'u1', 'に。');
+    expect(h.of('segmentOpened')[2]).toEqual({ ref: 3, side: 'translation', origin: 'u1', person: 'B' });
+    expect(h.of('segmentText').slice(-1)).toEqual([{ ref: 3, text: 'に。', stableLen: 2, person: 'B' }]);
+    // Nothing is read twice for it.
     expect(only(h.calls, 'voice.speak').map((c) => c.slice(2, 4))).toEqual([[2, 'いち。'], [3, 'に。']]);
   });
 
@@ -421,6 +503,13 @@ describe('a leg of three units: failure (spec §7.5)', () => {
     expect(h.rec.log).toEqual([]);
   });
 
+  it('a voice that throws as it is closed does not take the place of the refusal', async () => {
+    const refused = new AdapterStartError('No model for this pair.', 'translation_unavailable');
+    const h = leg({ translation: { openFails: refused }, voice: { closeFails: new Error('voice stuck') } });
+    await expect(h.starting).rejects.toBe(refused);
+    expect(named(h.calls).slice(-2)).toEqual(['translation.stop', 'voice.close']);
+  });
+
   it('a translation unit that throws as it starts fails the start the same way', async () => {
     const broken = new Error('no worker');
     const h = leg({ translation: { fails: broken } });
@@ -439,12 +528,69 @@ describe('a leg of three units: failure (spec §7.5)', () => {
     const h = leg({ text: { held: true } });
     await flush();
     h.translated().failed({ message: 'The model is gone.', code: 'model_lost' });
-    h.text.starts[0].open();
+    // At once: the transcription's start is cancelled, not waited for.
     const error = await h.starting.then(() => null, (e: unknown) => e);
     expect(error).toBeInstanceOf(AdapterStartError);
     expect(error).toMatchObject({ message: 'The model is gone.', code: 'model_lost' });
+    expect(h.text.starts[0].request.signal.aborted).toBe(true);
     expect(h.said()).not.toContain('failed');
-    expect(named(h.calls).slice(-3)).toEqual(['text.stop', 'translation.stop', 'voice.close']);
+    expect(named(h.calls).slice(-2)).toEqual(['translation.stop', 'voice.close']);
+  });
+
+  it('a transcription that opens after the start was given up is stopped, and one that then rejects changes nothing', async () => {
+    const h = leg({ text: { deaf: true } });
+    await flush();
+    const cause = new Error('gone');
+    h.translated().failed({ message: 'The model is gone.', cause });
+    await expect(h.starting).rejects.toBe(cause);
+    expect(named(h.calls)).not.toContain('text.stop');
+    h.text.starts[0].open();
+    await flush();
+    expect(named(h.calls).slice(-1)).toEqual(['text.stop']);
+    // Whatever it says is nobody's.
+    hear(h.heard(), 1, 'Hello.', 'u1');
+    expect(h.rec.log).toEqual([]);
+
+    const other = leg({ text: { deaf: true } });
+    await flush();
+    other.translated().failed({ message: 'The model is gone.', cause });
+    other.text.starts[0].refuse(new Error('socket'));
+    await expect(other.starting).rejects.toBe(cause);
+  });
+
+  it('a translation that fails while it is still opening fails the start at once', async () => {
+    const h = leg({ translation: { held: true } });
+    await flush();
+    h.translated().failed({ message: 'The model is gone.', code: 'model_lost' });
+    await expect(h.starting).rejects.toMatchObject({ message: 'The model is gone.', code: 'model_lost' });
+    expect(named(h.calls)).toEqual(['voice.start', 'voice.open', 'translation.start', 'translation.open', 'translation.stop', 'voice.close']);
+  });
+
+  it('a run cancelled while the translation opens rejects the start with the run\'s reason: nothing is started after it', async () => {
+    const h = leg({ translation: { held: true } });
+    await flush();
+    const reason = new Error('cancelled');
+    h.controller.abort(reason);
+    await expect(h.starting).rejects.toBe(reason);
+    expect(named(h.calls)).toEqual(['voice.start', 'voice.open', 'translation.start', 'translation.open', 'translation.stop', 'voice.close']);
+    // The open comes through late: still no transcription.
+    h.translation.sessions[0].open();
+    await flush();
+    expect(named(h.calls)).not.toContain('text.start');
+  });
+
+  it('a run that was cancelled before the leg starts nothing but the voice it closes', async () => {
+    const calls: StubCalls = [];
+    const text = stubTextUnit(calls);
+    const translation = stubTranslationUnit(calls);
+    const voice = stubSpeechUnit(calls);
+    const plan = separatePlan(text.planned, translation.planned, voice.planned);
+    const cancelled = new AbortController();
+    const reason = new Error('cancelled');
+    cancelled.abort(reason);
+    const starting = startComposite(plan, { context: SPEAKS, config: new Map(), credentials: () => undefined, clock: createVirtualClock(0), signal: cancelled.signal }, recordEvents().events);
+    await expect(starting).rejects.toBe(reason);
+    expect(named(calls)).toEqual(['voice.start', 'voice.open', 'voice.close']);
   });
 
   it('speech lost degrades the leg and names its stage; the subtitles go on', async () => {
@@ -527,6 +673,16 @@ describe('a leg of three units: the transcription reconnects', () => {
     expect(h.of('segmentClosed')).toEqual([{ ref: 1, origin: 'u1' }]);
   });
 
+  it('says no reconnecting once the translation has failed on what it was handed then', async () => {
+    const h: ReturnType<typeof leg> = leg({ translation: { session: { source: (snapshot) => { if (snapshot.closed) h.translated().failed({ message: 'The model is gone.' }); } } } });
+    await h.starting;
+    h.heard().segmentOpened({ ref: 1, side: 'source', origin: 'u1' });
+    h.heard().segmentText({ ref: 1, text: 'Hello. How are' });
+    h.heard().reconnecting({ attempt: 1 });
+    expect(h.said().slice(-1)).toEqual(['failed']);
+    expect(h.said()).not.toContain('reconnecting');
+  });
+
   it('a source the unit closed before it said reconnecting is handed over once, at its close', async () => {
     const h = leg();
     await h.starting;
@@ -590,7 +746,7 @@ describe('startCompositeBoth over three units: each leg on its own', () => {
     participant: { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' },
   };
 
-  function both(o: { text?: Parameters<typeof stubTextUnit>[1]; failing?: LegName } = {}) {
+  function both(o: { text?: Parameters<typeof stubTextUnit>[1]; translation?: Parameters<typeof stubTranslationUnit>[1]; failing?: LegName } = {}) {
     const calls: StubCalls = [];
     const startBoth = stubStartBoth(calls);
     const refused = new AdapterStartError('Bad key.', 'invalid_key');
@@ -598,7 +754,7 @@ describe('startCompositeBoth over three units: each leg on its own', () => {
     // The start of one leg rejects, where a test says which; the other's resolves.
     const start = text.planned.unit.start!;
     const failing: PlannedUnit = { ...text.planned, unit: { ...text.planned.unit, start: (request, events) => (request.context.direction.source === CONTEXTS[o.failing!].direction.source ? Promise.reject(refused) : start(request, events)) } };
-    const translation = stubTranslationUnit(calls);
+    const translation = stubTranslationUnit(calls, o.translation);
     const voice = stubSpeechUnit(calls, { answers: true });
     const plan = separatePlan(o.failing ? failing : text.planned, translation.planned, voice.planned);
     const clock = createVirtualClock(0);
@@ -665,6 +821,30 @@ describe('startCompositeBoth over three units: each leg on its own', () => {
     expect(only(h.calls, 'text.stop')).toHaveLength(1);
     expect(only(h.calls, 'translation.stop').map((c) => c[1]).sort()).toEqual(['participant', 'speaker']);
     expect(only(h.calls, 'voice.close').map((c) => c[1]).sort()).toEqual(['participant', 'speaker']);
+  });
+
+  it('a leg that cannot start cancels the other while it is still opening: the start rejects with the first leg\'s error, without waiting', async () => {
+    const h = both({ translation: { held: true } });
+    await flush();
+    const refused = new AdapterStartError('No model for this pair.', 'translation_unavailable');
+    h.translationOf('participant').refuse(refused);
+    // The speaker's translation never opens: it is cancelled, not waited for.
+    const error = await h.starting.then(() => null, (e: unknown) => e);
+    expect(error).toBeInstanceOf(LegStartError);
+    expect(error).toMatchObject({ leg: 'participant', cause: refused });
+    expect(h.translationOf('speaker').request.signal.aborted).toBe(true);
+    expect(only(h.calls, 'translation.stop').map((c) => c[1]).sort()).toEqual(['participant', 'speaker']);
+    expect(only(h.calls, 'voice.close').map((c) => c[1]).sort()).toEqual(['participant', 'speaker']);
+    expect(named(h.calls)).not.toContain('text.start');
+  });
+
+  it('the leg that failed first is the one named, when the other fails after it', async () => {
+    const h = both({ translation: { held: true } });
+    await flush();
+    const refused = new Error('first');
+    h.translationOf('participant').refuse(refused);
+    h.translationOf('speaker').refuse(new Error('second'));
+    await expect(h.starting).rejects.toMatchObject({ leg: 'participant', cause: refused });
   });
 });
 
