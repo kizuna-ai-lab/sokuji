@@ -70,6 +70,8 @@ interface TranslationSession {
 }
 ```
 
+`translation.ts` also holds `hasSpeech(text): boolean` (a letter or a digit): what a source must hold to be translated at all, read by the cutter and by the rule suite.
+
 **The rule suite** (`src/lib/contract/translationConformance.ts`): `recordTranslation(start, request, forward?, log?)` and `checkTranslation(log): Violation[]`. Rules: `ref-opened-once`, `origin-given`, `text-before-open`, `text-after-close`, `close-unopened`, `closed-once`, `stable-len-in-text`, `stable-len-holds`, `nothing-after-failed`, `nothing-after-stop`, `translation-closed`, `source-answered`.
 
 **The cutter** (`src/lib/translation/cutter.ts`): `createSourceCutter(): { feed(snapshot: { text; stableLen; closed }): Stretch[] }`, with `Stretch = { text: string; span: TextRange }`. One cutter per origin.
@@ -80,19 +82,22 @@ interface TranslationSession {
 createJobTranslator(o: {
   translate(text: string, signal: AbortSignal): Promise<string>;   // `signal` is the job's own
   events: TranslationEvents;
-  clock: Clock;                      // each job's deadline runs on it
+  clock: Clock;                      // each job's deadline runs on it, and the bound of a fatal failure's close
+  signal: AbortSignal;               // the request's: an open still pending rejects when it aborts
   timeoutMs?: number;                // JOB_TIMEOUT_MS (20 000) when absent
   language?: string;                 // stated on every translation
-  open?(): Promise<void>;            // what the session awaits to open
+  open?(signal: AbortSignal): Promise<void>;  // what the session awaits to open; `signal` is the request's
   close?(): void | Promise<void>;    // what is let go at the stop, or at a fatal failure; once
   failureMessage?(error: unknown): string;
   fatal?(error: unknown): boolean;   // this failure is the unit's end
 }): TranslationSession
 ```
 
+`CLOSE_TIMEOUT_MS` (5 000) is exported beside `JOB_TIMEOUT_MS`.
+
 **The plan types** (`src/lib/plan/types.ts`): `UnitDefinition.startTranslation?(request, events): TranslationSession`, `isTranslationUnit(unit)`, and `UnitCapabilities.translates?(source, target): boolean`. A unit has `start` (it transcribes, alone or with other stages), or else one or both of `startTranslation` and `startSpeech`.
 
-**The composite** (`src/lib/plan/compositeStages.ts`): `separateStages(plan): { transcription; translation; speech } | null`, `startStagedLeg(units, request, events, leg)`, `startStagedBoth(units, requests, events)`. `startComposite` and `startCompositeBoth` take such a plan; nothing above them changes.
+**The composite** (`src/lib/plan/compositeStages.ts`): `separateStages(plan): { transcription; translation; speech } | null`, `startStagedLeg(units, request, events, leg)`, `startStagedBoth(units, requests, events)`. `startComposite` and `startCompositeBoth` take such a plan; nothing above them changes. The signatures did not change with the review; the `signal` a unit finds in its start request is the leg's own, which follows the run's (see the decisions).
 
 **The stage tag** (`src/lib/contract/adapter.ts`): `FromStage = { runStage?: RunStage }` on the payloads of `failed`, `degraded`, `loading` and on `AdapterFrame`. Only the composite states it, and only over a plan whose transcription and translation are apart.
 
@@ -106,6 +111,8 @@ createJobTranslator(o: {
 - **The lifecycle events a translation unit may raise are `failed`, `degraded`, `loading` and `frame`.** A voice has `degraded` and `frame`; a translator also loads (`loading`) and can die (`failed`, R11). `reconnecting`, `reconnected` and `closed` stay the transcription unit's (spec §7.5); `busy` is read by nothing above the contract and was left out.
 - **`translationOpened.origin` is required**, where the spec's sketch has it optional: a translation unit translates only what it was handed, so it always knows the origin, and the rule `origin-given` holds it to that.
 - **Typed text is not in the contract (R12).** The unit that transcribes shows typed text as a source segment, and that source reaches the translation session as any other. The header of `translation.ts` says why.
+- **A source with no letter or digit is owed nothing.** The cutter sends no job for one (a pause's dots, a lone mark), so the contract says so in its own words and `source-answered` exempts it, by the same predicate (`hasSpeech`, in `translation.ts`) the cutter cuts by. A unit that streams is held to the same: it may answer such a source, it need not.
+- **The recorder copies what it records.** `recordTranslation` stores a shallow copy of each payload and passes the unit's own object on, so a unit that says one object twice, changed, is read as it said it each time.
 - **`source-answered` reads a degradation loosely.** A closed source is answered when a translation names its origin, or when the session said `degraded` at any time after it was first handed that origin. A job of a stable sentence may fail before the source closes; the log cannot tie a degradation to a stretch, so the rule does not try. A session that was stopped or that failed owes nothing.
 
 **The cutter**
@@ -120,21 +127,30 @@ createJobTranslator(o: {
 
 - **A blank answer is a failed job.** It says `translation_failed` with the reason `translation_empty`. Local inference today shows nothing and says nothing for an empty answer; here the row would keep its source with no word of why, and the rule `source-answered` would have nothing to read.
 - **A job has a deadline.** `createJobTranslator` takes the request's `clock` and a `timeoutMs` (`JOB_TIMEOUT_MS`, 20 s, by default). Jobs run one at a time, so a call that never settles would hold back every later one: at its deadline the job's own signal aborts, the job says `translation_failed` with the reason `translation_timeout`, and the next job runs. A late answer is dropped. A failure of `close()` on the fatal path is said as a `translation.close_error` frame before `failed`.
-- **A listener that throws costs that job only.** Its segment still closes, the Logs get a `translation.job_error` frame, and the queue moves on, as local inference's pipeline does.
+- **A fatal failure waits five seconds for the close, no longer** (`CLOSE_TIMEOUT_MS`, on the request's clock). A worker that is gone may never answer its own closing, and the leg has to hear `failed`. Past the bound the Logs get a `translation.close_timeout` frame, `failed` is said, the close is given up (a later `stop()` settles at once and whatever the close does afterwards is unheard). A `stop()` that lands during the wait takes over: it disarms the bound, says nothing of the failure, and waits for the close itself, as any stop does. A stop's own wait for `close()` is not bounded.
+- **The ending is one.** The promise every `stop()` returns exists before the job in flight is aborted and before `close()` is called, so a stop asked from inside either joins it: `close()` runs once, and every stop settles as the first did, a rejection included.
+- **A listener that throws costs that job only.** Its segment still closes, whether it threw at the open or at the text, the Logs get a `translation.job_error` frame, and the queue moves on, as local inference's pipeline does. A close is attempted for a segment whose open threw: whoever listens drops a close for a ref it does not know (the composite does).
+- **A listener that stops the session hears nothing more.** `over` is read again after each event of a segment: a stop from inside `translationOpened` is followed by no text and no close, one from inside `translationText` by no close.
+- **What the session says of itself in the Logs is said as it can be.** A listener that throws on a `frame` of the session's own (`translation.job_error`, `translation.close_error`, `translation.close_timeout`) costs neither the `failed` that follows nor the jobs that wait.
+- **The open hears the run's signal.** `createJobTranslator` takes the request's `signal` (required) and hands it to `open`. Its session's `open()` rejects with the signal's reason when the run is already cancelled, or is cancelled while `open` is still loading, whatever `open` then does; the caller stops the session, which calls `close()`. So every unit built on it honours "a session still opening rejects" without a line of its own; the fake translator only passes its request's signal.
 - **An origin that closed is remembered**, so a late snapshot of it starts no second cut and no second translation.
 
 **The composite**
 
 - **Ref mapping is done for the three-unit leg only.** A plan of a text unit and a speech unit has one unit that numbers segments, so its refs already are the leg's; and legs that share a connection number their rows together on purpose (either voice may read a row). Mapping there would change nothing a surface sees and would put every existing assertion on raw refs at risk. The existing composite tests pass untouched.
 - **The three-unit leg is a merger in front of the two-unit leg.** `StagedLeg` maps refs and merges the transcription unit's source segments and the translation session's segments into one stream, and hands that stream to an unchanged `CompositeLeg` as if it came from one text unit. The voice, the speech feed, the audio counter and the karaoke ranges are therefore wired by the code step 2 built, keyed by the leg's refs.
-- **A source with no stated origin gets one from the composite** (`composite-<ref>`), on the row and to the translator alike: a translation has to name its source.
+- **A source with no stated origin gets one from the composite** (`composite-<ref>`), on the row and to the translator alike: a translation has to name its source. So that no origin a unit states can ever be one the composite stated, a unit's origin that begins with `composite-` is told apart as `composite-=<its origin>`, on the row and to the translator alike. The mapping keeps different origins different and needs no memory. This refines R4 for that one reserved beginning: every other origin stays exactly as its unit stated it, and no provider states one that begins so.
 - **Stable is `heard.stableLen`, held to the text.** A snapshot that states no `heard` keeps the last stable length stated; a unit that never states one leaves nothing stable until the close. At the close the whole text is stable.
 - **A unit that transcribes must emit no translation.** If it opens a translation segment, or sends `lateSpeech`, the composite throws in a development or test build (`import.meta.env.DEV`), where the mistake is a developer's to see; in other builds it drops the segment and everything that follows for it, and says so once in the Logs (`composite.unexpected_translation`), as it does for audio a text unit was not asked for.
 - **Reconnect: what is open is handed to the translator as closed, at `reconnecting`.** The connection that was hearing those segments is gone, so what was heard is translated then, once. The rows stay their unit's: they close when it closes them. Text a unit adds to such a segment afterwards is shown and not translated. Soniox's adapter closes what is open when it swaps its connection; whether every adapter that reconnects does was not checked.
 - **A translator that fails while the leg is still starting fails the start**, not a leg that never opened: with an `AdapterStartError` when it stated a code, otherwise with its cause.
-- **A stop settles when both the transcription and the translation have stopped.** Both stops and the voice's close run before the first `await`. If the transcription's stop rejects, that is the rejection handed on, as in a leg of two units.
-- **A translation says who spoke its source**, where the transcription unit tells people apart: the composite copies the source's `person` onto the translation segment.
-- **Both runs as two independent legs.** `startCompositeBoth` starts each leg through `startStagedLeg`, with its own transcription session, translation session and voice, whether or not the provider that transcribes has a start of both. No voice reads the other leg's rows. If one leg cannot start, the other is stopped and the start rejects with a `LegStartError` naming the leg.
+- **A start is given up at once.** Each leg has an `AbortController` of its own that follows the request's signal, and its signal is what the translation unit and the transcription unit find in their start requests (the voice keeps the request's, as in a leg of two units, whose path is untouched). The leg aborts it when the translation says `failed` while the leg is starting, with the error the start then rejects with. Every wait of the start (the translation's open, the transcription's start) ends when that signal aborts, whether or not the unit hears it: the start rejects with the signal's reason (the translation's failure, or the run's reason), no unit is started afterwards, what had started is stopped, and a transcription session that opens late all the same is stopped, unheard. The error that gave the start up is the one thrown, whatever a unit rejects with afterwards. The controller is aborted for nothing else, so a unit that reads its signal after the leg has opened reads the run's.
+- **A stop settles when the transcription and the translation have stopped and the voice has closed.** All three are called before the first `await` and all three are heard, whatever one of them throws. If the transcription's stop rejects, that is the rejection handed on, as in a leg of two units; then the translation's, then the voice's.
+- **A voice that throws as it closes does not hide a start's error.** On a start that failed the voice's close is as unheard as the two stops.
+- **Nothing follows a `failed` that came while `reconnecting` was being said.** A translator may fail on the closed snapshot it is handed then; the leg has ended with it, and `reconnecting` is not said.
+- **A translation's ref is forgotten at its close; a source's is kept.** Nothing follows a translation's close by the contract, so its mapping is released then, and text or a close for a ref that is not open (never opened, or closed) is dropped instead of being given a row. A source's mapping stays for the session: a unit may revise a row it closed.
+- **A translation says who spoke its source**, where the transcription unit tells people apart: the composite copies the source's `person` onto the translation segment, at its open and on its text. The adapter contract says the label is the same on a source and its translation, and that a defined `person` on a text replaces the segment's; Soniox's adapter says a translation's text again when its speaker changes. So a speaker corrected while the source is open is corrected on the translations it already has: each is said again as it last was, with the new `person` (a voice reads nothing twice for it: the text and its stable length are the same). For that the leg keeps the last text of the translations of sources that are still open, and lets it go when the source closes. A source corrected after it closed is not followed: a revision of a closed row is the row's alone.
+- **Both runs as two independent legs.** `startCompositeBoth` starts each leg through `startStagedLeg`, with its own transcription session, translation session and voice, whether or not the provider that transcribes has a start of both. No voice reads the other leg's rows. If one leg cannot start, the other is stopped and the start rejects with a `LegStartError` naming the leg. The first leg to fail cancels the other's start through that leg's signal, so a leg still opening is given up, not waited for; the leg named is the one that failed first.
 - **One unit may both translate and speak.** `separateStages` takes a plan of two units where one has `startTranslation` and `startSpeech`. No provider has such a unit yet.
 
 **Stage tagging and the run**
@@ -151,11 +167,13 @@ createJobTranslator(o: {
 
 **Existing tests changed**
 
-- `src/providers/registry.test.ts`: the list of development-only ids and the test that a development build adds exactly the fakes now name five fakes, and the two new ones are asserted present in development and absent from a release. No other existing test changed; in particular every existing composite test passes as it was.
+- `src/providers/registry.test.ts`: the list of development-only ids and the test that a development build adds exactly the fakes now name five fakes, and the two new ones are asserted present in development and absent from a release. No other existing test changed while Part A was built; in particular every existing composite test passed as it was.
+- After the review, two tests of `src/lib/plan/compositeStages.test.ts` (both written in Part A): the order test no longer asserts that the translation unit's `signal` *is* the request's (it is the leg's, and a test beside it asserts that the run's cancels it); and "a translation that fails while the leg is still starting" no longer opens the transcription to let the start settle, since the start is given up at once. The helper of `jobTranslator.test.ts` passes the now required `signal`.
 
 ## Not verified in Part A
 
 - The E2E suite was not run. In the E2E build the line-up page now lists the two new fakes among its options.
 - No real provider runs through the three-unit leg yet: Soniox's `heard.stableLen`, its segments around a reconnect, and the latency of "one stable word after the sentence end" are for Parts B and D to measure.
 - The cutter has no length cap and was tried on English and Japanese text only.
-- Memory: the composite keeps one number per segment for the length of a session, and the job translator one string per closed origin.
+- Memory: the composite keeps one number per source segment and one label per origin whose unit names a speaker for the length of a session (a translation's number is released at its close), and the job translator one string per closed origin.
+- A `stop()` whose `close()` never settles is not bounded: only the fatal path is.
