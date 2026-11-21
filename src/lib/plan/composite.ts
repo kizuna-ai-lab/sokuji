@@ -88,7 +88,7 @@ export function startComposite(
     return startCompositeLeg(units.text, units.speech, request, events, leg);
   }
   const [unit] = plan.units;
-  const start = unit.unit.start;
-  if (!start) return Promise.reject(new AdapterStartError('A plan of a speech unit alone cannot start.', 'plan_unsupported'));
-  return start({ ...request, config: request.config.get(unit), credentials: request.credentials(unit) }, events);
+  if (!unit.unit.start) return Promise.reject(new AdapterStartError('A plan of a speech unit alone cannot start.', 'plan_unsupported'));
+  // Called on the unit, as before: a unit's `start` may read `this`.
+  return unit.unit.start({ ...request, config: request.config.get(unit), credentials: request.credentials(unit) }, events);
 }

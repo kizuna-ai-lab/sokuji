@@ -31,7 +31,11 @@ export const CAPS: readonly ProviderCaps[] = [
   // Elsewhere they stay out: a development build reaches the fake through the stored provider alone.
   // The fake voice serves speech alone, beside another provider's transcription and translation.
   ...(import.meta.env.MODE === 'e2e'
-    ? [endToEnd('fake', 'none'), endToEnd('fake_leased', 'none'), { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none' } satisfies ProviderCaps]
+    ? [
+        endToEnd('fake', 'none'),
+        endToEnd('fake_leased', 'none'),
+        { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none' } satisfies ProviderCaps,
+      ]
     : []),
 ];
 

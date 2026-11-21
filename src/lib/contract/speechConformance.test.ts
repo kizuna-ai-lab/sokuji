@@ -84,6 +84,9 @@ describe('checkSpeech rules', () => {
     // Another ref's span does not count, and a range that is no range is flagged.
     expect(rules(start, speak(1, 'Hello, ', [0, 7]), speak(2, 'Hi.', [0, 3]), audio(2, [0, 7]))).toEqual(['range-in-span']);
     expect(rules(start, speak(1, 'Hello, ', [0, 7]), audio(1, [5, 2]))).toEqual(['range-in-span']);
+    // A spoken span that is no range is flagged, and is not counted as spoken.
+    expect(rules(start, speak(1, 'Hi.', [5, 2]))).toEqual(['range-in-span']);
+    expect(rules(start, speak(1, 'Hi.', [-3, 4]), audio(1, [0, 3]))).toEqual(['range-in-span', 'range-in-span']);
   });
 
   it('flags audio for text spoken while off, and audio still arriving once switched off', () => {
