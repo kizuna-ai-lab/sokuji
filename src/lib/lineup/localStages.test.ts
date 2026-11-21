@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localStagesOf } from './localStages';
+import { localSpeechStagesOf, localStagesOf } from './localStages';
 
 describe('the local stages of a line-up', () => {
   it('the line-up decides Bing and Edge', () => {
@@ -9,5 +9,11 @@ describe('the local stages of a line-up', () => {
   it('is null when nothing is stored or the line-up does not run on the local provider', () => {
     expect(localStagesOf(null)).toBeNull();
     expect(localStagesOf({ transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null })).toBeNull();
+  });
+  it("the local voice's stages: the whole line-up's when it is all on this device, else Edge or a local model for speech alone", () => {
+    expect(localSpeechStagesOf({ transcription: 'local_inference', translation: 'bing', speech: 'edge' })).toEqual({ translation: 'bing', speech: 'edge' });
+    expect(localSpeechStagesOf({ transcription: 'local_inference', translation: 'bing', speech: 'local_inference' })).toEqual({ translation: 'bing', speech: 'local' });
+    expect(localSpeechStagesOf({ transcription: 'soniox', translation: 'soniox', speech: 'edge' })).toEqual({ translation: 'local', speech: 'edge' });
+    expect(localSpeechStagesOf({ transcription: 'soniox', translation: 'soniox', speech: 'local_inference' })).toEqual({ translation: 'local', speech: 'local' });
   });
 });

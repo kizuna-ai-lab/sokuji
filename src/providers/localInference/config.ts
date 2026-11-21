@@ -1,6 +1,7 @@
 import { wordsFor } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
+import { localStagesOf, type LocalStages } from '../../lib/lineup/localStages';
 import { storedLocalStages } from '../../stores/lineUpStore';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { useModelStore } from '../../stores/modelStore';
@@ -8,13 +9,16 @@ import { guardAstCrossStage } from '../../services/providers/astGuard';
 import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { effectiveCheckAfter, supportsSmartTurn } from '../../lib/turn/smartTurn';
-import { directionKey } from '../../lib/local-inference/selection/types';
+import { directionKey, type DirectionResult } from '../../lib/local-inference/selection/types';
 import type { AdmittedConfigs } from '../../lib/session/types';
 import type { LocalInferenceSettings } from './settings';
 import { directionVoice, speakerIdFor } from './voices';
 
 /** Why a leg that should speak will not (#619): the notice code its adapter emits at the start. */
 export type TtsUnavailableCode = 'speaker_tts_missing' | 'participant_tts_missing' | 'participant_tts_over_budget';
+
+/** One direction's voice: the speech model, and the speaker or the Edge voice it reads in. */
+export interface LocalTtsConfig { modelId: string; speakerId: number; speed: number; edgeVoice?: string }
 
 /**
  * LocalInference's `C` (spec: "`C`, the config `build` returns"). Ports
@@ -30,7 +34,7 @@ export interface LocalInferenceConfig {
     | { kind: 'engine'; modelId: string; instructions: string; wrapTranscript: boolean }
     | { kind: 'ast' }
     | { kind: 'none' };
-  tts?: { modelId: string; speakerId: number; speed: number; edgeVoice?: string };
+  tts?: LocalTtsConfig;
   /**
    * Set when this leg should speak but will not (#619): no TTS model speaks
    * its target, or the memory budget dropped the other side's speech model.
@@ -88,6 +92,38 @@ export function translatesSpeechDirectly(asrModelId: string | undefined, transla
 }
 
 /**
+ * Whether translation and speech go to Bing and Edge or to this machine's models, for a build: from the line-up a
+ * run froze at its start when it hands one over, else from the stored line-up (a caller outside a run). Null: no
+ * line-up says, and a direction resolves with Bing and Edge among the local choices.
+ */
+export function localStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalStages | null {
+  return shared.lineUp ? localStagesOf(shared.lineUp) : storedLocalStages();
+}
+
+/**
+ * A direction's models as a session resolves them, with the AST cross-stage guard (see astGuard.ts), which
+ * downgrades an explicit AST-mismatched translation pick back to auto before it is judged.
+ */
+export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages | null): DirectionResult {
+  const { source, target } = direction;
+  const rawResolved = useModelStore.getState().resolve(source, target, s.selections, stages);
+  return guardAstCrossStage(
+    source, target, s.selections, rawResolved,
+    (masked) => useModelStore.getState().resolve(source, target, masked, stages));
+}
+
+/** The voice a direction speaks in on `modelId`: each direction has its own (#619). */
+export function localTts(direction: SessionContext['direction'], s: LocalInferenceSettings, modelId: string): LocalTtsConfig {
+  const voice = directionVoice(s.voices, directionKey(direction.source, direction.target));
+  return { modelId, speakerId: speakerIdFor(voice, modelId), speed: s.ttsSpeed, edgeVoice: voice.edge };
+}
+
+/** Why a leg that should speak has no speech model. Which leg this is, the runner tells outright (`shared.reversed`). */
+export function ttsMissingCode(direction: SessionContext['direction'], shared: Pick<SharedSettings, 'reversed'>): TtsUnavailableCode {
+  return shared.reversed(direction) ? 'participant_tts_missing' : 'speaker_tts_missing';
+}
+
+/**
  * LocalInference's builder (spec: "`build`"). Ports `buildSessionConfig` /
  * `buildParticipantSessionConfig` (`LocalInferenceProviderConfig.ts`): model
  * resolution and the AST cross-stage guard run here, once, for whichever
@@ -100,14 +136,8 @@ export function buildLocalInference(
   shared: SharedSettings,
 ): LocalInferenceConfig | ProviderRefusal {
   const { source, target } = context.direction;
-  // A stored line-up says whether translation and speech go to Bing and Edge or to this machine's models.
-  const stages = storedLocalStages();
-  const rawResolved = useModelStore.getState().resolve(source, target, s.selections, stages);
-  // AST cross-stage guard (see astGuard.ts): downgrades an explicit
-  // AST-mismatched translation pick back to auto before it is judged.
-  const resolved = guardAstCrossStage(
-    source, target, s.selections, rawResolved,
-    (masked) => useModelStore.getState().resolve(source, target, masked, stages));
+  // A line-up says whether translation and speech go to Bing and Edge or to this machine's models.
+  const resolved = resolveLocal(context.direction, s, localStagesFor(shared));
 
   if (!resolved.asr) {
     return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source } };
@@ -151,19 +181,8 @@ export function buildLocalInference(
 
   const config: LocalInferenceConfig = { asr, vad, translation };
   if (shared.segmentation.mode === 'sentences') config.jobSentences = shared.segmentation.sentencesPerRow;
-  if (context.speech && resolved.tts) {
-    // Each direction speaks in its own voice (#619).
-    const voice = directionVoice(s.voices, directionKey(source, target));
-    config.tts = {
-      modelId: resolved.tts.modelId,
-      speakerId: speakerIdFor(voice, resolved.tts.modelId),
-      speed: s.ttsSpeed,
-      edgeVoice: voice.edge,
-    };
-  } else if (context.speech) {
-    // Which leg this is, the runner tells outright (`shared.reversed`).
-    config.ttsUnavailable = shared.reversed(context.direction) ? 'participant_tts_missing' : 'speaker_tts_missing';
-  }
+  if (context.speech && resolved.tts) config.tts = localTts(context.direction, s, resolved.tts.modelId);
+  else if (context.speech) config.ttsUnavailable = ttsMissingCode(context.direction, shared);
   return config;
 }
 
@@ -213,7 +232,7 @@ function modelIdsOf(configs: Partial<Record<LegName, LocalInferenceConfig>>): st
 }
 
 /** Whether these models fit: VRAM only when its budget is set via localStorage (no API reports GPU memory), RAM always. */
-function fitsBudget(modelIds: string[]): boolean {
+export function fitsBudget(modelIds: string[]): boolean {
   const { vramMb, ramMb } = estimateModelMemoryByDevice(modelIds, useModelStore.getState().deviceFeatures);
   const vramBudgetMb = readDebugNumber('debug:vram-budget');
   if (vramBudgetMb !== null && vramMb > vramBudgetMb) return false;

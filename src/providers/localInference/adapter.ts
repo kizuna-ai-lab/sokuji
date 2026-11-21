@@ -22,7 +22,7 @@ import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode
 import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import { defaultEngines, type AsrInit, type AsrLike, type AsrResult, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
 import { SentenceCut, runtimeOver } from './sentenceCut';
-import { speakTranslation } from './speech';
+import { speakTranslation, ttsLoadFailed, ttsMissing, ttsStopped, voiceFallback } from './speech';
 import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
 
 /**
@@ -302,10 +302,7 @@ class LocalSession implements AdapterSession {
           // The worker substitutes its default voice at generate time, so speech still works.
           const { voices } = ready as TtsReady;
           if (voices && voices.length > 0 && !voices.some((v) => v.sid === ttsConfig.speakerId)) {
-            this.notices.push({
-              code: 'voice_fallback',
-              message: `Configured voice ${ttsConfig.speakerId} is not loaded; using the model default. Update the selection in settings.`,
-            });
+            this.notices.push({ code: 'voice_fallback', message: voiceFallback(ttsConfig.speakerId) });
           }
         },
       });
@@ -362,7 +359,7 @@ class LocalSession implements AdapterSession {
             if (init.stage === 'tts') {
               init.dispose();
               this.tts = null;
-              this.notices.push({ code: 'tts_degraded', message: `TTS unavailable, continuing without it: ${message}`, cause: error });
+              this.notices.push({ code: 'tts_degraded', message: ttsLoadFailed(message), cause: error });
               settled(init.stage);
               return;
             }
@@ -388,11 +385,7 @@ class LocalSession implements AdapterSession {
   /** A leg that should speak but cannot says so once, at the start (#619), naming the language no model speaks. */
   private announceTtsUnavailable(code: TtsUnavailableCode): void {
     const { target } = this.request.context.direction;
-    const row = code === 'speaker_tts_missing' ? 'Translation the other side hears' : 'Translation I hear';
-    const message = code === 'participant_tts_over_budget'
-      ? "Translation I hear is text only: not enough memory to load the other side's speech model too."
-      : `${row} is text only: no speech model speaks ${target}.`;
-    this.emit('degraded', { code, message, params: { target } });
+    this.emit('degraded', { code, message: ttsMissing(code, target), params: { target } });
   }
 
   /**
@@ -829,7 +822,7 @@ class LocalSession implements AdapterSession {
     this.tts = null;
     tts.dispose();
     this.ttsDeathSettle();
-    const notice = { code: 'tts_degraded' as const, message: `Speech synthesis stopped: ${error}` };
+    const notice = { code: 'tts_degraded' as const, message: ttsStopped(error) };
     if (this.live) this.emit('degraded', notice);
     else this.notices.push(notice);
   }

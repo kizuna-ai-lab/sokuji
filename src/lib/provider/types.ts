@@ -7,7 +7,7 @@ import type { ComponentType } from 'react';
 import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
-import type { RunStage } from '../lineup/types';
+import type { RunStage, StageIds } from '../lineup/types';
 import type { UnitDefinition } from '../plan/types';
 import type { SessionHooks } from '../session/types';
 import type { WireTable } from '../language/wire';
@@ -144,6 +144,12 @@ export interface SharedSettings {
   models: readonly ModelOption[];
   /** The app's word list and session background, read at start (spec §9): each builder sends what `wordsFor` gives its service. Absent: none. */
   words?: SessionWords;
+  /**
+   * The stored line-up as the run froze it at its start: the id each stage was given to. A builder whose provider
+   * runs a stage in more than one way reads it here (the local provider: Bing or a local model, Edge or a local
+   * voice). Absent: no stored line-up is what runs, or the caller is not a run.
+   */
+  lineUp?: StageIds;
 }
 
 /** The word list as a run reads it at start. */

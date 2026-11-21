@@ -29,7 +29,7 @@ export interface SpeechEvents {
   audio(e: { pcm: Int16Array; ref: Ref; range?: TextRange; home?: LegName }): void;
   speechRanges(e: { ref: Ref; ranges: ReadonlyArray<{ index: number; range: TextRange }>; home?: LegName }): void;
   /** Speech is degraded or gone; the session goes on. */
-  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string }): void;
+  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string; params?: Record<string, string | number> }): void;
   frame(e: AdapterFrame): void;
 }
 
