@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { allStagesBy, CAPS, caps, hostDefaults, optionFor, soleHost, stageIdsFor } from './catalog';
+import { allStagesBy, CAPS, caps, hostDefaults, optionFor, soleHost, stageIdsFor, storedLineUpRuns } from './catalog';
 import { oldRunOf } from './oldRules.testing';
 import type { LineUp, RunStage } from './types';
 
@@ -82,5 +82,14 @@ describe('the ids that served a run', () => {
     expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'openai')).toEqual(allStagesBy('openai'));
     expect(stageIdsFor(L('soniox', 'soniox', 'edge'), true, 'soniox')).toEqual(allStagesBy('soniox'));
     expect(stageIdsFor(L('local_inference', null, 'edge'), true, 'local_inference')).toEqual(allStagesBy('local_inference'));
+  });
+
+  it('the stored line-up is what runs exactly where its ids are the ones named', () => {
+    expect(storedLineUpRuns(L('local_inference', 'bing', 'edge'), true, 'local_inference')).toBe(true);
+    expect(storedLineUpRuns(L('local_inference', 'local_inference', 'local_inference'), true, 'local_inference')).toBe(true);
+    expect(storedLineUpRuns(L('local_inference', 'bing', 'edge'), false, 'local_inference')).toBe(false);
+    expect(storedLineUpRuns(null, true, 'soniox')).toBe(false);
+    expect(storedLineUpRuns(L('local_inference', 'bing', 'edge'), true, 'openai')).toBe(false);
+    expect(storedLineUpRuns(L('soniox', 'soniox', 'edge'), true, 'soniox')).toBe(false);
   });
 });

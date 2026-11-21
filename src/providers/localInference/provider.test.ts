@@ -15,13 +15,20 @@ vi.mock('./check', () => ({
 const mockBuild = vi.fn();
 const mockDescribe = vi.fn();
 const mockAdmit = vi.fn();
+const mockFits = vi.fn();
 vi.mock('./config', () => ({
   buildLocalInference: (...args: unknown[]) => mockBuild(...args),
   describeLocalInference: (...args: unknown[]) => mockDescribe(...args),
   admitLocalInference: (...args: unknown[]) => mockAdmit(...args),
+  fitsBudget: (...args: unknown[]) => mockFits(...args),
 }));
 
+import { compose } from '../../lib/plan/compose';
+import { RUN_STAGES } from '../../lib/lineup/types';
+import { unitsOf, wholePlan } from '../../lib/plan/wholeUnit';
+import type { RunPlan } from '../../lib/plan/types';
 import { localInferenceProvider } from './provider';
+import { localSpeechUnit } from './speechUnit';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { PROVIDERS } from '../registry';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
@@ -36,6 +43,7 @@ beforeEach(() => {
   mockBuild.mockReset();
   mockDescribe.mockReset();
   mockAdmit.mockReset();
+  mockFits.mockReset();
 });
 
 describe('localInferenceProvider', () => {
@@ -66,6 +74,71 @@ describe('localInferenceProvider', () => {
     mockAdmit.mockReturnValue(true);
     expect(localInferenceProvider.session?.admit?.({})).toBe(true);
     expect(mockAdmit).toHaveBeenCalledWith({});
+  });
+
+  it("admits its voice's configs on their own: the voice models alone, never the whole session's budget", () => {
+    const voice = { modelId: 'tts-en', speakerId: 0, speed: 1 };
+    mockFits.mockReturnValue(true);
+    expect(localInferenceProvider.session?.admit?.({ speaker: voice, participant: { off: true } } as never)).toBe(true);
+    expect(mockFits).toHaveBeenCalledWith(['tts-en']);
+    mockFits.mockReturnValue(false);
+    expect(localInferenceProvider.session?.admit?.({ speaker: voice, participant: { ...voice, modelId: 'tts-ja' } } as never))
+      .toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
+    expect(mockFits).toHaveBeenLastCalledWith(['tts-en', 'tts-ja']);
+    expect(mockAdmit).not.toHaveBeenCalled();
+    // The whole session's configs name a recognition model: its own admission, with whatever it answers.
+    const whole = { speaker: { asr: { modelId: 'asr', streaming: false }, tts: voice } };
+    const adjusted = { configs: { participant: {} } };
+    mockAdmit.mockReturnValue(adjusted);
+    expect(localInferenceProvider.session?.admit?.(whole as never)).toBe(adjusted);
+    expect(mockAdmit).toHaveBeenCalledWith(whole);
+  });
+
+  describe('its units', () => {
+    const offered = { providers: [localInferenceProvider], settings: () => LOCAL_INFERENCE_DEFAULTS };
+
+    it('are the whole of it, as a provider with one unit has, and its voice', () => {
+      const [whole, voice] = localInferenceProvider.units!;
+      expect(localInferenceProvider.units).toHaveLength(2);
+      expect(localInferenceProvider.units).toBe(localInferenceProvider.units);
+      expect(unitsOf(localInferenceProvider)).toBe(localInferenceProvider.units);
+      expect(voice).toBe(localSpeechUnit);
+      expect(whole.id).toBe('whole');
+      expect(whole.start).toBe(localInferenceProvider.start);
+      expect(whole.describe).toBe(localInferenceProvider.describe);
+      expect(whole.startSpeech).toBeUndefined();
+      expect(whole.capabilities(LOCAL_INFERENCE_DEFAULTS)).toEqual({
+        speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
+      });
+      const context = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' } as any;
+      mockBuild.mockReturnValue({ built: true });
+      expect(whole.build(context, LOCAL_INFERENCE_DEFAULTS, {} as any)).toEqual({ built: true });
+      expect(mockBuild).toHaveBeenCalledWith(context, LOCAL_INFERENCE_DEFAULTS, {});
+    });
+
+    it('a line-up that is all on this device runs on the whole unit, as before', () => {
+      const [whole] = localInferenceProvider.units!;
+      const alone = wholePlan(localInferenceProvider);
+      expect(alone.units).toEqual([{ provider: localInferenceProvider, unit: whole, stages: RUN_STAGES }]);
+      for (const lineUp of [
+        { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' },
+        { transcription: 'local_inference', translation: 'bing', speech: 'edge' },
+        { transcription: 'local_inference', translation: 'local_inference', speech: 'edge' },
+        { transcription: 'local_inference', translation: 'bing', speech: 'local_inference' },
+      ]) {
+        expect(compose(lineUp, offered), JSON.stringify(lineUp)).toEqual(alone);
+      }
+    });
+
+    it('asked for speech alone, it answers its voice', () => {
+      const text = { id: 'stt', occupies: (_s: unknown, want: ReadonlySet<string>) => (want.size === 2 && !want.has('speech') ? ['transcription', 'translation'] : null) };
+      const soniox = { id: 'soniox', units: [text] } as any;
+      for (const speech of ['edge', 'local_inference']) {
+        const plan = compose({ transcription: 'soniox', translation: 'soniox', speech }, { providers: [soniox, localInferenceProvider], settings: () => undefined }) as RunPlan;
+        expect(plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([['soniox', 'stt', ['transcription', 'translation']], ['local_inference', 'speech', ['speech']]]);
+        expect(plan.byStage.speech.unit).toBe(localSpeechUnit);
+      }
+    });
   });
 
   it('delegates build() to buildLocalInference', () => {

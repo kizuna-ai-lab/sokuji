@@ -4,7 +4,7 @@
  * over `FakeTts`, held to the speech rules.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Ref, SessionContext } from '../../lib/contract/adapter';
+import type { AdapterEvents, Ref, SessionContext } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import type { SpeechStartRequest } from '../../lib/contract/speech';
 import { checkSpeech, recordSpeech, type SpeechLog } from '../../lib/contract/speechConformance';
@@ -13,7 +13,9 @@ import type { LegName } from '../../lib/conversation/types';
 import type { LocalStages } from '../../lib/lineup/localStages';
 import type { StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
-import { isSpeechUnit } from '../../lib/plan/types';
+import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { stubProvider, stubTextUnit, textAndSpeechPlan } from '../../lib/plan/testing';
+import { isSpeechUnit, type PlannedUnit } from '../../lib/plan/types';
 import type { SharedSettings } from '../../lib/provider/types';
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below.
@@ -529,6 +531,74 @@ describe("the local provider's speech unit", () => {
         expect(degradedOf(failed.log)).toEqual([]);
         expect(checkSpeech(failed.log)).toEqual([]);
       });
+    });
+  });
+
+  describe("beside another provider's text unit, started as one leg", () => {
+    /** A plan of a stub text unit and this unit, built and started through the composite adapter. */
+    async function composed(lineUp: StageIds) {
+      const tts = new FakeTts();
+      tts.samplesPerSentence = 240;
+      tts.chunksPerSentence = 2;
+      tts.samplesPerChunk = 120;
+      const text = stubTextUnit();
+      const voice: PlannedUnit = { provider: stubProvider('local_inference'), unit: createLocalSpeechUnit({ engines: { tts: () => tts } }), stages: ['speech'] };
+      const plan = textAndSpeechPlan(text.planned, voice);
+      const accounts = { stub_text: { settings: {}, credentials: {} }, local_inference: { settings: SETTINGS, credentials: {} } };
+      const configs = buildPlan(plan, ctx(JA_EN), { accounts }, shared({ lineUp })) as PlanConfigs;
+      const said: Array<[string, unknown]> = [];
+      const events = new Proxy({}, { get: (_t, kind: string) => (payload: unknown) => { said.push([kind, payload]); } }) as AdapterEvents;
+      const session = await startComposite(plan, { context: ctx(JA_EN), config: configs, credentials: () => ({}), clock: createVirtualClock(0), signal: new AbortController().signal }, events);
+      const of = (kind: string) => said.filter(([k]) => k === kind).map(([, payload]) => payload as Record<string, unknown>);
+      return { tts, text: text.starts[0], plan, configs, session, of };
+    }
+
+    it("a translation of the text unit is read by Edge in the direction's voice, and the models are each unit's own", async () => {
+      const h = await composed({ transcription: 'soniox', translation: 'soniox', speech: 'edge' });
+      expect(describePlan(h.plan, h.configs)).toEqual({ ttsModel: 'edge-tts' });
+      // The text unit is asked for no speech; the voice loads beside it.
+      expect(h.text.request.context.speech).toBe(false);
+      expect(h.tts.inits).toEqual(['edge-tts']);
+      h.tts.ready();
+      await flush();
+      h.text.events.segmentOpened({ ref: 1, side: 'translation' });
+      h.text.events.segmentText({ ref: 1, text: 'Hello there.', stableLen: 12 });
+      h.text.events.segmentText({ ref: 1, text: 'Hello there. How are you?', stableLen: 25 });
+      h.text.events.segmentClosed({ ref: 1 });
+      await flush();
+      expect(h.tts.streamCalls.map((c) => [c.text, c.voice, c.speed, c.lang])).toEqual([
+        ['Hello there.', 'en-US-AvaNeural', 1.25, 'en'],
+        ['How are you?', 'en-US-AvaNeural', 1.25, 'en'],
+      ]);
+      expect(h.of('audio').map((a) => [a.ref, a.range, (a.pcm as Int16Array).length])).toEqual([[1, [0, 12], 240], [1, [13, 25], 240]]);
+      expect(h.of('degraded')).toEqual([]);
+      await h.session.stop();
+      expect(h.tts.disposes).toBe(1);
+    });
+
+    it('a local voice model that does not load: one notice, and the text goes on', async () => {
+      const h = await composed({ transcription: 'soniox', translation: 'soniox', speech: 'local_inference' });
+      expect(h.tts.inits).toEqual(['tts-en']);
+      h.tts.failInit('out of memory');
+      await flush();
+      h.text.events.segmentOpened({ ref: 1, side: 'translation' });
+      h.text.events.segmentText({ ref: 1, text: 'Hello there.', stableLen: 12 });
+      h.text.events.segmentClosed({ ref: 1 });
+      await flush();
+      expect(h.of('degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded', message: 'TTS unavailable, continuing without it: out of memory' })]);
+      expect(h.of('audio')).toEqual([]);
+      expect(h.of('failed')).toEqual([]);
+      expect(h.of('segmentText')).toHaveLength(1);
+      expect(h.of('segmentClosed')).toHaveLength(1);
+    });
+
+    it("no speech model for the target: the leg says so in the local provider's words, with the language", async () => {
+      mockTable = { 'ja>en': {} };
+      const h = await composed({ transcription: 'soniox', translation: 'soniox', speech: 'local_inference' });
+      await flush();
+      expect(h.of('degraded')).toEqual([{ code: 'speaker_tts_missing', message: 'Translation the other side hears is text only: no speech model speaks en.', params: { target: 'en' } }]);
+      expect(h.tts.inits).toEqual([]);
+      expect(describePlan(h.plan, h.configs)).toEqual({});
     });
   });
 
