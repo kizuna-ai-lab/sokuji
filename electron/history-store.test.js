@@ -902,6 +902,17 @@ describe('editing a finished record', () => {
     expect(() => s.reassignSentences({ transcriptId: t, moves: [{ n: 1 }] })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
   });
 
+  // PR review: a merge is for a finished record, as the notes edits are.
+  it('reassignSentences refuses a record still open', () => {
+    s.close();
+    rmSync(dir, { recursive: true, force: true });
+    dir = mkdtempSync(join(tmpdir(), 'sokuji-history-'));
+    s = openHistory({ dir });
+    open();
+    expect(() => s.reassignSentences({ transcriptId: t, moves: [{ n: 1, speaker: '2' }] })).toThrow(expect.objectContaining({ code: 'RECORD_OPEN' }));
+    expect(text(1).speakerByUser).toBeNull();
+  });
+
   it('opens a version 2 file and adds when notes were edited', () => {
     s.close();
     rmSync(dir, { recursive: true, force: true });

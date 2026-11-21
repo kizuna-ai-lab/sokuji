@@ -651,7 +651,8 @@ function openHistory({ dir, now = () => Date.now() }) {
 
     /** Many sentences to another speaker (or back to the recognizer's, null) in one write: a merge and its undo (P1). */
     reassignSentences({ transcriptId, moves } = {}) {
-      transcriptOrFail(transcriptId);
+      // A merge and its undo are for a finished record (P1), as the notes edits are.
+      finishedTranscript(transcriptId);
       if (!Array.isArray(moves) || moves.some((m) => !isPlainObject(m) || !isInt(m.n) || !(m.speaker === null || isString(m.speaker)))) {
         fail('BAD_INPUT', 'moves must be { n, speaker } with a speaker or null');
       }
