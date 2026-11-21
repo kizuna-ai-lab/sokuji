@@ -20,7 +20,8 @@ import { useProviderStore } from '../stores/providerStore';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { useRoutingStore } from '../stores/routingStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
-import { useTurnModeStore } from '../stores/turnModeStore';
+import { PUSH_KEY, useTurnModeStore } from '../stores/turnModeStore';
+import { storedPushKey } from '../lib/turn/pushKey';
 
 /**
  * The loads `loadLineUpProviders` has started and not seen settle, by provider id. An entry appears only when its
@@ -78,12 +79,18 @@ async function loadLineUpProvidersReported(offered: readonly AnyProvider[]): Pro
   }
 }
 
-/** The global turn mode, migrated once from the stored provider's slice (1e-3 ruling 3); written only by that migration. */
+/**
+ * The global turn mode, migrated once from the stored provider's slice (1e-3 ruling 3); written only by that migration.
+ * The push key comes with it.
+ */
 export async function loadTurnMode(service: Pick<ISettingsService, 'getSetting'>): Promise<void> {
-  const [common, storedProvider] = await Promise.all([
+  const [common, storedProvider, pushKey] = await Promise.all([
     service.getSetting('settings.common.turnMode', ''),
     service.getSetting('settings.common.provider', ''),
+    service.getSetting<unknown>(PUSH_KEY, ''),
   ]);
+  // The key that holds a turn: read, never written here; one a hold cannot take reads as Space.
+  useTurnModeStore.setState({ pushKey: storedPushKey(pushKey) });
   const key = legacyTurnModeKey(storedProvider);
   const legacy = key ? await service.getSetting(key, '') : undefined;
   const { turnMode, write } = migrateTurnMode(common, legacy);

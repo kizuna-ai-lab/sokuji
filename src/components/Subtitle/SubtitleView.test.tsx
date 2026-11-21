@@ -4,6 +4,8 @@ import type { Entry } from '../../lib/projection/types';
 import type { SubtitleSession } from '../../lib/subtitle/session';
 
 vi.mock('react-i18next', () => ({
+  // The push key's name comes through the turn-mode store, whose settings service loads the i18n setup.
+  initReactI18next: { type: '3rdParty', init: () => {} },
   useTranslation: () => ({
     // i18next's two call shapes: t(key, fallback, values) and t(key, { defaultValue, ...values }).
     t: (key: string, fallback?: string | Record<string, unknown>, values?: Record<string, unknown>) => {
@@ -55,6 +57,7 @@ vi.mock('../../stores/subtitleStore', () => ({
 }));
 
 const { SubtitleView } = await import('./SubtitleView');
+const { useTurnModeStore } = await import('../../stores/turnModeStore');
 
 const entry: Entry = {
   kind: 'exchange', id: 'a', leg: 'speaker', languages: { source: 'en', target: 'ja' }, pairing: 'stated', t: 0,
@@ -105,6 +108,16 @@ describe('SubtitleView', () => {
     const { container } = render(<SubtitleView surface="electron" model={{ entries: [entry], lit: new Map(), session: session() }} controls={controls()} />);
     expect(container.querySelector('.subtitle-stream__line')?.textContent).toBe('Hello.');
     expect(screen.getByTestId('bar').dataset).toMatchObject({ control: 'yes', legs: 'true/false', pair: 'EN' });
+  });
+
+  it('names the key the user picked in the hint', () => {
+    useTurnModeStore.setState({ pushKey: 'F8' });
+    try {
+      const { container } = render(<SubtitleView surface="electron" model={{ entries: [], lit: new Map(), session: session({ holdToTalk: true }) }} controls={controls()} />);
+      expect(container.querySelector('.subtitle-ptt-hint')?.textContent).toBe('Press F8 to speak');
+    } finally {
+      useTurnModeStore.setState({ pushKey: 'Space' });
+    }
   });
 
   it('shows the Space hint on the Electron takeover under manual turns before anything is said, and hands the hold control to the bar on the overlay instead', () => {

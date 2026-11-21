@@ -5,13 +5,19 @@
  */
 import { create } from 'zustand';
 import type { TurnMode } from '../lib/session/types';
+import { DEFAULT_PUSH_KEY, pushKeyAllowed } from '../lib/turn/pushKey';
 import { persistSetting } from '../services/persistSetting';
 
 const KEY = 'settings.common.turnMode';
+/** The key that holds a push-to-talk or push-to-translate turn (owner, 2026-11-21): its `KeyboardEvent.code`. */
+export const PUSH_KEY = 'settings.common.pushKey';
 
 interface TurnModeStore {
   turnMode: TurnMode;
   setTurnMode(turnMode: TurnMode): void;
+  pushKey: string;
+  /** A key a hold cannot take (`pushKeyAllowed`) changes nothing. */
+  setPushKey(code: string): void;
 }
 
 export const useTurnModeStore = create<TurnModeStore>()((set) => ({
@@ -19,5 +25,11 @@ export const useTurnModeStore = create<TurnModeStore>()((set) => ({
   setTurnMode(turnMode) {
     set({ turnMode });
     void persistSetting(KEY, turnMode);
+  },
+  pushKey: DEFAULT_PUSH_KEY,
+  setPushKey(code) {
+    if (!pushKeyAllowed(code)) return;
+    set({ pushKey: code });
+    void persistSetting(PUSH_KEY, code);
   },
 }));

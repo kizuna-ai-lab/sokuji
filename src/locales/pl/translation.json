@@ -45,7 +45,7 @@
     "systemInstructions": "Instrukcje systemowe",
     "speechMode": "Tryb mowy",
     "speechModeAppliesTo": "Dotyczy Twojego głosu. Dźwięk rozmówcy zawsze używa semantycznego VAD.",
-    "speechModeTooltip": "Auto: dostawca wykrywa, kiedy kończysz mówić. \nNaciśnij i mów: przytrzymaj spację lub przycisk mikrofonu, aby ręcznie wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",
+    "speechModeTooltip": "Auto: dostawca wykrywa, kiedy kończysz mówić. \nNaciśnij i mów: przytrzymaj klawisz {{key}} lub przycisk mikrofonu, aby ręcznie wysłać dźwięk. \nNaciśnij i tłumacz: jak Naciśnij i mów, ale w stanie bezczynności kieruje surowy mikrofon do wirtualnego mikrofonu, dzięki czemu możesz mówić bezpośrednio bez tłumaczenia.",
     "speechModeAppliesToAuto": "Dotyczy Twojego głosu. Dźwięk rozmówcy zawsze używa automatycznego wykrywania dostawcy.",
     "userTranscriptModel": "Model transkrypcji użytkownika",
     "noiseReduction": "Redukcja szumów",
@@ -641,7 +641,7 @@
     "function": "Funkcja",
     "noChannelConfigured": "Włącz mikrofon lub dźwięk rozmówcy przed rozpoczęciem.",
     "release": "puść",
-    "pushToTalk": "naciśnij aby mówić (Spacja)",
+    "pushToTalk": "naciśnij aby mówić ({{key}})",
     "inputDeviceOff": "urządzenie wejściowe wyłączone",
     "endSession": "Zakończ sesję",
     "startSession": "Rozpocznij sesję",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Japońskie odczyty nie działają.",
       "defaultColour": "Domyślny"
     },
-    "pttHint": "Naciśnij spację, aby mówić"
+    "pttHint": "Naciśnij klawisz {{key}}, aby mówić"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Koniec wypowiedzi",
         "key": "Klawisz",
-        "space": "Spacja",
-        "released": "Po puszczeniu",
-        "releasedValue": "ten fragment idzie do tłumaczenia",
+        "held": "Gdy jest wciśnięty",
         "notHeld": "Gdy nie jest wciśnięty",
-        "notHeldValue": "Twój głos trafia prosto do drugiej strony, bez tłumaczenia"
+        "talkHeld": "Sokuji słucha; gdy puścisz klawisz, ten fragment jest tłumaczony, a druga strona słyszy tłumaczenie. Gdy Przepuszczanie jest włączone, druga strona słyszy też cicho Twój własny głos.",
+        "talkNotHeld": "Sokuji nie słucha; nic, co mówisz, nie jest tłumaczone ani nie trafia do drugiej strony.",
+        "translateHeld": "To, co mówisz, jest tłumaczone; druga strona słyszy tylko tłumaczenie, a nie Twój własny głos.",
+        "translateNotHeld": "Twój własny głos trafia prosto do drugiej strony, bez tłumaczenia.",
+        "change": "Zmień",
+        "cancel": "Anuluj",
+        "reset": "Przywróć: {{key}}",
+        "press": "Naciśnij klawisz… (Esc anuluje)",
+        "refused": "Nie można użyć klawisza {{key}}. Naciśnij inny klawisz."
       },
       "actsOn": "Dotyczy: {{stages}}",
       "pointer": "Opcje dotyczące {{stages}} są na karcie „{{card}}”.",

@@ -45,7 +45,7 @@
     "systemInstructions": "System Instructions",
     "speechMode": "Speech Mode",
     "speechModeAppliesTo": "Applies to your voice. Other's audio always uses semantic VAD.",
-    "speechModeTooltip": "Auto: the provider detects when you have finished speaking. \nPush-to-Talk: hold Space or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",
+    "speechModeTooltip": "Auto: the provider detects when you have finished speaking. \nPush-to-Talk: hold {{key}} or the mic button to send audio manually. \nPush-to-Translate: like Push-to-Talk, but routes your raw mic to the virtual mic when idle so you can speak directly without translation.",
     "speechModeAppliesToAuto": "Applies to your voice. Other's audio always uses the provider's automatic detection.",
     "userTranscriptModel": "User transcript model",
     "noiseReduction": "Noise reduction",
@@ -641,7 +641,7 @@
     "function": "Function",
     "noChannelConfigured": "Enable microphone or Other's audio before starting.",
     "release": "release",
-    "pushToTalk": "Push-to-Talk (Space)",
+    "pushToTalk": "Push-to-Talk ({{key}})",
     "inputDeviceOff": "input device off",
     "endSession": "End Session",
     "startSession": "Start Session",
@@ -1363,7 +1363,7 @@
       "readingsFailed": "Japanese readings aren't working.",
       "defaultColour": "Default"
     },
-    "pttHint": "Press Space to speak"
+    "pttHint": "Press {{key}} to speak"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Turn end",
         "key": "Key",
-        "space": "Space",
-        "released": "Once released",
-        "releasedValue": "that stretch goes off to be translated",
+        "held": "While held",
         "notHeld": "While not held",
-        "notHeldValue": "your own voice goes straight to the other side, untranslated"
+        "talkHeld": "Sokuji listens; when you let go, that stretch is translated and the other side hears the translation. With Passthrough on, the other side also hears your own voice, quietly.",
+        "talkNotHeld": "Sokuji does not listen; nothing you say is translated or reaches the other side.",
+        "translateHeld": "What you say is translated; the other side hears only the translation, not your own voice.",
+        "translateNotHeld": "Your own voice goes straight to the other side, untranslated.",
+        "change": "Change",
+        "cancel": "Cancel",
+        "reset": "Reset to {{key}}",
+        "press": "Press a key… (Esc to cancel)",
+        "refused": "{{key}} cannot be used. Press another key."
       },
       "actsOn": "Acts on {{stages}}",
       "pointer": "The options acting on {{stages}} are in the “{{card}}” card.",

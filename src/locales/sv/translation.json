@@ -45,7 +45,7 @@
     "systemInstructions": "Systeminstruktioner",
     "speechMode": "Talläge",
     "speechModeAppliesTo": "Gäller din röst. Den andras ljud använder alltid semantisk VAD.",
-    "speechModeTooltip": "Auto: leverantören känner av när du har talat klart. \nPush-to-Talk: håll ned mellanslag eller mikrofonknappen för att skicka ljud manuellt. \nPush-to-Translate: som Push-to-Talk, men dirigerar din råa mikrofon till den virtuella mikrofonen när inaktiv så att du kan tala direkt utan översättning.",
+    "speechModeTooltip": "Auto: leverantören känner av när du har talat klart. \nPush-to-Talk: håll ned {{key}} eller mikrofonknappen för att skicka ljud manuellt. \nPush-to-Translate: som Push-to-Talk, men dirigerar din råa mikrofon till den virtuella mikrofonen när inaktiv så att du kan tala direkt utan översättning.",
     "speechModeAppliesToAuto": "Gäller din röst. Den andras ljud använder alltid leverantörens automatiska detektering.",
     "userTranscriptModel": "Användartranskriptionsmodell",
     "noiseReduction": "Brusreducering",
@@ -641,7 +641,7 @@
     "function": "Funktion",
     "noChannelConfigured": "Aktivera mikrofon eller den andras ljud innan du börjar.",
     "release": "släpp",
-    "pushToTalk": "tryck för att tala (Mellanslag)",
+    "pushToTalk": "tryck för att tala ({{key}})",
     "inputDeviceOff": "inmatningsenhet av",
     "endSession": "Avsluta session",
     "startSession": "Starta session",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Det japanska uttalet fungerar inte.",
       "defaultColour": "Standard"
     },
-    "pttHint": "Tryck på mellanslag för att tala"
+    "pttHint": "Tryck på {{key}} för att tala"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Turslut",
         "key": "Tangent",
-        "space": "Mellanslag",
-        "released": "När den släpps",
-        "releasedValue": "skickas stycket för översättning",
+        "held": "När den hålls ned",
         "notHeld": "När den inte hålls ned",
-        "notHeldValue": "går din egen röst direkt till den andra sidan, oöversatt"
+        "talkHeld": "Sokuji lyssnar; när du släpper tangenten översätts det stycket och motparten hör översättningen. När ”Genomslussning” är på hör motparten även din egen röst, på låg volym.",
+        "talkNotHeld": "Sokuji lyssnar inte; inget du säger översätts eller når motparten.",
+        "translateHeld": "Det du säger översätts; motparten hör bara översättningen, inte din egen röst.",
+        "translateNotHeld": "Din egen röst går direkt till motparten, oöversatt.",
+        "change": "Ändra",
+        "cancel": "Avbryt",
+        "reset": "Återställ till {{key}}",
+        "press": "Tryck på en tangent… (Esc för att avbryta)",
+        "refused": "{{key}} kan inte användas. Tryck på en annan tangent."
       },
       "actsOn": "Gäller {{stages}}",
       "pointer": "Alternativen som gäller {{stages}} finns i kortet ”{{card}}”.",

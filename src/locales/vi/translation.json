@@ -45,7 +45,7 @@
     "systemInstructions": "Hướng dẫn hệ thống",
     "speechMode": "Chế độ giọng nói",
     "speechModeAppliesTo": "Áp dụng cho giọng nói của bạn. Âm thanh đối phương luôn sử dụng VAD ngữ nghĩa.",
-    "speechModeTooltip": "Tự động: nhà cung cấp phát hiện khi bạn đã nói xong. \nNhấn để nói: giữ phím Space hoặc nút micro để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micro gốc của bạn đến micro ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
+    "speechModeTooltip": "Tự động: nhà cung cấp phát hiện khi bạn đã nói xong. \nNhấn để nói: giữ {{key}} hoặc nút micro để gửi âm thanh thủ công. \nNhấn để dịch: giống như Nhấn để nói, nhưng định tuyến micro gốc của bạn đến micro ảo khi không hoạt động để bạn có thể nói trực tiếp mà không cần dịch.",
     "speechModeAppliesToAuto": "Áp dụng cho giọng nói của bạn. Âm thanh đối phương luôn sử dụng tính năng phát hiện tự động của nhà cung cấp.",
     "userTranscriptModel": "Mô hình phiên âm người dùng",
     "noiseReduction": "Giảm tiếng ồn",
@@ -641,7 +641,7 @@
     "function": "Hàm",
     "noChannelConfigured": "Hãy bật micro hoặc âm thanh đối phương trước khi bắt đầu.",
     "release": "thả ra",
-    "pushToTalk": "nhấn để nói (Space)",
+    "pushToTalk": "nhấn để nói ({{key}})",
     "inputDeviceOff": "thiết bị đầu vào đã tắt",
     "endSession": "Kết thúc phiên",
     "startSession": "Bắt đầu phiên",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Cách đọc tiếng Nhật không hoạt động.",
       "defaultColour": "Mặc định"
     },
-    "pttHint": "Nhấn Phím cách để nói"
+    "pttHint": "Nhấn {{key}} để nói"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Kết thúc câu",
         "key": "Phím",
-        "space": "Phím cách",
-        "released": "Khi thả ra",
-        "releasedValue": "đoạn đó được gửi đi dịch",
+        "held": "Khi giữ",
         "notHeld": "Khi không giữ",
-        "notHeldValue": "giọng của bạn đến thẳng phía bên kia, không dịch"
+        "talkHeld": "Sokuji lắng nghe; khi bạn thả phím, đoạn đó được dịch và bên kia nghe bản dịch. Khi bật “Chuyển tiếp”, bên kia cũng nghe thấy giọng của chính bạn ở âm lượng nhỏ.",
+        "talkNotHeld": "Sokuji không lắng nghe; những gì bạn nói không được dịch và không đến được bên kia.",
+        "translateHeld": "Những gì bạn nói được dịch; bên kia chỉ nghe bản dịch, không nghe giọng của chính bạn.",
+        "translateNotHeld": "Giọng của chính bạn đến thẳng bên kia, không dịch.",
+        "change": "Đổi",
+        "cancel": "Hủy",
+        "reset": "Đặt lại về {{key}}",
+        "press": "Nhấn một phím… (Esc để hủy)",
+        "refused": "Không thể dùng {{key}}. Hãy nhấn phím khác."
       },
       "actsOn": "Áp dụng cho {{stages}}",
       "pointer": "Các tùy chọn áp dụng cho {{stages}} nằm trong thẻ \"{{card}}\".",

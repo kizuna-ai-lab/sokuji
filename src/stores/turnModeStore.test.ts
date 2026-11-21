@@ -18,7 +18,7 @@ import { useTurnModeStore } from './turnModeStore';
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useTurnModeStore.setState({ turnMode: 'auto' });
+  useTurnModeStore.setState({ turnMode: 'auto', pushKey: 'Space' });
 });
 
 describe('turnModeStore', () => {
@@ -26,5 +26,21 @@ describe('turnModeStore', () => {
     useTurnModeStore.getState().setTurnMode('push-to-translate');
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-translate');
     await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.turnMode', 'push-to-translate'));
+  });
+
+  it('starts with Space as the key that holds a turn', () => {
+    expect(useTurnModeStore.getInitialState().pushKey).toBe('Space');
+  });
+
+  it('saves another key the user picks', async () => {
+    useTurnModeStore.getState().setPushKey('F8');
+    expect(useTurnModeStore.getState().pushKey).toBe('F8');
+    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.pushKey', 'F8'));
+  });
+
+  it('keeps the key it has when asked for one a hold cannot take', () => {
+    useTurnModeStore.getState().setPushKey('Escape');
+    expect(useTurnModeStore.getState().pushKey).toBe('Space');
+    expect(setSetting).not.toHaveBeenCalled();
   });
 });

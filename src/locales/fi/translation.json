@@ -45,7 +45,7 @@
     "systemInstructions": "Järjestelmäohjeet",
     "speechMode": "Puhetila",
     "speechModeAppliesTo": "Koskee omaa ääntäsi. Toisen ääni käyttää aina semanttista VAD:ia.",
-    "speechModeTooltip": "Auto: tarjoaja tunnistaa, milloin olet lopettanut puhumisen. \nPaina ja puhu: pidä välilyöntiä tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
+    "speechModeTooltip": "Auto: tarjoaja tunnistaa, milloin olet lopettanut puhumisen. \nPaina ja puhu: pidä näppäintä {{key}} tai mikrofonipainiketta painettuna lähettääksesi ääntä manuaalisesti. \nPaina ja käännä: kuten Paina ja puhu, mutta ohjaa raakamikrofonisi virtuaalimikrofoniin tyhjäkäynnillä, jotta voit puhua suoraan ilman käännöstä.",
     "speechModeAppliesToAuto": "Koskee omaa ääntäsi. Toisen ääni käyttää aina tarjoajan automaattista tunnistusta.",
     "userTranscriptModel": "Käyttäjän litterointimalli",
     "noiseReduction": "Kohinanvaimennus",
@@ -641,7 +641,7 @@
     "function": "Funktio",
     "noChannelConfigured": "Ota mikrofoni tai toisen ääni käyttöön ennen aloittamista.",
     "release": "vapauta",
-    "pushToTalk": "paina puhuaksesi (Välilyönti)",
+    "pushToTalk": "paina puhuaksesi ({{key}})",
     "inputDeviceOff": "syöttölaite pois päältä",
     "endSession": "Lopeta istunto",
     "startSession": "Aloita istunto",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Japanin lukutavat eivät toimi.",
       "defaultColour": "Oletus"
     },
-    "pttHint": "Paina välilyöntiä puhuaksesi"
+    "pttHint": "Paina näppäintä {{key}} puhuaksesi"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Puheen loppu",
         "key": "Näppäin",
-        "space": "Välilyönti",
-        "released": "Kun päästät irti",
-        "releasedValue": "se pätkä lähtee käännettäväksi",
+        "held": "Kun pidät pohjassa",
         "notHeld": "Kun et pidä pohjassa",
-        "notHeldValue": "oma äänesi menee kääntämättä suoraan toiselle osapuolelle"
+        "talkHeld": "Sokuji kuuntelee; kun päästät irti, se pätkä käännetään ja toinen osapuoli kuulee käännöksen. Kun Läpivienti on päällä, toinen osapuoli kuulee hiljaa myös oman äänesi.",
+        "talkNotHeld": "Sokuji ei kuuntele; mitään, mitä sanot, ei käännetä eikä välitetä toiselle osapuolelle.",
+        "translateHeld": "Se, mitä sanot, käännetään; toinen osapuoli kuulee vain käännöksen, ei omaa ääntäsi.",
+        "translateNotHeld": "Oma äänesi menee kääntämättä suoraan toiselle osapuolelle.",
+        "change": "Vaihda",
+        "cancel": "Peruuta",
+        "reset": "Palauta {{key}}",
+        "press": "Paina näppäintä… (Esc peruuttaa)",
+        "refused": "Näppäintä {{key}} ei voi käyttää. Paina toista näppäintä."
       },
       "actsOn": "Koskee: {{stages}}",
       "pointer": "Asetukset, jotka koskevat näitä: {{stages}}, ovat kortilla ”{{card}}”.",

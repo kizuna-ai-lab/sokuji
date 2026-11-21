@@ -45,7 +45,7 @@
     "systemInstructions": "系統指令",
     "speechMode": "語音模式",
     "speechModeAppliesTo": "適用於您的語音。對方音訊始終使用語意 VAD。",
-    "speechModeTooltip": "自動：由提供商自動偵測您何時說完。\n按住說話：按住空白鍵或麥克風按鈕手動發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
+    "speechModeTooltip": "自動：由提供商自動偵測您何時說完。\n按住說話：按住 {{key}} 或麥克風按鈕手動發送音訊。\n按住翻譯：與按住說話類似，但閒置時將原始麥克風音訊直通到虛擬麥克風，您可以直接說話而不進行翻譯。",
     "speechModeAppliesToAuto": "適用於您的語音。對方音訊始終使用提供商的自動偵測。",
     "userTranscriptModel": "使用者轉錄模型",
     "noiseReduction": "降噪",
@@ -641,7 +641,7 @@
     "function": "功能",
     "noChannelConfigured": "開始前請啟用麥克風或對方音訊。",
     "release": "釋放",
-    "pushToTalk": "按住說話 (空白鍵)",
+    "pushToTalk": "按住說話 ({{key}})",
     "inputDeviceOff": "輸入裝置關閉",
     "endSession": "結束",
     "startSession": "開始",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "日語讀音無法顯示。",
       "defaultColour": "預設"
     },
-    "pttHint": "按住空白鍵說話"
+    "pttHint": "按住 {{key}} 說話"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "斷句",
         "key": "按鍵",
-        "space": "空白鍵",
-        "released": "放開以後",
-        "releasedValue": "這一段送去翻譯",
+        "held": "按住的時候",
         "notHeld": "沒有按住的時候",
-        "notHeldValue": "原聲直接給對方，不翻譯"
+        "talkHeld": "Sokuji 聽你說話；放開後，這一段送去翻譯，對方聽到譯文。開了原聲直通時，對方還會小聲聽到你的原聲。",
+        "talkNotHeld": "Sokuji 不聽，你說的話既不翻譯，也傳不到對方。",
+        "translateHeld": "你說的話送去翻譯，對方只聽到譯文，聽不到你的原聲。",
+        "translateNotHeld": "你的原聲直接傳給對方，不翻譯。",
+        "change": "更改",
+        "cancel": "取消",
+        "reset": "恢復為 {{key}}",
+        "press": "請按一個鍵…（Esc 取消）",
+        "refused": "{{key}} 不能用，請換一個鍵。"
       },
       "actsOn": "作用於{{stages}}",
       "pointer": "作用於{{stages}}的選項在「{{card}}」卡片裡。",

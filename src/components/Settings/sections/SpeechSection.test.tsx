@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, within } from '@testing-library/react';
 import { resolve } from 'node:path';
 import { compile } from 'sass';
 
@@ -7,7 +7,10 @@ const { trackEvent } = vi.hoisted(() => ({ trackEvent: vi.fn() }));
 vi.mock('../../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
-  return { ...actual, useTranslation: () => ({ t: (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key) }) };
+  // Defaults rendered with their values filled in, as i18next does without a catalog entry.
+  const t = (key: string, fallback?: unknown, values?: Record<string, string>) =>
+    (typeof fallback === 'string' ? fallback.replace(/\{\{(\w+)\}\}/g, (_m, name: string) => values?.[name] ?? '') : key);
+  return { ...actual, useTranslation: () => ({ t }) };
 });
 // Captured instead of rendered: floating-ui's Tooltip opens only on hover, so
 // asserting its `content` prop directly is the simple way to check the
@@ -63,7 +66,7 @@ beforeEach(() => {
   runsOn('local_inference');
   useProviderStore.setState({ entries: { local_inference: localEntry() }, readiness: {} });
   useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, settingsNavigationTarget: null } as Partial<ReturnType<typeof useSettingsStore.getState>>);
-  useTurnModeStore.setState({ turnMode: 'auto' });
+  useTurnModeStore.setState({ turnMode: 'auto', pushKey: 'Space' });
   useAudioStore.setState({ mode: 'speaker' } as Partial<ReturnType<typeof useAudioStore.getState>>);
   asr.entry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
   useModelStore.setState({ resolve: () => ({ asr: { modelId: 'asr-model' }, translation: null, tts: null }) } as unknown as Partial<ReturnType<typeof useModelStore.getState>>);
@@ -287,16 +290,248 @@ describe('SpeechSection — the box under the modes, as the mock lists it', () =
     expect(within(row as HTMLElement).getByRole('button').textContent).toBe('VAD Settings · Min Silence Duration: 1.40s');
   });
 
-  it('Push-to-Talk: the key, and what letting go does', () => {
+  const keyRow = (container: HTMLElement) => box(container)!.querySelector<HTMLElement>('.turn-mode-box__row--key')!;
+  const keyName = (container: HTMLElement) => keyRow(container).querySelector('kbd')?.textContent;
+  const said = (container: HTMLElement) => rows(container).slice(1);
+
+  // Owner 2026-11-21: each mode says what happens while the key is held and while it is not.
+  it('Push-to-Talk: the key, then what happens while it is held and while it is not', () => {
     useTurnModeStore.setState({ turnMode: 'push-to-talk' });
     const { container } = render(<SpeechSection locked={false} />);
-    expect(rows(container)).toEqual([['Key', 'Space'], ['Once released', 'that stretch goes off to be translated']]);
+    expect(keyRow(container).firstElementChild?.textContent).toBe('Key');
+    expect(keyName(container)).toBe('Space');
+    expect(said(container)).toEqual([
+      ['While held', 'Sokuji listens; when you let go, that stretch is translated and the other side hears the translation. With Passthrough on, the other side also hears your own voice, quietly.'],
+      ['While not held', 'Sokuji does not listen; nothing you say is translated or reaches the other side.'],
+    ]);
   });
 
-  it('Push-to-Translate: the key, and what happens while it is not held', () => {
+  it('Push-to-Translate: the key, then what happens while it is held and while it is not', () => {
     useTurnModeStore.setState({ turnMode: 'push-to-translate' });
     const { container } = render(<SpeechSection locked={false} />);
-    expect(rows(container)).toEqual([['Key', 'Space'], ['While not held', 'your own voice goes straight to the other side, untranslated']]);
+    expect(keyName(container)).toBe('Space');
+    expect(said(container)).toEqual([
+      ['While held', 'What you say is translated; the other side hears only the translation, not your own voice.'],
+      ['While not held', 'Your own voice goes straight to the other side, untranslated.'],
+    ]);
+  });
+
+  // Owner 2026-11-21: the key can be changed, in the app as before (while Sokuji has focus).
+  it('Change takes the next key pressed, keeps it, and Reset goes back to Space', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { container } = render(<SpeechSection locked={false} />);
+    expect(within(keyRow(container)).queryByRole('button', { name: 'Reset to Space' })).toBeNull();
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    expect(keyRow(container).textContent).toContain('Press a key… (Esc to cancel)');
+
+    fireEvent.keyDown(document.body, { code: 'ControlRight', key: 'Control' });
+    expect(useTurnModeStore.getState().pushKey).toBe('ControlRight');
+    expect(keyName(container)).toBe('Right Ctrl');
+
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Reset to Space' }));
+    expect(useTurnModeStore.getState().pushKey).toBe('Space');
+    expect(keyName(container)).toBe('Space');
+  });
+
+  it('refuses a key a hold cannot take and keeps waiting; Esc cancels and keeps the key', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    fireEvent.keyDown(document.body, { code: 'CapsLock', key: 'CapsLock' });
+    expect(keyRow(container).textContent).toContain('CapsLock cannot be used. Press another key.');
+    expect(useTurnModeStore.getState().pushKey).toBe('F8');
+
+    fireEvent.keyDown(document.body, { code: 'Escape', key: 'Escape' });
+    expect(useTurnModeStore.getState().pushKey).toBe('F8');
+    expect(keyName(container)).toBe('F8');
+    expect(within(keyRow(container)).getByRole('button', { name: 'Change' })).toBeInTheDocument();
+  });
+
+  it('keeps the key press that picks a key from reaching anything else (it holds no turn)', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const heard = vi.fn();
+    window.addEventListener('keydown', heard);
+    try {
+      const { container } = render(<SpeechSection locked={false} />);
+      fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+      fireEvent.keyDown(document.body, { code: 'Space', key: ' ' });
+      expect(heard).not.toHaveBeenCalled();
+      // Picking is over: the next press is everyone's again.
+      fireEvent.keyDown(document.body, { code: 'Space', key: ' ' });
+      expect(heard).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener('keydown', heard);
+    }
+  });
+
+  it('stops picking when the mode leaves the keys behind, so keys reach the page again', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const heard = vi.fn();
+    window.addEventListener('keydown', heard);
+    try {
+      const { container } = render(<SpeechSection locked={false} />);
+      fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+      act(() => { useTurnModeStore.setState({ turnMode: 'auto' }); });
+      fireEvent.keyDown(document.body, { code: 'KeyA', key: 'a' });
+      expect(heard).toHaveBeenCalledTimes(1);
+      expect(useTurnModeStore.getState().pushKey).toBe('Space');
+    } finally {
+      window.removeEventListener('keydown', heard);
+    }
+  });
+
+  it('lets Tab move focus while picking, so the keyboard can reach Cancel', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { container } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    const tab = new KeyboardEvent('keydown', { code: 'Tab', key: 'Tab', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(tab);
+    expect(tab.defaultPrevented).toBe(false);
+    expect(keyRow(container).textContent).toContain('Press a key… (Esc to cancel)');
+  });
+
+  it('leaves Enter and Space on its own buttons to the buttons, so Cancel works from the keyboard', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    const cancel = within(keyRow(container)).getByRole('button', { name: 'Cancel' });
+    for (const code of ['Enter', 'Space']) {
+      const press = new KeyboardEvent('keydown', { code, key: code === 'Space' ? ' ' : code, bubbles: true, cancelable: true });
+      cancel.dispatchEvent(press);
+      expect(press.defaultPrevented, code).toBe(false);
+    }
+    expect(useTurnModeStore.getState().pushKey).toBe('F8');
+  });
+
+  it('takes the focus off Change when picking starts, so Space picks Space instead of pressing the button', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    const change = within(keyRow(container)).getByRole('button', { name: 'Change' });
+    change.focus();
+    fireEvent.click(change);
+    expect(document.activeElement).not.toBe(change);
+    fireEvent.keyDown(document.activeElement!, { code: 'Space', key: ' ' });
+    expect(useTurnModeStore.getState().pushKey).toBe('Space');
+  });
+
+  it('gives the focus back to Change when a key is picked or the picking is cancelled', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    const change = within(keyRow(container)).getByRole('button', { name: 'Change' });
+    fireEvent.click(change);
+    fireEvent.keyDown(document.activeElement!, { code: 'KeyT', key: 't' });
+    expect(useTurnModeStore.getState().pushKey).toBe('KeyT');
+    expect(document.activeElement).toBe(change);
+    fireEvent.click(change);
+    fireEvent.keyDown(document.activeElement!, { code: 'Escape', key: 'Escape' });
+    expect(document.activeElement).toBe(change);
+  });
+
+  it('keeps the focus in the box after Reset, on Change', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    const reset = within(keyRow(container)).getByRole('button', { name: 'Reset to Space' });
+    reset.focus();
+    fireEvent.click(reset);
+    expect(document.activeElement).toBe(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+  });
+
+  it('names a refused key by what it types when it has no code', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { container } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    fireEvent.keyDown(document.body, { code: '', key: 'Process' });
+    expect(keyRow(container).textContent).toContain('Process cannot be used. Press another key.');
+  });
+
+  it('lets a shortcut through while picking: a key pressed with Ctrl, Alt, Shift or Cmd held is not a choice', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    const shortcut = new KeyboardEvent('keydown', { code: 'KeyR', key: 'r', metaKey: true, bubbles: true, cancelable: true });
+    document.body.dispatchEvent(shortcut);
+    expect(shortcut.defaultPrevented).toBe(false);
+    expect(useTurnModeStore.getState().pushKey).toBe('F8');
+    expect(keyRow(container).textContent).toContain('Press a key… (Esc to cancel)');
+    // Cmd on its own is still named as a key that cannot be used.
+    fireEvent.keyDown(document.body, { code: 'MetaLeft', key: 'Meta', metaKey: true });
+    expect(keyRow(container).textContent).toContain('Left Windows cannot be used. Press another key.');
+    // And Ctrl on its own is still a key it can take.
+    fireEvent.keyDown(document.body, { code: 'ControlRight', key: 'Control', ctrlKey: true });
+    expect(useTurnModeStore.getState().pushKey).toBe('ControlRight');
+  });
+
+  it('stops picking when the user clicks outside the box, so the next key reaches what they clicked', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    fireEvent.pointerDown(keyRow(container));
+    expect(keyRow(container).textContent).toContain('Press a key… (Esc to cancel)');
+    fireEvent.pointerDown(document.body);
+    expect(within(keyRow(container)).getByRole('button', { name: 'Change' })).toBeTruthy();
+    const typed = new KeyboardEvent('keydown', { code: 'KeyH', key: 'h', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(typed);
+    expect(typed.defaultPrevented).toBe(false);
+    expect(useTurnModeStore.getState().pushKey).toBe('F8');
+  });
+
+  it('stops picking when Tab takes the focus out of the box, so the keys reach the next control', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const outside = document.createElement('button');
+    document.body.appendChild(outside);
+    try {
+      const { container } = render(<SpeechSection locked={false} />);
+      fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+      within(keyRow(container)).getByRole('button', { name: 'Cancel' }).focus();
+      expect(keyRow(container).textContent).toContain('Press a key… (Esc to cancel)');
+      act(() => { outside.focus(); });
+      expect(within(keyRow(container)).getByRole('button', { name: 'Change' })).toBeTruthy();
+      const press = new KeyboardEvent('keydown', { code: 'ArrowDown', key: 'ArrowDown', bubbles: true, cancelable: true });
+      outside.dispatchEvent(press);
+      expect(press.defaultPrevented).toBe(false);
+      expect(useTurnModeStore.getState().pushKey).toBe('F8');
+      expect(document.activeElement).toBe(outside);
+    } finally {
+      outside.remove();
+    }
+  });
+
+  it('stops picking when the window loses focus', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    act(() => { window.dispatchEvent(new Event('blur')); });
+    expect(within(keyRow(container)).getByRole('button', { name: 'Change' })).toBeTruthy();
+  });
+
+  it('lets keys through again once the box is gone in the middle of picking', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container, unmount } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    unmount();
+    const seen = vi.fn();
+    window.addEventListener('keydown', seen);
+    const press = new KeyboardEvent('keydown', { code: 'KeyH', key: 'h', bubbles: true, cancelable: true });
+    document.body.dispatchEvent(press);
+    window.removeEventListener('keydown', seen);
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(press.defaultPrevented).toBe(false);
+    expect(useTurnModeStore.getState().pushKey).toBe('F8');
+  });
+
+  it('leaves the focus where the user clicked when a click outside ends the picking', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    const change = within(keyRow(container)).getByRole('button', { name: 'Change' });
+    fireEvent.click(change);
+    fireEvent.pointerDown(document.body);
+    expect(document.activeElement).not.toBe(change);
+  });
+
+  it('cannot change the key while a session runs', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk' });
+    const { container } = render(<SpeechSection locked />);
+    expect(within(keyRow(container)).getByRole('button', { name: 'Change' })).toBeDisabled();
   });
 
   it('a provider without TurnDetection draws no box under Auto', () => {

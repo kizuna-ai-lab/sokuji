@@ -45,7 +45,7 @@
     "systemInstructions": "Mga tagubilin ng sistema",
     "speechMode": "Mode ng Pagsasalita",
     "speechModeAppliesTo": "Naaangkop sa inyong boses. Ang audio ng kausap ay palaging gumagamit ng semantic VAD.",
-    "speechModeTooltip": "Auto: natutukoy ng provider kung kailan ka tapos nang magsalita. \nPush-to-Talk: pindutin nang matagal ang Space o ang microphone button para magpadala ng audio nang manual. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
+    "speechModeTooltip": "Auto: natutukoy ng provider kung kailan ka tapos nang magsalita. \nPush-to-Talk: pindutin nang matagal ang {{key}} o ang microphone button para magpadala ng audio nang manual. \nPush-to-Translate: tulad ng Push-to-Talk, ngunit ipinapadala ang iyong raw mic sa virtual mic kapag idle para makapagsalita ka nang direkta nang walang pagsasalin.",
     "speechModeAppliesToAuto": "Naaangkop sa inyong boses. Ang audio ng kausap ay palaging gumagamit ng awtomatikong pagtukoy ng provider.",
     "userTranscriptModel": "Modelo ng transkripsyon ng gumagamit",
     "noiseReduction": "Pagbawas ng ingay",
@@ -641,7 +641,7 @@
     "function": "Function",
     "noChannelConfigured": "I-enable ang mikropono o ang audio ng kausap bago magsimula.",
     "release": "bitiwan",
-    "pushToTalk": "pindutin para magsalita (Space)",
+    "pushToTalk": "pindutin para magsalita ({{key}})",
     "inputDeviceOff": "naka-off ang input device",
     "endSession": "Tapusin ang session",
     "startSession": "Simulan ang session",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Hindi gumagana ang pagbasa sa Hapones.",
       "defaultColour": "Default"
     },
-    "pttHint": "Pindutin ang Space upang magsalita"
+    "pttHint": "Pindutin ang {{key}} upang magsalita"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Dulo ng sinasabi",
         "key": "Key",
-        "space": "Space",
-        "released": "Pagkabitaw",
-        "releasedValue": "ipinapadala sa pagsasalin ang bahaging iyon",
+        "held": "Kapag pinipindot",
         "notHeld": "Kapag hindi pinipindot",
-        "notHeldValue": "diretsong napupunta sa kabilang panig ang sarili mong boses, walang salin"
+        "talkHeld": "Nakikinig ang Sokuji; pagbitaw mo, isinasalin ang bahaging iyon at naririnig ng kabilang panig ang salin. Kapag naka-on ang Passthrough, naririnig din ng kabilang panig ang sarili mong boses, nang mahina.",
+        "talkNotHeld": "Hindi nakikinig ang Sokuji; walang anuman sa sinasabi mo ang naisasalin o nakararating sa kabilang panig.",
+        "translateHeld": "Isinasalin ang sinasabi mo; ang salin lang ang naririnig ng kabilang panig, hindi ang sarili mong boses.",
+        "translateNotHeld": "Diretsong napupunta sa kabilang panig ang sarili mong boses, walang salin.",
+        "change": "Palitan",
+        "cancel": "Kanselahin",
+        "reset": "Ibalik sa {{key}}",
+        "press": "Pumindot ng key… (Esc para kanselahin)",
+        "refused": "Hindi magagamit ang {{key}}. Pumindot ng ibang key."
       },
       "actsOn": "Para sa {{stages}}",
       "pointer": "Ang mga opsyon para sa {{stages}} ay nasa card na \"{{card}}\".",

@@ -45,7 +45,7 @@
     "systemInstructions": "Instructions système",
     "speechMode": "Mode de parole",
     "speechModeAppliesTo": "S'applique à votre voix. L'audio de l'autre utilise toujours le VAD sémantique.",
-    "speechModeTooltip": "Auto: le fournisseur détecte quand vous avez fini de parler. \nAppuyer pour parler: maintenez la barre d'espace ou le bouton du microphone pour envoyer l'audio manuellement. \nAppuyer pour traduire: comme Appuyer pour parler, mais achemine votre micro brut vers le micro virtuel en veille pour que vous puissiez parler directement sans traduction.",
+    "speechModeTooltip": "Auto: le fournisseur détecte quand vous avez fini de parler. \nAppuyer pour parler: maintenez {{key}} ou le bouton du microphone pour envoyer l'audio manuellement. \nAppuyer pour traduire: comme Appuyer pour parler, mais achemine votre micro brut vers le micro virtuel en veille pour que vous puissiez parler directement sans traduction.",
     "speechModeAppliesToAuto": "S'applique à votre voix. L'audio de l'autre utilise toujours la détection automatique du fournisseur.",
     "userTranscriptModel": "Modèle de transcription utilisateur",
     "noiseReduction": "Réduction du bruit",
@@ -641,7 +641,7 @@
     "function": "Fonction",
     "noChannelConfigured": "Activez le microphone ou l'audio de l'autre avant de démarrer.",
     "release": "relâcher",
-    "pushToTalk": "appuyer pour parler (Espace)",
+    "pushToTalk": "appuyer pour parler ({{key}})",
     "inputDeviceOff": "périphérique d'entrée éteint",
     "endSession": "Terminer la session",
     "startSession": "Démarrer la session",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Les lectures en japonais ne fonctionnent pas.",
       "defaultColour": "Par défaut"
     },
-    "pttHint": "Appuyez sur Espace pour parler"
+    "pttHint": "Appuyez sur {{key}} pour parler"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Fin de prise de parole",
         "key": "Touche",
-        "space": "Espace",
-        "released": "Une fois relâchée",
-        "releasedValue": "ce passage part en traduction",
+        "held": "Tant qu’elle est maintenue",
         "notHeld": "Tant qu’elle n’est pas maintenue",
-        "notHeldValue": "votre propre voix va directement à l’autre partie, sans traduction"
+        "talkHeld": "Sokuji écoute ; une fois la touche relâchée, ce passage est traduit et l’autre partie entend la traduction. Si Passage direct est activé, l’autre partie entend aussi votre propre voix, à faible volume.",
+        "talkNotHeld": "Sokuji n’écoute pas ; rien de ce que vous dites n’est traduit ni n’atteint l’autre partie.",
+        "translateHeld": "Ce que vous dites est traduit ; l’autre partie n’entend que la traduction, pas votre propre voix.",
+        "translateNotHeld": "Votre propre voix va directement à l’autre partie, sans traduction.",
+        "change": "Modifier",
+        "cancel": "Annuler",
+        "reset": "Revenir à {{key}}",
+        "press": "Appuyez sur une touche… (Esc pour annuler)",
+        "refused": "Impossible d’utiliser {{key}}. Appuyez sur une autre touche."
       },
       "actsOn": "S’applique à : {{stages}}",
       "pointer": "Les options qui s’appliquent à {{stages}} sont dans la carte « {{card}} ».",
