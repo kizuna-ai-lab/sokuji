@@ -62,7 +62,7 @@ describe('the first start of the new version, free provider, nothing downloaded'
     expect(storedLocalStages()).toBeNull(); // the local provider resolves with today's list until the line-up is written
 
     finishScan();
-    await vi.waitFor(() => expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }));
+    await vi.waitFor(() => expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }));
     expect(storedLocalStages()).toEqual({ translation: 'bing', speech: 'edge' });
 
     setSetting.mockClear();

@@ -238,7 +238,7 @@ describe("useApplySetup's applyLineUp", () => {
   it('stores the line-up of the chosen path before the record', async () => {
     const { result } = renderHook(() => useApplySetup());
     await result.current(draft({}));
-    expect(stored.get('settings.lineup')).toEqual({ version: 1, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
+    expect(stored.get('settings.lineup')).toEqual({ version: 2, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
     const keys = setSetting.mock.calls.map(([key]) => key);
     expect(keys.indexOf('settings.lineup')).toBeLessThan(keys.indexOf('settings.setup'));
   });
