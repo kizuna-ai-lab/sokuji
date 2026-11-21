@@ -45,7 +45,7 @@
     "systemInstructions": "Instrucciones del sistema",
     "speechMode": "Modo de habla",
     "speechModeAppliesTo": "Se aplica a tu voz. El audio del otro siempre usa VAD semántico.",
-    "speechModeTooltip": "Auto: el proveedor detecta cuándo usted ha terminado de hablar. \nPulsar para hablar: mantenga la barra espaciadora o el botón del micrófono para enviar audio manualmente. \nPulsar para traducir: como Pulsar para hablar, pero enruta su micrófono original al micrófono virtual cuando está inactivo para que pueda hablar directamente sin traducción.",
+    "speechModeTooltip": "Auto: el proveedor detecta cuándo usted ha terminado de hablar. \nPulsar para hablar: mantenga {{key}} o el botón del micrófono para enviar audio manualmente. \nPulsar para traducir: como Pulsar para hablar, pero enruta su micrófono original al micrófono virtual cuando está inactivo para que pueda hablar directamente sin traducción.",
     "speechModeAppliesToAuto": "Se aplica a tu voz. El audio del otro siempre usa la detección automática del proveedor.",
     "userTranscriptModel": "Modelo de transcripción del usuario",
     "noiseReduction": "Reducción de ruido",
@@ -641,7 +641,7 @@
     "function": "Función",
     "noChannelConfigured": "Activa el micrófono o el audio del otro antes de empezar.",
     "release": "soltar",
-    "pushToTalk": "presionar para hablar (Espacio)",
+    "pushToTalk": "presionar para hablar ({{key}})",
     "inputDeviceOff": "dispositivo de entrada apagado",
     "endSession": "Terminar sesión",
     "startSession": "Iniciar sesión",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "La lectura en japonés no funciona.",
       "defaultColour": "Predeterminado"
     },
-    "pttHint": "Pulsa Espacio para hablar"
+    "pttHint": "Pulsa {{key}} para hablar"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Fin del turno",
         "key": "Tecla",
-        "space": "Espacio",
-        "released": "Al soltarla",
-        "releasedValue": "ese tramo se envía a traducir",
+        "held": "Mientras se mantiene",
         "notHeld": "Mientras no se mantiene",
-        "notHeldValue": "tu propia voz va directa a la otra parte, sin traducir"
+        "talkHeld": "Sokuji escucha; al soltarla, ese tramo se traduce y la otra parte oye la traducción. Con Paso directo activado, la otra parte también oye tu propia voz, a bajo volumen.",
+        "talkNotHeld": "Sokuji no escucha; nada de lo que dices se traduce ni llega a la otra parte.",
+        "translateHeld": "Lo que dices se traduce; la otra parte solo oye la traducción, no tu propia voz.",
+        "translateNotHeld": "Tu propia voz va directa a la otra parte, sin traducir.",
+        "change": "Cambiar",
+        "cancel": "Cancelar",
+        "reset": "Restablecer a {{key}}",
+        "press": "Pulsa una tecla… (Esc para cancelar)",
+        "refused": "No se puede usar {{key}}. Pulsa otra tecla."
       },
       "actsOn": "Afecta a {{stages}}",
       "pointer": "Las opciones que afectan a {{stages}} están en la tarjeta «{{card}}».",

@@ -253,6 +253,42 @@
     .setting-label { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
   }
   .turn-mode-box__value { margin-left: auto; color: vars.$text-tertiary; text-align: right; }
+  // The key, with Change and Reset beside it (owner 2026-11-21).
+  .turn-mode-box__key { display: inline-flex; align-items: center; gap: 10px; }
+  .turn-mode-box__key kbd {
+    padding: 1px 6px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 4px;
+    font: inherit;
+    color: vars.$text-secondary;
+    background: vars.$bg-base;
+  }
+  .turn-mode-box__picking { color: vars.$text-secondary; }
+  .turn-mode-box__action {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    color: vars.$color-primary;
+    text-decoration: underline;
+    cursor: pointer;
+    &:hover { opacity: 0.8; }
+    &:focus-visible { @include vars.focus-ring; }
+    &:disabled { color: vars.$text-tertiary; text-decoration: none; cursor: not-allowed; opacity: 1; }
+  }
+  // The push keys' box: one label column as wide as its widest label (they differ by language), the key and the two
+  // sentences read from the left after it.
+  .turn-mode-box--keys {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 14px;
+    row-gap: 4px;
+    padding-block: 8px;
+    .turn-mode-box__row { display: contents; }
+    .turn-mode-box__label { align-self: baseline; }
+    .turn-mode-box__value { margin-left: 0; text-align: left; min-width: 0; line-height: 1.45; align-self: baseline; }
+    .turn-mode-box__key { align-self: center; flex-wrap: wrap; }
+  }
   .turn-detection-link { font-size: 12.5px; }
 }
 

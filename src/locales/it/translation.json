@@ -45,7 +45,7 @@
     "systemInstructions": "Istruzioni di sistema",
     "speechMode": "Modalità vocale",
     "speechModeAppliesTo": "Si applica alla tua voce. L'audio dell'altro usa sempre il VAD semantico.",
-    "speechModeTooltip": "Auto: il fornitore rileva quando hai finito di parlare. \nPremi per parlare: tieni premuto Spazio o il pulsante del microfono per inviare audio manualmente. \nPremi per tradurre: come Premi per parlare, ma instrada il microfono originale al microfono virtuale quando inattivo, così puoi parlare direttamente senza traduzione.",
+    "speechModeTooltip": "Auto: il fornitore rileva quando hai finito di parlare. \nPremi per parlare: tieni premuto {{key}} o il pulsante del microfono per inviare audio manualmente. \nPremi per tradurre: come Premi per parlare, ma instrada il microfono originale al microfono virtuale quando inattivo, così puoi parlare direttamente senza traduzione.",
     "speechModeAppliesToAuto": "Si applica alla tua voce. L'audio dell'altro usa sempre il rilevamento automatico del fornitore.",
     "userTranscriptModel": "Modello di trascrizione utente",
     "noiseReduction": "Riduzione del rumore",
@@ -641,7 +641,7 @@
     "function": "Funzione",
     "noChannelConfigured": "Attiva il microfono o l'audio dell'altro prima di iniziare.",
     "release": "rilascia",
-    "pushToTalk": "premi per parlare (Spazio)",
+    "pushToTalk": "premi per parlare ({{key}})",
     "inputDeviceOff": "dispositivo di input spento",
     "endSession": "Termina sessione",
     "startSession": "Inizia sessione",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Le letture in giapponese non funzionano.",
       "defaultColour": "Predefinito"
     },
-    "pttHint": "Premi Spazio per parlare"
+    "pttHint": "Premi {{key}} per parlare"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Fine del turno",
         "key": "Tasto",
-        "space": "Spazio",
-        "released": "Al rilascio",
-        "releasedValue": "quel tratto va alla traduzione",
+        "held": "Quando è premuto",
         "notHeld": "Quando non è premuto",
-        "notHeldValue": "la tua voce va direttamente all’altra parte, senza traduzione"
+        "talkHeld": "Sokuji ascolta; quando rilasci il tasto, quel tratto viene tradotto e l’altra parte sente la traduzione. Con il Passthrough attivo, l’altra parte sente anche la tua voce, a basso volume.",
+        "talkNotHeld": "Sokuji non ascolta; nulla di ciò che dici viene tradotto né arriva all’altra parte.",
+        "translateHeld": "Ciò che dici viene tradotto; l’altra parte sente solo la traduzione, non la tua voce.",
+        "translateNotHeld": "La tua voce va direttamente all’altra parte, senza traduzione.",
+        "change": "Cambia",
+        "cancel": "Annulla",
+        "reset": "Ripristina {{key}}",
+        "press": "Premi un tasto… (Esc per annullare)",
+        "refused": "{{key}} non può essere usato. Premi un altro tasto."
       },
       "actsOn": "Vale per {{stages}}",
       "pointer": "Le opzioni che valgono per {{stages}} sono nella scheda «{{card}}».",

@@ -45,7 +45,7 @@
     "systemInstructions": "Systeeminstructies",
     "speechMode": "Spraakmodus",
     "speechModeAppliesTo": "Van toepassing op uw stem. Audio van de ander gebruikt altijd semantische VAD.",
-    "speechModeTooltip": "Auto: de provider detecteert wanneer u klaar bent met spreken. \nPush-to-Talk: houd Spatie of de microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
+    "speechModeTooltip": "Auto: de provider detecteert wanneer u klaar bent met spreken. \nPush-to-Talk: houd {{key}} of de microfoonknop ingedrukt om audio handmatig te verzenden. \nPush-to-Translate: zoals Push-to-Talk, maar leidt uw onbewerkte microfoon door naar de virtuele microfoon wanneer inactief, zodat u direct kunt spreken zonder vertaling.",
     "speechModeAppliesToAuto": "Van toepassing op uw stem. Audio van de ander gebruikt altijd de automatische detectie van de provider.",
     "userTranscriptModel": "Gebruiker transcript model",
     "noiseReduction": "Ruisonderdrukking",
@@ -641,7 +641,7 @@
     "function": "Functie",
     "noChannelConfigured": "Schakel de microfoon of Audio van de ander in voordat u begint.",
     "release": "loslaten",
-    "pushToTalk": "druk om te spreken (Spatie)",
+    "pushToTalk": "druk om te spreken ({{key}})",
     "inputDeviceOff": "invoerapparaat uit",
     "endSession": "Sessie beëindigen",
     "startSession": "Sessie starten",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "De Japanse leesvormen werken niet.",
       "defaultColour": "Standaard"
     },
-    "pttHint": "Druk op Spatie om te spreken"
+    "pttHint": "Druk op {{key}} om te spreken"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Einde beurt",
         "key": "Toets",
-        "space": "Spatie",
-        "released": "Na loslaten",
-        "releasedValue": "gaat dat stuk naar de vertaling",
+        "held": "Zolang ingedrukt",
         "notHeld": "Zolang niet ingedrukt",
-        "notHeldValue": "gaat uw eigen stem onvertaald rechtstreeks naar de andere kant"
+        "talkHeld": "Sokuji luistert; als u loslaat, wordt dat stuk vertaald en hoort de andere kant de vertaling. Met Doorvoer aan hoort de andere kant ook zachtjes uw eigen stem.",
+        "talkNotHeld": "Sokuji luistert niet; niets wat u zegt wordt vertaald of bereikt de andere kant.",
+        "translateHeld": "Wat u zegt wordt vertaald; de andere kant hoort alleen de vertaling, niet uw eigen stem.",
+        "translateNotHeld": "Uw eigen stem gaat onvertaald rechtstreeks naar de andere kant.",
+        "change": "Wijzigen",
+        "cancel": "Annuleren",
+        "reset": "Terugzetten naar {{key}}",
+        "press": "Druk op een toets… (Esc om te annuleren)",
+        "refused": "{{key}} kan niet worden gebruikt. Druk op een andere toets."
       },
       "actsOn": "Geldt voor {{stages}}",
       "pointer": "De opties voor {{stages}} staan in de kaart ‘{{card}}’.",

@@ -45,7 +45,7 @@
     "systemInstructions": "Instruksi sistem",
     "speechMode": "Mode Bicara",
     "speechModeAppliesTo": "Berlaku untuk suara Anda. Audio lawan bicara selalu menggunakan VAD semantik.",
-    "speechModeTooltip": "Otomatis: penyedia mendeteksi kapan Anda selesai berbicara. \nTekan untuk Bicara: tahan tombol Spasi atau tombol mikrofon untuk mengirim audio secara manual. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",
+    "speechModeTooltip": "Otomatis: penyedia mendeteksi kapan Anda selesai berbicara. \nTekan untuk Bicara: tahan tombol {{key}} atau tombol mikrofon untuk mengirim audio secara manual. \nTekan untuk Terjemahkan: seperti Tekan untuk Bicara, tetapi merutekan mikrofon mentah Anda ke mikrofon virtual saat tidak aktif sehingga Anda dapat berbicara langsung tanpa terjemahan.",
     "speechModeAppliesToAuto": "Berlaku untuk suara Anda. Audio lawan bicara selalu menggunakan deteksi otomatis dari penyedia.",
     "userTranscriptModel": "Model transkripsi pengguna",
     "noiseReduction": "Pengurangan noise",
@@ -641,7 +641,7 @@
     "function": "Fungsi",
     "noChannelConfigured": "Aktifkan mikrofon atau audio lawan bicara sebelum memulai.",
     "release": "lepas",
-    "pushToTalk": "tekan untuk bicara (Spasi)",
+    "pushToTalk": "tekan untuk bicara ({{key}})",
     "inputDeviceOff": "perangkat input mati",
     "endSession": "Akhiri sesi",
     "startSession": "Mulai sesi",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Cara baca bahasa Jepang tidak berfungsi.",
       "defaultColour": "Bawaan"
     },
-    "pttHint": "Tekan Spasi untuk berbicara"
+    "pttHint": "Tekan {{key}} untuk berbicara"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Akhir ucapan",
         "key": "Tombol",
-        "space": "Spasi",
-        "released": "Setelah dilepas",
-        "releasedValue": "potongan itu dikirim untuk diterjemahkan",
+        "held": "Saat ditahan",
         "notHeld": "Saat tidak ditahan",
-        "notHeldValue": "suara Anda langsung ke pihak lain tanpa diterjemahkan"
+        "talkHeld": "Sokuji mendengarkan; setelah Anda melepas tombol, potongan itu diterjemahkan dan pihak lain mendengar terjemahannya. Saat Passthrough aktif, pihak lain juga mendengar suara Anda sendiri dengan pelan.",
+        "talkNotHeld": "Sokuji tidak mendengarkan; apa pun yang Anda ucapkan tidak diterjemahkan dan tidak sampai ke pihak lain.",
+        "translateHeld": "Ucapan Anda diterjemahkan; pihak lain hanya mendengar terjemahannya, bukan suara Anda sendiri.",
+        "translateNotHeld": "Suara Anda sendiri langsung sampai ke pihak lain, tanpa diterjemahkan.",
+        "change": "Ubah",
+        "cancel": "Batal",
+        "reset": "Kembalikan ke {{key}}",
+        "press": "Tekan sebuah tombol… (Esc untuk membatalkan)",
+        "refused": "{{key}} tidak bisa dipakai. Tekan tombol lain."
       },
       "actsOn": "Berlaku untuk {{stages}}",
       "pointer": "Opsi yang berlaku untuk {{stages}} ada di kartu \"{{card}}\".",

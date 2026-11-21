@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, fireEvent } from '@testing-library/react';
 import { usePushToTalk } from './usePushToTalk';
 import { useLayoutStore } from '../../../stores/layoutStore';
+import { useTurnModeStore } from '../../../stores/turnModeStore';
 
 describe('usePushToTalk', () => {
   it('presses on Space down and releases on Space up, ignoring repeats', () => {
@@ -36,6 +37,99 @@ describe('usePushToTalk', () => {
     expect(release).not.toHaveBeenCalled();
 
     document.body.removeChild(input);
+  });
+
+  it('holds on the key the user picked instead of Space, and only on it', () => {
+    useTurnModeStore.setState({ pushKey: 'ControlRight' });
+    try {
+      const press = vi.fn();
+      const release = vi.fn();
+      const { result } = renderHook(() => usePushToTalk({ enabled: true, press, release }));
+
+      act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+      expect(press).not.toHaveBeenCalled();
+
+      act(() => { fireEvent.keyDown(window, { code: 'ControlRight' }); });
+      expect(press).toHaveBeenCalledTimes(1);
+      expect(result.current.held).toBe(true);
+      act(() => { fireEvent.keyUp(window, { code: 'ControlRight' }); });
+      expect(release).toHaveBeenCalledTimes(1);
+    } finally {
+      useTurnModeStore.setState({ pushKey: 'Space' });
+    }
+  });
+
+  it('follows a key changed while it is listening', () => {
+    const press = vi.fn();
+    const release = vi.fn();
+    renderHook(() => usePushToTalk({ enabled: true, press, release }));
+    act(() => { useTurnModeStore.setState({ pushKey: 'F8' }); });
+    try {
+      act(() => { fireEvent.keyDown(window, { code: 'F8' }); });
+      expect(press).toHaveBeenCalledTimes(1);
+    } finally {
+      useTurnModeStore.setState({ pushKey: 'Space' });
+    }
+  });
+
+  it('lets go of a hold when the key is changed under it', () => {
+    const press = vi.fn();
+    const release = vi.fn();
+    const { result } = renderHook(() => usePushToTalk({ enabled: true, press, release }));
+    act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+    expect(result.current.held).toBe(true);
+    act(() => { useTurnModeStore.setState({ pushKey: 'F8' }); });
+    try {
+      expect(release).toHaveBeenCalledTimes(1);
+      expect(result.current.held).toBe(false);
+    } finally {
+      useTurnModeStore.setState({ pushKey: 'Space' });
+    }
+  });
+
+  it('ignores the key pressed with Ctrl, Alt, Cmd or Shift, so shortcuts that share it hold no turn', () => {
+    useTurnModeStore.setState({ pushKey: 'KeyT' });
+    try {
+      const press = vi.fn();
+      const release = vi.fn();
+      renderHook(() => usePushToTalk({ enabled: true, press, release }));
+      for (const mod of ['ctrlKey', 'altKey', 'metaKey', 'shiftKey'] as const) {
+        act(() => { fireEvent.keyDown(window, { code: 'KeyT', [mod]: true }); });
+      }
+      expect(press).not.toHaveBeenCalled();
+      act(() => { fireEvent.keyDown(window, { code: 'KeyT' }); });
+      expect(press).toHaveBeenCalledTimes(1);
+    } finally {
+      useTurnModeStore.setState({ pushKey: 'Space' });
+    }
+  });
+
+  it('a modifier chosen as the key holds whatever else is down', () => {
+    useTurnModeStore.setState({ pushKey: 'ShiftRight' });
+    try {
+      const press = vi.fn();
+      renderHook(() => usePushToTalk({ enabled: true, press, release: vi.fn() }));
+      act(() => { fireEvent.keyDown(window, { code: 'ShiftRight', shiftKey: true }); });
+      expect(press).toHaveBeenCalledTimes(1);
+    } finally {
+      useTurnModeStore.setState({ pushKey: 'Space' });
+    }
+  });
+
+  it('lets go on key-up even if focus moved into a text field while held', () => {
+    const press = vi.fn();
+    const release = vi.fn();
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    try {
+      renderHook(() => usePushToTalk({ enabled: true, press, release }));
+      act(() => { fireEvent.keyDown(window, { code: 'Space' }); });
+      input.focus();
+      act(() => { fireEvent.keyUp(window, { code: 'Space' }); });
+      expect(release).toHaveBeenCalledTimes(1);
+    } finally {
+      document.body.removeChild(input);
+    }
   });
 
   it('ignores any other key', () => {

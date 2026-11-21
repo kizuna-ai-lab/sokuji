@@ -4,6 +4,7 @@ import { X, Zap, Mic, Loader, Wrench, Headphones, ArrowLeft, ArrowRight, ArrowRi
 import ModePicker from '../ModePicker';
 import SessionCountdown from '../SessionCountdown';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
+import { usePushKeyLabel } from '../../../lib/turn/usePushKeyLabel';
 import { ScreenContextChip, type ScreenContextChipProps } from './ScreenContextChip';
 import { startLabel } from './startLabel';
 import type { RunState } from '../../../lib/session/types';
@@ -98,6 +99,7 @@ function EarsLegend({ ears }: { ears: EarsLegendEntry[] }) {
 /** The control footer's own row: the mode picker, Start/Stop and the metadata. */
 function ControlFooter(props: PanelFooterProps) {
   const { t } = useTranslation();
+  const pushKeyName = usePushKeyLabel();
   const label = useLanguageLabel();
   const {
     site,
@@ -123,6 +125,9 @@ function ControlFooter(props: PanelFooterProps) {
     screenContext,
   } = props;
 
+  let holdLabel = t('mainPanel.pushToTalk', { key: pushKeyName });
+  if (held) holdLabel = t('mainPanel.release');
+  else if (micMuted) holdLabel = t('mainPanel.inputDeviceOff');
   const isIdle = run.phase === 'idle';
   // Checking a chosen screen area before the run starts reads as starting, with nothing to cancel yet.
   const isChecking = isIdle && !!props.preparing;
@@ -269,7 +274,7 @@ function ControlFooter(props: PanelFooterProps) {
           >
             <Mic size={14} />
             <span>
-              {held ? t('mainPanel.release') : !micMuted ? t('mainPanel.pushToTalk') : t('mainPanel.inputDeviceOff')}
+              {holdLabel}
             </span>
           </button>
         )}

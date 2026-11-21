@@ -78,11 +78,25 @@ describe('loadSessionStores', () => {
     await loadSessionStores();
 
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
+    expect(useTurnModeStore.getState().pushKey).toBe('Space');
     expect(useRoutingStore.getState().meeting).toBe(false);
     expect(refresh).toHaveBeenCalledTimes(1);
     // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6), loaded, and what runs.
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
     expect(running()).toBe('kizunaai_soniox');
+    expect(writesBesidesLineUp()).toEqual([]);
+  });
+
+  it('loads the stored push key, and Space in place of one a hold cannot take', async () => {
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+    stored.set('settings.common.turnMode', 'push-to-talk');
+    stored.set('settings.common.pushKey', 'ControlRight');
+    await loadSessionStores();
+    expect(useTurnModeStore.getState().pushKey).toBe('ControlRight');
+
+    stored.set('settings.common.pushKey', 'Escape');
+    await loadSessionStores();
+    expect(useTurnModeStore.getState().pushKey).toBe('Space');
     expect(writesBesidesLineUp()).toEqual([]);
   });
 

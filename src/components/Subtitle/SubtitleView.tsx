@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { usePushKeyLabel } from '../../lib/turn/usePushKeyLabel';
 import type { TFunction } from 'i18next';
 import type { SegmentId } from '../../lib/conversation/types';
 import type { Entry } from '../../lib/projection/types';
@@ -86,6 +87,7 @@ export function SubtitleView({ surface, model, controls, statusLine, noticeActio
   readingTargets?: ReadonlySet<ReadingLanguage>;
 }) {
   const { t } = useTranslation();
+  const pushKeyName = usePushKeyLabel();
   // The overlay's hold-to-talk control lives in the bar (follow-up D) and
   // must keep the bar visible for as long as a turn is held, even past the
   // bar's own idle auto-hide.
@@ -145,9 +147,9 @@ export function SubtitleView({ surface, model, controls, statusLine, noticeActio
       />
       {running ? (
         surface === 'electron' && session.holdToTalk && entries.length === 0 ? (
-          // The takeover is the same window, and the panel's Space key works in it; on the overlay Space is the meeting's.
+          // The takeover is the same window, and the panel's push key works in it; on the overlay the key is the meeting's.
           <div className="subtitle-ptt-hint">
-            <p>{t('subtitle.pttHint', 'Press Space to speak')}</p>
+            <p>{t('subtitle.pttHint', 'Press {{key}} to speak', { key: pushKeyName })}</p>
           </div>
         ) : (
           <SubtitleBody

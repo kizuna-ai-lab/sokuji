@@ -45,7 +45,7 @@
     "systemInstructions": "Sistem talimatları",
     "speechMode": "Konuşma Modu",
     "speechModeAppliesTo": "Sizin sesinize uygulanır. Karşı tarafın sesi her zaman anlamsal VAD kullanır.",
-    "speechModeTooltip": "Otomatik: sağlayıcı, konuşmanızın ne zaman bittiğini algılar. \nBas-Konuş: ses göndermek için boşluk tuşunu veya mikrofon düğmesini basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
+    "speechModeTooltip": "Otomatik: sağlayıcı, konuşmanızın ne zaman bittiğini algılar. \nBas-Konuş: ses göndermek için {{key}} tuşunu veya mikrofon düğmesini basılı tutun. \nBas-Çevir: Bas-Konuş gibi ancak boştayken ham mikrofonunuzu sanal mikrofona yönlendirir, böylece çeviri olmadan doğrudan konuşabilirsiniz.",
     "speechModeAppliesToAuto": "Sizin sesinize uygulanır. Karşı tarafın sesi her zaman sağlayıcının otomatik algılamasını kullanır.",
     "userTranscriptModel": "Kullanıcı transkripsiyon modeli",
     "noiseReduction": "Gürültü azaltma",
@@ -641,7 +641,7 @@
     "function": "İşlev",
     "noChannelConfigured": "Başlamadan önce mikrofonu veya karşı tarafın sesini etkinleştirin.",
     "release": "bırakın",
-    "pushToTalk": "konuşmak için basın (Boşluk)",
+    "pushToTalk": "konuşmak için basın ({{key}})",
     "inputDeviceOff": "giriş cihazı kapalı",
     "endSession": "Oturumu sonlandır",
     "startSession": "Oturumu başlat",
@@ -1134,7 +1134,7 @@
       "readingsFailed": "Japonca okunuşlar çalışmıyor.",
       "defaultColour": "Varsayılan"
     },
-    "pttHint": "Konuşmak için Boşluk tuşuna basın"
+    "pttHint": "Konuşmak için {{key}} tuşuna basın"
   },
   "titleBar": {
     "account": {
@@ -1876,11 +1876,17 @@
       "uses": {
         "turn": "Konuşma sonu",
         "key": "Tuş",
-        "space": "Boşluk",
-        "released": "Bırakınca",
-        "releasedValue": "o parça çeviriye gider",
+        "held": "Basılıyken",
         "notHeld": "Basılı değilken",
-        "notHeldValue": "kendi sesiniz çevrilmeden doğrudan karşı tarafa gider"
+        "talkHeld": "Sokuji dinler; bıraktığınızda o parça çevrilir ve karşı taraf çeviriyi duyar. “Doğrudan geçiş” açıkken karşı taraf kendi sesinizi de kısık sesle duyar.",
+        "talkNotHeld": "Sokuji dinlemez; söylediğiniz hiçbir şey çevrilmez ve karşı tarafa ulaşmaz.",
+        "translateHeld": "Söyledikleriniz çevrilir; karşı taraf kendi sesinizi değil, yalnızca çeviriyi duyar.",
+        "translateNotHeld": "Kendi sesiniz çevrilmeden doğrudan karşı tarafa gider.",
+        "change": "Değiştir",
+        "cancel": "İptal",
+        "reset": "{{key}} tuşuna sıfırla",
+        "press": "Bir tuşa basın… (iptal için Esc)",
+        "refused": "{{key}} tuşu kullanılamaz. Başka bir tuşa basın."
       },
       "actsOn": "{{stages}} için geçerli",
       "pointer": "{{stages}} için geçerli seçenekler \"{{card}}\" kartında.",
