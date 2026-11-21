@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import type { Leg, Segment } from '../conversation/types';
 import { DEFAULT_PROJECTION } from '../projection/project';
@@ -11,6 +11,8 @@ vi.mock('../diagnostics/report', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../diagnostics/report')>()),
   reportError: reportErrorSpy,
 }));
+// One spy for the file: each test counts only its own reports.
+beforeEach(() => { reportErrorSpy.mockClear(); });
 
 const segment = (text: string): Segment => ({ id: 's:speaker:1', ref: 1, side: 'source', text, final: true, openedAt: 0, marks: [], speech: [] });
 const legWith = (text: string): Leg => ({ leg: 'speaker', session: 's', languages: { source: 'en', target: 'ja' }, segments: [segment(text)], notices: [] });

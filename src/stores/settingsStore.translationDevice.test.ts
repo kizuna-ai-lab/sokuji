@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeEach, describe, it, expect, vi } from 'vitest';
 
 // Mock ServiceFactory (required — settingsStore calls it during updateLocalNative)
 const mockSetSetting = vi.fn().mockResolvedValue(undefined);
@@ -21,6 +21,9 @@ vi.mock('../lib/local-inference/modelManifest', async () => {
 const { default: useSettingsStore } = await import('./settingsStore');
 
 describe('translationDevice setting', () => {
+  // Each test starts from the store's initial state: 'is updatable' changes it,
+  // and the 'defaults to' test must not depend on running first.
+  beforeEach(() => { useSettingsStore.setState(useSettingsStore.getInitialState(), true); });
   it('defaults to auto', () => {
     expect(useSettingsStore.getState().localNative.translationDevice).toBe('auto');
   });
