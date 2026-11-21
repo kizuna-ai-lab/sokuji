@@ -49,6 +49,8 @@ vi.mock('../services/providers/astGuard', () => ({
 
 import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent, runUnstored } from './lineUpStore';
 import { useProviderStore } from './providerStore';
+import useLogStore from './logStore';
+import { settleReports } from '../lib/diagnostics/report';
 import { registerPresentProviders } from '../lib/plan/present';
 import { stubHosts, stubProvider } from '../lib/plan/testing';
 
@@ -259,6 +261,27 @@ describe('the line-up store', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(setSetting).not.toHaveBeenCalled();
     expect(useLineUpStore.getState().stored).toBe(false);
+  });
+
+  it("reports a local entry that would not load, and writes nothing: the next start tries again", async () => {
+    useLogStore.getState().setEnabled(true);
+    useLogStore.getState().clearLogs();
+    stored.set(PROVIDER_KEY, 'local_inference');
+    const load = vi.spyOn(useProviderStore.getState(), 'load').mockRejectedValue(new Error('disk'));
+    try {
+      await useLineUpStore.getState().load();
+      await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(1));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await settleReports();
+    } finally {
+      load.mockRestore();
+    }
+    const warnings = useLogStore.getState().allLogs.filter((l) => l.message.includes('line-up'));
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toMatchObject({ type: 'warning' });
+    expect(warnings[0].message).toContain('disk');
+    expect(setSetting).not.toHaveBeenCalled();
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'local_inference' });
   });
 
   it('the first choice on a line-up that is shown but not stored yet stores it', async () => {

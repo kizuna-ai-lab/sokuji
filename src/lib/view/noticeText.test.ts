@@ -273,6 +273,21 @@ it("a managed Qwen lease's refusal names Qwen, and a region the backend cannot s
   }
 });
 
+it('two Kizuna AI services in one line-up: every locale names Kizuna AI as it is, and nothing is left to fill in', () => {
+  expect(Object.keys(catalogs)).toHaveLength(30);
+  expect(NOTICE_WORDS.lineup_two_managed).toBe('Two Kizuna AI services cannot run in one session yet. Choose one of them.');
+  const notice = refusalNotice({ refused: 'lineup_two_managed', stage: 'speech' });
+  for (const [path, catalog] of Object.entries(catalogs)) {
+    // The locale's own catalog, filled as i18next fills it: a name it is not given stays as written.
+    const localeT = ((key: string, options: Record<string, unknown>) =>
+      String(at(catalog, key) ?? options.defaultValue).replace(/\{\{\s*(\w+)\s*\}\}/g, (whole, name: string) => (name in options ? String(options[name]) : whole))) as unknown as TFunction;
+    const text = noticeText(localeT, notice);
+    expect(text, path).toBe(at(catalog, 'notices.lineup_two_managed'));
+    expect(text, path).toContain('Kizuna AI');
+    expect(text, path).not.toMatch(/\{\{|\}\}/);
+  }
+});
+
 it("a signed-out managed provider reads the sign-in sentence, word for word in en", () => {
   expect(at(en as unknown as Record<string, unknown>, NOTICE_ALIASES.sign_in_required)).toBe("Sign in to use Kizuna AI's built-in translation service.");
 });

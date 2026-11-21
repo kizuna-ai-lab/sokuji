@@ -15,7 +15,7 @@ import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-reac
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
 import { usePlan } from '../../lib/plan/fromStores';
-import { lineUpNoticeFromStores } from '../../lib/session/appShape';
+import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
 import { noticeText } from '../../lib/view/noticeText';
 import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
@@ -108,9 +108,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const sentenceShown = plan.state === 'ready';
   const setTextOnly = useSetTextOnly();
   // A line-up that cannot run is never silent: the composer's refusal of it, or what its plan cannot do for the
-  // pair and the legs a start would open, in the start gate's words. Read at each render: the page renders again
-  // when the plan, a provider's pair, the mode or who hears changes.
-  const refusal = lineUpNoticeFromStores();
+  // pair and the legs a start would open, in the start gate's words. The hook follows everything it is read from:
+  // the plan, a provider's pair, the mode and who hears.
+  const refusal = useLineUpNotice();
   const model = useOptionModel();
   const [rich] = useState(() => supportsBaseSelect());
   // Which stage cards have their provider's options open (mock v19: each card its own).

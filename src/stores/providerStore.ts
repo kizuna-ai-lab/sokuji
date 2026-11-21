@@ -84,7 +84,8 @@ export interface ProviderStore {
   /** Whether a run would speak besides its legs (appShape's `watchSpeechFromStores` keeps it): with the legs, each provider's language context (Stage 2 Volcengine AST2, choice 1). Nothing speaks until it is kept. */
   speech: SpeechInputs;
   /** Every loaded entry's pair is derived again from the intent, nothing written; a provider whose pair moved forgets its readiness when its check reads the pair. The same inputs change nothing. */
-  setSpeech(inputs: SpeechInputs): void;  /**
+  setSpeech(inputs: SpeechInputs): void;
+  /**
    * The stages each provider serves in the plan a start would run, by id, for the providers that serve only a
    * part of it (the readiness driver keeps them); a provider that is absent serves every stage it can. A live
    * check is told them, and a kept answer is keyed on them.

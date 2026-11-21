@@ -127,6 +127,24 @@ describe('the checks that need the run', () => {
       .toEqual({ refused: 'lineup_language_not_spoken', stage: 'speech', provider: 'edge', language: 'ja' });
     expect(asked).toEqual([[settings, 'ja']]);
   });
+
+  it('asks the unit on its own capabilities, so a unit may read them through `this`', () => {
+    const [whole] = speaking().units.slice(1);
+    const own = { ...whole.unit.capabilities(undefined), voices: ['en'], speaks(this: { voices: string[] }, language: string) { return this.voices.includes(language); } };
+    const speech: PlannedUnit = { ...whole, unit: { ...whole.unit, capabilities: () => own as UnitCapabilities } };
+    const plan = textAndSpeechPlan(speaking().units[0], speech);
+    expect(checkPlan(plan, { accounts, contexts: { speaker: leg('ja', 'en') } })).toBeNull();
+    expect(checkPlan(plan, { accounts, contexts: { speaker: leg('en', 'ja') } })).toMatchObject({ refused: 'lineup_language_not_spoken', language: 'ja' });
+  });
+
+  it("judges nothing while the speech provider's account has not loaded: the unit is not asked without its settings", () => {
+    let asked = 0;
+    const [whole] = speaking().units.slice(1);
+    const speech: PlannedUnit = { ...whole, unit: { ...whole.unit, capabilities: (s) => { asked += 1; return { ...whole.unit.capabilities(s), speaks: () => false }; } } };
+    const plan = textAndSpeechPlan(speaking().units[0], speech);
+    expect(checkPlan(plan, { accounts: { soniox: { settings: undefined } }, contexts: { speaker: leg('en', 'ja') } })).toBeNull();
+    expect(asked).toBe(0);
+  });
 });
 
 describe('a refusal as a notice', () => {

@@ -20,6 +20,7 @@ import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';
 import type { LineUp, RunStage, StageName } from '../lib/lineup/types';
 import type { AnalyticsEvents } from '../lib/analytics';
+import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import type { Selections } from '../lib/local-inference/selection/types';
 import { presentHosts } from '../lib/plan/present';
 import { selectionFromStored } from '../lib/session/storedSettings';
@@ -213,7 +214,11 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       const local = presentHosts().find((p) => p.id === provider);
       if (local && !useProviderStore.getState().entries[provider]) await useProviderStore.getState().load(local);
       await migrate(lineUpFromToday({ provider, local: todayLocal() }));
-    })();
+    })().catch((error: unknown) => {
+      // The scan or the local entry's load failed: as after a failed scan, nothing is written and the next start
+      // tries again.
+      reportWarning('LineUpStore', `Working out the line-up of this device failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'line-up:local-migration' });
+    });
   },
 
   async replace(stages) {

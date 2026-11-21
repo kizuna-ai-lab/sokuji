@@ -48,7 +48,8 @@ function loadOnce(p: AnyProvider): Promise<void> {
 export async function loadLineUpProviders(offered: readonly AnyProvider[]): Promise<void> {
   const { lineUp, unstoredProvider } = useLineUpStore.getState();
   // The provider that runs while no line-up is stored is not always one the line-up shown names.
-  const hosts = new Set<string | undefined>([...(lineUp ? RUN_STAGES.map((stage) => optionFor(lineUp, stage)?.host) : []), unstoredProvider ?? undefined]);
+  const named = lineUp ? RUN_STAGES.map((stage) => optionFor(lineUp, stage)?.host) : [];
+  const hosts = new Set<string>([...named, unstoredProvider].filter((id): id is string => typeof id === 'string'));
   const { entries } = useProviderStore.getState();
   await Promise.all(offered.filter((p) => hosts.has(p.id) && !entries[p.id]).map(loadOnce));
 }
@@ -64,9 +65,17 @@ function watchLineUpProviders(offered: readonly AnyProvider[]): void {
   stopWatchingLineUp?.();
   stopWatchingLineUp = useLineUpStore.subscribe((now, before) => {
     if (now.lineUp === before.lineUp && now.unstoredProvider === before.unstoredProvider) return;
-    loadLineUpProviders(offered).catch((error: unknown) =>
-      reportWarning('AppSession', `Loading the line-up's providers failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'load:line-up-providers' }));
+    void loadLineUpProvidersReported(offered);
   });
+}
+
+/** `loadLineUpProviders`, a failure reported under its own name; never rejects. */
+async function loadLineUpProvidersReported(offered: readonly AnyProvider[]): Promise<void> {
+  try {
+    await loadLineUpProviders(offered);
+  } catch (error) {
+    reportWarning('AppSession', `Loading the line-up's providers failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'load:line-up-providers' });
+  }
 }
 
 /** The global turn mode, migrated once from the stored provider's slice (1e-3 ruling 3); written only by that migration. */
@@ -94,10 +103,15 @@ export async function loadSessionStores(): Promise<void> {
     ['routing switches', () => useRoutingStore.getState().load()],
     ['punctuation pack', () => useSegmentationStore.getState().refresh()],
     // The line-up says what runs; when none is stored it is worked out from the stored provider (the one
-    // migration). Then the entry of every provider it names, without which there is no plan to start.
+    // migration). Then the entry of every provider it names, without which there is no plan to start: also after
+    // a load that failed, which may have named them already (in this launch or an earlier one) and then changes
+    // nothing for the watch to hear. The load's own failure is still reported below, once.
     ['line-up', async () => {
-      await useLineUpStore.getState().load();
-      await loadLineUpProviders(offered);
+      try {
+        await useLineUpStore.getState().load();
+      } finally {
+        await loadLineUpProvidersReported(offered);
+      }
     }],
   ];
   await Promise.all(loads.map(async ([what, load]) => {

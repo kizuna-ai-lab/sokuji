@@ -258,6 +258,22 @@ describe('languages and line-up', () => {
       expect(screen.queryByRole('status')).toBeNull();
     });
 
+    it('the line comes and goes with the pair and the text-only switch, the line-up unchanged', () => {
+      load();
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'edge' }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      expect(screen.queryByRole('status')).toBeNull();
+      act(() => load('eu'));
+      expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Edge has no voice for Basque.');
+      // Nothing is read aloud: nothing to refuse.
+      act(() => useSettingsStore.setState({ textOnly: true }));
+      expect(screen.queryByRole('status')).toBeNull();
+      act(() => useSettingsStore.setState({ textOnly: false }));
+      expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Edge has no voice for Basque.');
+      act(() => load());
+      expect(screen.queryByRole('status')).toBeNull();
+    });
+
     it('a stage the line-up leaves out: on that stage\'s card', () => {
       load();
       useLineUpStore.setState({ lineUp: { ...soniox, speech: null }, stored: true });

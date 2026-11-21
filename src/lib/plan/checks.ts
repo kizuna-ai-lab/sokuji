@@ -50,13 +50,17 @@ export interface PlanCheckContext {
  */
 export function checkPlan(plan: RunPlan, context: PlanCheckContext): PlanRefusal | null {
   const { provider, unit } = plan.byStage.speech;
-  const speaks = unit.capabilities(context.accounts[provider.id]?.settings).speaks;
-  if (!speaks) return null;
+  // An account that has not loaded: the unit is not asked without its provider's settings, and nothing is judged yet.
+  const account: Pick<PlanAccount, 'settings'> | undefined = context.accounts[provider.id];
+  if (!account) return null;
+  // Asked on the capabilities themselves: a unit may read them through `this`.
+  const capabilities = unit.capabilities(account.settings);
+  if (!capabilities.speaks) return null;
   for (const leg of ['speaker', 'participant'] as const) {
     const told = context.contexts[leg];
     if (!told?.speech) continue;
     const { target } = told.direction;
-    if (!speaks(target)) {
+    if (!capabilities.speaks(target)) {
       return { refused: 'lineup_language_not_spoken', stage: 'speech', provider: context.lineUp?.speech ?? provider.id, language: target };
     }
   }

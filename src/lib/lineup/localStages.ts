@@ -23,11 +23,12 @@ const HOST = 'local_inference';
  */
 export function localStagesOf(lineUp: LineUp | Pick<LineUp, RunStage> | null): LocalStages | null {
   if (!lineUp || !RUN_STAGES.some((stage) => optionFor(lineUp, stage)?.host === HOST)) return null;
-  const here = (stage: RunStage) => optionFor(lineUp, stage)?.host === HOST;
-  return {
-    translation: !here('translation') ? null : lineUp.translation === 'bing' ? 'bing' : 'local',
-    speech: !here('speech') ? null : lineUp.speech === 'edge' ? 'edge' : 'local',
+  // What the local provider serves of `stage`: the online service `online` when the line-up names it, else a model.
+  const served = <T extends string>(stage: RunStage, online: T): T | 'local' | null => {
+    if (optionFor(lineUp, stage)?.host !== HOST) return null;
+    return lineUp[stage] === online ? online : 'local';
   };
+  return { translation: served('translation', 'bing'), speech: served('speech', 'edge') };
 }
 
 /**

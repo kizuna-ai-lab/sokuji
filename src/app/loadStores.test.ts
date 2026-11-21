@@ -393,5 +393,24 @@ describe("the entries of the line-up's providers", () => {
       await page.launch();
       expect(load.mock.calls.map(([p]) => p.id)).toEqual(['soniox']);
     });
+
+    it('a launch whose line-up load fails still loads the providers the store names, and reports the failure once', async () => {
+      const page = await freshPage();
+      const [{ default: logs }, { settleReports: settle }] = await Promise.all([import('../stores/logStore'), import('../lib/diagnostics/report')]);
+      logs.getState().setEnabled(true);
+      logs.getState().clearLogs();
+      page.segmentation.setState({ refresh: vi.fn(async () => {}) });
+      // The store already names what runs, and this load changes nothing before it fails: no change of the
+      // line-up follows for the watch to hear.
+      page.lineUps.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
+      vi.spyOn(page.lineUps.getState(), 'load').mockRejectedValue(new Error('disk'));
+      await page.launch();
+      expect(Object.keys(page.providers.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+      await settle();
+      const warnings = logs.getState().allLogs.filter((l) => l.message.includes('line-up'));
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toMatchObject({ type: 'warning' });
+      expect(warnings[0].message).toContain('Loading the line-up failed: disk');
+    });
   });
 });

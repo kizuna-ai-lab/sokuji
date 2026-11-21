@@ -137,7 +137,8 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
             const next = e.target.value;
             // Today's series (ProviderSection.tsx:512-520). A pick is refused during a run (1e-3b-1 ruling 7), so never during one.
             trackEvent('provider_switched', { from_provider: provider.id, to_provider: next, during_session: false });
-            // A person's pick: it persists (1e-3b-1 ruling 8).
+            // A person's pick runs alone, in memory, and writes only the provider an older version of the app opens
+            // (1e-3b-1 ruling 8). A stored line-up is left as it is: the next launch runs it again.
             runUnstored(next, 'pick');
           }}
           aria-label={t('simpleSettings.provider')}
