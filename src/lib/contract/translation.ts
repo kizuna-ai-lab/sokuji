@@ -1,6 +1,7 @@
 /**
  * The translation contract: what a unit that occupies only `translation`
- * receives and what it emits. Types only.
+ * receives and what it emits. Types, and the one rule of what a source must
+ * hold to be translated at all (`hasSpeech`).
  *
  * A translation session is handed the source text of one leg, one snapshot
  * of a source segment at a time, and emits translation segments that name
@@ -39,8 +40,19 @@ export interface TranslationStartRequest<C, K> {
  * One source segment as it stands. `text` is always the whole text, never a delta. The first `stableLen`
  * characters will not change in a later snapshot of the same origin. `closed`: the segment has ended, the whole
  * text is stable, and no snapshot of this origin follows. `language`: the language heard, when the caller knows it.
+ *
+ * A source that closes without a letter or a digit in it (`hasSpeech`: a pause's dots, a lone mark) holds nothing
+ * to translate: the session owes it no translation and no notice.
  */
 export interface SourceSnapshot { origin: string; text: string; stableLen: number; closed: boolean; language?: string }
+
+/**
+ * Whether a text holds anything to translate: a letter or a digit, in any script. The one rule of it, read by
+ * whoever cuts a source into jobs and by the rule suite alike.
+ */
+export function hasSpeech(text: string): boolean {
+  return /[\p{L}\p{N}]/u.test(text);
+}
 
 export interface TranslationEvents {
   /**

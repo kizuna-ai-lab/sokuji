@@ -9,6 +9,7 @@
  */
 import type { Ref } from './adapter';
 import type { Violation } from './conformance';
+import { hasSpeech } from './translation';
 import type { SourceSnapshot, TranslationEvents, TranslationSession, TranslationStartRequest } from './translation';
 
 type PayloadOf<K extends keyof TranslationEvents> = Parameters<TranslationEvents[K]>[0];
@@ -28,7 +29,8 @@ export type TranslationLog = TranslationRecord[];
 
 /**
  * Starts a translation session and records it: every call on the session returned here and every event the unit
- * emits are appended to `log`, in order, and passed on (the events to `forward`, when one is given).
+ * emits are appended to `log`, in order, and passed on (the events to `forward`, when one is given). What is
+ * recorded is a copy: a unit that says the same object again, changed, is read as it said it each time.
  */
 export function recordTranslation<C, K>(
   start: (request: TranslationStartRequest<C, K>, events: TranslationEvents) => TranslationSession,
@@ -37,13 +39,13 @@ export function recordTranslation<C, K>(
   log: TranslationLog = [],
 ): { session: TranslationSession; log: TranslationLog } {
   const events: TranslationEvents = {
-    translationOpened: (payload) => { log.push({ kind: 'translationOpened', payload }); forward?.translationOpened?.(payload); },
-    translationText: (payload) => { log.push({ kind: 'translationText', payload }); forward?.translationText?.(payload); },
-    translationClosed: (payload) => { log.push({ kind: 'translationClosed', payload }); forward?.translationClosed?.(payload); },
-    failed: (payload) => { log.push({ kind: 'failed', payload }); forward?.failed?.(payload); },
-    degraded: (payload) => { log.push({ kind: 'degraded', payload }); forward?.degraded?.(payload); },
-    loading: (payload) => { log.push({ kind: 'loading', payload }); forward?.loading?.(payload); },
-    frame: (payload) => { log.push({ kind: 'frame', payload }); forward?.frame?.(payload); },
+    translationOpened: (payload) => { log.push({ kind: 'translationOpened', payload: { ...payload } }); forward?.translationOpened?.(payload); },
+    translationText: (payload) => { log.push({ kind: 'translationText', payload: { ...payload } }); forward?.translationText?.(payload); },
+    translationClosed: (payload) => { log.push({ kind: 'translationClosed', payload: { ...payload } }); forward?.translationClosed?.(payload); },
+    failed: (payload) => { log.push({ kind: 'failed', payload: { ...payload } }); forward?.failed?.(payload); },
+    degraded: (payload) => { log.push({ kind: 'degraded', payload: { ...payload } }); forward?.degraded?.(payload); },
+    loading: (payload) => { log.push({ kind: 'loading', payload: { ...payload } }); forward?.loading?.(payload); },
+    frame: (payload) => { log.push({ kind: 'frame', payload: { ...payload } }); forward?.frame?.(payload); },
   };
   log.push({ kind: 'start' });
   const inner = start(request, events);
@@ -78,15 +80,16 @@ const EVENT_KINDS: ReadonlySet<string> = new Set(['translationOpened', 'translat
  *   `stopped` entry admits nothing after `stop`.
  * - `translation-closed`: in a session that neither failed nor was stopped, every translation that opened has
  *   closed by the end of the log.
- * - `source-answered`: in a session that neither failed nor was stopped, every source that closed with text is
- *   answered by the end of the log: at least one translation names its origin, or the session said `degraded`
- *   after it was first handed the origin (its stretch could not be translated, and the row keeps its source).
+ * - `source-answered`: in a session that neither failed nor was stopped, every source that closed holding a letter
+ *   or a digit (`hasSpeech`) is answered by the end of the log: at least one translation names its origin, or the
+ *   session said `degraded` after it was first handed the origin (its stretch could not be translated, and the row
+ *   keeps its source). A source that closed without one holds nothing to translate, and is owed nothing.
  */
 export function checkTranslation(log: TranslationLog): Violation[] {
   const out: Violation[] = [];
   const flag = (rule: string, detail: string, index: number) => out.push({ rule, detail, index });
 
-  /** Per origin: where the session was first handed it, and where it closed with text, if it has. */
+  /** Per origin: where the session was first handed it, and where it closed with something to translate, if it has. */
   const given = new Map<string, { first: number; closedAt?: number }>();
   const opened = new Set<Ref>();
   const closed = new Set<Ref>();
@@ -108,7 +111,7 @@ export function checkTranslation(log: TranslationLog): Violation[] {
       case 'source': {
         const { origin, text, closed: over } = entry.snapshot;
         const known = given.get(origin) ?? { first: index };
-        if (over && text.trim().length > 0 && known.closedAt === undefined) known.closedAt = index;
+        if (over && hasSpeech(text) && known.closedAt === undefined) known.closedAt = index;
         given.set(origin, known);
         break;
       }
@@ -165,7 +168,7 @@ export function checkTranslation(log: TranslationLog): Violation[] {
   }
   for (const [origin, { first, closedAt }] of given) {
     if (closedAt === undefined || answered.has(origin) || degradedAt.some((at) => at > first)) continue;
-    flag('source-answered', `the source "${origin}" closed with text and was neither translated nor said to have failed`, closedAt);
+    flag('source-answered', `the source "${origin}" closed with text to translate and was neither translated nor said to have failed`, closedAt);
   }
   return out;
 }

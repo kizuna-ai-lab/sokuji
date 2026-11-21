@@ -13,7 +13,7 @@
 // reads text another unit already owns: it cuts only inside what that unit
 // said is stable, so an offset is cursor enough, and it never touches a row.
 import type { TextRange } from '../contract/adapter';
-import type { SourceSnapshot } from '../contract/translation';
+import { hasSpeech, type SourceSnapshot } from '../contract/translation';
 import { sentenceEnds } from '../segmentation/sentenceEnd';
 
 /** A stretch of a source to translate. `span`: where `text` sits in the source's whole text. */
@@ -27,13 +27,13 @@ export interface SourceCutter {
   feed(snapshot: Pick<SourceSnapshot, 'text' | 'stableLen' | 'closed'>): Stretch[];
 }
 
-/** A letter or a digit: what makes a stretch worth a job, and what confirms that a sentence before it has ended. */
-const SPEECH = /[\p{L}\p{N}]/u;
-
-/** `text[from, to)` without the spaces around it, or nothing when it holds no letter or digit. */
+/**
+ * `text[from, to)` without the spaces around it, or nothing when it holds no letter or digit (`hasSpeech`): that is
+ * what makes a stretch worth a job, and what confirms that a sentence before it has ended.
+ */
 function stretchOf(text: string, from: number, to: number): Stretch[] {
   const piece = text.slice(from, to);
-  if (!SPEECH.test(piece)) return [];
+  if (!hasSpeech(piece)) return [];
   const start = from + (piece.length - piece.trimStart().length);
   const end = from + piece.trimEnd().length;
   return [{ text: text.slice(start, end), span: [start, end] }];
@@ -64,7 +64,7 @@ export function createSourceCutter(): SourceCutter {
       const stable = text.slice(0, Math.min(Math.max(stableLen, 0), text.length));
       let ready = cut;
       for (const end of sentenceEnds(stable)) {
-        if (end > ready && SPEECH.test(stable.slice(end))) ready = end;
+        if (end > ready && hasSpeech(stable.slice(end))) ready = end;
       }
       if (ready === cut) return [];
       const from = cut;

@@ -91,6 +91,10 @@ describe('checkTranslation rules', () => {
 
   it('owes no answer to a source that closed blank, is still open, or was abandoned by a stop or a failure', () => {
     expect(rules(start, closing('u1', '  '))).toEqual([]);
+    // Nothing to translate: no letter and no digit, as the cutter reads it.
+    expect(rules(start, closing('u1', ' … '))).toEqual([]);
+    expect(rules(start, closing('u1', '?!'))).toEqual([]);
+    expect(rules(start, closing('u1', '7'))).toEqual(['source-answered']);
     expect(rules(start, source('u1', 'Hi', 2))).toEqual([]);
     expect(rules(start, closing('u1', 'Hi.'), opened(1, 'u1'), { kind: 'stop' }, { kind: 'stopped' })).toEqual([]);
     expect(rules(start, closing('u1', 'Hi.'), failed)).toEqual([]);
@@ -127,6 +131,26 @@ describe('recordTranslation', () => {
     expect(seen).toEqual(['open', 'source u1', 'stop']);
     expect(forwarded).toEqual(['opened 1', 'translation.bye']);
     expect(checkTranslation(log)).toEqual([]);
+  });
+
+  it('records each event as it was said: a payload said again, changed, is read as two', () => {
+    let emit!: TranslationEvents;
+    const inner: TranslationSession = { open: async () => {}, source: () => {}, stop: async () => {} };
+    const request: TranslationStartRequest<undefined, undefined> = { leg: 'speaker', context, config: undefined, credentials: undefined, clock: createVirtualClock(0), signal: new AbortController().signal };
+    const forwarded: unknown[] = [];
+    const { session, log } = recordTranslation((_request, events) => { emit = events; return inner; }, request, { translationText: (e) => forwarded.push(e) });
+    session.source({ origin: 'u1', text: 'Hi.', stableLen: 3, closed: true });
+    emit.translationOpened({ ref: 1, origin: 'u1' });
+    const said = { ref: 1, text: 'A', stableLen: 1 };
+    emit.translationText(said);
+    said.text = 'B';
+    emit.translationText(said);
+    emit.translationClosed({ ref: 1 });
+    expect(log.filter((e) => e.kind === 'translationText').map((e) => e.payload)).toEqual([{ ref: 1, text: 'A', stableLen: 1 }, { ref: 1, text: 'B', stableLen: 1 }]);
+    expect(checkTranslation(log).map((v) => v.rule)).toEqual(['stable-len-holds']);
+    // The listener gets what the unit said, itself.
+    expect(forwarded).toEqual([said, said]);
+    expect(forwarded[0]).toBe(said);
   });
 
   it('records `stopped` when a stop rejects, and hands the rejection on', async () => {

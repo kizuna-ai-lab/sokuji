@@ -137,6 +137,14 @@ describe('the job translator: jobs', () => {
     h.session.source({ origin: 'u2', text: 'Once. Twice. Thrice', stableLen: 19, closed: false });
     expect(h.asked.map((a) => a.text)).toEqual(['Once.']);
   });
+
+  it('owes a source with no letter or digit nothing, by the rule suite as by the cutter', async () => {
+    const h = translator();
+    h.closing('u1', ' … ');
+    await flush();
+    expect(h.said()).toEqual([]);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
 });
 
 describe('the job translator: a job that fails', () => {
