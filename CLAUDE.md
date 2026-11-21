@@ -126,7 +126,6 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      - `settingsStore.ts`: common settings (UI mode, text-only, segmentation, display
        modes) and Local Native's old slice
      - `providerStore.ts`: each provider's settings and credentials, and the one global language pair (`settings.common.*`, written only by a pick)
-     - `sessionStore.ts`: the locked mode the kept old settings shell reads; nothing writes it
      - `audioStore.ts`: Audio device selection and playback state
      - `logStore.ts`: Application logs and diagnostics
    - React Context for specific features: UserProfileContext, PostHogContext
@@ -701,7 +700,6 @@ corrected on 2026-09-05.
 - **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`, shared with Advanced's General tab: languages, the provider picker, speech; sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false), the microphone, the Speech block (`SpeechOutputSection`: who hears what, each row with its own output device and channel; `textOnly` shows inverted as Translation the other side hears, the monitor as I hear it too, the participant-speech switch as Translation I hear), the other side's audio, help. The mode popover's rows mirror the Speech block (a pick in an outlet row writes the outlet and never flips its switch); the face-to-face ears strip and the conversation's ear tags read the outlets (a centred outlet gives no tag); the wizard's Both scenarios write Translation I hear (voice on, text off)
 - **MainPanel**: Unified conversation panel with `uiMode`-driven layout (basic: bubble messages + status footer, advanced: bubble messages + waveform footer with controls)
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
-- **ConnectionStatus**: Real-time connection state indicator
 
 ### UI Design System
 - Two schemes, dark (the default, R1) and light, and an Appearance setting in Help
