@@ -44,6 +44,19 @@ vi.mock('../../lib/session/useLineUpNotice', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/session/useLineUpNotice')>();
   return { useLineUpNotice: () => { const own = actual.useLineUpNotice(); return forcedRefusal.value ?? own; } };
 });
+// The next save of the line-up waits for this promise, when a test sets one: a choice still being saved.
+const lineUpSave = vi.hoisted(() => ({ held: null as null | Promise<void> }));
+vi.mock('../../services/persistSetting', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/persistSetting')>();
+  return {
+    ...actual,
+    persistSetting: async (...args: Parameters<typeof actual.persistSetting>) => {
+      const held = args[0] === 'settings.lineup' ? lineUpSave.held : null;
+      if (held) { lineUpSave.held = null; await held; }
+      return actual.persistSetting(...args);
+    },
+  };
+});
 const tracked = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: (name: string, props: unknown) => tracked.push([name, props]) }) }));
 
@@ -69,6 +82,7 @@ beforeEach(() => {
   noHosted.value = false;
   tracked.length = 0;
   forcedRefusal.value = null;
+  lineUpSave.held = null;
   runsOn('soniox');
   useProviderStore.setState({ entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true, locked: false });
@@ -303,6 +317,40 @@ describe('languages and line-up', () => {
         expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Speech switched to Soniox.');
         fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
         await waitFor(() => expect(screen.queryByText(/Speech switched to/)).toBeNull());
+      });
+
+      describe('while the choice that made speech follow is still being saved', () => {
+        // The choice is shown at once and its save held: `saved` lets it complete.
+        const followHeld = () => {
+          load();
+          const openai = { settings: RELEASED.find((p) => p.id === 'openai')!.settings.defaults, credentials: { apiKey: 'k' }, pair };
+          useProviderStore.setState((s) => ({ entries: { ...s.entries, openai } as never }));
+          useLineUpStore.setState({ lineUp: everyStage, stored: true });
+          let saved = () => {};
+          lineUpSave.held = new Promise<void>((resolve) => { saved = resolve; });
+          render(<LineUpCategory locked={false} />);
+          fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'soniox' } });
+          expect(useLineUpStore.getState().lineUp).toEqual(soniox);
+          expect(screen.queryByText(/Speech switched to/)).toBeNull();
+          return saved;
+        };
+
+        it('a choice for the notes made meanwhile keeps the line away once the save completes', async () => {
+          const saved = followHeld();
+          fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
+          await act(async () => { saved(); });
+          // Both choices are saved and reported: nothing is left to complete.
+          await waitFor(() => expect(tracked).toHaveLength(2));
+          expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'openai' });
+          await act(async () => { await Promise.resolve(); });
+          expect(screen.queryByText(/Speech switched to/)).toBeNull();
+        });
+
+        it('with no other choice made meanwhile, the line is said once the save completes', async () => {
+          const saved = followHeld();
+          await act(async () => { saved(); });
+          expect(await within(cardOf('Speech')).findByRole('status')).toHaveTextContent('Speech switched to Soniox.');
+        });
       });
     });
 

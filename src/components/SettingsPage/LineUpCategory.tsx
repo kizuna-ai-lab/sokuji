@@ -9,7 +9,7 @@
 import { useWordList } from '../../lib/words/list';
 import { modelTakesWords, wordServiceOf, wordsFor } from '../../lib/words/forService';
 import { effectiveGeminiModel } from '../../providers/gemini/settings';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
@@ -132,6 +132,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   useEffect(() => {
     if (followedBy && !followed) setFollowedBy(null);
   }, [followedBy, followed]);
+  // Counts the choices made on this page, the notes' included: a choice whose save completes after a later one was
+  // made says nothing, the line having been taken away by that later choice.
+  const choiceCount = useRef(0);
 
   // Every provider with a key is loaded, so that its row can say whether the key is there.
   useEffect(() => {
@@ -211,6 +214,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     }] : []),
   ];
   const chooseNotes = async (id: string) => {
+    choiceCount.current += 1;
     setFollowedBy(null);
     const before: LineUp | null = useLineUpStore.getState().lineUp;
     const choice = await useLineUpStore.getState().choose('summarisation', id);
@@ -219,6 +223,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
 
   const choose = async (stage: RunStage, id: string) => {
     // What the last choice made speech do is not said of this one, whatever comes of it.
+    const made = (choiceCount.current += 1);
     setFollowedBy(null);
     const before: LineUp | null = useLineUpStore.getState().lineUp;
     const choice = await useLineUpStore.getState().choose(stage, id);
@@ -226,7 +231,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     trackEvent('lineup_changed', lineUpChangedEvent(stage, before, choice));
     // Named as an option's text names it: a hosted provider with its engine.
     const name = (option: string) => optionText(model(option, providers.find((p) => p.id === option)));
-    if (choice.followed) {
+    if (choice.followed && made === choiceCount.current) {
       setFollowedBy({
         text: t('settingsPage.lineup.voiceFollowed', 'Speech switched to {{provider}}. The previous speech service only supports its own translations.', { provider: name(choice.followed.to) }),
         lineUp: choice.lineUp,
