@@ -10,9 +10,10 @@ import type { LineUp, RunStage } from './types';
 /**
  * Per stage, what the local provider serves: `translation` by Bing or by a model on this machine, `speech` by
  * Edge or by a model on this machine; null where another provider serves the stage. It transcribes whenever it
- * translates: its transcription and translation run in one session.
+ * translates, in one session, unless `transcription` says null: then another provider transcribes, and this one
+ * translates what that one heard. `transcription` is stated only then.
  */
-export interface LocalStages { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null }
+export interface LocalStages { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null; transcription?: null }
 
 const HOST = 'local_inference';
 
@@ -28,7 +29,10 @@ export function localStagesOf(lineUp: LineUp | Pick<LineUp, RunStage> | null): L
     if (optionFor(lineUp, stage)?.host !== HOST) return null;
     return lineUp[stage] === online ? online : 'local';
   };
-  return { translation: served('translation', 'bing'), speech: served('speech', 'edge') };
+  const stages: LocalStages = { translation: served('translation', 'bing'), speech: served('speech', 'edge') };
+  // It translates and another provider transcribes: no recognition model of this machine runs.
+  if (stages.translation !== null && optionFor(lineUp, 'transcription')?.host !== HOST) stages.transcription = null;
+  return stages;
 }
 
 /**
@@ -41,11 +45,26 @@ export function localSpeechStagesOf(lineUp: Pick<LineUp, RunStage>): LocalStages
 }
 
 /**
+ * The same for the local provider's translation as a unit of its own, which translates what another provider
+ * heard: Bing when the line-up gives translation to it, else a translation model on this machine; never a
+ * recognition model. Speech is what the line-up says of it.
+ */
+export function localTranslationStagesOf(lineUp: Pick<LineUp, RunStage>): LocalStages {
+  const stages = localStagesOf(lineUp);
+  return { translation: stages?.translation ?? 'local', speech: stages?.speech ?? null, transcription: null };
+}
+
+/**
  * The local engine's stages (`asr`, `translation`, `tts`) another provider serves in a stored line-up: speech
- * where the line-up gives it elsewhere, and recognition with translation where it gives translation elsewhere.
- * None without a stored line-up. No model of this machine runs for such a stage, and none is missing for it.
+ * where the line-up gives it elsewhere, recognition with translation where it gives translation elsewhere, and
+ * recognition alone where another provider transcribes what this one translates. None without a stored line-up.
+ * No model of this machine runs for such a stage, and none is missing for it.
  */
 export function unservedStages(stages: LocalStages | null): Array<'asr' | 'translation' | 'tts'> {
   if (!stages) return [];
-  return [...(stages.translation === null ? (['asr', 'translation'] as const) : []), ...(stages.speech === null ? (['tts'] as const) : [])];
+  return [
+    ...(stages.translation === null || stages.transcription === null ? (['asr'] as const) : []),
+    ...(stages.translation === null ? (['translation'] as const) : []),
+    ...(stages.speech === null ? (['tts'] as const) : []),
+  ];
 }

@@ -84,6 +84,22 @@ function wordsNote(shared: SharedSettings): string {
 }
 
 /**
+ * What a translation model on this machine is told for a direction: the user's prompt, or the built-in one, and
+ * the word list and session background as its last lines. One builder for the whole local session and for the
+ * local translation as a unit of its own.
+ */
+export function localTranslationPrompt(context: SessionContext, s: LocalInferenceSettings, shared: SharedSettings): { instructions: string; wrapTranscript: boolean } {
+  const { source, target } = context.direction;
+  const own = localInstructions(context, s, shared);
+  const defaultForward = buildDefaultLocalPrompt(source, target);
+  const defaultReverse = buildDefaultLocalPrompt(target, source);
+  // Whether the transcript is wrapped follows the prompt chosen, before the word list is added to it.
+  const wrapTranscript = own === defaultForward || own === defaultReverse;
+  const note = wordsNote(shared);
+  return { instructions: note ? `${own}\n\n${note}` : own, wrapTranscript };
+}
+
+/**
  * Whether the local provider turns speech straight into the translation: a Granite Speech recognition model also
  * chosen, explicitly, as the translation model. Such a session gives no original text.
  */
@@ -135,7 +151,7 @@ export function buildLocalInference(
   s: LocalInferenceSettings,
   shared: SharedSettings,
 ): LocalInferenceConfig | ProviderRefusal {
-  const { source, target } = context.direction;
+  const { source } = context.direction;
   // A line-up says whether translation and speech go to Bing and Edge or to this machine's models.
   const resolved = resolveLocal(context.direction, s, localStagesFor(shared));
 
@@ -170,13 +186,7 @@ export function buildLocalInference(
   } else if (!resolved.translation) {
     translation = { kind: 'none' };
   } else {
-    const own = localInstructions(context, s, shared);
-    const defaultForward = buildDefaultLocalPrompt(source, target);
-    const defaultReverse = buildDefaultLocalPrompt(target, source);
-    // Whether the transcript is wrapped follows the prompt chosen, before the word list is added to it.
-    const wrapTranscript = own === defaultForward || own === defaultReverse;
-    const note = wordsNote(shared);
-    translation = { kind: 'engine', modelId: resolved.translation.modelId, instructions: note ? `${own}\n\n${note}` : own, wrapTranscript };
+    translation = { kind: 'engine', modelId: resolved.translation.modelId, ...localTranslationPrompt(context, s, shared) };
   }
 
   const config: LocalInferenceConfig = { asr, vad, translation };
