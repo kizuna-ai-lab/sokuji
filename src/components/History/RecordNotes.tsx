@@ -107,7 +107,11 @@ export function RecordNotes(p: RecordNotesProps) {
   // `n` tells one opening from the next, so a save that ends late closes only its own editor (PR review). A point is
   // also known by what it holds (`point`): one removed before it moves it up, and its editor goes with it. `notes` is
   // the version it was opened on: another version shown closes it (PR review).
-  const [editing, setEditing] = useState<{ n: number; notes: number; key: string; at?: number; point?: string } | null>(null);
+  const [editing, setEditing] = useState<{
+    n: number; notes: number; key: string;
+    /** A point: where it was, what it held, how many points there were, and whether no other point held the same. */
+    at?: number; point?: string; count?: number; alone?: boolean;
+  } | null>(null);
   const notesId = p.notes?.id ?? null;
   const editingHere = editing !== null && editing.notes === notesId ? editing : null;
   useEffect(() => {
@@ -115,20 +119,30 @@ export function RecordNotes(p: RecordNotesProps) {
   }, [notesId]);
   const openings = useRef(0);
   const keyOf = (f: NotesField) => JSON.stringify(f);
-  const pointId = (pt: NotesPoint) => JSON.stringify([pt.topic, pt.sentences, pt.kinds, pt.text]);
+  // Everything a point holds, owner and date too: look-alikes that differ only there are still told apart.
+  const pointId = (pt: NotesPoint) => JSON.stringify(pt);
   const isEditing = (f: NotesField) => !!p.onEdit && f.part !== 'point' && editingHere?.key === keyOf(f);
-  /** Where the point being edited is now: its old place while it holds the same, else where it went; -1 when gone. */
+  /**
+   * Where the point being edited is now. With as many points as when it opened, its own place, while that still holds
+   * the same. With fewer (one before it removed), where the same is held, only when exactly one point holds it now and
+   * none other did then: two it cannot tell apart close the editor rather than guess (PR review). -1 when gone.
+   */
   const editingPoint = (points: readonly NotesPoint[]): number => {
     if (!p.onEdit || editingHere?.point === undefined || editingHere.at === undefined) return -1;
-    const { at, point } = editingHere;
-    if (points[at] && pointId(points[at]) === point) return at;
-    return points.findIndex((pt) => pointId(pt) === point);
+    const { at, point, count, alone } = editingHere;
+    if (points.length === count) return points[at] && pointId(points[at]) === point ? at : -1;
+    const found = points.flatMap((pt, i) => (pointId(pt) === point ? [i] : []));
+    return alone && found.length === 1 ? found[0] : -1;
   };
   const startEditing = (f: NotesField) => {
     if (notesId === null) return;
-    const pt = f.part === 'point' && p.notes?.body ? readNotesBody(p.notes.body).points[f.point] : undefined;
+    const points = f.part === 'point' && p.notes?.body ? readNotesBody(p.notes.body).points : [];
+    const pt = f.part === 'point' ? points[f.point] : undefined;
     openings.current += 1;
-    setEditing({ n: openings.current, notes: notesId, key: keyOf(f), ...(f.part === 'point' && pt ? { at: f.point, point: pointId(pt) } : {}) });
+    const point = f.part === 'point' && pt ? {
+      at: f.point, point: pointId(pt), count: points.length, alone: points.filter((x) => pointId(x) === pointId(pt)).length === 1,
+    } : {};
+    setEditing({ n: openings.current, notes: notesId, key: keyOf(f), ...point });
   };
   const TITLE: NotesField = { part: 'title' };
   const OVERVIEW: NotesField = { part: 'overview' };

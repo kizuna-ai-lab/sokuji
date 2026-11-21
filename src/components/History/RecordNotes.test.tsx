@@ -579,6 +579,29 @@ describe('editing the notes in place', () => {
     expect(field).not.toHaveAttribute('readonly');
   });
 
+  // PR review: points that hold the same topic, sentences, kinds and text are told apart by owner and date; two that
+  // hold exactly the same cannot be, and the editor closes rather than guess which one is its point.
+  it('a point being edited is not mistaken for a look-alike when one before it is removed', async () => {
+    const twin = (owner: string) => ({ topic: 0, text: 'Send the tracking number', sentences: [3], kinds: ['todo' as const], owner, due: 'Tuesday' });
+    const lay = (points: unknown[]) => ({ ...complete, body: { ...complete.body!, points } }) as HistoryNotes;
+    const first = complete.body!.points[0];
+    const edit = onEdit();
+    const { rerender } = render(<RecordNotes {...props({ onEdit: edit, notes: lay([first, twin('My side'), twin('Other side')]) })} />);
+    fireEvent.click(pencils('Edit the point')[2]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: 'Send the tracking link' } });
+    rerender(<RecordNotes {...props({ onEdit: edit, notes: lay([twin('My side'), twin('Other side')]) })} />);
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 1 }, text: 'Send the tracking link', owner: 'Other side', due: 'Tuesday' });
+
+    cleanup();
+    const same = twin('My side');
+    const again = render(<RecordNotes {...props({ onEdit: edit, notes: lay([first, same, same]) })} />);
+    fireEvent.click(pencils('Edit the point')[2]);
+    again.rerender(<RecordNotes {...props({ onEdit: edit, notes: lay([same, same]) })} />);
+    expect(screen.queryByRole('textbox', { name: 'Point' })).toBeNull();
+  });
+
   // PR review: an editor belongs to the version it was opened on; another version shown closes it, so a draft (or a
   // retry after a failed save) never lands in that other version.
   it('another version shown closes an open editor', async () => {
