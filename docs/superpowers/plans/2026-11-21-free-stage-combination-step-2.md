@@ -384,3 +384,20 @@ They replace the text of Tasks B1 to B5 where the two differ; Parts C to E build
 - **Open until Tasks D4 and D6:** the composer accepts Kizuna AI's voice alone and plans of two providers; a managed lease still asks for a speech role when another provider speaks.
 - **For Part C:** `sessionSide.consistency.test.ts` roots Soniox's walk at `speech.ts` as well as the adapter; a new speech unit's files must be registered the same way. `silent-when-off` rejects ranged audio over a stretch handed over while speech was off, also after the row resumed: a voice must drop what is in flight when switched off.
 
+---
+
+## Decisions made while Part C was built
+
+They replace the text of Tasks C1 to C3 where the two differ; Parts D and E build on them.
+
+- **A missing local voice model is a notice, not a refusal**, as the whole local unit treats it today: the voice's config is `{ off: true, unavailable }`, its `open()` says `speaker_tts_missing` or `participant_tts_missing` once, and the session goes on with text only. `SpeechEvents.degraded` gained an optional `params` for the notice's words.
+- **The session lives in `speechSession.ts`**, apart from the unit: the unit reads stores when it builds, the session must not. That file is registered in `sessionSide.consistency.test.ts`.
+- **Switched off, the queue waits for the sentence in synthesis to settle** before it reads again: the engine refuses a second synthesis at once. What that sentence produces is dropped. An Edge synthesis that never settles therefore holds later speech until the session closes.
+- **A voice that falls back to another speaker keeps its `voice_fallback` notice; a lost GPU device degrades the voice** and does not end the session.
+- **`units` on the local provider is a lazy getter**: `[the whole unit, the speech unit]`. A line-up all on this device is served by the whole unit, as before.
+- **The frozen line-up reaches a builder through `shared.lineUp`**, set only when the run's line-up was a stored one (`RunShape.lineUpStored`): a run started before any line-up is stored builds as it did, with Bing and Edge as ordinary candidates.
+- **Admission is per unit**: the speech unit's configs are admitted for the voice model alone, told apart from a whole-session config by their shape. Memory is not summed across a plan.
+- **Entries are loaded for every host the line-up names**, at launch and on each change of it; loads in flight are shared.
+- **The first Edge voice is picked for the transcription provider's pair** when the local provider only speaks, and by the line-up's `edge`, not by the local selections. The voice slot opens the local voices when a local voice reads another provider's text.
+- **For Part D:** the local provider's readiness check still asks for a recognition and a translation model when the provider only speaks; readiness must learn which stages a provider serves in the plan before a line-up with a local voice can start. `stageIdsFor`, `storedLineUpRuns`, `lineUpInUse` and `localStagesOf` hold one rule in four places and change together. The line-up page must show the local voices' card for a plan in which the local provider only speaks.
+

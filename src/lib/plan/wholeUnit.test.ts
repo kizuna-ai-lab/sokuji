@@ -97,6 +97,7 @@ describe('wholeUnit', () => {
       ['one unit for all three', [all()], [['all', RUN_STAGES]], ['all', 'all', 'all']],
       ['a unit for all three among others: it alone', [text(), voice(), all()], [['all', RUN_STAGES]], ['all', 'all', 'all']],
       ['a text unit and a voice: the two, in stage order', [voice(), text()], [['text', TR_TL], ['voice', ['speech']]], ['text', 'text', 'voice']],
+      ['the whole of a provider beside its voice: the whole unit alone, as a provider with one unit', [wholeUnit(optional), voice()], [['whole', RUN_STAGES]], ['whole', 'whole', 'whole']],
       ['a voice alone: its first unit on all three, as before', [voice()], [['voice', RUN_STAGES]], ['voice', 'voice', 'voice']],
       ['a text unit alone: its first unit on all three', [text()], [['text', RUN_STAGES]], ['text', 'text', 'text']],
       ['units that do not make up the three stages: the first on all three', [tr(), voice()], [['tr', RUN_STAGES]], ['tr', 'tr', 'tr']],

@@ -7,7 +7,7 @@
 import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
-import { stageIdsFor } from '../lineup/catalog';
+import { stageIdsFor, storedLineUpRuns } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { planFromStores } from '../plan/fromStores';
 import { accountOf, capabilitiesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
@@ -192,6 +192,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
     plan,
     accounts,
     lineUp: stageIdsFor(lineUp, stored, heard.id),
+    lineUpStored: storedLineUpRuns(lineUp, stored, heard.id),
     pair: entry.pair,
     legs: legsFor(useAudioStore.getState().mode),
     turnMode: useTurnModeStore.getState().turnMode,

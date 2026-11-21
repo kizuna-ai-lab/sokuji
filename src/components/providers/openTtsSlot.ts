@@ -1,7 +1,8 @@
 import type { LegName } from '../../lib/conversation/types';
 import { directionKey } from '../../lib/local-inference/selection/types';
 import { planFromStores } from '../../lib/plan/fromStores';
-import { transcriptionAccount, unitFor } from '../../lib/plan/read';
+import { transcriptionAccount, transcriptionProvider, unitFor } from '../../lib/plan/read';
+import { localInferenceProvider } from '../../providers/localInference/provider';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 
@@ -13,7 +14,10 @@ import { useSettingsStore } from '../../stores/settingsStore';
  * `Engine` gets its options only, and any
  * slot target still pending is cleared: nothing there would consume it, and it
  * would open later under another provider. With Edge speaking, its voices
- * in the speech card instead: the engine's speech slot does not run.
+ * in the speech card instead: the engine's speech slot does not run. With a
+ * local voice reading another provider's text, the local voices in the
+ * speech card: the options shown are the transcription provider's, and no
+ * engine there would open the slot.
  */
 export function openTtsSlot(leg: LegName): void {
   const { setEngineSlotTarget, navigateToSettings } = useSettingsStore.getState();
@@ -23,7 +27,13 @@ export function openTtsSlot(leg: LegName): void {
     return;
   }
   const found = planFromStores();
-  if (found.state === 'ready' && unitFor(found.plan, 'speech').provider.Engine) {
+  const speaker = found.state === 'ready' ? unitFor(found.plan, 'speech').provider : undefined;
+  if (found.state === 'ready' && speaker && speaker.id !== transcriptionProvider(found.plan).id) {
+    setEngineSlotTarget(null);
+    navigateToSettings(speaker.id === localInferenceProvider.id ? 'local-voices' : 'provider-options');
+    return;
+  }
+  if (found.state === 'ready' && speaker?.Engine) {
     const { source, target } = transcriptionAccount(found).pair;
     setEngineSlotTarget({ dir: leg === 'speaker' ? directionKey(source, target) : directionKey(target, source), stage: 'tts' });
   } else {

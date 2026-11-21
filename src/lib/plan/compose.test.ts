@@ -6,9 +6,11 @@ import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, RunStage } from '../lineup/types';
 import { compose } from './compose';
 import type { ComposeInput } from './compose';
+import type { AnyProvider } from '../provider/types';
 import { planOf, stubHosts, stubProvider } from './testing';
 import { isRefusal } from './types';
 import type { PlanRefusal, PlanRefusalCode, RunPlan } from './types';
+import { wholeUnit } from './wholeUnit';
 
 const all = (id: string): Pick<LineUp, RunStage> => ({ transcription: id, translation: id, speech: id });
 
@@ -89,6 +91,32 @@ describe('compose', () => {
       ['part of the joint group is still a split stage', { transcription: 'soniox', translation: 'bing', speech: 'soniox' }, on('soniox', [text, voice]), { refused: 'lineup_stage_split', stage: 'translation' }],
     ] as Array<[string, Pick<LineUp, RunStage>, ComposeInput, unknown]>)('%s', (_name, lineUp, given, expected) => {
       expect(shape(compose(lineUp, given))).toEqual(expected);
+    });
+
+    describe('the local host, with a unit that is the whole of it and a voice', () => {
+      const speech = occupying('speech', 'speech');
+      const local = stubProvider('local_inference');
+      const localUnits = [wholeUnit(local), speech];
+      const given: ComposeInput = { providers: [stubProvider('soniox', { units: [text, voice] }), { ...local, units: localUnits } as AnyProvider], settings: () => undefined };
+
+      it.each([
+        ['all on this device: the whole unit', all('local_inference'), [['local_inference', 'whole', RUN_STAGES]]],
+        ['Bing and Edge are the local host: the whole unit', { transcription: 'local_inference', translation: 'bing', speech: 'edge' }, [['local_inference', 'whole', RUN_STAGES]]],
+        ['a local translation model and Edge: the whole unit', { transcription: 'local_inference', translation: 'local_inference', speech: 'edge' }, [['local_inference', 'whole', RUN_STAGES]]],
+        ['Bing and a local voice: the whole unit', { transcription: 'local_inference', translation: 'bing', speech: 'local_inference' }, [['local_inference', 'whole', RUN_STAGES]]],
+        ["Edge reads Soniox's text: the voice alone", { transcription: 'soniox', translation: 'soniox', speech: 'edge' }, [['soniox', 'stt', ['transcription', 'translation']], ['local_inference', 'speech', ['speech']]]],
+        ["a local voice reads Soniox's text: the voice alone", { transcription: 'soniox', translation: 'soniox', speech: 'local_inference' }, [['soniox', 'stt', ['transcription', 'translation']], ['local_inference', 'speech', ['speech']]]],
+        ['translation alone is no unit of it', { transcription: 'soniox', translation: 'bing', speech: 'edge' }, { refused: 'lineup_stage_split', stage: 'translation' }],
+      ] as Array<[string, Pick<LineUp, RunStage>, unknown]>)('%s', (_name, lineUp, expected) => {
+        expect(shape(compose(lineUp, given))).toEqual(expected);
+      });
+
+      it('an all-local line-up is the plan of the provider alone, on the very unit it declares', () => {
+        const plan = compose(all('local_inference'), given) as RunPlan;
+        expect(plan.units).toHaveLength(1);
+        expect(plan.units[0].unit).toBe(localUnits[0]);
+        expect(RUN_STAGES.map((stage) => plan.byStage[stage])).toEqual([plan.units[0], plan.units[0], plan.units[0]]);
+      });
     });
 
     it('is the plan of the provider alone, each stage on its unit', () => {

@@ -248,9 +248,14 @@ export class Run {
     for (const leg of shape.legs) {
       // Each unit reads its own provider's models; the rest is the same for every unit of the leg.
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.
-      const built = buildPlan(plan, contexts[leg]!, { accounts }, (unit): SharedSettings => (
-        { ...shape.shared, models: models.get(unit.provider.id)!, speaks, reversed: () => leg === 'participant' }
-      ));
+      // The line-up is the one frozen at start, handed over only when it is the stored one: a builder never reads the line-up store.
+      const built = buildPlan(plan, contexts[leg]!, { accounts }, (unit): SharedSettings => ({
+        ...shape.shared,
+        models: models.get(unit.provider.id)!,
+        speaks,
+        reversed: () => leg === 'participant',
+        ...(shape.lineUpStored ? { lineUp: shape.lineUp } : {}),
+      }));
       if ('refused' in built) {
         throw new RefusedError({
           code: built.code ?? ('build_refused' satisfies RunNoticeCode),
