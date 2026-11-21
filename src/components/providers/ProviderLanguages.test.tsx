@@ -177,6 +177,32 @@ describe("ProviderLanguages — another provider's voice", () => {
     expect(trackEvent).not.toHaveBeenCalled();
   });
 
+  it('a text provider whose lists are narrower when it speaks is asked its text offer while another voice reads, and its speaking offer when it reads itself', () => {
+    // Soniox made to offer no Korean when it speaks: the shape of a provider whose voice has fewer languages.
+    const { sources: everySource, targets: everyTarget } = sonioxProvider.languages;
+    const narrowed = <O extends { value: string }>(list: readonly O[], context?: LanguageContext) => (context?.speech ? list.filter((o) => o.value !== 'ko') : list);
+    const sources = vi.spyOn(sonioxProvider.languages, 'sources').mockImplementation((s, context) => narrowed(everySource(s, context), context));
+    const spied = vi.spyOn(sonioxProvider.languages, 'targets').mockImplementation((source, s, context) => narrowed(everyTarget(source, s, context), context));
+    const sourceCodes = () => [...(screen.getByLabelText('settings.sourceLanguage') as HTMLSelectElement).options].map((o) => o.value);
+    try {
+      // Read by Edge, which has Korean voices: my leg is read aloud, and Soniox is asked what it offers as text.
+      given('edge');
+      const mixed = render(<ProviderLanguages providers={[sonioxProvider, localInferenceProvider]} />);
+      expect(targets()).toContain('ko');
+      expect(sourceCodes()).toContain('ko');
+      mixed.unmount();
+      // Reading its own translation: its speaking offer, as before.
+      given('soniox');
+      render(<ProviderLanguages providers={[sonioxProvider, localInferenceProvider]} />);
+      expect(targets()).not.toContain('ko');
+      expect(sourceCodes()).not.toContain('ko');
+      expect(targets()).toContain('ja');
+    } finally {
+      sources.mockRestore();
+      spied.mockRestore();
+    }
+  });
+
   it("Soniox on every stage: its own voice reads every language it translates into, so the list is its own", () => {
     given('soniox');
     render(<ProviderLanguages providers={[sonioxProvider, localInferenceProvider]} />);

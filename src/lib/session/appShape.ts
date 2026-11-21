@@ -11,7 +11,7 @@ import { stageIdsFor } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
-import { accountOf, capabilitiesOf, checkStageIdsOf, checkStagesOf, providersIn, transcriptionAccount, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, checkStageIdsOf, checkStagesOf, providersIn, servesSpeech, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import type { PlanRefusal, UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
@@ -139,14 +139,16 @@ export function speechInputsFromStores(): SpeechInputs {
 }
 
 /**
- * Who speaks for each provider of the plan as the stores stand: the speech unit's rules, under every provider of
- * the plan. None until the plan is ready: each provider then answers with its own.
+ * Whether each provider of the plan speaks, as the stores stand, for its own language lists: the speech unit's
+ * rules under the provider that serves the speech stage, and never under any other, which is read by that
+ * provider's voice and asked its text offer (`contextFor`). None until the plan is ready: each provider then
+ * answers with its own.
  */
 export function speakersFromStores(): Record<string, Speaking> {
   const found = planFromStores();
   if (found.state !== 'ready') return {};
   const { speech, participantSpeech } = capabilitiesOf(found, 'speech');
-  return Object.fromEntries(providersIn(found.plan).map((p) => [p.id, { speech, participantSpeech }]));
+  return Object.fromEntries(providersIn(found.plan).map((p) => [p.id, servesSpeech(found.plan, p) ? { speech, participantSpeech } : { speech: 'never' }]));
 }
 
 /**

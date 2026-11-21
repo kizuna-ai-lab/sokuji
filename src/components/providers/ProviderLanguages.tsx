@@ -28,7 +28,9 @@ interface ProviderLanguagesProps {
  * of a pair from the provider whose unit transcribes, the targets from the
  * one whose unit translates, for the language context the store holds —
  * its legs and whether the speech unit speaks them (Stage 2 Volcengine AST2,
- * choice 1). A leg that is read aloud by a voice that says what it reads is
+ * choice 1). Each of the two is told it speaks only when it is the provider
+ * whose unit serves speech (`planLanguages`): read by another provider's
+ * voice, it offers what it offers as text. A leg that is read aloud by a voice that says what it reads is
  * offered only the languages that voice reads; a leg that is not read aloud,
  * every language. The pair itself is never changed for the voice: one it
  * does not read stays, and the line-up says so.

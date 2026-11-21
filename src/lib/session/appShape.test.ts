@@ -551,6 +551,19 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
     unwatch();
   });
 
+  it("in a plan of two providers, only the one that serves speech speaks: the one it reads is asked its text offer", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true, unstoredProvider: null });
+    const pair = { source: 'ja', target: 'en' };
+    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair }, local_inference: { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {}, pair } }, speakers: {} });
+    const unwatch = watchSpeechFromStores();
+    const { speakers } = useProviderStore.getState();
+    expect(Object.keys(speakers).sort()).toEqual(['local_inference', 'soniox']);
+    expect(speakers.soniox).toEqual({ speech: 'never' });
+    expect(speakers.local_inference.speech).not.toBe('never');
+    unwatch();
+    useLineUpStore.setState({ lineUp: null, stored: false });
+  });
+
   it("follows face-to-face when the picked provider's entry loads after the pick", () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     runsOn('soniox');

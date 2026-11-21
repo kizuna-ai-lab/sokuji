@@ -89,10 +89,10 @@ export interface ProviderStore {
   /** Every loaded entry's pair is derived again from the intent, nothing written; a provider whose pair moved forgets its readiness when its check reads the pair. The same inputs change nothing. */
   setSpeech(inputs: SpeechInputs): void;
   /**
-   * Who speaks for each provider of the plan a start would run, by id: the speech unit's rules (appShape's
-   * `watchSpeechFromStores` keeps them). A provider's language context is whether the run would speak, and in a
-   * plan of two providers the one that transcribes is not the one that speaks. A provider that is absent answers
-   * with its own rules.
+   * Whether each provider of the plan a start would run speaks, by id (appShape's `watchSpeechFromStores` keeps
+   * them): the speech unit's rules for the provider that serves the speech stage, never for a provider another
+   * one's voice reads. A provider's language context is whether that provider would speak, so one that only
+   * transcribes and translates shows its text offer. A provider that is absent answers with its own rules.
    */
   speakers: Readonly<Record<string, Speaking>>;
   /** Every loaded entry's pair is derived again for the new speakers, nothing written. The same rules change nothing. */
