@@ -1847,6 +1847,9 @@
       "granite": "翻訳と一緒に：Granite Speech が音声をそのまま訳文にします。",
       "needsKey": "キーが必要",
       "needsSignIn": "サインインが必要",
+      "voiceNotAlone": "自身の翻訳のみ読み上げ",
+      "voiceNotTaken": "自身の音声のみ使用",
+      "twoManaged": "Kizuna AI のサービスは一度に 1 つ",
       "voiceFollowed": "音声も {{provider}} に変わりました。{{previous}} の音声は自身の翻訳だけを読み上げます。",
       "options": "{{provider}} のオプション",
       "state": {

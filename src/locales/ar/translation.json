@@ -1847,6 +1847,9 @@
       "granite": "مع الترجمة: يحوّل Granite Speech الكلام مباشرةً إلى الترجمة.",
       "needsKey": "يحتاج إلى مفتاح",
       "needsSignIn": "يتطلب تسجيل الدخول",
+      "voiceNotAlone": "يقرأ ترجمته هو فقط",
+      "voiceNotTaken": "يستخدم صوته هو فقط",
+      "twoManaged": "خدمة واحدة من Kizuna AI في كل مرة",
       "voiceFollowed": "تغيّر الكلام إلى {{provider}} أيضًا: صوت {{previous}} يقرأ ترجمته هو فقط.",
       "options": "خيارات {{provider}}",
       "state": {

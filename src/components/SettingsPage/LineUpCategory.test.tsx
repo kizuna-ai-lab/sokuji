@@ -364,7 +364,8 @@ describe('languages and line-up', () => {
       load();
       render(<LineUpCategory locked={false} />);
       expect(option('Speech', 'kizunaai_soniox').disabled).toBe(true);
-      expect(option('Speech', 'kizunaai_soniox')).toHaveTextContent(`KizunaAI (Soniox) (${REASON})`);
+      // A few words after the name; the whole sentence is the card's, for a line-up that is stored so.
+      expect(option('Speech', 'kizunaai_soniox').textContent).toBe('KizunaAI (Soniox) (reads only its own translation)');
       for (const id of ['soniox', 'edge', 'local_inference', 'gemini']) expect([id, option('Speech', id).disabled]).toEqual([id, false]);
       // For the text, Kizuna AI's Soniox runs beside the own-key voice.
       expect(option('Transcription and translation', 'kizunaai_soniox').disabled).toBe(false);
@@ -401,7 +402,7 @@ describe('languages and line-up', () => {
         render(<LineUpCategory locked={false} />);
         const blocked = option('Speech', 'kizunaai_soniox');
         expect(blocked.disabled).toBe(true);
-        expect(blocked.querySelector('.provider-blocked')).toHaveTextContent(REASON);
+        expect(blocked.querySelector('.provider-blocked')?.textContent).toBe('reads only its own translation');
       } finally {
         baseSelect.rich = false;
       }

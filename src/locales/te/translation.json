@@ -1847,6 +1847,9 @@
       "granite": "అనువాదంతో: Granite Speech మాటను నేరుగా అనువాదంగా మారుస్తుంది.",
       "needsKey": "కీ కావాలి",
       "needsSignIn": "సైన్ ఇన్ కావాలి",
+      "voiceNotAlone": "తన సొంత అనువాదాన్ని మాత్రమే చదువుతుంది",
+      "voiceNotTaken": "తన సొంత వాయిస్‌ను మాత్రమే వాడుతుంది",
+      "twoManaged": "ఒకసారి Kizuna AI యొక్క ఒక సేవ మాత్రమే",
       "voiceFollowed": "ప్రసంగం కూడా {{provider}}కి మారింది: {{previous}} వాయిస్ తన సొంత అనువాదాన్ని మాత్రమే చదువుతుంది.",
       "options": "{{provider}} ఎంపికలు",
       "state": {

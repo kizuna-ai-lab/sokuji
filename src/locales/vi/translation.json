@@ -1847,6 +1847,9 @@
       "granite": "Cùng với dịch: Granite Speech chuyển thẳng lời nói thành bản dịch.",
       "needsKey": "cần khóa",
       "needsSignIn": "cần đăng nhập",
+      "voiceNotAlone": "chỉ đọc bản dịch của chính nó",
+      "voiceNotTaken": "chỉ dùng giọng nói của chính nó",
+      "twoManaged": "mỗi lần chỉ một dịch vụ của Kizuna AI",
       "voiceFollowed": "Giọng nói cũng đã chuyển sang {{provider}}: giọng nói của {{previous}} chỉ đọc bản dịch của chính nó.",
       "options": "Tùy chọn của {{provider}}",
       "state": {

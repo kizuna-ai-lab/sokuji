@@ -1847,6 +1847,9 @@
       "granite": "অনুবাদের সঙ্গে: Granite Speech কথাকে সরাসরি অনুবাদে পরিণত করে।",
       "needsKey": "কী লাগবে",
       "needsSignIn": "সাইন ইন লাগবে",
+      "voiceNotAlone": "কেবল নিজের অনুবাদ পড়ে",
+      "voiceNotTaken": "কেবল নিজের ভয়েস ব্যবহার করে",
+      "twoManaged": "একবারে Kizuna AI-এর একটি সেবা",
       "voiceFollowed": "বক্তৃতাও {{provider}}-এ বদলে গেছে: {{previous}}-এর ভয়েস কেবল নিজের অনুবাদই পড়ে।",
       "options": "{{provider}}-এর বিকল্প",
       "state": {

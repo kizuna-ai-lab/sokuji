@@ -1847,6 +1847,9 @@
       "granite": "与翻译一起：Granite Speech 直接把语音变成译文。",
       "needsKey": "需要密钥",
       "needsSignIn": "需要登录",
+      "voiceNotAlone": "只朗读自己的译文",
+      "voiceNotTaken": "只使用自己的语音",
+      "twoManaged": "一次一个 Kizuna AI 服务",
       "voiceFollowed": "语音也改为 {{provider}}：{{previous}} 的语音只朗读它自己的译文。",
       "options": "{{provider}} 的选项",
       "state": {

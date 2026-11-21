@@ -1847,6 +1847,9 @@
       "granite": "Bersama terjemahan: Granite Speech mengubah ucapan langsung menjadi terjemahan.",
       "needsKey": "perlu kunci",
       "needsSignIn": "perlu masuk",
+      "voiceNotAlone": "hanya membacakan terjemahannya sendiri",
+      "voiceNotTaken": "hanya memakai suaranya sendiri",
+      "twoManaged": "satu layanan Kizuna AI dalam satu waktu",
       "voiceFollowed": "Ucapan juga berubah ke {{provider}}: suara {{previous}} hanya membacakan terjemahannya sendiri.",
       "options": "Opsi {{provider}}",
       "state": {

@@ -1847,6 +1847,9 @@
       "granite": "Com a tradução: o Granite Speech transforma a fala diretamente na tradução.",
       "needsKey": "precisa de chave",
       "needsSignIn": "requer início de sessão",
+      "voiceNotAlone": "só lê a sua própria tradução",
+      "voiceNotTaken": "só usa a sua própria voz",
+      "twoManaged": "um serviço da Kizuna AI de cada vez",
       "voiceFollowed": "A fala também mudou para {{provider}}: a voz de {{previous}} só lê a sua própria tradução.",
       "options": "Opções de {{provider}}",
       "state": {

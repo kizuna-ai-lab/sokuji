@@ -1847,6 +1847,9 @@
       "granite": "Çeviriyle: Granite Speech konuşmayı doğrudan çeviriye dönüştürür.",
       "needsKey": "anahtar gerekli",
       "needsSignIn": "oturum açılmalı",
+      "voiceNotAlone": "yalnızca kendi çevirisini okur",
+      "voiceNotTaken": "yalnızca kendi sesini kullanır",
+      "twoManaged": "aynı anda tek Kizuna AI hizmeti",
       "voiceFollowed": "Konuşma da {{provider}} olarak değişti: {{previous}} sesi yalnızca kendi çevirisini okur.",
       "options": "{{provider}} seçenekleri",
       "state": {

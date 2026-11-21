@@ -17,6 +17,7 @@ import { caps } from '../../lib/lineup/catalog';
 import { refusalNotice } from '../../lib/plan/checks';
 import { choiceInput, refusedChoice } from '../../lib/plan/choice';
 import { usePlan } from '../../lib/plan/fromStores';
+import type { PlanRefusalCode } from '../../lib/plan/types';
 import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
 import { noticeText } from '../../lib/view/noticeText';
 import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
@@ -141,6 +142,14 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // What the composer is asked with for a choice not made yet: what the store asks it with when the choice is made.
   const composing = choiceInput(providers, entries);
 
+  /** Why an option cannot be combined with the other stages, short enough to stand after its name. */
+  const shortReason = (code: PlanRefusalCode): string | undefined => {
+    if (code === 'lineup_voice_not_alone') return t('settingsPage.lineup.voiceNotAlone', 'reads only its own translation');
+    if (code === 'lineup_voice_not_taken') return t('settingsPage.lineup.voiceNotTaken', 'uses only its own voice');
+    if (code === 'lineup_two_managed') return t('settingsPage.lineup.twoManaged', 'one Kizuna AI service at a time');
+    return undefined;
+  };
+
   const optionsFor = (stage: RunStage): ProviderOptionModel[] => {
     return providers.flatMap((p) => (p.id === 'local_inference' ? [p.id, 'bing', 'edge'] : [p.id]))
       .filter((id) => offered.has(id) && caps(id)?.stages.includes(stage))
@@ -155,9 +164,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           return m;
         }
         // A choice that would leave a line-up the composer refuses, the other stages as they are: said before it
-        // is made, in the refusal's own words.
+        // is made, in a few words; the whole sentence is the card's, once such a line-up is stored.
         const refused = lineUp ? refusedChoice(lineUp, stage, id, composing) : null;
-        if (refused) m.blocked = noticeText(t, refusalNotice(refused.refusal, refused.lineUp, providers));
+        if (refused) m.blocked = shortReason(refused.refusal.refused) ?? noticeText(t, refusalNotice(refused.refusal, refused.lineUp, providers));
         return m;
       });
   };

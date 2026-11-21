@@ -1847,6 +1847,9 @@
       "granite": "Käännöksen kanssa: Granite Speech muuttaa puheen suoraan käännökseksi.",
       "needsKey": "tarvitsee avaimen",
       "needsSignIn": "vaatii kirjautumisen",
+      "voiceNotAlone": "lukee vain omaa käännöstään",
+      "voiceNotTaken": "käyttää vain omaa ääntään",
+      "twoManaged": "yksi Kizuna AI:n palvelu kerrallaan",
       "voiceFollowed": "Myös puhe vaihtui palveluun {{provider}}: palvelun {{previous}} ääni lukee vain sen omaa käännöstä.",
       "options": "{{provider}}: asetukset",
       "state": {

@@ -1847,6 +1847,9 @@
       "granite": "With translation: Granite Speech turns speech straight into the translation.",
       "needsKey": "needs a key",
       "needsSignIn": "needs a sign-in",
+      "voiceNotAlone": "reads only its own translation",
+      "voiceNotTaken": "uses only its own voice",
+      "twoManaged": "one Kizuna AI service at a time",
       "voiceFollowed": "Speech changed to {{provider}} too: {{previous}}'s voice only reads its own translation.",
       "options": "{{provider}} options",
       "state": {

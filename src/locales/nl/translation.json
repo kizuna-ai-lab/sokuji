@@ -1847,6 +1847,9 @@
       "granite": "Met vertaling: Granite Speech zet spraak meteen om in de vertaling.",
       "needsKey": "sleutel nodig",
       "needsSignIn": "inloggen nodig",
+      "voiceNotAlone": "leest alleen de eigen vertaling voor",
+      "voiceNotTaken": "gebruikt alleen de eigen stem",
+      "twoManaged": "één dienst van Kizuna AI tegelijk",
       "voiceFollowed": "Spraak is ook overgezet naar {{provider}}: de stem van {{previous}} leest alleen de eigen vertaling voor.",
       "options": "Opties van {{provider}}",
       "state": {

@@ -1847,6 +1847,9 @@
       "granite": "Kasama ang salin: ginagawang salin agad ng Granite Speech ang pagsasalita.",
       "needsKey": "kailangan ng key",
       "needsSignIn": "kailangang mag-sign in",
+      "voiceNotAlone": "sariling salin lang ang binabasa",
+      "voiceNotTaken": "sariling boses lang ang ginagamit",
+      "twoManaged": "isang serbisyo ng Kizuna AI lang sa bawat pagkakataon",
       "voiceFollowed": "Napalitan din ng {{provider}} ang pagsasalita: sariling salin lang ang binabasa ng boses ng {{previous}}.",
       "options": "Mga opsyon ng {{provider}}",
       "state": {
