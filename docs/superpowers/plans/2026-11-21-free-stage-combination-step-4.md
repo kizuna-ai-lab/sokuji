@@ -78,8 +78,10 @@ interface TranslationSession {
 
 ```ts
 createJobTranslator(o: {
-  translate(text: string, signal: AbortSignal): Promise<string>;
+  translate(text: string, signal: AbortSignal): Promise<string>;   // `signal` is the job's own
   events: TranslationEvents;
+  clock: Clock;                      // each job's deadline runs on it
+  timeoutMs?: number;                // JOB_TIMEOUT_MS (20 000) when absent
   language?: string;                 // stated on every translation
   open?(): Promise<void>;            // what the session awaits to open
   close?(): void | Promise<void>;    // what is let go at the stop, or at a fatal failure; once
@@ -117,6 +119,7 @@ createJobTranslator(o: {
 **The job translator**
 
 - **A blank answer is a failed job.** It says `translation_failed` with the reason `translation_empty`. Local inference today shows nothing and says nothing for an empty answer; here the row would keep its source with no word of why, and the rule `source-answered` would have nothing to read.
+- **A job has a deadline.** `createJobTranslator` takes the request's `clock` and a `timeoutMs` (`JOB_TIMEOUT_MS`, 20 s, by default). Jobs run one at a time, so a call that never settles would hold back every later one: at its deadline the job's own signal aborts, the job says `translation_failed` with the reason `translation_timeout`, and the next job runs. A late answer is dropped. A failure of `close()` on the fatal path is said as a `translation.close_error` frame before `failed`.
 - **A listener that throws costs that job only.** Its segment still closes, the Logs get a `translation.job_error` frame, and the queue moves on, as local inference's pipeline does.
 - **An origin that closed is remembered**, so a late snapshot of it starts no second cut and no second translation.
 
