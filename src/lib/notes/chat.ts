@@ -5,6 +5,11 @@
 // limit is waited out the way the measuring scripts did (15 s, then 30, 45, 60); anything else the service refuses
 // comes back as a ChatError carrying the service's own message, for the user to read.
 
+import { refusesNone, takesReasoningEffort } from '../textModel/reasoning';
+
+/** Which models take a `reasoning_effort`: GPT-5.1 and later; any other model is sent none, and a refusal is not retried. */
+export { takesReasoningEffort };
+
 export type ChatEffort = 'none' | 'low' | 'medium';
 
 /** Which prompt a call is: the relay puts in its own copy of it by this name and version. */
@@ -89,23 +94,10 @@ export const refusalOf = async (response: Response): Promise<{ message?: string;
 
 /** The notes models the settings offer: the newest OpenAI series, Luna (the one the passes were measured with) first. */
 export const NOTES_MODELS = ['gpt-6-luna', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6.1-sol', 'gpt-6.1-terra'] as const;
-/** Listed models that refuse `reasoning_effort: 'none'` (as tried on the service): they get their lowest, 'low'. */
-const REFUSE_NONE: readonly string[] = ['gpt-6-astra', 'gpt-6.1-sol'];
-
-/**
- * Models that take a `reasoning_effort`: GPT-5.1 and later. Any other model is sent none, and uses its own default: an
- * older reasoning model refuses 'none', a model without reasoning refuses the field at all, and a refused request is
- * not retried.
- */
-export function takesReasoningEffort(model: string): boolean {
-  return /^gpt-(?:5\.[1-9]\d*|[6-9]|\d{2,})(?:[.-]|$)/.test(model);
-}
-
-/** The `reasoning_effort` sent to `model` for `effort`, or null for none. */
+/** The `reasoning_effort` sent to `model` for `effort`, or null for none (the rule is the text-model client's). */
 function effortFor(model: string, effort: ChatEffort): ChatEffort | null {
   if (!takesReasoningEffort(model)) return null;
-  const refusesNone = REFUSE_NONE.some((m) => model === m || model.startsWith(`${m}-`));
-  return effort === 'none' && refusesNone ? 'low' : effort;
+  return effort === 'none' && refusesNone(model) ? 'low' : effort;
 }
 
 /** The request body for `model`: the same bytes with an own key and through Kizuna AI. */
