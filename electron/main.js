@@ -437,7 +437,7 @@ function createApplicationMenu() {
           label: 'Check for Updates...',
           click: () => {
             if (global.updateManager) {
-              global.updateManager.checkForUpdates();
+              global.updateManager.checkForUpdatesByUser();
             }
           }
         },

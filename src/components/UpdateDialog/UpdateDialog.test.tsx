@@ -45,3 +45,20 @@ describe('UpdateDialog while downloading', () => {
     expect(container.querySelector('.progress-fill--indeterminate')).toBeNull();
   });
 });
+
+// The banner stays after a failed download or install, and opens this dialog: it shows the same update, not an empty box.
+describe('UpdateDialog after a failure', () => {
+  it('a failed download shows the notes and Download Now again', () => {
+    open({ status: 'error', errorFrom: 'downloading', changelog: '<p>What is new</p>' });
+    const { container } = render(<UpdateDialog />);
+    expect(container.querySelector('.changelog')?.textContent).toBe('What is new');
+    expect(screen.getByText('update.downloadNow')).toBeTruthy();
+  });
+
+  it('a failed install shows the notes and the downloaded state', () => {
+    open({ status: 'error', errorFrom: 'downloaded', changelog: '<p>What is new</p>' });
+    const { container } = render(<UpdateDialog />);
+    expect(container.querySelector('.changelog')?.textContent).toBe('What is new');
+    expect(screen.getAllByText('update.downloaded').length).toBeGreaterThan(0);
+  });
+});

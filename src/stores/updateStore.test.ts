@@ -220,6 +220,30 @@ describe("the update's notes open when an update is found", () => {
     expect(useUpdateStore.getState()).toMatchObject({ dialogOpen: false, lastCheckBy: 'auto' });
   });
 
+  it("opens them during a session for a check the main process says the user asked for (the Help menu)", () => {
+    registerRunPhase(() => 'running');
+    status({ status: 'checking', by: 'user' });
+    expect(useUpdateStore.getState().lastCheckBy).toBe('user');
+    // The check announcing itself afterwards does not make it the app's own.
+    status({ status: 'checking' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState().dialogOpen).toBe(true);
+  });
+
+  it("an earlier check's timeout does not end a later check the user asked for", () => {
+    vi.useFakeTimers();
+    registerRunPhase(() => 'running');
+    useUpdateStore.getState().checkForUpdates();
+    status({ status: 'not-available' });
+    vi.advanceTimersByTime(10_000);
+    useUpdateStore.getState().checkForUpdates();
+    // The first check's 15 s are up while the second is still unanswered.
+    vi.advanceTimersByTime(5_000);
+    expect(useUpdateStore.getState()).toMatchObject({ status: 'checking', lastCheckBy: 'user' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState().dialogOpen).toBe(true);
+  });
+
   it('does not open them again for an update already announced, once closed', () => {
     status({ status: 'available', version: '0.52.0' });
     useUpdateStore.getState().closeDialog();

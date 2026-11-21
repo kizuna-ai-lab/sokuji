@@ -6,9 +6,9 @@ import {
   useAudioSystemRepairing, useAudioSystemRetry, useAudioSystemRetrying, useAudioSystemStatus,
 } from '../../stores/audioSystemStore';
 import {
-  useDismissBanner, useDownloadUpdate, useInstallUpdate, useOpenUpdateDialog, useUpdateBannerDismissed, useUpdateErrorFrom,
+  useDismissBanner, useDownloadUpdate, useInstallUpdate, useOpenUpdateDialog, useShownUpdateStatus, useUpdateBannerDismissed,
   useUpdateNewVersion, useUpdateProgressPercent,
-  useUpdateProgressIndeterminate, useUpdateStatus, useUpdateSupportsAutoUpdate,
+  useUpdateProgressIndeterminate, useUpdateSupportsAutoUpdate,
 } from '../../stores/updateStore';
 import { useRegionHint } from '../Region/useRegionHint';
 import { Banner, type BannerProps } from './Banner';
@@ -55,13 +55,8 @@ export function useBanners(): BannerProps[] {
     });
   }
 
-  const storeStatus = useUpdateStatus();
-  const errorFrom = useUpdateErrorFrom();
   // A failed download is `available` again; a failed install stays `downloaded`; any other error draws nothing.
-  const status = storeStatus !== 'error' ? storeStatus
-    : errorFrom === 'downloading' ? 'available'
-    : errorFrom === 'downloaded' ? 'downloaded'
-    : storeStatus;
+  const status = useShownUpdateStatus();
   const newVersion = useUpdateNewVersion();
   const percent = useUpdateProgressPercent();
   const indeterminate = useUpdateProgressIndeterminate();
