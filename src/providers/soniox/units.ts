@@ -23,10 +23,9 @@ export interface SonioxSttUnitParts {
 
 /**
  * Soniox's text unit: transcription and translation together, and only when asked for exactly those. It is the
- * adapter, built for a leg that does not speak: the config carries no voice, so the adapter opens no TTS socket and
- * says nothing of a missing speech key, and the model it describes is the STT one alone. Everything else of the
- * config is as the whole provider builds it: what `startBoth` reads (`sharedBoth`, `faceToFace`) and the agent text
- * option, which follows `shared.speaks` whoever speaks.
+ * adapter, which never speaks: it opens no TTS socket, says nothing of a speech key, and the model it describes is
+ * the STT one alone. Its config is the definition's own: what `startBoth` reads (`sharedBoth`, `faceToFace`) and the
+ * agent text option, which follows `shared.speaks` whoever speaks.
  */
 export function sonioxSttUnitFor({ start, participantSpeech }: SonioxSttUnitParts): SonioxSttUnit {
   return {

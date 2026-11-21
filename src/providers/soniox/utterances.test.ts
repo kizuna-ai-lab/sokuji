@@ -4,12 +4,15 @@
  * `<fin>` are the boundaries (ruling 5); a translation token after one and
  * before the next original token belongs to the utterance that just ended
  * (choice 3). Cases 19–20 pin late translation tokens and the next
- * utterance's first original in one message.
+ * utterance's first original in one message. What is spoken is read off the
+ * segments, as a voice outside the adapter reads it: a speech feed per leg
+ * over the translation's stable text, and `lateSpeech`.
  */
 import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
 import type { Ref, TextRange } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
+import { createSpeechFeed, type SpeechFeed } from '../../lib/plan/speechFeed';
 import type { SonioxToken } from './sttStream';
 import { FIN_TRANSLATION_GRACE_MS, Utterances, tokenFrames, type SegmentEvent } from './utterances';
 
@@ -23,12 +26,24 @@ type Call = { leg: LegName } & ({ segment: SegmentEvent } | { speak: [Ref, strin
 function setup(legFor: (t: SonioxToken) => LegName = () => 'speaker') {
   const clock = createVirtualClock(0);
   const calls: Call[] = [];
+  const targetFor = (leg: LegName) => (leg === 'speaker' ? 'ja' : 'en');
+  /** What a voice that reads `leg` is asked, listed after the segment event that asked it. */
+  const feedOf = (leg: LegName): SpeechFeed => createSpeechFeed({
+    speak: (...speak) => calls.push({ leg, speak }),
+    end: (endSpeech) => calls.push({ leg, endSpeech }),
+  }, () => targetFor(leg));
+  const feeds: Record<LegName, SpeechFeed> = { speaker: feedOf('speaker'), participant: feedOf('participant') };
   const machine = new Utterances({
-    clock, legFor, targetFor: (leg) => (leg === 'speaker' ? 'ja' : 'en'),
+    clock, legFor, targetFor,
     sink: {
-      segment: (leg, segment) => calls.push({ leg, segment }),
-      speak: (leg, ...speak) => calls.push({ leg, speak }),
-      endSpeech: (leg, endSpeech) => calls.push({ leg, endSpeech }),
+      segment: (leg, segment) => {
+        calls.push({ leg, segment });
+        if (segment.kind === 'segmentOpened') feeds[leg].opened(segment.payload);
+        else if (segment.kind === 'segmentText') feeds[leg].text(segment.payload);
+        else if (segment.kind === 'segmentClosed') feeds[leg].closed(segment.payload);
+        // A late chunk is read, then the row's utterance ends again.
+        else calls.push({ leg, speak: [segment.payload.ref, segment.payload.text, segment.payload.span, segment.payload.language] }, { leg, endSpeech: segment.payload.ref });
+      },
     },
   });
   const segments = () => calls.flatMap((c) => ('segment' in c ? [c.segment] : []));

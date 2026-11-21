@@ -5,8 +5,9 @@
  * (the answer to `finalize`, the boundary under manual turns: ruling 5).
  * Its originals are one source segment and its translation one translation
  * segment, both stating origin `u<n>`. Refs come from one counter and are
- * never reused, a resume included. Each message's final translation text
- * is handed to speech as one chunk with its span (ruling 2). A translation
+ * never reused, a resume included. A translation's text states how much of
+ * it is final (`stableLen`) and in which language: what a voice reads, one
+ * stretch for each message's final text (ruling 2). A translation
  * token after a boundary and before the next original token belongs to the
  * utterance that just ended (choice 3). The one timer is the `<fin>`
  * grace, on the request's clock.
@@ -16,7 +17,7 @@
  * `begin()`, or neither set), and a boundary clears `current` before it
  * makes that utterance `previous`.
  */
-import type { AdapterEvents, AdapterFrame, HeardPiece, Ref, TextRange } from '../../lib/contract/adapter';
+import type { AdapterEvents, AdapterFrame, HeardPiece, Ref } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { SonioxToken } from './sttStream';
@@ -34,10 +35,6 @@ export type SegmentEvent =
 
 export interface UtteranceSink {
   segment(leg: LegName, event: SegmentEvent): void;
-  /** A final translation chunk for `ref`; `span` is where it sits in the translation's text. */
-  speak(leg: LegName, ref: Ref, text: string, span: TextRange, language: string): void;
-  /** The translation `ref` will say nothing more for now: its speech's utterance ends. */
-  endSpeech(leg: LegName, ref: Ref): void;
 }
 
 export interface UtteranceOptions {
@@ -45,7 +42,7 @@ export interface UtteranceOptions {
   clock: Pick<Clock, 'setTimeout'>;
   /** The leg an utterance belongs to, decided at its first token. */
   legFor(token: SonioxToken): LegName;
-  /** The speech language when no final translation token names one: the leg's target. */
+  /** The language a stretch of final translation is read in when no final translation token names one: the leg's target. */
   targetFor(leg: LegName): string;
   /**
    * The run's clock time at which a stream time of the current socket was heard, if known (`createSentClock`).
@@ -78,9 +75,9 @@ interface Utterance {
   translationFinal: string;
   translationLanguage?: string;
   translationShown?: string;
-  /** The language of the final translation tokens not yet handed to speech: what speech speaks them in. A run in another language is handed over first. */
+  /** The language of the final translation tokens not yet stated as stable: what a voice reads them in. A run in another language is stated first. */
   speechLanguage?: string;
-  /** How much of `translationFinal` speech has been handed. */
+  /** How much of `translationFinal` has been stated as stable, each stretch in its language. */
   spokenUpTo: number;
   cancelGrace?: () => void;
 }
@@ -137,11 +134,11 @@ export class Utterances {
         if (token.language) u.translationLanguage = token.language;
         this.openTranslation(u);
         if (token.is_final) {
-          // Each run of final tokens is spoken in its own language: a tail of the utterance that just ended,
-          // landing here after the next person's first word (the other direction), is handed to speech before
-          // this utterance's own translation, so neither is spoken in the other's language.
+          // Each run of final tokens is read in its own language: a tail of the utterance that just ended,
+          // landing here after the next person's first word (the other direction), is stated before
+          // this utterance's own translation, so neither is read in the other's language.
           if (token.language && u.speechLanguage !== undefined && token.language !== u.speechLanguage) {
-            this.speakFinals(u);
+            this.stateFinals(u);
             u.speechLanguage = token.language;
           }
           u.translationFinal += text;
@@ -174,11 +171,11 @@ export class Utterances {
     // At most one of the two is set (the invariant): the ended utterance, whose
     // late translation this message may have added to, or the current one.
     if (this.previous) {
-      this.speakFinals(this.previous);
+      this.stateFinals(this.previous);
       this.showTranslation(this.previous, '');
     }
     if (this.current) {
-      this.speakFinals(this.current);
+      this.stateFinals(this.current);
       this.show(this.current, sourcePartial, translationPartial);
     }
   }
@@ -233,7 +230,7 @@ export class Utterances {
   private boundary(kind: 'end' | 'fin'): void {
     const u = this.current;
     if (!u) return;
-    this.speakFinals(u);
+    this.stateFinals(u);
     this.show(u, '', '');
     if (u.sourceRef !== undefined && !u.sourceClosed) {
       u.sourceClosed = true;
@@ -259,45 +256,39 @@ export class Utterances {
     if (u.translation !== 'open' || u.translationRef === undefined) return;
     u.translation = 'closed';
     this.emit(u, { kind: 'segmentClosed', payload: { ref: u.translationRef, origin: u.origin } });
-    this.o.sink.endSpeech(u.leg, u.translationRef);
   }
 
   /**
    * The next original token: the ended utterance takes no more late tokens.
-   * What it took in this very message is shown and spoken first — the flush
+   * What it took in this very message is shown and stated first — the flush
    * at the end of `message()` can no longer reach it once `previous` is
-   * cleared (cases 19–20). `speakFinals` ends the speech of
-   * a translation already closed; `closeTranslation` that of an open one.
+   * cleared (cases 19–20).
    */
   private endPrevious(): void {
     const p = this.previous;
     this.previous = null;
     if (!p) return;
-    this.speakFinals(p);
+    this.stateFinals(p);
     this.showTranslation(p, '');
     this.closeTranslation(p);
   }
 
   /**
-   * Hands speech the final translation text it has not had yet, as one chunk. The translation's text says the
-   * same to a reader of the segments alone: the snapshot that follows states the new stable length, and the
-   * stretch is in the language that snapshot names. Where it would name another (a run handed over before a
-   * language switch, finals beside a partial in another language), the stretch gets a snapshot of its own here.
+   * States the final translation text not yet stated, as one stretch in one language. The snapshot that follows
+   * carries the new stable length, and the stretch is in the language that snapshot names. Where it would name
+   * another (a run stated before a language switch, finals beside a partial in another language), the stretch
+   * gets a snapshot of its own here. A stretch that comes after its segment closed is said as `lateSpeech`.
    */
-  private speakFinals(u: Utterance): void {
+  private stateFinals(u: Utterance): void {
     if (u.translationRef === undefined) return;
     const from = u.spokenUpTo;
     const to = u.translationFinal.length;
     if (to <= from) return;
     u.spokenUpTo = to;
     const language = u.speechLanguage ?? this.o.targetFor(u.leg);
-    const text = u.translationFinal.slice(from, to);
-    this.o.sink.speak(u.leg, u.translationRef, text, [from, to], language);
     if (u.translation === 'closed') {
-      // A late chunk on a closed translation: nothing more follows it. The segment can say no more text, so a
-      // reader of the segments alone is told of the chunk by an event of its own.
-      this.o.sink.endSpeech(u.leg, u.translationRef);
-      this.emit(u, { kind: 'lateSpeech', payload: { ref: u.translationRef, text, span: [from, to], language } });
+      // The segment can say no more text, so a reader of the segments is told of the chunk by an event of its own.
+      this.emit(u, { kind: 'lateSpeech', payload: { ref: u.translationRef, text: u.translationFinal.slice(from, to), span: [from, to], language } });
     } else if (u.translationLanguage !== undefined && u.translationLanguage !== language) {
       this.emit(u, { kind: 'segmentText', payload: { ref: u.translationRef, text: u.translationFinal, stableLen: to, language, ...personField(u) } });
     }

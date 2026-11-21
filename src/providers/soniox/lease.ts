@@ -638,8 +638,8 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
         const role = roleFor(request, leg);
         if (role) return { ...bundles.get(role)!, lease: ports.get(role)! };
         // Shared Both's participant rides the speaker's mixed socket: the
-        // adapter reads only its region, its reference and its TTS key,
-        // for its own TTS socket (`adapter.ts:80-86`). That key is
+        // session reads only its region, its reference and its TTS key,
+        // for the participant's voice (`ttsUnit.ts`). That key is
         // `par_tts`, with its own reference, while the flag is on and the
         // answer carries one; otherwise it has none and speaks nothing.
         // It reports nothing: the speaker's port serves the mixed socket.

@@ -135,8 +135,8 @@ function startSonioxSpeech(openSocket: OpenSocket, request: SpeechStartRequest<S
 }
 
 /**
- * Soniox's speech unit: speech, and only when asked for exactly that. Its config is the leg's voice and speed, as
- * the whole provider builds them; its key is the credentials' `tts`.
+ * Soniox's speech unit: speech, and only when asked for exactly that. Its config is the leg's voice and speed
+ * (`sonioxTts`); its key is the credentials' `tts`.
  */
 export function createSonioxTtsUnit(deps: SonioxTtsUnitDeps = {}): SonioxTtsUnit {
   const openSocket = deps.openSocket ?? nativeSocket;

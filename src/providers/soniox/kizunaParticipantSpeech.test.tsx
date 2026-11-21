@@ -2,8 +2,9 @@
  * Kizuna Soniox's participant speech (Stage 2 Kizuna Soniox, ruling 2;
  * on since sokuji-backend mints `par_tts`): the flag on and a test-only
  * twin with it off, through the switch, the leg's context, the
- * session-key body, the floors, and the lease's keys into the adapter in
- * split Both, shared Both and participant-only.
+ * session-key body, the floors, and the lease's keys into the session's two
+ * units (the text unit and the voice) in split Both, shared Both and
+ * participant-only.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -33,12 +34,13 @@ vi.mock('../registry', async (importOriginal) => {
 });
 
 import SpeechOutputSection from '../../components/Settings/sections/SpeechOutputSection';
-import type { StartRequest } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import { flush } from '../../lib/contract/testing/drive';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { LegName } from '../../lib/conversation/types';
+import { startComposite } from '../../lib/plan/composite';
+import { startCompositeBoth } from '../../lib/plan/compositeBoth';
 import type { AnyProvider } from '../../lib/provider/types';
 import { contextsFor } from '../../lib/session/shape';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
@@ -46,12 +48,11 @@ import { shapeWith } from '../../lib/plan/testing';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
-import { createSonioxAdapter } from './adapter';
-import type { SonioxConfig } from './config';
 import { createKizunaSonioxProvider, kizunaSonioxProvider } from './kizuna';
 import { PARTICIPANT_SPEECH_FIELD } from './leaseRequest';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { END, isStt, msg, orig, SHARED, tr, type Json } from './testing';
+import { planRequest, sonioxOnSockets } from './testing.composite';
 
 const speaking = createKizunaSonioxProvider({ participantSpeech: true });
 const silent = createKizunaSonioxProvider({ participantSpeech: false });
@@ -89,7 +90,7 @@ function shapeFor(provider: AnyProvider, legs: LegName[], shared: boolean): { sh
   };
 }
 
-/** The lease minted over the stub, then the adapter started on its keys, every socket opened. */
+/** The lease minted over the stub, then the definition's two units started on its keys, every socket opened. */
 async function run(provider: AnyProvider, legs: LegName[], shared: boolean, roles: string[]) {
   answer = grantOf(roles);
   const { shape, s } = shapeFor(provider, legs, shared);
@@ -99,17 +100,17 @@ async function run(provider: AnyProvider, legs: LegName[], shared: boolean, role
   const lease = await provider.session!.acquire!(shape, s, ctx);
   const contexts = contextsFor(shape);
   const sockets = fakeSockets();
-  const adapter = createSonioxAdapter({ openSocket: sockets.create });
+  const { plan } = sonioxOnSockets(sockets, { of: provider, participantSpeech: provider.participantSpeech !== false });
   const rec = { speaker: recordEvents(), participant: recordEvents() };
-  const request = (leg: LegName): StartRequest<SonioxConfig, SonioxCredentials> => ({
-    context: contexts[leg]!, config: provider.build(contexts[leg]!, s, SHARED) as SonioxConfig,
-    credentials: lease.credentials(leg) as SonioxCredentials, clock, signal,
-  });
+  const request = (leg: LegName) => planRequest(plan, { context: contexts[leg]!, settings: s, shared: SHARED, credentials: lease.credentials(leg) as SonioxCredentials, clock, signal });
   const starting = legs.length === 2
-    ? adapter.startBoth({ speaker: request('speaker'), participant: request('participant') }, { speaker: rec.speaker.events, participant: rec.participant.events })
-    : adapter.start(request(legs[0]), rec[legs[0]].events);
-  for (const x of sockets.all) if (x.readyState === FakeSocket.CONNECTING) x.open();
+    ? startCompositeBoth(plan, { speaker: request('speaker'), participant: request('participant') }, { speaker: rec.speaker.events, participant: rec.participant.events })
+    : startComposite(plan, request(legs[0]), rec[legs[0]].events, legs[0]);
+  const openAll = () => { for (const x of sockets.all) if (x.readyState === FakeSocket.CONNECTING) x.open(); };
+  openAll();
   await starting;
+  // With both legs the voices are opened once the text sessions have started.
+  openAll();
   await flush();
   return { contexts, lease, stt: sockets.all.filter(isStt), tts: sockets.all.filter((x) => !isStt(x)), rec };
 }

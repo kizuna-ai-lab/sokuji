@@ -1,7 +1,7 @@
 /**
  * Soniox's two units and the definitions that declare them: the text unit is
- * the adapter built for a leg that does not speak, the voice is the speech
- * unit, and a plan on Soniox alone, composed or of the provider, holds both.
+ * the adapter, which never speaks, the voice is the speech unit, and a plan
+ * on Soniox alone, composed or of the provider, holds both.
  */
 import { describe, it, expect, vi } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
@@ -58,17 +58,18 @@ describe("Soniox's text unit", () => {
     expect(sonioxSttUnitFor({ start, participantSpeech: false }).capabilities(SONIOX_DEFAULTS).participantSpeech).toBe(false);
   });
 
-  it('builds what the whole provider builds for a leg that does not speak: no voice, and the STT model alone', () => {
+  it('builds what the definition builds, the same whether the leg speaks or not: no voice, and the STT model alone', () => {
     const settings: SonioxSettings[] = [SONIOX_DEFAULTS, { ...SONIOX_DEFAULTS, bothModeSharedSession: false, speakerLabels: false, endpointSensitivity: 0.4 }];
     for (const s of settings) {
       for (const shared of [SHARED, { ...SHARED, faceToFace: true }, { ...SHARED, reversed: () => true }] as SharedSettings[]) {
         const config = stt.build(SILENT, s, shared) as SonioxConfig;
         expect(config).toEqual(buildSoniox(SILENT, s, shared));
         expect(config).not.toHaveProperty('tts');
-        // All of the speaking leg's config but the voice: what `startBoth` reads is carried.
-        const { tts: _voice, ...text } = buildSoniox(AUTO_CTX, s, shared);
-        expect(config).toEqual(text);
-        expect(stt.describe(config)).toEqual({ asrModel: describeSoniox(config).asrModel });
+        // What `startBoth` reads is carried.
+        expect(config).toMatchObject({ sharedBoth: shared.faceToFace === true || s.bothModeSharedSession, diarize: s.speakerLabels && shared.reversed(SILENT.direction) });
+        expect(Boolean(config.faceToFace)).toBe(shared.faceToFace === true);
+        expect(stt.build(AUTO_CTX, s, shared)).toEqual(config);
+        expect(stt.describe(config)).toEqual({ asrModel: 'stt-rt-v6' });
       }
     }
   });
@@ -147,19 +148,16 @@ describe('the Soniox definitions declare their units', () => {
     expect(capabilitiesOf(shape, 'transcription')).toMatchObject({ turns: ['auto', 'manual'], boundaries: 'provider', textInput: false, faceToFace: true });
   });
 
-  it('a leg is built and described as the whole provider builds and describes it, the voice in its own config', () => {
+  it("a leg is built unit by unit: the text side's config, the voice in its own, and each names its model", () => {
     const plan = planOf(sonioxProvider);
     const shape = { accounts: { soniox: { settings: SONIOX_DEFAULTS, credentials: {} } } };
     for (const context of [AUTO_CTX, SILENT]) {
       const configs = buildPlan(plan, context, shape, SHARED);
       if ('refused' in configs) throw new Error('refused');
-      const whole = buildSoniox(context, SONIOX_DEFAULTS, SHARED);
-      const { tts, ...text } = whole;
-      expect(configs.get(plan.byStage.transcription)).toEqual(text);
-      // A leg that speaks: the voice and speed the whole provider gives it.
-      if (tts) expect(configs.get(plan.byStage.speech)).toEqual(tts);
-      // The same models, and no speech model for a leg that does not speak.
-      expect(describePlan(plan, configs)).toEqual(describeSoniox(whole));
+      expect(configs.get(plan.byStage.transcription)).toEqual(buildSoniox(context, SONIOX_DEFAULTS, SHARED));
+      // A leg that speaks: its voice and speed. One that does not: the same, marked off, and no speech model.
+      expect(configs.get(plan.byStage.speech)).toEqual({ voice: 'Adrian', speed: 1, ...(context.speech ? {} : { off: true }) });
+      expect(describePlan(plan, configs)).toEqual({ asrModel: 'stt-rt-v6', ...(context.speech ? { ttsModel: 'tts-rt-v2' } : {}) });
     }
   });
 });

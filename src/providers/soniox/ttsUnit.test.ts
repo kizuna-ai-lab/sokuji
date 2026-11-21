@@ -13,7 +13,7 @@ import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { LegName } from '../../lib/conversation/types';
 import { isSpeechUnit } from '../../lib/plan/types';
 import type { SharedSettings } from '../../lib/provider/types';
-import { buildSoniox, describeSoniox, type SonioxTtsConfig } from './config';
+import type { SonioxTtsConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { AUTO_CTX, b64, KEY, SHARED, type Json } from './testing';
 import { createSonioxTtsUnit, sonioxTtsUnit, sonioxTtsUnitFor, type SonioxTtsUnitConfig } from './ttsUnit';
@@ -76,39 +76,32 @@ describe("Soniox's speech unit", () => {
     expect(sonioxTtsUnitFor({ participantSpeech: false }).capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: false });
   });
 
-  it("builds the voice and speed the whole provider builds, for the speaker's leg and the participant's", () => {
-    const settings: SonioxSettings[] = [
-      SONIOX_DEFAULTS,
-      { ...SONIOX_DEFAULTS, voice: 'Maya', participantVoice: 'Noah', ttsSpeed: 1.2 },
+  it("builds the leg's voice and speed, for the speaker's leg and the participant's", () => {
+    const cases: Array<[SonioxSettings, speaker: SonioxTtsConfig, participant: SonioxTtsConfig]> = [
+      [SONIOX_DEFAULTS, { voice: 'Adrian', speed: 1 }, { voice: 'Grace', speed: 1 }],
+      [{ ...SONIOX_DEFAULTS, voice: 'Maya', participantVoice: 'Noah', ttsSpeed: 1.2 }, { voice: 'Maya', speed: 1.2 }, { voice: 'Noah', speed: 1.2 }],
       // The participant's choice is the speaker's own: the two never sound alike.
-      { ...SONIOX_DEFAULTS, voice: 'Maya', participantVoice: 'Maya' },
-      { ...SONIOX_DEFAULTS, region: 'eu', voiceEu: 'Nina', ttsSpeed: 9 },
-      { ...SONIOX_DEFAULTS, ttsSpeed: 0.1 },
-      { ...SONIOX_DEFAULTS, ttsSpeed: Number.NaN },
+      [{ ...SONIOX_DEFAULTS, voice: 'Maya', participantVoice: 'Maya' }, { voice: 'Maya', speed: 1 }, { voice: 'Grace', speed: 1 }],
+      [{ ...SONIOX_DEFAULTS, region: 'eu', voiceEu: 'Nina', ttsSpeed: 9 }, { voice: 'Nina', speed: 1.3 }, { voice: 'Grace', speed: 1.3 }],
+      [{ ...SONIOX_DEFAULTS, ttsSpeed: 0.1 }, { voice: 'Adrian', speed: 0.7 }, { voice: 'Grace', speed: 0.7 }],
+      [{ ...SONIOX_DEFAULTS, ttsSpeed: Number.NaN }, { voice: 'Adrian', speed: 1 }, { voice: 'Grace', speed: 1 }],
     ];
-    for (const s of settings) {
-      for (const [context, shared] of [[AUTO_CTX, SHARED], [BACK, REVERSED]] as const) {
-        const whole = buildSoniox(context, s, shared);
-        const config = sonioxTtsUnit.build(context, s, shared);
-        expect(whole.tts).toBeDefined();
-        expect(config).toEqual(whole.tts);
-        expect(sonioxTtsUnit.describe(config as SonioxTtsConfig).ttsModel).toBe(describeSoniox(whole).ttsModel);
-      }
+    for (const [s, speaker, participant] of cases) {
+      expect(sonioxTtsUnit.build(AUTO_CTX, s, SHARED)).toEqual(speaker);
+      expect(sonioxTtsUnit.build(BACK, s, REVERSED)).toEqual(participant);
+      expect(sonioxTtsUnit.describe(speaker)).toEqual({ ttsModel: 'tts-rt-v2' });
     }
-    // The two legs differ, so the equality above compared two voices.
-    expect(sonioxTtsUnit.build(AUTO_CTX, SONIOX_DEFAULTS, SHARED)).not.toEqual(sonioxTtsUnit.build(BACK, SONIOX_DEFAULTS, REVERSED));
   });
 
   it('describes its model and nothing else', () => {
     expect(sonioxTtsUnit.describe({ voice: 'Adrian', speed: 1 })).toEqual({ ttsModel: 'tts-rt-v2' });
   });
 
-  it('names no speech model for a leg that does not speak, as the whole provider names none', () => {
+  it('names no speech model for a leg that does not speak', () => {
     const silent = { ...AUTO_CTX, speech: false };
     const config = sonioxTtsUnit.build(silent, SONIOX_DEFAULTS, SHARED) as SonioxTtsUnitConfig;
     expect(config).toEqual({ ...sonioxTtsUnit.build(AUTO_CTX, SONIOX_DEFAULTS, SHARED), off: true });
     expect(sonioxTtsUnit.describe(config)).toEqual({});
-    expect(describeSoniox(buildSoniox(silent, SONIOX_DEFAULTS, SHARED))).not.toHaveProperty('ttsModel');
   });
 });
 

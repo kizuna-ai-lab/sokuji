@@ -157,7 +157,7 @@ export interface SonioxCredentials {
   region: SonioxRegion;
   /** The STT socket's key. */
   stt: string;
-  /** The TTS socket's key; absent, the leg runs text-only (a managed lease that issued none). */
+  /** The TTS socket's key, read by the voice (`ttsUnit.ts`); absent, the leg runs text-only (a managed lease that issued none). */
   tts?: string;
   /** Managed only: inert on the wire — Soniox bills by the reference bound to the key (survey §3.7.1). */
   clientReferenceId?: string;

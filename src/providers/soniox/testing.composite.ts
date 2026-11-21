@@ -1,25 +1,14 @@
 /**
- * Two ways to run Soniox for all three stages, side by side: the adapter with
- * its voice inside (`old`), and the composite over Soniox's text unit and its
- * voice (`new`). Each side has its own fake sockets, virtual clock and event
- * logs; a test plays one script at both and compares what each side said to
- * its legs and what it sent on each socket (`pictureOf`).
+ * Soniox for all three stages as a session runs it: the composite over its
+ * text unit (the adapter, which transcribes and translates) and its voice,
+ * on fake sockets and a virtual clock. A test plays STT frames, TTS answers,
+ * clock advances and calls at it, then reads what was said to each leg
+ * (`said`, `logged`), what was sent on each socket (`pictureOf`, `spoken`)
+ * and what an agent text feed made of it (`audioByRow`).
  *
- * What is compared, per leg and in order: the segments (opened, text, closed)
- * exactly as said — both sides run the same utterances, so a translation's
- * text carries the same stable length and the same snapshots on both, and
- * nothing is normalised away; each `audio` by its row, range, voice and
- * sample count; `speechRanges`; `degraded` by its code, reason and words;
- * `failed` without its cause; `closed`, `reconnecting`, `reconnected`; and
- * the frames for the Logs, in their place among the rest, but two: the
- * `session.opened` line, and a frame after the leg failed or closed
- * (`equality.test.ts` pins both).
- *
- * What is compared per socket: everything sent, in order. The STT sockets
- * are compared in the order they were opened; the TTS sockets per leg, in
- * the order that leg opened them. How the sockets interleave is not
- * compared: with both legs, the composite opens the voices right after the
- * text sessions have started, the adapter while they start.
+ * `said` leaves out what belongs to the text side alone and is pinned in the
+ * adapter's own tests: a source's timing and its heard words. A source's
+ * line may so repeat, where only those changed.
  *
  * Test-only.
  */
@@ -32,19 +21,17 @@ import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
 import { buildPlan, startComposite, type PlanConfigs } from '../../lib/plan/composite';
 import { startCompositeBoth } from '../../lib/plan/compositeBoth';
-import type { PlannedUnit } from '../../lib/plan/types';
+import type { PlannedUnit, RunPlan } from '../../lib/plan/types';
 import { wholePlan } from '../../lib/plan/wholeUnit';
 import type { AnyProvider, SharedSettings } from '../../lib/provider/types';
 import { AgentTextFeed } from '../../lib/session/agentText';
 import { createSonioxAdapter } from './adapter';
-import { buildSoniox, type SonioxConfig } from './config';
 import { sonioxProvider } from './provider';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { b64, isStt, SHARED, trackedClock, type Json } from './testing';
 import { createSonioxTtsUnit } from './ttsUnit';
 import { sonioxSttUnitFor } from './units';
 
-export type Path = 'old' | 'new';
 export type Mode = 'leg' | 'split' | 'shared' | 'faceToFace';
 const LEGS: readonly LegName[] = ['speaker', 'participant'];
 
@@ -52,7 +39,7 @@ const LEGS: readonly LegName[] = ['speaker', 'participant'];
 export const SPK: SonioxCredentials = { region: 'us', stt: 'k-spk', tts: 'k-spk-tts' };
 export const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
 
-export interface EqualityOptions {
+export interface CompositeOptions {
   mode: Mode;
   /** `leg` only: which one. The speaker by default. */
   leg?: LegName;
@@ -63,17 +50,16 @@ export interface EqualityOptions {
   speaks?: Partial<Record<LegName, boolean>>;
   credentials?: Partial<Record<LegName, SonioxCredentials>>;
   turns?: 'auto' | 'manual';
-  /** Runs an agent text feed over each side's events, as the run does, every clip on one of the user's outlets. */
+  /** Runs an agent text feed over the events, as the run does, every clip on one of the user's outlets. */
   agentText?: boolean;
-  /** A lease behind the speaker's keys, as Kizuna AI's Soniox has: each side's own, listing what it is told. Its grant ends at this time on the clock. */
+  /** A lease behind the speaker's keys, as Kizuna AI's Soniox has, listing what it is told. Its grant ends at this time on the clock. */
   leaseEndsAt?: number;
 }
 
 /** One `agentText` call a feed made, and whether the session took it. */
 export type AgentCall = [leg: LegName, text: string, endOfSegment: boolean, sent: boolean];
 
-export interface Side {
-  path: Path;
+export interface Run {
   legs: readonly LegName[];
   sockets: ReturnType<typeof fakeSockets>;
   clock: VirtualClock;
@@ -104,8 +90,44 @@ export interface Side {
   openAll(): void;
 }
 
-/** A leg's context and the settings every builder reads for it, as the run makes them. */
-function legInputs(o: EqualityOptions) {
+/**
+ * A Soniox definition with its adapter and its two units on these sockets, and its own plan: the text unit beside
+ * the voice. `of`: the definition, Soniox with an own key by default. `participantSpeech`: the definition's flag.
+ */
+export function sonioxOnSockets(
+  sockets: ReturnType<typeof fakeSockets>,
+  o: { of?: AnyProvider; participantSpeech?: boolean } = {},
+): { provider: AnyProvider; plan: RunPlan } {
+  const adapter = createSonioxAdapter({ openSocket: sockets.create });
+  const of = o.of ?? (sonioxProvider as AnyProvider);
+  const flag = o.participantSpeech === undefined ? {} : { participantSpeech: o.participantSpeech };
+  const provider = {
+    ...of,
+    start: adapter.start,
+    units: [sonioxSttUnitFor({ start: adapter.start, ...flag }), createSonioxTtsUnit({ openSocket: sockets.create, ...flag })],
+    session: { ...of.session, startBoth: adapter.startBoth },
+  } as AnyProvider;
+  return { provider, plan: wholePlan(provider) };
+}
+
+/** One leg's request over Soniox's plan, as the run makes it: each unit's config built for the leg, one set of keys for both units. */
+export function planRequest(
+  plan: RunPlan,
+  o: { context: SessionContext; settings: SonioxSettings; shared: SharedSettings; credentials: SonioxCredentials; clock: StartRequest<unknown, unknown>['clock']; signal: AbortSignal },
+): StartRequest<PlanConfigs, (unit: PlannedUnit) => unknown> {
+  return { context: o.context, config: planConfigs(plan, o.context, o.settings, o.shared), credentials: () => o.credentials, clock: o.clock, signal: o.signal };
+}
+
+/** Each unit's config for one leg, built as the run builds it. */
+export function planConfigs(plan: RunPlan, context: SessionContext, settings: SonioxSettings, shared: SharedSettings): PlanConfigs {
+  const accounts = { [plan.units[0].provider.id]: { settings, credentials: {} } };
+  const configs = buildPlan(plan, context, { accounts }, shared);
+  if ('refused' in configs) throw new Error(`The plan was refused: ${String(configs.refused)}`);
+  return configs;
+}
+
+/** The composite, starting: nothing is opened yet. */
+export function starting(o: CompositeOptions): Run {
   const pair = o.pair ?? { source: 'en', target: 'ja' };
   const legs: readonly LegName[] = o.mode === 'leg' ? [o.leg ?? 'speaker'] : LEGS;
   const contexts: Record<LegName, SessionContext> = {
@@ -116,11 +138,6 @@ function legInputs(o: EqualityOptions) {
   const shared = (leg: LegName): SharedSettings => ({ ...SHARED, speaks, reversed: () => leg === 'participant', ...(o.mode === 'faceToFace' ? { faceToFace: true } : {}) });
   const settings: SonioxSettings = { ...SONIOX_DEFAULTS, bothModeSharedSession: o.mode === 'shared', ...o.settings };
   const credentials: Record<LegName, SonioxCredentials> = { speaker: o.credentials?.speaker ?? SPK, participant: o.credentials?.participant ?? PAR };
-  return { legs, contexts, shared, settings, credentials };
-}
-
-function startSide(path: Path, o: EqualityOptions): Side {
-  const { legs, contexts, shared, settings, credentials } = legInputs(o);
   const leaseCalls: string[] = [];
   if (o.leaseEndsAt !== undefined) {
     const endsAt = o.leaseEndsAt;
@@ -176,40 +193,17 @@ function startSide(path: Path, o: EqualityOptions): Side {
   });
   const events: Record<LegName, AdapterEvents> = { speaker: eventsOf('speaker'), participant: eventsOf('participant') };
 
-  const adapter = createSonioxAdapter({ openSocket: sockets.create });
-  let starting: Promise<Partial<Record<LegName, AdapterSession>>>;
-  if (path === 'old') {
-    // The provider as one unit: its config carries the voice, and the adapter speaks.
-    const request = (leg: LegName): StartRequest<SonioxConfig, SonioxCredentials> =>
-      ({ context: contexts[leg], config: buildSoniox(contexts[leg], settings, shared(leg)), credentials: credentials[leg], clock, signal });
-    starting = o.mode === 'leg'
-      ? adapter.start(request(legs[0]), events[legs[0]]).then((session) => ({ [legs[0]]: session }))
-      : adapter.startBoth({ speaker: request('speaker'), participant: request('participant') }, events);
-  } else {
-    // The definition's own plan, its units on this side's sockets.
-    const provider = {
-      ...sonioxProvider,
-      start: adapter.start,
-      units: [sonioxSttUnitFor({ start: adapter.start }), createSonioxTtsUnit({ openSocket: sockets.create })],
-      session: { startBoth: adapter.startBoth },
-    } as AnyProvider;
-    const plan = wholePlan(provider);
-    const accounts = { [provider.id]: { settings, credentials: {} } };
-    const request = (leg: LegName): StartRequest<PlanConfigs, (unit: PlannedUnit) => unknown> => {
-      const configs = buildPlan(plan, contexts[leg], { accounts }, shared(leg));
-      if ('refused' in configs) throw new Error(`The plan was refused: ${String(configs.refused)}`);
-      return { context: contexts[leg], config: configs, credentials: () => credentials[leg], clock, signal };
-    };
-    starting = o.mode === 'leg'
-      ? startComposite(plan, request(legs[0]), events[legs[0]], legs[0]).then((session) => ({ [legs[0]]: session }))
-      : startCompositeBoth(plan, { speaker: request('speaker'), participant: request('participant') }, events);
-  }
+  const { plan } = sonioxOnSockets(sockets);
+  const request = (leg: LegName) => planRequest(plan, { context: contexts[leg], settings, shared: shared(leg), credentials: credentials[leg], clock, signal });
+  const start: Promise<Partial<Record<LegName, AdapterSession>>> = o.mode === 'leg'
+    ? startComposite(plan, request(legs[0]), events[legs[0]], legs[0]).then((session) => ({ [legs[0]]: session }))
+    : startCompositeBoth(plan, { speaker: request('speaker'), participant: request('participant') }, events);
 
   const sttSockets = () => sockets.all.filter(isStt);
   const ttsSockets = (leg: LegName) => sockets.all.filter((s) => !isStt(s) && Array.isArray(s.protocols) && s.protocols[1] === credentials[leg].tts);
-  const side: Side = {
-    path, legs, sockets, clock, timers, controller, log, sessions, opened, agentCalls, leaseCalls, mic,
-    started: starting.then((got) => { Object.assign(sessions, got); }, (error: unknown) => { side.failure = error; }),
+  const run: Run = {
+    legs, sockets, clock, timers, controller, log, sessions, opened, agentCalls, leaseCalls, mic,
+    started: start.then((got) => { Object.assign(sessions, got); }, (error: unknown) => { run.failure = error; }),
     sttSockets,
     stt: () => sttSockets().slice(-1)[0],
     ttsSockets,
@@ -222,94 +216,107 @@ function startSide(path: Path, o: EqualityOptions): Side {
       }
     },
   };
-  return side;
+  return run;
 }
 
-export interface Pair {
-  old: Side;
-  new: Side;
-  /** Plays one step of the script at each side, the old one first. */
-  each(step: (side: Side) => void | Promise<void>): Promise<void>;
+/** The composite, live: every socket it asks for is opened, the voices' included, which it opens once both legs have started. */
+export async function live(o: CompositeOptions): Promise<Run> {
+  const run = starting(o);
+  run.openAll();
+  await run.started;
+  if (run.failure !== undefined) throw run.failure;
+  run.openAll();
+  await flush();
+  return run;
 }
 
-/** Both sides, starting: nothing is opened yet. */
-export function starting(o: EqualityOptions): Pair {
-  const sides = { old: startSide('old', o), new: startSide('new', o) };
-  return {
-    ...sides,
-    async each(step) {
-      for (const side of [sides.old, sides.new]) {
-        await step(side);
-        await flush();
-      }
-    },
-  };
-}
-
-/** Both sides, live: every socket each side asks for is opened, the voices' included, which the composite opens once both legs have started. */
-export async function live(o: EqualityOptions): Promise<Pair> {
-  const pair = starting(o);
-  await pair.each(async (side) => {
-    side.openAll();
-    await side.started;
-    if (side.failure !== undefined) throw side.failure;
-    side.openAll();
-  });
-  return pair;
-}
-
-/** The TTS stream a side opened last on this socket. */
+/** The TTS stream opened last on this socket. */
 export const lastStream = (socket: FakeSocket) => socket.sentJson<{ stream_id?: string; model?: string }>().filter((m) => m.model !== undefined).map((m) => m.stream_id!).pop();
 
 /** Audio for the stream `leg`'s voice opened last, one chunk per sample count; `end`: then the stream's end. */
-export function answer(side: Side, leg: LegName, samples: readonly number[], end = true): void {
-  const socket = side.tts(leg);
+export function answer(run: Run, leg: LegName, samples: readonly number[], end = true): void {
+  const socket = run.tts(leg);
   const stream = lastStream(socket);
-  if (stream === undefined) throw new Error(`${side.path}: the ${leg} voice opened no stream to answer.`);
+  if (stream === undefined) throw new Error(`The ${leg} voice opened no stream to answer.`);
   for (const n of samples) socket.receive(JSON.stringify({ stream_id: stream, audio: b64(n) }));
   if (end) socket.receive(JSON.stringify({ stream_id: stream, terminated: true }));
 }
 
 /** What was sent on a socket, in order: JSON as parsed, the STT stream's empty end frame as it is, audio by its size. */
-function sentOn(socket: FakeSocket): unknown[] {
+export function sentOn(socket: FakeSocket): unknown[] {
   return socket.sent.map((data) => {
     if (typeof data !== 'string') return { binary: (data as ArrayBufferView | ArrayBufferLike).byteLength };
     return data === '' ? '' : JSON.parse(data) as Json;
   });
 }
 
-/** An event as it is compared; null for what is not (the `session.opened` frame, loading, busy). */
-function compared(e: AdapterEvent): unknown {
+const person = (e: { person?: string }) => (e.person === undefined ? '' : ` person=${e.person}`);
+
+/** One event as a line; null for the Logs' frames (`logged`), loading and busy. */
+function line(e: AdapterEvent): string | null {
   switch (e.kind) {
     case 'segmentOpened':
-    case 'segmentText':
+      return `open ${e.payload.ref} ${e.payload.side} ${e.payload.origin ?? '-'}${person(e.payload)}`;
+    case 'segmentText': {
+      const { ref, text, language, stableLen } = e.payload;
+      return `text ${ref} <${text}>${stableLen === undefined ? '' : ` stable=${stableLen}`}${language ? ` ${language}` : ''}${person(e.payload)}`;
+    }
     case 'segmentClosed':
-    case 'speechRanges':
-    case 'closed':
-    case 'reconnecting':
-    case 'reconnected':
-      return e;
+      return `close ${e.payload.ref} ${e.payload.origin ?? '-'}`;
     case 'audio': {
-      const { pcm, ...rest } = e.payload;
-      return { kind: e.kind, payload: { ...rest, samples: pcm.length } };
+      const { ref, range, voice, pcm } = e.payload;
+      return `audio ${ref ?? '-'} ${range ? `[${range[0]},${range[1]}]` : '[]'} ${pcm.length}${voice ? ` voice=${voice}` : ''}`;
     }
+    case 'speechRanges':
+      return `ranges ${e.payload.ref} ${e.payload.ranges.map((r) => `${r.index}:[${r.range[0]},${r.range[1]}]`).join(' ')}`;
     case 'degraded':
-      return { kind: e.kind, payload: { code: e.payload.code, reason: e.payload.reason, message: e.payload.message } };
-    case 'failed': {
-      const { cause: _cause, ...rest } = e.payload;
-      return { kind: e.kind, payload: rest };
-    }
-    case 'frame':
-      return e.payload.type === 'session.opened' ? null : e;
+      return `degraded ${e.payload.code}${e.payload.reason ? ` ${e.payload.reason}` : ''}`;
+    case 'failed':
+      return `failed ${e.payload.code} <${e.payload.message}>`;
+    case 'closed':
+      return `ended <${e.payload.reason ?? ''}>`;
+    case 'reconnecting':
+      return `reconnecting ${e.payload?.attempt ?? '-'}`;
+    case 'reconnected':
+      return 'reconnected';
     default:
       return null;
   }
 }
 
+/**
+ * What a leg was told, in order, one line an event, a text between angle brackets:
+ *   open 2 translation u1 person=1.2      close 2 u1
+ *   text 2 <こんにちは。> stable=6 ja        (a source's text states no stable length)
+ *   audio 2 [0,4] 2400 voice=participant  (its row, its range or `[]`, its samples, the leg that read it when not this one)
+ *   ranges 2 0:[0,4] 1:[4,6]              (its row, then each entry's filled-in range)
+ *   degraded tts_segment_lost tts_408     (its code, then its reason)
+ *   failed auth <the words>               ended <the reason>   (the leg closed)
+ *   reconnecting 1                        reconnected
+ * The Logs' frames are `logged`.
+ */
+export function said(run: Run, leg: LegName): string[] {
+  return run.log[leg].map(line).filter((l): l is string => l !== null);
+}
+
+/** The frames a leg was handed for the Logs, in order: `out <type>` or `in <type>`. */
+export function logged(run: Run, leg: LegName): string[] {
+  return run.log[leg].flatMap((e) => (e.kind === 'frame' ? [`${e.payload.direction} ${e.payload.type}`] : []));
+}
+
+/** The payloads of the frames of one type a leg was handed. */
+export function framesOf(run: Run, leg: LegName, type: string): unknown[] {
+  return run.log[leg].flatMap((e) => (e.kind === 'frame' && e.payload.type === type ? [e.payload.payload] : []));
+}
+
+/** The text sent to synthesis on a leg's TTS sockets, in order. */
+export function spoken(run: Run, leg: LegName): string[] {
+  return run.ttsSockets(leg).flatMap((s) => sentOn(s) as Json[]).filter((m) => typeof m.text === 'string' && m.text !== '').map((m) => m.text as string);
+}
+
 export interface Picture {
   /** Whether the start resolved, or what it rejected with. */
   start: string;
-  events: Record<LegName, unknown[]>;
   /** Per STT socket, in the order they were opened. */
   stt: Array<{ key: string; sent: unknown[]; closedByClient: boolean }>;
   /** Per leg, its TTS sockets in the order it opened them. */
@@ -319,46 +326,29 @@ export interface Picture {
   timers: number;
 }
 
-/**
- * What a side said and sent. `unopenedVoices: false` leaves out the TTS sockets the server never accepted, for a
- * start that ends before the composite has opened the voices.
- */
-export function pictureOf(side: Side, o: { unopenedVoices?: boolean } = {}): Picture {
-  const events = (leg: LegName) => {
-    const log = side.log[leg];
-    const over = log.findIndex((e) => e.kind === 'failed' || e.kind === 'closed');
-    // A leg that failed or closed: what the Logs are told after it is not compared.
-    return (over < 0 ? log : log.slice(0, over + 1)).map(compared).filter((e) => e !== null);
-  };
-  const tts = (leg: LegName) => side.ttsSockets(leg)
-    .filter((s) => o.unopenedVoices !== false || side.opened.has(s))
-    .map((s) => ({ accepted: side.opened.has(s), sent: sentOn(s), closedByClient: s.closedByClient !== null }));
+/** How the start ended, what was sent on each socket, the agent text calls, the lease's calls and the timers left. */
+export function pictureOf(run: Run): Picture {
+  const tts = (leg: LegName) => run.ttsSockets(leg).map((s) => ({ accepted: run.opened.has(s), sent: sentOn(s), closedByClient: s.closedByClient !== null }));
   return {
-    start: side.failure === undefined ? 'started' : String(side.failure),
-    events: { speaker: events('speaker'), participant: events('participant') },
-    stt: side.sttSockets().map((s) => ({ key: Array.isArray(s.protocols) ? s.protocols[1] : '', sent: sentOn(s), closedByClient: s.closedByClient !== null })),
+    start: run.failure === undefined ? 'started' : String(run.failure),
+    stt: run.sttSockets().map((s) => ({ key: Array.isArray(s.protocols) ? s.protocols[1] : '', sent: sentOn(s), closedByClient: s.closedByClient !== null })),
     tts: { speaker: tts('speaker'), participant: tts('participant') },
-    agentText: side.agentCalls,
-    lease: side.leaseCalls,
-    timers: side.timers(),
+    agentText: run.agentCalls,
+    lease: run.leaseCalls,
+    timers: run.timers(),
   };
 }
 
 /** The rows' audio as an agent text feed numbers it: per leg and row, each entry's index, range and voice, and the row's filled-in ranges. */
-export function audioByRow(side: Side): Record<string, { audio: unknown[]; ranges: unknown[] }> {
-  const rows: Record<string, { audio: unknown[]; ranges: unknown[] }> = {};
-  for (const leg of side.legs) {
-    for (const e of side.log[leg]) {
+export function audioByRow(run: Run): Record<string, { audio: Array<{ index: number; range?: readonly [number, number]; voice: LegName; samples: number }>; ranges: Array<{ index: number; range: readonly [number, number] }> }> {
+  const rows: ReturnType<typeof audioByRow> = {};
+  for (const leg of run.legs) {
+    for (const e of run.log[leg]) {
       if (e.kind !== 'audio' && e.kind !== 'speechRanges') continue;
       const row = rows[`${leg}:${e.payload.ref}`] ??= { audio: [], ranges: [] };
-      if (e.kind === 'audio') row.audio.push({ index: row.audio.length, range: e.payload.range, voice: e.payload.voice ?? leg, samples: e.payload.pcm.length });
+      if (e.kind === 'audio') row.audio.push({ index: row.audio.length, ...(e.payload.range ? { range: e.payload.range } : {}), voice: e.payload.voice ?? leg, samples: e.payload.pcm.length });
       else row.ranges.push(...e.payload.ranges);
     }
   }
   return rows;
-}
-
-/** The frames of one type a side logged for a leg, for a difference the Logs alone show. */
-export function framesOf(side: Side, leg: LegName, type: string): unknown[] {
-  return side.log[leg].flatMap((e) => (e.kind === 'frame' && e.payload.type === type ? [e.payload.payload] : []));
 }
