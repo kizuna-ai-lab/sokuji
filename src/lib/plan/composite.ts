@@ -26,13 +26,23 @@ const MODEL_OF: Readonly<Record<RunStage, keyof Models>> = { transcription: 'asr
 /**
  * One leg's configs: each unit built with its own provider's settings from `shape`, or the first unit's refusal,
  * unchanged. A unit is asked for speech only where it serves that stage and the leg speaks: a text unit beside a
- * speech unit is built for no speech.
+ * speech unit is built for no speech. `shared`: what every unit reads, or what each unit reads where it differs by
+ * unit (a run hands each its own provider's models).
  */
-export function buildPlan(plan: RunPlan, context: SessionContext, shape: Pick<RunShape, 'accounts'>, shared: SharedSettings): PlanConfigs | ProviderRefusal {
+export function buildPlan(
+  plan: RunPlan,
+  context: SessionContext,
+  shape: Pick<RunShape, 'accounts'>,
+  shared: SharedSettings | ((unit: PlannedUnit) => SharedSettings),
+): PlanConfigs | ProviderRefusal {
   const configs = new Map<PlannedUnit, unknown>();
   for (const planned of plan.units) {
     const speech = context.speech && planned.stages.includes('speech');
-    const built = planned.unit.build(speech === context.speech ? context : { ...context, speech }, accountOf(shape, planned.provider).settings, shared);
+    const built = planned.unit.build(
+      speech === context.speech ? context : { ...context, speech },
+      accountOf(shape, planned.provider).settings,
+      typeof shared === 'function' ? shared(planned) : shared,
+    );
     // A config has no `refused` member (the provider type's constraint), so this tells a refusal from a config.
     if (typeof built?.refused === 'string') return built as ProviderRefusal;
     configs.set(planned, built);

@@ -243,12 +243,14 @@ export class Run {
 
     const contexts = contextsFor(shape);
     // Whether any leg speaks, told to every builder: Soniox asks for agent text on it when its own setting is on (spec 2026-11-05 §4.3).
-    // One `shared` for every unit: its models are the transcription provider's answer, the plan's one provider in step 1.
-    const shared: SharedSettings = { ...shape.shared, models: models.get(this.providerId)!, speaks: shape.legs.some((leg) => contexts[leg]!.speech) };
+    const speaks = shape.legs.some((leg) => contexts[leg]!.speech);
     const configs: Partial<Record<LegName, PlanConfigs>> = {};
     for (const leg of shape.legs) {
+      // Each unit reads its own provider's models; the rest is the same for every unit of the leg.
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.
-      const built = buildPlan(plan, contexts[leg]!, { accounts }, { ...shared, reversed: () => leg === 'participant' });
+      const built = buildPlan(plan, contexts[leg]!, { accounts }, (unit): SharedSettings => (
+        { ...shape.shared, models: models.get(unit.provider.id)!, speaks, reversed: () => leg === 'participant' }
+      ));
       if ('refused' in built) {
         throw new RefusedError({
           code: built.code ?? ('build_refused' satisfies RunNoticeCode),
@@ -585,7 +587,7 @@ export class Run {
       const source = opened ?? await this.openSource(leg);
       stage = 'adapter';
       this.setLegState(leg, 'opening');
-      const session = await startComposite(this.shape.plan, request, this.eventsFor(leg));
+      const session = await startComposite(this.shape.plan, request, this.eventsFor(leg), leg);
       this.stack.defer(`${leg} session`, () => session.stop());
       this.throwIfAborted();
       this.connect(leg, source, session);
