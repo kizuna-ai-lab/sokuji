@@ -237,7 +237,7 @@ export function createHistoryWriter(deps: HistoryWriterDeps): HistoryWriter {
     deps.recorder?.prepare(session, r.startedAt);
     send(r, 'record', () => port.openRecord({
       id: session, startedAt: r.startedAt, mode: facts.mode, myLanguage, targetLanguage,
-      services: { provider: info?.provider ?? '', models }, appVersion: facts.appVersion,
+      services: { provider: info?.provider ?? '', ...(info ? { stages: info.stages } : {}), models }, appVersion: facts.appVersion,
     }).then(() => { deps.recorder?.begin(session, r.startedAt); }), () => { deps.recorder?.drop(session); });
     for (const leg of legs) {
       const c = facts.legs[leg.leg];

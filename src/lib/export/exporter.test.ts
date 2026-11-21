@@ -19,7 +19,7 @@ const entries: Entry[] = [
 ];
 const words = exportWords((_key, defaultValue) => defaultValue);
 const exporter = (over: Partial<Parameters<typeof conversationExporter>[0]> = {}) => conversationExporter({
-  entries, legs, info: { provider: 'fake', models: { asrModel: 'a', ttsModel: 't' }, startedAt: started }, words, appVersion: '9.9.9', now: () => exported, ...over,
+  entries, legs, info: { provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, models: { asrModel: 'a', ttsModel: 't' }, startedAt: started }, words, appVersion: '9.9.9', now: () => exported, ...over,
 });
 
 describe('conversationExporter', () => {
@@ -107,7 +107,7 @@ describe('rowsExporter', () => {
     { leg: 'participant' as const, startMs: 65_000, speakerLabel: 'Speaker 2', sentences: [{ n: 3, text: '好的。' }, { n: 4, text: '开始吧。' }], translation: null },
   ];
   const rowsOut = (over: Partial<Parameters<typeof rowsExporter>[0]> = {}) => rowsExporter({
-    rows, startedAt: start, legs: [], info: { provider: 'soniox', models: {}, startedAt: start }, words, appVersion: '9.9.9', now: () => exported, ...over,
+    rows, startedAt: start, legs: [], info: { provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'soniox' }, models: {}, startedAt: start }, words, appVersion: '9.9.9', now: () => exported, ...over,
   });
 
   it('writes each row at its clock time with its speaker, and its sentences as one line', () => {

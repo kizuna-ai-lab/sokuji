@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { CAPS, caps, hostDefaults, optionFor, soleHost } from './catalog';
+import { allStagesBy, CAPS, caps, hostDefaults, optionFor, soleHost, stageIdsFor } from './catalog';
 import { oldRunOf } from './oldRules.testing';
 import type { LineUp, RunStage } from './types';
 
@@ -57,5 +57,30 @@ describe('the sole host of a line-up', () => {
       const l = JSON.stringify({ transcription, translation, speech });
       expect(soleHost({ transcription, translation, speech }), l).toBe(old.ok ? old.provider : null);
     }
+  });
+});
+
+describe('the ids that served a run', () => {
+  it('names one provider on every stage', () => {
+    expect(allStagesBy('openai')).toEqual({ transcription: 'openai', translation: 'openai', speech: 'openai' });
+  });
+
+  it("are the stored line-up's when it runs on the provider that runs", () => {
+    expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'local_inference'))
+      .toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
+    expect(stageIdsFor(L('openai', 'openai', 'openai'), true, 'openai'))
+      .toEqual({ transcription: 'openai', translation: 'openai', speech: 'openai' });
+  });
+
+  it('are the running provider on every stage while no line-up is stored: one only shown is no guess about the run', () => {
+    expect(stageIdsFor(L('local_inference', 'bing', 'edge'), false, 'local_inference')).toEqual(allStagesBy('local_inference'));
+    expect(stageIdsFor(null, false, 'soniox')).toEqual(allStagesBy('soniox'));
+    expect(stageIdsFor(null, true, 'soniox')).toEqual(allStagesBy('soniox'));
+  });
+
+  it('are the running provider on every stage when the stored line-up runs on another, or on none', () => {
+    expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'openai')).toEqual(allStagesBy('openai'));
+    expect(stageIdsFor(L('soniox', 'soniox', 'edge'), true, 'soniox')).toEqual(allStagesBy('soniox'));
+    expect(stageIdsFor(L('local_inference', null, 'edge'), true, 'local_inference')).toEqual(allStagesBy('local_inference'));
   });
 });

@@ -4,6 +4,7 @@
 import type { AdapterEvents, AdapterFrame, AdapterSession, FrameSource, StartRequest } from '../contract/adapter';
 import type { Clock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
+import type { StageIds } from '../lineup/types';
 import type { RunPlan } from '../plan/types';
 import type { AuthContext, LanguagePair, ProviderRefusal, SharedSettings } from '../provider/types';
 
@@ -49,6 +50,8 @@ export interface RunShape {
   plan: RunPlan;
   /** Settings and saved credential values at start, by provider id: every provider in the plan. */
   accounts: Readonly<Record<string, PlanAccount>>;
+  /** The line-up id that serves each stage (`stageIdsFor`): what the run's records name. */
+  lineUp: StageIds;
   /** The speaker's pair; the participant leg runs its reverse. */
   pair: LanguagePair;
   /** The legs asked for, speaker first. */

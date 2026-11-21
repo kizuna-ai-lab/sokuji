@@ -1,11 +1,11 @@
 // src/lib/lineup/catalog.ts
 //
 // What each option can serve, who runs it and which stages go together, the
-// line-up each host runs by default, and the one host a line-up runs on by
-// this data alone. Pure data and pure functions; the stores read it, nothing
-// here reads a store.
+// line-up each host runs by default, the one host a line-up runs on by this
+// data alone, and the ids that served a run's stages. Pure data and pure
+// functions; the stores read it, nothing here reads a store.
 import { RUN_STAGES } from './types';
-import type { LineUp, ProviderCaps, RunStage } from './types';
+import type { LineUp, ProviderCaps, RunStage, StageIds } from './types';
 
 const ALL: readonly RunStage[] = RUN_STAGES;
 const JOINT: readonly RunStage[] = ['transcription', 'translation'];
@@ -55,6 +55,22 @@ export function soleHost(lineUp: Pick<LineUp, RunStage>): string | null {
     host = option.host;
   }
   return host;
+}
+
+/** One provider's id on every run stage. */
+export function allStagesBy(id: string): StageIds {
+  return { transcription: id, translation: id, speech: id };
+}
+
+/**
+ * The ids that served the stages of a run on `providerId`: the stored line-up's when one is stored and runs on that
+ * provider, otherwise that provider's on every stage. While the provider store's selection runs the session, a
+ * line-up not stored yet, or one the selection does not run, is not what ran, so it names nothing about the run.
+ */
+export function stageIdsFor(lineUp: Pick<LineUp, RunStage> | null, stored: boolean, providerId: string): StageIds {
+  if (!stored || !lineUp || soleHost(lineUp) !== providerId) return allStagesBy(providerId);
+  // A sole host means every stage names a known option, so none is null here.
+  return { transcription: lineUp.transcription!, translation: lineUp.translation!, speech: lineUp.speech! };
 }
 
 /** The line-up a host runs when nothing finer is chosen. */

@@ -2,7 +2,8 @@
 //
 // Fixtures for tests: stub providers, plans built straight from a provider
 // definition, and a run's shape over one. Imported by tests only.
-import { CAPS } from '../lineup/catalog';
+import { allStagesBy, CAPS } from '../lineup/catalog';
+import type { StageIds } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { RunShape } from '../session/types';
 import type { ComposeInput } from './compose';
@@ -30,13 +31,13 @@ export function stubHosts(over: Record<string, unknown> = {}): ComposeInput {
 export { wholePlan as planOf } from './wholeUnit';
 
 /**
- * A run's shape on `p` alone: its plan, and its account from `settings` (absent: undefined) and `credentials`
- * (absent: none saved), beside the rest of the shape as given.
+ * A run's shape on `p` alone: its plan, its account from `settings` (absent: undefined) and `credentials` (absent:
+ * none saved), and its stages' ids from `lineUp` (absent: `p` on every stage), beside the rest of the shape as given.
  */
 export function shapeWith(
   p: AnyProvider,
-  rest: Omit<RunShape, 'plan' | 'accounts'> & { settings?: unknown; credentials?: Record<string, string> },
+  rest: Omit<RunShape, 'plan' | 'accounts' | 'lineUp'> & { lineUp?: StageIds; settings?: unknown; credentials?: Record<string, string> },
 ): RunShape {
-  const { settings, credentials = {}, ...shape } = rest;
-  return { ...shape, plan: wholePlan(p), accounts: { [p.id]: { settings, credentials } } };
+  const { settings, credentials = {}, lineUp = allStagesBy(p.id), ...shape } = rest;
+  return { ...shape, plan: wholePlan(p), accounts: { [p.id]: { settings, credentials } }, lineUp };
 }

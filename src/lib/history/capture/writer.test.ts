@@ -5,7 +5,7 @@ import { createVirtualClock, type VirtualClock } from '../../contract/clock';
 import type { Heard } from '../../contract/adapter';
 import { Conversation } from '../../conversation/Conversation';
 import type { LegName } from '../../conversation/types';
-import { ConversationSet } from '../../session/conversationSet';
+import { ConversationSet, type ConversationInfo } from '../../session/conversationSet';
 import type { RunState } from '../../session/types';
 import type { HistoryPort } from '../port';
 import { createHistoryWriter, myLanguageOf, TICK_MS, type CaptureFacts, type HistoryWriter } from './writer';
@@ -76,14 +76,16 @@ beforeEach(() => {
 });
 afterEach(() => writer.dispose());
 
-function start(id = 'run-0001-aaaa', o: { legs?: LegName[]; languages?: { source: string; target: string } } = {}) {
+const FAKE_INFO: ConversationInfo = { provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, models: {}, startedAt: 0 };
+
+function start(id = 'run-0001-aaaa', o: { legs?: LegName[]; languages?: { source: string; target: string }; info?: ConversationInfo } = {}) {
   const languages = o.languages ?? { source: 'zh', target: 'ja' };
   state.setState({ phase: 'starting', participantSpeech: false, step: 'opening' });
   legs = new Map((o.legs ?? ['speaker', 'participant']).map((leg) => [leg, new Conversation({
     leg, session: id, clock,
     languages: leg === 'speaker' ? languages : { source: languages.target, target: languages.source },
   })]));
-  conversation.replace(legs, { provider: 'fake', models: {}, startedAt: 0 });
+  conversation.replace(legs, o.info ?? FAKE_INFO);
   state.setState({ phase: 'running', participantSpeech: false, since: clock.now(), legs: {} });
 }
 const end = () => state.setState({ phase: 'idle', lastEnd: { reason: 'user' } } as RunState);
@@ -102,8 +104,15 @@ describe('the history writer', () => {
     await writer.settled();
     expect(port.calls.map((c) => c[0])).toEqual(['openRecord', 'putLeg', 'putLeg', 'createTranscript']);
     expect(port.calls[2][1]).toEqual({ recordId: 'run-0001-aaaa', leg: 'participant', languages: { source: 'ja', target: 'zh' }, input: 'app', inputName: 'Zoom', inputId: 'app:pid:4242', translated: true, spoken: false });
-    expect(port.calls[0][1]).toEqual({ id: 'run-0001-aaaa', startedAt: 1000, mode: 'both', myLanguage: 'zh', targetLanguage: 'ja', services: { provider: 'fake', models: {} }, appVersion: '9.9.9' });
+    expect(port.calls[0][1]).toEqual({ id: 'run-0001-aaaa', startedAt: 1000, mode: 'both', myLanguage: 'zh', targetLanguage: 'ja', services: { provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, models: {} }, appVersion: '9.9.9' });
     expect(port.calls[3][1]).toEqual({ recordId: 'run-0001-aaaa', origin: { service: 'fake', kind: 'live' }, textKind: 'original' });
+  });
+
+  it('stores the provider of each stage in the record: a local run with Bing and Edge', async () => {
+    const stages = { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
+    start('run-0001-aaaa', { info: { provider: 'local_inference', stages, models: { asrModel: 'm' }, startedAt: 0 } });
+    await writer.settled();
+    expect(lastArg('openRecord').services).toEqual({ provider: 'local_inference', stages, models: { asrModel: 'm' } });
   });
 
   it('opens nothing for a start that is refused', async () => {

@@ -8,6 +8,9 @@ export type StageName = 'transcription' | 'translation' | 'speech' | 'summarisat
 export type RunStage = Exclude<StageName, 'summarisation'>;
 export const RUN_STAGES: readonly RunStage[] = ['transcription', 'translation', 'speech'];
 
+/** The line-up id that served each run stage, e.g. { transcription: 'local_inference', translation: 'bing', speech: 'edge' }. */
+export type StageIds = Readonly<Record<RunStage, string>>;
+
 /**
  * The stage sets a provider's options act on (mock v19): each `StagePart` in its `Settings` names one of these, and
  * the provider's `optionStages` lists the ones it uses, so the line-up page knows which cards have options without
