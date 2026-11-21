@@ -43,7 +43,8 @@ export function sonioxRolesFloorMicroUsd(roles: readonly StreamRole[]): number {
  * Kizuna Soniox's `minimumBalance`: the floor of the roles this start's
  * lease would ask for (choice 19) — split Both's second STT stream, the
  * speaker's TTS stream, and, only with the participant-speech flag on,
- * the participant's (ruling 2).
+ * the participant's (ruling 2). With another provider's voice in the plan
+ * no speech stream is asked for, and the floor is the text-only one.
  */
 export function kizunaSonioxMinimumBalance(shape: BalanceShape, s: Pick<SonioxSettings, 'region' | 'bothModeSharedSession'>, participantSpeech = false): number {
   return sonioxRolesFloorMicroUsd(requestedRoles(leaseRequest(shape, s, participantSpeech)));

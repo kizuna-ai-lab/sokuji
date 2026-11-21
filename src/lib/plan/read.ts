@@ -1,6 +1,7 @@
 // src/lib/plan/read.ts
 //
-// Reading a run plan: its providers, the unit that serves a stage, the one
+// Reading a run plan: its providers, the unit that serves a stage, whether a
+// provider is the one that speaks, the one
 // provider that stands for the run where a single id is asked for and its
 // account, a provider's account as the run froze it, and what a stage's unit
 // can do.
@@ -20,6 +21,14 @@ export function providersIn(plan: RunPlan): readonly AnyProvider[] {
 /** The unit that serves this stage of the run. */
 export function unitFor(plan: RunPlan, stage: RunStage): PlannedUnit {
   return plan.byStage[stage];
+}
+
+/**
+ * Whether the plan asks this provider for speech: a unit of it serves the speech stage. A managed provider's lease,
+ * floor and voice claim read this, not whether the run speaks: with another provider's voice it is asked for text.
+ */
+export function servesSpeech(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): boolean {
+  return plan.byStage.speech.provider.id === provider.id;
 }
 
 /** The provider that transcribes: the run's identity where one provider id is asked for. */

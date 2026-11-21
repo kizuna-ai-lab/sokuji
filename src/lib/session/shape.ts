@@ -175,7 +175,8 @@ export function balanceRefusal(input: Pick<GateInput, 'plan' | 'accounts' | 'leg
       ? { code: ORG_WALLET_FROZEN, message: 'The organization wallet is frozen.', ...(orgParams ? { params: orgParams } : {}) }
       : { code: 'wallet_frozen', message: 'The wallet is frozen.' };
   }
-  const balanceShape = { legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false };
+  // The plan goes with it: a provider whose unit does not serve speech prices a session that asks it for text only.
+  const balanceShape = { plan: input.plan, legs: input.legs, textOnly: input.textOnly ?? false, participantSpeech: input.participantSpeech ?? false, faceToFace: input.faceToFace ?? false };
   const floor = Math.max(...floored.map((p) => p.session!.minimumBalance!(balanceShape, accountOf(input, p).settings)));
   // No balance known for the chosen wallet: the server checks it, as it does an organization below the floor.
   if (wallet.microUsd === undefined || wallet.microUsd >= floor) return null;
