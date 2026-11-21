@@ -2243,7 +2243,12 @@
       "restored": "คืนค่าต้นฉบับแล้ว",
       "speaker": "เปลี่ยนผู้พูดแล้ว",
       "undone": "เลิกทำแล้ว",
-      "undo": "เลิกทำ"
+      "undo": "เลิกทำ",
+      "notesEdited": "เปลี่ยนบันทึกแล้ว",
+      "notesRemoved": "ลบประเด็นแล้ว",
+      "undoKept": "มีการเปลี่ยนภายหลัง จึงคงไว้ตามเดิม",
+      "merged": "รวม {{from}} เข้ากับ {{into}} แล้ว ({{count}} ประโยค)",
+      "merged_one": "รวม {{from}} เข้ากับ {{into}} แล้ว ({{count}} ประโยค)"
     },
     "notesGoFix": "ไปแก้",
     "notesFixed": "แก้แล้ว",
@@ -2257,7 +2262,30 @@
     "edited": "แก้ไขแล้ว",
     "editedOriginal": "ต้นฉบับ: {{heard}}",
     "original": "ต้นฉบับ",
-    "restoreOriginal": "คืนค่าต้นฉบับ"
+    "restoreOriginal": "คืนค่าต้นฉบับ",
+    "notesEdit": {
+      "title": "แก้ไขชื่อเรื่อง",
+      "overview": "แก้ไขภาพรวม",
+      "topicTitle": "แก้ไขชื่อหัวข้อ",
+      "topicSummary": "แก้ไขสรุป",
+      "point": "แก้ไขประเด็น"
+    },
+    "notesField": {
+      "title": "ชื่อเรื่อง",
+      "overview": "ภาพรวม",
+      "topicTitle": "ชื่อหัวข้อ",
+      "topicSummary": "สรุป",
+      "point": "ประเด็น"
+    },
+    "notesOwner": "ผู้รับผิดชอบ",
+    "notesDue": "กำหนดส่ง",
+    "notesEdited": "แก้ไขด้วยมือแล้ว",
+    "mergeSpeaker": "รวม {{name}} เข้ากับ…",
+    "mergeInto": "รวมเข้ากับ…",
+    "mergeMenu": "รวมเข้ากับ",
+    "mergeAsk": "{{name}} เป็นผู้พูดฝั่งนี้อยู่แล้ว",
+    "mergeOne": "รวมเป็นคนเดียว",
+    "keepApart": "แยกไว้เหมือนเดิม"
   },
   "notesQuit": {
     "named": "กำลังเขียนบันทึกของ “{{title}}” จะออกเลยไหม บันทึกจะถูกระบุว่ายกเลิก",

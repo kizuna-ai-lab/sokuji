@@ -2243,7 +2243,12 @@
       "restored": "Originale ripristinato",
       "speaker": "Interlocutore cambiato",
       "undone": "Annullato",
-      "undo": "Annulla"
+      "undo": "Annulla",
+      "notesEdited": "Note modificate",
+      "notesRemoved": "Punto rimosso",
+      "undoKept": "Modificato nel frattempo, lasciato com’è",
+      "merged": "{{from}} unito a {{into}} ({{count}} frasi)",
+      "merged_one": "{{from}} unito a {{into}} ({{count}} frase)"
     },
     "notesGoFix": "Correggi",
     "notesFixed": "Corretto",
@@ -2257,7 +2262,30 @@
     "edited": "Modificata",
     "editedOriginal": "Originale: {{heard}}",
     "original": "Originale",
-    "restoreOriginal": "Ripristina l’originale"
+    "restoreOriginal": "Ripristina l’originale",
+    "notesEdit": {
+      "title": "Modifica il titolo",
+      "overview": "Modifica la panoramica",
+      "topicTitle": "Modifica il titolo dell’argomento",
+      "topicSummary": "Modifica il riepilogo",
+      "point": "Modifica il punto"
+    },
+    "notesField": {
+      "title": "Titolo",
+      "overview": "Panoramica",
+      "topicTitle": "Titolo dell’argomento",
+      "topicSummary": "Riepilogo",
+      "point": "Punto"
+    },
+    "notesOwner": "Responsabile",
+    "notesDue": "Scadenza",
+    "notesEdited": "Modificato a mano",
+    "mergeSpeaker": "Unisci {{name}} a…",
+    "mergeInto": "Unisci a…",
+    "mergeMenu": "Unisci a",
+    "mergeAsk": "{{name}} è già un interlocutore di questo lato.",
+    "mergeOne": "Unisci in uno",
+    "keepApart": "Tieni separati"
   },
   "notesQuit": {
     "named": "Le note di «{{title}}» sono in scrittura. Uscire comunque? Verranno segnate come annullate.",

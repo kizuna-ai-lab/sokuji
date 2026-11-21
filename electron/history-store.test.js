@@ -816,4 +816,126 @@ describe('editing a finished record', () => {
     expect(text(1).heard).toBeNull();
     expect(s.listCorrections({ transcriptId: t })).toEqual([]);
   });
+
+  // P1 (design P1 §1, §2, "数据怎么存"): a notes version written whole by hand, marked with when; many sentences moved
+  // to another speaker in one write.
+  const WRITER = { kind: 'sokuji', promptVersion: 1, model: 'm' };
+  const notesOf = (body) => s.saveNotes({ recordId: ID, transcriptId: t, writtenBy: WRITER, language: 'zh', state: 'complete', body });
+
+  it('editNotes writes the body and its search text, follows the title, and marks when', () => {
+    const notesId = notesOf({ ...BODY, title: '搜库机周会' });
+    expect(s.getNotes({ id: notesId }).editedAt).toBeNull();
+    const before = s.getNotes({ id: notesId }).body;
+    const after = { ...before, title: 'Sokuji 周会', overview: { text: '新的概述写法', format: 'plain' } };
+    s.editNotes({ id: notesId, before: JSON.stringify(before), after: JSON.stringify(after), editedAt: 1234 });
+    const n = s.getNotes({ id: notesId });
+    expect(n.body).toEqual(after);
+    expect(n.editedAt).toBe(1234);
+    expect(s.search({ query: '新的概述写法' }).map((r) => r.recordId)).toEqual([ID]);
+    expect(s.getRecord(ID).title).toBe('Sokuji 周会');
+    s.editNotes({ id: notesId, before: JSON.stringify(after), after: JSON.stringify(before), editedAt: null });
+    expect(s.getNotes({ id: notesId }).editedAt).toBeNull();
+  });
+
+  it('editNotes refuses a body changed since, unknown notes, and a record still open', () => {
+    const notesId = notesOf(BODY);
+    const after = { ...BODY, title: 'x' };
+    expect(() => s.editNotes({ id: notesId, before: JSON.stringify({ ...BODY, title: 'other' }), after: JSON.stringify(after), editedAt: 1 }))
+      .toThrow(expect.objectContaining({ code: 'STALE' }));
+    expect(s.getNotes({ id: notesId }).body).toEqual(BODY);
+    expect(() => s.editNotes({ id: 999, before: '{}', after: JSON.stringify(after), editedAt: 1 })).toThrow(expect.objectContaining({ code: 'NO_NOTES' }));
+    s.close();
+    rmSync(dir, { recursive: true, force: true });
+    dir = mkdtempSync(join(tmpdir(), 'sokuji-history-'));
+    s = openHistory({ dir });
+    open();
+    const openNotes = notesOf(BODY);
+    expect(() => s.editNotes({ id: openNotes, before: JSON.stringify(BODY), after: JSON.stringify(after), editedAt: 1 }))
+      .toThrow(expect.objectContaining({ code: 'RECORD_OPEN' }));
+  });
+
+  it('a fix that changes the notes marks them when told when; without it the mark stays', () => {
+    const notesId = notesOf(BODY);
+    const after = { ...BODY, overview: { text: 'Sokuji上线', format: 'plain' } };
+    s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(BODY), after: JSON.stringify(after), editedAt: 77 } }));
+    expect(s.getNotes({ id: notesId }).editedAt).toBe(77);
+    const again = { ...after, title: '周会二' };
+    s.applyCorrection({ transcriptId: t, from: '周会', to: '周会二', sentences: [], notes: { id: notesId, before: JSON.stringify(after), after: JSON.stringify(again) } });
+    expect(s.getNotes({ id: notesId }).editedAt).toBe(77);
+  });
+
+  it('a revert sets the notes mark only when it changed the notes back', () => {
+    const notesId = notesOf(BODY);
+    const after = { ...BODY, overview: { text: 'Sokuji上线', format: 'plain' } };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(BODY), after: JSON.stringify(after), editedAt: 5 } }));
+    s.revertCorrection({ id, notesEditedAt: 9 });
+    expect(s.getNotes({ id: notesId })).toMatchObject({ editedAt: 9, body: BODY });
+    // A fix whose notes field was changed again since: its revert changes nothing there, and the mark stays.
+    const id2 = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(BODY), after: JSON.stringify(after), editedAt: 10 } }));
+    const changed = { ...after, overview: { text: '手改过了', format: 'plain' } };
+    s.editNotes({ id: notesId, before: JSON.stringify(after), after: JSON.stringify(changed), editedAt: 11 });
+    s.revertCorrection({ id: id2, notesEditedAt: 12 });
+    expect(s.getNotes({ id: notesId }).editedAt).toBe(11);
+  });
+
+  // Review on the P1 PR: a point removed by hand moves the points after it up. A fix's revert finds each of its points
+  // by what the point holds, not by where it was, so it neither rewrites another point nor misses its own.
+  it('a revert after a point was removed changes back its own points and no other', () => {
+    const pt = (text, n) => ({ topic: 0, text, sentences: [n], kinds: ['decision'] });
+    const body = { ...BODY, topics: [{ title: '发布', summary: '', first: 1 }], points: [pt('搜库机', 1), pt('Sokuji', 2), pt('搜库机上线', 3)] };
+    const notesId = notesOf(body);
+    const fixed = { ...body, points: [pt('Sokuji', 1), pt('Sokuji', 2), pt('Sokuji上线', 3)] };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(fixed) } }));
+    const removed = { ...fixed, points: fixed.points.slice(1) };
+    s.editNotes({ id: notesId, before: JSON.stringify(fixed), after: JSON.stringify(removed), editedAt: 5 });
+    expect(s.revertCorrection({ id })).toEqual({ restored: 2, kept: 1 });
+    expect(s.getNotes({ id: notesId }).body.points.map((p) => p.text)).toEqual(['Sokuji', '搜库机上线']);
+  });
+
+  // PR review: two points that hold the same topic, sentences and kinds cannot be told apart once one is removed; the
+  // revert leaves them as they are rather than guess.
+  it('a revert after a point was removed leaves points it cannot tell apart', () => {
+    const pt = (text, n) => ({ topic: 0, text, sentences: [n], kinds: ['decision'] });
+    const body = { ...BODY, topics: [{ title: '发布', summary: '', first: 1 }], points: [pt('搜库机', 1), pt('无关的一条', 2), pt('Sokuji', 1)] };
+    const notesId = notesOf(body);
+    const fixed = { ...body, points: [pt('Sokuji', 1), pt('无关的一条', 2), pt('Sokuji', 1)] };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(fixed) } }));
+    const removed = { ...fixed, points: fixed.points.slice(1) };
+    s.editNotes({ id: notesId, before: JSON.stringify(fixed), after: JSON.stringify(removed), editedAt: 5 });
+    expect(s.revertCorrection({ id })).toEqual({ restored: 2, kept: 1 });
+    expect(s.getNotes({ id: notesId }).body.points.map((p) => p.text)).toEqual(['无关的一条', 'Sokuji']);
+  });
+
+  it('reassignSentences moves every sentence in one write, null included; an unknown n refuses all', () => {
+    s.reassignSentence({ transcriptId: t, n: 3, speaker: 'u1' });
+    s.reassignSentences({ transcriptId: t, moves: [{ n: 1, speaker: '2' }, { n: 2, speaker: '2' }, { n: 3, speaker: null }] });
+    expect([1, 2, 3].map((n) => text(n).speakerByUser)).toEqual(['2', '2', null]);
+    expect(() => s.reassignSentences({ transcriptId: t, moves: [{ n: 1, speaker: '9' }, { n: 99, speaker: '9' }] }))
+      .toThrow(expect.objectContaining({ code: 'NO_SENTENCE' }));
+    expect(text(1).speakerByUser).toBe('2');
+    expect(() => s.reassignSentences({ transcriptId: t, moves: [{ n: 1 }] })).toThrow(expect.objectContaining({ code: 'BAD_INPUT' }));
+  });
+
+  // PR review: a merge is for a finished record, as the notes edits are.
+  it('reassignSentences refuses a record still open', () => {
+    s.close();
+    rmSync(dir, { recursive: true, force: true });
+    dir = mkdtempSync(join(tmpdir(), 'sokuji-history-'));
+    s = openHistory({ dir });
+    open();
+    expect(() => s.reassignSentences({ transcriptId: t, moves: [{ n: 1, speaker: '2' }] })).toThrow(expect.objectContaining({ code: 'RECORD_OPEN' }));
+    expect(text(1).speakerByUser).toBeNull();
+  });
+
+  it('opens a version 2 file and adds when notes were edited', () => {
+    s.close();
+    rmSync(dir, { recursive: true, force: true });
+    dir = mkdtempSync(join(tmpdir(), 'sokuji-history-'));
+    mkdirSync(join(dir, 'records'), { recursive: true });
+    openDatabase({ file: join(dir, 'history.db'), migrations: MIGRATIONS.slice(0, 2) }).db.close();
+    s = openHistory({ dir });
+    open();
+    s.closeRecord({ id: ID, endedAt: 1_800_000_060_000 });
+    expect(s.getNotes({ id: notesOf(BODY) }).editedAt).toBeNull();
+  });
 });

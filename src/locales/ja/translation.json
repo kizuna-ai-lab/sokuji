@@ -2243,7 +2243,12 @@
       "restored": "元の文に戻しました",
       "speaker": "話者を変更しました",
       "undone": "取り消しました",
-      "undo": "取り消す"
+      "undo": "取り消す",
+      "notesEdited": "メモを変更しました",
+      "notesRemoved": "要点を削除しました",
+      "undoKept": "その後に変更されていたため、そのままにしました",
+      "merged": "{{from}} を {{into}} に統合しました（{{count}} 文）",
+      "merged_one": "{{from}} を {{into}} に統合しました（{{count}} 文）"
     },
     "notesGoFix": "修正する",
     "notesFixed": "修正済み",
@@ -2257,7 +2262,30 @@
     "edited": "編集済み",
     "editedOriginal": "元の文：{{heard}}",
     "original": "元の文",
-    "restoreOriginal": "元の文に戻す"
+    "restoreOriginal": "元の文に戻す",
+    "notesEdit": {
+      "title": "タイトルを編集",
+      "overview": "概要を編集",
+      "topicTitle": "トピック名を編集",
+      "topicSummary": "要約を編集",
+      "point": "要点を編集"
+    },
+    "notesField": {
+      "title": "タイトル",
+      "overview": "概要",
+      "topicTitle": "トピック名",
+      "topicSummary": "要約",
+      "point": "要点"
+    },
+    "notesOwner": "担当",
+    "notesDue": "期限",
+    "notesEdited": "手動で修正済み",
+    "mergeSpeaker": "{{name}} を統合…",
+    "mergeInto": "統合先…",
+    "mergeMenu": "統合先",
+    "mergeAsk": "{{name}} はすでにこちら側の話者です。",
+    "mergeOne": "一人にまとめる",
+    "keepApart": "別々のままにする"
   },
   "notesQuit": {
     "named": "「{{title}}」のメモを書いています。それでも終了しますか？メモは中止として記録されます。",

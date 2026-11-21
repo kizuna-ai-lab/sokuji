@@ -2243,7 +2243,12 @@
       "restored": "मूल वापस लाया गया",
       "speaker": "वक्ता बदला गया",
       "undone": "पूर्ववत किया गया",
-      "undo": "पूर्ववत करें"
+      "undo": "पूर्ववत करें",
+      "notesEdited": "नोट्स बदले गए",
+      "notesRemoved": "बिंदु हटाया गया",
+      "undoKept": "बाद में बदला गया, जैसा था वैसा छोड़ा",
+      "merged": "{{from}} को {{into}} में मिलाया गया ({{count}} वाक्य)",
+      "merged_one": "{{from}} को {{into}} में मिलाया गया ({{count}} वाक्य)"
     },
     "notesGoFix": "सुधारें",
     "notesFixed": "सुधारा गया",
@@ -2257,7 +2262,30 @@
     "edited": "संपादित",
     "editedOriginal": "मूल: {{heard}}",
     "original": "मूल",
-    "restoreOriginal": "मूल वापस लाएँ"
+    "restoreOriginal": "मूल वापस लाएँ",
+    "notesEdit": {
+      "title": "शीर्षक संपादित करें",
+      "overview": "अवलोकन संपादित करें",
+      "topicTitle": "विषय का शीर्षक संपादित करें",
+      "topicSummary": "सारांश संपादित करें",
+      "point": "बिंदु संपादित करें"
+    },
+    "notesField": {
+      "title": "शीर्षक",
+      "overview": "अवलोकन",
+      "topicTitle": "विषय का शीर्षक",
+      "topicSummary": "सारांश",
+      "point": "बिंदु"
+    },
+    "notesOwner": "ज़िम्मेदार",
+    "notesDue": "नियत तिथि",
+    "notesEdited": "हाथ से संपादित",
+    "mergeSpeaker": "{{name}} को इसमें मिलाएँ…",
+    "mergeInto": "इसमें मिलाएँ…",
+    "mergeMenu": "इसमें मिलाएँ",
+    "mergeAsk": "{{name}} इस तरफ़ पहले से एक वक्ता है।",
+    "mergeOne": "एक में मिलाएँ",
+    "keepApart": "अलग रखें"
   },
   "notesQuit": {
     "named": "“{{title}}” के नोट्स लिखे जा रहे हैं। फिर भी बंद करें? उन्हें रद्द के रूप में चिह्नित किया जाएगा।",

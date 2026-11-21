@@ -32,7 +32,7 @@ const recordOf = (id: string, transcripts: number[]): HistoryRecord => ({
 const flush = async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); };
 const notesOf = (id: number): HistoryNotes => ({
   id, recordId: A, transcriptId: 2, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'm' }, language: 'zh', createdAt: id * 1000,
-  state: 'complete', failure: null, requestIds: [],
+  state: 'complete', failure: null, requestIds: [], editedAt: null,
   body: { title: `Notes ${id}`, overview: { text: 'o', format: 'plain' }, topics: [], points: [], names: [] },
 });
 /** A notes runner the tests drive: start and cancel are recorded, and `finish` ends a run. */

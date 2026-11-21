@@ -2243,7 +2243,12 @@
       "restored": "متن اصلی بازگردانده شد",
       "speaker": "گوینده تغییر کرد",
       "undone": "واگرد شد",
-      "undo": "واگرد"
+      "undo": "واگرد",
+      "notesEdited": "یادداشت‌ها تغییر کرد",
+      "notesRemoved": "نکته حذف شد",
+      "undoKept": "از آن زمان تغییر کرده؛ همان‌طور ماند",
+      "merged": "{{from}} با {{into}} ادغام شد ({{count}} جمله)",
+      "merged_one": "{{from}} با {{into}} ادغام شد ({{count}} جمله)"
     },
     "notesGoFix": "اصلاح",
     "notesFixed": "اصلاح شد",
@@ -2257,7 +2262,30 @@
     "edited": "ویرایش‌شده",
     "editedOriginal": "اصلی: {{heard}}",
     "original": "اصلی",
-    "restoreOriginal": "بازگرداندن متن اصلی"
+    "restoreOriginal": "بازگرداندن متن اصلی",
+    "notesEdit": {
+      "title": "ویرایش عنوان",
+      "overview": "ویرایش مرور کلی",
+      "topicTitle": "ویرایش عنوان موضوع",
+      "topicSummary": "ویرایش خلاصه",
+      "point": "ویرایش نکته"
+    },
+    "notesField": {
+      "title": "عنوان",
+      "overview": "مرور کلی",
+      "topicTitle": "عنوان موضوع",
+      "topicSummary": "خلاصه",
+      "point": "نکته"
+    },
+    "notesOwner": "مسئول",
+    "notesDue": "مهلت",
+    "notesEdited": "دستی ویرایش شده",
+    "mergeSpeaker": "ادغام {{name}} با…",
+    "mergeInto": "ادغام با…",
+    "mergeMenu": "ادغام با",
+    "mergeAsk": "{{name}} از قبل گوینده‌ای در این طرف است.",
+    "mergeOne": "یکی کردن",
+    "keepApart": "جدا نگه داشتن"
   },
   "notesQuit": {
     "named": "یادداشت‌های «{{title}}» در حال نوشته شدن است. باز هم خارج می‌شوید؟ لغوشده علامت می‌خورند.",

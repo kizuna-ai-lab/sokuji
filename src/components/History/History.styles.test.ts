@@ -77,3 +77,19 @@ describe("the transcript version dropdown", () => {
     expect(block?.[1] ?? '').toMatch(/padding-right:\s*8px/);
   });
 });
+
+// Design P1 §1: the notes' pencils, hidden until their part is pointed at (always shown on a touch screen), and a
+// point's pencil bound to its last word by a word joiner, as the sentences' buttons are (P0 #816).
+describe("the notes' pencils", () => {
+  it('show on hover or focus, always on a touch screen', () => {
+    const pencil = ruleBody('.record-notes__edit') ?? '';
+    expect(pencil).toMatch(/opacity:\s*0/);
+    expect(css).toMatch(/@media \(hover: none\)\s*\{\s*\.record-notes__edit\s*\{\s*opacity:\s*1/);
+    expect(css).toMatch(/\.record-notes__editable:hover \.record-notes__edit[^{]*\{\s*opacity:\s*1/);
+  });
+
+  it('never leave a point\'s pencil on a line of its own', () => {
+    expect(ruleBody('.record-notes__tail') ?? '').toMatch(/white-space:\s*nowrap/);
+    expect(ruleBody('.record-notes__tail::before') ?? '').toMatch(/content:\s*"\u2060"/);
+  });
+});

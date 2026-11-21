@@ -2243,7 +2243,12 @@
       "restored": "已改回原文",
       "speaker": "說話者已變更",
       "undone": "已復原",
-      "undo": "復原"
+      "undo": "復原",
+      "notesEdited": "紀要已修改",
+      "notesRemoved": "已刪除一條要點",
+      "undoKept": "之後又改過，保留現狀",
+      "merged": "{{from}} 已併入 {{into}}（{{count}} 句）",
+      "merged_one": "{{from}} 已併入 {{into}}（{{count}} 句）"
     },
     "notesGoFix": "去改正",
     "notesFixed": "已改正",
@@ -2257,7 +2262,30 @@
     "edited": "已改",
     "editedOriginal": "原文：{{heard}}",
     "original": "原文",
-    "restoreOriginal": "改回原文"
+    "restoreOriginal": "改回原文",
+    "notesEdit": {
+      "title": "編輯標題",
+      "overview": "編輯概述",
+      "topicTitle": "編輯話題標題",
+      "topicSummary": "編輯摘要",
+      "point": "編輯要點"
+    },
+    "notesField": {
+      "title": "標題",
+      "overview": "概述",
+      "topicTitle": "話題標題",
+      "topicSummary": "摘要",
+      "point": "要點"
+    },
+    "notesOwner": "負責人",
+    "notesDue": "截止",
+    "notesEdited": "已手動修改",
+    "mergeSpeaker": "把 {{name}} 併入…",
+    "mergeInto": "併入…",
+    "mergeMenu": "併入",
+    "mergeAsk": "{{name}} 已經是這一側的說話者了。",
+    "mergeOne": "併成一個",
+    "keepApart": "分開保留"
   },
   "notesQuit": {
     "named": "正在為「{{title}}」寫紀要。仍然結束嗎？這份紀要會記為已取消。",

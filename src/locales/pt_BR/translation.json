@@ -2243,7 +2243,12 @@
       "restored": "Original restaurado",
       "speaker": "Falante alterado",
       "undone": "Desfeito",
-      "undo": "Desfazer"
+      "undo": "Desfazer",
+      "notesEdited": "Notas alteradas",
+      "notesRemoved": "Ponto removido",
+      "undoKept": "Alterado depois; deixado como está",
+      "merged": "{{from}} juntado a {{into}} ({{count}} frases)",
+      "merged_one": "{{from}} juntado a {{into}} ({{count}} frase)"
     },
     "notesGoFix": "Corrigir",
     "notesFixed": "Corrigido",
@@ -2257,7 +2262,30 @@
     "edited": "Editada",
     "editedOriginal": "Original: {{heard}}",
     "original": "Original",
-    "restoreOriginal": "Restaurar o original"
+    "restoreOriginal": "Restaurar o original",
+    "notesEdit": {
+      "title": "Editar o título",
+      "overview": "Editar a visão geral",
+      "topicTitle": "Editar o título do tópico",
+      "topicSummary": "Editar o resumo",
+      "point": "Editar o ponto"
+    },
+    "notesField": {
+      "title": "Título",
+      "overview": "Visão geral",
+      "topicTitle": "Título do tópico",
+      "topicSummary": "Resumo",
+      "point": "Ponto"
+    },
+    "notesOwner": "Responsável",
+    "notesDue": "Prazo",
+    "notesEdited": "Editado à mão",
+    "mergeSpeaker": "Juntar {{name}} a…",
+    "mergeInto": "Juntar a…",
+    "mergeMenu": "Juntar a",
+    "mergeAsk": "{{name}} já é um falante deste lado.",
+    "mergeOne": "Juntar em um",
+    "keepApart": "Manter separados"
   },
   "notesQuit": {
     "named": "As notas de “{{title}}” estão sendo escritas. Sair mesmo assim? Elas serão marcadas como canceladas.",

@@ -51,3 +51,28 @@ export function notesText(body: NotesBody, words: NotesWords): string {
   });
   return lines.join('\n');
 }
+
+const escape = (text: string) => text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+
+/**
+ * The notes as HTML for the clipboard (design P1 §3): pasted into a document (Word, Feishu docs, Notion) they keep their
+ * headings and list. The same parts and marks as `notesMarkdown`.
+ */
+export function notesHtml(body: NotesBody, words: NotesWords): string {
+  // A line started with Shift+Enter stays a line: HTML would fold it into a space (PR review).
+  const html = (text: string) => escape(text).replace(/\r?\n/g, '<br>');
+  const out = [`<h1>${html(body.title)}</h1>`];
+  if (body.overview.text) out.push(`<p>${html(body.overview.text)}</p>`);
+  body.topics.forEach((t, i) => {
+    out.push(`<h2>${html(t.title)}</h2>`);
+    if (t.summary) out.push(`<p>${html(t.summary)}</p>`);
+    const points = pointsOf(body, i);
+    if (points.length > 0) {
+      out.push(`<ul>${points.map((p) => {
+        const m = marks(p, words);
+        return `<li>${html(p.text)}${m ? ` — ${html(m)}` : ''}</li>`;
+      }).join('')}</ul>`);
+    }
+  });
+  return out.join('');
+}

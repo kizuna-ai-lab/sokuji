@@ -2243,7 +2243,12 @@
       "restored": "המקור שוחזר",
       "speaker": "הדובר הוחלף",
       "undone": "הפעולה בוטלה",
-      "undo": "ביטול פעולה"
+      "undo": "ביטול פעולה",
+      "notesEdited": "ההערות שונו",
+      "notesRemoved": "הנקודה הוסרה",
+      "undoKept": "שונה מאז, נשאר כמו שהוא",
+      "merged": "{{from}} מוזג עם {{into}} (משפטים: {{count}})",
+      "merged_one": "{{from}} מוזג עם {{into}} (משפטים: {{count}})"
     },
     "notesGoFix": "לתיקון",
     "notesFixed": "תוקן",
@@ -2257,7 +2262,30 @@
     "edited": "נערך",
     "editedOriginal": "מקור: {{heard}}",
     "original": "מקור",
-    "restoreOriginal": "שחזור המקור"
+    "restoreOriginal": "שחזור המקור",
+    "notesEdit": {
+      "title": "עריכת הכותרת",
+      "overview": "עריכת הסקירה",
+      "topicTitle": "עריכת כותרת הנושא",
+      "topicSummary": "עריכת התקציר",
+      "point": "עריכת הנקודה"
+    },
+    "notesField": {
+      "title": "כותרת",
+      "overview": "סקירה",
+      "topicTitle": "כותרת הנושא",
+      "topicSummary": "תקציר",
+      "point": "נקודה"
+    },
+    "notesOwner": "אחראי",
+    "notesDue": "תאריך יעד",
+    "notesEdited": "נערך ידנית",
+    "mergeSpeaker": "מיזוג {{name}} עם…",
+    "mergeInto": "מיזוג עם…",
+    "mergeMenu": "מיזוג עם",
+    "mergeAsk": "{{name}} כבר דובר בצד הזה.",
+    "mergeOne": "מיזוג לאחד",
+    "keepApart": "להשאיר בנפרד"
   },
   "notesQuit": {
     "named": "נכתבות הערות עבור „{{title}}”. לצאת בכל זאת? הן יסומנו כמבוטלות.",

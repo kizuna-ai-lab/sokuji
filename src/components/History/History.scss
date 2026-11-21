@@ -531,6 +531,62 @@
 .record-speakers {
   & + & { margin-top: vars.$space-3; }
 
+  // Design P1 §2: "Merge into…" on a row with another speaker on its side, shown when the row is pointed at (always on a
+  // touch screen), with its menu; and the question when a new name is another speaker's.
+  &__merge { position: relative; }
+  &__merge-button {
+    padding: 0 6px;
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: transparent;
+    color: vars.$text-secondary;
+    font-size: 11px;
+    line-height: 18px;
+    cursor: pointer;
+    opacity: 0;
+    @media (hover: none) { opacity: 1; }
+    &:hover { color: vars.$text-primary; background: vars.$bg-hover; }
+    &:focus-visible { opacity: 1; outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+    &[aria-expanded='true'] { opacity: 1; }
+  }
+  li:hover &__merge-button { opacity: 1; }
+  &__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 160px;
+    padding: vars.$space-1;
+    border: 1px solid vars.$border-default;
+    border-radius: vars.$radius-md;
+    background: vars.$bg-popover;
+    box-shadow: 0 4px 16px vars.$shadow;
+    > button {
+      padding: vars.$space-1 vars.$space-2;
+      border: none;
+      border-radius: vars.$radius-sm;
+      background: transparent;
+      color: vars.$text-primary;
+      text-align: left;
+      cursor: pointer;
+      &:hover, &:focus-visible { background: vars.$bg-hover; }
+    }
+  }
+  &__ask {
+    display: flex;
+    flex-direction: column;
+    gap: vars.$space-1;
+    width: 100%;
+    padding: vars.$space-2;
+    border: 1px solid vars.$border-subtle;
+    border-radius: vars.$radius-md;
+    font-size: vars.$font-caption;
+    color: vars.$text-secondary;
+  }
+  &__ask-buttons { display: flex; flex-wrap: wrap; gap: vars.$space-1; }
+
   h4 {
     margin: 0 0 vars.$space-1;
     font-size: vars.$font-caption;
@@ -862,6 +918,42 @@
   }
   h4 > &__jump { font-weight: vars.$weight-semibold; }
   &__marks { display: inline-flex; flex-wrap: wrap; gap: vars.$space-1; margin-left: vars.$space-1; vertical-align: middle; }
+
+  // Design P1 §1: each part of the notes has a pencil, hidden until the part is pointed at (always shown on a screen with
+  // no pointer to hover with), and the version says once it was edited by hand.
+  &__title-row,
+  &__topic-head { display: flex; flex-wrap: wrap; align-items: center; gap: vars.$space-1; }
+  &__edited {
+    padding: 0 6px;
+    border: 1px solid vars.$border-default;
+    border-radius: 9px;
+    color: vars.$text-secondary;
+    font-size: 11px;
+    line-height: 18px;
+  }
+  // After running text the pencil is bound to the last word by a word joiner, so it never takes a line of its own
+  // (as the sentences' buttons, P0).
+  &__tail {
+    white-space: nowrap;
+    &::before { content: '\2060'; }
+  }
+  &__edit {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 2px;
+    padding: 0 2px;
+    border: none;
+    border-radius: vars.$radius-sm;
+    background: transparent;
+    color: tk.$color-toolbar-icon;
+    vertical-align: middle;
+    cursor: pointer;
+    opacity: 0;
+    @media (hover: none) { opacity: 1; }
+    &:hover { color: vars.$text-primary; background: vars.$bg-hover; }
+    &:focus-visible { opacity: 1; outline: vars.$focus-ring-width solid vars.$focus-ring-color; outline-offset: 0; }
+  }
+  &__editable:hover &__edit { opacity: 1; }
   &__kind, &__who {
     padding: 0 5px;
     border: 1px solid vars.$border-subtle;
@@ -1113,6 +1205,46 @@
 // "Fix…" above a word selected in the transcript (design draft P0 §3.2): it hands the word to the edit panel.
 .record-page__transcript { position: relative; }
 .record-page__fix-chip { position: absolute; z-index: 5; }
+
+// One part of the notes rewritten in place (NotesFieldEditor; design P1 §1), as a sentence is.
+.record-notes-edit {
+  display: flex;
+  flex-direction: column;
+  gap: vars.$space-1;
+  margin: vars.$space-1 0;
+  &__field {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid tk.$color-primary;
+    border-radius: vars.$radius-md;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    font: inherit;
+    line-height: 1.5;
+    resize: vertical;
+    &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+  }
+  &__todo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: vars.$space-2;
+    label { display: flex; flex: 1 1 10em; align-items: center; gap: 6px; min-width: 0; font-size: vars.$font-caption; color: vars.$text-secondary; }
+    input {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 3px 6px;
+      border: 1px solid vars.$border-default;
+      border-radius: vars.$radius-sm;
+      background: vars.$bg-control;
+      color: vars.$text-primary;
+      font: inherit;
+      &:focus-visible { outline: vars.$focus-ring-width solid vars.$focus-ring-color; }
+    }
+  }
+  &__keys { font-size: 11px; color: vars.$text-tertiary; }
+}
 
 // One sentence rewritten in place (SentenceEditor; design draft P0 §3.4), and the mark of one rewritten (§3.5).
 .record-sentence-edit {

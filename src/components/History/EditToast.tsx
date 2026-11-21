@@ -27,6 +27,10 @@ export function EditToast() {
       case 'edited': return t('history.toast.edited', 'Sentence changed');
       case 'restored': return t('history.toast.restored', 'Original restored');
       case 'speaker': return t('history.toast.speaker', 'Speaker changed');
+      case 'notesEdited': return t('history.toast.notesEdited', 'Notes changed');
+      case 'notesRemoved': return t('history.toast.notesRemoved', 'Point removed');
+      case 'undoKept': return t('history.toast.undoKept', 'Changed since, left as it is');
+      case 'merged': return t('history.toast.merged', '{{from}} merged into {{into}} ({{count}} sentences)', { from: x.from, into: x.into, count: x.count });
       default: return t('history.toast.undone', 'Undone');
     }
   };

@@ -2243,7 +2243,12 @@
       "restored": "Orijinal geri yüklendi",
       "speaker": "Konuşmacı değiştirildi",
       "undone": "Geri alındı",
-      "undo": "Geri al"
+      "undo": "Geri al",
+      "notesEdited": "Notlar değiştirildi",
+      "notesRemoved": "Madde kaldırıldı",
+      "undoKept": "Sonradan değiştirilmiş, olduğu gibi bırakıldı",
+      "merged": "{{from}}, {{into}} ile birleştirildi ({{count}} cümle)",
+      "merged_one": "{{from}}, {{into}} ile birleştirildi ({{count}} cümle)"
     },
     "notesGoFix": "Düzelt",
     "notesFixed": "Düzeltildi",
@@ -2257,7 +2262,30 @@
     "edited": "Düzenlendi",
     "editedOriginal": "Orijinal: {{heard}}",
     "original": "Orijinal",
-    "restoreOriginal": "Orijinali geri yükle"
+    "restoreOriginal": "Orijinali geri yükle",
+    "notesEdit": {
+      "title": "Başlığı düzenle",
+      "overview": "Genel bakışı düzenle",
+      "topicTitle": "Konu başlığını düzenle",
+      "topicSummary": "Özeti düzenle",
+      "point": "Maddeyi düzenle"
+    },
+    "notesField": {
+      "title": "Başlık",
+      "overview": "Genel bakış",
+      "topicTitle": "Konu başlığı",
+      "topicSummary": "Özet",
+      "point": "Madde"
+    },
+    "notesOwner": "Sorumlu",
+    "notesDue": "Son tarih",
+    "notesEdited": "Elle düzenlendi",
+    "mergeSpeaker": "{{name}} kişisini şununla birleştir…",
+    "mergeInto": "Şununla birleştir…",
+    "mergeMenu": "Şununla birleştir",
+    "mergeAsk": "{{name}} zaten bu taraftaki bir konuşmacı.",
+    "mergeOne": "Tek kişi yap",
+    "keepApart": "Ayrı tut"
   },
   "notesQuit": {
     "named": "“{{title}}” için notlar yazılıyor. Yine de çıkılsın mı? İptal edildi olarak işaretlenecek.",

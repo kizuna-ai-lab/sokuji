@@ -1,6 +1,6 @@
 // A record's notes as Markdown and as plain text.
 import { describe, it, expect } from 'vitest';
-import { notesMarkdown, notesText } from './exportNotes';
+import { notesHtml, notesMarkdown, notesText } from './exportNotes';
 import { readNotesBody, type NotesBody } from './write';
 
 const BODY: NotesBody = {
@@ -17,6 +17,32 @@ const BODY: NotesBody = {
 const WORDS = { decision: 'Decision', todo: 'To do', risk: 'Risk', mySide: 'My side', otherSide: 'The other side' };
 
 describe('the notes exported', () => {
+  // Design P1 §3: the copy for documents (Word, Feishu docs, Notion) has real headings and a list.
+  it('as HTML: headings, paragraphs and a list with what each point is, every text escaped', () => {
+    const body = { ...BODY, points: [...BODY.points, { topic: 0, text: 'Use <b> & "quotes"', sentences: [1], kinds: [] }] } as NotesBody;
+    expect(notesHtml(body, WORDS)).toBe([
+      '<h1>Supplier sync</h1>', '<p>Delivery and packaging.</p>',
+      '<h2>Delivery</h2>', '<p>The date.</p>',
+      '<ul><li>Ships next Tuesday — Decision</li><li>Send the tracking number — To do · My side · Tuesday</li>',
+      '<li>Use &lt;b&gt; &amp; &quot;quotes&quot;</li></ul>',
+      '<h2>Packaging</h2>', '<ul><li>The boxes were redone</li></ul>',
+    ].join(''));
+  });
+
+  // PR review: a line started with Shift+Enter is kept in the rich copy, where HTML would fold it into a space.
+  it('as HTML: a line break in any field is a <br>', () => {
+    const body = {
+      ...BODY, overview: { text: 'First line\nSecond <line>', format: 'plain' },
+      topics: [{ title: 'Delivery', summary: 'The date.\nThe place.', first: 1 }],
+      points: [{ topic: 0, text: 'Ship it\nby Tuesday', sentences: [2], kinds: [] }],
+    } as NotesBody;
+    expect(notesHtml(body, WORDS)).toBe([
+      '<h1>Supplier sync</h1>', '<p>First line<br>Second &lt;line&gt;</p>',
+      '<h2>Delivery</h2>', '<p>The date.<br>The place.</p>',
+      '<ul><li>Ship it<br>by Tuesday</li></ul>',
+    ].join(''));
+  });
+
   it('as Markdown: the title, the overview, each topic and its points with what they are', () => {
     expect(notesMarkdown(BODY, WORDS)).toBe([
       '# Supplier sync', '', 'Delivery and packaging.', '',

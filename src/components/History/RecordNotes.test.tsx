@@ -15,7 +15,7 @@ const record = (notes: HistoryRecord['notes'] = []): HistoryRecord => ({
 });
 const complete: HistoryNotes = {
   id: 7, recordId: A, transcriptId: 1, writtenBy: { kind: 'sokuji', promptVersion: 1, model: 'gpt-6-luna' }, language: 'en', createdAt: 0,
-  state: 'complete', failure: null, requestIds: [],
+  state: 'complete', failure: null, requestIds: [], editedAt: null,
   body: {
     title: 'Supplier sync', overview: { text: 'Delivery and packaging.', format: 'plain' },
     topics: [{ title: 'Delivery', summary: 'The date.', first: 1 }, { title: 'Packaging', summary: 'The fix.', first: 5 }],
@@ -449,5 +449,213 @@ describe('RecordNotes styles: the language and the button', () => {
     const picker = css.match(/\.record-notes__pick select::picker\(select\)\s*\{([^}]*)\}/)?.[1] ?? '';
     expect(picker).toMatch(/width:\s*anchor-size\(width\)/);
     expect(picker).toMatch(/box-sizing:\s*border-box/);
+  });
+});
+
+// Design P1 §1: each part of the notes edited in place, from a pencil; Enter saves, Shift+Enter is a new line, Escape
+// cancels, a click elsewhere saves; a to-do's owner and date beside its text; the version marked once edited.
+describe('editing the notes in place', () => {
+  const onEdit = () => vi.fn(async () => {});
+  const pencils = (name: string) => screen.queryAllByRole('button', { name });
+
+  it('a pencil on every part when editing is allowed, none otherwise', () => {
+    const { unmount } = render(<RecordNotes {...props({ onEdit: onEdit() })} />);
+    expect(pencils('Edit the title')).toHaveLength(1);
+    expect(pencils('Edit the overview')).toHaveLength(1);
+    expect(pencils('Edit the topic title')).toHaveLength(2);
+    expect(pencils('Edit the summary')).toHaveLength(2);
+    expect(pencils('Edit the point')).toHaveLength(4);
+    expect(screen.getByRole('heading', { name: 'Supplier sync' })).toBeInTheDocument();
+    unmount();
+    render(<RecordNotes {...props()} />);
+    expect(pencils('Edit the point')).toHaveLength(0);
+    expect(pencils('Edit the title')).toHaveLength(0);
+  });
+
+  it('a to-do opens with its owner and date; a decision with its text only', () => {
+    render(<RecordNotes {...props({ onEdit: onEdit() })} />);
+    fireEvent.click(pencils('Edit the point')[1]);
+    expect((screen.getByRole('textbox', { name: 'Point' }) as HTMLTextAreaElement).value).toBe('Send the tracking number');
+    expect((screen.getByRole('textbox', { name: 'Owner' }) as HTMLInputElement).value).toBe('Your side');
+    expect((screen.getByRole('textbox', { name: 'Due' }) as HTMLInputElement).value).toBe('Tuesday');
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Escape' });
+    fireEvent.click(pencils('Edit the point')[0]);
+    expect(screen.queryByRole('textbox', { name: 'Owner' })).toBeNull();
+  });
+
+  it('Enter saves, Shift+Enter keeps editing, Escape cancels, a click elsewhere saves, composing never saves', async () => {
+    const edit = onEdit();
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the point')[1]);
+    const field = () => screen.getByRole('textbox', { name: 'Point' });
+    fireEvent.change(field(), { target: { value: 'Send the tracking link' } });
+    fireEvent.keyDown(field(), { key: 'Enter', shiftKey: true });
+    fireEvent.keyDown(field(), { key: 'Enter', isComposing: true });
+    expect(edit).not.toHaveBeenCalled();
+    fireEvent.keyDown(field(), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    // The owner shown as the interface words it is stored again as the side it stands for.
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 1 }, text: 'Send the tracking link', owner: 'My side', due: 'Tuesday' });
+    expect(screen.queryByRole('textbox', { name: 'Point' })).toBeNull();
+
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: 'not this' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Escape' });
+    expect(edit).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(pencils('Edit the summary')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Summary' }), { target: { value: 'The new date.' } });
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Summary' }));
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenLastCalledWith({ field: { part: 'topicSummary', topic: 0 }, text: 'The new date.' });
+  });
+
+  it('a point edited under a filter is the stored one', async () => {
+    const edit = onEdit();
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Risks' }));
+    fireEvent.click(pencils('Edit the point')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: 'Customs will hold it' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 3 }, text: 'Customs will hold it' });
+  });
+
+  // Final review I-1: moving to the next field while the one before is still saving keeps the new one open.
+  it('a field opened while the one before is still saving stays open, with what was typed', async () => {
+    let finish!: () => void;
+    const edit = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the title')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Supplier call' } });
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Title' }));
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: 'Typed while the title saved' } });
+    await act(async () => { finish(); await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledTimes(1);
+    expect((screen.getByRole('textbox', { name: 'Overview' }) as HTMLTextAreaElement).value).toBe('Typed while the title saved');
+  });
+
+  // PR review: a save that fails leaves the field open with what was typed, to try again or cancel.
+  it('a save that fails keeps the field open with what was typed', async () => {
+    const edit = vi.fn(async () => false);
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: 'Kept after a failure' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledTimes(1);
+    expect((screen.getByRole('textbox', { name: 'Overview' }) as HTMLTextAreaElement).value).toBe('Kept after a failure');
+  });
+
+  // PR review: what is typed while a save runs would be lost when it ends, so nothing can be typed then.
+  it('while a field saves, it and its owner and date cannot be typed in', async () => {
+    let finish!: (saved: boolean) => void;
+    const edit = vi.fn(() => new Promise<boolean>((resolve) => { finish = resolve; }));
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the point')[1]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: 'Send the tracking link' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    expect(screen.getByRole('textbox', { name: 'Point' })).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox', { name: 'Owner' })).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox', { name: 'Due' })).toHaveAttribute('readonly');
+    await act(async () => { finish(true); await Promise.resolve(); });
+    expect(screen.queryByRole('textbox', { name: 'Point' })).toBeNull();
+  });
+
+  // OCR: a save that throws is a failed one; Escape waits for a save under way, so a failure still has its editor.
+  it('a save that throws keeps the field open and editable; Escape does nothing while a save runs', async () => {
+    let fail!: (e: Error) => void;
+    const edit = vi.fn(() => new Promise<boolean>((_, reject) => { fail = reject; }));
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: 'Kept after a throw' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Escape' });
+    expect(screen.getByRole('textbox', { name: 'Overview' })).toBeInTheDocument();
+    await act(async () => { fail(new Error('disk')); await Promise.resolve(); });
+    const field = screen.getByRole('textbox', { name: 'Overview' }) as HTMLTextAreaElement;
+    expect(field.value).toBe('Kept after a throw');
+    expect(field).not.toHaveAttribute('readonly');
+  });
+
+  // PR review: points that hold the same topic, sentences, kinds and text are told apart by owner and date; two that
+  // hold exactly the same cannot be, and the editor closes rather than guess which one is its point.
+  it('a point being edited is not mistaken for a look-alike when one before it is removed', async () => {
+    const twin = (owner: string) => ({ topic: 0, text: 'Send the tracking number', sentences: [3], kinds: ['todo' as const], owner, due: 'Tuesday' });
+    const lay = (points: unknown[]) => ({ ...complete, body: { ...complete.body!, points } }) as HistoryNotes;
+    const first = complete.body!.points[0];
+    const edit = onEdit();
+    const { rerender } = render(<RecordNotes {...props({ onEdit: edit, notes: lay([first, twin('My side'), twin('Other side')]) })} />);
+    fireEvent.click(pencils('Edit the point')[2]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: 'Send the tracking link' } });
+    rerender(<RecordNotes {...props({ onEdit: edit, notes: lay([twin('My side'), twin('Other side')]) })} />);
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 1 }, text: 'Send the tracking link', owner: 'Other side', due: 'Tuesday' });
+
+    cleanup();
+    const same = twin('My side');
+    const again = render(<RecordNotes {...props({ onEdit: edit, notes: lay([first, same, same]) })} />);
+    fireEvent.click(pencils('Edit the point')[2]);
+    again.rerender(<RecordNotes {...props({ onEdit: edit, notes: lay([same, same]) })} />);
+    expect(screen.queryByRole('textbox', { name: 'Point' })).toBeNull();
+  });
+
+  // PR review: an editor belongs to the version it was opened on; another version shown closes it, so a draft (or a
+  // retry after a failed save) never lands in that other version.
+  it('another version shown closes an open editor', async () => {
+    const edit = onEdit();
+    const { rerender } = render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the title')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Draft for version 7' } });
+    const other = { ...complete, id: 8, body: { ...complete.body!, title: 'Version 8' } };
+    rerender(<RecordNotes {...props({ onEdit: edit, notes: other })} />);
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Version 8' })).toBeInTheDocument();
+    fireEvent.click(pencils('Edit the title')[0]);
+    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLTextAreaElement).value).toBe('Version 8');
+    expect(edit).not.toHaveBeenCalled();
+  });
+
+  // PR review: a save that ends after its field was closed and opened again leaves the new editor alone.
+  it('a save that ends after the field was opened again does not close it', async () => {
+    let finish!: (saved: boolean) => void;
+    const edit = vi.fn(() => new Promise<boolean>((resolve) => { finish = resolve; }));
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the title')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Supplier call' } });
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Title' }));
+    // Another field opened and left, then the title again, while the first save still runs.
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Escape' });
+    fireEvent.click(pencils('Edit the title')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Typed again' } });
+    await act(async () => { finish(true); await Promise.resolve(); });
+    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLTextAreaElement).value).toBe('Typed again');
+  });
+
+  // PR review: a point removed before the one being edited moves it up; the editor stays with its point and saves it there.
+  it('a point being edited stays with its point when one before it is removed', async () => {
+    const edit = onEdit();
+    const { rerender } = render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the point')[1]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: 'Send the tracking link' } });
+    const removed = { ...complete, body: { ...complete.body!, points: complete.body!.points.slice(1) } };
+    rerender(<RecordNotes {...props({ onEdit: edit, notes: removed })} />);
+    expect((screen.getByRole('textbox', { name: 'Point' }) as HTMLTextAreaElement).value).toBe('Send the tracking link');
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 0 }, text: 'Send the tracking link', owner: 'My side', due: 'Tuesday' });
+  });
+
+  it('the title edits as the others do, and an edited version says so', () => {
+    const { unmount } = render(<RecordNotes {...props({ onEdit: onEdit(), notes: { ...complete, editedAt: 5 } })} />);
+    expect(screen.getByText('Edited by hand')).toBeInTheDocument();
+    fireEvent.click(pencils('Edit the title')[0]);
+    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLTextAreaElement).value).toBe('Supplier sync');
+    unmount();
+    render(<RecordNotes {...props()} />);
+    expect(screen.queryByText('Edited by hand')).toBeNull();
   });
 });

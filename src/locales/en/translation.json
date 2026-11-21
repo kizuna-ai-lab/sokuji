@@ -2243,7 +2243,12 @@
       "restored": "Original restored",
       "speaker": "Speaker changed",
       "undone": "Undone",
-      "undo": "Undo"
+      "undo": "Undo",
+      "notesEdited": "Notes changed",
+      "notesRemoved": "Point removed",
+      "undoKept": "Changed since, left as it is",
+      "merged": "{{from}} merged into {{into}} ({{count}} sentences)",
+      "merged_one": "{{from}} merged into {{into}} ({{count}} sentence)"
     },
     "notesGoFix": "Go fix",
     "notesFixed": "Fixed",
@@ -2257,7 +2262,30 @@
     "edited": "Edited",
     "editedOriginal": "Original: {{heard}}",
     "original": "Original",
-    "restoreOriginal": "Restore original"
+    "restoreOriginal": "Restore original",
+    "notesEdit": {
+      "title": "Edit the title",
+      "overview": "Edit the overview",
+      "topicTitle": "Edit the topic title",
+      "topicSummary": "Edit the summary",
+      "point": "Edit the point"
+    },
+    "notesField": {
+      "title": "Title",
+      "overview": "Overview",
+      "topicTitle": "Topic title",
+      "topicSummary": "Summary",
+      "point": "Point"
+    },
+    "notesOwner": "Owner",
+    "notesDue": "Due",
+    "notesEdited": "Edited by hand",
+    "mergeSpeaker": "Merge {{name}} into…",
+    "mergeInto": "Merge into…",
+    "mergeMenu": "Merge into",
+    "mergeAsk": "{{name}} is already a speaker on this side.",
+    "mergeOne": "Merge into one",
+    "keepApart": "Keep apart"
   },
   "notesQuit": {
     "named": "Notes are being written for “{{title}}”. Quit anyway? They will be marked cancelled.",

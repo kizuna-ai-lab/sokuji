@@ -2243,7 +2243,12 @@
       "restored": "Оригінал відновлено",
       "speaker": "Мовця змінено",
       "undone": "Скасовано",
-      "undo": "Скасувати"
+      "undo": "Скасувати",
+      "notesEdited": "Нотатки змінено",
+      "notesRemoved": "Пункт видалено",
+      "undoKept": "Відтоді змінено, залишено як є",
+      "merged": "{{from}} об’єднано з {{into}} (речень: {{count}})",
+      "merged_one": "{{from}} об’єднано з {{into}} (речень: {{count}})"
     },
     "notesGoFix": "Виправити",
     "notesFixed": "Виправлено",
@@ -2257,7 +2262,30 @@
     "edited": "Змінено",
     "editedOriginal": "Оригінал: {{heard}}",
     "original": "Оригінал",
-    "restoreOriginal": "Відновити оригінал"
+    "restoreOriginal": "Відновити оригінал",
+    "notesEdit": {
+      "title": "Змінити заголовок",
+      "overview": "Змінити огляд",
+      "topicTitle": "Змінити заголовок теми",
+      "topicSummary": "Змінити короткий зміст",
+      "point": "Змінити пункт"
+    },
+    "notesField": {
+      "title": "Заголовок",
+      "overview": "Огляд",
+      "topicTitle": "Заголовок теми",
+      "topicSummary": "Короткий зміст",
+      "point": "Пункт"
+    },
+    "notesOwner": "Відповідальний",
+    "notesDue": "Термін",
+    "notesEdited": "Змінено вручну",
+    "mergeSpeaker": "Об’єднати {{name}} з…",
+    "mergeInto": "Об’єднати з…",
+    "mergeMenu": "Об’єднати з",
+    "mergeAsk": "{{name}} уже є серед мовців на цьому боці.",
+    "mergeOne": "Об’єднати в одного",
+    "keepApart": "Залишити окремо"
   },
   "notesQuit": {
     "named": "Пишуться нотатки для «{{title}}». Усе одно вийти? Їх буде позначено як скасовані.",

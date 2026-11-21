@@ -153,7 +153,12 @@ create table corrections (
 create index corrections_transcript on corrections (transcript_id);
 `;
 
-const MIGRATIONS = [V1, V2];
+// Version 3 (2026-11-21): a notes version edited by hand says when (design P1: "已手动修改"); null until then.
+const V3 = `
+alter table notes add column edited_at integer;
+`;
+
+const MIGRATIONS = [V1, V2, V3];
 const SCHEMA_VERSION = MIGRATIONS.length;
 
 module.exports = { MIGRATIONS, SCHEMA_VERSION };

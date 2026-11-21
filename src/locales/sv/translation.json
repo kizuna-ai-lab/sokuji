@@ -2243,7 +2243,12 @@
       "restored": "Originalet återställt",
       "speaker": "Talare ändrad",
       "undone": "Ångrat",
-      "undo": "Ångra"
+      "undo": "Ångra",
+      "notesEdited": "Anteckningarna ändrade",
+      "notesRemoved": "Punkten borttagen",
+      "undoKept": "Ändrad sedan dess, lämnad som den är",
+      "merged": "{{from}} sammanslagen med {{into}} ({{count}} meningar)",
+      "merged_one": "{{from}} sammanslagen med {{into}} ({{count}} mening)"
     },
     "notesGoFix": "Rätta",
     "notesFixed": "Rättat",
@@ -2257,7 +2262,30 @@
     "edited": "Redigerad",
     "editedOriginal": "Original: {{heard}}",
     "original": "Original",
-    "restoreOriginal": "Återställ originalet"
+    "restoreOriginal": "Återställ originalet",
+    "notesEdit": {
+      "title": "Redigera titeln",
+      "overview": "Redigera översikten",
+      "topicTitle": "Redigera ämnestiteln",
+      "topicSummary": "Redigera sammanfattningen",
+      "point": "Redigera punkten"
+    },
+    "notesField": {
+      "title": "Titel",
+      "overview": "Översikt",
+      "topicTitle": "Ämnestitel",
+      "topicSummary": "Sammanfattning",
+      "point": "Punkt"
+    },
+    "notesOwner": "Ansvarig",
+    "notesDue": "Senast",
+    "notesEdited": "Redigerad för hand",
+    "mergeSpeaker": "Slå ihop {{name}} med…",
+    "mergeInto": "Slå ihop med…",
+    "mergeMenu": "Slå ihop med",
+    "mergeAsk": "{{name}} är redan en talare på den här sidan.",
+    "mergeOne": "Slå ihop till en",
+    "keepApart": "Håll isär"
   },
   "notesQuit": {
     "named": "Anteckningar skrivs för ”{{title}}”. Avsluta ändå? De markeras som avbrutna.",

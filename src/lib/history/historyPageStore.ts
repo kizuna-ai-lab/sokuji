@@ -16,6 +16,7 @@ import type { ImportPhase, ImportResult } from './file/importFile';
 import type { FileRecognitionMissing, FileRecognitionService } from './file/service';
 import { trackTranslation, transcribedTracks, type TranscribePhase } from './file/transcribe';
 import type { HistoryPort } from './port';
+import { applyNotesEdit, undoNotesEdit, type NotesEdit, type NotesUndo } from '../notes/editNotes';
 import type {
   FileTranscriptionOptions, HistoryCorrection,
   HistoryNotes, HistoryRecord, HistoryRecordRow, HistorySearchResult, HistorySentence, HistorySpeaker, HistoryStatus, HistoryUsage,
@@ -49,6 +50,10 @@ export type EditToast = { id: number } & (
   | { kind: 'fixed'; from: string; to: string; count: number; words: boolean }
   | { kind: 'reverted'; from: string; to: string; count: number; kept: number }
   | { kind: 'edited' } | { kind: 'restored' } | { kind: 'speaker' } | { kind: 'undone' }
+  /** Design P1: a notes field changed, a point removed, an undo that found its field changed since (left as it is). */
+  | { kind: 'notesEdited' } | { kind: 'notesRemoved' } | { kind: 'undoKept' }
+  /** Design P1 §2: `from` merged into `into` (their labels as shown), `count` sentences moved. */
+  | { kind: 'merged'; from: string; into: string; count: number }
 );
 
 /** A word handed to the edit panel's "Fix words" (option C): from a name to check or a selection. It changes nothing. */
@@ -210,6 +215,18 @@ export interface HistoryPageActions {
   fileJobCheck(kind: 'import' | 'transcribe'): Promise<FileJobCheck>;
   /** The open record can be edited: it has ended and is not being transcribed again. */
   canEdit(): boolean;
+  /** The shown notes can be edited: the record can be, they are complete, and no version is being written for it. */
+  canEditNotes(): boolean;
+  /**
+   * One field of the shown notes changed by hand (design P1 §1): marked edited, undoable. True once saved, or when there
+   * was nothing to save; false when the write failed (the page says why).
+   */
+  editNotes(edit: NotesEdit): Promise<boolean>;
+  /**
+   * Every sentence of `side` whose speaker is `from` moved to `into` in one write (design P1 §2), undoable sentence by
+   * sentence; `labels` name them as the page shows them. Returns how many moved (0: nothing to do, or not editable).
+   */
+  mergeSpeaker(side: 'mine' | 'other', from: string, into: string, labels: { from: string; into: string }): Promise<number>;
   /**
    * `from` written as `to` in the shown transcript (only sentence `only` when given), the shown notes too with `notes`,
    * and into the word list with `words` (a whole-transcript fix only). The sentences changed; 0 when refused or failed.
@@ -312,17 +329,24 @@ export function createHistoryPageStore(
   type WordsAdded = { written: string; was: WordEntry | null; made: WordEntry };
   /** What undo takes back on the record shown, last first; cleared when the record or transcript shown changes. */
   type UndoStep =
-    | { kind: 'fix'; id: number; words: WordsAdded | null }
+    /** `notesEditedAt`: the notes version's mark before the fix, put back by its undo. */
+    | { kind: 'fix'; id: number; words: WordsAdded | null; notesEditedAt: number | null }
     /** A fix reverted from the list: undoing it writes the fix again where its sentences read as heard. */
     | {
       kind: 'revert'; id: number; from: string; to: string;
       /** What the revert changed: each place as it is now, and as the fix had it. */
       sentences: Array<{ n: number; now: string; was: string }>;
       notes: { id: number; now: string; was: string } | null;
+      /** The notes version's mark before the revert, put back when the fix is written again. */
+      notesEditedAt: number | null;
     }
     | { kind: 'sentence'; n: number; text: string }
     | { kind: 'name'; side: 'mine' | 'other'; speaker: string; name: string }
-    | { kind: 'move'; n: number; speaker: string | null };
+    | { kind: 'move'; n: number; speaker: string | null }
+    /** A notes field edited (design P1): taken back on the version as it is then; `editedAt` the mark before. */
+    | { kind: 'notes'; id: number; undo: NotesUndo; editedAt: number | null }
+    /** A merge (design P1): each moved sentence and the speaker it had set by hand (null: the recognizer's). */
+    | { kind: 'merge'; moves: Array<{ n: number; speaker: string | null }> };
   let undoSteps: UndoStep[] = [];
   /** An undo being written: a second press waits for it rather than taking the same step twice. */
   let undoing = false;
@@ -455,9 +479,21 @@ export function createHistoryPageStore(
      * One undo step written back: what it took back, and nothing else. `done` is called once its own write is made, so
      * a later part that fails (the word list) does not leave the step to be taken back twice.
      */
-    const undoStep = async (open: OpenRecord, transcriptId: number, step: UndoStep, done: () => void): Promise<void> => {
+    /** Takes `step` back; 'kept' when it found its field changed since and left it. */
+    const undoStep = async (open: OpenRecord, transcriptId: number, step: UndoStep, done: () => void): Promise<'kept' | void> => {
+      if (step.kind === 'notes') {
+        const shown = await port.getNotes({ id: step.id });
+        const back = shown?.body ? undoNotesEdit(shown.body, step.undo) : null;
+        if (!shown?.body || !back) {
+          done();
+          return 'kept';
+        }
+        await port.editNotes({ id: step.id, before: JSON.stringify(shown.body), after: JSON.stringify(back), editedAt: step.editedAt });
+        done();
+        return;
+      }
       if (step.kind === 'fix') {
-        await port.revertCorrection({ id: step.id, forget: true });
+        await port.revertCorrection({ id: step.id, forget: true, notesEditedAt: step.notesEditedAt });
         done();
         // Only the entry the fix changed, and only as the fix left it: another entry written the same way, or a
         // change made to this one since, stays (PR review).
@@ -472,10 +508,12 @@ export function createHistoryPageStore(
         const sentences = step.sentences
           .filter((x) => open.sentences.find((y) => y.n === x.n)?.text === x.now)
           .map((x) => ({ n: x.n, before: x.now, after: x.was }));
-        let notes: { id: number; before: string; after: string } | null = null;
+        let notes: { id: number; before: string; after: string; editedAt: number | null } | null = null;
         if (step.notes) {
           const shown = await port.getNotes({ id: step.notes.id });
-          if (shown?.body && JSON.stringify(shown.body) === step.notes.now) notes = { id: step.notes.id, before: step.notes.now, after: step.notes.was };
+          if (shown?.body && JSON.stringify(shown.body) === step.notes.now) {
+            notes = { id: step.notes.id, before: step.notes.now, after: step.notes.was, editedAt: step.notesEditedAt };
+          }
         }
         if (sentences.length > 0 || notes) {
           const again = await port.applyCorrection({ transcriptId, from: step.from, to: step.to, sentences, notes });
@@ -485,6 +523,9 @@ export function createHistoryPageStore(
         done();
       } else if (step.kind === 'sentence') {
         await port.editSentences({ transcriptId, edits: [{ n: step.n, text: step.text }] });
+        done();
+      } else if (step.kind === 'merge') {
+        await port.reassignSentences({ transcriptId, moves: step.moves });
         done();
       } else if (step.kind === 'name') {
         await port.renameSpeaker({ transcriptId, side: step.side, speaker: step.speaker, name: step.name });
@@ -803,6 +844,51 @@ export function createHistoryPageStore(
 
       canEdit: editable,
 
+      canEditNotes() {
+        const open = get().open;
+        return editable() && open?.notes?.state === 'complete' && open.notes.body !== null && !get().notesRunning.includes(open.record.id);
+      },
+
+      async mergeSpeaker(side, from, into, labels) {
+        const open = get().open;
+        if (!open || open.transcriptId === null || !editable() || from === into) return 0;
+        const moving = open.sentences.filter((x) => x.side === side && (x.speakerByUser ?? x.speaker) === from);
+        if (moving.length === 0) return 0;
+        const scope = scopeNow();
+        let moved = 0;
+        await act(async () => {
+          await port.reassignSentences({ transcriptId: open.transcriptId!, moves: moving.map((x) => ({ n: x.n, speaker: into })) });
+          moved = moving.length;
+          if (!stillIn(scope)) return;
+          remember({ kind: 'merge', moves: moving.map((x) => ({ n: x.n, speaker: x.speakerByUser })) });
+          say({ kind: 'merged', from: labels.from, into: labels.into, count: moving.length });
+          await reread();
+        });
+        return moved;
+      },
+
+      async editNotes(edit) {
+        const open = get().open;
+        if (!open?.notes?.body || !get().canEditNotes()) return false;
+        const shown = open.notes;
+        const made = applyNotesEdit(shown.body!, edit);
+        if (!made) return true;
+        const titleChanged = made.body.title !== shown.body!.title;
+        const scope = scopeNow();
+        let saved = false;
+        await act(async () => {
+          await port.editNotes({ id: shown.id, before: JSON.stringify(shown.body), after: JSON.stringify(made.body), editedAt: clock.now() });
+          saved = true;
+          if (!stillIn(scope)) return;
+          remember({ kind: 'notes', id: shown.id, undo: made.undo, editedAt: shown.editedAt ?? null });
+          say({ kind: made.undo.kind === 'removed' ? 'notesRemoved' : 'notesEdited' });
+          // The record's title follows its notes' title: the list shows it.
+          if (titleChanged) await reload();
+          await reread();
+        });
+        return saved;
+      },
+
       async fixWords(from, to, o) {
         const open = get().open;
         const word = from.trim();
@@ -819,11 +905,13 @@ export function createHistoryPageStore(
         let changed = 0;
         const scope = scopeNow();
         await act(async () => {
-          const id = await port.applyCorrection({ transcriptId: open.transcriptId!, from: word, to: written, sentences, notes: notesChange });
+          // A fix is made by hand: the notes it changes are marked (design P1), and its undo puts the mark back.
+          const notes = notesChange ? { ...notesChange, editedAt: clock.now() } : null;
+          const id = await port.applyCorrection({ transcriptId: open.transcriptId!, from: word, to: written, sentences, notes });
           changed = sentences.length;
           const words = learn ? await learnWord(written, word) : null;
           if (!stillIn(scope)) return;
-          remember({ kind: 'fix', id, words });
+          remember({ kind: 'fix', id, words, notesEditedAt: open.notes?.editedAt ?? null });
           say({ kind: 'fixed', from: word, to: written, count: sentences.length, words: words !== null });
           // The record's title follows its notes' title: the list shows it (final review I-7).
           if (notesChange) await reload();
@@ -875,7 +963,7 @@ export function createHistoryPageStore(
         // shown or not.
         const textBefore = new Map(open.sentences.map((x) => [x.n, x.text]));
         const notesBefore = c.notesId !== null ? await port.getNotes({ id: c.notesId }) : null;
-        const { restored, kept } = await port.revertCorrection({ id });
+        const { restored, kept } = await port.revertCorrection({ id, notesEditedAt: clock.now() });
         const notesAfter = c.notesId !== null ? await port.getNotes({ id: c.notesId }) : null;
         if (!stillIn(scope)) return;
         if (c.notesId !== null) await reload();
@@ -888,7 +976,7 @@ export function createHistoryPageStore(
         const was = notesBefore?.body ? JSON.stringify(notesBefore.body) : null;
         const now = notesAfter?.body ? JSON.stringify(notesAfter.body) : null;
         const notes = c.notesId !== null && was !== null && now !== null && was !== now ? { id: c.notesId, now, was } : null;
-        remember({ kind: 'revert', id, from: c.from, to: c.to, sentences, notes });
+        remember({ kind: 'revert', id, from: c.from, to: c.to, sentences, notes, notesEditedAt: notesBefore?.editedAt ?? null });
         say({ kind: 'reverted', from: c.from, to: c.to, count: restored, kept });
       }),
 
@@ -899,22 +987,23 @@ export function createHistoryPageStore(
         const scope = scopeNow();
         // Taken off only once its own write is made, so an undo that failed before can be tried again (PR review).
         let done = false;
+        let kept = false;
         let failure: unknown = null;
         undoing = true;
         try {
-          await undoStep(open, open.transcriptId, step, () => {
+          kept = (await undoStep(open, open.transcriptId, step, () => {
             done = true;
             undoSteps = undoSteps.filter((x) => x !== step);
             set({ canUndo: undoSteps.length > 0 });
-          });
+          })) === 'kept';
         } catch (error) {
           failure = error;
         } finally {
           undoing = false;
         }
         if (done && stillIn(scope)) {
-          say({ kind: 'undone' });
-          if (step.kind === 'fix' || step.kind === 'revert') await reload();
+          say({ kind: kept ? 'undoKept' : 'undone' });
+          if (step.kind === 'fix' || step.kind === 'revert' || step.kind === 'notes') await reload();
           await reread();
         }
         if (failure !== null) throw failure;

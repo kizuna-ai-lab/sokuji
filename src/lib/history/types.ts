@@ -297,6 +297,8 @@ export interface HistoryNotes extends HistoryNotesRow {
   recordId: string;
   requestIds: string[];
   body: HistoryNotesBody | null;
+  /** When the version was last changed by hand (an edit, or a fix of words in it); null when never (design P1). */
+  editedAt: number | null;
 }
 
 export type HistorySearchHit =

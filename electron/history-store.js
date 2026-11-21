@@ -195,6 +195,32 @@ function openHistory({ dir, now = () => Date.now() }) {
     ];
   }
   const textAt = (body, path) => path.reduce((x, k) => (x === null || x === undefined ? undefined : x[k]), body);
+  /** The parts of a point a person can edit by hand. */
+  const HAND_EDITED = new Set(['text', 'owner', 'due']);
+  /**
+   * Where each point of `after` is in `body` now. Points are only ever removed by hand (P1), which moves the later ones
+   * up. With as many points as the fix left, each is where it was, when it still holds what cannot be edited by hand
+   * (its topic, sentences and kinds; not its text, owner or date). With fewer, a point is found by those alone, and only
+   * when no other point holds the same on either side: two it cannot tell apart are left as they are (PR review).
+   */
+  function pointPlaces(after, body) {
+    const left = Array.isArray(after.points) ? after.points : [];
+    const current = Array.isArray(body.points) ? body.points : [];
+    const identity = (x) => JSON.stringify(isPlainObject(x) ? Object.entries(x).filter(([k]) => !HAND_EDITED.has(k)) : x);
+    const leftKeys = left.map(identity);
+    const currentKeys = current.map(identity);
+    const places = new Map();
+    if (left.length === current.length) {
+      leftKeys.forEach((k, i) => { if (currentKeys[i] === k) places.set(i, i); });
+      return places;
+    }
+    const once = (keys, k) => keys.indexOf(k) === keys.lastIndexOf(k);
+    leftKeys.forEach((k, i) => {
+      const at = currentKeys.indexOf(k);
+      if (at >= 0 && once(leftKeys, k) && once(currentKeys, k)) places.set(i, at);
+    });
+    return places;
+  }
   function putText(body, path, value) {
     const holder = textAt(body, path.slice(0, -1));
     if (holder !== null && typeof holder === 'object') holder[path[path.length - 1]] = value;
@@ -511,7 +537,8 @@ function openHistory({ dir, now = () => Date.now() }) {
       const t = finishedTranscript(transcriptId);
       if (!isString(from) || !from || !isString(to) || !Array.isArray(sentences)
         || sentences.some((x) => !isPlainObject(x) || !isInt(x.n) || !isString(x.before) || !isString(x.after))
-        || !(notes === null || (isPlainObject(notes) && isInt(notes.id) && isString(notes.before) && isString(notes.after)))) {
+        || !(notes === null || (isPlainObject(notes) && isInt(notes.id) && isString(notes.before) && isString(notes.after)
+          && (notes.editedAt === undefined || notes.editedAt === null || isInt(notes.editedAt))))) {
         fail('BAD_INPUT', 'A fix needs from, to, its sentences as { n, before, after } and notes as { id, before, after } or null');
       }
       return transaction(db, () => {
@@ -526,6 +553,8 @@ function openHistory({ dir, now = () => Date.now() }) {
           if (!n || n.body === null) fail('NO_NOTES', `No notes ${notes.id}`);
           if (n.body !== notes.before) fail('STALE', `Notes ${notes.id} changed`);
           writeNotesBody(notes.id, notes.after);
+          // A fix is made by hand: the version is marked when the page says when (P1); P0 callers leave the mark be.
+          if (notes.editedAt !== undefined) run('update notes set edited_at = ? where id = ?', notes.editedAt, notes.id);
           followTitle(t.record_id, JSON.parse(notes.before).title ?? '', JSON.parse(notes.after).title ?? '');
         }
         const { lastInsertRowid } = run(
@@ -537,9 +566,10 @@ function openHistory({ dir, now = () => Date.now() }) {
     },
 
     /** A fix taken back: what it wrote goes back to what it found; what changed since stays. `forget`: no trace left. */
-    revertCorrection({ id, forget = false } = {}) {
+    revertCorrection({ id, forget = false, notesEditedAt } = {}) {
       const c = isInt(id) ? one('select * from corrections where id = ?', id) : undefined;
       if (!c) fail('NO_CORRECTION', `No correction ${id}`);
+      if (!(notesEditedAt === undefined || notesEditedAt === null || isInt(notesEditedAt))) fail('BAD_INPUT', 'notesEditedAt must be a time or null');
       const t = finishedTranscript(c.transcript_id);
       return transaction(db, () => {
         let restored = 0;
@@ -557,15 +587,24 @@ function openHistory({ dir, now = () => Date.now() }) {
             const before = JSON.parse(notes.before);
             const after = JSON.parse(notes.after);
             const body = JSON.parse(n.body);
+            // A point is found where it is now, not where the fix left it (a point removed since moved it; P1 review).
+            const places = pointPlaces(after, body);
+            const placeOf = (path) => {
+              if (path[0] !== 'points') return path;
+              return places.has(path[1]) ? ['points', places.get(path[1]), ...path.slice(2)] : null;
+            };
             let back = 0;
             for (const path of notesTextPaths(after)) {
               const was = textAt(before, path);
               const wrote = textAt(after, path);
               if (typeof was !== 'string' || was === wrote) continue;
-              if (textAt(body, path) === wrote) { putText(body, path, was); back += 1; } else kept += 1;
+              const at = placeOf(path);
+              if (at && textAt(body, at) === wrote) { putText(body, at, was); back += 1; } else kept += 1;
             }
             if (back > 0) {
               writeNotesBody(notes.id, JSON.stringify(body));
+              // Only when it changed the notes back: the mark is what the page says it is now (P1).
+              if (notesEditedAt !== undefined) run('update notes set edited_at = ? where id = ?', notesEditedAt, notes.id);
               if (body.title === before.title) followTitle(t.record_id, after.title ?? '', before.title ?? '');
             }
           }
@@ -612,6 +651,21 @@ function openHistory({ dir, now = () => Date.now() }) {
       if (Number(changes) === 0) fail('NO_SENTENCE', `No sentence ${n}`);
     },
 
+    /** Many sentences to another speaker (or back to the recognizer's, null) in one write: a merge and its undo (P1). */
+    reassignSentences({ transcriptId, moves } = {}) {
+      // A merge and its undo are for a finished record (P1), as the notes edits are.
+      finishedTranscript(transcriptId);
+      if (!Array.isArray(moves) || moves.some((m) => !isPlainObject(m) || !isInt(m.n) || !(m.speaker === null || isString(m.speaker)))) {
+        fail('BAD_INPUT', 'moves must be { n, speaker } with a speaker or null');
+      }
+      transaction(db, () => {
+        for (const m of moves) {
+          const { changes } = run('update sentences set speaker_by_user = ? where transcript_id = ? and n = ?', m.speaker, transcriptId, m.n);
+          if (Number(changes) === 0) fail('NO_SENTENCE', `No sentence ${m.n}`);
+        }
+      });
+    },
+
     getSpeakers({ transcriptId } = {}) {
       transcriptOrFail(transcriptId);
       return all(
@@ -622,6 +676,25 @@ function openHistory({ dir, now = () => Date.now() }) {
          order by k.side = 'other', k.speaker`,
         transcriptId,
       ).map((x) => ({ side: x.side, speaker: x.speaker, name: x.name, sentences: x.sentence_count }));
+    },
+
+    /**
+     * A notes version written back whole after an edit by hand (P1), refused when it is no longer the body the page read;
+     * marked with `editedAt` (null takes the mark away, for an undo). The record's title follows the notes' title.
+     */
+    editNotes({ id, before, after, editedAt } = {}) {
+      if (!isInt(id) || !isString(before) || !isString(after) || !(editedAt === null || isInt(editedAt))) {
+        fail('BAD_INPUT', 'An edit needs id, before, after and editedAt (a time or null)');
+      }
+      const n = one('select n.body, n.record_id, r.state from notes n join records r on r.id = n.record_id where n.id = ?', id);
+      if (!n || n.body === null) fail('NO_NOTES', `No notes ${id}`);
+      if (n.state !== 'closed') fail('RECORD_OPEN', `Record ${n.record_id} is not finished`);
+      if (n.body !== before) fail('STALE', `Notes ${id} changed`);
+      transaction(db, () => {
+        writeNotesBody(id, after);
+        run('update notes set edited_at = ? where id = ?', editedAt, id);
+        followTitle(n.record_id, JSON.parse(before).title ?? '', JSON.parse(after).title ?? '');
+      });
     },
 
     saveNotes({ recordId, transcriptId, writtenBy, language, state, failure = null, requestIds = [], body = null } = {}) {
@@ -676,6 +749,7 @@ function openHistory({ dir, now = () => Date.now() }) {
         id: n.id, recordId: n.record_id, transcriptId: n.transcript_id, writtenBy: JSON.parse(n.written_by), language: n.language,
         createdAt: n.created_at, state: n.state, failure: n.failure, requestIds: JSON.parse(n.request_ids),
         body: n.body === null ? null : JSON.parse(n.body),
+        editedAt: n.edited_at ?? null,
       };
     },
 
