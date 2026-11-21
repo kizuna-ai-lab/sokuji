@@ -17,7 +17,8 @@ import { useStageUnit } from '../../lib/plan/fromStores';
 import { NO_MICROPHONE } from '../../lib/session/shape';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
-import { actionLabel, type NoticeActionSpec } from '../../lib/view/noticeActions';
+import { actionLabel, signedInTarget, type NoticeActionSpec } from '../../lib/view/noticeActions';
+import { currentAuth } from '../../app/currentAuth';
 import { isPanelNoteId, noticeActionSpec, panelNoteEntries } from '../../lib/view/panelNotes';
 import {
   useIsMicMuted,
@@ -233,7 +234,13 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
     switch (spec.kind) {
       case 'settings': navigateToSettings(spec.target); return;
       case 'top-up': setAccountPopoverRequested(true); return;
-      case 'sign-in': setAuthOverlay('sign-in'); return;
+      case 'sign-in': {
+        // Signed out: the sign-in itself. Signed in and still refused: the account row of the provider it is about.
+        const row = signedInTarget(spec, currentAuth()?.signedIn === true);
+        if (row) navigateToSettings(row);
+        else setAuthOverlay('sign-in');
+        return;
+      }
       case 'system-settings': openWarning(spec.pane === 'screen-recording' ? 'screen-recording-denied' : 'audio-capture-denied'); return;
       case 'show-in-folder': if (isElectron()) void window.electron.invoke('open-directory', spec.dir); return;
       case 'engine-slot': openTtsSlot(spec.leg); return;

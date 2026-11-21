@@ -22,6 +22,7 @@ import type { LineUp, RunStage, StageName } from '../lib/lineup/types';
 import type { AnalyticsEvents } from '../lib/analytics';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
 import type { Selections } from '../lib/local-inference/selection/types';
+import { choiceInput } from '../lib/plan/choice';
 import { presentHosts } from '../lib/plan/present';
 import { selectionFromStored } from '../lib/session/storedSettings';
 import { guardAstCrossStage } from '../services/providers/astGuard';
@@ -280,7 +281,7 @@ async function chooseNow(stage: StageName, providerId: string | null): Promise<C
   const { getState: get, setState: set } = useLineUpStore;
   const { lineUp, stored, unstoredProvider } = get();
   if (get().locked || !lineUp) return null;
-  const choice = chooseIn(lineUp, stage, providerId);
+  const choice = chooseIn(lineUp, stage, providerId, choiceInput(presentHosts(), useProviderStore.getState().entries));
   // Shown before the save: a run starting while the line-up is being written runs the new one. A line-up shown but
   // not stored yet is stored by its first choice.
   set({ lineUp: choice.lineUp, stored: true, unstoredProvider: null });

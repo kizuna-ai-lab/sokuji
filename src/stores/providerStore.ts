@@ -13,7 +13,8 @@ import { describeCause, reportError } from '../lib/diagnostics/report';
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption, Readiness } from '../lib/provider/types';
-import { languageContext, type SpeechInputs } from '../lib/session/shape';
+import { languageContext, type Speaking, type SpeechInputs } from '../lib/session/shape';
+import { namingProvider } from '../lib/session/codes';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 
@@ -87,6 +88,15 @@ export interface ProviderStore {
   speech: SpeechInputs;
   /** Every loaded entry's pair is derived again from the intent, nothing written; a provider whose pair moved forgets its readiness when its check reads the pair. The same inputs change nothing. */
   setSpeech(inputs: SpeechInputs): void;
+  /**
+   * Whether each provider of the plan a start would run speaks, by id (appShape's `watchSpeechFromStores` keeps
+   * them): the speech unit's rules for the provider that serves the speech stage, never for a provider another
+   * one's voice reads. A provider's language context is whether that provider would speak, so one that only
+   * transcribes and translates shows its text offer. A provider that is absent answers with its own rules.
+   */
+  speakers: Readonly<Record<string, Speaking>>;
+  /** Every loaded entry's pair is derived again for the new speakers, nothing written. The same rules change nothing. */
+  setSpeakers(speakers: Readonly<Record<string, Speaking>>): void;
   /**
    * The stages each provider serves in the plan a start would run, by id, for the providers that serve only a
    * part of it (the readiness driver keeps them); a provider that is absent serves every stage it can. A live
@@ -192,7 +202,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
   const derive = (p: AnyProvider, settings: unknown): LanguagePair => {
     const intent = get().intent;
     const initial = p.languages.initial?.(settings) ?? {};
-    return normalizePair(p, settings, { source: intent?.source || initial.source, target: intent?.target || initial.target }, languageContext(p, get().legs, get().speech));
+    return normalizePair(p, settings, { source: intent?.source || initial.source, target: intent?.target || initial.target }, languageContext(get().speakers[p.id] ?? p, get().legs, get().speech));
   };
   /** The intent or the context moved: every loaded entry's pair derived again, nothing written. */
   const rederive = () => {
@@ -240,6 +250,16 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const now = get().speech;
       if (now.textOnly === inputs.textOnly && now.participantSpeech === inputs.participantSpeech) return;
       set({ speech: { textOnly: inputs.textOnly, participantSpeech: inputs.participantSpeech } });
+      rederive();
+    },
+
+    speakers: {},
+    setSpeakers(speakers) {
+      const now = get().speakers;
+      const key = (rule: Speaking | undefined) => (rule ? `${rule.speech}|${rule.participantSpeech !== false}` : '');
+      const ids = [...new Set([...Object.keys(now), ...Object.keys(speakers)])];
+      if (ids.every((id) => key(now[id]) === key(speakers[id]))) return;
+      set({ speakers });
       rederive();
     },
 
@@ -379,9 +399,12 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const credentials = readCredentials(p, inputs.settings, inputs.credentials, auth);
       // The provider's own code (a managed provider's `sign_in_required`), or the runner's own for the same gap.
       if (isMissing(credentials)) {
+        const code = credentials.code ?? 'credentials_missing';
+        // A missing key or sign-in names its provider: the notice made of it opens that provider's account row.
+        const params = namingProvider(code, credentials.params, p.id);
         return answered({
-          state: 'not-ready', reason: credentials.missing, code: credentials.code ?? 'credentials_missing',
-          ...(credentials.params ? { params: credentials.params } : {}),
+          state: 'not-ready', reason: credentials.missing, code,
+          ...(params ? { params } : {}),
         });
       }
       // The fields these settings show, for the cache key below.

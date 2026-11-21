@@ -79,14 +79,14 @@ describe('noticeText', () => {
     it("names the service by the line-up page's name, a managed one with its engine, Bing and Edge by theirs", () => {
       const kizuna = { id: 'kizunaai_soniox', kind: 'managed', vendor: 'Soniox' };
       expect(words({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' }, null, [kizuna]))
-        .toBe("KizunaAI (Soniox)'s voice only reads its own translation. Choose another voice, or use the same service for transcription and translation too.");
+        .toBe('Use KizunaAI (Soniox) for transcription and translation, or choose another speech service.');
       expect(words({ refused: 'lineup_not_offered', stage: 'translation', provider: 'soniox' })).toBe('Soniox is not available in this version. Choose another service for translation.');
       expect(words({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'gemini' }))
-        .toBe('gemini reads its translation with its own voice only. Choose the same service for speech, or another service for transcription and translation.');
+        .toBe('Choose gemini for speech too, or choose another service for transcription and translation.');
     });
     it('names the language the way every language menu does', () => {
       expect(words({ refused: 'lineup_language_not_spoken', stage: 'speech', provider: 'edge', language: 'eu' }))
-        .toBe(`Edge has no voice for ${languageLabel('eu', 'en')}. Choose another voice, or turn speech off for this session.`);
+        .toBe(`Edge has no voice for ${languageLabel('eu', 'en')}. Choose another speech service, or turn speech off for this session.`);
     });
     it('has a sentence for every refusal, the same in the English catalog', () => {
       const enNotices = (en as unknown as { notices: Record<string, string> }).notices;

@@ -50,8 +50,13 @@ export interface TranscriptMeta {
   /** When the file is written. */
   exportedAt: number;
   appVersion: string | null;
-  /** The provider the conversation ran on; null before any run. */
+  /** The provider the conversation ran on (the one that transcribed); null before any run. */
   provider: string | null;
+  /**
+   * Who served each stage, for a run on two services. Absent or null for a run on one: the file then says what
+   * it always said, its provider alone.
+   */
+  stages?: Readonly<Record<'transcription' | 'translation' | 'speech', string>> | null;
   models: Readonly<Record<string, string>>;
 }
 
@@ -89,6 +94,8 @@ export interface TranscriptJson {
   exportedAt?: string;
   appVersion?: string | null;
   provider?: string | null;
+  /** Present only for a run on two services: who served each stage. `provider` is still the one that transcribed. */
+  stages?: Readonly<Record<'transcription' | 'translation' | 'speech', string>>;
   models?: Readonly<Record<string, string>>;
   languages?: Languages | null;
   /** Present only when the scope left something out. */
@@ -128,6 +135,11 @@ function modelsLine(models: Readonly<Record<string, string>>): string {
   return Object.entries(nonEmptyModels(models)).map(([key, value]) => `${key}=${value}`).join(', ');
 }
 
+/** Who served each stage, written like the models: stage=id, in stage order. */
+function stagesLine(stages: NonNullable<TranscriptMeta['stages']>): string {
+  return (['transcription', 'translation', 'speech'] as const).map((stage) => `${stage}=${stages[stage]}`).join(', ');
+}
+
 const isoOrNull = (ms: number | null): string | null => (ms === null ? null : new Date(ms).toISOString());
 
 function headerLines(header: NonNullable<TranscriptOptions['header']>, legs: readonly Leg[], narrowed: boolean): string[] {
@@ -135,7 +147,9 @@ function headerLines(header: NonNullable<TranscriptOptions['header']>, legs: rea
   const lines = [labels.title];
   if (meta.sessionStartedAt !== null) lines.push(`${labels.sessionStarted}: ${header.formatDateTime(meta.sessionStartedAt)}`);
   lines.push(`${labels.exported}: ${header.formatDateTime(meta.exportedAt)}`);
-  if (meta.provider) lines.push(`${labels.provider}: ${meta.provider}`);
+  // A run on two services names who served each stage, where a run on one names its provider.
+  if (meta.stages) lines.push(`${labels.provider}: ${stagesLine(meta.stages)}`);
+  else if (meta.provider) lines.push(`${labels.provider}: ${meta.provider}`);
   const models = modelsLine(meta.models);
   if (models) lines.push(`${labels.models}: ${models}`);
   const pair = pairOf(legs);
@@ -177,6 +191,7 @@ export function renderTranscriptJson(
     meta.exportedAt = new Date(o.meta.exportedAt).toISOString();
     meta.appVersion = o.meta.appVersion;
     meta.provider = o.meta.provider;
+    if (o.meta.stages) meta.stages = o.meta.stages;
     meta.models = nonEmptyModels(o.meta.models);
     meta.languages = pairOf(legs);
   }
@@ -249,6 +264,7 @@ export function renderRowsJson(rows: readonly TranscriptRowText[], legs: readonl
   return {
     sessionStartedAt: isoOrNull(o.meta.sessionStartedAt),
     exportedAt: new Date(o.meta.exportedAt).toISOString(), appVersion: o.meta.appVersion, provider: o.meta.provider,
+    ...(o.meta.stages ? { stages: o.meta.stages } : {}),
     models: nonEmptyModels(o.meta.models), languages: pairOf(legs), ...(isNarrowed(scope) ? { scope } : {}), groups,
   };
 }

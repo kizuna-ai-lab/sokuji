@@ -4,6 +4,8 @@
  * localized"). A target is `navigateToSettings`'s: the section's element id
  * without `-section`.
  */
+import { providerTarget } from './providerTarget';
+
 export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   no_microphone: 'microphone',
   // A Windows microphone that would not open: besides closing the application holding it, choose another (spec 2026-10-13 §3).
@@ -48,6 +50,13 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   voice_fallback: 'provider-options',
 };
 
-export function settingsTargetForCode(code: string | undefined): string | null {
-  return code === undefined ? null : NOTICE_TARGETS[code] ?? null;
+/**
+ * Where Settings fixes a notice. One about a key or a sign-in that names its provider (`params.provider`) lands on
+ * that provider's row in "Accounts and keys"; without a name, on the accounts as before.
+ */
+export function settingsTargetForCode(code: string | undefined, params?: Readonly<Record<string, string | number>>): string | null {
+  if (code === undefined) return null;
+  const target = NOTICE_TARGETS[code] ?? null;
+  const provider = params?.provider;
+  return target === 'provider' && typeof provider === 'string' && provider !== '' ? providerTarget(provider) : target;
 }

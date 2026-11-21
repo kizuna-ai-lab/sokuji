@@ -7,6 +7,13 @@ import { describeCause } from './diagnostics/describeCause';
 import type { ReconnectAnalyticsEvents } from './session/reconnectEvents';
 
 // Analytics event types - Comprehensive product metrics for Sokuji
+/**
+ * Who serves each stage of a session: the stored line-up's ids, or, while none is stored, the id of the provider
+ * that runs on all three. Every event that names the session's provider carries it; `provider` stays the one
+ * that transcribes.
+ */
+export interface SessionStages { transcription: string; translation: string; speech: string }
+
 export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
   // Application lifecycle
   // Version and platform are Super Properties; the device profile is not --
@@ -30,8 +37,9 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     source_language: string;
     target_language: string;
     session_id: string;
-    /** The provider of each stage, from the stored line-up (provider ids only). */
-    stages?: { transcription: string; translation: string; speech: string };
+    /** Who serves each stage of the session (ids only); always sent. */
+    stages: SessionStages;
+    /** The provider that transcribes: the session's identity where one id is asked for. */
     provider: string;
     model?: string;
     vad_mode?: string;
@@ -71,6 +79,7 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     session_id: string;
     duration: number;
     provider: string;
+    stages?: SessionStages;
     error_count?: number;
     /** Seals by reason, per leg, e.g. { speaker_sentences: 12, speaker_length: 3 }. */
     segmentation_seals?: Record<string, number>;
@@ -205,10 +214,12 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
   'text_input_sent': {
     session_id: string;
     provider: string;
+    stages?: SessionStages;
     text_length: number;
   };
   'speech_mode_changed': {
     provider: string;
+    stages?: SessionStages;
     from_mode: string;
     to_mode: string;
   };
@@ -241,6 +252,7 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
   'connection_status': {
     status: 'connected' | 'disconnected' | 'reconnecting';
     provider: string;
+    stages?: SessionStages;
     /** On `disconnected` only: the session's length. */
     duration_ms?: number;
     /** The leg; absent in events from before the session runner. */
@@ -254,10 +266,12 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
     component?: string;
     severity: 'low' | 'medium' | 'high' | 'critical';
     provider?: string;
+    stages?: SessionStages;
     recoverable: boolean;
   };
   'api_error': {
     provider: string;
+    stages?: SessionStages;
     endpoint?: string;
     status_code?: number;
     /** Provider wire code as sent: '503', '408', 'socket_error', … Kept a
@@ -288,9 +302,9 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
 
   // Screen context (spec 2026-10-22 §3.6): the kind of area and where, never a title or a pixel.
   /** A run went running with a capture area: once per run. */
-  'screen_context_on': { session_id: string; provider: string; source_kind: 'window' | 'screen' | 'tab'; platform: string };
+  'screen_context_on': { session_id: string; provider: string; stages?: SessionStages; source_kind: 'window' | 'screen' | 'tab'; platform: string };
   /** A leg was told its capture area is gone (the adapter's `screen_context_lost` degradation), beside its `api_error`. */
-  'screen_context_lost': { session_id: string; provider: string; channel: LegName };
+  'screen_context_lost': { session_id: string; provider: string; stages?: SessionStages; channel: LegName };
 
   // Extension specific events
   'extension_installed': { extension_version: string };
@@ -429,7 +443,7 @@ export async function syncDistinctIdToBackground(posthogInstance?: any): Promise
     (window as any).chrome.runtime.sendMessage({
       type: 'UPDATE_UNINSTALL_URL',
       distinct_id: distinctId
-    }, (response: any) => {
+    }, () => {
       const lastError = (window as any).chrome.runtime.lastError;
       if (lastError) {
         reportWarning('Analytics', `Failed to sync the analytics identity to the background: ${describeCause(lastError)}`, { cause: lastError, dedupeKey: 'analytics.syncDistinctId' });

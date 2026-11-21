@@ -1432,6 +1432,12 @@
       color: vars.$text-primary;
     }
 
+    // An option that cannot be chosen: its name steps down to the secondary text colour, and its reason stays
+    // as readable as on any other row.
+    option:disabled .provider-select__name {
+      color: vars.$text-secondary;
+    }
+
     .provider-select__description {
       font-size: vars.$font-caption;
       color: vars.$text-muted;

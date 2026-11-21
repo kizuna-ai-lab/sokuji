@@ -4,6 +4,7 @@
  * the same properties and the two compare in PostHog. Types and one pure
  * mapping: platform-neutral. No content, no keys, no reference ids.
  */
+import type { StageIds } from '../lineup/types';
 import type { DropCause, GiveUp } from './reconnect';
 
 export type ReconnectClient = 'desktop' | 'extension' | 'ios' | 'android';
@@ -16,6 +17,8 @@ export interface ReconnectAnalyticsEvents {
   'connection_dropped': {
     session_id: string;
     provider: string;
+    /** Who serves each stage of the session, where the sender knows (ids only). */
+    stages?: StageIds;
     managed: boolean;
     channel: Channel;
     cause: DropCause;
@@ -34,6 +37,8 @@ export interface ReconnectAnalyticsEvents {
   'connection_reconnected': {
     session_id: string;
     provider: string;
+    /** Who serves each stage of the session, where the sender knows (ids only). */
+    stages?: StageIds;
     managed: boolean;
     channel: Channel;
     down_ms: number;
@@ -50,6 +55,8 @@ export interface ReconnectAnalyticsEvents {
   'connection_reconnect_failed': {
     session_id: string;
     provider: string;
+    /** Who serves each stage of the session, where the sender knows (ids only). */
+    stages?: StageIds;
     managed: boolean;
     channel: Channel;
     down_ms: number;

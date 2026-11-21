@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { actionForCode, actionLabel } from './noticeActions';
+import { actionForCode, actionLabel, signedInTarget } from './noticeActions';
+
+describe('signedInTarget', () => {
+  it("signed out, the sign-in itself; signed in and still refused, the account row of the provider it is about", () => {
+    expect(signedInTarget({ kind: 'sign-in', provider: 'kizunaai_soniox' }, false)).toBeNull();
+    expect(signedInTarget({ kind: 'sign-in', provider: 'kizunaai_soniox' }, true)).toBe('provider:kizunaai_soniox');
+    expect(signedInTarget({ kind: 'sign-in' }, true)).toBeNull();
+  });
+});
 
 describe('actionForCode', () => {
   it('sends a NOTICE_TARGETS code to its Settings section', () => {
@@ -25,6 +33,11 @@ describe('actionForCode', () => {
   });
   it('sends a signed-out managed provider to Sign in', () => {
     expect(actionForCode('sign_in_required')).toEqual({ kind: 'sign-in' });
+  });
+  it("a missing key that names its provider opens that provider's account row; a sign-in keeps Sign in, with the provider", () => {
+    expect(actionForCode('credentials_missing', { provider: 'soniox' })).toEqual({ kind: 'settings', target: 'provider:soniox' });
+    expect(actionForCode('sign_in_required', { provider: 'kizunaai_soniox' })).toEqual({ kind: 'sign-in', provider: 'kizunaai_soniox' });
+    expect(actionLabel({ kind: 'sign-in', provider: 'kizunaai_soniox' })).toEqual({ key: 'common.signIn', fallback: 'Sign In' });
   });
   it('sends loopback_denied to the Screen Recording pane', () => {
     expect(actionForCode('loopback_denied')).toEqual({ kind: 'system-settings', pane: 'screen-recording' });

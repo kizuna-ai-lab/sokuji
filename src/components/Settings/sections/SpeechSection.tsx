@@ -5,7 +5,8 @@ import { useAnalytics } from '../../../lib/analytics';
 import { useStageUnit } from '../../../lib/plan/fromStores';
 import type { TurnMode } from '../../../lib/session/types';
 import { presentProviders } from '../../../providers/registry';
-import { useStageProviderId } from '../../../stores/lineUpStore';
+import { stageIdsFor } from '../../../lib/lineup/catalog';
+import { useLineUpStore, useStageProviderId } from '../../../stores/lineUpStore';
 import { useNavigateToSettings } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 
@@ -36,7 +37,9 @@ export function TurnModeControl({ locked, title }: { locked: boolean; title?: st
             disabled={locked}
             onClick={() => {
               if (mode === turnMode) return;
-              trackEvent('speech_mode_changed', { provider: selected ?? '', from_mode: LEGACY_NAME[turnMode], to_mode: LEGACY_NAME[mode] });
+              // With who serves each stage, as every event that names the provider: the stored line-up's ids.
+              const { lineUp, stored } = useLineUpStore.getState();
+              trackEvent('speech_mode_changed', { provider: selected ?? '', ...(selected ? { stages: stageIdsFor(lineUp, stored, selected) } : {}), from_mode: LEGACY_NAME[turnMode], to_mode: LEGACY_NAME[mode] });
               useTurnModeStore.getState().setTurnMode(mode);
             }}
           >

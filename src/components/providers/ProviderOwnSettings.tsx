@@ -5,7 +5,7 @@ import { useTextOnly } from '../../stores/settingsStore';
 import { legSpeaks } from '../../lib/session/shape';
 import { appVoicePreview } from '../../app/voicePreview';
 import { useFaceToFace } from '../MainPanel/useFaceToFace';
-import { ownProps, useProviderEntry, useStageProvider, type ShownProvider } from './useProviderEntry';
+import { ownProps, useProviderEntry, useRunPair, useStageProvider, type ShownProvider } from './useProviderEntry';
 
 interface ProviderOwnSettingsProps {
   providers: readonly AnyProvider[];
@@ -24,6 +24,8 @@ function useShown(providers: readonly AnyProvider[], providerId: string | undefi
 /** The shown provider's own `Settings` (D18), over its loaded entry, with its account (F3): the saved credentials and `auth`, the sign-in. Nothing before the entry loads. */
 export function ProviderOwnSettings({ providers, auth, disabled, providerId }: ProviderOwnSettingsProps & { auth: AuthContext }) {
   const selection = useShown(providers, providerId);
+  // The session's pair: a provider shown for the voice alone draws its voices for the language that will be spoken.
+  const runPair = useRunPair();
   const legs = useProviderStore((s) => s.legs);
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
   const faceToFace = useFaceToFace().active;
@@ -49,7 +51,7 @@ export function ProviderOwnSettings({ providers, auth, disabled, providerId }: P
   if (!selection?.entry) return null;
   const Settings = selection.provider.Settings;
   const participantSpeaks = selection.provider.participantSpeech !== false && speechParticipant;
-  return <Settings {...ownProps(selection, selection.entry, disabled)} account={account} legs={legs} participantSpeaks={participantSpeaks} faceToFace={faceToFace} preview={appVoicePreview} />;
+  return <Settings {...ownProps(selection, selection.entry, disabled, runPair)} account={account} legs={legs} participantSpeaks={participantSpeaks} faceToFace={faceToFace} preview={appVoicePreview} />;
 }
 
 /**
@@ -92,6 +94,7 @@ export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlot
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
   const textOnly = useTextOnly();
   const selection = useShown(providers, providerId);
+  const runPair = useRunPair();
   if (!selection?.entry) return null;
   const Engine = selection.provider.Engine;
   if (!Engine) return null;
@@ -101,7 +104,7 @@ export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlot
   const speakerSpeaks = legSpeaks(selection.provider, 'speaker', { textOnly, participantSpeech: false });
   return (
     <Engine
-      {...ownProps(selection, selection.entry, disabled)}
+      {...ownProps(selection, selection.entry, disabled, runPair)}
       legs={legs}
       participantSpeaks={participantSpeaks}
       speakerSpeaks={speakerSpeaks}

@@ -92,7 +92,11 @@ describe('SpeechSection', () => {
     render(<SpeechSection locked={false} />);
     fireEvent.click(screen.getByText('Push-to-Talk'));
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
-    expect(trackEvent).toHaveBeenCalledWith('speech_mode_changed', { provider: 'local_inference', from_mode: 'Auto', to_mode: 'Push-to-Talk' });
+    // It names who serves each stage too: no line-up is stored here, so the provider that runs, on all three.
+    expect(trackEvent).toHaveBeenCalledWith('speech_mode_changed', {
+      provider: 'local_inference', stages: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' },
+      from_mode: 'Auto', to_mode: 'Push-to-Talk',
+    });
     // `setTurnMode` persists through the real settings service (not mocked in
     // this file), which writes settings.common.turnMode straight to
     // localStorage — no ServiceFactory mock needed to observe it.

@@ -21,3 +21,37 @@ describe('the note that another stage moved with a line-up choice', () => {
     expect(page).not.toContain('lineup-stage__moved');
   });
 });
+
+// When the voice cannot stay beside a newly chosen text side, speech follows it and the speech card says so.
+describe('the note that speech followed a line-up choice', () => {
+  it.each(codes)('%s: names the service speech switched to, once, and no other', (code) => {
+    const text = lineUpIn(code).voiceFollowed;
+    expect(typeof text).toBe('string');
+    expect((text as string).match(/\{\{[^}]+\}\}/g)?.sort()).toEqual(['{{provider}}']);
+  });
+  it.each(codes.filter((code) => code !== 'en'))('%s: is translated', (code) => {
+    expect(lineUpIn(code).voiceFollowed).not.toBe(lineUpIn('en').voiceFollowed);
+  });
+});
+
+// An option that cannot be combined with the other stages says why in a few words after its name, as an option
+// with no key does; the whole sentence is the notice's.
+describe('the short reasons on a line-up option that cannot be chosen', () => {
+  const REASONS = ['voiceNotAlone', 'voiceNotTaken', 'twoManaged'] as const;
+  const noticesIn = (code: string): Record<string, string> => JSON.parse(readFileSync(join(LOCALES, code, 'translation.json'), 'utf8')).notices;
+  it.each(codes)('%s: each is a few words with no placeholder, much shorter than its notice', (code) => {
+    const lineUp = lineUpIn(code);
+    const notices = noticesIn(code);
+    const notice = { voiceNotAlone: 'lineup_voice_not_alone', voiceNotTaken: 'lineup_voice_not_taken', twoManaged: 'lineup_two_managed' } as const;
+    for (const key of REASONS) {
+      const text = lineUp[key] as string;
+      expect(typeof text, key).toBe('string');
+      expect(text, key).not.toMatch(/\{\{|[.。।]$/);
+      expect(text.length, key).toBeLessThan(notices[notice[key]].length * 0.6);
+    }
+    expect(lineUp.twoManaged, 'twoManaged').toContain('Kizuna AI');
+  });
+  it.each(codes.filter((code) => code !== 'en'))('%s: are translated', (code) => {
+    for (const key of REASONS) expect(lineUpIn(code)[key], key).not.toBe(lineUpIn('en')[key]);
+  });
+});

@@ -55,7 +55,11 @@ import { registerPresentProviders } from '../lib/plan/present';
 import { stubHosts, stubProvider } from '../lib/plan/testing';
 
 // The registry stays out of these tests: every host is offered, as a stub, so a choice composes as it does in the app.
-const hosts = stubHosts().providers;
+// The two Soniox providers have a text unit and a voice, as in the app, so a line-up that mixes them composes.
+const textUnit = { id: 'stt', occupies: (_s: unknown, want: ReadonlySet<string>) => (want.size === 2 && want.has('transcription') && want.has('translation') ? ['transcription', 'translation'] : null), start: () => undefined };
+const voiceUnit = { id: 'tts', occupies: (_s: unknown, want: ReadonlySet<string>) => (want.size === 1 && want.has('speech') ? ['speech'] : null), startSpeech: () => undefined };
+const hosts = stubHosts({ settings: { defaults: undefined } }).providers
+  .map((p) => (p.id === 'soniox' || p.id === 'kizunaai_soniox' ? stubProvider(p.id, { settings: { defaults: undefined }, kind: p.id === 'soniox' ? 'own-key' : 'managed', units: [textUnit, voiceUnit] }) : p));
 registerPresentProviders(() => hosts);
 
 const PROVIDER_KEY = 'settings.common.provider';
@@ -358,10 +362,18 @@ describe('the line-up store', () => {
     expect(stored.get(PROVIDER_KEY)).toBe('soniox');
   });
 
-  it('a choice the composer refuses is stored as chosen', async () => {
+  it('a voice that cannot stay beside the chosen text side follows it, and what is stored is what the choice says', async () => {
     useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null }, stored: true });
+    // Kizuna AI's voice only reads its own translation: speech goes to Soniox's voice with the text.
+    expect(await useLineUpStore.getState().choose('transcription', 'soniox')).toEqual({ lineUp: soniox, moved: ['translation', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'soniox' } });
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: soniox });
+    expect(useLineUpStore.getState().lineUp).toEqual(soniox);
+  });
+
+  it('a choice the composer refuses is stored as chosen', async () => {
+    useLineUpStore.setState({ lineUp: soniox, stored: true });
     // Kizuna AI's voice under own-key Soniox text: not offered alone, and still what the user chose.
-    expect(await useLineUpStore.getState().choose('transcription', 'soniox')).not.toBeNull();
+    expect(await useLineUpStore.getState().choose('speech', 'kizunaai_soniox')).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: [] });
     expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { ...soniox, speech: 'kizunaai_soniox' } });
     expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'kizunaai_soniox' });
   });
@@ -487,6 +499,9 @@ describe('the line-up store', () => {
   it('reports a change per stage, never content', () => {
     expect(lineUpChangedEvent('speech', soniox, { lineUp: { ...soniox, speech: 'edge' }, moved: ['transcription', 'translation'] }))
       .toEqual({ stage: 'speech', from: 'soniox', to: 'edge', moved: ['transcription', 'translation'], during_session: false });
+    // A voice that followed the text side is one of the stages that moved.
+    expect(lineUpChangedEvent('transcription', { ...soniox, speech: 'kizunaai_soniox' }, { lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, moved: ['translation', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'edge' } }))
+      .toEqual({ stage: 'transcription', from: 'soniox', to: 'local_inference', moved: ['translation', 'speech'], during_session: false });
   });
 });
 

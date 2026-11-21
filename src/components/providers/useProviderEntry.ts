@@ -15,7 +15,7 @@
  */
 import { useEffect } from 'react';
 import type { RunStage } from '../../lib/lineup/types';
-import type { AnyProvider, ModelOption, SettingsProps } from '../../lib/provider/types';
+import type { AnyProvider, LanguagePair, ModelOption, SettingsProps } from '../../lib/provider/types';
 import type { ProviderEntry, Readiness } from '../../stores/providerStore';
 import { useStageProviderId } from '../../stores/lineUpStore';
 import { NO_MODELS, UNKNOWN, useProviderStore } from '../../stores/providerStore';
@@ -63,7 +63,22 @@ export function useStageProvider(providers: readonly AnyProvider[], stage: RunSt
   return id === null ? undefined : providers.find((p) => p.id === id);
 }
 
-/** The props a provider's own component gets (D18): its settings and `update`, the lock, the pair, and the models its readiness found (F2). `account` is `ProviderOwnSettings`' own. */
-export function ownProps(selection: ShownProvider, entry: ProviderEntry, disabled: boolean | undefined): SettingsProps<unknown> {
-  return { settings: entry.settings, update: selection.update, disabled, pair: entry.pair, models: selection.models };
+/**
+ * The pair a session would run: the pair of the provider the line-up names for transcription, which is the
+ * session's direction. A provider that serves another stage (a voice reading another provider's text) shows its
+ * options for this pair, not for the one its own languages would give. Undefined until that provider's entry has
+ * loaded.
+ */
+export function useRunPair(): LanguagePair | undefined {
+  const id = useStageProviderId('transcription');
+  return useProviderStore((st) => (id === null ? undefined : st.entries[id]?.pair));
+}
+
+/**
+ * The props a provider's own component gets (D18): its settings and `update`, the lock, the pair, and the models its
+ * readiness found (F2). `account` is `ProviderOwnSettings`' own. `pair`: the run's, where the caller knows it; by
+ * default the provider's own.
+ */
+export function ownProps(selection: ShownProvider, entry: ProviderEntry, disabled: boolean | undefined, pair: LanguagePair = entry.pair): SettingsProps<unknown> {
+  return { settings: entry.settings, update: selection.update, disabled, pair, models: selection.models };
 }

@@ -70,6 +70,14 @@ export function soleHost(lineUp: Pick<LineUp, RunStage>): string | null {
   return host;
 }
 
+/**
+ * Whether more than one host serves these stages: a run on two services. Bing and Edge run on this device's
+ * provider, so a run on it with them is on one host; an id the catalog does not know is a host of its own.
+ */
+export function severalHosts(stages: StageIds): boolean {
+  return new Set(RUN_STAGES.map((stage) => caps(stages[stage])?.host ?? stages[stage])).size > 1;
+}
+
 /** One provider's id on every run stage. */
 export function allStagesBy(id: string): StageIds {
   return { transcription: id, translation: id, speech: id };
