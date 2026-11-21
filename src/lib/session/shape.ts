@@ -26,7 +26,8 @@ export interface Refusal extends RunNotice {
  */
 export interface SpeechInputs { textOnly: boolean; participantSpeech: boolean }
 
-type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech'>;
+/** What decides whether a leg speaks, of the one that speaks: a provider, or the capabilities of a plan's speech unit. */
+export type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech'>;
 
 /** Whether a leg speaks: the one rule `contextsFor`, the gate and the language offer read. */
 export function legSpeaks(p: Speaking, leg: LegName, inputs: SpeechInputs): boolean {
@@ -85,7 +86,7 @@ export function languageContext(p: Speaking, legs: readonly LegName[], inputs: S
  * transcription provider, the targets from the translation provider, each
  * under its own settings at start (the settings argument is not read).
  */
-function planLanguages(shape: Pick<RunShape, 'plan' | 'accounts'>): Pick<AnyProvider, 'languages'> {
+export function planLanguages(shape: Pick<RunShape, 'plan' | 'accounts'>): Pick<AnyProvider, 'languages'> {
   const heard = transcriptionProvider(shape.plan);
   const translated = unitFor(shape.plan, 'translation').provider;
   const sHeard = accountOf(shape, heard).settings;

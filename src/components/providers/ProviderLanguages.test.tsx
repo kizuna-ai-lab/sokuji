@@ -22,7 +22,10 @@ vi.mock('../../providers/registry', async (importOriginal) => {
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
+import { sonioxProvider } from '../../providers/soniox/provider';
+import { localInferenceProvider } from '../../providers/localInference/provider';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { ProviderLanguages } from './ProviderLanguages';
@@ -31,6 +34,7 @@ beforeEach(() => {
   trackEvent.mockClear();
   run.participantSpeech = null;
   present.extra = [];
+  useLineUpStore.setState({ lineUp: null, stored: false });
   runsOn('fake');
   useProviderStore.setState({
     entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
@@ -132,5 +136,52 @@ describe('ProviderLanguages — the language context (Stage 2 Volcengine AST2, c
       act(() => useRoutingStore.setState({ participantSpeech: false }));
       expect(screen.getByText('settings.langSentence.iRead')).toBeTruthy();
     });
+  });
+});
+
+// A voice of its own beside another provider's text: the targets on offer are the ones that voice reads, on a leg
+// that is read aloud. Edge has no Basque voice; Soniox translates into Basque.
+describe("ProviderLanguages — another provider's voice", () => {
+  const targets = () => [...new Set([...(screen.getByLabelText('settings.targetLanguage') as HTMLSelectElement).options].map((o) => o.value).filter((v) => v !== PIN_SEPARATOR))];
+  const given = (speech: string, target = 'ja') => {
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech, summarisation: null }, stored: true });
+    const pair = { source: 'en', target };
+    useProviderStore.setState({
+      entries: {
+        soniox: { settings: sonioxProvider.settings.defaults, credentials: { apiKey: 'k' }, pair },
+        local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair },
+      },
+      intent: pair,
+      legs: ['speaker'],
+      speech: { textOnly: false, participantSpeech: false },
+    });
+  };
+
+  it("Soniox read by Edge: a language Edge has no voice for is not offered while my leg is read aloud, and is when it is not", () => {
+    given('edge');
+    render(<ProviderLanguages providers={[sonioxProvider, localInferenceProvider]} />);
+    expect(targets()).toContain('ja');
+    expect(targets()).not.toContain('eu');
+    act(() => { useProviderStore.setState({ speech: { textOnly: true, participantSpeech: false } }); });
+    expect(targets()).toContain('eu');
+  });
+
+  it('a pair into a language the voice does not read is kept: shown unchosen, nothing written', () => {
+    given('edge', 'eu');
+    render(<ProviderLanguages providers={[sonioxProvider, localInferenceProvider]} />);
+    const select = screen.getByLabelText('settings.targetLanguage') as HTMLSelectElement;
+    expect(select).toHaveValue('eu');
+    expect([...select.options].filter((o) => o.value === 'eu').map((o) => o.disabled)).toEqual([true]);
+    expect(useProviderStore.getState().entries.soniox?.pair).toEqual({ source: 'en', target: 'eu' });
+    expect(useProviderStore.getState().intent).toEqual({ source: 'en', target: 'eu' });
+    expect(trackEvent).not.toHaveBeenCalled();
+  });
+
+  it("Soniox on every stage: its own voice reads every language it translates into, so the list is its own", () => {
+    given('soniox');
+    render(<ProviderLanguages providers={[sonioxProvider, localInferenceProvider]} />);
+    const offered = sonioxProvider.languages.targets('en', sonioxProvider.settings.defaults).map((o) => o.value);
+    expect(targets().sort()).toEqual([...offered].sort());
+    expect(offered).toContain('eu');
   });
 });

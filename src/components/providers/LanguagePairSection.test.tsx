@@ -32,6 +32,8 @@ const draw = (
     provider?: typeof fakeProvider;
     receive?: React.ComponentProps<typeof LanguagePairSection>['receive'];
     disabled?: boolean;
+    speech?: React.ComponentProps<typeof LanguagePairSection>['speech'];
+    spoken?: React.ComponentProps<typeof LanguagePairSection>['spoken'];
   } = {},
 ) => {
   render(
@@ -43,6 +45,8 @@ const draw = (
       sentence={extra.sentence}
       receive={extra.receive}
       disabled={extra.disabled}
+      speech={extra.speech}
+      spoken={extra.spoken}
     />,
   );
   return onChange;
@@ -443,6 +447,77 @@ describe('LanguagePairSection — a language context (Stage 2 Volcengine AST2, c
 });
 
 // Owner, 2026-11-19: only the verb is the choice, set in its sentence as the language orders it.
+// A leg that is read aloud by a voice of its own is offered the languages that voice reads; the pair is never
+// changed for the voice.
+describe('LanguagePairSection — what the voice reads', () => {
+  const sourceSelect = () => screen.getByLabelText('settings.sourceLanguage') as HTMLSelectElement;
+  const targetSelect = () => screen.getByLabelText('settings.targetLanguage') as HTMLSelectElement;
+  const notJapanese = (language: string) => language !== 'ja';
+
+  it("my leg read aloud: its targets are the ones the voice reads; without a voice's word, every target", () => {
+    draw({ source: 'en', target: 'zh' }, vi.fn(), { spoken: { speaker: notJapanese } });
+    expect(codesOf(targetSelect())).toEqual(['zh']);
+    expect(codesOf(sourceSelect())).toEqual([AUTO, 'en', 'ja', 'zh'].sort());
+    cleanup();
+    draw({ source: 'en', target: 'zh' }, vi.fn(), { spoken: {} });
+    expect(codesOf(targetSelect())).toEqual(['ja', 'zh']);
+    cleanup();
+    draw({ source: 'en', target: 'zh' });
+    expect(codesOf(targetSelect())).toEqual(['ja', 'zh']);
+  });
+
+  it('a target the voice does not read stays the pair, shown unchosen, and nothing is changed for it', () => {
+    const onChange = draw({ source: 'en', target: 'ja' }, vi.fn(), { spoken: { speaker: notJapanese } });
+    expect(targetSelect()).toHaveValue('ja');
+    expect(disabledValues(targetSelect())).toEqual(['ja']);
+    expect(codesOf(targetSelect())).toEqual(['ja', 'zh']);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('a target every voice reads is drawn exactly as without the filter', () => {
+    draw({ source: 'en', target: 'zh' }, vi.fn(), { spoken: { speaker: () => true } });
+    const filtered = targetSelect().innerHTML;
+    cleanup();
+    draw({ source: 'en', target: 'zh' });
+    expect(targetSelect().innerHTML).toBe(filtered);
+  });
+
+  it('a new source keeps a target the voice does not read; one that must move goes to the first the voice reads', () => {
+    const kept = draw({ source: 'en', target: 'ja' }, vi.fn(), { spoken: { speaker: notJapanese } });
+    fireEvent.change(sourceSelect(), { target: { value: 'zh' } });
+    expect(kept).toHaveBeenCalledWith({ source: 'zh', target: 'ja' });
+    cleanup();
+    // English → Chinese, then Chinese as the source: the target must move; English is first and read.
+    const moved = draw({ source: 'en', target: 'zh' }, vi.fn(), { spoken: { speaker: (language) => language !== 'en' } });
+    fireEvent.change(sourceSelect(), { target: { value: 'zh' } });
+    expect(moved).toHaveBeenCalledWith({ source: 'zh', target: 'ja' });
+  });
+
+  it("the other side's leg read aloud: I am offered the languages its voice reads, an automatic source left alone", () => {
+    draw({ source: 'en', target: 'zh' }, vi.fn(), { sentence: { mode: 'participant', textOnly: false }, spoken: { participant: notJapanese } });
+    expect(codesOf(screen.getByLabelText('settings.langSentence.theySpeak'))).toEqual(['ja', 'zh']);
+    const mine = (screen.getAllByRole('combobox') as HTMLSelectElement[])[0];
+    expect(codesOf(mine)).toEqual([AUTO, 'en', 'zh'].sort());
+  });
+
+  it('the swap is off when a voice would not read the swapped pair', () => {
+    draw({ source: 'ja', target: 'en' }, vi.fn(), { spoken: { speaker: notJapanese } });
+    expect(screen.getByTitle('simpleConfig.swapLanguages')).toBeDisabled();
+    cleanup();
+    draw({ source: 'zh', target: 'en' }, vi.fn(), { spoken: { speaker: notJapanese } });
+    expect(screen.getByTitle('simpleConfig.swapLanguages')).toBeEnabled();
+  });
+
+  it("the sentence follows the speaking unit's rule, not the provider's own", () => {
+    // The fake leaves speaking to the switch; a voice that never speaks makes the other side read.
+    draw({ source: 'en', target: 'ja' }, vi.fn(), { sentence: { mode: 'speaker', textOnly: false } });
+    expect(screen.getByText('settings.langSentence.theyHear')).toBeTruthy();
+    cleanup();
+    draw({ source: 'en', target: 'ja' }, vi.fn(), { sentence: { mode: 'speaker', textOnly: false }, speech: 'never' });
+    expect(screen.getByText('settings.langSentence.theyRead')).toBeTruthy();
+  });
+});
+
 describe('aroundVerb', () => {
   it('gives the text before the verb, and after it where the language puts some there', () => {
     expect(aroundVerb(`they ${VERB_MARK}`)).toEqual(['they ', '']);

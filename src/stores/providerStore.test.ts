@@ -240,7 +240,7 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
   const pairWrites = () => setSetting.mock.calls.filter(([key]) => /Language$/.test(String(key)));
 
   beforeEach(() => {
-    useProviderStore.setState({ legs: ['speaker'], speech: speaking, readiness: {} });
+    useProviderStore.setState({ legs: ['speaker'], speech: speaking, speakers: {}, readiness: {} });
     stored.set('settings.common.sourceLanguage', 'ko');
     stored.set('settings.common.targetLanguage', 'en');
   });
@@ -264,6 +264,20 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     expect(intent()).toEqual({ source: 'ko', target: 'en' });
     useProviderStore.getState().setSpeech(textOnly);
     expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
+    expect(pairWrites()).toEqual([]);
+  });
+
+  it('reads who speaks from the plan where the plan says: a provider read by a voice that never speaks is in a run that does not speak', async () => {
+    await useProviderStore.getState().load(moody);
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+    useProviderStore.getState().setSpeakers({ moody: { speech: 'never', participantSpeech: true } });
+    expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
+    // Its own rule again once the plan names no speaker for it; the same rules change nothing.
+    const before = useProviderStore.getState().entries;
+    useProviderStore.getState().setSpeakers({ moody: { speech: 'never', participantSpeech: true } });
+    expect(useProviderStore.getState().entries).toBe(before);
+    useProviderStore.getState().setSpeakers({});
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
     expect(pairWrites()).toEqual([]);
   });
 

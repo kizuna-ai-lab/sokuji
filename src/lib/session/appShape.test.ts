@@ -541,6 +541,16 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
     expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: false });
   });
 
+  it("keeps who speaks for each provider of the plan: the speech unit's rules, and none until the plan is ready", () => {
+    runsOn('soniox');
+    useProviderStore.setState({ entries: {}, speakers: {} });
+    const unwatch = watchSpeechFromStores();
+    expect(useProviderStore.getState().speakers).toEqual({});
+    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } });
+    expect(useProviderStore.getState().speakers).toEqual({ soniox: { speech: 'optional', participantSpeech: true } });
+    unwatch();
+  });
+
   it("follows face-to-face when the picked provider's entry loads after the pick", () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     runsOn('soniox');
