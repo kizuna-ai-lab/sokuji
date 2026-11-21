@@ -44,8 +44,8 @@ const startSpy = vi.fn();
 vi.mock('./TourProvider', () => ({ useTour: () => ({ start: startSpy }) }));
 
 import { useStartBasicsTour } from './useStartBasicsTour';
-import { useProviderStore } from '../../stores/providerStore';
 
+import { runsOn } from '../../stores/lineUpStore.testing';
 const Probe: React.FC = () => {
   const startTour = useStartBasicsTour();
   return <button type="button" onClick={startTour}>restart</button>;
@@ -55,7 +55,7 @@ beforeEach(() => {
   cleanup();
   startSpy.mockClear();
   setShowSettings.mockClear();
-  useProviderStore.setState({ selected: 'local_inference' });
+  runsOn('local_inference');
 });
 
 describe('useStartBasicsTour', () => {

@@ -2,7 +2,7 @@ import { readingTargets } from '../lib/reading/languages';
 import { setJapaneseWanted } from '../lib/reading/ja/runtime';
 import { currentReadingTarget } from '../lib/reading/useReadingTargets';
 import { useConversationDisplayStore } from '../stores/conversationDisplayStore';
-import { useProviderStore } from '../stores/providerStore';
+import { subscribePlan } from '../lib/plan/fromStores';
 import { useSubtitleStore } from '../stores/subtitleStore';
 
 /**
@@ -19,7 +19,7 @@ export function bindReadings(): () => void {
   const unsubscribes = [
     useConversationDisplayStore.subscribe(sync),
     useSubtitleStore.subscribe(sync),
-    useProviderStore.subscribe(sync),
+    subscribePlan(sync),
   ];
   return () => {
     for (const unsubscribe of unsubscribes) unsubscribe();

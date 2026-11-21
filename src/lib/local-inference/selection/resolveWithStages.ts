@@ -7,7 +7,7 @@ import { getManifestEntry, isTranslationModelCompatible } from '../modelManifest
 import { wasmCandidates, type WasmCandidateCtx } from './candidates.wasm';
 import { resolveDirection } from './resolveStage';
 import { directionKey, type DirectionResult, type Selections, type Stage } from './types';
-import type { LocalStages } from '../../lineup/localStages';
+import { unservedStages, type LocalStages } from '../../lineup/localStages';
 
 export function resolveWasmDirection(
   src: string, tgt: string, selections: Selections, ctx: Omit<WasmCandidateCtx, 'withCloud'>, stages: LocalStages | null,
@@ -25,6 +25,13 @@ export function resolveWasmDirection(
   if (stages.speech === 'edge') cloud.push(['tts', 'edge-tts']);
   for (const [stage, modelId] of cloud) {
     out[stage] = { modelId, variant: undefined, source: 'explicit' };
+    out.notes = out.notes.filter((n) => n.stage !== stage);
+    out.prunes = out.prunes.filter((p) => p.stage !== stage);
+  }
+  // A stage another provider serves runs no model of this machine: nothing resolves for it, nothing is noted about
+  // it, and the stored choice is left as it is, for when this machine serves the stage again.
+  for (const stage of unservedStages(stages)) {
+    out[stage] = null;
     out.notes = out.notes.filter((n) => n.stage !== stage);
     out.prunes = out.prunes.filter((p) => p.stage !== stage);
   }

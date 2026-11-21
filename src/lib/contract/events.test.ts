@@ -26,6 +26,10 @@ describe('eventsFrom', () => {
       expect(log).toEqual([{ kind, payload }]);
     }
   });
+  it('takes no lateSpeech: nothing above the contract reads it', () => {
+    expect(EVENT_KINDS).not.toContain('lateSpeech');
+    expect(eventsFrom(() => {}).lateSpeech).toBeUndefined();
+  });
 });
 
 describe('recordEvents', () => {

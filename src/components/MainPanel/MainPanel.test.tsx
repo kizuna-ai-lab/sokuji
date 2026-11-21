@@ -145,6 +145,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useSubtitleStore } from '../../stores/subtitleStore';
@@ -225,7 +226,7 @@ async function stop(): Promise<void> {
 
 beforeAll(async () => {
   await useProviderStore.getState().load(fakeProvider);
-  useProviderStore.getState().select('fake');
+  runsOn('fake');
   // The session's own analytics (the runner's events) reach the page through its bridge.
   getAppSession().setBridges({ track: trackEvent as unknown as AnalyticsPort['track'] });
 });
@@ -316,14 +317,14 @@ describe('MainPanel', () => {
     try {
       await act(async () => {
         // Selected, not loaded: the gate shuts, and the button is not drawn off yet.
-        useProviderStore.setState({ selected: 'local_inference' });
+        runsOn('local_inference');
         expect(getAppSession().subtitle.get().canStart).toBe(false);
         expect(mainAction(container).disabled).toBe(false);
         fireEvent.click(mainAction(container));
       });
       expect(runner().state.getState()).toEqual({ phase: 'idle' });
     } finally {
-      act(() => { useProviderStore.setState({ selected: 'fake' }); });
+      act(() => { runsOn('fake'); });
     }
   });
 

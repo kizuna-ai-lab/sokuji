@@ -5,12 +5,13 @@ import { useAnalytics } from '../../lib/analytics';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
 import { openExternalUrl } from '../../utils/openExternalUrl';
+import { runUnstored } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import Tooltip from '../Tooltip/Tooltip';
 import { CredentialForm } from './CredentialForm';
 import { ManagedAccountRow } from './ManagedAccountRow';
 import { ProviderOption, useOptionModel } from './ProviderOption';
-import { ownProps, useSelectedProvider } from './useSelectedProvider';
+import { ownProps, useProviderEntry, useStageProvider } from './useProviderEntry';
 // The rich option markup below (icon, name-line, description) is styled by
 // the shared rules ProviderSection.tsx also relies on (`.provider-select__*`,
 // `.provider-name-line`, `.powered-by` — see Settings.scss's "Rich provider
@@ -43,7 +44,7 @@ interface ProviderPickerProps {
   auth: AuthContext;
   /** A run is not idle: the picker and its credentials are locked. */
   disabled?: boolean;
-  /** Present: draws the selected provider's `EngineSummary`, if it has one — Simple mode's way into its `Engine` (1e-3b-2 ruling 3). */
+  /** Present: draws the shown provider's `EngineSummary`, if it has one — Simple mode's way into its `Engine` (1e-3b-2 ruling 3). */
   openSlot?(slot: EngineSlot): void;
 }
 
@@ -60,7 +61,9 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   const { trackEvent } = useAnalytics();
   const legs = useProviderStore((s) => s.legs);
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
-  const selection = useSelectedProvider(providers);
+  // The provider that transcribes; before anything has loaded, the first offered, which the picker shows without running it.
+  const transcribing = useStageProvider(providers, 'transcription');
+  const selection = useProviderEntry(transcribing ?? providers[0]);
   const [dismissedTutorials, setDismissedTutorials] = useState<Set<string>>(readDismissedTutorials);
   // Whether this runtime renders customizable selects (appearance:
   // base-select) — a one-shot init, like ProviderSection.tsx's own richSelect
@@ -73,7 +76,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
 
   if (!selection) return null;
   const { provider, entry, readiness } = selection;
-  const { setCredential, refreshReadiness, select, updateSettings } = useProviderStore.getState();
+  const { setCredential, refreshReadiness, updateSettings } = useProviderStore.getState();
   const credentialChoice = provider.credentials.choice;
   // The first managed provider offered, as the wizard's managed card recommends it (today's ProviderSection.tsx:553-580).
   const recommendedId = providers.find((p) => p.kind === 'managed')?.id;
@@ -134,8 +137,9 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
             const next = e.target.value;
             // Today's series (ProviderSection.tsx:512-520). A pick is refused during a run (1e-3b-1 ruling 7), so never during one.
             trackEvent('provider_switched', { from_provider: provider.id, to_provider: next, during_session: false });
-            // A person's pick: it persists (1e-3b-1 ruling 8).
-            select(next, 'pick');
+            // A person's pick runs alone, in memory, and writes only the provider an older version of the app opens
+            // (1e-3b-1 ruling 8). A stored line-up is left as it is: the next launch runs it again.
+            runUnstored(next, 'pick');
           }}
           aria-label={t('simpleSettings.provider')}
           disabled={disabled}

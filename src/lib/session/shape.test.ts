@@ -9,7 +9,7 @@ import type { RunStage } from '../lineup/types';
 import { planOf, shapeWith, stubProvider } from '../plan/testing';
 import type { PlannedUnit } from '../plan/types';
 import type { AnyProvider, LanguageContext } from '../provider/types';
-import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, participantSpeechInput, QUOTA_PENDING, QUOTA_UNKNOWN, speakFor } from './shape';
+import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, participantSpeechInput, planLanguages, QUOTA_PENDING, QUOTA_UNKNOWN, speakFor } from './shape';
 import type { BalanceShape, RunShape } from './types';
 
 /** A shape's fields as a test patches them: the provider it runs on alone, and that provider's settings and credentials. */
@@ -381,6 +381,95 @@ describe('a plan of several units: each question asked of the unit that answers 
     // The translation provider's targets refuse it: only the code and the leg are pinned, the words name the transcription provider.
     expect(gate(several(['ja'], { legs: ['speaker', 'participant'] }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
     expect(gate(several(['en'], { legs: ['speaker', 'participant'] }), 'electron')).toBeNull();
+  });
+
+  // Each list is asked whether its own provider speaks: a provider read by another one's voice is asked its text
+  // offer, though the leg is read aloud.
+  describe('a provider whose lists are narrower when it speaks (the shape of Doubao AST 2.0)', () => {
+    // Speaking offers en and ja; text also ko.
+    const offer = (context?: LanguageContext) => [opt('en'), opt('ja'), ...(context?.speech ? [] : [opt('ko')])];
+    const asked: (LanguageContext | undefined)[] = [];
+    const narrow = stubProvider('narrow', {
+      speech: 'optional',
+      languages: {
+        wire: fakeProvider.languages.wire,
+        sources: (_s: unknown, context?: LanguageContext) => { asked.push(context); return offer(context); },
+        targets: (source: string, _s: unknown, context?: LanguageContext) => { asked.push(context); return offer(context).filter((o) => o.value !== source); },
+      },
+    });
+    const reader = stubProvider('reader', { speech: 'optional' });
+    // Both legs read aloud, into a pair whose reverse (ko → en) only the text offer holds.
+    const run: Patch = { legs: ['speaker', 'participant'], pair: { source: 'en', target: 'ko' }, participantSpeech: true };
+    /** `narrow` transcribes and translates; `voice` reads. */
+    const readBy = (voice: AnyProvider): RunShape => {
+      const text: PlannedUnit = { ...planOf(narrow).units[0], stages: ['transcription', 'translation'] };
+      const speech = planned(voice, 'speech');
+      const accounts = Object.fromEntries([narrow, voice].map((p) => [p.id, { settings: undefined, credentials: {} }]));
+      return { ...shape(run), plan: { units: [text, speech], byStage: { transcription: text, translation: text, speech } }, accounts };
+    };
+    beforeEach(() => { asked.length = 0; });
+
+    it("read by another provider's voice, it is asked its text offer: the reversed pair that offer holds is accepted", () => {
+      const mixed = readBy(reader);
+      expect(contextsFor(mixed).participant).toMatchObject({ direction: { source: 'ko', target: 'en' }, speech: true });
+      expect(gate(mixed, 'electron')).toBeNull();
+      expect(asked.length).toBeGreaterThan(0);
+      expect(asked.every((context) => context?.speech === false)).toBe(true);
+    });
+
+    it('serving all three stages, it is asked as before: the reversed pair its speaking offer lacks is refused', () => {
+      expect(gate(shape({ ...run, provider: narrow }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
+      expect(asked.some((context) => context?.speech === true)).toBe(true);
+      // And a leg that is not read aloud is asked the text offer, on one provider as on two.
+      expect(gate(shape({ ...run, provider: narrow, participantSpeech: false, textOnly: true }), 'electron')).toBeNull();
+    });
+
+    it('the plan\'s lists tell each provider whether it is the one that speaks, and pass no context on as none', () => {
+      const mixed = planLanguages(readBy(reader)).languages;
+      expect(mixed.sources(undefined, { speech: true }).map((o) => o.value)).toEqual(['en', 'ja', 'ko']);
+      expect(mixed.targets('en', undefined, { speech: true }).map((o) => o.value)).toEqual(['ja', 'ko']);
+      const alone = planLanguages(shape({ provider: narrow })).languages;
+      expect(alone.sources(undefined, { speech: true }).map((o) => o.value)).toEqual(['en', 'ja']);
+      expect(alone.targets('en', undefined, { speech: true }).map((o) => o.value)).toEqual(['ja']);
+      expect(alone.sources(undefined, { speech: false }).map((o) => o.value)).toEqual(['en', 'ja', 'ko']);
+      asked.length = 0;
+      mixed.sources(undefined);
+      alone.sources(undefined);
+      expect(asked).toEqual([undefined, undefined]);
+    });
+  });
+
+  describe('a voice that says which languages it speaks', () => {
+    /** The plan of `several`, its speech unit speaking English only, under an optional-speech provider. */
+    const withVoice = (patch: Patch = {}): RunShape => {
+      const base = several(['en', 'ja'], patch);
+      const speaker = stubProvider('speaker_only_english', { speech: 'optional' });
+      const [whole] = planOf(speaker).units;
+      const speech: PlannedUnit = { ...whole, unit: { ...whole.unit, capabilities: (s) => ({ ...whole.unit.capabilities(s), speaks: (language) => language === 'en' }) }, stages: ['speech'] };
+      const [a, b] = base.plan.units;
+      return { ...base, plan: { units: [a, b, speech], byStage: { transcription: a, translation: b, speech } }, accounts: { ...base.accounts, [speaker.id]: { settings: undefined, credentials: {} } } };
+    };
+
+    it('refuses a start whose speaker leg is read in a language the voice lacks, and names the option of the line-up', () => {
+      expect(gate(withVoice({ pair: { source: 'en', target: 'ja' }, lineUp: { transcription: 'heard', translation: 'translated', speech: 'edge' } }), 'electron'))
+        .toEqual({ code: 'lineup_language_not_spoken', message: 'edge has no voice for ja.', params: { stage: 'speech', provider: 'edge', language: 'ja' } });
+    });
+    it('starts when the leg is read in a language the voice has', () => {
+      expect(gate(withVoice({ pair: { source: 'ja', target: 'en' } }), 'electron')).toBeNull();
+    });
+    it('starts a text-only session in any language: no leg is read aloud', () => {
+      expect(gate(withVoice({ pair: { source: 'en', target: 'ja' }, textOnly: true }), 'electron')).toBeNull();
+    });
+    it("judges the participant leg by its own target, only when the other side's translation is spoken", () => {
+      const both = { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] as LegName[] };
+      expect(gate(withVoice({ ...both, participantSpeech: true }), 'electron')).toMatchObject({ code: 'lineup_language_not_spoken', params: { language: 'ja' } });
+      expect(gate(withVoice({ ...both, participantSpeech: false }), 'electron')).toBeNull();
+    });
+    it('is said before the balance, and after the turns', () => {
+      const low = { account: { status: 'known' as const, balanceMicroUsd: 0, frozen: false } };
+      expect(gate(withVoice({ pair: { source: 'en', target: 'ja' }, ...low }), 'electron')).toMatchObject({ code: 'lineup_language_not_spoken' });
+      expect(gate(withVoice({ pair: { source: 'en', target: 'ja' }, turnMode: 'push-to-talk' }), 'electron')).toMatchObject({ code: 'turn_mode_unsupported' });
+    });
   });
 
   it("takes the highest floor among the plan's providers", () => {

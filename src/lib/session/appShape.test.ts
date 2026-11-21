@@ -24,6 +24,7 @@ import { createVirtualClock } from '../contract/clock';
 import { createSampler } from '../screen/sampler';
 import { QWEN_DEFAULTS } from '../../providers/qwen_livetranslate/settings';
 import { useScreenContextStore } from '../../stores/screenContextStore';
+import { providersIn } from '../plan/read';
 import { planOf } from '../plan/testing';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
@@ -34,18 +35,21 @@ import { useAccountStore } from '../../stores/accountStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { presentProviders } from '../../providers/registry';
-import { appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, planFromSelection, readShapeFromStores, screenContextWanted, selectedFromStores, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, lineUpNoticeFromStores, liveGate, persistIfUnchanged, planRefusalFromStores, readShapeFromStores, runPlanFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import { setUseOwnBalance } from './payerChoice';
+import { gate } from './shape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
   useTurnModeStore.setState({ turnMode: 'auto' });
   useRoutingStore.setState({ participantSpeech: null });
   useAudioStore.setState({ selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
@@ -64,38 +68,37 @@ describe('legsFor', () => {
   });
 });
 
-// The provider a start would run, in each state the stores can be in: the plan's, as the selection was read before it.
-describe('selectedFromStores and planFromSelection', () => {
+// The plan a start would run and its accounts, in each state the stores can be in.
+describe('runPlanFromStores', () => {
   const pair = { source: 'en', target: 'ja' };
   const entryOf = (p: AnyProvider) => ({ settings: p.settings.defaults, credentials: { apiKey: 'k' }, pair });
 
-  it('are null while nothing is selected and nothing has loaded', () => {
-    expect(selectedFromStores()).toBeNull();
-    expect(planFromSelection()).toBeNull();
+  it('is null while nothing has loaded', () => {
+    expect(runPlanFromStores()).toBeNull();
   });
 
-  it("are the first offered provider while nothing is selected, once its entry has loaded: the fallback they always had", () => {
+  it('is null while the line-up store has not loaded, though the first offered provider has: no fallback to it', () => {
     const first = presentProviders()[0];
-    const entry = entryOf(first);
-    useProviderStore.setState({ selected: null, entries: { [first.id]: entry } });
-    expect(selectedFromStores()).toEqual({ provider: first, entry });
-    expect(selectedFromStores()!.entry).toBe(entry);
-    expect(planFromSelection()).toEqual({ plan: planOf(first), accounts: { [first.id]: { settings: entry.settings, credentials: entry.credentials } }, entry });
+    runsOn(null);
+    useProviderStore.setState({ entries: { [first.id]: entryOf(first) } });
+    expect(runPlanFromStores()).toBeNull();
+    expect(readShapeFromStores(auth)).toBeNull();
+    expect(liveGate()).toBeNull();
   });
 
-  it('are null while the selected provider has not loaded, whatever else has', () => {
+  it('is null while the provider that runs has not loaded, whatever else has', () => {
     const first = presentProviders()[0];
-    useProviderStore.setState({ selected: 'fake', entries: { [first.id]: entryOf(first) } });
-    expect(selectedFromStores()).toBeNull();
-    expect(planFromSelection()).toBeNull();
+    runsOn('fake');
+    useProviderStore.setState({ entries: { [first.id]: entryOf(first) } });
+    expect(runPlanFromStores()).toBeNull();
   });
 
-  it('are the selected provider and its entry once it has loaded', () => {
+  it("is the plan of the provider that runs, its account, and the transcription provider's entry once it has loaded", () => {
     const entry = { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair };
-    useProviderStore.setState({ selected: 'fake', entries: { fake: entry } });
-    expect(selectedFromStores()).toEqual({ provider: fakeProvider, entry });
-    expect(selectedFromStores()!.entry).toBe(entry);
-    expect(planFromSelection()).toEqual({ plan: planOf(fakeProvider), accounts: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' } } }, entry });
+    runsOn('fake');
+    useProviderStore.setState({ entries: { fake: entry } });
+    expect(runPlanFromStores()).toEqual({ plan: planOf(fakeProvider), accounts: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' } } }, entry });
+    expect(runPlanFromStores()!.entry).toBe(entry);
   });
 });
 
@@ -105,8 +108,8 @@ describe('readShapeFromStores', () => {
   });
 
   it("freezes the chosen provider's settings, credentials and pair with the global settings", () => {
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
     });
     useAudioStore.setState({ mode: 'both' });
@@ -130,8 +133,8 @@ describe('readShapeFromStores', () => {
   });
 
   it('freezes who pays at Start: a member\'s choice, nothing for a non-member', () => {
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
     });
     localStorage.clear();
@@ -157,8 +160,8 @@ describe('readShapeFromStores', () => {
   // `en-US → ja` a naive `{ source: pair.target, target: pair.source }`
   // would give.
   it("finds the participant in a provider's own reverse, not a plain swap (Stage 2 Palabra, ruling 9)", () => {
+    runsOn('palabraai');
     useProviderStore.setState({
-      selected: 'palabraai',
       entries: { palabraai: { settings: PALABRA_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en-US' } } },
     });
     const shape = readShapeFromStores(auth)!;
@@ -167,29 +170,150 @@ describe('readShapeFromStores', () => {
   });
 });
 
-// The stored line-up names the stages only where it is what runs: in this step the selected provider runs the session
-// (ruling 26), so a line-up not stored, or one it does not run, names nothing about the run.
+// A stored line-up is what runs, and names the run's stages; one that is only shown names nothing about the run.
 describe('readShapeFromStores — the line-up id that serves each stage', () => {
   const localEntry = { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } };
   const bingAndEdge = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
   afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
 
-  it("freezes the stored line-up's ids when it runs on the provider that runs: a local run with Bing and Edge", () => {
-    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } });
+  it("freezes the stored line-up's ids: a local run with Bing and Edge", () => {
+    useProviderStore.setState({ entries: { local_inference: localEntry } });
     useLineUpStore.setState({ lineUp: bingAndEdge, stored: true });
     expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
+    expect(readShapeFromStores(auth)!.lineUpStored).toBe(true);
   });
 
   it('freezes the running provider on every stage while no line-up is stored', () => {
-    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: localEntry } });
+    runsOn('local_inference');
+    useProviderStore.setState({ entries: { local_inference: localEntry } });
     useLineUpStore.setState({ lineUp: bingAndEdge, stored: false });
     expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' });
+    // Not the stored one: the ids say nothing of Bing or Edge, and a builder is handed none of them.
+    expect(readShapeFromStores(auth)!.lineUpStored).toBe(false);
   });
 
-  it('freezes the running provider on every stage when the stored line-up runs on another', () => {
-    useProviderStore.setState({ selected: 'fake', entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } } });
+  it('freezes the stored line-up, not the provider that ran before it was stored', () => {
+    runsOn('fake');
+    useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } }, local_inference: localEntry } });
     useLineUpStore.setState({ lineUp: bingAndEdge, stored: true });
-    expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'fake', translation: 'fake', speech: 'fake' });
+    const shape = readShapeFromStores(auth)!;
+    expect(shape.lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
+    expect(shape.lineUpStored).toBe(true);
+    expect(providersIn(shape.plan).map((p) => p.id)).toEqual(['local_inference']);
+    expect(Object.keys(shape.accounts)).toEqual(['local_inference']);
+  });
+
+  it("freezes a stored line-up of two providers: both units, both accounts, the line-up's ids", () => {
+    const sonioxEntry = { settings: SONIOX_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } };
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, local_inference: localEntry } });
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true, unstoredProvider: null });
+    const shape = readShapeFromStores(auth)!;
+    expect(shape.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['local_inference', ['speech']]]);
+    expect(shape.accounts).toEqual({
+      soniox: { settings: SONIOX_DEFAULTS, credentials: { apiKey: 'k' } },
+      local_inference: { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {} },
+    });
+    expect(shape.lineUp).toEqual({ transcription: 'soniox', translation: 'soniox', speech: 'edge' });
+    expect(shape.lineUpStored).toBe(true);
+    // The run's pair is the transcription provider's.
+    expect(shape.pair).toEqual(sonioxEntry.pair);
+  });
+
+  it("a stored line-up the composer refuses gives no shape, and the start gate says the composer's reason", () => {
+    useProviderStore.setState({ entries: { local_inference: localEntry } });
+    useLineUpStore.setState({ lineUp: { ...bingAndEdge, speech: null }, stored: true, unstoredProvider: null });
+    expect(readShapeFromStores(auth)).toBeNull();
+    expect(liveGate()).toEqual({ code: 'lineup_incomplete', message: 'The line-up names no provider for speech.', params: { stage: 'speech' } });
+    // A provider this build does not offer here.
+    useLineUpStore.setState({ lineUp: { transcription: 'later_provider', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    expect(liveGate()).toMatchObject({ code: 'lineup_incomplete', params: { stage: 'transcription' } });
+  });
+
+  describe('a line-up that cannot run says why, wherever Start can be pressed', () => {
+    const entries = (pair: { source: string; target: string }) => ({
+      soniox: { settings: SONIOX_DEFAULTS, credentials: { apiKey: 'k' }, pair },
+      kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair },
+      gemini: { settings: presentProviders().find((p) => p.id === 'gemini')!.settings.defaults, credentials: { apiKey: 'k' }, pair },
+      local_inference: localEntry,
+    });
+    const stored = (transcription: string, speech: string) =>
+      useLineUpStore.setState({ lineUp: { transcription, translation: transcription, speech, summarisation: null }, stored: true, unstoredProvider: null });
+
+    it("Kizuna AI's Soniox voice under own-key Soniox text runs: nothing about the line-up is refused, and the wallet is held to the voice's own floor", () => {
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
+      stored('soniox', 'kizunaai_soniox');
+      environment.value = 'electron';
+      const shape = readShapeFromStores(auth)!;
+      expect(providersIn(shape.plan).map((p) => p.id)).toEqual(['soniox', 'kizunaai_soniox']);
+      expect(shape.lineUp).toEqual({ transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' });
+      expect(planRefusalFromStores()).toBeNull();
+      expect(lineUpNoticeFromStores()).toBeNull();
+      // Signed out, no wallet is known: the gate says nothing, and the start's sign-in check speaks.
+      expect(liveGate()).toBeNull();
+      // Signed in: the wallet is checked though the text runs on the user's own key, against the floor of the
+      // speech stream alone (4 167), not a whole speaking session's (12 500).
+      const wallet = (balanceMicroUsd: number) => useAccountStore.setState({ account: { status: 'known', balanceMicroUsd, frozen: false } });
+      wallet(4_166);
+      expect(liveGate()).toMatchObject({ code: 'balance_below_floor', params: { balance: '$0.004166' } });
+      expect(gate(readShapeFromStores(auth)!, 'electron')).toMatchObject({ code: 'balance_below_floor' });
+      wallet(4_167);
+      expect(liveGate()).toBeNull();
+      useAccountStore.setState({ account: { status: 'loading' } });
+      expect(liveGate()?.code).toBe('quota_pending');
+      useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1_000_000, frozen: true } });
+      expect(liveGate()?.code).toBe('wallet_frozen');
+      // Text only: no voice is leased, and no balance is asked.
+      wallet(0);
+      useSettingsStore.setState({ textOnly: true });
+      expect(liveGate()).toBeNull();
+    });
+
+    it("Kizuna AI's Qwen text under Kizuna AI's Soniox voice: it takes no other voice, so the two hosted services never run together", () => {
+      useProviderStore.setState({ entries: { ...entries({ source: 'en', target: 'ja' }), kizunaai_qwen: { settings: QWEN_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } } });
+      stored('kizunaai_qwen', 'kizunaai_soniox');
+      environment.value = 'electron';
+      expect(readShapeFromStores(auth)).toBeNull();
+      const refusal = { code: 'lineup_voice_not_taken', params: { stage: 'speech', provider: 'kizunaai_qwen' } };
+      expect(liveGate()).toMatchObject(refusal);
+      expect(planRefusalFromStores()).toEqual(liveGate());
+      expect(lineUpNoticeFromStores()).toMatchObject({ ...refusal, stage: 'speech' });
+    });
+
+    it("an end-to-end provider's text under Edge: it takes no other voice", () => {
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
+      stored('gemini', 'edge');
+      expect(liveGate()).toMatchObject({ code: 'lineup_voice_not_taken', params: { stage: 'speech', provider: 'gemini' } });
+    });
+
+    it("an end-to-end provider's voice under Soniox text: its stages go together", () => {
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
+      stored('soniox', 'gemini');
+      expect(liveGate()).toMatchObject({ code: 'lineup_stage_split', params: { stage: 'transcription', provider: 'gemini' } });
+    });
+
+    it('Edge under Soniox text, into a language Edge has no voice for: said before anything connects', () => {
+      // Basque: Soniox translates into it, Edge does not speak it.
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'eu' }) });
+      stored('soniox', 'edge');
+      const refusal = { code: 'lineup_language_not_spoken', params: { stage: 'speech', provider: 'edge', language: 'eu' } };
+      expect(liveGate()).toMatchObject(refusal);
+      expect(lineUpNoticeFromStores()).toMatchObject({ ...refusal, stage: 'speech' });
+      // The plan composes: the runner's gate refuses the frozen shape with the same code.
+      expect(planRefusalFromStores()).toBeNull();
+      expect(gate(readShapeFromStores(auth)!, 'electron')).toMatchObject(refusal);
+      // Text only: nothing is read aloud, and the session may start.
+      useSettingsStore.setState({ textOnly: true });
+      expect(liveGate()).toBeNull();
+      expect(lineUpNoticeFromStores()).toBeNull();
+    });
+
+    it('Edge under Soniox text, into a language Edge speaks: nothing is refused', () => {
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
+      stored('soniox', 'edge');
+      expect(liveGate()).toBeNull();
+      expect(planRefusalFromStores()).toBeNull();
+      expect(lineUpNoticeFromStores()).toBeNull();
+    });
   });
 });
 
@@ -200,7 +324,8 @@ describe('readShapeFromStores — the screen context source (spec 2026-10-22 §4
 
   it("carries the store's sampler source as frames while screen context is wanted, and no key without a sampler", () => {
     environment.value = 'electron';
-    useProviderStore.setState({ selected: 'qwen_livetranslate', entries: { qwen_livetranslate: qwen(true) } });
+    runsOn('qwen_livetranslate');
+    useProviderStore.setState({ entries: { qwen_livetranslate: qwen(true) } });
     expect('frames' in readShapeFromStores(auth)!).toBe(false);
     const sampler = createSampler(createVirtualClock(0));
     useScreenContextStore.getState().set(sampler);
@@ -212,10 +337,11 @@ describe('readShapeFromStores — the screen context source (spec 2026-10-22 §4
     environment.value = 'electron';
     const sampler = createSampler(createVirtualClock(0));
     useScreenContextStore.getState().set(sampler);
-    useProviderStore.setState({ selected: 'qwen_livetranslate', entries: { qwen_livetranslate: qwen(false) } });
+    runsOn('qwen_livetranslate');
+    useProviderStore.setState({ entries: { qwen_livetranslate: qwen(false) } });
     expect('frames' in readShapeFromStores(auth)!).toBe(false);
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { qwen_livetranslate: qwen(true), fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
     });
     expect('frames' in readShapeFromStores(auth)!).toBe(false);
@@ -230,15 +356,17 @@ describe('screenContextWanted', () => {
 
   it('is on only while a Qwen provider is the one a start would run, with its switch on', () => {
     environment.value = 'electron';
-    useProviderStore.setState({ selected: 'qwen_livetranslate', entries: { qwen_livetranslate: qwen(false) } });
+    runsOn('qwen_livetranslate');
+    useProviderStore.setState({ entries: { qwen_livetranslate: qwen(false) } });
     expect(screenContextWanted()).toBe(false);
     useProviderStore.setState({ entries: { qwen_livetranslate: qwen(true) } });
     expect(screenContextWanted()).toBe(true);
-    useProviderStore.setState({ selected: 'kizunaai_qwen', entries: { kizunaai_qwen: qwen(true) } });
+    runsOn('kizunaai_qwen');
+    useProviderStore.setState({ entries: { kizunaai_qwen: qwen(true) } });
     expect(screenContextWanted()).toBe(true);
     // Another provider, whatever a Qwen slice says.
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { qwen_livetranslate: qwen(true), fake: { settings: { ...FAKE_DEFAULTS, screenContext: true } as never, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
     });
     expect(screenContextWanted()).toBe(false);
@@ -246,15 +374,16 @@ describe('screenContextWanted', () => {
 
   it('is off where Qwen is not offered: a start there runs another provider', () => {
     environment.value = 'web';
-    useProviderStore.setState({ selected: 'qwen_livetranslate', entries: { qwen_livetranslate: qwen(true) } });
+    runsOn('qwen_livetranslate');
+    useProviderStore.setState({ entries: { qwen_livetranslate: qwen(true) } });
     expect(screenContextWanted()).toBe(false);
   });
 });
 
 describe("readShapeFromStores — the account's wallet (Stage 2 Kizuna Soniox, rulings 5, 6)", () => {
   it("freezes the account's wallet", () => {
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 7, frozen: false } });
@@ -279,8 +408,8 @@ describe('persistIfUnchanged', () => {
 
 describe('readShapeFromStores', () => {
   it('freezes the participant-TTS switch', () => {
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useRoutingStore.setState({ participantSpeech: true });
@@ -294,8 +423,8 @@ describe('readShapeFromStores', () => {
 // for a leg the switch shows off.
 describe("readShapeFromStores — participant speech follows the whole-system rule", () => {
   beforeEach(() => {
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useRoutingStore.setState({ participantSpeech: true });
@@ -361,6 +490,43 @@ describe('ensureReadyFromStores', () => {
     await expect(ensureReadyFromStores(provider, shape, signal)).resolves.toEqual({ state: 'ready', models: [] });
     expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], signal });
   });
+
+  it('tells each provider the stages it serves in the plan, when they are not all it can serve', async () => {
+    const asked: Record<string, CheckContext['stages']> = {};
+    const probe = (id: string) => ({ ...fakeProvider, id, kind: 'local', check: vi.fn(async (_k: unknown, _s: unknown, ctx: CheckContext) => { asked[id] = ctx.stages; return { ok: true as const }; }) }) as unknown as AnyProvider;
+    const [text, voice] = [probe('text'), probe('voice')];
+    const a = { ...planOf(text).units[0], stages: ['transcription', 'translation'] as const };
+    const b = { ...planOf(voice).units[0], stages: ['speech'] as const };
+    const shape = {
+      plan: { units: [a, b], byStage: { transcription: a, translation: a, speech: b } },
+      accounts: { text: { settings: {}, credentials: {} }, voice: { settings: {}, credentials: {} } },
+      pair: { source: 'ja', target: 'en' }, legs: ['speaker'], auth,
+    } as unknown as RunShape;
+    const signal = new AbortController().signal;
+    await ensureReadyFromStores(text, shape, signal);
+    await ensureReadyFromStores(voice, shape, signal);
+    expect(asked).toEqual({ text: ['transcription', 'translation'], voice: ['speech'] });
+  });
+
+  it("tells it the frozen line-up's ids of those stages, when the run runs a stored line-up", async () => {
+    const asked: Array<CheckContext['stageIds']> = [];
+    const probe = (id: string) => ({ ...fakeProvider, id, kind: 'local', check: vi.fn(async (_k: unknown, _s: unknown, ctx: CheckContext) => { asked.push(ctx.stageIds); return { ok: true as const }; }) }) as unknown as AnyProvider;
+    const [text, voice] = [probe('text'), probe('voice')];
+    const a = { ...planOf(text).units[0], stages: ['transcription', 'translation'] as const };
+    const b = { ...planOf(voice).units[0], stages: ['speech'] as const };
+    const shape = {
+      plan: { units: [a, b], byStage: { transcription: a, translation: a, speech: b } },
+      accounts: { text: { settings: {}, credentials: {} }, voice: { settings: {}, credentials: {} } },
+      lineUp: { transcription: 'text', translation: 'bing', speech: 'voice' }, lineUpStored: true,
+      pair: { source: 'ja', target: 'en' }, legs: ['speaker'], auth,
+    } as unknown as RunShape;
+    const signal = new AbortController().signal;
+    await ensureReadyFromStores(text, shape, signal);
+    await ensureReadyFromStores(voice, shape, signal);
+    // No stored line-up is what runs: its ids name nothing about the stages.
+    await ensureReadyFromStores(text, { ...shape, lineUpStored: false }, signal);
+    expect(asked).toEqual([{ transcription: 'text', translation: 'bing' }, { speech: 'voice' }, undefined]);
+  });
 });
 
 describe('watchLegsFromStores', () => {
@@ -405,9 +571,33 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
     expect(useProviderStore.getState().speech).toEqual({ textOnly: false, participantSpeech: false });
   });
 
+  it("keeps who speaks for each provider of the plan: the speech unit's rules, and none until the plan is ready", () => {
+    runsOn('soniox');
+    useProviderStore.setState({ entries: {}, speakers: {} });
+    const unwatch = watchSpeechFromStores();
+    expect(useProviderStore.getState().speakers).toEqual({});
+    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } });
+    expect(useProviderStore.getState().speakers).toEqual({ soniox: { speech: 'optional', participantSpeech: true } });
+    unwatch();
+  });
+
+  it("in a plan of two providers, only the one that serves speech speaks: the one it reads is asked its text offer", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true, unstoredProvider: null });
+    const pair = { source: 'ja', target: 'en' };
+    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair }, local_inference: { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {}, pair } }, speakers: {} });
+    const unwatch = watchSpeechFromStores();
+    const { speakers } = useProviderStore.getState();
+    expect(Object.keys(speakers).sort()).toEqual(['local_inference', 'soniox']);
+    expect(speakers.soniox).toEqual({ speech: 'never' });
+    expect(speakers.local_inference.speech).not.toBe('never');
+    unwatch();
+    useLineUpStore.setState({ lineUp: null, stored: false });
+  });
+
   it("follows face-to-face when the picked provider's entry loads after the pick", () => {
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
-    useProviderStore.setState({ selected: 'soniox', entries: {} });
+    runsOn('soniox');
+    useProviderStore.setState({ entries: {} });
     const unwatch = watchSpeechFromStores();
     expect(useProviderStore.getState().speech.participantSpeech).toBe(false);
     useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } } });
@@ -419,17 +609,18 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
 // Stage 2 foundation, F7: the runner's start gate over the stores as they
 // stand, so the surfaces keep Start off and say why before it is pressed.
 describe('liveGate', () => {
-  const loadFake = (pair: { source: string; target: string }) => useProviderStore.setState({
-    selected: 'fake',
-    entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair } },
-  });
+  const loadFake = (pair: { source: string; target: string }) => {
+    runsOn('fake');
+    useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair } } });
+  };
 
   it('is null until the chosen provider has loaded', () => {
     // A shape the gate refuses once loaded (the participant leg on the web):
     // only the missing entry can explain the null.
     useAudioStore.setState({ mode: 'participant' });
     environment.value = 'web';
-    useProviderStore.setState({ selected: 'fake', entries: {} });
+    runsOn('fake');
+    useProviderStore.setState({ entries: {} });
     expect(liveGate()).toBeNull();
     loadFake({ source: 'en', target: 'ja' });
     expect(liveGate()?.code).toBe('participant_source_unavailable');
@@ -459,8 +650,8 @@ describe('liveGate', () => {
   });
 
   it("refuses below the selected provider's floor, reading text only and the wallet from their stores", () => {
+    runsOn('fake_leased');
     useProviderStore.setState({
-      selected: 'fake_leased',
       entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useAudioStore.setState({ mode: 'speaker' });
@@ -486,8 +677,8 @@ describe('liveGate for an organization payer', () => {
   });
   beforeEach(() => {
     localStorage.clear();
+    runsOn('fake_leased');
     useProviderStore.setState({
-      selected: 'fake_leased',
       entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useAudioStore.setState({ mode: 'speaker' });
@@ -503,10 +694,10 @@ describe('liveGate for an organization payer', () => {
 });
 
 describe('face-to-face from the stores', () => {
-  const pick = (selected: string) => useProviderStore.setState({
-    selected,
-    entries: { [selected]: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
-  });
+  const pick = (id: string) => {
+    runsOn(id);
+    useProviderStore.setState({ entries: { [id]: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } } });
+  };
   beforeEach(() => useAudioStore.setState({ otherSide: 'meeting' }));
 
   it('is on only for Both, beside me, under a provider that offers it', () => {
@@ -552,8 +743,8 @@ describe('face-to-face from the stores', () => {
 describe('appParticipantSpeech — Translation I hear, live for the runner (#595)', () => {
   beforeEach(() => {
     environment.value = 'web';
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useRoutingStore.setState({ participantSpeech: true });

@@ -1,5 +1,7 @@
 import { SP, TL, TR } from '../../lib/lineup/types';
 import { KizunaAIIcon } from '../../components/Icons/ProviderIcons';
+import type { UnitDefinition } from '../../lib/plan/types';
+import { wholeUnit } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createLocalInferenceAdapter, type LocalCredentials } from './adapter';
 import { checkLocalInference, watchLocalInferenceReadiness } from './check';
@@ -10,8 +12,13 @@ import { LocalInferenceVoiceSummary } from './LocalInferenceVoiceSummary';
 import { LocalInferenceSettingsView } from './LocalInferenceSettings';
 import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages, type LocalInferenceSettings } from './settings';
+import { admitLocalSpeech, areLocalSpeechConfigs, localSpeechUnit } from './speechUnit';
+import { admitLocalTranslation, areLocalTranslationConfigs, localTranslationUnit } from './translationUnit';
 
 const adapter = createLocalInferenceAdapter();
+
+/** Made when first read: the whole unit is a view of the definition below. */
+let units: readonly UnitDefinition[] | undefined;
 
 /**
  * LocalInference's definition (D18): its engines run entirely on-device, so
@@ -63,5 +70,23 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   describe: describeLocalInference,
   start: adapter.start,
 
-  session: { admit: admitLocalInference },
+  /**
+   * Three units. The whole provider, for a line-up that is all on this device: every stage together, as before.
+   * Its translation alone (a local model, or Bing), which translates what another provider heard. And its voice
+   * alone (Edge, or a local speech model), which reads another provider's translations.
+   */
+  get units(): readonly UnitDefinition[] {
+    units ??= [wholeUnit(localInferenceProvider), localTranslationUnit, localSpeechUnit];
+    return units;
+  },
+
+  session: {
+    // Asked once per planned unit, with that unit's configs: the voice alone counts its own models only, and so
+    // does the translation alone.
+    admit: (configs) => {
+      if (areLocalSpeechConfigs(configs)) return admitLocalSpeech(configs);
+      if (areLocalTranslationConfigs(configs)) return admitLocalTranslation(configs);
+      return admitLocalInference(configs);
+    },
+  },
 };

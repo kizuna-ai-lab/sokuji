@@ -82,6 +82,42 @@ describe('wholeUnit', () => {
     expect(RUN_STAGES.map((stage) => plan.byStage[stage])).toEqual([plan.units[0], plan.units[0], plan.units[0]]);
   });
 
+  describe('the plan of a provider alone, by the units it declares', () => {
+    const occupying = (id: string, ...stages: RunStage[]) => ({ id, occupies: vi.fn((_s: unknown, want: ReadonlySet<RunStage>) => (want.size === stages.length && stages.every((st) => want.has(st)) ? stages : null)) });
+    const all = () => occupying('all', ...RUN_STAGES);
+    const text = () => occupying('text', ...TR_TL);
+    const voice = () => occupying('voice', 'speech');
+    const tr = () => occupying('tr', 'transcription');
+    const stagesOf = (units: unknown[]) => {
+      const plan = wholePlan(stub({ units }));
+      return { units: plan.units.map((u) => [u.unit.id, u.stages]), byStage: RUN_STAGES.map((stage) => plan.byStage[stage].unit.id) };
+    };
+
+    it.each([
+      ['one unit for all three', [all()], [['all', RUN_STAGES]], ['all', 'all', 'all']],
+      ['a unit for all three among others: it alone', [text(), voice(), all()], [['all', RUN_STAGES]], ['all', 'all', 'all']],
+      ['a text unit and a voice: the two, in stage order', [voice(), text()], [['text', TR_TL], ['voice', ['speech']]], ['text', 'text', 'voice']],
+      ['the whole of a provider beside its voice: the whole unit alone, as a provider with one unit', [wholeUnit(optional), voice()], [['whole', RUN_STAGES]], ['whole', 'whole', 'whole']],
+      ['a voice alone: its first unit on all three, as before', [voice()], [['voice', RUN_STAGES]], ['voice', 'voice', 'voice']],
+      ['a text unit alone: its first unit on all three', [text()], [['text', RUN_STAGES]], ['text', 'text', 'text']],
+      ['units that do not make up the three stages: the first on all three', [tr(), voice()], [['tr', RUN_STAGES]], ['tr', 'tr', 'tr']],
+    ] as const)('%s', (_name, units, planned, byStage) => {
+      expect(stagesOf([...units])).toEqual({ units: planned, byStage });
+    });
+
+    it('asks each unit for exactly the stages, under no settings', () => {
+      const t = text();
+      wholePlan(stub({ units: [t, voice()] }));
+      expect(t.occupies.mock.calls.map(([s, want]) => [s, [...want]])).toEqual([[undefined, RUN_STAGES], [undefined, TR_TL], [undefined, ['speech']]]);
+    });
+
+    it('holds each unit once: the stages of a unit are one planned unit', () => {
+      const plan = wholePlan(stub({ units: [text(), voice()] }));
+      expect(plan.byStage.transcription).toBe(plan.byStage.translation);
+      expect(plan.units).toEqual([plan.byStage.transcription, plan.byStage.speech]);
+    });
+  });
+
   it("uses a provider's own list when it declares one", () => {
     const own = [wholeUnit(p)];
     expect(unitsOf(stub({ units: own }))).toBe(own);

@@ -10,7 +10,7 @@ function make(o: Partial<Pick<UtteranceOptions, 'heardAt'>>) {
   const segments: SegmentEvent[] = [];
   const machine = new Utterances({
     clock: createVirtualClock(0), legFor: () => 'speaker', targetFor: () => 'ja',
-    sink: { segment: (_leg, s) => segments.push(s), speak: () => {}, endSpeech: () => {} },
+    sink: { segment: (_leg, s) => segments.push(s) },
     ...o,
   });
   const lastSourceText = () => {

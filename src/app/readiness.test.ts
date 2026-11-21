@@ -8,6 +8,8 @@ import type { RunState } from '../lib/session/types';
 import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../providers/fake/settings';
 import { useProviderStore } from '../stores/providerStore';
+import { useLineUpStore } from '../stores/lineUpStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS } from './readiness';
 import { readinessPlan } from './session';
 
@@ -51,10 +53,10 @@ function makeProbe(id = 'probe', kind: 'local' | 'own-key' | 'managed' = 'local'
 
 function setupStore(...providers: Array<{ id: string }>) {
   offered.list = providers;
+  runsOn(providers[0]?.id ?? null);
   useProviderStore.setState({
     entries: Object.fromEntries(providers.map((p) => [p.id, { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } }])),
     readiness: {},
-    selected: providers[0]?.id ?? null,
     legs: ['speaker'],
   });
 }
@@ -74,7 +76,9 @@ const realRefresh = useProviderStore.getState().refreshReadiness;
 
 beforeEach(() => {
   offered.list = [];
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'], refreshReadiness: realRefresh });
+  runsOn(null);
+  useLineUpStore.setState({ lineUp: null, stored: false });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, stages: {}, stageIds: {}, legs: ['speaker'], refreshReadiness: realRefresh });
 });
 
 /**
@@ -230,7 +234,7 @@ describe('driveReadiness', () => {
     await flush();
     expect(calls('o1')).toBe(1);
 
-    useProviderStore.setState({ selected: 'o2' });
+    runsOn('o2');
     clock.advance(0);
     await flush();
     expect(calls('o2')).toBe(1);
@@ -255,7 +259,7 @@ describe('driveReadiness', () => {
 
     useProviderStore.setState({ readiness: { o1: { state: 'unknown' }, o2: ready } }); // an edit to o1: 800 ms armed
     clock.advance(300);
-    useProviderStore.setState({ selected: 'o2' });
+    runsOn('o2');
     clock.advance(NETWORK_READINESS_DELAY_MS);
     await flush();
     expect(calls('o2')).toBe(0);
@@ -273,7 +277,7 @@ describe('driveReadiness', () => {
     const clock = createVirtualClock(0);
     const detach = driveReadiness({ runner, providers: () => [n.provider, l.provider], plan: readinessPlan, auth: () => auth, clock });
 
-    useProviderStore.setState({ selected: 'l' }); // the same turn: n's at-once check is still pending
+    runsOn('l'); // the same turn: n's at-once check is still pending
     clock.advance(0);
     await flush();
     expect(calls('l')).toBe(0);
@@ -289,10 +293,10 @@ describe('driveReadiness', () => {
   it('an answer found without a check is not asked for again', async () => {
     // The real refreshReadiness, counted: a missing key answers synchronously, with no check.
     const refresh = vi.fn(realRefresh);
+    runsOn('fake');
     useProviderStore.setState({
       entries: { fake: { settings: { ...FAKE_DEFAULTS, requireKey: true }, credentials: { apiKey: '' }, pair: { source: 'en', target: 'ja' } } },
       readiness: {},
-      selected: 'fake',
       refreshReadiness: refresh,
     });
     offered.list = [fakeProvider];
@@ -326,9 +330,9 @@ describe('driveReadiness', () => {
     await flush();
     expect(calls('y')).toBe(1);
 
-    useProviderStore.setState({ selected: 'x' });
+    runsOn('x');
     useProviderStore.setState({ readiness: { y: { state: 'unknown' } } });
-    useProviderStore.setState({ selected: 'y' });
+    runsOn('y');
     clock.advance(0);
     await flush();
     expect(calls('y')).toBe(2);
@@ -454,7 +458,7 @@ describe('driveReadiness', () => {
 
     expect(probe1.off).not.toHaveBeenCalled();
 
-    useProviderStore.setState({ selected: 'probe2' });
+    runsOn('probe2');
     expect(probe1.off).toHaveBeenCalledTimes(1);
     expect(probe2.off).not.toHaveBeenCalled();
 
@@ -710,11 +714,12 @@ describe('driveReadiness over a plan of two providers', () => {
     const b = makeProbe('b', 'local');
     const c = makeProbe('c', 'local');
     setupStore(a.provider, b.provider, c.provider);
-    useProviderStore.setState({ readiness: { a: ready, b: ready, c: ready } });
     const { calls } = spyRefresh();
     const clock = createVirtualClock(0);
     let current = planOfTwo(a.provider, b.provider);
     const detach = driveReadiness({ runner: idleRunner(), providers: () => [a.provider, b.provider, c.provider], plan: () => current, auth: () => auth, clock });
+    // Ready once the driver has read the plan: learning which stages each serves forgot what was known before.
+    useProviderStore.setState({ readiness: { a: ready, b: ready, c: ready } });
 
     b.fire(); // its own inputs changed: a check armed for READINESS_DELAY_MS from now
     clock.advance(50);
@@ -751,7 +756,7 @@ describe("readinessPlan: the plan the app's driver checks", () => {
     const second = makeProbe('second', 'own-key');
     setupStore(first.provider);
     offered.list = [first.provider, second.provider];
-    useProviderStore.setState({ selected: 'not_offered_here' });
+    runsOn('not_offered_here');
     const { calls } = spyRefresh();
     const clock = createVirtualClock(0);
     const detach = driveReadiness({ runner: idleRunner(), providers: () => [first.provider, second.provider], plan: readinessPlan, auth: () => auth, clock });
@@ -768,7 +773,106 @@ describe("readinessPlan: the plan the app's driver checks", () => {
     const first = makeProbe('first', 'own-key');
     setupStore(first.provider);
     offered.list = [first.provider];
-    useProviderStore.setState({ selected: null });
+    runsOn(null);
     expect(readinessPlan()).toBeNull();
   });
 });
+
+describe('the stages each provider serves', () => {
+  const stagesAsked = (check: { mock: { calls: unknown[][] } }) => check.mock.calls.map((call) => (call[2] as { stages?: readonly string[] }).stages);
+  const ready = { state: 'ready' as const, models: [] };
+
+  it("are kept in the store from the plan, and reach each provider's check", async () => {
+    const a = makeProbe('a');
+    const b = makeProbe('b');
+    setupStore(a.provider, b.provider);
+    const clock = createVirtualClock(0);
+    const two = planOfTwo(a.provider as unknown as AnyProvider, b.provider as unknown as AnyProvider);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [], plan: () => two, auth: () => auth, clock });
+    expect(useProviderStore.getState().stages).toEqual({ a: ['transcription', 'translation'], b: ['speech'] });
+    clock.advance(READINESS_DELAY_MS);
+    await flush();
+    expect(stagesAsked(a.check)).toEqual([['transcription', 'translation']]);
+    expect(stagesAsked(b.check)).toEqual([['speech']]);
+    detach();
+  });
+
+  // A provider that runs a stage in more than one way (the local one: Bing or a model) reads which from the ids.
+  it("the stored line-up's ids of those stages are kept beside them, reach the check, and a change of one checks its provider again", async () => {
+    const a = makeProbe('a');
+    const b = makeProbe('b');
+    setupStore(a.provider, b.provider);
+    useLineUpStore.setState({ lineUp: { transcription: 'a', translation: 'bing', speech: 'b', summarisation: null }, stored: true, unstoredProvider: null });
+    const clock = createVirtualClock(0);
+    const two = planOfTwo(a.provider as unknown as AnyProvider, b.provider as unknown as AnyProvider);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [], plan: () => two, auth: () => auth, clock });
+    expect(useProviderStore.getState().stageIds).toEqual({ a: { transcription: 'a', translation: 'bing' }, b: { speech: 'b' } });
+    clock.advance(READINESS_DELAY_MS);
+    await flush();
+    const idsAsked = (check: { mock: { calls: unknown[][] } }) => check.mock.calls.map((call) => (call[2] as { stageIds?: unknown }).stageIds);
+    expect(idsAsked(a.check)).toEqual([{ transcription: 'a', translation: 'bing' }]);
+    expect(idsAsked(b.check)).toEqual([{ speech: 'b' }]);
+
+    // The same stages, another id for one of them: `a` is asked again, `b` is not.
+    useLineUpStore.setState({ lineUp: { transcription: 'a', translation: 'a', speech: 'b', summarisation: null } });
+    expect(useProviderStore.getState().readiness.a).toEqual({ state: 'unknown' });
+    expect(useProviderStore.getState().readiness.b).toMatchObject({ state: 'ready' });
+    clock.advance(READINESS_DELAY_MS);
+    await flush();
+    expect(idsAsked(a.check)).toEqual([{ transcription: 'a', translation: 'bing' }, { transcription: 'a', translation: 'a' }]);
+    expect(b.check).toHaveBeenCalledTimes(1);
+    detach();
+  });
+
+  it('a provider that serves every stage is told none: its check reads all it can serve, as before', async () => {
+    const a = makeProbe('a');
+    setupStore(a.provider);
+    const clock = createVirtualClock(0);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [], plan: readinessPlan, auth: () => auth, clock });
+    expect(useProviderStore.getState().stages).toEqual({});
+    clock.advance(READINESS_DELAY_MS);
+    await flush();
+    expect(stagesAsked(a.check)).toEqual([undefined]);
+    detach();
+  });
+
+  it('a change of the stages a provider serves checks it again, and not the provider whose stages stand', async () => {
+    const a = makeProbe('a', 'own-key');
+    const b = makeProbe('b', 'own-key');
+    const c = makeProbe('c', 'own-key');
+    setupStore(a.provider, b.provider, c.provider);
+    const { calls } = spyRefresh();
+    const clock = createVirtualClock(0);
+    const [pa, pb, pc] = [a, b, c].map((probe) => probe.provider as unknown as AnyProvider);
+    // `a` transcribes and translates throughout; the voice goes from `b` to `c`, then `a` takes every stage.
+    let plan: RunPlan = planOfTwo(pa, pb);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [], plan: () => plan, auth: () => auth, clock });
+    clock.advance(0);
+    await flush();
+    expect([calls('a'), calls('b'), calls('c')]).toEqual([1, 1, 0]);
+    useProviderStore.setState({ readiness: { a: ready, b: ready } });
+
+    plan = planOfTwo(pa, pc);
+    useProviderStore.setState({}); // the plan moved: any store change has the driver read it again
+    // `a` serves the same stages: its answer stands. `c` has just joined.
+    expect(useProviderStore.getState().readiness.a).toBe(ready);
+    clock.advance(NETWORK_READINESS_DELAY_MS);
+    await flush();
+    expect([calls('a'), calls('b'), calls('c')]).toEqual([1, 1, 1]);
+    // `b` left the plan: it keeps what it was last told, and its answer.
+    expect(useProviderStore.getState().stages).toEqual({ a: ['transcription', 'translation'], b: ['speech'], c: ['speech'] });
+    expect(useProviderStore.getState().readiness.b).toBe(ready);
+    useProviderStore.setState({ readiness: { ...useProviderStore.getState().readiness, c: ready } });
+
+    const whole: PlannedUnit = { provider: pa, unit: unitsOf(pa)[0], stages: ['transcription', 'translation', 'speech'] };
+    plan = { units: [whole], byStage: { transcription: whole, translation: whole, speech: whole } };
+    useProviderStore.setState({});
+    expect(useProviderStore.getState().readiness.a).toEqual({ state: 'unknown' });
+    clock.advance(NETWORK_READINESS_DELAY_MS);
+    await flush();
+    expect(calls('a')).toBe(2);
+    expect(useProviderStore.getState().stages).toEqual({ b: ['speech'], c: ['speech'] });
+    detach();
+  });
+});
+

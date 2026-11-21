@@ -36,7 +36,9 @@ export function baseStorage(provider = 'fake'): Record<string, string> {
     'settings.setup': JSON.stringify({ version: 1, scenario: 'subtitle-myself', providerPath: 'own-key', provider, completedAt: now() }),
     'settings.tour': JSON.stringify({ version: 1, completedChapters: ['basics'], completedAt: now(), method: 'skipped' }),
     'settings.common.provider': provider,
-    'settings.lineup': JSON.stringify({ transcription: provider, translation: provider, speech: provider, summarisation: null }),
+    // The stored form of a line-up: the provider on every stage. The app runs what the line-up says; the provider
+    // beside it is what an older version of the app would open.
+    'settings.lineup': JSON.stringify({ version: 2, stages: { transcription: provider, translation: provider, speech: provider, summarisation: null } }),
     // The interface language: the app reads it from `i18nextLng` (the setting beside it is what Settings shows).
     // Without it the app follows the machine's language, and specs that find elements by their English names fail.
     i18nextLng: 'en',
@@ -48,13 +50,17 @@ export function baseStorage(provider = 'fake'): Record<string, string> {
   };
 }
 
+/** What a test's user-data directory is named by: nothing is deleted from a directory not named so. */
+const USER_DATA_PREFIX = 'sokuji-e2e-';
+const isTestUserData = (userData: string) => path.basename(userData).startsWith(USER_DATA_PREFIX);
+
 export function newUserData(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'sokuji-e2e-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), USER_DATA_PREFIX));
 }
 
 /** Deletes a user-data directory. For the end of a test that passed: a failed test leaves its directory behind to be looked at. */
 export function removeUserData(userData: string): void {
-  if (path.basename(userData).startsWith('sokuji-e2e-')) fs.rmSync(userData, { recursive: true, force: true });
+  if (isTestUserData(userData)) fs.rmSync(userData, { recursive: true, force: true });
 }
 
 /**
@@ -172,6 +178,18 @@ export async function launch(options: {
       dialog.showOpenDialog = (async () => (chosen === null ? { canceled: true, filePaths: [] } : { canceled: false, filePaths: chosen })) as typeof dialog.showOpenDialog;
     }, filePaths),
   };
+}
+
+/**
+ * Deletes what a profile keeps of a key or a sign-in: the page's storage (where the app keeps a key) and the
+ * session's cookies. For the end of a spec that typed a real key or signed in, passed or failed. The history and
+ * the recordings stay, to be looked at after a failure.
+ */
+export function forgetSecrets(userData: string): void {
+  if (!isTestUserData(userData)) return;
+  for (const name of ['Local Storage', 'Session Storage', 'IndexedDB', 'Cookies', 'Cookies-journal', 'Network']) {
+    fs.rmSync(path.join(userData, name), { recursive: true, force: true });
+  }
 }
 
 /** The Start / End session button. */

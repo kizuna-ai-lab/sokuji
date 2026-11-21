@@ -32,6 +32,7 @@ import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { AuthContext, EngineProps, SettingsProps } from '../../lib/provider/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { appVoicePreview } from '../../app/voicePreview';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from './ProviderOwnSettings';
 
@@ -44,7 +45,8 @@ const signIn = (userId: string | null = 'u1', signedIn = true, token = 't'): Aut
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
+  runsOn('fake');
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, legs: ['speaker'] });
 });
 
 describe('ProviderOwnSettings', () => {
@@ -59,6 +61,23 @@ describe('ProviderOwnSettings', () => {
     expect(seen[0].pair).toEqual({ source: 'auto', target: 'en' });
     expect(typeof seen[0].update).toBe('function');
     expect(seen[0].models).toEqual([]);
+  });
+
+  it("hands a provider shown for another stage the session's pair: the pair of the provider that transcribes", () => {
+    // `fake` transcribes (it runs); another provider is shown beside it, with a pair of its own.
+    const other = { ...fakeProvider, id: 'other' };
+    useProviderStore.setState({ entries: {
+      fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'de' } },
+      other: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } },
+    } });
+    const seen: SettingsProps<FakeSettings>[] = [];
+    const Settings = (props: SettingsProps<FakeSettings>) => { seen.push(props); return null; };
+    const engines: EngineProps<FakeSettings>[] = [];
+    const Engine = (props: EngineProps<FakeSettings>) => { engines.push(props); return null; };
+    const providers = [fakeProvider, { ...other, Settings, Engine }];
+    render(<><ProviderOwnSettings providers={providers} auth={AUTH} providerId="other" /><ProviderEngine providers={providers} providerId="other" /></>);
+    expect(seen[0].pair).toEqual({ source: 'en', target: 'de' });
+    expect(engines[0].pair).toEqual({ source: 'en', target: 'de' });
   });
 
   it('renders nothing before the entry loads', () => {

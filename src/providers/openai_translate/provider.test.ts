@@ -23,6 +23,7 @@ import { planOf } from '../../lib/plan/testing';
 import { contextsFor, gate } from '../../lib/session/shape';
 import type { RunShape } from '../../lib/session/types';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { PROVIDERS } from '../registry';
 import { buildTranslate, describeTranslate, type TranslateConfig } from './config';
 import { openaiTranslateProvider } from './provider';
@@ -35,7 +36,8 @@ afterEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, intent: undefined, selected: null, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>

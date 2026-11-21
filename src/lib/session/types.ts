@@ -52,6 +52,12 @@ export interface RunShape {
   accounts: Readonly<Record<string, PlanAccount>>;
   /** The line-up id that serves each stage (`stageIdsFor`): what the run's records name. */
   lineUp: StageIds;
+  /**
+   * True: `lineUp` is the stored line-up, and the run hands it to every builder (`SharedSettings.lineUp`). Absent
+   * or false: no stored line-up is what runs; `lineUp` then names the provider that runs on every stage and says
+   * nothing of how that provider serves each, so a builder is handed none.
+   */
+  lineUpStored?: boolean;
   /** The speaker's pair; the participant leg runs its reverse. */
   pair: LanguagePair;
   /** The legs asked for, speaker first. */
@@ -63,9 +69,14 @@ export interface RunShape {
   participantSpeech: boolean;
   /** Both with the other side beside me, under a provider that offers it (spec 2026-10-08, slice 3). Absent: false. */
   faceToFace?: boolean;
+  /**
+   * Both with the other side beside me was asked for, whatever the unit that transcribes offers. It differs from
+   * `faceToFace` only under a unit that cannot run it; the gate refuses that where another unit translates.
+   */
+  faceToFaceAsked?: boolean;
   keepReplayAudio: boolean;
-  /** What every builder may read, less `models`, which the run adds from its own readiness answer (F2). */
-  shared: Omit<SharedSettings, 'models' | 'speaks'>;
+  /** What every builder may read, less what the run adds: `models` from its own readiness answer (F2), `speaks`, and the line-up. */
+  shared: Omit<SharedSettings, 'models' | 'speaks' | 'lineUp'>;
   auth: AuthContext;
   /** The account's wallet at start, for a managed provider's floor (ruling 5). Null or absent when signed out, or where no account is wired (tests, the preview): then the sign-in check speaks, not the gate. */
   account?: AccountState | null;
@@ -91,8 +102,12 @@ export interface Prepared<S> {
   notice?: RunNotice;
 }
 
-/** What a managed provider's start floor depends on: the legs, whether the speaker speaks, and whether the participant would. */
-export type BalanceShape = Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'> & Partial<Pick<RunShape, 'faceToFace'>>;
+/**
+ * What a managed provider's start floor depends on: the legs, whether the speaker speaks, whether the participant
+ * would, and the plan, which says whether the speech is this provider's to make (`servesSpeech`). Without a plan
+ * the provider is taken to serve every stage.
+ */
+export type BalanceShape = Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'> & Partial<Pick<RunShape, 'faceToFace' | 'plan'>>;
 
 /** A lease's granted time: the countdown's whole, and when it ends on the run's clock. */
 export interface Budget {

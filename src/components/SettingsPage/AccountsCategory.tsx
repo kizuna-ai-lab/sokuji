@@ -10,12 +10,13 @@ import { ExternalLink } from 'lucide-react';
 import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
-import { caps } from '../../lib/lineup/catalog';
+import { caps, carriedTogether } from '../../lib/lineup/catalog';
 import { RUN_STAGES, type RunStage } from '../../lib/lineup/types';
-import { planOnceSelected } from '../../lib/plan/fromStores';
+import { planFromStores } from '../../lib/plan/fromStores';
 import { transcriptionProvider } from '../../lib/plan/read';
 import type { AnyProvider } from '../../lib/provider/types';
 import { presentProviders } from '../../providers/registry';
+import { stageProviderId } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useModelStore, useModelStatuses, useStorageUsedMb } from '../../stores/modelStore';
 import { useAccountStore } from '../../stores/accountStore';
@@ -84,9 +85,9 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     const named = providerOfTarget(openedBy);
     if (named) { setOpen(accountKeyOf(named)); return; }
     if (openedBy !== 'provider') return;
-    // The plan's transcription provider; the selection while the plan loads, as before.
-    const found = planOnceSelected();
-    const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : useProviderStore.getState().selected;
+    // The plan's transcription provider; while the plan loads or is refused, the provider the line-up names for it.
+    const found = planFromStores();
+    const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : stageProviderId('transcription');
     const p = providers.find((x) => x.id === id);
     if (p?.kind === 'managed') setOpen('kizuna');
     else if (p?.kind === 'own-key') setOpen(OPENAI_IDS.includes(p.id) ? 'openai' : p.id);
@@ -166,7 +167,9 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     for (const id of a.serves) {
       const c = caps(id);
       if (!c) continue;
-      const groups = c.joint && c.joint.length > 1 ? [c.joint] : [];
+      // What one connection of it carries: an end-to-end provider's three stages, or Soniox's transcription and translation.
+      const together = carriedTogether(c);
+      const groups = together && together.length > 1 ? [together] : [];
       for (const g of groups) {
         add(g.length >= RUN_STAGES.length ? t('settingsPage.accounts.endToEnd', 'End to end')
           : g.includes('transcription') && g.includes('translation') && g.length === 2 ? t('settingsPage.accounts.transcribeTranslate', 'Transcription and translation')

@@ -2,6 +2,7 @@ import { afterEach, describe, it, expect } from 'vitest';
 import { fakeProvider } from '../../providers/fake/provider';
 import { DEFAULT_PAIRING } from '../projection/pair';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { appProjectionSettings, offerFor, projectionFrom } from './appViewSettings';
 
@@ -74,14 +75,15 @@ describe('appProjectionSettings', () => {
 
   it("defaults to a provider-boundaried cut when no provider is selected or loaded: the stored pause is whole segments", () => {
     useSettingsStore.setState({ segmentationMode: 'pause', segmentationSourcePause: 1.5, segmentationTranslationPause: 0.8 });
-    useProviderStore.setState({ selected: null, entries: {} });
+    runsOn(null);
+    useProviderStore.setState({ entries: {} });
     expect(appProjectionSettings().get().mode).toBe('off');
   });
 
   it("follows the selected fake provider's boundaries ('provider'): Auto keeps segments whole, not the silence-provider default of 3", () => {
     useSettingsStore.setState({ segmentationMode: 'sentences', sentenceSegmentationChunkSentences: 0 });
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: fakeProvider.settings.defaults, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     expect(appProjectionSettings().get()).toMatchObject({ mode: 'sentences', sentencesPerRow: 0 });
@@ -91,8 +93,8 @@ describe('appProjectionSettings', () => {
     const source = appProjectionSettings();
     let heard = 0;
     const off = source.subscribe(() => { heard += 1; });
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: fakeProvider.settings.defaults, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     off();

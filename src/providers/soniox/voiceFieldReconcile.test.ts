@@ -12,6 +12,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import * as report from '../../lib/diagnostics/report';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { kizunaSonioxProvider } from './kizuna';
 import { sonioxProvider } from './provider';
 import type { SonioxSettings } from './settings';
@@ -23,7 +24,8 @@ const signedIn = (userId = 'u1'): AuthContext => ({ signedIn: true, loaded: true
 const noClip = async () => false;
 
 beforeEach(async () => {
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined });
   await useProviderStore.getState().load(kizunaSonioxProvider);
   await useProviderStore.getState().load(sonioxProvider);
 });

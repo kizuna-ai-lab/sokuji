@@ -71,6 +71,7 @@ import { createVirtualClock } from '../lib/contract/clock';
 import { fakeProvider } from '../providers/fake/provider';
 import { createFakeSource } from '../providers/fake/source';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { configureAppSession, getAppSession } from './session';
 import { useAppSessionBridges, useRunPhase, useRunState } from './useAppSession';
 
@@ -84,7 +85,7 @@ configureAppSession({
 
 beforeAll(async () => {
   await useProviderStore.getState().load(fakeProvider);
-  useProviderStore.getState().select('fake');
+  runsOn('fake');
 });
 
 describe('useRunPhase', () => {

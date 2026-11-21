@@ -1,6 +1,7 @@
 /**
- * A provider's session side — its `adapter.ts` and every file of its own
- * folder the adapter reaches by a value import — follows the rules
+ * A provider's session side — its `adapter.ts`, the file that runs its
+ * voice where the voice is a unit of its own, and every file of its own
+ * folder they reach by a value import — follows the rules
  * CLAUDE.md sets for adapters (F17): it never imports a store or the
  * reporter (an adapter cannot know which leg it serves; it says what
  * happened through its events — `degraded`, `failed`, `closed`, `frame`),
@@ -91,9 +92,20 @@ function resolveFile(root: string, from: string, spec: string): string | null {
   return null;
 }
 
-/** `dir/adapter.ts` and every file of `dir` it reaches by value imports. */
+/**
+ * A provider's voice, where it is a unit of its own, runs a session beside the adapter's and is held to the same
+ * rules: the file that runs it, by provider folder. Soniox's is `speech.ts` (`LegSpeech`); its speech unit
+ * (`ttsUnit.ts`) wraps it and also builds the voice's config, which is the settings side. The local provider's is
+ * `speechSession.ts`; its speech unit (`speechUnit.ts`) resolves the voice from the model store, the settings side.
+ */
+const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
+  'src/providers/soniox': ['speech.ts'],
+  'src/providers/localInference': ['speechSession.ts'],
+};
+
+/** `dir/adapter.ts`, the files that run the provider's voice, and every file of `dir` they reach by value imports. */
 function sessionSide(root: string, dir: string): string[] {
-  const seen = new Set([`${dir}/adapter.ts`]);
+  const seen = new Set([`${dir}/adapter.ts`, ...(VOICE_SESSIONS[dir] ?? []).map((file) => `${dir}/${file}`)]);
   const queue = [...seen];
   while (queue.length > 0) {
     const file = queue.shift()!;
@@ -181,12 +193,16 @@ describe('a provider session side', () => {
         'src/providers/localInference/engines.ts',
         'src/providers/localInference/sentenceCut.ts',
         'src/providers/localInference/speech.ts',
+        'src/providers/localInference/speechSession.ts',
       ]),
     );
+    // The local voice's unit reads the model store to build its config: the settings side, not the session's.
+    expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/speechUnit.ts');
     const fake = sessionSide(REPO_ROOT, 'src/providers/fake');
     expect(fake).toEqual(expect.arrayContaining(['src/providers/fake/adapter.ts', 'src/providers/fake/synth.ts']));
     expect(fake).not.toContain('src/providers/fake/script.ts');
 
+    // Soniox's adapter transcribes and translates; its voice is a session of its own (`speech.ts`, and the TTS stream it runs).
     const soniox = sessionSide(REPO_ROOT, 'src/providers/soniox');
     expect(soniox).toEqual(expect.arrayContaining([
       'src/providers/soniox/adapter.ts',
@@ -198,8 +214,8 @@ describe('a provider session side', () => {
       'src/providers/soniox/ttsStream.ts',
       'src/providers/soniox/utterances.ts',
     ]));
-    // The builder, the check and the settings side are not the session's: the adapter imports them as types only.
-    for (const file of ['check.ts', 'config.ts', 'settings.ts', 'ttsRest.ts', 'voicesClient.ts']) {
+    // The builder, the check, the settings side and the units' definitions are not the session's: the adapter imports them as types only.
+    for (const file of ['check.ts', 'config.ts', 'settings.ts', 'ttsRest.ts', 'voicesClient.ts', 'units.ts', 'ttsUnit.ts']) {
       expect(soniox).not.toContain(`src/providers/soniox/${file}`);
     }
 

@@ -54,6 +54,7 @@ vi.mock('../../VbCable/VbCableNotice', () => ({ default: ({ variant }: { variant
 
 import useAudioStore from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
+import { runsOn } from '../../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../../stores/routingStore';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
@@ -68,10 +69,12 @@ const MBP = { deviceId: 'mbp', label: 'MacBook Pro Speakers' };
 const SYSTEM = { deviceId: 'desktop-audio-loopback', label: 'System Audio (All Applications)' };
 const ZOOM = { deviceId: 'app:pid:7', label: 'Zoom' };
 
-const pick = (id: string) => useProviderStore.setState({
-  selected: id,
-  entries: { [id]: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
-} as never);
+const pick = (id: string) => {
+  runsOn(id);
+  useProviderStore.setState({
+    entries: { [id]: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+  } as never);
+};
 
 beforeEach(() => {
   shapeOverride.provider = null;
@@ -360,7 +363,8 @@ describe('SpeechOutputSection — per mode (spec §1.2)', () => {
   });
 
   it('Both · beside me: an auto source keeps the generic name and tooltip, since it names no language', () => {
-    useProviderStore.setState({ selected: 'soniox', entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } } } as never);
+    runsOn('soniox');
+    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } } } as never);
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     mount();
     expect(row('English translation plays on')).toBeInTheDocument();
@@ -467,8 +471,8 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
   });
 
   it("for a provider whose voices sit with its engine, the name opens its voices in the line-up's speech card (B-20)", () => {
+    runsOn('local_inference');
     useProviderStore.setState({
-      selected: 'local_inference',
       entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: { 'ja→en': { edge: 'en-US-AvaNeural' } } }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     } as never);
     useModelStore.setState({ resolve: () => ({ asr: null, translation: null, tts: { modelId: 'edge-tts', source: 'auto' }, notes: [], prunes: [] }) } as never);

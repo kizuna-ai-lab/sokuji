@@ -99,6 +99,23 @@ describe("a record's export", () => {
       expect(before).toHaveLength(2);
       expect(before[0]).toContain('Provider: local_inference');
       expect(await files(named)).toEqual(before);
+      // A record of a session on two services: its file says who served each stage; the provider stays the one
+      // that transcribed.
+      const mixed = { ...without, services: { ...without.services, provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } } } as unknown as HistoryRecord;
+      const [text, json] = await files(mixed);
+      expect(text).toContain('Provider: transcription=soniox, translation=soniox, speech=edge\n');
+      expect(JSON.parse(json)).toMatchObject({ provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } });
+      // Own-key Soniox read by Kizuna AI's Soniox voice: two services, though both are Soniox's engine.
+      const hostedVoice = { ...without, services: { ...without.services, provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' } } } as unknown as HistoryRecord;
+      const [hostedText, hostedJson] = await files(hostedVoice);
+      expect(hostedText).toContain('Provider: transcription=soniox, translation=soniox, speech=kizunaai_soniox\n');
+      expect(JSON.parse(hostedJson)).toMatchObject({ provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' } });
+      // Soniox transcribed, Bing translated, Edge spoke: Bing and Edge run on this device, which is another host
+      // than Soniox, so the file names the three.
+      const apart = { ...without, services: { ...without.services, provider: 'soniox', stages: { transcription: 'soniox', translation: 'bing', speech: 'edge' } } } as unknown as HistoryRecord;
+      const [apartText, apartJson] = await files(apart);
+      expect(apartText).toContain('Provider: transcription=soniox, translation=bing, speech=edge\n');
+      expect(JSON.parse(apartJson)).toMatchObject({ provider: 'soniox', stages: { transcription: 'soniox', translation: 'bing', speech: 'edge' } });
     } finally {
       URL.createObjectURL = createObjectURL;
       URL.revokeObjectURL = revokeObjectURL;

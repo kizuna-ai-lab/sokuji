@@ -283,7 +283,7 @@
     &:focus-visible { @include vars.focus-ring; }
   }
 
-  &__joint, &__moved {
+  &__joint, &__refusal {
     margin: 0;
     display: flex;
     align-items: center;
@@ -291,7 +291,10 @@
     font-size: 11.5px;
   }
   &__joint { color: vars.$color-primary; }
-  &__moved { color: vars.$color-warning; }
+  // News about a choice just made (speech followed the text side): said in the secondary text colour, so that it is
+  // read neither as the standing rule the green lines state nor as a warning.
+  &__joint--news { color: vars.$text-secondary; }
+  &__refusal { color: vars.$color-warning; }
 }
 
 .provider-blocked {

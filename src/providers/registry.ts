@@ -9,6 +9,9 @@ import type { AnyProvider } from '../lib/provider/types';
 import { debugSwitchOn, enabledProviderIds, getEnvironment, isDevelopmentMode, isKizunaAIEnabled } from '../utils/environment';
 import { fakeLeasedProvider } from './fake/leased';
 import { fakeProvider } from './fake/provider';
+import { fakeTranscriberProvider } from './fake/transcriber';
+import { fakeTranslatorProvider } from './fake/translator';
+import { fakeVoiceProvider } from './fake/voice';
 import { geminiProvider } from './gemini/provider';
 import { localInferenceProvider } from './localInference/provider';
 import { openaiProvider } from './openai/provider';
@@ -23,8 +26,8 @@ import { volcengineAst2Provider } from './volcengine_ast2/provider';
 
 /** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6; Stage 2 Gemini, ruling 6; Stage 2 Volcengine AST2, ruling 5; Stage 2 OpenAI Translate, ruling 11; Stage 2 OpenAI Realtime, ruling 18; Stage 2 Palabra, ruling 14; Stage 2 OpenAI Live, ruling 9; Qwen LiveTranslate, spec 2026-10-13 §8): the managed Kizuna Soniox, the flagged managed Kizuna Qwen, the free LocalInference, then Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI with your own key. */
 export const RELEASED = [kizunaSonioxProvider, kizunaQwenProvider, localInferenceProvider, geminiProvider, volcengineAst2Provider, openaiProvider, openaiTranslateProvider, openaiLiveProvider, sonioxProvider, qwenLiveTranslateProvider, palabraProvider] as const;
-/** Compiled into development builds only (D24): the fake, and the leased fake that carries the session hooks (Stage 2 foundation, choice 1). */
-const DEV_ONLY = [fakeProvider, fakeLeasedProvider] as const;
+/** Compiled into development builds only (D24): the fake, the leased fake that carries the session hooks (Stage 2 foundation, choice 1), the fake voice that only speaks, and the fakes that only transcribe and only translate. */
+const DEV_ONLY = [fakeProvider, fakeLeasedProvider, fakeVoiceProvider, fakeTranscriberProvider, fakeTranslatorProvider] as const;
 
 export type ProviderId = (typeof RELEASED)[number]['id'] | (typeof DEV_ONLY)[number]['id'];
 

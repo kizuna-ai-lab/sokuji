@@ -43,7 +43,16 @@ export interface LegSpeechOptions {
   events: AdapterEvents;
   clock: Clock;
   openSocket: OpenSocket;
+  /**
+   * Called once, when this voice's socket opens for the first time: Soniox accepted the key. A later socket of
+   * the same voice (an idle drop reopened, a recycle) is not said again. Given only where someone must hear it:
+   * a voice-only lease's port (`ttsUnit.ts`).
+   */
+  opened?: () => void;
 }
+
+/** Said when a leg is asked to speak and holds no TTS key (a managed lease that issued none). */
+export const NO_TTS_KEY_MESSAGE = 'No TTS key was issued for this leg: it runs text-only.';
 
 type Pending = { kind: 'text'; text: string; language: string; tag: TextTag } | { kind: 'end' };
 
@@ -88,6 +97,8 @@ export class LegSpeech {
   /** The failure episode already reported: cleared when audio flows again or a reconnect succeeds. */
   private reported: SonioxTtsErrorScope | null = null;
   private readable = true;
+  /** Whether `opened` has been said. */
+  private saidOpened = false;
 
   /** The leg's speech rate, learned from its clean fill-ins. */
   private readonly pace: SpeechPace;
@@ -253,6 +264,10 @@ export class LegSpeech {
       } else {
         this.opening = null;
         this.stream = stream;
+        if (!this.saidOpened) {
+          this.saidOpened = true;
+          this.o.opened?.();
+        }
         this.reported = null;
         // A new socket, a new unreadable-frame episode (choice 7).
         this.readable = true;
@@ -292,6 +307,8 @@ export class LegSpeech {
 
   private onAudio(pcm: Int16Array, streamId: string, ref: Ref | undefined, span: TextRange | undefined): void {
     if (this.closed || ref === undefined || pcm.length === 0) return;
+    this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
+    // Counted after the Logs line, right before the audio is said: a reader of a shared counter sees it move with the audio and at no other time.
     const index = this.counts.get(ref) ?? 0;
     this.counts.set(ref, index + 1);
     const entries = this.segments.get(streamId) ?? [];
@@ -300,7 +317,6 @@ export class LegSpeech {
     // Speech flows again: a later failure is a new episode.
     this.reported = null;
     this.readable = true;
-    this.frame('in', 'tts.audio', { bytes: pcm.byteLength });
     const range = span ? this.provisional(streamId, ref, span, pcm.length) : undefined;
     const home = this.homes.get(ref);
     (home ?? this.o.events).audio({ ref, pcm, ...(range ? { range } : {}), ...(home ? { voice: this.o.leg } : {}) });

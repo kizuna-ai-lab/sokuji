@@ -59,7 +59,7 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  useProviderStore.setState({ entries: {}, intent: undefined });
 });
 
 describe('load', () => {
@@ -217,57 +217,6 @@ describe('writes', () => {
     expect(() => useProviderStore.getState().setCredential(probe, 'apiKey', 'x')).toThrow('Provider "probe" is not loaded');
     expect(() => useProviderStore.getState().setPair(probe, { source: 'en', target: 'ja' })).toThrow('Provider "probe" is not loaded');
   });
-
-  it('remembers the chosen provider', () => {
-    expect(useProviderStore.getState().selected).toBeNull();
-    useProviderStore.getState().select('probe');
-    expect(useProviderStore.getState().selected).toBe('probe');
-  });
-
-  it('persists a pick under the old enum spelling; a load writes nothing', async () => {
-    useProviderStore.getState().select('local_inference', 'pick');
-    expect(useProviderStore.getState().selected).toBe('local_inference');
-    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'local_inference'));
-
-    setSetting.mockClear();
-    useProviderStore.getState().select('fake', 'pick');
-    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'fake'));
-
-    setSetting.mockClear();
-    useProviderStore.getState().select('local_inference');
-    useProviderStore.getState().select('local_inference', 'load');
-    expect(setSetting).not.toHaveBeenCalled();
-  });
-
-  it('refuses a locked pick, so it writes nothing either', () => {
-    useProviderStore.getState().select('probe');
-    useProviderStore.getState().setSelectionLocked(true);
-    useProviderStore.getState().select('x', 'pick');
-    expect(useProviderStore.getState().selected).toBe('probe');
-    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
-    useProviderStore.getState().setSelectionLocked(false);
-  });
-
-  it('refuses a new choice while the selection is locked, and takes it once unlocked', () => {
-    useProviderStore.getState().select('probe');
-    useProviderStore.getState().setSelectionLocked(true);
-    useProviderStore.getState().select('x');
-    expect(useProviderStore.getState().selected).toBe('probe');
-
-    useProviderStore.getState().setSelectionLocked(false);
-    useProviderStore.getState().select('x');
-    expect(useProviderStore.getState().selected).toBe('x');
-  });
-
-  it('notifies subscribers only when the lock changes', () => {
-    // `attach()` sets it on every runner state change; an unchanged value must not wake the store's readers.
-    const listener = vi.fn();
-    const off = useProviderStore.subscribe(listener);
-    useProviderStore.getState().setSelectionLocked(true);
-    useProviderStore.getState().setSelectionLocked(true);
-    expect(listener).toHaveBeenCalledTimes(1);
-    off();
-  });
 });
 
 describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
@@ -291,7 +240,7 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
   const pairWrites = () => setSetting.mock.calls.filter(([key]) => /Language$/.test(String(key)));
 
   beforeEach(() => {
-    useProviderStore.setState({ legs: ['speaker'], speech: speaking, readiness: {} });
+    useProviderStore.setState({ legs: ['speaker'], speech: speaking, speakers: {}, readiness: {} });
     stored.set('settings.common.sourceLanguage', 'ko');
     stored.set('settings.common.targetLanguage', 'en');
   });
@@ -315,6 +264,20 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
     expect(intent()).toEqual({ source: 'ko', target: 'en' });
     useProviderStore.getState().setSpeech(textOnly);
     expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
+    expect(pairWrites()).toEqual([]);
+  });
+
+  it('reads who speaks from the plan where the plan says: a provider read by a voice that never speaks is in a run that does not speak', async () => {
+    await useProviderStore.getState().load(moody);
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
+    useProviderStore.getState().setSpeakers({ moody: { speech: 'never', participantSpeech: true } });
+    expect(moodyEntry().pair).toEqual({ source: 'ko', target: 'en' });
+    // Its own rule again once the plan names no speaker for it; the same rules change nothing.
+    const before = useProviderStore.getState().entries;
+    useProviderStore.getState().setSpeakers({ moody: { speech: 'never', participantSpeech: true } });
+    expect(useProviderStore.getState().entries).toBe(before);
+    useProviderStore.getState().setSpeakers({});
+    expect(moodyEntry().pair).toEqual({ source: 'en', target: 'ja' });
     expect(pairWrites()).toEqual([]);
   });
 
@@ -415,8 +378,6 @@ describe('the global pair (unified language codes)', () => {
     setSetting.mockClear();
     expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
     expect(pairOf('narrow')).toEqual({ source: 'en', target: 'de' });
-    useProviderStore.getState().select('narrow', 'pick');
-    useProviderStore.getState().select('probe', 'pick');
     expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.sourceLanguage', expect.anything());
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.targetLanguage', expect.anything());
@@ -490,6 +451,166 @@ describe('refreshReadiness', () => {
     await useProviderStore.getState().refreshReadiness(p, auth, from);
     expect(check.mock.calls[0][1]).toBe(from.settings);
     expect(check.mock.calls[0][2]).toMatchObject({ pair: from.pair, legs: from.legs });
+  });
+});
+
+describe('the stages a provider serves in the plan', () => {
+  const auth = { signedIn: false, getToken: async () => null };
+  const stagesAsked = (check: { mock: { calls: unknown[][] } }) => check.mock.calls.map((call) => (call[2] as CheckContext).stages);
+
+  beforeEach(() => { useProviderStore.setState({ stages: {}, stageIds: {}, readiness: {} }); });
+
+  it("reach the check: the store's for the live entry, the run's own for a run's shape, none when it serves all it can", async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, id: 'staged', kind: 'local', check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(p);
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    useProviderStore.getState().setStages({ staged: ['speech'] });
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    const from = { ...useProviderStore.getState().entries.staged, legs: ['speaker'] as const, stages: ['transcription', 'translation'] as const };
+    await useProviderStore.getState().refreshReadiness(p, auth, from);
+    expect(stagesAsked(check)).toEqual([undefined, ['speech'], ['transcription', 'translation']]);
+    expect(check.mock.calls[0][2]).not.toHaveProperty('stages');
+  });
+
+  it('a change of them forgets the readiness, as an edit does; the same stages change nothing', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, id: 'staged', kind: 'local', check } as unknown as AnyProvider;
+    const other = { ...probe, id: 'other', kind: 'local', check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(p);
+    await useProviderStore.getState().load(other);
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    await useProviderStore.getState().refreshReadiness(other, auth);
+    const ready = useProviderStore.getState().readiness;
+    expect(ready.staged).toMatchObject({ state: 'ready' });
+
+    useProviderStore.getState().setStages({ staged: ['speech'] });
+    expect(useProviderStore.getState().readiness.staged).toEqual({ state: 'unknown' });
+    // Another provider's answer stands.
+    expect(useProviderStore.getState().readiness.other).toBe(ready.other);
+
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    const again = useProviderStore.getState();
+    useProviderStore.getState().setStages({ staged: ['speech'] });
+    expect(useProviderStore.getState()).toBe(again);
+
+    // Back to all it can serve: forgotten again.
+    useProviderStore.getState().setStages({});
+    expect(useProviderStore.getState().readiness.staged).toEqual({ state: 'unknown' });
+  });
+
+  it("the line-up ids of those stages reach the check with them: the store's for the live entry, the run's own for a run's shape", async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, id: 'staged', kind: 'local', check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(p);
+    useProviderStore.getState().setStages({ staged: ['transcription', 'translation'] }, { staged: { transcription: 'staged', translation: 'bing' } });
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    const from = {
+      ...useProviderStore.getState().entries.staged, legs: ['speaker'] as const,
+      stages: ['transcription', 'translation'] as const, stageIds: { transcription: 'staged', translation: 'staged' },
+    };
+    await useProviderStore.getState().refreshReadiness(p, auth, from);
+    await useProviderStore.getState().refreshReadiness(p, auth, { ...from, stageIds: undefined });
+    expect(check.mock.calls.map((call) => call[2].stageIds)).toEqual([
+      { transcription: 'staged', translation: 'bing' }, { transcription: 'staged', translation: 'staged' }, undefined,
+    ]);
+    expect(check.mock.calls[2][2]).not.toHaveProperty('stageIds');
+  });
+
+  it('a change of the ids alone forgets the readiness too; the same ids change nothing', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, id: 'staged', kind: 'local', check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(p);
+    const stages = { staged: ['transcription', 'translation'] } as const;
+    useProviderStore.getState().setStages(stages, { staged: { transcription: 'staged', translation: 'bing' } });
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    const ready = useProviderStore.getState();
+    useProviderStore.getState().setStages(stages, { staged: { transcription: 'staged', translation: 'bing' } });
+    expect(useProviderStore.getState()).toBe(ready);
+    useProviderStore.getState().setStages(stages, { staged: { transcription: 'staged', translation: 'staged' } });
+    expect(useProviderStore.getState().readiness.staged).toEqual({ state: 'unknown' });
+    expect(useProviderStore.getState().stageIds).toEqual({ staged: { transcription: 'staged', translation: 'staged' } });
+  });
+
+  it('the ids key a kept answer with the stages: a ready answer for one is not served for another', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, id: 'kept', check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(p);
+    useProviderStore.getState().setCredential(p, 'apiKey', 'k');
+    const from = { ...useProviderStore.getState().entries.kept, legs: ['speaker'] as const, stages: ['transcription', 'translation'] as const };
+    await useProviderStore.getState().refreshReadiness(p, auth, { ...from, stageIds: { translation: 'bing' } });
+    await useProviderStore.getState().refreshReadiness(p, auth, { ...from, stageIds: { translation: 'bing' } });
+    expect(check).toHaveBeenCalledTimes(1);
+    await useProviderStore.getState().refreshReadiness(p, auth, { ...from, stageIds: { translation: 'kept' } });
+    expect(check).toHaveBeenCalledTimes(2);
+  });
+
+  it('key a kept answer: a ready answer for every stage is not served for a part of them', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    const p = { ...probe, id: 'kept', check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(p);
+    useProviderStore.getState().setCredential(p, 'apiKey', 'k');
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    // The same inputs: served from the kept answer.
+    expect(check).toHaveBeenCalledTimes(1);
+    useProviderStore.getState().setStages({ kept: ['transcription', 'translation'] });
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    expect(check).toHaveBeenCalledTimes(2);
+    await useProviderStore.getState().refreshReadiness(p, auth);
+    expect(check).toHaveBeenCalledTimes(2);
+    expect(stagesAsked(check)).toEqual([undefined, ['transcription', 'translation']]);
+  });
+});
+
+describe('the pair a provider is checked for when another provider transcribes', () => {
+  const auth = { signedIn: false, getToken: async () => null };
+  const pairsAsked = (check: { mock: { calls: unknown[][] } }) => check.mock.calls.map((call) => (call[2] as CheckContext).pair);
+
+  beforeEach(() => { useProviderStore.setState({ stages: {}, stageIds: {}, readiness: {} }); });
+
+  it('is the pair of the provider that transcribes, which Start runs, where that pair is not the one picked', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    // The one that transcribes offers en and de only; the one that translates offers more.
+    const heard = { ...narrow, id: 'heard' } as unknown as AnyProvider;
+    const translator = { ...probe, id: 'translator', kind: 'local', checkReadsDirection: true, check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(heard);
+    await useProviderStore.getState().load(translator);
+    useProviderStore.getState().setPair(translator, { source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().entries.heard.pair).toEqual({ source: 'en', target: 'de' });
+    useProviderStore.getState().setStages({ heard: ['transcription'], translator: ['translation', 'speech'] });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)).toEqual([{ source: 'en', target: 'de' }]);
+  });
+
+  it('is the pair as picked, not the nearest its own lists offer, and a new pick forgets its answer though its own pair did not move', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    // It offers en and de only; the provider that transcribes offers more.
+    const translator = { ...narrow, id: 'translator', kind: 'local', checkReadsDirection: true, check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(probe);
+    await useProviderStore.getState().load(translator);
+    useProviderStore.getState().setPair(probe, { source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().entries.translator.pair).toEqual({ source: 'en', target: 'de' });
+
+    // Serving every stage it can, it is checked for its own pair.
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    // It only translates: the pair is the one picked, which the provider that transcribes runs.
+    useProviderStore.getState().setStages({ translator: ['translation', 'speech'] });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)).toEqual([{ source: 'en', target: 'de' }, { source: 'en', target: 'ja' }]);
+    expect(useProviderStore.getState().readiness.translator).toMatchObject({ state: 'ready' });
+
+    // Another pick that leaves its own pair where it was: the answer was about the other pair.
+    useProviderStore.getState().setPair(probe, { source: 'en', target: 'fr' });
+    expect(useProviderStore.getState().entries.translator.pair).toEqual({ source: 'en', target: 'de' });
+    expect(useProviderStore.getState().readiness.translator).toEqual({ state: 'unknown' });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)[2]).toEqual({ source: 'en', target: 'fr' });
+
+    // It transcribes again: its own pair.
+    useProviderStore.getState().setStages({ translator: ['transcription', 'translation'] });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)[3]).toEqual({ source: 'en', target: 'de' });
   });
 });
 
@@ -587,7 +708,7 @@ describe('flush', () => {
     expect(stored.get('settings.probe.apiKey')).toBe('new');
   });
 
-  it("flush(p) answers for p's own settings and the selection only: another provider's refused value does not fail it", async () => {
+  it("flush(p) answers for p's own settings only: another provider's refused value does not fail it", async () => {
     const other = { ...probe, id: 'other', settings: { ...probe.settings, key: 'other' } } as unknown as AnyProvider;
     await useProviderStore.getState().load(probe);
     await useProviderStore.getState().load(other);
@@ -616,7 +737,7 @@ describe('flush', () => {
     await expect(useProviderStore.getState().flush(probe, ['apiKey'])).resolves.toBe(true);
   });
 
-  it("flush(p, fields) answers for those fields and the selection only: p's other refused value does not fail it", async () => {
+  it("flush(p, fields) answers for those fields only: p's other refused value does not fail it", async () => {
     await useProviderStore.getState().load(probe);
     setSetting.mockImplementation(async (key: string, value: unknown) => {
       if (key === 'settings.probe.count') return { success: false, error: 'QuotaExceededError' };

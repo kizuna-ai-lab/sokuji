@@ -6,15 +6,17 @@ import { recordEvents } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
-import { shapeWith, stubProvider } from '../../lib/plan/testing';
+import { shapeWith, stubProvider, textAndSpeechPlan } from '../../lib/plan/testing';
+import type { PlannedUnit } from '../../lib/plan/types';
+import { wholePlan } from '../../lib/plan/wholeUnit';
 import { createSonioxAdapter } from './adapter';
 import { buildSoniox } from './config';
 import {
-  CONFLICT_WAIT_LIMIT_MS, createKizunaLease, DEFAULT_CONFLICT_RETRY_MS, ENDING_POLL_MS, GRANT_END_MARGIN_MS, RELEASED_RETRY_MS,
+  CONFLICT_WAIT_LIMIT_MS, createKizunaLease, DEFAULT_CONFLICT_RETRY_MS, type VoiceLeaseMemory, ENDING_POLL_MS, GRANT_END_MARGIN_MS, RELEASED_RETRY_MS,
   SESSION_END_BUDGET_MS, SESSION_KEY_TIMEOUT_MS, SESSION_STARTED_RETRY_DELAYS_MS, SESSION_STARTED_RETRY_MAX_MS, SESSION_STARTED_UNACKNOWLEDGED,
 } from './lease';
 import { PARTICIPANT_SPEECH_FIELD } from './leaseRequest';
-import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
+import { SONIOX_DEFAULTS, type SonioxSettings, type SonioxVoiceCredentials } from './settings';
 import { AUTO_CTX, isStt, msg, orig, SHARED } from './testing';
 
 const API = 'https://api.test';
@@ -41,15 +43,22 @@ const grant = (roles: string[], over: Record<string, unknown> = {}) => ({
   leaseId: 'lease-1', clientReferenceId: `ref-${roles[0]}`, region: 'us', streams: roles.map(stream), ...over,
 });
 
-const shapeFor = (legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; token?: string | null } = {}): RunShape => shapeWith(stubProvider('kizunaai_soniox'), {
-  settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
-  turnMode: 'auto', textOnly: o.textOnly ?? false, participantSpeech: o.participantSpeech ?? false, keepReplayAudio: true,
-  shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
-  auth: { signedIn: o.token !== null, userId: 'u1', getToken: vi.fn(async () => (o.token === undefined ? 'tok' : o.token)) },
+const unitOf = (id: string, stages: PlannedUnit['stages']): PlannedUnit => ({ ...wholePlan(stubProvider(id)).units[0], stages });
+/** Another provider transcribes and translates; Kizuna AI's Soniox speaks. */
+const VOICE_ALONE = textAndSpeechPlan(unitOf('soniox', ['transcription', 'translation']), unitOf('kizunaai_soniox', ['speech']));
+
+const shapeFor = (legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; voiceAlone?: boolean } = {}): RunShape => ({
+  ...shapeWith(stubProvider('kizunaai_soniox'), {
+    settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
+    turnMode: 'auto', textOnly: o.textOnly ?? false, participantSpeech: o.participantSpeech ?? false, keepReplayAudio: true,
+    shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
+    auth: { signedIn: o.token !== null, userId: 'u1', getToken: vi.fn(async () => (o.token === undefined ? 'tok' : o.token)) },
+  }),
+  ...(o.voiceAlone ? { plan: VOICE_ALONE } : {}),
 });
 
 /** `acquire` in flight over a stub `fetch`, on a virtual clock; the test answers it. `flag` is the participant-speech flag (ruling 2), off by default as shipped. */
-function acquiring(legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; flag?: boolean; settings?: Partial<SonioxSettings>; token?: string | null } = {}) {
+function acquiring(legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; flag?: boolean; settings?: Partial<SonioxSettings>; token?: string | null; voiceAlone?: boolean; voiceLeases?: VoiceLeaseMemory } = {}) {
   const net = stubFetch();
   const clock = createVirtualClock(0);
   const controller = new AbortController();
@@ -57,7 +66,7 @@ function acquiring(legs: LegName[], o: { textOnly?: boolean; participantSpeech?:
   const frame = vi.fn();
   const waiting = vi.fn();
   const ctx: LeaseContext = { signal: controller.signal, clock, end, frame, waiting };
-  const lease = createKizunaLease({ participantSpeech: o.flag ?? false, fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
+  const lease = createKizunaLease({ participantSpeech: o.flag ?? false, fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API, ...(o.voiceLeases ? { voiceLeases: o.voiceLeases } : {}) });
   const shape = shapeFor(legs, o);
   const pending = lease(shape, { ...SONIOX_DEFAULTS, ...o.settings }, ctx);
   pending.catch(() => {});
@@ -1432,5 +1441,315 @@ describe('Kizuna Soniox lease: refusals for organization payers', () => {
     const stale = await refused(403, { code: 'not_org_member' }, { payer: 'organization', account: { status: 'known', balanceMicroUsd: 0, frozen: false } });
     expect(stale).toMatchObject({ code: 'not_org_member' });
     expect(stale.params).toBeUndefined();
+  });
+});
+
+describe("Kizuna Soniox lease: the voice alone (another provider's text)", () => {
+  const alone: AcquireOptions = { voiceAlone: true, flag: true };
+  const both: AcquireOptions = { ...alone, participantSpeech: true };
+  const body = (call: { init: RequestInit }) => JSON.parse(call.init.body as string);
+  /** A leg's credentials as its voice reads them. */
+  const voice = (a: { resources: { credentials(leg: LegName): SonioxVoiceCredentials } }, leg: LegName): SonioxVoiceCredentials => a.resources.credentials(leg);
+  const VOICE_PORT = { streamAccepted: expect.any(Function) };
+
+  it('asks the session-key route for the voice alone: the legs that speak, the region, who pays', async () => {
+    const a = acquiring(['speaker', 'participant'], { ...both, settings: { region: 'jp' } });
+    await flush();
+    expect(a.calls).toHaveLength(1);
+    expect(a.last().url).toBe(`${API}/soniox/session-key`);
+    expect(a.last().init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
+    expect(a.last().init.body).toBe('{"mode":"voice_only","legs":"both","region":"jp"}');
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'out', type: 'session.key_requested', payload: { mode: 'voice_only', legs: 'both', region: 'jp' } });
+
+    const speaker = acquiring(['speaker', 'participant'], alone);
+    await flush();
+    expect(speaker.last().init.body).toBe('{"mode":"voice_only","legs":"speaker","region":"us"}');
+  });
+
+  it("hands each speaking leg its speech key and that stream's own client reference, and no transcription key", async () => {
+    const a = await granted(['speaker', 'participant'], ['spk_tts', 'par_tts'], both, { region: 'eu' });
+    expect(a.resources.credentials('speaker')).toEqual({ region: 'eu', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_tts', voiceLease: VOICE_PORT });
+    expect(a.resources.credentials('participant')).toEqual({ region: 'eu', tts: 'k-par_tts', clientReferenceId: 'ref-par_tts', voiceLease: VOICE_PORT });
+    // A leg that does not speak in this run holds no key and reports nothing.
+    const speaker = await granted(['speaker', 'participant'], ['spk_tts'], alone);
+    expect(speaker.resources.credentials('speaker')).toEqual({ region: 'us', tts: 'k-spk_tts', clientReferenceId: 'ref-spk_tts', voiceLease: VOICE_PORT });
+    expect(speaker.resources.credentials('participant')).toEqual({ region: 'us' });
+  });
+
+  it('refuses a leg that was not requested of it', async () => {
+    const a = await granted(['speaker'], ['spk_tts'], alone);
+    expect(() => a.resources.credentials('participant')).toThrow(/not requested/);
+  });
+
+  it('fails the start loudly on a contract break: a transcription role, a speaking leg with no key, a role nobody asked for', async () => {
+    const cases: Array<[LegName[], AcquireOptions, string[], RegExp]> = [
+      [['speaker'], alone, ['spk_stt', 'spk_tts'], /spk_stt/],
+      [['speaker'], alone, ['mix_stt'], /mix_stt/],
+      [['speaker', 'participant'], both, ['spk_tts'], /par_tts.*participant/],
+      [['speaker', 'participant'], both, ['par_tts'], /spk_tts.*speaker/],
+      [['speaker'], alone, ['spk_tts', 'par_tts'], /par_tts/],
+      [['speaker'], alone, ['spk_tts', 'mix_tts'], /mix_tts/],
+    ];
+    for (const [legs, o, roles, message] of cases) {
+      const a = acquiring(legs, o);
+      await flush();
+      a.last().respond(200, grant(roles));
+      const error = await rejection(a.pending);
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toMatch(message);
+      expect((error as Error).message).not.toMatch(KEY);
+      expect(a.clock.pending()).toBe(0);
+    }
+    // A role the lease does not know at all is the parser's to refuse, as for any lease.
+    const unknown = acquiring(['speaker'], alone);
+    await flush();
+    unknown.last().respond(200, grant(['spk_tts'], { streams: [stream('spk_tts'), { role: 'preview_tts', apiKey: 'k', clientReferenceId: 'r' }] }));
+    expect(((await rejection(unknown.pending)) as Error).message).toMatch(/malformed stream/);
+  });
+
+  it('asks for no lease at all when no leg would speak: no keys, no budget, nothing to release', async () => {
+    for (const [legs, o] of [
+      [['speaker'], { ...alone, textOnly: true }],
+      [['participant'], alone],
+      [['speaker', 'participant'], { ...alone, textOnly: true, settings: { region: 'in' } }],
+    ] as Array<[LegName[], NonNullable<AcquireOptions>]>) {
+      const a = acquiring(legs, o);
+      const resources = await a.pending;
+      expect(a.calls).toEqual([]);
+      expect(a.shape.auth.getToken).not.toHaveBeenCalled();
+      for (const leg of legs) expect(resources.credentials(leg)).toEqual({ region: o.settings?.region ?? 'us' });
+      expect(resources).not.toHaveProperty('budget');
+      await resources.release();
+      expect(a.calls).toEqual([]);
+      expect(a.frame).not.toHaveBeenCalled();
+      expect(a.clock.pending()).toBe(0);
+    }
+  });
+
+  it("reports each leg's voice once, by its speech role and that stream's client reference", async () => {
+    const a = await granted(['speaker', 'participant'], ['spk_tts', 'par_tts'], both);
+    voice(a, 'speaker').voiceLease!.streamAccepted();
+    voice(a, 'speaker').voiceLease!.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(1);
+    const call = a.to('/soniox/session-started')[0];
+    expect(call.init.method).toBe('POST');
+    expect(call.init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
+    expect(body(call)).toEqual({ leaseId: 'lease-1', role: 'spk_tts', clientReferenceId: 'ref-spk_tts' });
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'out', type: 'session.started', payload: { role: 'spk_tts', clientReferenceId: 'ref-spk_tts' } });
+    call.respond(200);
+    await flush();
+    voice(a, 'speaker').voiceLease!.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(1);
+
+    voice(a, 'participant').voiceLease!.streamAccepted();
+    expect(a.to('/soniox/session-started')).toHaveLength(2);
+    expect(body(a.to('/soniox/session-started')[1])).toEqual({ leaseId: 'lease-1', role: 'par_tts', clientReferenceId: 'ref-par_tts' });
+    expect(a.shape.auth.getToken).toHaveBeenCalledTimes(1);
+  });
+
+  it("tries a voice's report again after a transport failure or a 5xx, as any key's; a 4xx is final; none goes after release", async () => {
+    const a = await granted(['speaker', 'participant'], ['spk_tts', 'par_tts'], both);
+    const started = () => a.to('/soniox/session-started');
+    voice(a, 'speaker').voiceLease!.streamAccepted();
+    started()[0].fail();
+    await flush();
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[0]);
+    await flush();
+    expect(started()).toHaveLength(2);
+    started()[1].respond(503);
+    await flush();
+    a.clock.advance(SESSION_STARTED_RETRY_DELAYS_MS[1]);
+    await flush();
+    expect(started()).toHaveLength(3);
+    expect(body(started()[2])).toEqual({ leaseId: 'lease-1', role: 'spk_tts', clientReferenceId: 'ref-spk_tts' });
+    started()[2].respond(400, { reason: 'role_required' });
+    await flush();
+    expect(a.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.started_refused', payload: { status: 400, reason: 'role_required', role: 'spk_tts' } });
+    a.clock.advance(SESSION_STARTED_RETRY_MAX_MS);
+    await flush();
+    expect(started()).toHaveLength(3);
+
+    void a.resources.release();
+    voice(a, 'participant').voiceLease!.streamAccepted();
+    expect(started()).toHaveLength(3);
+  });
+
+  it('has no reissue and no grant-end port: its keys are never asked again', async () => {
+    const a = await granted(['speaker'], ['spk_tts'], alone);
+    expect(a.resources.credentials('speaker')).not.toHaveProperty('lease');
+    expect(a.resources.credentials('speaker')).not.toHaveProperty('stt');
+    expect(Object.keys(voice(a, 'speaker').voiceLease!)).toEqual(['streamAccepted']);
+  });
+
+  it("its budget is the granted time, and the grant's end ends the run: a segment at the hour's cap, the balance below it", async () => {
+    const capped = await granted(['speaker'], ['spk_tts'], alone, { maxSessionDurationSeconds: 3_600 });
+    expect(capped.resources.budget).toEqual({ totalMs: 3_600_000, endsAt: 3_600_000 });
+    capped.clock.advance(3_600_000);
+    expect(capped.end).toHaveBeenCalledTimes(1);
+    expect(capped.end).toHaveBeenCalledWith({ code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, { expected: true });
+
+    const short = await granted(['speaker'], ['spk_tts'], alone, { maxSessionDurationSeconds: 600 });
+    short.clock.advance(600_000);
+    expect(short.end).toHaveBeenCalledWith({ code: 'budget_exhausted', message: 'Session budget exhausted' }, { expected: false });
+    expect(short.frame).toHaveBeenCalledWith({ direction: 'in', type: 'session.lease_ended', payload: { code: 'budget_exhausted', maxSessionDurationSeconds: 600 } });
+    // Ended, it reports no voice.
+    voice(short, 'speaker').voiceLease!.streamAccepted();
+    expect(short.to('/soniox/session-started')).toEqual([]);
+  });
+
+  it('release tells the backend the session is over, at once and with keepalive, and retries as any lease does', async () => {
+    const a = await granted(['speaker'], ['spk_tts'], alone);
+    const releasing = a.resources.release();
+    const ends = () => a.to('/soniox/session-end');
+    expect(ends()).toHaveLength(1);
+    expect(ends()[0].init.keepalive).toBe(true);
+    expect(ends()[0].init.headers).toEqual({ Authorization: 'Bearer tok', 'Content-Type': 'application/json' });
+    expect(body(ends()[0])).toEqual({ leaseId: 'lease-1' });
+    ends()[0].respond(503);
+    await flush();
+    a.clock.advance(500);
+    await flush();
+    expect(ends()).toHaveLength(2);
+    ends()[1].respond(200);
+    await expect(releasing).resolves.toBeUndefined();
+    expect(a.clock.pending()).toBe(0);
+  });
+
+  it('a backend that does not know the voice alone (HTTP 400) fails the start as a service that is unavailable', async () => {
+    const a = acquiring(['speaker'], alone);
+    await flush();
+    a.last().respond(400, { error: 'Invalid mode' });
+    const error = await rejection(a.pending);
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect(error).toMatchObject({ code: 'soniox_service_unavailable' });
+    expect((error as Error).message).toContain('HTTP 400');
+
+    // A session's request refused with a 400 stays what it was: uncoded.
+    const session = acquiring(['speaker']);
+    await flush();
+    session.last().respond(400, { error: 'Invalid mode' });
+    expect(await rejection(session.pending)).not.toBeInstanceOf(AdapterStartError);
+  });
+
+  it.each([
+    [401, 'sign_in_required'], [402, 'insufficient_balance'], [403, 'wallet_frozen'], [502, 'soniox_service_unavailable'], [503, 'soniox_service_busy'],
+  ])("HTTP %i refuses the start in today's words (%s)", async (status, code) => {
+    const a = acquiring(['speaker'], alone);
+    await flush();
+    a.last().respond(status, { error: 'x' });
+    expect(await rejection(a.pending)).toMatchObject({ code });
+  });
+
+  it('waits out a 409 as any start does', async () => {
+    const a = acquiring(['speaker'], alone);
+    await flush();
+    a.last().respond(409, { blocker: { state: 'ending' } });
+    await flush();
+    expect(a.waiting).toHaveBeenCalledWith(true);
+    a.clock.advance(ENDING_POLL_MS);
+    await flush();
+    expect(a.calls).toHaveLength(2);
+    expect(a.last().init.body).toBe('{"mode":"voice_only","legs":"speaker","region":"us"}');
+    a.last().respond(200, grant(['spk_tts']));
+    const resources = await a.pending;
+    expect(resources.credentials('speaker')).toMatchObject({ tts: 'k-spk_tts' });
+  });
+
+  describe('remembered for a launch after a crash', () => {
+    const memory = () => ({ remember: vi.fn(), forget: vi.fn() });
+
+    it('is remembered when granted, by its id and the service it was asked of, and nothing else', async () => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+      expect(voiceLeases.remember.mock.calls).toEqual([[{ leaseId: 'lease-1', apiUrl: API }]]);
+      expect(voiceLeases.forget).not.toHaveBeenCalled();
+      expect(JSON.stringify(voiceLeases.remember.mock.calls)).not.toMatch(/tok|k-spk/);
+      void a.resources.release();
+    });
+
+    it('is forgotten once session-end is answered, a refusal included', async () => {
+      for (const status of [200, 404]) {
+        const voiceLeases = memory();
+        const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+        const releasing = a.resources.release();
+        expect(voiceLeases.forget).not.toHaveBeenCalled();
+        a.to('/soniox/session-end')[0].respond(status);
+        await releasing;
+        expect(voiceLeases.forget.mock.calls).toEqual([['lease-1']]);
+      }
+    });
+
+    it('stays remembered when session-end is refused for the sign-in (HTTP 401): final, and it said nothing about the lease', async () => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+      const releasing = a.resources.release();
+      a.to('/soniox/session-end')[0].respond(401);
+      await releasing;
+      expect(a.to('/soniox/session-end')).toHaveLength(1);
+      expect(voiceLeases.forget).not.toHaveBeenCalled();
+    });
+
+    it.each([408, 429])('tries session-end again after HTTP %i, and forgets the lease once it is answered', async (status) => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+      const releasing = a.resources.release();
+      a.to('/soniox/session-end')[0].respond(status);
+      await flush();
+      a.clock.advance(500);
+      await flush();
+      expect(a.to('/soniox/session-end')).toHaveLength(2);
+      a.to('/soniox/session-end')[1].respond(200);
+      await releasing;
+      expect(voiceLeases.forget.mock.calls).toEqual([['lease-1']]);
+    });
+
+    it.each([408, 429])('stays remembered when HTTP %i is still the answer when the tries run out', async (status) => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+      const releasing = a.resources.release();
+      for (let i = 0; i < 6; i += 1) {
+        for (const call of a.to('/soniox/session-end')) call.respond(status);
+        await flush();
+        a.clock.advance(SESSION_END_BUDGET_MS);
+        await flush();
+      }
+      await releasing;
+      expect(voiceLeases.forget).not.toHaveBeenCalled();
+    });
+
+    it('stays remembered when session-end never reached the backend', async () => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_tts'], { ...alone, voiceLeases });
+      const releasing = a.resources.release();
+      a.to('/soniox/session-end')[0].fail();
+      await flush();
+      a.clock.advance(SESSION_END_BUDGET_MS);
+      await flush();
+      for (const call of a.to('/soniox/session-end').slice(1)) call.respond(503);
+      await flush();
+      a.clock.advance(SESSION_END_BUDGET_MS);
+      await releasing;
+      expect(voiceLeases.forget).not.toHaveBeenCalled();
+    });
+
+    it('is not remembered when the answer broke the contract, nor when nothing was leased', async () => {
+      const voiceLeases = memory();
+      const broken = acquiring(['speaker'], { ...alone, voiceLeases });
+      await flush();
+      broken.last().respond(200, grant(['spk_stt']));
+      await rejection(broken.pending);
+      await acquiring(['speaker'], { ...alone, textOnly: true, voiceLeases }).pending;
+      expect(voiceLeases.remember).not.toHaveBeenCalled();
+    });
+
+    it("a session's lease is never remembered: it ends at the backend by itself", async () => {
+      const voiceLeases = memory();
+      const a = await granted(['speaker'], ['spk_stt', 'spk_tts'], { voiceLeases });
+      const releasing = a.resources.release();
+      a.to('/soniox/session-end')[0].respond(200);
+      await releasing;
+      expect(voiceLeases.remember).not.toHaveBeenCalled();
+      expect(voiceLeases.forget).not.toHaveBeenCalled();
+    });
   });
 });

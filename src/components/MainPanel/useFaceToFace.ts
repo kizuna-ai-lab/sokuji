@@ -2,7 +2,7 @@ import { useRunParticipantSpeech } from '../../app/useRun';
 import { resolveOutlet } from '../../lib/audio/outlets';
 import type { LegName } from '../../lib/conversation/types';
 import { speechFromStores } from '../../lib/session/appShape';
-import { presentProviders } from '../../providers/registry';
+import { useStageUnit } from '../../lib/plan/fromStores';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -12,25 +12,33 @@ import { useSettingsStore } from '../../stores/settingsStore';
 export type Ear = 'left' | 'right';
 
 export interface FaceToFaceView {
-  /** The selected provider can run face-to-face: the Both popover offers "beside me". */
+  /** The unit that transcribes can run face-to-face: the Both popover offers "beside me". */
   offered: boolean;
   /** Face-to-face is on: Both, beside me, under a provider that offers it (`faceToFaceFromStores`'s rule, live). */
   active: boolean;
+  /**
+   * "Beside me" is chosen in Both, and the line-up cannot run it because another service translates what this one
+   * transcribes: Start is refused for it, so the choice stays on show for the user to put the other side back in a
+   * meeting (the other way out is the line-up). False or absent wherever face-to-face is offered or was never chosen.
+   */
+  refused?: boolean;
   /** The ear each leg's translation plays in; absent when its outlet is centred. speaker → `other`, participant → `them`. */
   ears: Readonly<Partial<Record<LegName, Ear>>>;
   /** The resolved device label of each face-to-face outlet; null when none is known. */
   outletDevices: Readonly<Record<'other' | 'them', string | null>>;
-  /** My language and theirs: the selected entry's pair. */
+  /** My language and theirs: the pair of the provider that transcribes. */
   me: string | null;
   other: string | null;
   /** Whether each leg's translation is voiced in a run started now: `speakFor`'s `other` and `them`. */
   speaks: Readonly<Record<LegName, boolean>>;
 }
 
-/** `faceToFaceFromStores`'s rule as a hook: the same provider fallback and the same loaded-entry requirement as `selectedFromStores`. */
+/** `faceToFaceFromStores`'s rule as a hook: over the plan's transcription unit, which offers face-to-face, its provider's pair, and the plan's speech unit. */
 export function useFaceToFace(): FaceToFaceView {
-  const selected = useProviderStore((s) => s.selected);
-  const entries = useProviderStore((s) => s.entries);
+  const transcription = useStageUnit('transcription');
+  const translation = useStageUnit('translation');
+  const speechUnit = useStageUnit('speech');
+  const pair = useProviderStore((s) => (transcription ? s.entries[transcription.provider.id]?.pair ?? null : null));
   const mode = useAudioStore((s) => s.mode);
   const otherSide = useAudioStore((s) => s.otherSide);
   const outlets = useAudioStore((s) => s.outlets);
@@ -42,11 +50,11 @@ export function useFaceToFace(): FaceToFaceView {
   useAudioStore((s) => s.isMonitorMuted);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);
   useAudioStore((s) => s.participantCaptureWidened);
-  const providers = presentProviders();
-  const provider = providers.find((p) => p.id === selected) ?? providers[0];
-  const pair = provider ? entries[provider.id]?.pair ?? null : null;
-  const offered = provider?.faceToFace === true && pair !== null;
+  const offered = transcription?.capabilities.faceToFace === true && pair !== null;
   const active = offered && mode === 'both' && otherSide === 'beside';
+  // The gate's rule (`checkPlan`): asked for, the transcription unit cannot, and another unit translates.
+  const refused = !offered && mode === 'both' && otherSide === 'beside' && transcription !== null && translation !== null
+    && translation.unit !== transcription.unit && !transcription.capabilities.faceToFace;
   // The routing's own rule (`readRouting`): the same `present` set and default device, so a centred pick whose device is unplugged reads as auto here too.
   const present = new Set(devices.filter((d) => !d.isVirtual).map((d) => d.deviceId));
   const earOf = (name: 'other' | 'them'): Ear | undefined => {
@@ -65,10 +73,12 @@ export function useFaceToFace(): FaceToFaceView {
   };
   // A run decided at Start whether the participant leg speaks; one that does follows the switch live (#595).
   const runSpeech = useRunParticipantSpeech();
-  const speak = speechFromStores(provider);
+  // Before the plan is ready, as an optional-speech provider would answer (`speechFromStores`'s own default).
+  const speak = speechFromStores(speechUnit?.capabilities ?? { speech: 'optional' });
   return {
     offered,
     active,
+    refused,
     me: pair?.source ?? null,
     other: pair?.target ?? null,
     speaks: { speaker: speak.other, participant: runSpeech !== false && speak.them },

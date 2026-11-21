@@ -33,6 +33,7 @@ vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: () =>
 import { LineUpCategory } from './LineUpCategory';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: 'openai' };
@@ -42,7 +43,9 @@ const states = (card: HTMLElement) => [...card.querySelectorAll('.lineup-stage__
 
 beforeEach(() => {
   authState.signedIn = true;
-  useProviderStore.setState({ selected: 'soniox', selectionLocked: false, entries: {}, readiness: {} });
+  runsOn('soniox');
+  useLineUpStore.setState({ locked: false });
+  useProviderStore.setState({ entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
   useSettingsStore.setState({ settingsNavigationTarget: null });
 });
@@ -67,11 +70,14 @@ describe('the line-up during a session and after it', () => {
   });
 
   it('refuses a line-up change while the provider is locked by a running session', async () => {
-    useProviderStore.setState({ selectionLocked: true });
+    useLineUpStore.setState({ locked: true });
     expect(await useLineUpStore.getState().choose('speech', 'edge')).toBeNull();
     expect(useLineUpStore.getState().lineUp).toEqual(soniox);
   });
 });
+
+/** The line on the card Soniox's transcription and translation share: one connection, and the translation can be given away. */
+const PARTABLE = 'Transcription and translation go over one connection. Another service can do the translation: choose it below.';
 
 describe('languages and line-up: the four cards', () => {
   it('draws a card for each of the four stages on the desktop; the stages one provider holds jointly share one', () => {
@@ -90,7 +96,9 @@ describe('languages and line-up: the four cards', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: 'kizunaai_openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
     const card = document.querySelector<HTMLElement>('.lineup-stage.is-joint')!;
-    expect(within(card).getByRole('combobox')).toHaveValue('kizunaai_soniox');
+    expect(within(card).getByRole('combobox', { name: 'Transcription and translation' })).toHaveValue('kizunaai_soniox');
+    // Its translation can be given to another service: a choice of its own, in the same card.
+    expect(within(card).getByRole('combobox', { name: 'Translation' })).toHaveValue('kizunaai_soniox');
     expect(states(card).every((s) => s === 'Needs a sign-in')).toBe(true);
     expect(states(cardOf('Notes'))).toEqual(['Needs a sign-in']);
   });
@@ -120,18 +128,59 @@ describe('languages and line-up: the four cards', () => {
     expect(scss).toMatch(/&\.is-joint \{ border-color: vars\.\$color-primary; \}/);
   });
 
-  it("after a service change the cards' hints follow: states, the joint line and what moved", async () => {
+  it("after a service change the cards' hints follow: states and the joint line, and no other stage moves", async () => {
     useProviderStore.setState({ entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never });
     render(<LineUpCategory locked={false} />);
     expect(screen.getAllByText('Needs a key').length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByText('Transcription and translation go over one connection; they change together.')).toBeInTheDocument();
+    expect(screen.getByText(PARTABLE)).toBeInTheDocument();
 
+    // A voice of another service: Soniox keeps transcription and translation, and its card its hints.
     fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'edge' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'soniox', translation: 'soniox', speech: 'edge' }));
+    expect(screen.getByText(PARTABLE)).toBeInTheDocument();
+    expect(screen.queryByText(/moved/)).toBeNull();
+    await waitFor(() => expect(states(cardOf('Speech'))).toEqual(['Ready']));
+
+    // Transcription to this device: Soniox's translation goes with it, over the one connection they shared.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'local_inference' } });
     await waitFor(() => expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'local_inference', translation: 'bing', speech: 'edge' }));
-    expect(await screen.findByText(/Transcription and translation moved/)).toBeInTheDocument();
     // The Soniox hints are gone with Soniox; each stage now has its own card and says Ready.
-    expect(screen.queryByText('Transcription and translation go over one connection; they change together.')).toBeNull();
+    await waitFor(() => expect(screen.queryByText(PARTABLE)).toBeNull());
     expect(document.querySelector('.lineup-stage.is-joint')).toBeNull();
     for (const name of ['Transcription', 'Translation', 'Speech']) expect(states(cardOf(name))).toEqual(['Ready']);
   });
+
+  it("Bing chosen for translation in Soniox's shared card keeps Soniox transcribing: a card each, and nothing says they go together", async () => {
+    useProviderStore.setState({ entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never });
+    render(<LineUpCategory locked={false} />);
+    const shared = document.querySelector<HTMLElement>('.lineup-stage.is-joint')!;
+    fireEvent.change(within(shared).getByRole('combobox', { name: 'Translation' }), { target: { value: 'bing' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'soniox', translation: 'bing', speech: 'soniox' }));
+    await waitFor(() => expect(document.querySelector('.lineup-stage.is-joint')).toBeNull());
+    expect(screen.queryByText(PARTABLE)).toBeNull();
+    expect(screen.queryByText(/over one connection/)).toBeNull();
+    // Each card says its own service's state: Soniox's key on transcription and speech, Bing ready between them.
+    expect(states(cardOf('Transcription'))).toEqual(['Needs a key']);
+    expect(states(cardOf('Translation'))).toEqual(['Ready']);
+    expect(states(cardOf('Speech'))).toEqual(['Needs a key']);
+
+    // Soniox chosen for translation again: it already transcribes, and the two share a card again.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Translation' }), { target: { value: 'soniox' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'soniox', translation: 'soniox', speech: 'soniox' }));
+    await waitFor(() => expect(screen.getByText(PARTABLE)).toBeInTheDocument());
+  });
+
+  it('Soniox chosen for translation where this device transcribes takes the transcription too', async () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    useProviderStore.setState({ entries: { soniox: { settings: { region: 'us' }, credentials: { apiKey: 'k' }, pair: { source: 'ja', target: 'en' } } } as never });
+    render(<LineUpCategory locked={false} />);
+    fireEvent.change(screen.getByRole('combobox', { name: 'Translation' }), { target: { value: 'soniox' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'soniox', translation: 'soniox', speech: 'edge' }));
+    // And Soniox chosen for transcription alone keeps Bing translating.
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Transcription' })).toHaveValue('local_inference'));
+    fireEvent.change(screen.getByRole('combobox', { name: 'Transcription' }), { target: { value: 'soniox' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'soniox', translation: 'bing', speech: 'edge' }));
+  });
+
 });

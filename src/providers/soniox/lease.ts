@@ -13,6 +13,14 @@
  * `SonioxLeasePort` (Plan A's seam, `settings.ts:95-102`) reports the first
  * accepted frame as `session-started` and tells a grant-end 403 from an
  * early one.
+ *
+ * A plan that asks this provider for its voice alone takes a voice-only
+ * lease from the same route: speech keys only, one per leg that speaks,
+ * each with its own client reference and a port its voice reports through
+ * when its connection first opens. Those keys are never reissued, the
+ * grant ends by its timer, and `release` matters more: the account stays
+ * held until `session-end` arrives, so such a lease is also remembered
+ * (`VoiceLeaseMemory`) for a launch after a crash to end.
  */
 import { AdapterStartError, type AdapterFrame } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
@@ -21,10 +29,13 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import { interruptedOutcome, recordNetworkAttempt, type NetworkOutcome } from '../../lib/diagnostics/sessionNetwork';
 import type { LeaseContext, Resources, RunNotice, RunShape } from '../../lib/session/types';
 import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
-import { SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
+import { asSonioxRegion, SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSessionCapSeconds } from './kizunaBudget';
-import { isSttRole, leaseRequest, requestBody, roleFor, sideOf, STREAM_ROLES, type SttRole, type StreamRole } from './leaseRequest';
-import type { SonioxCredentials, SonioxLeasePort, SonioxReissue, SonioxSettings } from './settings';
+import {
+  isSttRole, requestBody, requestedRoles, roleFor, sideOf, startRequest, STREAM_ROLES, voiceRoleFor,
+  type LeaseRequest, type SttRole, type StreamRole, type VoiceRole,
+} from './leaseRequest';
+import type { SonioxCredentials, SonioxLeasePort, SonioxReissue, SonioxSettings, SonioxVoiceCredentials, SonioxVoiceLeasePort } from './settings';
 
 /** One session-key attempt's bound, its body included (choice 5): a request that never answers must not hold Start. A 409's retry gets its own. */
 export const SESSION_KEY_TIMEOUT_MS = 15_000;
@@ -84,8 +95,8 @@ export const SESSION_STARTED_RETRY_MAX_MS = 30_000;
 export const SESSION_STARTED_UNACKNOWLEDGED = 'The connection ended before the backend acknowledged session-started.';
 
 /**
- * One STT key's `session-started` (the lease's first key has no reference in
- * the body, a reissued one does). `sending` from its first frame until a 2xx
+ * One key's `session-started` (a session's first STT key has no reference in
+ * the body, a reissued one does; a voice-only lease's speech key always does). `sending` from its first frame until a 2xx
  * acknowledges it (`reported`) or the report is let go; `over` once its
  * connection has ended, after which a failed try is not repeated.
  */
@@ -107,6 +118,26 @@ export interface KizunaLeaseDeps {
    *  Required, not defaulted: a default would import `utils/environment`, whose Vite-only
    *  environment syntax the phone's bundler cannot parse (see `src/lib/mobileShared.test.ts`). */
   apiUrl: () => string;
+  /** Where a voice-only lease is remembered until its `session-end` is answered. Absent: it is not remembered. */
+  voiceLeases?: VoiceLeaseMemory;
+}
+
+/** A voice-only lease as it is remembered: what a later `session-end` needs, and nothing secret. */
+export interface RememberedVoiceLease {
+  leaseId: string;
+  /** The API root the lease was asked of. */
+  apiUrl: string;
+}
+
+/**
+ * Durable memory of the voice-only lease this app holds: the account stays held until `session-end` reaches the
+ * backend, so an app that died before sending it ends the lease at its next launch. A session's lease is never
+ * remembered: the backend ends it by itself.
+ */
+export interface VoiceLeaseMemory {
+  remember(lease: RememberedVoiceLease): void;
+  /** `session-end` for this lease was answered: there is nothing left to end. */
+  forget(leaseId: string): void;
 }
 
 interface Grant {
@@ -145,7 +176,7 @@ function parseGrant(body: unknown): Grant {
  * `error_message`, so a 402's amounts go to the Logs' frame instead
  * (`refusalFrame`).
  */
-function refusal(status: number, body: unknown, shape: RunShape): Error {
+function refusal(status: number, body: unknown, shape: RunShape, request: LeaseRequest): Error {
   const b = (body ?? {}) as { error?: unknown; message?: unknown };
   const server = typeof b.error === 'string' ? b.error : '';
   const detail = server ? `: ${server}` : '';
@@ -154,6 +185,10 @@ function refusal(status: number, body: unknown, shape: RunShape): Error {
   if (org) {
     const said = server || (typeof b.message === 'string' ? b.message : '');
     return new AdapterStartError(`The session service refused the start for the organization (HTTP ${status}${said ? `: ${said}` : ''}).`, org, orgNoticeParams(shape.account));
+  }
+  // A backend that does not know the voice-only request yet answers it as a malformed one.
+  if (status === 400 && request.mode === 'voice_only') {
+    return new AdapterStartError(`The session service does not serve the voice alone (HTTP 400${detail}).`, 'soniox_service_unavailable');
   }
   switch (status) {
     case 401: return new AdapterStartError(`The session service did not accept the sign-in (HTTP 401${detail}).`, 'sign_in_required');
@@ -208,7 +243,12 @@ function wait(clock: Clock, ms: number, signal: AbortSignal): Promise<void> {
 }
 
 interface Ending {
-  done: Promise<void>;
+  /**
+   * Whether the backend answered about the lease: any status below 500 but a 401 (the token cached at acquire may
+   * have expired by Stop), or a 408 or 429 that was still the answer when the tries ran out: none of them says the
+   * request was served. False too when no attempt reached it, or it was cancelled first.
+   */
+  done: Promise<boolean>;
   cancel(): void;
 }
 
@@ -217,8 +257,8 @@ interface Ending {
  * sweep settle the lease before expiry (`routes/soniox.ts:820-864`). The
  * first attempt goes with `keepalive`, so it outlives a closing page, and
  * the token cached at acquire, so `pagehide`'s synchronous release sends it
- * before any await. A transport failure or a 5xx is retried, three attempts
- * at most within `SESSION_END_BUDGET_MS`; a 4xx is final.
+ * before any await. A transport failure, a 5xx, a 408 or a 429 is retried,
+ * three attempts at most within `SESSION_END_BUDGET_MS`; any other 4xx is final.
  */
 function signalEnd(
   doFetch: NonNullable<KizunaLeaseDeps['fetch']>, url: string, token: string, leaseId: string, ctx: LeaseContext,
@@ -230,6 +270,8 @@ function signalEnd(
   // CORS preflight fails it that way, and a plain request still reaches the backend on a normal Stop, as the
   // old client's did. A 5xx is the backend's answer, so it keeps the flag.
   let keepalive = true;
+  /** The final answer was not about the lease: the request was turned away unserved. */
+  let unserved = false;
   const deadline = clock.now() + SESSION_END_BUDGET_MS;
   const attempt = async (): Promise<boolean> => {
     const controller = new AbortController();
@@ -250,7 +292,10 @@ function signalEnd(
       });
       status = res.status;
       outcome = 'response';
-      if (res.status >= 500) return false;
+      // A 408 or 429 was not served, and may be served a moment later: tried again like a 5xx.
+      if (res.status >= 500 || res.status === 408 || res.status === 429) return false;
+      // A 401 will not change with the same token: final, and it says nothing about the lease.
+      unserved = res.status === 401;
       if (!res.ok) frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-end', message: `HTTP ${res.status}` } });
       return true;
     } catch {
@@ -262,15 +307,16 @@ function signalEnd(
       recordNetwork(interruptedOutcome(outcome, { released: cancelled, timedOut }), status);
     }
   };
-  const done = (async () => {
+  const done = (async (): Promise<boolean> => {
     for (let i = 0; ; i += 1) {
-      if (cancelled) return;
-      if (await attempt()) return;
+      if (cancelled) return false;
+      if (await attempt()) return !unserved;
       const delay = SESSION_END_RETRY_DELAYS_MS[i];
       if (cancelled || delay === undefined || clock.now() + delay >= deadline) break;
       await new Promise<void>((resolve) => { clock.setTimeout(resolve, delay); });
     }
     if (!cancelled) frame({ direction: 'in', type: 'session.notify_failed', payload: { step: 'session-end', message: 'The backend did not acknowledge session-end.' } });
+    return false;
   })();
   return {
     done,
@@ -293,10 +339,23 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     previous?.cancel();
     previous = null;
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
+    const request = startRequest(shape, s, participantSpeech);
+    if (request === null) {
+      // This provider's voice alone, in a run where no leg speaks: nothing is asked of the backend, so there is
+      // no key, no granted time and nothing to release. No voice is started on a leg that does not speak.
+      const none: Resources<SonioxVoiceCredentials> = {
+        credentials(leg: LegName): SonioxVoiceCredentials {
+          if (!shape.legs.includes(leg)) throw new Error(`The ${leg} leg was not requested of this lease.`);
+          return { region: asSonioxRegion(s.region) };
+        },
+        async release(): Promise<void> {},
+      };
+      // The hook's type names the provider's one key type; see `voiceResources` below.
+      return none as Resources<SonioxCredentials>;
+    }
     const token = await shape.auth.getToken();
     if (ctx.signal.aborted) throw ctx.signal.reason ?? new Error('aborted');
     if (!token) throw new AdapterStartError('Sign in is required to start a managed Soniox session.', 'sign_in_required');
-    const request = leaseRequest(shape, s, participantSpeech);
     // Who pays was chosen once, at Start, and rides the shape: a member's choice, nothing for anyone else.
     const sent = requestBody(request, shape.payer);
 
@@ -381,7 +440,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     }
     if (answer.status < 200 || answer.status >= 300) {
       ctx.frame(refusalFrame(answer.status, answer.body));
-      throw refusal(answer.status, answer.body, shape);
+      throw refusal(answer.status, answer.body, shape, request);
     }
     // A contract break past here leaves a never-started lease, which the
     // backend frees at its start window's end; `session-end` cannot (survey §1.2).
@@ -396,9 +455,26 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       const tts = streams.find((t) => !isSttRole(t.role) && sideOf(t.role) === sideOf(st.role));
       bundles.set(st.role, { region: grant.region, stt: st.apiKey, ...(tts ? { tts: tts.apiKey } : {}), clientReferenceId: st.clientReferenceId });
     }
-    for (const leg of shape.legs) {
-      const role = roleFor(request, leg);
-      if (role && !bundles.has(role)) throw new Error(`The session-key response issued no key for ${role}, which the ${leg} leg runs on.`);
+    /** A voice-only lease's bundles: one per speech role, each on its own stream's reference. */
+    const voices = new Map<VoiceRole, SonioxVoiceCredentials>();
+    if (request.mode === 'voice_only') {
+      // Speech roles only, and only the ones asked for: a transcription key, or a role no leg of this run speaks on, is a contract break.
+      const asked = requestedRoles(request);
+      for (const st of grant.streams) {
+        if (!asked.includes(st.role)) throw new Error(`The session-key response issued ${st.role}, which a voice-only lease for these legs did not ask for.`);
+        voices.set(st.role as VoiceRole, { region: grant.region, tts: st.apiKey, clientReferenceId: st.clientReferenceId });
+      }
+      for (const leg of shape.legs) {
+        const role = voiceRoleFor(request, leg);
+        if (role && !voices.has(role)) throw new Error(`The session-key response issued no key for ${role}, which the ${leg} leg's voice runs on.`);
+      }
+      // Granted and well formed: from here the account is held until `session-end` is answered.
+      deps.voiceLeases?.remember({ leaseId: grant.leaseId, apiUrl: apiUrl() });
+    } else {
+      for (const leg of shape.legs) {
+        const role = roleFor(request, leg);
+        if (role && !bundles.has(role)) throw new Error(`The session-key response issued no key for ${role}, which the ${leg} leg runs on.`);
+      }
     }
 
     const startedAt = ctx.clock.now();
@@ -420,10 +496,12 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     let ended = false;
     let released = false;
     let cancelBudget = () => {};
-    /** Per role, the key its socket runs on now; a reissue replaces it. */
-    const keys = new Map<SttRole, KeyReport>();
+    /** Per role, the key its socket runs on now; a reissue replaces an STT role's. */
+    const keys = new Map<StreamRole, KeyReport>();
     const newKey = (ref: string | null): KeyReport => ({ ref, sending: false, reported: false, over: false, cancelWait: null });
     for (const role of bundles.keys()) keys.set(role, newKey(null));
+    // A voice-only lease's report names its stream's own reference.
+    for (const [role, bundle] of voices) keys.set(role, newKey(bundle.clientReferenceId ?? null));
     /** A key's connection is over (it ended, the key was replaced, the run ends): a report waiting to be tried again is let go now. */
     const letGo = (key: KeyReport): void => {
       key.over = true;
@@ -470,7 +548,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
      * backend's refusal and final. Each failure goes to the Logs, as does a
      * report let go unacknowledged (`ManagedSonioxSession.ts:490-549`).
      */
-    const report = async (role: SttRole, key: KeyReport): Promise<void> => {
+    const report = async (role: StreamRole, key: KeyReport): Promise<void> => {
       const body = JSON.stringify({ leaseId: grant.leaseId, role, ...(key.ref ? { clientReferenceId: key.ref } : {}) });
       for (let tries = 0; ; tries += 1) {
         let again: boolean;
@@ -521,7 +599,7 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       }
     };
 
-    const reportStarted = (role: SttRole): void => {
+    const reportStarted = (role: StreamRole): void => {
       // Once per key at a time, and never once the grant has ended the run or
       // the lease is released: a late first frame from a socket still closing
       // must not start a lease the account already ended (spec: no
@@ -632,14 +710,49 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
       reissue: () => reissue(role),
     }]));
 
+    const release = async (): Promise<void> => {
+      if (released) return;
+      released = true;
+      for (const key of keys.values()) letGo(key);
+      cancelBudget();
+      ctx.frame({ direction: 'out', type: 'session.end', payload: { leaseId: grant.leaseId } });
+      const ending = signalEnd(doFetch, `${apiUrl()}/soniox/session-end`, token, grant.leaseId, ctx);
+      previous = ending;
+      const answered = await ending.done;
+      if (previous === ending) previous = null;
+      // Answered about the lease, a refusal included: nothing is left for a later launch to end. Unanswered or turned away unserved, it stays remembered.
+      if (answered && request.mode === 'voice_only') deps.voiceLeases?.forget(grant.leaseId);
+    };
+    const budget = { totalMs, endsAt: startedAt + totalMs };
+
+    if (request.mode === 'voice_only') {
+      // Each speaking leg's voice reports through its own port, once, when its connection first opens. No
+      // reissue and no grant-end port: a speech key is never asked again, and the grant ends by its timer.
+      const voicePorts = new Map<VoiceRole, SonioxVoiceLeasePort>([...voices.keys()].map((role) => [role, { streamAccepted: () => reportStarted(role) }]));
+      const voiceResources: Resources<SonioxVoiceCredentials> = {
+        credentials(leg: LegName): SonioxVoiceCredentials {
+          if (!shape.legs.includes(leg)) throw new Error(`The ${leg} leg was not requested of this lease.`);
+          const role = voiceRoleFor(request, leg);
+          // A leg that does not speak in this run holds no key: no voice is started on it.
+          return role ? { ...voices.get(role)!, voiceLease: voicePorts.get(role)! } : { region: grant.region };
+        },
+        budget,
+        release,
+      };
+      // Voice credentials, handed on under the provider's one key type, which the hook's signature names: only the
+      // provider's voice unit is started in such a plan, and it reads these members and no other. The text unit of
+      // the plan is another provider's and gets that provider's own key from the run.
+      return voiceResources as Resources<SonioxCredentials>;
+    }
+
     return {
       credentials(leg: LegName): SonioxCredentials {
         if (!shape.legs.includes(leg)) throw new Error(`The ${leg} leg was not requested of this lease.`);
         const role = roleFor(request, leg);
         if (role) return { ...bundles.get(role)!, lease: ports.get(role)! };
         // Shared Both's participant rides the speaker's mixed socket: the
-        // adapter reads only its region, its reference and its TTS key,
-        // for its own TTS socket (`adapter.ts:80-86`). That key is
+        // session reads only its region, its reference and its TTS key,
+        // for the participant's voice (`ttsUnit.ts`). That key is
         // `par_tts`, with its own reference, while the flag is on and the
         // answer carries one; otherwise it has none and speaks nothing.
         // It reports nothing: the speaker's port serves the mixed socket.
@@ -649,18 +762,8 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
           ? { region: mix.region, stt: mix.stt, tts: tts.apiKey, clientReferenceId: tts.clientReferenceId }
           : { region: mix.region, stt: mix.stt, clientReferenceId: mix.clientReferenceId };
       },
-      budget: { totalMs, endsAt: startedAt + totalMs },
-      async release(): Promise<void> {
-        if (released) return;
-        released = true;
-        for (const key of keys.values()) letGo(key);
-        cancelBudget();
-        ctx.frame({ direction: 'out', type: 'session.end', payload: { leaseId: grant.leaseId } });
-        const ending = signalEnd(doFetch, `${apiUrl()}/soniox/session-end`, token, grant.leaseId, ctx);
-        previous = ending;
-        await ending.done;
-        if (previous === ending) previous = null;
-      },
+      budget,
+      release,
     };
   };
 }

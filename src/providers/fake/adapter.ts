@@ -1,4 +1,4 @@
-import type { Adapter, AdapterEvents, AdapterSession, SessionContext } from '../../lib/contract/adapter';
+import type { Adapter, AdapterEventKind, AdapterEvents, AdapterSession, SessionContext } from '../../lib/contract/adapter';
 import type { Clock } from '../../lib/contract/clock';
 import type { FakeScript, ScriptBlock, ScriptStep } from './script';
 import { msForText, synthPcm } from './synth';
@@ -16,6 +16,8 @@ export interface FakeFaults {
 export interface FakeConfig {
   script: FakeScript;
   faults?: FakeFaults;
+  /** True: typed text is shown as a source segment and not translated: the fake that only transcribes. */
+  sourceOnly?: boolean;
 }
 
 export type FakeCredentials = Record<string, never>;
@@ -42,12 +44,12 @@ export function createFakeAdapter(): Adapter<FakeConfig, FakeCredentials> {
   return {
     async start(request, events): Promise<AdapterSession> {
       if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
-      const { script, faults } = request.config;
+      const { script, faults, sourceOnly } = request.config;
       if (faults?.startThrows) throw new Error(faults.startThrows);
       if (faults?.startDelayMs) await waitOnClock(request.clock, faults.startDelayMs, request.signal);
       // A cancel landing as the delay ends still wins: nothing opens after it.
       if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
-      return new FakeSession(request.clock, script, faults ?? {}, request.context, events);
+      return new FakeSession(request.clock, script, faults ?? {}, request.context, events, sourceOnly === true);
     },
   };
 }
@@ -80,6 +82,7 @@ class FakeSession implements AdapterSession {
     faults: FakeFaults,
     private readonly context: SessionContext,
     private readonly events: AdapterEvents,
+    private readonly sourceOnly = false,
   ) {
     this.nextTextRef = Math.max(TEXT_REF_BASE, maxRef(script) + 1);
     this.pendingBlocks = [...script.blocks];
@@ -110,6 +113,7 @@ class FakeSession implements AdapterSession {
     this.emit('segmentOpened', { ref: src, side: 'source', origin });
     this.emit('segmentText', { ref: src, text });
     this.emit('segmentClosed', { ref: src, origin });
+    if (this.sourceOnly) return;
     this.emit('segmentOpened', { ref: tr, side: 'translation', origin });
     this.emit('segmentText', { ref: tr, text: translated });
     if (this.context.speech) {
@@ -159,7 +163,7 @@ class FakeSession implements AdapterSession {
     else if ('frame' in step) this.emit('frame', step.frame);
   }
 
-  private emit<K extends keyof AdapterEvents>(kind: K, payload: Parameters<AdapterEvents[K]>[0]): void {
+  private emit<K extends AdapterEventKind>(kind: K, payload: Parameters<AdapterEvents[K]>[0]): void {
     if (this.ended) return;
     (this.events[kind] as (p: typeof payload) => void)(payload);
   }

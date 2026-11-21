@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { PLAN_REFUSAL_CODES } from '../plan/types';
 import { NOTICE_TARGETS, settingsTargetForCode } from './noticeTargets';
 import { NOTICE_ALIASES, NOTICE_WORDS } from './noticeText';
 
@@ -14,6 +15,20 @@ describe('settingsTargetForCode', () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing']) {
       expect(settingsTargetForCode(code), code).toBe('provider-options');
     }
+  });
+
+  it("sends a key or a sign-in that names its provider to that provider's row", () => {
+    expect(settingsTargetForCode('credentials_missing', { provider: 'soniox' })).toBe('provider:soniox');
+    expect(settingsTargetForCode('sign_in_required', { provider: 'kizunaai_soniox' })).toBe('provider:kizunaai_soniox');
+    expect(settingsTargetForCode('credentials_missing', {})).toBe('provider');
+    expect(settingsTargetForCode('credentials_missing', { provider: '' })).toBe('provider');
+    // Only a target in the accounts is narrowed to a row.
+    expect(settingsTargetForCode('lineup_voice_not_alone', { provider: 'kizunaai_soniox', stage: 'speech' })).toBe('lineup');
+    expect(settingsTargetForCode('no_asr', { provider: 'local_inference' })).toBe('provider-options');
+  });
+
+  it('sends every refusal of the line-up to the line-up', () => {
+    for (const code of PLAN_REFUSAL_CODES) expect(settingsTargetForCode(code), code).toBe('lineup');
   });
 
   it('sends an unsupported turn mode to the turn-detection section', () => {

@@ -10,7 +10,7 @@
  * restates the arithmetic. The backend's 402 stays the authority.
  */
 import type { BalanceShape } from '../../lib/session/types';
-import { isSttRole, leaseRequest, requestedRoles, type StreamRole } from './leaseRequest';
+import { isSttRole, requestedRoles, startRequest, type StreamRole } from './leaseRequest';
 import type { SonioxSettings } from './settings';
 
 /** One stream's conservative budget rate in µUSD per hour: any `*_stt` role, any `*_tts` role. Integers, so the floor's ceil is exact. */
@@ -43,10 +43,15 @@ export function sonioxRolesFloorMicroUsd(roles: readonly StreamRole[]): number {
  * Kizuna Soniox's `minimumBalance`: the floor of the roles this start's
  * lease would ask for (choice 19) — split Both's second STT stream, the
  * speaker's TTS stream, and, only with the participant-speech flag on,
- * the participant's (ruling 2).
+ * the participant's (ruling 2). With another provider's voice in the plan
+ * no speech stream is asked for, and the floor is the text-only one. With
+ * this provider's voice alone under another provider's text, only the
+ * speech streams of the legs that speak are asked for and priced; where no
+ * leg speaks no lease is asked, and there is no floor.
  */
 export function kizunaSonioxMinimumBalance(shape: BalanceShape, s: Pick<SonioxSettings, 'region' | 'bothModeSharedSession'>, participantSpeech = false): number {
-  return sonioxRolesFloorMicroUsd(requestedRoles(leaseRequest(shape, s, participantSpeech)));
+  const request = startRequest(shape, s, participantSpeech);
+  return request === null ? 0 : sonioxRolesFloorMicroUsd(requestedRoles(request));
 }
 
 /** The per-session cap the backend holds a grant to (`maxSessionSecondsFor`). */

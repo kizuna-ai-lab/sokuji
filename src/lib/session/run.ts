@@ -5,8 +5,9 @@
  * runner owns the phases and ends a run through `close()`.
  */
 import type { AnalyticsEvents } from '../analytics';
+import type { RunStage, StageIds } from '../lineup/types';
 import type { AdapterEvents, AdapterSession, Punctuator, StartRequest } from '../contract/adapter';
-import { LegStartError } from '../contract/adapter';
+import { AdapterStartError, LegStartError } from '../contract/adapter';
 import { eventsFrom, type AdapterEvent } from '../contract/events';
 import type { DropInfo, ReconnectedInfo } from '../contract/reconnect';
 import { Conversation, DEFAULT_RETENTION, DEGRADED_DEDUPE_MS, type Retention } from '../conversation/Conversation';
@@ -14,14 +15,15 @@ import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../plan/composite';
-import { accountOf, capabilitiesOf, providersIn, transcriptionProvider } from '../plan/read';
+import { startCompositeBoth } from '../plan/compositeBoth';
+import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
 import type { PlannedUnit } from '../plan/types';
 import { isMissing, readCredentials } from '../provider/credentials';
 import type { AnyProvider, ModelOption, SharedSettings } from '../provider/types';
 import { AgentTextFeed } from './agentText';
-import type { RunNoticeCode } from './codes';
+import { namingProvider, type RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
-import type { RunnerDeps } from './ports';
+import type { AnalyticsPort, RunnerDeps } from './ports';
 import { FLAP_WINDOW_MS } from './reconnect';
 import { reconnectClient } from './reconnectEvents';
 import { contextsFor, gate, type Refusal } from './shape';
@@ -54,6 +56,28 @@ export function apiErrorType(code?: string): ApiErrorType {
 /** The retention a `keepReplayAudio` value means. */
 export function retentionFor(keep: boolean): Retention {
   return keep ? DEFAULT_RETENTION : { keepPcm: false, maxPcmBytes: 0 };
+}
+
+/**
+ * A run's analytics: every event that names the run's provider also says who serves each stage (`stages`), and
+ * `provider` stays the one that transcribes, but on a lease's end, which names the provider whose lease it was. An
+ * event that names no provider passes as it is.
+ */
+export function stagedAnalytics(analytics: AnalyticsPort, stages: StageIds): RunAnalytics {
+  return {
+    track: ((event: keyof AnalyticsEvents, properties: object) => {
+      const named = 'provider' in properties ? { ...properties, stages } : properties;
+      (analytics as { track(event: string, properties: unknown): void }).track(event, named);
+    }) as RunAnalytics['track'],
+  };
+}
+
+/** An event's properties without `stages`, each member of a union apart. */
+type WithoutStages<P> = P extends unknown ? Omit<P, 'stages'> : never;
+
+/** A run's analytics as the run's code sends to it: `stages` is not the sender's to give, `stagedAnalytics` adds it. */
+export interface RunAnalytics {
+  track<E extends keyof AnalyticsEvents>(event: E, properties: WithoutStages<AnalyticsEvents[E]>): void;
 }
 
 /** The start was refused before anything opened. */
@@ -137,8 +161,12 @@ export class Run {
     return task;
   }
 
+  /** The analytics of this run: its events name who serves each stage (`stagedAnalytics`). */
+  readonly analytics: RunAnalytics;
+
   /** `host` is a factory because the runner's host closes over the run it serves. */
   constructor(private readonly deps: RunnerDeps, host: (run: Run) => RunHost, readonly shape: RunShape) {
+    this.analytics = stagedAnalytics(deps.analytics, shape.lineUp);
     this.id = deps.newSessionId();
     this.providerId = transcriptionProvider(shape.plan).id;
     this.startedAt = deps.clock.now();
@@ -201,11 +229,10 @@ export class Run {
       const account = accountOf(shape, p);
       const credentials = readCredentials(p, account.settings, account.credentials, shape.auth);
       if (isMissing(credentials)) {
-        throw new RefusedError({
-          code: credentials.code ?? ('credentials_missing' satisfies RunNoticeCode),
-          message: credentials.missing,
-          ...(credentials.params ? { params: credentials.params } : {}),
-        });
+        const code = credentials.code ?? ('credentials_missing' satisfies RunNoticeCode);
+        // It names the provider whose key or sign-in is missing: in a plan of two, the notice opens that one's account row.
+        const params = namingProvider(code, credentials.params, p.id);
+        throw new RefusedError({ code, message: credentials.missing, ...(params ? { params } : {}) });
       }
       keys.set(p.id, () => credentials);
     }
@@ -242,12 +269,20 @@ export class Run {
 
     const contexts = contextsFor(shape);
     // Whether any leg speaks, told to every builder: Soniox asks for agent text on it when its own setting is on (spec 2026-11-05 §4.3).
-    // One `shared` for every unit: its models are the transcription provider's answer, the plan's one provider in step 1.
-    const shared: SharedSettings = { ...shape.shared, models: models.get(this.providerId)!, speaks: shape.legs.some((leg) => contexts[leg]!.speech) };
+    const speaks = shape.legs.some((leg) => contexts[leg]!.speech);
     const configs: Partial<Record<LegName, PlanConfigs>> = {};
     for (const leg of shape.legs) {
+      // Each unit reads its own provider's models; the rest is the same for every unit of the leg.
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.
-      const built = buildPlan(plan, contexts[leg]!, { accounts }, { ...shared, reversed: () => leg === 'participant' });
+      // The line-up is the one frozen at start, handed over only when it is the stored one: a builder never reads the line-up store.
+      const built = buildPlan(plan, contexts[leg]!, { accounts }, (unit): SharedSettings => ({
+        ...shape.shared,
+        models: models.get(unit.provider.id)!,
+        speaks,
+        ...(shape.legs.length === 2 ? { bothLegs: true } : {}),
+        reversed: () => leg === 'participant',
+        ...(shape.lineUpStored ? { lineUp: shape.lineUp } : {}),
+      }));
       if ('refused' in built) {
         throw new RefusedError({
           code: built.code ?? ('build_refused' satisfies RunNoticeCode),
@@ -299,9 +334,10 @@ export class Run {
     }
     for (const notice of notices) this.conversations.get(shape.legs[0])!.notice({ severity: 'warning', ...notice });
 
-    // Both legs at once (D23) where the plan is one unit and its provider starts both; otherwise the composite adapter per leg.
+    // Both legs at once (D23) where the provider of the unit that transcribes starts both; otherwise the composite adapter per leg.
+    // A plan of one unit hands its provider's `startBoth` the legs itself; a plan of several goes through the composite.
     const sole = plan.units.length === 1 ? plan.units[0] : undefined;
-    const together = shape.legs.length === 2 && !!sole?.provider.session?.startBoth;
+    const together = shape.legs.length === 2 && !!unitFor(plan, 'transcription').provider.session?.startBoth;
     // Each lease's release slot, reserved beneath the sources it follows: the
     // stack unwinds last in first out, so the legs' sessions and then their
     // sources — the microphone, the system audio, the tab — close before the
@@ -325,14 +361,20 @@ export class Run {
 
     for (const slot of leases) {
       const p = slot.provider;
+      // A notice of this lease about the sign-in names the provider whose lease it is.
+      const named = <N extends RunNotice>(notice: N): N => {
+        const params = namingProvider(notice.code, notice.params, p.id);
+        return params === notice.params ? notice : { ...notice, params };
+      };
       const resources = await p.session!.acquire!(shape, accountOf({ accounts }, p).settings, {
         signal: this.signal,
         cancellationCause: () => this.cancellationCause,
         clock: deps.clock,
         // `close()` sets `ending` before it aborts; an abort listener that
         // reacts by calling this must not re-end a run already ending.
-        end: (notice, o) => {
+        end: (ended, o) => {
           if (this.ending) return;
+          const notice = named(ended);
           // One notice for the lease, on the first leg (Stage 2 Kizuna Soniox,
           // ruling 7): it covers every leg, and the same sentence twice in Both
           // says nothing more.
@@ -341,9 +383,10 @@ export class Run {
           // client's budget exhaustion was (`ManagedSonioxSession.ts:166-173`),
           // unless the lease calls it the normal end of a segment — which the
           // old client deliberately never tracked (`:158-161`).
+          // Filed under the provider whose lease ended: beside another provider's text, that is not the one that transcribes.
           if (!o?.expected) {
-            deps.analytics.track('api_error', {
-              provider: this.providerId, error_message: redact(notice.message), error_code: notice.code,
+            this.analytics.track('api_error', {
+              provider: p.id, error_message: redact(notice.message), error_code: notice.code,
               error_type: apiErrorType(notice.code), channel: shape.legs[0],
             });
           }
@@ -354,6 +397,11 @@ export class Run {
         frame: (frame) => deps.frames?.frame(shape.legs[0], frame),
         // The lease runs inside `opening`, so that is the step it returns to.
         waiting: (on) => host.step(on ? 'waiting' : 'opening'),
+      }).catch((error: unknown) => {
+        // A start the service refused for the sign-in: the same refusal, naming the provider.
+        if (!(error instanceof AdapterStartError)) throw error;
+        const params = namingProvider(error.code, error.params, p.id);
+        throw params === error.params ? error : new AdapterStartError(error.message, error.code, params, { cause: error.cause });
       });
       slot.lease = resources;
       // An `acquire` that outlived `close()`'s bounded wait finds its slot
@@ -384,13 +432,17 @@ export class Run {
       ...(shape.frames ? { frames: shape.frames } : {}),
     });
 
+    const planRequest = (leg: LegName) => request(leg, configs[leg]!, (unit: PlannedUnit) => legKeys.get(leg)!.get(unit.provider.id));
     if (together) {
-      const unit = sole!;
-      const requests = Object.fromEntries(shape.legs.map((leg) => [leg, request(leg, configs[leg]!.get(unit), legKeys.get(leg)!.get(unit.provider.id))])) as Record<LegName, StartRequest<unknown, unknown>>;
       const events = { speaker: this.eventsFor('speaker'), participant: this.eventsFor('participant') };
       let sessions: Record<LegName, AdapterSession>;
       try {
-        sessions = await unit.provider.session!.startBoth!(requests, events);
+        if (sole) {
+          const requests = Object.fromEntries(shape.legs.map((leg) => [leg, request(leg, configs[leg]!.get(sole), legKeys.get(leg)!.get(sole.provider.id))])) as Record<LegName, StartRequest<unknown, unknown>>;
+          sessions = await sole.provider.session!.startBoth!(requests, events);
+        } else {
+          sessions = await startCompositeBoth(plan, { speaker: planRequest('speaker'), participant: planRequest('participant') }, events);
+        }
       } catch (error) {
         // A provider that knows which leg failed says so; otherwise the start is the first leg's.
         if (error instanceof LegStartError) throw new LegOpenError(error.leg, error.cause, 'adapter');
@@ -401,7 +453,7 @@ export class Run {
       this.throwIfAborted();
       shape.legs.forEach((leg, i) => this.connect(leg, sources![i], sessions[leg]));
     } else {
-      await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, request(leg, configs[leg]!, (unit: PlannedUnit) => legKeys.get(leg)!.get(unit.provider.id)), sources?.[i]))));
+      await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, planRequest(leg), sources?.[i]))));
     }
     this.throwIfAborted();
     // The network back (spec 2026-11-05 reconnect §4.2): a session waiting out a reconnect's backoff tries now. Undone as the run unwinds.
@@ -492,7 +544,7 @@ export class Run {
     this.hold(false);
     if (outcome === 'end') session.endTurn();
     else session.cancelTurn();
-    this.deps.analytics.track('push_to_talk_used', {
+    this.analytics.track('push_to_talk_used', {
       session_id: this.id,
       hold_duration_ms: this.deps.clock.now() - turn.startedAt,
       mode: this.shape.turnMode === 'push-to-translate' ? 'push-to-translate' : 'push-to-talk',
@@ -541,7 +593,7 @@ export class Run {
     const session = this.sessions.get('speaker');
     if (this.ending || this.liveSince === null || !capabilitiesOf(this.shape, 'transcription').textInput || !session || !text.trim()) return;
     session.appendText(text);
-    this.deps.analytics.track('text_input_sent', { session_id: this.id, provider: this.providerId, text_length: text.length });
+    this.analytics.track('text_input_sent', { session_id: this.id, provider: this.providerId, text_length: text.length });
   }
 
   /** A manual turn's key gates the original-voice route: push-to-translate closes it while held, push-to-talk opens it only while held (the routing's `gate`). */
@@ -579,7 +631,7 @@ export class Run {
       const source = opened ?? await this.openSource(leg);
       stage = 'adapter';
       this.setLegState(leg, 'opening');
-      const session = await startComposite(this.shape.plan, request, this.eventsFor(leg));
+      const session = await startComposite(this.shape.plan, request, this.eventsFor(leg), leg);
       this.stack.defer(`${leg} session`, () => session.stop());
       this.throwIfAborted();
       this.connect(leg, source, session);
@@ -615,7 +667,7 @@ export class Run {
     // socket opened before the other leg's did) is not live yet: its own
     // `reconnected` says when it is.
     if (this.legStates.get(leg) !== 'reconnecting') this.setLegState(leg, 'live');
-    this.deps.analytics.track('connection_status', { status: 'connected', provider: this.providerId, channel: leg });
+    this.analytics.track('connection_status', { status: 'connected', provider: this.providerId, channel: leg });
   }
 
   /** The participant leg and automatic turns stream everything; manual turns send only while the key is held. */
@@ -640,19 +692,41 @@ export class Run {
     }
   }
 
+  /**
+   * A leg whose reconnect was refused for the sign-in: the same event, its notice naming the provider that
+   * transcribes (the leg's connection is that provider's). Any other event as it is.
+   */
+  private namingItsProvider(event: AdapterEvent): AdapterEvent {
+    if (event.kind !== 'failed' || !event.payload.giveUp) return event;
+    const { giveUp } = event.payload;
+    const params = namingProvider(event.payload.code, giveUp.params, this.providerId);
+    return params === giveUp.params ? event : { ...event, payload: { ...event.payload, giveUp: { ...giveUp, params } } };
+  }
+
+  /**
+   * The provider an adapter's error is filed under: the one whose unit serves the stage the event came from, when
+   * the composite says which (a plan whose transcription and translation are separate units); otherwise the one
+   * that transcribes, which the run is named by.
+   */
+  private providerOf(stage: RunStage | undefined): string {
+    return stage === undefined ? this.providerId : unitFor(this.shape.plan, stage).provider.id;
+  }
+
   private eventsFor(leg: LegName): AdapterEvents {
     return eventsFrom((event) => this.onEvent(leg, event));
   }
 
-  private onEvent(leg: LegName, event: AdapterEvent): void {
+  private onEvent(leg: LegName, heard: AdapterEvent): void {
     if (this.finished) return;
-    if (event.kind === 'frame') {
-      this.deps.frames?.frame(leg, event.payload);
+    if (heard.kind === 'frame') {
+      this.deps.frames?.frame(leg, heard.payload);
       return;
     }
+    const event = this.namingItsProvider(heard);
     this.conversations.get(leg)?.apply(event);
     if (this.ending) return;
-    const { playback, analytics } = this.deps;
+    const { playback } = this.deps;
+    const { analytics } = this;
     const provider = this.providerId;
     switch (event.kind) {
       case 'loading':
@@ -678,7 +752,7 @@ export class Run {
       case 'failed': {
         const { message, code } = event.payload;
         this.failedReconnect(leg, event.payload);
-        analytics.track('api_error', { provider, error_message: redact(message), error_code: code, error_type: apiErrorType(code), channel: leg });
+        analytics.track('api_error', { provider: this.providerOf(event.payload.runStage), error_message: redact(message), error_code: code, error_type: apiErrorType(code), channel: leg });
         // L1 already recorded the failure as an error notice on this leg.
         this.host.end({ reason: 'leg-failed', notice: { code: code ?? ('leg_failed' satisfies RunNoticeCode), message, ...(event.payload.giveUp?.params ? { params: event.payload.giveUp.params } : {}), leg } });
         return;
@@ -704,7 +778,7 @@ export class Run {
           analytics.track('screen_context_lost', { session_id: this.id, provider, channel: leg });
           return;
         }
-        analytics.track('api_error', { provider, error_message: redact(message), error_code: reason ?? code, error_type: 'server', channel: leg });
+        analytics.track('api_error', { provider: this.providerOf(event.payload.runStage), error_message: redact(message), error_code: reason ?? code, error_type: 'server', channel: leg });
         return;
       }
       case 'closed':
@@ -741,6 +815,9 @@ export class Run {
   /**
    * What every reconnect event carries (spec 2026-11-05 reconnect §4.5), and the region the leg's session says it
    * dialled (`info.region`). None from a provider without regions, or for a drop before its leg's start settled.
+   * `managed` is about the connection that dropped, which is the transcription's: whether it runs on a key of a
+   * lease. A voice reports no drop of its own, so beside an own-key text side a hosted voice leaves it false; the
+   * event's `stages` (`stagedAnalytics`) name the voice's provider.
    */
   private reconnectEvent(leg: LegName, managed: boolean) {
     const region = this.sessions.get(leg)?.info.region;
@@ -764,7 +841,7 @@ export class Run {
     const drop: Drop = { since: this.deps.clock.now(), ...(e ? { attempt: e.attempt } : {}) };
     this.drops.set(leg, drop);
     this.setLegState(leg, 'reconnecting');
-    this.deps.analytics.track('connection_status', { status: 'reconnecting', provider: this.providerId, channel: leg });
+    this.analytics.track('connection_status', { status: 'reconnecting', provider: this.providerId, channel: leg });
     if (e?.drop && this.counts(leg)) drop.sent = this.dropped(leg, e.drop, e.drop.retryable);
   }
 
@@ -775,7 +852,7 @@ export class Run {
     const last = this.reconnectedAt.get(leg);
     const network = this.deps.network;
     const online = network?.online();
-    this.deps.analytics.track('connection_dropped', {
+    this.analytics.track('connection_dropped', {
       ...this.reconnectEvent(leg, drop.managed),
       cause: drop.cause,
       ...(drop.closeCode !== undefined ? { close_code: drop.closeCode } : {}),
@@ -816,7 +893,7 @@ export class Run {
     this.reconnectedAt.set(leg, now);
     if (!info || !drop.sent) return;
     const network = this.deps.network;
-    this.deps.analytics.track('connection_reconnected', {
+    this.analytics.track('connection_reconnected', {
       ...this.reconnectEvent(leg, drop.sent.managed),
       down_ms: downMs,
       attempts: info.attempts,
@@ -844,7 +921,7 @@ export class Run {
     // up and refused: retryable. A drop that fails the leg outright was not worth retrying.
     const sent = drop?.sent ?? (e.drop ? this.dropped(key, e.drop, e.giveUp !== undefined && e.drop.retryable) : undefined);
     if (e.giveUp && sent) {
-      this.deps.analytics.track('connection_reconnect_failed', {
+      this.analytics.track('connection_reconnect_failed', {
         ...this.reconnectEvent(key, sent.managed),
         // No reconnect was open: down no time.
         down_ms: drop ? this.deps.clock.now() - drop.since : 0,
@@ -867,7 +944,7 @@ export class Run {
     const reason = result.reason === 'lease-ended' ? 'lease_ended' : 'stopped';
     for (const [leg, drop] of this.drops) {
       if (!drop.sent || !this.counts(leg)) continue;
-      this.deps.analytics.track('connection_reconnect_failed', {
+      this.analytics.track('connection_reconnect_failed', {
         ...this.reconnectEvent(leg, drop.sent.managed),
         down_ms: endedAt - drop.since,
         attempts: drop.attempt ?? 0,

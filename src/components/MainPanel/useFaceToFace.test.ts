@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
+import { localInferenceProvider } from '../../providers/localInference/provider';
+import { sonioxProvider } from '../../providers/soniox/provider';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
@@ -11,11 +15,12 @@ vi.mock('../../utils/environment', async (importOriginal) => ({ ...(await import
 import { useFaceToFace, earsLegend, voicedEars, type FaceToFaceView } from './useFaceToFace';
 
 describe('useFaceToFace', () => {
-  const pick = (selected: string) => useProviderStore.setState({
-    selected,
-    entries: { [selected]: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
-  } as never);
+  const pick = (id: string) => {
+    runsOn(id);
+    useProviderStore.setState({ entries: { [id]: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } } } as never);
+  };
   beforeEach(() => {
+    useLineUpStore.setState({ lineUp: null, stored: false });
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     useRoutingStore.setState({ participantSpeech: null });
     useAudioStore.setState({ audioMonitorDevices: [{ deviceId: 'out-1', label: 'AirPods Pro' }] as never, selectedMonitorDevice: { deviceId: 'out-1', label: 'AirPods Pro' } as never, outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' } }, isMonitorMuted: true });
@@ -28,7 +33,21 @@ describe('useFaceToFace', () => {
   it('is offered and active under Soniox in Both, beside me, with my language and theirs', () => {
     pick('soniox');
     const { result } = renderHook(() => useFaceToFace());
-    expect(result.current).toEqual({ offered: true, active: true, me: 'ja', other: 'en', speaks: { speaker: true, participant: true }, ears: { speaker: 'right', participant: 'left' }, outletDevices: { other: 'AirPods Pro', them: 'AirPods Pro' } });
+    expect(result.current).toEqual({ offered: true, active: true, refused: false, me: 'ja', other: 'en', speaks: { speaker: true, participant: true }, ears: { speaker: 'right', participant: 'left' }, outletDevices: { other: 'AirPods Pro', them: 'AirPods Pro' } });
+  });
+
+  it('is refused, not offered, where Soniox transcribes and another service translates: "beside me" stays chosen and cannot run', () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    const entry = { credentials: {}, pair: { source: 'ja', target: 'en' } };
+    useProviderStore.setState({ entries: { soniox: { ...entry, settings: sonioxProvider.settings.defaults }, local_inference: { ...entry, settings: localInferenceProvider.settings.defaults } } } as never);
+    const { result } = renderHook(() => useFaceToFace());
+    expect(result.current).toMatchObject({ offered: false, active: false, refused: true });
+    // In a meeting: nothing is refused.
+    act(() => useAudioStore.setState({ otherSide: 'meeting' }));
+    expect(result.current).toMatchObject({ offered: false, active: false, refused: false });
+    // Soniox translating too: offered again.
+    act(() => { useAudioStore.setState({ otherSide: 'beside' }); useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true }); });
+    expect(result.current).toMatchObject({ offered: true, active: true, refused: false });
   });
 
   it('is neither under a provider without it (Review Focus 1)', () => {

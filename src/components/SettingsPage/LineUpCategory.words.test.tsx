@@ -32,13 +32,15 @@ import { LineUpCategory } from './LineUpCategory';
 import { useWordList } from '../../lib/words/list';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 
 const all = (id: string) => ({ transcription: id, translation: id, speech: id, summarisation: null });
 const words = (n: number) => Array.from({ length: n }, (_, i) => ({ written: `w${i}` }));
 
 beforeEach(() => {
-  useProviderStore.setState({ selected: 'soniox', selectionLocked: false, entries: {}, readiness: {} });
+  runsOn('soniox');
+  useProviderStore.setState({ entries: {}, readiness: {} });
   useSettingsStore.setState({ settingsNavigationTarget: null });
 });
 afterEach(async () => {

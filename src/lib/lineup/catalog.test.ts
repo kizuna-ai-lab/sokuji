@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { allStagesBy, CAPS, caps, hostDefaults, optionFor, soleHost, stageIdsFor } from './catalog';
+import { allStagesBy, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, severalHosts, soleHost, stageIdsFor } from './catalog';
 import { oldRunOf } from './oldRules.testing';
 import type { LineUp, RunStage } from './types';
 
@@ -16,6 +16,41 @@ describe('the line-up catalog', () => {
 
   it('covers every released provider, plus Bing and Edge', () => {
     expect(new Set(CAPS.map((c) => c.id))).toEqual(new Set([...RELEASED.map((p) => p.id), 'bing', 'edge']));
+  });
+});
+
+describe('the stages that go together', () => {
+  const endToEnd = ['kizunaai_qwen', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'qwen_livetranslate', 'palabraai'];
+
+  it('an end-to-end provider holds all three jointly; nothing else is joint', () => {
+    expect(CAPS.filter((c) => c.joint).map((c) => c.id).sort()).toEqual([...endToEnd].sort());
+    for (const id of endToEnd) expect(caps(id)!.joint).toEqual(['transcription', 'translation', 'speech']);
+  });
+
+  it('Soniox, with an own key or Kizuna AI\'s, translates only what it transcribes; no other option says so', () => {
+    expect(CAPS.filter((c) => c.translatesOwn).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'soniox']);
+  });
+
+  it('an end-to-end provider chosen for any stage goes with all three', () => {
+    for (const stage of ['transcription', 'translation', 'speech'] as const) expect(goesWith(caps('gemini')!, stage)).toEqual(['transcription', 'translation', 'speech']);
+    expect(carriedTogether(caps('gemini')!)).toEqual(['transcription', 'translation', 'speech']);
+  });
+
+  it("Soniox's translation goes with its transcription, and not the other way round: its transcription and its voice each stand alone", () => {
+    for (const id of ['soniox', 'kizunaai_soniox']) {
+      expect(goesWith(caps(id)!, 'translation')).toEqual(['transcription', 'translation']);
+      expect(goesWith(caps(id)!, 'transcription')).toEqual(['transcription']);
+      expect(goesWith(caps(id)!, 'speech')).toEqual(['speech']);
+      // Given both, one connection carries them.
+      expect(carriedTogether(caps(id)!)).toEqual(['transcription', 'translation']);
+    }
+  });
+
+  it('on this device every stage stands alone', () => {
+    for (const id of ['local_inference', 'bing', 'edge']) {
+      for (const stage of caps(id)!.stages) expect(goesWith(caps(id)!, stage)).toEqual([stage]);
+      expect(carriedTogether(caps(id)!)).toBeUndefined();
+    }
   });
 });
 
@@ -42,6 +77,8 @@ describe('the sole host of a line-up', () => {
 
   it('refuses a line-up of several hosts, one with a stage unset, and one that splits a joint group', () => {
     expect(soleHost(L('soniox', 'soniox', 'edge'))).toBeNull();
+    // Soniox transcribing for another translator is a run on two hosts.
+    expect(soleHost(L('soniox', 'bing', 'soniox'))).toBeNull();
     expect(soleHost(L('local_inference', null, 'edge'))).toBeNull();
     expect(soleHost(L('openai_live', 'openai_live', 'local_inference'))).toBeNull();
   });
@@ -61,11 +98,20 @@ describe('the sole host of a line-up', () => {
 });
 
 describe('the ids that served a run', () => {
+  it('are on several hosts only when two services ran: Bing and Edge run on this device, an unknown id is its own host', () => {
+    expect(severalHosts(allStagesBy('soniox'))).toBe(false);
+    expect(severalHosts({ transcription: 'local_inference', translation: 'bing', speech: 'edge' })).toBe(false);
+    expect(severalHosts(allStagesBy('gone'))).toBe(false);
+    expect(severalHosts({ transcription: 'soniox', translation: 'soniox', speech: 'edge' })).toBe(true);
+    expect(severalHosts({ transcription: 'local_inference', translation: 'bing', speech: 'soniox' })).toBe(true);
+    expect(severalHosts({ transcription: 'gone', translation: 'gone', speech: 'edge' })).toBe(true);
+  });
+
   it('names one provider on every stage', () => {
     expect(allStagesBy('openai')).toEqual({ transcription: 'openai', translation: 'openai', speech: 'openai' });
   });
 
-  it("are the stored line-up's when it runs on the provider that runs", () => {
+  it("are the stored line-up's: a stored line-up is what runs", () => {
     expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'local_inference'))
       .toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
     expect(stageIdsFor(L('openai', 'openai', 'openai'), true, 'openai'))
@@ -78,9 +124,12 @@ describe('the ids that served a run', () => {
     expect(stageIdsFor(null, true, 'soniox')).toEqual(allStagesBy('soniox'));
   });
 
-  it('are the running provider on every stage when the stored line-up runs on another, or on none', () => {
-    expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'openai')).toEqual(allStagesBy('openai'));
-    expect(stageIdsFor(L('soniox', 'soniox', 'edge'), true, 'soniox')).toEqual(allStagesBy('soniox'));
+  it("are the stored line-up's on a line-up of two providers, whichever provider is named beside it", () => {
+    expect(stageIdsFor(L('soniox', 'soniox', 'edge'), true, 'soniox')).toEqual({ transcription: 'soniox', translation: 'soniox', speech: 'edge' });
+    expect(stageIdsFor(L('local_inference', 'bing', 'edge'), true, 'openai')).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
+  });
+
+  it('are the named provider on every stage for a stored line-up that leaves a stage out: it does not start', () => {
     expect(stageIdsFor(L('local_inference', null, 'edge'), true, 'local_inference')).toEqual(allStagesBy('local_inference'));
   });
 });

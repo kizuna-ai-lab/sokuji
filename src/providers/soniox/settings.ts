@@ -157,12 +157,32 @@ export interface SonioxCredentials {
   region: SonioxRegion;
   /** The STT socket's key. */
   stt: string;
-  /** The TTS socket's key; absent, the leg runs text-only (a managed lease that issued none). */
+  /** The TTS socket's key, read by the voice (`ttsUnit.ts`); absent, the leg runs text-only (a managed lease that issued none). */
   tts?: string;
   /** Managed only: inert on the wire — Soniox bills by the reference bound to the key (survey §3.7.1). */
   clientReferenceId?: string;
   /** Managed only: the lease the adapter reports to, and asks for a fresh STT key when a dropped socket reconnects. */
   lease?: SonioxLeasePort;
+}
+
+/** What a voice-only lease hands a leg's voice: where the voice says its connection opened. A session's lease hands the voice none: its STT socket reports the start. */
+export interface SonioxVoiceLeasePort {
+  /** Soniox accepted the speech key: the voice's connection opened for the first time (a voice-only lease's `session-started` for this leg). */
+  streamAccepted(): void;
+}
+
+/**
+ * All a leg's voice reads of its credentials (`ttsUnit.ts`). A leg's `SonioxCredentials` are these too, an own key's
+ * and a session lease's alike; a voice-only lease hands nothing more than these, with its port: it issues no
+ * transcription key, another provider transcribing.
+ */
+export interface SonioxVoiceCredentials {
+  region: SonioxRegion;
+  /** The TTS socket's key; absent, the leg's voice says nothing. */
+  tts?: string;
+  clientReferenceId?: string;
+  /** A voice-only lease only: named apart from `lease`, so a session's lease port never reaches the voice. */
+  voiceLease?: SonioxVoiceLeasePort;
 }
 
 export const sonioxCredentials: Provider<SonioxSettings, SonioxCredentials, never>['credentials'] = {

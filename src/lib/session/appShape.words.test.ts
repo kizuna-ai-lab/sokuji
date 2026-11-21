@@ -11,11 +11,13 @@ import { addWord, useWordList } from '../words/list';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
 
+import { runsOn } from '../../stores/lineUpStore.testing';
 const auth = { signedIn: false, getToken: async () => null };
 
 beforeEach(() => {
+  runsOn('fake');
   useProviderStore.setState({
-    selected: 'fake', legs: ['speaker'],
+    legs: ['speaker'],
     entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } },
   });
   useWordList.setState({ entries: [{ written: 'Kizuna AI' }], background: 'Weekly sync.', loaded: true });

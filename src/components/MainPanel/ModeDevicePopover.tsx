@@ -327,7 +327,7 @@ const ModeDevicePopover: React.FC<ModeDevicePopoverProps> = ({ mode, open, ancho
   };
 
   // Both: where the other person is, between the microphone and the row it decides (board 1).
-  const otherSideChoice = mode === 'both' && f2f.offered && <OtherSideChoice locked={locked} className="mode-device-popover__other-side" />;
+  const otherSideChoice = mode === 'both' && (f2f.offered || f2f.refused) && <OtherSideChoice locked={locked} className="mode-device-popover__other-side" />;
 
   return (
     <FloatingPortal>

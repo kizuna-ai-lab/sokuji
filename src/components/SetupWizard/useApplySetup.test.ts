@@ -29,6 +29,7 @@ import { readCredentials } from '../../lib/provider/credentials';
 import { volcengineAst2Provider } from '../../providers/volcengine_ast2/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { useProviderStore } from '../../stores/providerStore';
+import { stageProviderId, useLineUpStore } from '../../stores/lineUpStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { SetupPersistError } from '../../stores/setupStore';
@@ -49,7 +50,8 @@ beforeEach(() => {
   stored.set('settings.common.targetLanguage', 'en');
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null, locked: false });
+  useProviderStore.setState({ entries: {}, intent: undefined });
 });
 
 const landNow = async (key: string, value: unknown) => {
@@ -63,16 +65,32 @@ afterEach(async () => {
 });
 
 describe("useApplySetup's applyProvider (review Minor 4)", () => {
-  it('Finish on LocalInference loads it, sets the pair, selects it as a pick, and persists the pair + settings.common.provider', async () => {
+  it('Finish on LocalInference loads it, sets the pair, stores its line-up so that it runs, and persists the pair + settings.common.provider', async () => {
     const { result } = renderHook(() => useApplySetup());
 
     await result.current(draft({}));
 
-    expect(useProviderStore.getState().selected).toBe('local_inference');
+    // What runs is the stored line-up: the wizard selects nothing apart from it.
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, unstoredProvider: null, lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
+    expect(stageProviderId('transcription')).toBe('local_inference');
     expect(useProviderStore.getState().entries.local_inference?.pair).toEqual({ source: 'en', target: 'ja' });
     expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'local_inference');
     expect(setSetting).toHaveBeenCalledWith('settings.common.sourceLanguage', 'en');
     expect(setSetting).toHaveBeenCalledWith('settings.common.targetLanguage', 'ja');
+  });
+
+  it('writes the pair, then the line-up, then the provider beside it, then the record', async () => {
+    const { result } = renderHook(() => useApplySetup());
+
+    await result.current(draft({}));
+
+    const keys = setSetting.mock.calls.map(([key]) => key);
+    const at = (key: string) => keys.indexOf(key);
+    expect(at('settings.common.targetLanguage')).toBeGreaterThanOrEqual(0);
+    expect(at('settings.common.targetLanguage')).toBeLessThan(at('settings.lineup'));
+    expect(at('settings.lineup')).toBeLessThan(at('settings.common.provider'));
+    expect(at('settings.common.provider')).toBeLessThan(at('settings.setup'));
+    expect(keys.filter((key) => key === 'settings.common.provider')).toHaveLength(1);
   });
 
   it('leaves both display modes as the user chose them: a re-run of a two-way scenario writes neither (Stage 2 session end, ruling 1)', async () => {
@@ -164,15 +182,17 @@ describe("useApplySetup's applyProvider (review Minor 4)", () => {
     // only stored data now (Stage 2 deletion, ruling C1).
     await expect(result.current(draft({ provider: 'openai_compatible' as ProviderType }))).rejects.toThrow(/This build does not offer/);
 
-    expect(useProviderStore.getState().selected).toBeNull();
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, lineUp: null, unstoredProvider: null });
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+    expect(setSetting).not.toHaveBeenCalledWith('settings.lineup', expect.anything());
   });
 
   it('records setup complete only after every provider write has landed', async () => {
     const held: Array<() => void> = [];
     setSetting.mockImplementation((key: string, value: unknown) => {
-      // The record, and the line-up stored after the provider's writes (Plan 6), land at once: the provider's are held.
-      if (key === 'settings.setup' || key === 'settings.lineup') return landNow(key, value);
+      // The record, and the line-up stored after the provider's writes (Plan 6) with the provider's id beside it,
+      // land at once: the provider's own writes are held.
+      if (key === 'settings.setup' || key === 'settings.lineup' || key === 'settings.common.provider') return landNow(key, value);
       return new Promise<{ success: boolean }>((resolve) => { held.push(() => { stored.set(key, value); resolve({ success: true }); }); });
     });
     const { result } = renderHook(() => useApplySetup());
@@ -238,7 +258,7 @@ describe("useApplySetup's applyLineUp", () => {
   it('stores the line-up of the chosen path before the record', async () => {
     const { result } = renderHook(() => useApplySetup());
     await result.current(draft({}));
-    expect(stored.get('settings.lineup')).toEqual({ version: 1, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
+    expect(stored.get('settings.lineup')).toEqual({ version: 2, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
     const keys = setSetting.mock.calls.map(([key]) => key);
     expect(keys.indexOf('settings.lineup')).toBeLessThan(keys.indexOf('settings.setup'));
   });

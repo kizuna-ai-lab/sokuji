@@ -70,6 +70,7 @@ import { SpinePreview } from './SpinePreview';
 import { getAppSession } from '../../app/session';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
@@ -133,7 +134,7 @@ describe('SpinePreview', () => {
   // first) would otherwise leave `localInference` selected — this page's
   // probes must still land on the fake.
   it('opens on the fake even when localInference was left selected', async () => {
-    useProviderStore.setState({ selected: 'local_inference' });
+    runsOn('local_inference');
     render(<SpinePreview />);
     expect(await screen.findByLabelText('Script')).toBeInTheDocument();
   });

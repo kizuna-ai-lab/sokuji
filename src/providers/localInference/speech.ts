@@ -5,7 +5,24 @@ import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { float32ToInt16, resampleFloat32 } from '../../utils/audio-conversion';
 import { splitSentences } from '../../utils/splitSentences';
 import type { TtsLike } from './engines';
-import type { LocalInferenceConfig } from './config';
+import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
+
+/**
+ * What a session says of its local voice, in one wording wherever that voice
+ * runs: inside the whole local session, or as a speech unit beside another
+ * provider's text.
+ */
+export const ttsLoadFailed = (message: string): string => `TTS unavailable, continuing without it: ${message}`;
+export const ttsStopped = (error: string): string => `Speech synthesis stopped: ${error}`;
+export const voiceFallback = (speakerId: number): string =>
+  `Configured voice ${speakerId} is not loaded; using the model default. Update the selection in settings.`;
+/** A leg that should speak but cannot (#619), naming the language no model speaks. */
+export function ttsMissing(code: TtsUnavailableCode, target: string): string {
+  const row = code === 'speaker_tts_missing' ? 'Translation the other side hears' : 'Translation I hear';
+  return code === 'participant_tts_over_budget'
+    ? "Translation I hear is text only: not enough memory to load the other side's speech model too."
+    : `${row} is text only: no speech model speaks ${target}.`;
+}
 
 /**
  * One sentence, one clip (spec ruling 8, ported from `LocalInferenceClient.ts`

@@ -19,12 +19,14 @@ vi.mock('../../app/voicePreview', () => ({ appVoicePreview: { play: preview.play
 import '../../locales';
 import { EdgeVoices } from './EdgeVoices';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 
 const local = (voices: Record<string, { edge?: string }> = {}) => ({ ...LOCAL_INFERENCE_DEFAULTS, voices });
 function given(o: { voices?: Record<string, { edge?: string }>; legs?: string[]; participantSpeech?: boolean } = {}) {
+  runsOn('local_inference');
   useProviderStore.setState({
-    selected: 'local_inference',
     legs: (o.legs ?? ['speaker', 'participant']) as never,
     speech: { textOnly: false, participantSpeech: o.participantSpeech ?? true },
     entries: { local_inference: { settings: local(o.voices), credentials: {}, pair: { source: 'ja', target: 'en' } } } as never,
@@ -38,7 +40,7 @@ beforeEach(() => {
   preview.make.mockClear(); preview.play.mockClear(); preview.stop.mockClear();
   given();
 });
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); useLineUpStore.setState({ lineUp: null, stored: false }); });
 
 describe("Edge's voices", () => {
   it('gives each direction that speaks its own voice, from the voices of the language it speaks', async () => {
@@ -77,6 +79,27 @@ describe("Edge's voices", () => {
     fireEvent.click(key);
     await waitFor(() => expect(preview.play).toHaveBeenCalled());
     expect(preview.make).toHaveBeenCalledWith('en-US-AvaNeural', 'en', expect.anything());
+  });
+
+  it("reading another service's translation: the voices are for the session's pair, kept in this device's settings under that direction", async () => {
+    list.voices = [voice('de-DE-KatjaNeural'), voice('de-DE-ConradNeural', 'Male'), voice('en-US-AvaNeural')];
+    // Soniox transcribes and translates English into German; this device's own pair is another one.
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true });
+    useProviderStore.setState((st) => ({ entries: { ...st.entries, soniox: { settings: {}, credentials: {}, pair: { source: 'en', target: 'de' } } } as never }));
+    render(<EdgeVoices disabled={false} />);
+    const theirs = await screen.findByRole('combobox', { name: 'Translation the other side hears (German)' });
+    await waitFor(() => expect(within(theirs).getAllByRole('option').map((o) => o.getAttribute('value'))).toEqual(['de-DE-KatjaNeural', 'de-DE-ConradNeural']));
+    expect(screen.getByRole('combobox', { name: 'Translation I hear (English)' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Translation the other side hears (English)' })).toBeNull();
+    fireEvent.change(theirs, { target: { value: 'de-DE-ConradNeural' } });
+    expect(savedVoices()['en→de']).toEqual({ edge: 'de-DE-ConradNeural' });
+    expect(useProviderStore.getState().entries.local_inference!.pair).toEqual({ source: 'ja', target: 'en' });
+  });
+
+  it("shows nothing until the session's pair is known", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true });
+    const { container } = render(<EdgeVoices disabled={false} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('says so when the voices could not be loaded', async () => {

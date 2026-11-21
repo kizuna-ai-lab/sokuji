@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { SharedSettings } from '../../lib/provider/types';
-import { buildSoniox, describeSoniox } from './config';
+import { buildSoniox, buildSonioxAlone, describeSoniox, describeSonioxTts, sonioxTts } from './config';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 
 const AUTO_CTX: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };
@@ -16,6 +16,9 @@ const SHARED: SharedSettings = {
 
 const build = (patch: Partial<SonioxSettings> = {}, context: SessionContext = AUTO_CTX) =>
   buildSoniox(context, { ...SONIOX_DEFAULTS, ...patch }, SHARED);
+/** The voice and speed a leg's speech unit is built with. */
+const voice = (patch: Partial<SonioxSettings> = {}, context: SessionContext = AUTO_CTX) =>
+  sonioxTts(context, { ...SONIOX_DEFAULTS, ...patch }, SHARED);
 
 describe('buildSoniox — stt', () => {
   it('builds stt-rt-v6 with no context and the server-default knobs at defaults', () => {
@@ -42,36 +45,43 @@ describe('buildSoniox — stt', () => {
   });
 
   it('clamps the knobs, rounds the integer ones, and falls back on non-finite input', () => {
-    const hi = build({ endpointSensitivity: 5, endpointLatencyAdjustmentLevel: 2.6, endpointMaxDelayMs: 99_999, ttsSpeed: 9 });
+    const hi = build({ endpointSensitivity: 5, endpointLatencyAdjustmentLevel: 2.6, endpointMaxDelayMs: 99_999 });
     expect(hi.stt.endpointSensitivity).toBe(1);
     expect(hi.stt.endpointLatencyAdjustmentLevel).toBe(3);
     expect(hi.stt.endpointMaxDelayMs).toBe(3000);
-    expect(hi.tts?.speed).toBe(1.3);
 
     // The lower bounds (SonioxProviderConfig.test.ts:106-113).
-    const lo = build({ endpointSensitivity: -5, endpointLatencyAdjustmentLevel: -2, endpointMaxDelayMs: 100, ttsSpeed: 0.1 });
+    const lo = build({ endpointSensitivity: -5, endpointLatencyAdjustmentLevel: -2, endpointMaxDelayMs: 100 });
     expect(lo.stt.endpointSensitivity).toBe(-1);
     expect(lo.stt.endpointLatencyAdjustmentLevel).toBe(0);
     expect(lo.stt.endpointMaxDelayMs).toBe(500);
-    expect(lo.tts?.speed).toBe(0.7);
 
-    const bad = build({ endpointMaxDelayMs: Number.NaN, ttsSpeed: Number.POSITIVE_INFINITY });
+    const bad = build({ endpointMaxDelayMs: Number.NaN });
     expect(bad.stt.endpointMaxDelayMs).toBe(2000);
-    expect(bad.tts?.speed).toBe(1);
+  });
+
+  it('builds no voice, whether the leg speaks or not: the voice is the speech unit\'s', () => {
+    expect(build()).not.toHaveProperty('tts');
+    expect(build({}, { ...AUTO_CTX, speech: false })).toEqual(build());
   });
 
 });
 
-describe('buildSoniox — tts', () => {
-  it("speaks only when the context speaks, in its leg's voice: the region's for the speaker, the participant's own for the participant", () => {
+describe('sonioxTts: the voice and speed of a leg\'s speech', () => {
+  it("is the leg's voice: the region's for the speaker, the participant's own for the participant", () => {
     const speaker: SessionContext = { ...AUTO_CTX, direction: { source: 'en', target: 'ja' } };
-    expect(build({}, { ...AUTO_CTX, speech: false }).tts).toBeUndefined();
-    expect(build({ region: 'jp', voiceJp: 'Clone-UUID' }, speaker).tts).toEqual({ voice: 'Clone-UUID', speed: 1 });
-    expect(build({ region: 'jp', voiceJp: 'Clone-UUID' }).tts).toEqual({ voice: 'Grace', speed: 1 });
-    expect(build({ region: 'in', voiceIn: 'Clone-IN' }, speaker).tts).toEqual({ voice: 'Clone-IN', speed: 1 });
-    expect(build({ region: 'eu', voiceEu: '' }, speaker).tts?.voice).toBe('Adrian');
+    expect(voice({ region: 'jp', voiceJp: 'Clone-UUID' }, speaker)).toEqual({ voice: 'Clone-UUID', speed: 1 });
+    expect(voice({ region: 'jp', voiceJp: 'Clone-UUID' })).toEqual({ voice: 'Grace', speed: 1 });
+    expect(voice({ region: 'in', voiceIn: 'Clone-IN' }, speaker)).toEqual({ voice: 'Clone-IN', speed: 1 });
+    expect(voice({ region: 'eu', voiceEu: '' }, speaker).voice).toBe('Adrian');
     // The participant's choice is the speaker's own: the other default.
-    expect(build({ voice: 'Grace' }).tts?.voice).toBe('Adrian');
+    expect(voice({ voice: 'Grace' }).voice).toBe('Adrian');
+  });
+
+  it('clamps the speed, and falls back on non-finite input', () => {
+    expect(voice({ ttsSpeed: 9 }).speed).toBe(1.3);
+    expect(voice({ ttsSpeed: 0.1 }).speed).toBe(0.7);
+    expect(voice({ ttsSpeed: Number.POSITIVE_INFINITY }).speed).toBe(1);
   });
 });
 
@@ -100,9 +110,10 @@ describe('buildSoniox — diarize', () => {
 });
 
 describe('describeSoniox', () => {
-  it('describes the STT model always, and the TTS model only for a leg that speaks', () => {
-    expect(describeSoniox(build())).toEqual({ asrModel: 'stt-rt-v6', ttsModel: 'tts-rt-v2' });
+  it('describes the STT model alone, whether the leg speaks or not; the speech model is the voice\'s to name', () => {
+    expect(describeSoniox(build())).toEqual({ asrModel: 'stt-rt-v6' });
     expect(describeSoniox(build({}, { ...AUTO_CTX, speech: false }))).toEqual({ asrModel: 'stt-rt-v6' });
+    expect(describeSonioxTts()).toEqual({ ttsModel: 'tts-rt-v2' });
   });
 });
 
@@ -122,5 +133,56 @@ describe('buildSoniox — agent text (spec 2026-11-05 §4.3)', () => {
   });
   it('never in a run where nothing speaks, the setting on', () => {
     for (const speaks of [false, undefined]) expect(buildSoniox(SPEAKER, SONIOX_DEFAULTS, { ...SHARED, speaks }).stt).not.toHaveProperty('agentText');
+  });
+});
+
+describe('buildSonioxAlone: the socket that transcribes for another unit to translate', () => {
+  const words = { entries: [{ written: 'Sokuji' }, { written: 'Kizuna AI', translation: 'キズナAI', heardAs: 'kizuna eye' }], background: '  Quarterly review. ' };
+  const speaker: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
+
+  it('says so, and is otherwise the config of the socket that also translates: the model, the knobs, the labels', () => {
+    for (const context of [AUTO_CTX, speaker]) {
+      const s: SonioxSettings = { ...SONIOX_DEFAULTS, endpointSensitivity: 0.4, endpointLatencyAdjustmentLevel: 2, endpointMaxDelayMs: 900, bothModeSharedSession: false };
+      const { sharedBoth: _shared, ...together } = buildSoniox(context, s, SHARED);
+      expect(buildSonioxAlone(context, s, SHARED)).toEqual({ ...together, sharedBoth: false, transcribesAlone: true });
+    }
+    expect(buildSoniox(AUTO_CTX, SONIOX_DEFAULTS, SHARED)).not.toHaveProperty('transcribesAlone');
+  });
+
+  it('sends the word list as terms and the background, and none of its translations', () => {
+    expect(buildSonioxAlone(AUTO_CTX, SONIOX_DEFAULTS, { ...SHARED, words }).stt.context).toEqual({ terms: ['Sokuji', 'Kizuna AI'], text: 'Quarterly review.' });
+    // Translations alone leave nothing to send but the written forms.
+    expect(buildSonioxAlone(AUTO_CTX, SONIOX_DEFAULTS, { ...SHARED, words: { entries: [{ written: 'A', translation: 'B' }], background: '' } }).stt.context).toEqual({ terms: ['A'] });
+    expect(buildSonioxAlone(AUTO_CTX, SONIOX_DEFAULTS, SHARED).stt).not.toHaveProperty('context');
+  });
+
+  it('counts the entries against the limit as terms alone: translations that are not sent push nothing out', () => {
+    // Each entry: a short written form and a long translation. With the translations they overflow; without, they fit.
+    const entries = Array.from({ length: 60 }, (_, i) => ({ written: `term${i}`, translation: 'x'.repeat(200) }));
+    const together = buildSoniox(AUTO_CTX, SONIOX_DEFAULTS, { ...SHARED, words: { entries, background: '' } }).stt.context!;
+    const alone = buildSonioxAlone(AUTO_CTX, SONIOX_DEFAULTS, { ...SHARED, words: { entries, background: '' } }).stt.context!;
+    expect(together.terms!.length).toBeLessThan(60);
+    expect(alone.terms).toEqual(entries.map((e) => e.written));
+  });
+
+  it('is never one shared socket and never face-to-face, whatever the settings and the run say', () => {
+    const config = buildSonioxAlone(AUTO_CTX, { ...SONIOX_DEFAULTS, bothModeSharedSession: true }, { ...SHARED, faceToFace: true });
+    expect(config.sharedBoth).toBe(false);
+    expect(config).not.toHaveProperty('faceToFace');
+  });
+
+  it("asks for agent text under the rule of the socket that also translates: the speaker's leg of a run that speaks, the setting on, and never in a run of both legs", () => {
+    const on = { ...SONIOX_DEFAULTS, agentText: true };
+    expect(buildSonioxAlone(speaker, on, { ...SHARED, speaks: true }).stt.agentText).toBe(true);
+    expect(buildSonioxAlone(speaker, on, SHARED).stt).not.toHaveProperty('agentText');
+    expect(buildSonioxAlone(AUTO_CTX, on, { ...SHARED, speaks: true }).stt).not.toHaveProperty('agentText');
+    // A run of both legs: each leg has a socket of its own, as in split Both, which takes no agent text.
+    expect(buildSonioxAlone(speaker, on, { ...SHARED, speaks: true, bothLegs: true }).stt).not.toHaveProperty('agentText');
+    // The socket that also translates is built as it was: its adapter strips the flag where it splits.
+    expect(buildSoniox(speaker, on, { ...SHARED, speaks: true, bothLegs: true }).stt.agentText).toBe(true);
+  });
+
+  it('describes the STT model and no translation model', () => {
+    expect(describeSoniox(buildSonioxAlone(AUTO_CTX, SONIOX_DEFAULTS, SHARED))).toEqual({ asrModel: 'stt-rt-v6' });
   });
 });

@@ -4,6 +4,9 @@ import {
   kizunaSonioxMinimumBalance, SONIOX_CONSERVATIVE_RATE_CAP_MICRO_USD_PER_HOUR, SONIOX_CONSERVATIVE_RATE_MICRO_USD_PER_HOUR, SONIOX_MANAGED_MIN_SESSION_S,
   SONIOX_MAX_SYNTHESIS_SESSION_S, SONIOX_MAX_TRANSCRIPTION_SESSION_S, sonioxRolesFloorMicroUsd, sonioxSessionCapSeconds, sonioxStartFloorMicroUsd,
 } from './kizunaBudget';
+import { stubProvider, textAndSpeechPlan } from '../../lib/plan/testing';
+import type { PlannedUnit, RunPlan } from '../../lib/plan/types';
+import { wholePlan } from '../../lib/plan/wholeUnit';
 import { SONIOX_DEFAULTS } from './settings';
 
 /**
@@ -80,5 +83,51 @@ describe('Kizuna Soniox floors and caps mirror the backend', () => {
   it('caps a session at an hour when it speaks, five hours when it does not', () => {
     expect(sonioxSessionCapSeconds(true)).toBe(3_600);
     expect(sonioxSessionCapSeconds(false)).toBe(18_000);
+  });
+
+  it("prices the voice alone by the speech roles it asks for, and never a transcription role", () => {
+    const unitOf = (id: string, stages: PlannedUnit['stages']): PlannedUnit => ({ ...wholePlan(stubProvider(id)).units[0], stages });
+    const plan = textAndSpeechPlan(unitOf('soniox', ['transcription', 'translation']), unitOf('kizunaai_soniox', ['speech']));
+    const at = (legs: LegName[], textOnly: boolean, participantSpeech: boolean, flag = true) => kizunaSonioxMinimumBalance({ plan, legs, textOnly, participantSpeech }, SONIOX_DEFAULTS, flag);
+    // One speech stream; two; and the split of Both changes nothing, the text side being another provider's.
+    expect(at(['speaker'], false, false)).toBe(floor(0, 1)); // 4 167
+    expect(at(['speaker', 'participant'], false, false)).toBe(floor(0, 1));
+    expect(at(['speaker', 'participant'], false, true)).toBe(floor(0, 2)); // 8 334
+    expect(at(['participant'], false, true)).toBe(floor(0, 1));
+    expect([floor(0, 1), floor(0, 2)]).toEqual([4_167, 8_334]);
+    expect(sonioxRolesFloorMicroUsd(['spk_tts', 'par_tts'])).toBe(8_334);
+    // The participant's speech with the flag off is not asked for.
+    expect(at(['speaker', 'participant'], false, true, false)).toBe(floor(0, 1));
+    // No leg speaks: no lease is asked, so there is no floor.
+    expect(at(['speaker'], true, false)).toBe(0);
+    expect(at(['participant'], false, false)).toBe(0);
+    // A voice alone always speaks: its grant is held to the cap of a session that does.
+    expect(sonioxSessionCapSeconds(true)).toBe(SONIOX_MAX_SYNTHESIS_SESSION_S);
+  });
+  it('prices transcription alone as a text-only session, and with its own voice as a speaking one: the same floors and caps as today', () => {
+    const unitOf = (id: string, stages: PlannedUnit['stages']): PlannedUnit => ({ ...wholePlan(stubProvider(id)).units[0], stages });
+    const three = (transcription: PlannedUnit, translation: PlannedUnit, speech: PlannedUnit): RunPlan => ({ units: [...new Set([transcription, translation, speech])], byStage: { transcription, translation, speech } });
+    const hears = unitOf('kizunaai_soniox', ['transcription']);
+    const textAlone = three(hears, unitOf('local_inference', ['translation']), unitOf('local_inference', ['speech']));
+    const withVoice = three(hears, unitOf('local_inference', ['translation']), unitOf('kizunaai_soniox', ['speech']));
+    // The settings ask for the shared session in Both, which would be one stream.
+    const at = (plan: RunPlan, legs: LegName[], textOnly = false, participantSpeech = false, flag = false) => kizunaSonioxMinimumBalance({ plan, legs, textOnly, participantSpeech }, { ...SONIOX_DEFAULTS, bothModeSharedSession: true }, flag);
+    const alone = (legs: LegName[], textOnly = false) => kizunaSonioxMinimumBalance({ legs, textOnly, participantSpeech: false }, { ...SONIOX_DEFAULTS, bothModeSharedSession: false }, false);
+    // Others translate and speak: one transcription stream a leg, however much the run speaks.
+    expect(at(textAlone, ['speaker'])).toBe(floor(1, 0)); // 8 334
+    expect(at(textAlone, ['participant'])).toBe(floor(1, 0));
+    // Both is two streams, whatever the settings ask.
+    expect(at(textAlone, ['speaker', 'participant'])).toBe(floor(2, 0)); // 16 667
+    expect(at(textAlone, ['speaker', 'participant'], false, true, true)).toBe(floor(2, 0));
+    // Each is what a text-only session on this provider alone asks today, split where it is Both.
+    expect([at(textAlone, ['speaker']), at(textAlone, ['speaker', 'participant'])]).toEqual([alone(['speaker'], true), alone(['speaker', 'participant'], true)]);
+    // Its own voice reading another's translation: a speaking session's floor.
+    expect(at(withVoice, ['speaker'])).toBe(floor(1, 1)); // 12 500
+    expect(at(withVoice, ['speaker'], true)).toBe(floor(1, 0));
+    expect(at(withVoice, ['speaker', 'participant'])).toBe(floor(2, 1)); // capped at 16 667
+    expect(at(withVoice, ['speaker', 'participant'], false, true, true)).toBe(floor(2, 2));
+    expect([at(withVoice, ['speaker']), at(withVoice, ['speaker', 'participant'])]).toEqual([alone(['speaker']), alone(['speaker', 'participant'])]);
+    // The grant's cap follows what was minted, as before: five hours without a speech stream, an hour with one.
+    expect([sonioxSessionCapSeconds(false), sonioxSessionCapSeconds(true)]).toEqual([18_000, 3_600]);
   });
 });

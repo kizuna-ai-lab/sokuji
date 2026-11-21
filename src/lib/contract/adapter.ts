@@ -8,6 +8,7 @@
  */
 import type { LegName } from '../conversation/types';
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
+import type { RunStage } from '../lineup/types';
 import type { Clock } from './clock';
 import type { DropInfo, ReconnectedInfo, GiveUp } from './reconnect';
 
@@ -111,8 +112,15 @@ export interface AdapterSession {
   readonly info: { transport?: string; shared?: boolean; region?: string };
 }
 
+/**
+ * Which stage of the plan a lifecycle event came from (`failed`, `degraded`, `loading`, `frame`), said by the
+ * composite adapter over a plan whose transcription and translation are separate units; no unit states it.
+ * Absent: the event is the session's as a whole, and whoever reads it files it under the unit that transcribes.
+ */
+export interface FromStage { runStage?: RunStage }
+
 /** One protocol frame an adapter reported (spec D8): what the Logs panel lists. Never audio, never a credential. */
-export interface AdapterFrame {
+export interface AdapterFrame extends FromStage {
   direction: 'in' | 'out';
   type: string;
   payload?: unknown;
@@ -123,8 +131,15 @@ export interface AdapterEvents {
   segmentOpened(e: { ref: Ref; side: Side; origin?: string; person?: string }): void;
   /** Always the whole text; a snapshot, never a delta. A defined `person` replaces the segment's. */
   /** `heard`: when its words were heard, if the adapter knows; a defined one replaces the segment's. */
-  segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string; heard?: Heard }): void;
+  /** `stableLen`: on a translation segment, the first `stableLen` characters of `text` will not change. Absent: nothing is known to be stable until the segment closes. */
+  segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string; heard?: Heard; stableLen?: number }): void;
   segmentClosed(e: { ref: Ref; origin?: string }): void;
+  /**
+   * Translation text that arrived after its segment closed. An adapter may also send it as the closed segment's
+   * text. A voice that reads this leg reads it, then ends the row's utterance. `span`: where it sits after the
+   * segment's text. Absent: none is sent.
+   */
+  lateSpeech?(e: { ref: Ref; text: string; span: TextRange; language: string }): void;
   /** `ref` absent: attributable to no segment (plays, pairs with nothing).
    *  `range` absent: this segment's audio, which characters unknown.
    *  `voice`: the leg whose voice reads this audio and whose ear plays it, when it is not this leg's — a
@@ -145,7 +160,7 @@ export interface AdapterEvents {
   reconnecting(e?: { attempt: number; drop?: DropInfo }): void;
   reconnected(e?: ReconnectedInfo): void;
   /** The session is broken. Nothing follows. `giveUp`: the reconnect policy's verdict, when it was a reconnect that ended. */
-  failed(e: { message: string; code?: string; cause?: unknown; drop?: DropInfo; giveUp?: Omit<GiveUp, 'code' | 'message'> }): void;
+  failed(e: { message: string; code?: string; cause?: unknown; drop?: DropInfo; giveUp?: Omit<GiveUp, 'code' | 'message'> } & FromStage): void;
   /**
    * Running, degraded. `reason`: a short machine-readable token for
    * analytics only (`tts_408`, `tts_connect_failed`) — never user text,
@@ -153,12 +168,16 @@ export interface AdapterEvents {
    * (Stage 2 Kizuna Soniox, ruling 8). `params`: the values the notice's
    * words name (`{{target}}`), which L1 records on the notice.
    */
-  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string; params?: Record<string, string | number> }): void;
-  loading(e: { stage: string; done: number; total: number }): void;
+  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string; params?: Record<string, string | number> } & FromStage): void;
+  /** `stage`: what is loading, in the adapter's own words; not a stage of the plan (that is `runStage`). */
+  loading(e: { stage: string; done: number; total: number } & FromStage): void;
   busy(e: boolean): void;
   /** Wire traffic for the Logs panel. Never audio, never a credential. */
   frame(e: AdapterFrame): void;
 }
+
+/** The events every receiver takes: every member but `lateSpeech`, which only a reader of speech takes. */
+export type AdapterEventKind = Exclude<keyof AdapterEvents, 'lateSpeech'>;
 
 export interface Adapter<C, K> {
   start(request: StartRequest<C, K>, events: AdapterEvents): Promise<AdapterSession>;

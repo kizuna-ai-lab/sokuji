@@ -40,6 +40,8 @@ vi.mock('../Settings/sections/VoiceLibrarySection', () => ({
 import '../../locales';
 import { LocalVoices } from './LocalVoices';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useModelStore } from '../../stores/modelStore';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
@@ -51,8 +53,8 @@ const SINGLE = 'piper-en-amy-low';
 
 function given(o: { tts?: Record<string, string>; voices?: Record<string, { speaker?: number }>; legs?: string[]; participantSpeech?: boolean } = {}) {
   const tts = o.tts ?? { 'ja→en': SUPERTONIC, 'en→ja': SUPERTONIC };
+  runsOn('local_inference');
   useProviderStore.setState({
-    selected: 'local_inference',
     legs: (o.legs ?? ['speaker', 'participant']) as never,
     speech: { textOnly: false, participantSpeech: o.participantSpeech ?? true },
     entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: o.voices ?? {} }, credentials: {}, pair: { source: 'ja', target: 'en' } } } as never,
@@ -70,7 +72,7 @@ beforeEach(() => {
   for (const f of [voices.addVoice, voices.renameVoice, voices.deleteVoice]) f.mockClear();
   given();
 });
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); useLineUpStore.setState({ lineUp: null, stored: false }); });
 
 describe("the local engine's voices", () => {
   it('gives each direction that speaks its own voice, named by who hears it and in which language', () => {
@@ -87,6 +89,18 @@ describe("the local engine's voices", () => {
     fireEvent.click(within(theirs).getByRole('button', { name: presets[1].name }));
     expect(savedVoices()['ja→en']).toEqual({ speaker: presets[1].sid });
     expect(savedVoices()['en→ja']).toEqual({ speaker: presets[0].sid });
+  });
+
+  it("reading another service's translation: the voices are for the session's pair, kept in this device's settings under that direction", () => {
+    given({ tts: { 'en→de': SUPERTONIC } });
+    // Soniox transcribes and translates English into German; this device's own pair is another one.
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'local_inference', summarisation: null }, stored: true });
+    useProviderStore.setState((st) => ({ entries: { ...st.entries, soniox: { settings: {}, credentials: {}, pair: { source: 'en', target: 'de' } } } as never }));
+    render(<LocalVoices disabled={false} />);
+    expect(screen.getByText('Translation the other side hears (German)')).toBeInTheDocument();
+    expect(screen.queryByText('Translation the other side hears (English)')).toBeNull();
+    fireEvent.click(within(screen.getByTestId('voice-library')).getByRole('button', { name: presets[1].name }));
+    expect(savedVoices()['en→de']).toEqual({ speaker: presets[1].sid });
   });
 
   it('marks the voice each direction speaks in now', () => {

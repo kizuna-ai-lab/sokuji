@@ -11,6 +11,7 @@ import { asSonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_LANGUAGES, sonioxWire } from './languages';
 import { AUTO } from '../../lib/provider/languages';
 import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
+import { sonioxUnitsFor } from './units';
 
 const adapter = createSonioxAdapter();
 
@@ -37,7 +38,7 @@ export function sonioxFileRecognitionBase(words?: SessionWords): Omit<FileRecogn
 
 /**
  * Soniox with the user's own key (survey §2.1): real-time STT and
- * translation on one socket, its own TTS on a second, both legs on one
+ * translation on one socket (the adapter), its own TTS on a second (its voice, a unit of its own), both legs on one
  * mixed socket in Both mode (D23). The old enum's id and slice (controller
  * ruling 2), so a stored selection and settings carry over. Released,
  * after LocalInference, not flagged (ruling 7). The extension manifest
@@ -83,9 +84,13 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
   boundaries: () => 'provider',
   turns: () => ['auto', 'manual'],
 
+  // The text side's: the `stt` unit is built from these. The voice is built and started by the `tts` unit.
   build: buildSoniox,
   describe: describeSoniox,
   start: adapter.start,
+
+  // What a session runs: the STT connection for transcription and translation, the voice for speech.
+  units: sonioxUnitsFor({ start: adapter.start }),
 
   session: { startBoth: adapter.startBoth },
 };

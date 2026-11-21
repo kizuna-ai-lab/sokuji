@@ -43,7 +43,7 @@ function fakeLease(...answers: SonioxReissue[]) {
 /** Managed credentials: the lease's first key, its reference, and the port. */
 const managed = (lease: ReturnType<typeof fakeLease>): SonioxCredentials => ({ ...KEY, stt: 'key-0', clientReferenceId: 'ref-0', lease: lease.port });
 
-/** One leg, live: its STT and TTS sockets opened, the start resolved. */
+/** One leg, live: its STT socket opened, the start resolved. */
 async function live(credentials: SonioxCredentials = KEY, context: SessionContext = AUTO_CTX) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
@@ -714,11 +714,11 @@ const BOTH_CONTEXTS: Record<LegName, SessionContext> = {
 };
 
 /** Both legs live, split (two cores) or shared (one socket); each leg's log, and one log of both in order. */
-async function liveBoth(shared: boolean, o: { participantSpeaks?: boolean } = {}) {
+async function liveBoth(shared: boolean) {
   const sockets = fakeSockets();
   const { clock, timers } = trackedClock();
   const settings = { ...SONIOX_DEFAULTS, bothModeSharedSession: shared };
-  const CONTEXTS = o.participantSpeaks ? { ...BOTH_CONTEXTS, participant: { ...BOTH_CONTEXTS.participant, speech: true } } : BOTH_CONTEXTS;
+  const CONTEXTS = BOTH_CONTEXTS;
   const logs: Record<LegName, AdapterEvent[]> = { speaker: [], participant: [] };
   const all: Array<{ leg: LegName; kind: AdapterEvent['kind'] }> = [];
   const events = (leg: LegName) => eventsFrom((e) => { logs[leg].push(e); all.push({ leg, kind: e.kind }); });
@@ -734,43 +734,14 @@ async function liveBoth(shared: boolean, o: { participantSpeaks?: boolean } = {}
   /** The newest STT socket on this key. */
   const sttOn = (key: string) => sockets.all.filter((s) => isStt(s) && s.protocols?.[1] === key).slice(-1)[0];
   const sttSockets = () => sockets.all.filter(isStt);
-  /** Every TTS socket on this key, oldest first. */
-  const ttsOn = (key: string) => sockets.all.filter((s) => !isStt(s) && s.protocols?.[1] === key);
   const of = <K extends AdapterEvent['kind']>(leg: LegName, kind: K) => logs[leg].filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);
   const conformance = () => ({ speaker: checkConformance(logs.speaker, CONTEXTS.speaker), participant: checkConformance(logs.participant, CONTEXTS.participant) });
-  return { sockets, clock, timers, sessions, logs, all, sttOn, sttSockets, ttsOn, of, conformance };
+  return { sockets, clock, timers, sessions, logs, all, sttOn, sttSockets, of, conformance };
 }
 
-/** The texts a TTS socket was sent to speak. */
-const spokenOn = (s: FakeSocket) => s.sentJson<{ text?: string }>().map((m) => m.text).filter((t): t is string => !!t);
-
-describe('the Soniox adapter reconnects: speech comes back', () => {
-  it("a stall's reconnect lets the leg's TTS socket go, half-open as it may be: the next translation goes on a new one, and nothing is degraded", async () => {
-    const h = await live();
-    const tts = () => h.sockets.all.filter((x) => !isStt(x));
-    const before = tts()[0];
-    h.stt().receive(msg(orig('Hi.'), tr('やあ。'), END));
-    expect(spokenOn(before)).toEqual(['やあ。']);
-    // The blip: the server says nothing more while the leg talks, and both sockets still read as open.
-    speak(h, SONIOX_STALL_MS);
-    expect(h.of('reconnecting').map((e) => e.payload)).toEqual([{ attempt: 1, drop: dropOf({ cause: 'stall' }) }]);
-    expect(before.readyState).toBe(FakeSocket.OPEN);
-    expect(before.closedByClient).toBeNull();
-    await openAttempt(h);
-    expect(h.of('reconnected')).toHaveLength(1);
-    expect(before.closedByClient).not.toBeNull();
-    h.stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    expect(tts()).toHaveLength(2);
-    tts()[1].open();
-    await flush();
-    expect(spokenOn(tts()[1])).toEqual(['こんにちは。']);
-    expect(spokenOn(before)).toEqual(['やあ。']);
-    expect(h.of('degraded')).toEqual([]);
-    expect(checkConformance(h.log, AUTO_CTX)).toEqual([]);
-  });
-
-  it('a leg with no TTS socket — text-only, or not speaking — opens none at the reconnect', async () => {
-    for (const [credentials, context] of [[{ region: 'us', stt: 'k' }, AUTO_CTX], [KEY, { ...AUTO_CTX, speech: false }]] as const) {
+describe('the Soniox adapter reconnects: no voice of its own', () => {
+  it('opens no TTS socket at the reconnect, with a speech key or without, for a leg that speaks or not', async () => {
+    for (const [credentials, context] of [[{ region: 'us', stt: 'k' }, AUTO_CTX], [KEY, AUTO_CTX], [KEY, { ...AUTO_CTX, speech: false }]] as const) {
       const h = await live(credentials, context);
       expect(h.sockets.all.filter((x) => !isStt(x))).toEqual([]);
       h.stt().serverClose(1006);
@@ -780,50 +751,8 @@ describe('the Soniox adapter reconnects: speech comes back', () => {
       h.stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
       await flush();
       expect(h.sockets.all.filter((x) => !isStt(x))).toEqual([]);
+      expect(h.of('degraded')).toEqual([]);
     }
-  });
-
-  it("split Both: only the reconnected leg's speech gets a new socket", async () => {
-    const h = await liveBoth(false, { participantSpeaks: true });
-    const [speakerTts] = h.ttsOn('k-spk');
-    const [participantTts] = h.ttsOn('k-par');
-    h.sttOn('k-spk').serverClose(1006);
-    await flush();
-    h.sttOn('k-spk').open();
-    await flush();
-    expect(h.of('speaker', 'reconnected')).toHaveLength(1);
-    expect(speakerTts.closedByClient).not.toBeNull();
-    expect(participantTts.closedByClient).toBeNull();
-    h.sttOn('k-par').receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
-    expect(h.ttsOn('k-par')).toHaveLength(1);
-    expect(spokenOn(participantTts)).toEqual(['Good morning.']);
-    h.sttOn('k-spk').receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    expect(h.ttsOn('k-spk')).toHaveLength(2);
-    expect(h.of('speaker', 'degraded')).toEqual([]);
-    expect(h.of('participant', 'degraded')).toEqual([]);
-  });
-
-  it("shared Both: the one socket's reconnect gives both legs' speech new sockets", async () => {
-    const h = await liveBoth(true, { participantSpeaks: true });
-    const [speakerTts] = h.ttsOn('k-spk');
-    const [participantTts] = h.ttsOn('k-par');
-    h.sttSockets()[0].serverClose(1006);
-    await flush();
-    h.sttSockets()[1].open();
-    await flush();
-    expect(h.of('speaker', 'reconnected')).toHaveLength(1);
-    expect(speakerTts.closedByClient).not.toBeNull();
-    expect(participantTts.closedByClient).not.toBeNull();
-    h.sttSockets()[1].receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    h.sttSockets()[1].receive(msg({ ...orig('Ohayō.'), language: 'ja', start_ms: 1_000, end_ms: 1_500 }, tr('Good morning.', 'en', 'ja'), END));
-    expect(h.ttsOn('k-spk')).toHaveLength(2);
-    expect(h.ttsOn('k-par')).toHaveLength(2);
-    for (const s of [h.ttsOn('k-spk')[1], h.ttsOn('k-par')[1]]) s.open();
-    await flush();
-    expect(spokenOn(h.ttsOn('k-spk')[1])).toEqual(['こんにちは。']);
-    expect(spokenOn(h.ttsOn('k-par')[1])).toEqual(['Good morning.']);
-    expect(h.of('speaker', 'degraded')).toEqual([]);
-    expect(h.of('participant', 'degraded')).toEqual([]);
   });
 });
 

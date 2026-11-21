@@ -9,12 +9,17 @@
 import { useWordList } from '../../lib/words/list';
 import { modelTakesWords, wordServiceOf, wordsFor } from '../../lib/words/forService';
 import { effectiveGeminiModel } from '../../providers/gemini/settings';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
-import { caps } from '../../lib/lineup/catalog';
+import { caps, carriedTogether, goesWith } from '../../lib/lineup/catalog';
+import { refusalNotice } from '../../lib/plan/checks';
+import { choiceInput, refusedChoice } from '../../lib/plan/choice';
 import { usePlan } from '../../lib/plan/fromStores';
+import type { PlanRefusalCode } from '../../lib/plan/types';
+import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
+import { noticeText } from '../../lib/view/noticeText';
 import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
@@ -32,7 +37,7 @@ import type { ReceiveChoice } from '../providers/LanguagePairSection';
 import { useHearingRows } from '../MainPanel/useHearingRows';
 import { AudioModeSwitch } from './AudioModeSwitch';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
-import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
+import { ProviderOption, optionText, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
 import { KizunaOpenAIIcon } from '../Icons/ProviderIcons';
 import { SettingsStage, cardOptions, useStageList } from '../providers/stageParts';
 import { useAuthContext } from '../providers/useAuthContext';
@@ -59,13 +64,20 @@ const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
 /** An engine slot's stage, as the line-up names it. */
 const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
 
+/** The refusals that say the chosen services do not go together. */
+const CANNOT_COMBINE: ReadonlySet<string> = new Set(['lineup_voice_not_alone', 'lineup_voice_not_taken', 'lineup_stage_split', 'lineup_translation_bound', 'lineup_no_unit', 'lineup_two_managed', 'lineup_face_to_face_apart']);
+
 import { stageInSentence } from '../../lib/lineup/stageWords';
 export { stageInSentence };
 
-/** The stages `id` carries over one connection together with `stage`, when that is more than `stage` alone. */
-function jointOf(id: string, stage: RunStage): readonly RunStage[] | undefined {
-  const joint = caps(id)?.joint;
-  return joint && joint.length > 1 && joint.includes(stage) ? joint : undefined;
+/**
+ * The stages one connection of `id` carries together with `stage` when the line-up gives it all of them, when that
+ * is more than `stage` alone: an end-to-end provider's three, or Soniox's transcription and translation.
+ */
+function carriedWith(id: string, stage: RunStage): readonly RunStage[] | undefined {
+  const option = caps(id);
+  const group = option && carriedTogether(option);
+  return group && group.length > 1 && group.includes(stage) ? group : undefined;
 }
 
 /** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
@@ -102,8 +114,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // the same rules (useHearingRows); the speech stage is used only while a running leg is read aloud.
   const hearing = useHearingRows(locked);
   // The sentence shows once the plan is ready, its providers' entries loaded (ProviderLanguages); until then nothing points to it.
-  const sentenceShown = usePlan().state === 'ready';
+  const plan = usePlan();
+  const sentenceShown = plan.state === 'ready';
   const setTextOnly = useSetTextOnly();
+  // A line-up that cannot run is never silent: the composer's refusal of it, or what its plan cannot do for the
+  // pair and the legs a start would open, in the start gate's words. The hook follows everything it is read from:
+  // the plan, a provider's pair, the mode and who hears.
+  const refusal = useLineUpNotice();
   const model = useOptionModel();
   const [rich] = useState(() => supportsBaseSelect());
   // Which stage cards have their provider's options open (mock v19: each card its own).
@@ -111,7 +128,17 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // A slot a notice asked for (a voice to fix, #619): the engine opens it, then it is spent.
   const engineSlotTarget = useEngineSlotTarget();
   const setEngineSlotTarget = useSetEngineSlotTarget();
-  const [moved, setMoved] = useState<{ stage: StageName; text: string } | null>(null);
+  // Speech followed the last choice (its voice could not stay beside the chosen text side): said on the speech
+  // card while the line-up is the one that choice made, and until the next choice.
+  const [followedBy, setFollowedBy] = useState<{ text: string; lineUp: LineUp } | null>(null);
+  const followed = followedBy && lineUp && RUN_STAGES.every((s) => lineUp[s] === followedBy.lineUp[s]) ? followedBy.text : null;
+  // Once the line-up is another one, the line is spent: it is not said again should the line-up come back.
+  useEffect(() => {
+    if (followedBy && !followed) setFollowedBy(null);
+  }, [followedBy, followed]);
+  // Counts the choices made on this page, the notes' included: a choice whose save completes after a later one was
+  // made says nothing, the line having been taken away by that later choice.
+  const choiceCount = useRef(0);
 
   // Every provider with a key is loaded, so that its row can say whether the key is there.
   useEffect(() => {
@@ -127,15 +154,34 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
 
   const stageName = (s: StageName) => stageInSentence(t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage] ?? s), i18n?.language ?? 'en');
 
+  // What the composer is asked with for a choice not made yet: what the store asks it with when the choice is made.
+  const composing = choiceInput(providers, entries);
+
+  /** Why an option cannot be combined with the other stages, short enough to stand after its name. */
+  const shortReason = (code: PlanRefusalCode): string | undefined => {
+    if (code === 'lineup_voice_not_alone') return t('settingsPage.lineup.voiceNotAlone', 'reads only its own translation');
+    if (code === 'lineup_voice_not_taken') return t('settingsPage.lineup.voiceNotTaken', 'uses only its own voice');
+    if (code === 'lineup_two_managed') return t('settingsPage.lineup.twoManaged', 'one Kizuna AI service at a time');
+    return undefined;
+  };
+
   const optionsFor = (stage: RunStage): ProviderOptionModel[] => {
-    void entries; // re-render when an entry loads, so the key state is current
     return providers.flatMap((p) => (p.id === 'local_inference' ? [p.id, 'bing', 'edge'] : [p.id]))
       .filter((id) => offered.has(id) && caps(id)?.stages.includes(stage))
       .map((id) => {
         const p = providers.find((x) => x.id === id);
-        const missing = credentialsMissing(p, auth.signedIn);
         const m = model(id, p);
-        if (missing && lineUp?.[stage] !== id) m.blocked = missing === 'key' ? t('settingsPage.lineup.needsKey', 'needs a key') : t('settingsPage.lineup.needsSignIn', 'needs a sign-in');
+        // The current choice is never held back: it is shown, and can be left.
+        if (lineUp?.[stage] === id) return m;
+        const missing = credentialsMissing(p, auth.signedIn);
+        if (missing) {
+          m.blocked = missing === 'key' ? t('settingsPage.lineup.needsKey', 'needs a key') : t('settingsPage.lineup.needsSignIn', 'needs a sign-in');
+          return m;
+        }
+        // A choice that would leave a line-up the composer refuses, the other stages as they are: said before it
+        // is made, in a few words; the whole sentence is the card's, once such a line-up is stored.
+        const refused = lineUp ? refusedChoice(lineUp, stage, id, composing) : null;
+        if (refused) m.blocked = shortReason(refused.refusal.refused) ?? noticeText(t, refusalNotice(refused.refusal, refused.lineUp, providers));
         return m;
       });
   };
@@ -172,28 +218,29 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     }] : []),
   ];
   const chooseNotes = async (id: string) => {
+    choiceCount.current += 1;
+    setFollowedBy(null);
     const before: LineUp | null = useLineUpStore.getState().lineUp;
     const choice = await useLineUpStore.getState().choose('summarisation', id);
     if (choice && before) trackEvent('lineup_changed', lineUpChangedEvent('summarisation', before, choice));
   };
 
   const choose = async (stage: RunStage, id: string) => {
+    // What the last choice made speech do is not said of this one, whatever comes of it.
+    const made = (choiceCount.current += 1);
+    setFollowedBy(null);
     const before: LineUp | null = useLineUpStore.getState().lineUp;
     const choice = await useLineUpStore.getState().choose(stage, id);
     if (!choice || !before) return;
     trackEvent('lineup_changed', lineUpChangedEvent(stage, before, choice));
-    // The stages the chosen provider holds jointly are said by the joint line; say only what else moved (owner, 2026-11-15).
-    const group = jointOf(id, stage) ?? [stage];
-    const extra = choice.moved.filter((s) => !group.includes(s as RunStage));
-    if (!extra.length) { setMoved(null); return; }
-    const names = extra.map((s, i) => (i === 0 ? t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage]) : stageName(s)));
-    const providerNames = [...new Set(extra.map((s) => model(choice.lineUp[s] ?? '', providers.find((p) => p.id === choice.lineUp[s])).name))];
-    setMoved({
-      stage,
-      text: t('settingsPage.lineup.moved', '{{stages}} moved to {{providers}} too: they cannot be combined with this choice yet. Mixing will be supported later.', {
-        stages: names.join(t('settingsPage.lineup.and', ' and ')), providers: providerNames.join(t('settingsPage.lineup.and', ' and ')),
-      }),
-    });
+    // Named as an option's text names it: a hosted provider with its engine.
+    const name = (option: string) => optionText(model(option, providers.find((p) => p.id === option)));
+    if (choice.followed && made === choiceCount.current) {
+      setFollowedBy({
+        text: t('settingsPage.lineup.voiceFollowed', 'Speech switched to {{provider}}. The previous speech service only supports its own translations.', { provider: name(choice.followed.to) }),
+        lineUp: choice.lineUp,
+      });
+    }
     // A one-shot target that opened this page is spent once something is chosen here.
     if (target) navigateToSettings(null);
   };
@@ -282,12 +329,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     );
   };
 
-  /** The line-up's cards: one per stage, but the stages one provider holds jointly, next to each other, in one (owner, 2026-11-17). */
+  /**
+   * The line-up's cards: one per stage, but the stages one provider carries over one connection, next to each
+   * other, in one (owner, 2026-11-17). Soniox transcribing for another service's translation has a card of its own.
+   */
   const cards: RunStage[][] = [];
   for (let i = 0; i < RUN_STAGES.length; ) {
     const stage = RUN_STAGES[i];
     const id = lineUp?.[stage] ?? '';
-    const group = jointOf(id, stage);
+    const group = carriedWith(id, stage);
     let j = i + 1;
     while (group && j < RUN_STAGES.length && group.includes(RUN_STAGES[j]) && (lineUp?.[RUN_STAGES[j]] ?? '') === id) j += 1;
     cards.push(RUN_STAGES.slice(i, j) as RunStage[]);
@@ -331,6 +381,20 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     return s.toAccount
       ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(providerTarget(id))}>{s.text}</button>
       : <em className={className}>{s.text}</em>;
+  };
+
+  /**
+   * A stage's state while the line-up is refused on that stage: why, in a few words, in place of its provider's
+   * readiness (the line-up has to change before a key or a sign-in matters). Plain text: nothing in Accounts and
+   * keys answers it. Undefined for a stage with no service, which keeps the state it has.
+   */
+  const refusalTag = (code: string | undefined) => {
+    const language = code === 'lineup_language_not_spoken' || code === 'lineup_pair_not_translated' || code === 'lineup_source_not_fixed';
+    const text = language ? t('settingsPage.lineup.state.languageNotSpoken', 'Unsupported language')
+      : code === 'lineup_not_offered' ? t('settingsPage.lineup.state.notAvailable', 'Not available here')
+      : code && CANNOT_COMBINE.has(code) ? t('settingsPage.lineup.state.cannotCombine', "Can't be combined")
+      : undefined;
+    return text === undefined ? undefined : <em className="lineup-stage__state">{text}</em>;
   };
 
   // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own (stateTag), so a key that
@@ -409,27 +473,40 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         {cards.map((stages) => {
           const first = stages[0];
           const id = lineUp?.[first] ?? '';
-          const group = jointOf(id, first);
-          // Partners the card does not hold (joint, but not next to it): named under the choice.
-          const partners = group?.filter((s) => !stages.includes(s as RunStage)) ?? [];
+          const option = caps(id);
+          // The stages this service serves with this one in this line-up and the card does not hold (not next to it):
+          // named under the choice. A stage it must serve too and another service was given is not joined with this
+          // one: the refusal says so on its card, and neither the line nor the frame of a joint card is drawn.
+          const partners = option ? goesWith(option, first).filter((s) => !stages.includes(s) && lineUp?.[s] === id) : [];
           const joint = stages.length > 1;
+          // One connection carries the card's stages, and yet they can be parted: Soniox's translation can be given
+          // to another service, which its transcription then stands beside. The later stages get a choice of their own.
+          const partable = joint && !option?.joint;
           const titleOf = (stage: RunStage) => t(`settingsPage.lineup.stages.${stage}`, STAGE_TITLES[stage]);
           const title = joint ? [titleOf(first), ...stages.slice(1).map(stageName)].join(t('settingsPage.lineup.and', ' and ')) : titleOf(first);
           // The speech stage, not used this time (nothing a running leg says is read aloud).
           const idle = (stage: RunStage) => stage === 'speech' && speechIdle;
-          const movedLine = (stage: RunStage) => moved?.stage === stage && <p className="lineup-stage__moved" role="status">{moved.text}</p>;
+          // Why the line-up cannot run a session now, on the card of the stage it is about.
+          // On the speech card, first: that the voice changed with the last choice.
+          const refusalLine = (stage: RunStage) => (
+            <>
+              {/* News, in the secondary text colour: the voice followed, nothing is wrong and nothing is a standing rule. */}
+              {stage === 'speech' && followed && <p className="lineup-stage__joint lineup-stage__joint--news" role="status">{followed}</p>}
+              {refusal?.stage === stage && <p className="lineup-stage__refusal" role="status">{noticeText(t, refusal)}</p>}
+            </>
+          );
           const head = (stage: RunStage) => (
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{titleOf(stage)}</span>
-              {idle(stage)
+              {(refusal?.stage === stage ? refusalTag(refusal.code) : undefined) ?? (idle(stage)
                 ? <em className="lineup-stage__state is-unused">{t('settingsPage.lineup.state.notUsed', 'Not used this time')}</em>
-                : stateTag(id)}
+                : stateTag(id))}
             </div>
           );
-          // Idle: what moved with a choice, and why it is not used; no options (the choice stays for next time).
+          // Idle: why the line-up cannot run, and why speech is not used; no options (the choice stays for next time).
           const idleBody = (stage: RunStage) => (
             <>
-              {movedLine(stage)}
+              {refusalLine(stage)}
               {speechUnusedNote}
             </>
           );
@@ -475,17 +552,18 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                   </p>
                 );
               })()}
-              {movedLine(stage)}
+              {refusalLine(stage)}
               {stageOptions(stage, id, stages)}
             </>
           ));
-          const select = (
-            <select className="select-dropdown provider-select" value={id} disabled={locked} aria-label={title}
-              onChange={(e) => void choose(first, e.target.value)}>
+          const selectFor = (stage: RunStage, label: string) => (
+            <select className="select-dropdown provider-select" value={lineUp?.[stage] ?? ''} disabled={locked} aria-label={label}
+              onChange={(e) => void choose(stage, e.target.value)}>
               {rich && <button type="button"><selectedcontent /></button>}
-              {optionsFor(first).map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
+              {optionsFor(stage).map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
             </select>
           );
+          const select = selectFor(first, title);
           const partnersLine = partners.length > 0 && (
             <p className="lineup-stage__joint">
               <Link2 size={12} aria-hidden="true" />
@@ -502,13 +580,17 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                 <>
                   <p className="lineup-stage__joint">
                     <Link2 size={12} aria-hidden="true" />
-                    {t('settingsPage.lineup.jointCard', '{{stages}} go over one connection; they change together.', { stages: title })}
+                    {partable
+                      ? t('settingsPage.lineup.partableCard', '{{stages}} go over one connection. Another service can do the translation: choose it below.', { stages: title })
+                      : t('settingsPage.lineup.jointCard', '{{stages}} go over one connection; they change together.', { stages: title })}
                   </p>
                   {select}
                   {partnersLine}
                   {stages.map((stage) => (
                     <div className="lineup-stage__part" key={stage}>
                       {head(stage)}
+                      {/* A stage that can be given to another service keeps a choice of its own in the shared card. */}
+                      {partable && stage !== first && selectFor(stage, titleOf(stage))}
                       {stageBody(stage)}
                     </div>
                   ))}

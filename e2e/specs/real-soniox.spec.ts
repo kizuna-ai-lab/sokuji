@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { Page } from '@playwright/test';
-import { baseStorage, mainAction, REPO } from '../support/app';
+import { baseStorage, mainAction } from '../support/app';
 import { readHistory } from '../support/history';
+import { clip, PAUSES_MS, say, SENTENCES } from '../support/speech';
 import { expect, test } from '../support/test';
 
 const KEY = process.env.E2E_SONIOX_KEY ?? '';
@@ -10,38 +10,6 @@ const MINUTES = Number(process.env.E2E_LONG_MINUTES ?? 15);
 const SESSION_MS = MINUTES * 60_000;
 /** Nobody speaks for this long in the middle of the session. */
 const SILENCE_MS = 75_000;
-
-/**
- * The repository's eight Japanese sentences (scripts/dev/wire-probe/assets/ja): a word each must be heard, and a word
- * its English must carry. (`door.wav` ends with a stray sound that Soniox hears as a short sentence of its own; the
- * checks below count the expected words and do not mind it.)
- */
-const SENTENCES = [
-  { file: 'umbrella', heard: /傘/, said: /umbrella/i }, // 今日は雨が降りそうなので、傘を持っていきます。
-  { file: 'door', heard: /ドア|扉/, said: /\bdoor/i }, // ドアを閉めてください。
-  { file: 'meeting', heard: /会議/, said: /meeting/i }, // 明日の会議は午後三時に始まります。
-  { file: 'book', heard: /本/, said: /\bbook/i }, // この本はとても面白かったです。
-  { file: 'dinner', heard: /夕食|夕飯|晩ご飯/, said: /dinner|supper/i }, // 週末に家族と一緒に夕食を食べました。
-  { file: 'cafe', heard: /カフェ/, said: /caf[eé]|coffee/i }, // 駅の近くに新しいカフェができました。
-  { file: 'train', heard: /電車/, said: /\btrain/i }, // 電車が十分遅れています。
-  { file: 'wait', heard: /待/, said: /\bwait|moment/i }, // 少々お待ちください。
-];
-/** The pause after each sentence, as a person leaves them: some short, some long. */
-const PAUSES_MS = [2400, 400, 2200, 1800, 1400, 2000, 900, 3000];
-
-/** A 16-bit mono WAV's samples as base64, and its sample rate. */
-function clip(name: string): { pcm: string; rate: number } {
-  const wav = fs.readFileSync(path.join(REPO, 'scripts/dev/wire-probe/assets/ja', `${name}.wav`));
-  const rate = wav.readUInt32LE(24);
-  let at = 12;
-  while (wav.toString('latin1', at, at + 4) !== 'data') at += 8 + wav.readUInt32LE(at + 4);
-  return { pcm: wav.subarray(at + 8, at + 8 + wav.readUInt32LE(at + 4)).toString('base64'), rate };
-}
-
-const say = (page: Page, { pcm, rate }: { pcm: string; rate: number }) => page.evaluate(
-  ({ pcm, rate }) => (navigator.mediaDevices as MediaDevices & { __e2eSay(pcm: string, rate: number): Promise<void> }).__e2eSay(pcm, rate),
-  { pcm, rate },
-);
 
 // The key is typed into the app: a trace would keep it.
 test.use({ trace: 'off' });
@@ -58,6 +26,7 @@ test(`@real a ${MINUTES}-minute Soniox session hears and translates speech befor
     seed: {
       storage: {
         ...baseStorage('soniox'),
+        // Bare, not the stored form: the app runs the stored provider (a stored line-up with no speech stage cannot start).
         'settings.lineup': JSON.stringify({ transcription: 'soniox', translation: 'soniox', speech: null, summarisation: null }),
         'settings.common.sourceLanguage': 'ja',
         'settings.common.targetLanguage': 'en',

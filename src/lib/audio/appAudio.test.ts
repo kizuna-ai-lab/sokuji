@@ -17,6 +17,7 @@ import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { DEFAULT_OUTLET_CHOICE } from './outlets';
 import { createAppRouting, readRouting } from './appAudio';
@@ -284,7 +285,8 @@ describe('createAppRouting', () => {
 
   it("re-reads when the picked provider's entry loads after the pick: only then is beside me face-to-face", () => {
     useAudioStore.setState({ ...AUDIO, mode: 'both', otherSide: 'beside' });
-    useProviderStore.setState({ selected: 'soniox', entries: {} });
+    runsOn('soniox');
+    useProviderStore.setState({ entries: {} });
     const routing = createAppRouting('electron');
     const heard = vi.fn();
     routing.subscribe(heard);

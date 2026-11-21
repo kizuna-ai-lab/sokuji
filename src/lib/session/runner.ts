@@ -143,10 +143,10 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
             const duration = endedAt - liveSince;
             const provider = run.providerId;
             // One per leg, as `connected` was.
-            run.shape.legs.forEach((leg) => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration, channel: leg }));
+            run.shape.legs.forEach((leg) => run.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration, channel: leg }));
             // Read once the run has closed: a reconnect its end cut short is in.
             const totals = run.reconnectTotals();
-            deps.analytics.track('translation_session_end', {
+            run.analytics.track('translation_session_end', {
               session_id: run.id, duration, provider,
               reconnect_count: totals.count, reconnect_down_ms: totals.downMs, reconnect_failed: totals.failed,
             });
@@ -219,7 +219,9 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     }
     const shape = deps.readShape();
     if (!shape) {
-      set({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_provider' satisfies RunNoticeCode, message: 'No provider is chosen, or it has not loaded.' } } });
+      // A line-up that cannot run says why itself; otherwise nothing is chosen, or it has not loaded.
+      const notice = deps.planRefusal?.() ?? { code: 'no_provider' satisfies RunNoticeCode, message: 'No provider is chosen, or it has not loaded.' };
+      set({ phase: 'idle', lastEnd: { reason: 'refused', notice } });
       return;
     }
     const run = new Run(deps, hostFor, shape);
@@ -238,7 +240,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       const adapterError = failure instanceof AdapterStartError ? failure : undefined;
       const message = describeCause(error);
       reportError('SessionRunner', `The session did not start: ${message}`, { cause: error });
-      deps.analytics.track('error_occurred', {
+      run.analytics.track('error_occurred', {
         error_type: 'session_start', error_message: message, component: 'session-runner',
         severity: 'high', provider: run.providerId, recoverable: true,
       });
@@ -251,7 +253,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       // source that would not open is the device's failure, not the server's
       // (spec 2026-10-13 §4).
       const code = adapterError?.code;
-      deps.analytics.track('api_error', {
+      run.analytics.track('api_error', {
         provider: run.providerId,
         error_message: redact(message),
         ...(code ? { error_code: code } : {}),
@@ -274,7 +276,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     // must leave playback not live, not live again after its stop.
     deps.playback.live(true);
     set({ phase: 'running', participantSpeech: run.shape.participantSpeech, ...payerOf(run.shape), since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}), ...reconnect(run) });
-    deps.analytics.track('translation_session_start', {
+    run.analytics.track('translation_session_start', {
       session_id: run.id,
       provider: run.providerId,
       source_language: shape.pair.source,
@@ -288,7 +290,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     });
     // Once per run, at the step to running, as the session's own start (spec 2026-10-22 §3.6): the kind, never the title.
     if (shape.frames) {
-      deps.analytics.track('screen_context_on', { session_id: run.id, provider: run.providerId, source_kind: shape.frames.kind, platform: deps.platform });
+      run.analytics.track('screen_context_on', { session_id: run.id, provider: run.providerId, source_kind: shape.frames.kind, platform: deps.platform });
     }
   };
 

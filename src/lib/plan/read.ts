@@ -1,11 +1,13 @@
 // src/lib/plan/read.ts
 //
-// Reading a run plan: its providers, the unit that serves a stage, the one
+// Reading a run plan: its providers, the unit that serves a stage, whether a
+// provider is the one that speaks, the one
 // provider that stands for the run where a single id is asked for and its
 // account, a provider's account as the run froze it, and what a stage's unit
 // can do.
 // Pure; nothing here reads a store or the registry.
-import type { RunStage } from '../lineup/types';
+import { RUN_STAGES } from '../lineup/types';
+import type { LineUp, RunStage, StageIds } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { PlanAccount, RunShape } from '../session/types';
 import type { PlannedUnit, RunPlan, UnitCapabilities } from './types';
@@ -20,6 +22,53 @@ export function providersIn(plan: RunPlan): readonly AnyProvider[] {
 /** The unit that serves this stage of the run. */
 export function unitFor(plan: RunPlan, stage: RunStage): PlannedUnit {
   return plan.byStage[stage];
+}
+
+/**
+ * Whether the plan asks this provider for speech: a unit of it serves the speech stage. A managed provider's lease,
+ * floor and voice claim read this, not whether the run speaks: with another provider's voice it is asked for text.
+ */
+export function servesSpeech(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): boolean {
+  return plan.byStage.speech.provider.id === provider.id;
+}
+
+/**
+ * Whether the plan asks this provider to transcribe: a unit of it serves the transcription stage. With
+ * `servesSpeech` it tells a provider that only speaks in a plan (another provider's text, read by its voice) from
+ * one that runs the whole session.
+ */
+export function servesTranscription(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): boolean {
+  return plan.byStage.transcription.provider.id === provider.id;
+}
+
+/** The stages a provider serves in a plan, in stage order; none for a provider that is not in it. */
+export function stagesOf(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): readonly RunStage[] {
+  return RUN_STAGES.filter((stage) => plan.byStage[stage].provider.id === provider.id);
+}
+
+/**
+ * What a provider's readiness check is told it serves (`CheckContext.stages`): its stages in the plan while
+ * another provider serves the rest. Undefined when it serves every stage, or none: its check then reads all it
+ * can serve.
+ */
+export function checkStagesOf(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): readonly RunStage[] | undefined {
+  const stages = stagesOf(plan, provider);
+  return stages.length === 0 || stages.length === RUN_STAGES.length ? undefined : stages;
+}
+
+/**
+ * The line-up ids a check is told beside its stages (`CheckContext.stageIds`): the id `lineUp` gives each of
+ * `stages`. Undefined when the check is told no stages, when no stored line-up is what runs (`lineUp` null), or
+ * when the line-up names none of them.
+ */
+export function checkStageIdsOf(stages: readonly RunStage[] | undefined, lineUp: Pick<LineUp, RunStage> | null): Readonly<Partial<StageIds>> | undefined {
+  if (!stages || !lineUp) return undefined;
+  const ids: Partial<Record<RunStage, string>> = {};
+  for (const stage of stages) {
+    const id = lineUp[stage];
+    if (id !== null) ids[stage] = id;
+  }
+  return Object.keys(ids).length > 0 ? ids : undefined;
 }
 
 /** The provider that transcribes: the run's identity where one provider id is asked for. */

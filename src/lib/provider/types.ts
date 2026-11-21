@@ -7,7 +7,8 @@ import type { ComponentType } from 'react';
 import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
-import type { RunStage } from '../lineup/types';
+import type { RunStage, StageIds } from '../lineup/types';
+import type { UnitDefinition } from '../plan/types';
 import type { SessionHooks } from '../session/types';
 import type { WireTable } from '../language/wire';
 
@@ -115,6 +116,17 @@ export interface CheckContext {
   pair: LanguagePair;
   /** The legs a run would open, speaker first: the participant leg runs the pair's reverse. */
   legs: readonly LegName[];
+  /**
+   * The stages this provider serves in the plan, when another provider serves the rest: a provider that only
+   * speaks needs nothing it would need to transcribe. Absent: every stage it can serve.
+   */
+  stages?: readonly RunStage[];
+  /**
+   * The line-up id each of `stages` was given to, where the plan runs a stored line-up: a provider that runs a
+   * stage in more than one way reads which here (the local provider: Bing or a local model, Edge or a local voice).
+   * Absent: `stages` is absent, or no stored line-up is what runs.
+   */
+  stageIds?: Readonly<Partial<StageIds>>;
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }
@@ -139,10 +151,22 @@ export interface SharedSettings {
   faceToFace?: boolean;
   /** Some leg of this run produces translated speech (its context's `speech`), fixed at start: a builder may ready a socket for it (Soniox asks for agent text when its own setting is on, spec 2026-11-05 §4.3). Whether the speech plays locally is not asked: speech that is not local makes no echo. Set by the run; absent: false. */
   speaks?: boolean;
+  /**
+   * The run has both legs, each built with its own direction. A builder whose unit is started one leg at a time
+   * reads it here, where a start of both legs at once would have told its adapter (Soniox transcribing alone asks
+   * for no agent text then, as its split Both does not). Set by the run; absent: false.
+   */
+  bothLegs?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
   /** The app's word list and session background, read at start (spec §9): each builder sends what `wordsFor` gives its service. Absent: none. */
   words?: SessionWords;
+  /**
+   * The stored line-up as the run froze it at its start: the id each stage was given to. A builder whose provider
+   * runs a stage in more than one way reads it here (the local provider: Bing or a local model, Edge or a local
+   * voice). Absent: no stored line-up is what runs, or the caller is not a run.
+   */
+  lineUp?: StageIds;
 }
 
 /** The word list as a run reads it at start. */
@@ -447,6 +471,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
   start: Adapter<C, K>['start'];
+
+  /**
+   * The provider's units, when a session may run it in pieces: each serves some of the stages, with a config of its
+   * own. Absent: one unit that is the whole provider, from `build`, `describe` and `start` (`unitsOf`).
+   */
+  units?: readonly UnitDefinition[];
 
   // across legs and time — optional
   session?: SessionHooks<S, K, C>;

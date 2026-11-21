@@ -5,19 +5,27 @@ import { useTextOnly } from '../../stores/settingsStore';
 import { legSpeaks } from '../../lib/session/shape';
 import { appVoicePreview } from '../../app/voicePreview';
 import { useFaceToFace } from '../MainPanel/useFaceToFace';
-import { ownProps, useSelectedProvider } from './useSelectedProvider';
+import { ownProps, useProviderEntry, useRunPair, useStageProvider, type ShownProvider } from './useProviderEntry';
 
 interface ProviderOwnSettingsProps {
   providers: readonly AnyProvider[];
   /** A run is not idle: the provider's own settings are locked. */
   disabled?: boolean;
-  /** The provider to show (a stage card of the line-up page); absent, the selected one. */
+  /** The provider to show (a stage card of the line-up page); absent, the one that transcribes. */
   providerId?: string;
 }
 
-/** The selected provider's own `Settings` (D18), over its loaded entry, with its account (F3): the saved credentials and `auth`, the sign-in. Nothing before the entry loads. */
+/** The provider a piece here shows, with its entry: the one a stage card names, else the provider that transcribes. */
+function useShown(providers: readonly AnyProvider[], providerId: string | undefined): ShownProvider | null {
+  const transcribing = useStageProvider(providers, 'transcription');
+  return useProviderEntry(providerId === undefined ? transcribing : providers.find((p) => p.id === providerId));
+}
+
+/** The shown provider's own `Settings` (D18), over its loaded entry, with its account (F3): the saved credentials and `auth`, the sign-in. Nothing before the entry loads. */
 export function ProviderOwnSettings({ providers, auth, disabled, providerId }: ProviderOwnSettingsProps & { auth: AuthContext }) {
-  const selection = useSelectedProvider(providers, providerId);
+  const selection = useShown(providers, providerId);
+  // The session's pair: a provider shown for the voice alone draws its voices for the language that will be spoken.
+  const runPair = useRunPair();
   const legs = useProviderStore((s) => s.legs);
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
   const faceToFace = useFaceToFace().active;
@@ -43,18 +51,18 @@ export function ProviderOwnSettings({ providers, auth, disabled, providerId }: P
   if (!selection?.entry) return null;
   const Settings = selection.provider.Settings;
   const participantSpeaks = selection.provider.participantSpeech !== false && speechParticipant;
-  return <Settings {...ownProps(selection, selection.entry, disabled)} account={account} legs={legs} participantSpeaks={participantSpeaks} faceToFace={faceToFace} preview={appVoicePreview} />;
+  return <Settings {...ownProps(selection, selection.entry, disabled, runPair)} account={account} legs={legs} participantSpeaks={participantSpeaks} faceToFace={faceToFace} preview={appVoicePreview} />;
 }
 
 /**
- * The selected provider's `TurnDetection` Controls, as their own block on
+ * The shown provider's `TurnDetection` Controls, as their own block on
  * Advanced's Provider tab in every turn mode. The Speech section's summary
  * links here: `#turn-detection-tuning-section` is what Settings.tsx scrolls
  * to and highlights for the `'turn-detection-tuning'` target. Nothing when
  * the provider has no `TurnDetection`, or before its entry loads.
  */
 export function ProviderTurnDetectionControls({ providers, disabled, providerId }: ProviderOwnSettingsProps) {
-  const selection = useSelectedProvider(providers, providerId);
+  const selection = useShown(providers, providerId);
   if (!selection?.entry) return null;
   const Controls = selection.provider.TurnDetection?.Controls;
   if (!Controls) return null;
@@ -72,12 +80,12 @@ interface ProviderEngineProps {
   /** Open this slot on mount — a chip's deep link. */
   initialSlot?: EngineSlot | null;
   onInitialSlotConsumed?(): void;
-  /** The provider to show (a stage card of the line-up page); absent, the selected one. */
+  /** The provider to show (a stage card of the line-up page); absent, the one that transcribes. */
   providerId?: string;
 }
 
 /**
- * The selected provider's `Engine` (ruling 3): model management, the local
+ * The shown provider's `Engine` (ruling 3): model management, the local
  * engines only, with the legs a start would open and the deep-link slot.
  * Nothing when the provider offers none, or before its entry loads.
  */
@@ -85,7 +93,8 @@ export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlot
   const legs = useProviderStore((s) => s.legs);
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
   const textOnly = useTextOnly();
-  const selection = useSelectedProvider(providers, providerId);
+  const selection = useShown(providers, providerId);
+  const runPair = useRunPair();
   if (!selection?.entry) return null;
   const Engine = selection.provider.Engine;
   if (!Engine) return null;
@@ -95,7 +104,7 @@ export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlot
   const speakerSpeaks = legSpeaks(selection.provider, 'speaker', { textOnly, participantSpeech: false });
   return (
     <Engine
-      {...ownProps(selection, selection.entry, disabled)}
+      {...ownProps(selection, selection.entry, disabled, runPair)}
       legs={legs}
       participantSpeaks={participantSpeaks}
       speakerSpeaks={speakerSpeaks}

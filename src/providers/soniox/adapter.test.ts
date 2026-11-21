@@ -3,8 +3,9 @@
  * suite but typed text, the STT config frame, a 503's reconnect and every
  * other failure path (choice 8; the reconnect itself in
  * `adapter.reconnect.test.ts`), manual turns
- * (ruling 5), the keepalive, unreadable frames (choice 7), speech with its
- * filled-in ranges (ruling 2), stop, and Plan B's session seams. Driven on
+ * (ruling 5), the keepalive, unreadable frames (choice 7), stop, and Plan
+ * B's session seams. The adapter transcribes and translates and never
+ * speaks: a session's speech is in `composite.test.ts`. Driven on
  * `FakeSocket` and a virtual clock from the first run — no network, no fake
  * timers, no stubbed global.
  */
@@ -19,7 +20,7 @@ import { RECONNECT_DELAYS_MS } from '../../lib/session/reconnect';
 import { createSonioxAdapter, sttFailureCode } from './adapter';
 import { buildSoniox, type SonioxConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxReissue, type SonioxSettings } from './settings';
-import { AUTO_CTX, b64, END, ERROR_503, FIN, isStt, KEY, msg, orig, SHARED, tr, trackedClock, type Json } from './testing';
+import { AUTO_CTX, END, ERROR_503, FIN, isStt, KEY, msg, orig, SHARED, tr, trackedClock, type Json } from './testing';
 
 function started(o: { context?: SessionContext; settings?: Partial<SonioxSettings>; credentials?: SonioxCredentials; shared?: SharedSettings } = {}) {
   const sockets = fakeSockets();
@@ -32,13 +33,12 @@ function started(o: { context?: SessionContext; settings?: Partial<SonioxSetting
     events,
   );
   const stt = () => sockets.all.filter(isStt).slice(-1)[0];
-  const tts = () => sockets.all.filter((s) => !isStt(s)).slice(-1)[0];
   const openAll = () => { for (const s of sockets.all) if (s.readyState === FakeSocket.CONNECTING) s.open(); };
   const of = <K extends AdapterEvent['kind']>(kind: K) => log.filter((e): e is Extract<AdapterEvent, { kind: K }> => e.kind === kind);
   /** The frames of one type, in order. */
   const frames = (type: string) => of('frame').filter((e) => e.payload.type === type);
   const sttSockets = () => sockets.all.filter(isStt);
-  return { sockets, clock, timers, log, controller, starting, stt, tts, openAll, of, frames, sttSockets };
+  return { sockets, clock, timers, log, controller, starting, stt, openAll, of, frames, sttSockets };
 }
 
 async function live(o?: Parameters<typeof started>[0]) {
@@ -61,9 +61,6 @@ async function reconnectOnce(h: Awaited<ReturnType<typeof live>>) {
 /** A drop no attempt follows: the leg fails at once (spec 2026-11-05 reconnect §4.1). */
 const ended = (drop: Record<string, unknown>) => ({ ...drop, retryable: false, managed: false });
 
-/** The TTS stream the adapter opened last on this socket. */
-const lastStream = (s: FakeSocket) => s.sentJson<{ stream_id?: string; model?: string }>().filter((m) => m.model !== undefined).map((m) => m.stream_id!).pop();
-
 describe('the Soniox adapter: agent text (spec 2026-11-05 §4.3)', () => {
   it('a reconnected socket asks again (Review Focus 5)', async () => {
     const h = await live({ shared: { ...SHARED, speaks: true } });
@@ -75,25 +72,14 @@ describe('the Soniox adapter: agent text (spec 2026-11-05 §4.3)', () => {
 describe('the Soniox adapter: conformance', () => {
   let sockets = fakeSockets();
   const stt = () => sockets.all.filter(isStt).slice(-1)[0];
-  const tts = () => sockets.all.filter((s) => !isStt(s)).slice(-1)[0] as FakeSocket | undefined;
   const openAll = () => { for (const s of sockets.all) if (s.readyState === FakeSocket.CONNECTING) s.open(); };
   const harness: AdapterHarness<SonioxConfig, SonioxCredentials> = {
     adapter: createSonioxAdapter({ openSocket: (url) => sockets.create(url) }),
     config: (context) => { sockets = fakeSockets(); return buildSoniox(context, SONIOX_DEFAULTS, SHARED); },
     credentials: KEY,
     opening: () => [{ run: openAll }, { flush: true }],
-    exchange: [
-      { run: () => stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END)) },
-      // Its speech, when the leg speaks: two chunks, then the segment's clean end.
-      { run: () => {
-        const t = tts();
-        const id = t && lastStream(t);
-        if (!t || !id) return;
-        t.receive(JSON.stringify({ stream_id: id, audio: b64(2400) }));
-        t.receive(JSON.stringify({ stream_id: id, audio: b64(1200) }));
-        t.receive(JSON.stringify({ stream_id: id, terminated: true }));
-      } },
-    ],
+    // The text alone: the adapter never speaks, whatever the scenario's context says.
+    exchange: [{ run: () => stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END)) }],
     // A close the table ends (spec 2026-11-05 reconnect §4.1): a 1011 would reconnect.
     serverClose: [{ run: () => stt().serverClose(1008, 'policy violation') }, { flush: true }],
     refuse: [{ run: () => stt().drop() }],
@@ -163,10 +149,9 @@ describe('the Soniox adapter: one leg', () => {
     expect(stt().sentJson<Json>()[0]).toMatchObject({ language_hints: ['en'] });
   });
 
-  it("opens both sockets at the key's region", async () => {
-    const { stt, tts } = await live({ credentials: { region: 'jp', stt: 'k', tts: 'k' } });
+  it("opens its socket at the key's region", async () => {
+    const { stt } = await live({ credentials: { region: 'jp', stt: 'k', tts: 'k' } });
     expect(stt().url).toBe('wss://stt-rt.jp.soniox.com/transcribe-websocket');
-    expect(tts().url).toBe('wss://tts-rt.jp.soniox.com/tts-websocket');
   });
 
   it("tells the run the region it dialled: the key's, which for a managed session is the grant's", async () => {
@@ -174,9 +159,20 @@ describe('the Soniox adapter: one leg', () => {
     expect(session.info.region).toBe('jp');
   });
 
-  it('opens no TTS socket for a leg that does not speak', async () => {
-    const { sockets } = await live({ context: { ...AUTO_CTX, speech: false } });
-    expect(sockets.all).toHaveLength(1);
+  it('never speaks: no TTS socket, no audio and no word of a speech key, whether the leg speaks or not and whatever keys it holds', async () => {
+    for (const context of [AUTO_CTX, { ...AUTO_CTX, speech: false }]) {
+      for (const credentials of [KEY, { region: 'us', stt: 'k' }] as SonioxCredentials[]) {
+        const { sockets, session, stt, log } = await live({ context, credentials });
+        stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
+        await flush();
+        expect(sockets.all).toHaveLength(1);
+        expect(sockets.all.every(isStt)).toBe(true);
+        expect(log.filter((e) => e.kind === 'audio' || e.kind === 'speechRanges' || e.kind === 'degraded')).toEqual([]);
+        // The switch is the voice's: the text unit's session has none.
+        expect(session.setSpeech).toBeUndefined();
+        await session.stop();
+      }
+    }
   });
 
   it("a bad key: the start resolves, then its error frame fails the leg with auth, in the server's words, once", async () => {
@@ -293,7 +289,7 @@ describe('the Soniox adapter: one leg', () => {
   });
 
   it('a stop during a reconnect backoff leaves nothing behind: no attempt, no timer, no event', async () => {
-    const { session, stt, tts, sttSockets, clock, log, timers, frames } = await live();
+    const { session, stt, sttSockets, clock, log, timers, frames } = await live();
     stt().receive(ERROR_503);
     await flush();
     // The first attempt fails: the reconnector now waits 250 ms for the second.
@@ -303,7 +299,6 @@ describe('the Soniox adapter: one leg', () => {
     const n = log.length;
     const count = sttSockets().length;
     await session.stop();
-    expect(tts().closedByClient).not.toBeNull();
     await flush();
     expect(timers()).toBe(0);
     clock.advance(60_000);
@@ -313,7 +308,7 @@ describe('the Soniox adapter: one leg', () => {
   });
 
   it("a stop while a reconnect attempt's connect is in flight closes that socket, and nothing follows", async () => {
-    const { session, stt, tts, sttSockets, clock, log, timers } = await live();
+    const { session, stt, sttSockets, clock, log, timers } = await live();
     stt().receive(ERROR_503);
     await flush();
     const attempt = stt();
@@ -321,7 +316,6 @@ describe('the Soniox adapter: one leg', () => {
     const n = log.length;
     const stopping = session.stop();
     expect(attempt.closedByClient).not.toBeNull();
-    expect(tts().closedByClient).not.toBeNull();
     await stopping;
     await flush();
     expect(timers()).toBe(0);
@@ -385,71 +379,20 @@ describe('the Soniox adapter: one leg', () => {
     expect(h.frames('stt.unreadable')).toHaveLength(2);
   });
 
-  it('speaks each final translation, streams its audio, and fills in its ranges', async () => {
-    const { stt, tts, log, of } = await live();
-    stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    const sent = tts().sentJson<Json>();
-    expect(sent).toContainEqual(expect.objectContaining({ stream_id: 'utt-1-1', voice: 'Adrian', language: 'ja' }));
-    expect(sent).toContainEqual({ stream_id: 'utt-1-1', text: 'こんにちは。', text_end: false });
-
-    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
-    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1200) }));
-    const audio = of('audio');
-    // Provisional, before the fill-in: five kana at the prior's 0.16 s (3 840 samples) each.
-    expect(audio.map((e) => [e.payload.ref, e.payload.pcm.length, e.payload.range])).toEqual([[2, 2400, [0, 1]], [2, 1200, [1, 1]]]);
-    expect(of('speechRanges')).toEqual([]);
-
-    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
-    // 2 400 and 1 200 samples over the six units of 'こんにちは。'.
-    expect(of('speechRanges')).toEqual([{ kind: 'speechRanges', payload: { ref: 2, ranges: [{ index: 0, range: [0, 4] }, { index: 1, range: [4, 6] }] } }]);
-    expect(log.indexOf(of('speechRanges')[0])).toBeGreaterThan(log.indexOf(audio[1]));
-  });
-
-  it('setSpeech(false) sends no more of the leg\'s translations to synthesis; setSpeech(true) speaks the next one (#595)', async () => {
-    const { session, stt, tts } = await live();
-    session.setSpeech!(false);
-    stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    expect(tts().sentJson<Json>().some((m) => m.text === 'こんにちは。')).toBe(false);
-    session.setSpeech!(true);
-    stt().receive(msg(orig('Bye.'), tr('さようなら。'), END));
-    expect(tts().sentJson<Json>().some((m) => m.text === 'さようなら。')).toBe(true);
-  });
-
-  it('stop ends the stream, framed, and closes both sockets before its first await, and nothing follows (Stage 2 session end, ruling 2 (ii))', async () => {
-    const { session, stt, tts, log, clock, timers } = await live();
+  it('stop ends the stream, framed, and closes the socket before its first await, and nothing follows (Stage 2 session end, ruling 2 (ii))', async () => {
+    const { session, stt, log, clock, timers } = await live();
     const n = log.length;
     const stopping = session.stop();
     expect(stt().closedByClient).not.toBeNull();
-    expect(tts().closedByClient).not.toBeNull();
-    // The end of the stream: an empty text frame, and its Logs line — no TTS stream was speaking.
+    // The end of the stream: an empty text frame, and its Logs line.
     expect(stt().sent[stt().sent.length - 1]).toBe('');
     expect(log.slice(n)).toEqual([{ kind: 'frame', payload: { direction: 'out', type: 'stt.end' } }]);
-    // Both keepalives stopped with their sockets.
+    // The keepalive stopped with its socket.
     expect(timers()).toBe(0);
     await stopping;
     clock.advance(60_000);
     await flush();
     expect(log.length).toBe(n + 1);
-  });
-
-  it('a same-language pair (ja to ja) speaks its translations: a leg speaks into its target, whatever its source', async () => {
-    const { stt, tts } = await live({ context: { direction: { source: 'ja', target: 'ja' }, speech: true, turns: 'auto' } });
-    stt().receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('おはよう。', 'ja', 'en'), END));
-    expect(tts().sentJson<Json>().some((m) => m.text === 'おはよう。')).toBe(true);
-  });
-
-  it('stop ends a TTS stream still speaking with text_end, framed after the STT stream\'s end (Stage 2 session end, ruling 2 (ii))', async () => {
-    const { session, stt, tts, log } = await live();
-    // A final translation with no sentence end and no <end> yet: its TTS stream is still open.
-    stt().receive(msg(orig('Hello'), tr('こんにちは')));
-    expect(tts().sentJson<Json>().filter((m) => m.text_end === true)).toEqual([]);
-    const n = log.length;
-    await session.stop();
-    expect(tts().sentJson<Json>().slice(-1)).toEqual([{ stream_id: 'utt-1-1', text: '', text_end: true }]);
-    expect(log.slice(n)).toEqual([
-      { kind: 'frame', payload: { direction: 'out', type: 'stt.end' } },
-      { kind: 'frame', payload: { direction: 'out', type: 'tts.end', payload: { streamId: 'utt-1-1' } } },
-    ]);
   });
 
   it('a stop after the session failed sends and frames no end: its socket is gone', async () => {
@@ -461,23 +404,21 @@ describe('the Soniox adapter: one leg', () => {
     expect(log.length).toBe(n);
   });
 
-  it('a start its signal aborts opens nothing and closes both sockets', async () => {
-    const { controller, starting, stt, tts, log } = started();
+  it('a start its signal aborts opens nothing and closes its socket', async () => {
+    const { controller, starting, stt, log } = started();
     controller.abort(new Error('cancelled'));
     await expect(starting).rejects.toThrow(/cancelled/);
     expect(stt().closedByClient).not.toBeNull();
-    expect(tts().closedByClient).not.toBeNull();
     await flush();
     expect(log).toEqual([]);
   });
 
-  it('a refused STT socket fails the start with network, and closes the TTS socket', async () => {
-    const { starting, stt, tts, log } = started();
+  it('a refused STT socket fails the start with network, and says nothing', async () => {
+    const { starting, stt, log } = started();
     stt().drop();
     const error = await starting.then(() => null, (e: unknown) => e);
     expect(error).toBeInstanceOf(AdapterStartError);
     expect((error as AdapterStartError).code).toBe('network');
-    expect(tts().closedByClient).not.toBeNull();
     await flush();
     expect(log).toEqual([]);
   });
@@ -506,7 +447,7 @@ describe('the Soniox adapter: one leg', () => {
     h.clock.advance(60_000);
     await flush();
     expect(h.sttSockets()).toHaveLength(2);
-    expect(h.tts().closedByClient).not.toBeNull();
+    expect(h.sockets.all.every((s) => s.closedByClient !== null)).toBe(true);
   });
 
   it('a refused STT socket is not tried again: the server answered', async () => {
@@ -530,8 +471,8 @@ describe('the Soniox adapter: one leg', () => {
     expect(h.sttSockets()).toHaveLength(2);
   });
 
-  describe('the start resolves on the STT socket alone: a failing start only ever rejects', () => {
-    /** Opens the STT socket only; the TTS socket stays connecting. Resolves with where the log stood when the start resolved, or -1 when it still waits. */
+  describe('the start resolves once the STT socket is open: a failing start only ever rejects', () => {
+    /** Opens the STT socket. Resolves with where the log stood when the start resolved, or -1 when it still waits. */
     async function sttOpened(h: ReturnType<typeof started>): Promise<number> {
       let resolvedAt = -1;
       void h.starting.then(() => { resolvedAt = h.log.length; }, () => {});
@@ -540,10 +481,9 @@ describe('the Soniox adapter: one leg', () => {
       return resolvedAt;
     }
 
-    it("a bad key's error frame while the TTS socket still opens fails the leg after the start resolved, once", async () => {
+    it("a bad key's error frame fails the leg after the start resolved, once", async () => {
       const h = started();
       const resolvedAt = await sttOpened(h);
-      expect(h.tts().readyState).toBe(FakeSocket.CONNECTING);
       expect(resolvedAt).toBeGreaterThanOrEqual(0);
       // Before the resolve: the start's own frame, and nothing else.
       expect(h.log.slice(0, resolvedAt).map((e) => (e.kind === 'frame' ? e.payload.type : e.kind))).toEqual(['session.opened']);
@@ -553,12 +493,10 @@ describe('the Soniox adapter: one leg', () => {
       await flush();
       expect(h.of('failed')).toEqual([{ kind: 'failed', payload: { code: 'auth', message: '[Soniox 401] Invalid API key', drop: ended({ cause: 'error', errorCode: '401' }) } }]);
       expect(h.log.indexOf(h.of('failed')[0])).toBeGreaterThanOrEqual(resolvedAt);
-      // The failure closed the TTS socket still opening, and left no timer running.
-      expect(h.tts().closedByClient).not.toBeNull();
       expect(h.timers()).toBe(0);
     });
 
-    it('a 503 while the TTS socket still opens reconnects after the start resolved', async () => {
+    it('a 503 right after the start resolved reconnects', async () => {
       const h = started();
       const resolvedAt = await sttOpened(h);
       expect(resolvedAt).toBeGreaterThanOrEqual(0);
@@ -570,84 +508,18 @@ describe('the Soniox adapter: one leg', () => {
       expect(h.of('reconnected')).toHaveLength(1);
       expect(h.of('failed')).toEqual([]);
     });
-
-    it('text flows while the TTS socket still opens; its speech waits for the socket, then goes in order', async () => {
-      const h = started();
-      expect(await sttOpened(h)).toBeGreaterThanOrEqual(0);
-      h.stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-      expect(h.of('segmentText').map((e) => e.payload.text)).toEqual(['Hello.', 'こんにちは。']);
-      expect(h.of('segmentClosed').map((e) => e.payload.ref)).toEqual([1, 2]);
-      expect(h.tts().sent).toEqual([]);
-
-      h.tts().open();
-      await flush();
-      const sent = h.tts().sentJson<Json>();
-      expect(sent[0]).toMatchObject({ stream_id: 'utt-1-1', voice: 'Adrian', language: 'ja' });
-      expect(sent.slice(1)).toEqual([
-        { stream_id: 'utt-1-1', text: 'こんにちは。', text_end: false },
-        { stream_id: 'utt-1-1', text: '', text_end: true },
-      ]);
-      h.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
-      h.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1200) }));
-      h.tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
-      expect(h.of('speechRanges')).toEqual([{ kind: 'speechRanges', payload: { ref: 2, ranges: [{ index: 0, range: [0, 4] }, { index: 1, range: [4, 6] }] } }]);
-      expect(h.frames('tts.connect_failed')).toEqual([]);
-    });
-
-    it('a stop while the TTS socket still opens closes it, and nothing follows but the STT stream\'s end', async () => {
-      const h = started();
-      expect(await sttOpened(h)).toBeGreaterThanOrEqual(0);
-      const session = await h.starting;
-      expect(h.tts().readyState).toBe(FakeSocket.CONNECTING);
-      const n = h.log.length;
-      const stopping = session.stop();
-      expect(h.stt().closedByClient).not.toBeNull();
-      expect(h.tts().closedByClient).not.toBeNull();
-      await stopping;
-      await flush();
-      expect(h.timers()).toBe(0);
-      h.clock.advance(20_000);
-      await flush();
-      // No TTS stream was open to end (Stage 2 session end, ruling 2 (ii)).
-      expect(h.log.slice(n)).toEqual([{ kind: 'frame', payload: { direction: 'out', type: 'stt.end' } }]);
-    });
   });
 
-  it('opens with session.opened, and no frame carries the key', async () => {
-    const { stt, tts, of } = await live();
-    expect(of('frame')[0].payload).toMatchObject({
+  it('opens with session.opened, the region and the translation and nothing else, and no frame carries the key', async () => {
+    const { stt, of } = await live();
+    expect(of('frame')[0].payload).toEqual({
       direction: 'out',
       type: 'session.opened',
       payload: { region: 'us', translation: { type: 'one_way', target_language: 'ja' } },
     });
     stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(2400) }));
-    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', audio: b64(1200) }));
-    tts().receive(JSON.stringify({ stream_id: 'utt-1-1', terminated: true }));
-    expect(of('speechRanges')).toHaveLength(1);
+    expect(of('frame').length).toBeGreaterThan(1);
     expect(JSON.stringify(of('frame'))).not.toContain('test-key');
-  });
-});
-
-describe("the Soniox adapter: a lone leg's voice", () => {
-  const CLONE = '7c1d2e3f-0000-4000-8000-00000000c10e';
-  const VOICES: Partial<SonioxSettings> = { voice: CLONE, participantVoice: 'Emma' };
-  // The runner answers `reversed` by leg (`run.ts`): true on the participant's leg, whatever its direction.
-  const PARTICIPANT_LEG: SharedSettings = { ...SHARED, reversed: () => true };
-
-  it("speaks the speaker's leg in the speaker's voice", async () => {
-    const { stt, tts } = await live({ settings: VOICES });
-    stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    expect(tts().sentJson<Json>()).toContainEqual(expect.objectContaining({ voice: CLONE, language: 'ja' }));
-  });
-
-  it("speaks the participant's leg, run alone, in the participant's voice, never the speaker's", async () => {
-    const context: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };
-    const { stt, tts } = await live({ context, settings: VOICES, shared: PARTICIPANT_LEG });
-    stt().receive(msg({ ...orig('Ohayō.'), language: 'ja' }, tr('Good morning.', 'en', 'ja'), END));
-    const sent = tts().sentJson<Json>();
-    expect(sent).toContainEqual(expect.objectContaining({ voice: 'Emma', language: 'en' }));
-    expect(sent).not.toContainEqual(expect.objectContaining({ voice: CLONE }));
   });
 });
 
@@ -705,33 +577,20 @@ describe("the Soniox adapter: Plan B's session seams", () => {
     expect(lease.cutoff).not.toHaveBeenCalled();
   });
 
-  it('a leg that should speak but has no TTS key runs text-only, saying tts_degraded once', async () => {
-    const h = started({ credentials: { region: 'us', stt: 'k' } });
-    expect(h.sockets.all).toHaveLength(1);
-    h.openAll();
-    await h.starting;
-    await flush();
-    expect(h.of('degraded')).toEqual([{ kind: 'degraded', payload: expect.objectContaining({ code: 'tts_degraded' }) }]);
-    expect(h.sockets.all).toHaveLength(1);
-  });
-
-  it('a client reference rides in both config frames when the credentials carry one', async () => {
-    const { stt, tts } = await live({ credentials: { ...KEY, clientReferenceId: 'ref-1' } });
+  it('a client reference rides in the config frame when the credentials carry one', async () => {
+    const { stt } = await live({ credentials: { ...KEY, clientReferenceId: 'ref-1' } });
     expect(stt().sentJson<Json>()[0]).toMatchObject({ client_reference_id: 'ref-1' });
-    stt().receive(msg(orig('Hello.'), tr('こんにちは。'), END));
-    expect(tts().sentJson<Json>()).toContainEqual(expect.objectContaining({ stream_id: 'utt-1-1', model: expect.any(String), client_reference_id: 'ref-1' }));
   });
 });
 
 describe('language codes (unified language codes)', () => {
   it("sends Filipino to Soniox as tl and reads Soniox's tl back as fil", async () => {
-    const { stt, tts, of } = await live({ context: { ...AUTO_CTX, direction: { source: 'en', target: 'fil' } } });
+    const { stt, of } = await live({ context: { ...AUTO_CTX, direction: { source: 'en', target: 'fil' } } });
     expect(stt().sentJson<Json>()[0]).toMatchObject({ translation: { type: 'one_way', target_language: 'tl' }, language_hints: ['en', 'tl'] });
     stt().receive(msg(orig('Hello.'), tr('Kumusta.', 'tl'), END));
     const languages = of('segmentText').map((e) => e.payload.language);
     expect(languages).toContain('fil');
     expect(languages).not.toContain('tl');
-    expect(tts().sentJson<Json>()).toContainEqual(expect.objectContaining({ language: 'tl' }));
   });
 
   it('drops a language Soniox reports outside the table', async () => {

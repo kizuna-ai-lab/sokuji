@@ -6,7 +6,8 @@ import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import { accountOf } from '../plan/read';
-import { shapeWith } from '../plan/testing';
+import { shapeWith, stubSpeechUnit, textAndSpeechPlan, type StubCalls } from '../plan/testing';
+import type { PlannedUnit } from '../plan/types';
 import type { AnyProvider } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { fakeScript } from '../../providers/fake/scripts';
@@ -17,6 +18,9 @@ import type { FramePort } from './ports';
 import { createRunner } from './runner';
 import { SourceOpenError, type Source } from './source';
 import type { LeaseContext, RunEnd, RunNotice, RunShape, SessionHooks } from './types';
+
+// Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
+const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -347,6 +351,30 @@ describe('runner — startBoth (D23)', () => {
     expect(runner.conversation.snapshot().map((l) => l.segments.length)).toEqual([1, 1]);
   });
 
+  it('a plan of a text unit and a speech unit starts both legs through its text provider\'s startBoth, once, and each speaking leg gets its voice', async () => {
+    const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => ({
+      speaker: await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker),
+      participant: await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant),
+    }));
+    const provider = withHooks({ startBoth });
+    const { runner, sources, clock, shape } = setup(provider, ['speaker', 'participant']);
+    const calls: StubCalls = [];
+    const voice = stubSpeechUnit(calls, { answers: true, provider: { credentials: { fields: () => [], read: () => ({ key: 'voice' }) } } });
+    const text: PlannedUnit = { ...shape.plan.units[0], stages: ['transcription', 'translation'] };
+    Object.assign(shape, { plan: textAndSpeechPlan(text, voice.planned), accounts: { ...shape.accounts, [voice.planned.provider.id]: { settings: {}, credentials: {} } } });
+    await runner.start();
+    expect(startBoth).toHaveBeenCalledTimes(1);
+    expect(sources).toHaveLength(2);
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', legs: { speaker: 'live', participant: 'live' } });
+    // The text sessions are asked for no speech; the speaker's leg speaks, so it alone has a voice.
+    expect(startBoth.mock.calls[0][0].speaker.context.speech).toBe(false);
+    expect(voice.voices.map((v) => v.request.leg)).toEqual(['speaker']);
+    clock.advance(600);
+    expect(runner.conversation.snapshot().map((l) => l.segments.length)).toEqual([1, 1]);
+    await runner.stop();
+    expect(calls.map((c) => c[0])).toContain('voice.close');
+  });
+
   it('opens a single leg the ordinary way', async () => {
     const startBoth = vi.fn();
     const { runner } = setup(withHooks({ startBoth }));
@@ -484,7 +512,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     }, track);
     await runner.start();
     const apiErrors = track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
-    expect(apiErrors).toEqual([{ provider: 'fake', error_message: 'The microphone is in use by 1 other application (NotReadableError).', error_code: 'mic_in_use', error_type: 'device', channel: 'speaker' }]);
+    expect(apiErrors).toEqual([{ provider: 'fake', stages: STAGES, error_message: 'The microphone is in use by 1 other application (NotReadableError).', error_code: 'mic_in_use', error_type: 'device', channel: 'speaker' }]);
   });
 
   it('an adapter that fails to start is not a device error', async () => {
@@ -535,7 +563,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     expect(runner.conversation.snapshot()).toEqual(before);
     // Ruling 8: a refused lease reaches api_error beside error_occurred, as the old onConnectFailed tracked every connect failure.
     expect(track).toHaveBeenCalledWith('error_occurred', expect.objectContaining({ error_type: 'session_start', provider: 'fake' }));
-    expect(track).toHaveBeenCalledWith('api_error', { provider: 'fake', error_message: 'no balance', error_code: 'insufficient_balance', error_type: 'server', channel: 'speaker' });
+    expect(track).toHaveBeenCalledWith('api_error', { provider: 'fake', stages: STAGES, error_message: 'no balance', error_code: 'insufficient_balance', error_type: 'server', channel: 'speaker' });
   });
 
   it("files a lease's frames under the first leg", async () => {
@@ -606,7 +634,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'lease-ended', notice: { code: 'budget_exhausted' } } });
     // The old client's props (`ManagedSonioxSession.ts:166-173`): the code, a stable English message, the leg that announced it.
     expect(track.mock.calls.filter(([event]) => event === 'api_error')).toEqual([
-      ['api_error', { provider: 'fake', error_message: 'Session budget exhausted', error_code: 'budget_exhausted', error_type: 'server', channel: 'speaker' }],
+      ['api_error', { provider: 'fake', stages: STAGES, error_message: 'Session budget exhausted', error_code: 'budget_exhausted', error_type: 'server', channel: 'speaker' }],
     ]);
   });
 
@@ -635,7 +663,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     await runner.start();
     const apiErrors = () => track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
     events.degraded({ code: 'tts_stopped', message: 'Soniox TTS 408: Request timeout', reason: 'tts_408' });
-    expect(apiErrors()).toEqual([{ provider: 'fake', error_message: 'Soniox TTS 408: Request timeout', error_code: 'tts_408', error_type: 'server', channel: 'speaker' }]);
+    expect(apiErrors()).toEqual([{ provider: 'fake', stages: STAGES, error_message: 'Soniox TTS 408: Request timeout', error_code: 'tts_408', error_type: 'server', channel: 'speaker' }]);
     // The same code inside L1's window is the same episode to the user: not tracked again.
     events.degraded({ code: 'tts_stopped', message: 'Soniox TTS 400: Invalid voice', reason: 'tts_400' });
     expect(apiErrors()).toHaveLength(1);
@@ -644,7 +672,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     expect(apiErrors()).toHaveLength(2);
     // No reason: the code is the analytics code (LocalInference's, the adapter's own `tts_degraded`).
     events.degraded({ code: 'tts_degraded', message: 'No TTS key was issued for this leg: it runs text-only.' });
-    expect(apiErrors()[2]).toEqual({ provider: 'fake', error_message: 'No TTS key was issued for this leg: it runs text-only.', error_code: 'tts_degraded', error_type: 'server', channel: 'speaker' });
+    expect(apiErrors()[2]).toEqual({ provider: 'fake', stages: STAGES, error_message: 'No TTS key was issued for this leg: it runs text-only.', error_code: 'tts_degraded', error_type: 'server', channel: 'speaker' });
   });
 
   it("keys the degradation window per leg, as L1's is: the same code on the other leg is its own episode", async () => {

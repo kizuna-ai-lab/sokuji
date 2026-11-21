@@ -115,6 +115,23 @@ describe('the history writer', () => {
     expect(lastArg('openRecord').services).toEqual({ provider: 'local_inference', stages, models: { asrModel: 'm' } });
   });
 
+  it("stores the provider of each stage in the record: Soniox with an own key, read by Kizuna AI's Soniox voice", async () => {
+    const stages = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
+    start('run-0001-aaaa', { info: { provider: 'soniox', stages, models: { asrModel: 'stt-rt-v6', ttsModel: 'tts-rt-v2' }, startedAt: 0 } });
+    await writer.settled();
+    // The record is the transcribing provider's; the stages say whose voice read it.
+    expect(lastArg('openRecord').services).toEqual({ provider: 'soniox', stages, models: { asrModel: 'stt-rt-v6', ttsModel: 'tts-rt-v2' } });
+  });
+
+  it('stores the provider and the model of each stage: Soniox transcribing, Bing translating, Edge speaking', async () => {
+    const stages = { transcription: 'soniox', translation: 'bing', speech: 'edge' };
+    const models = { asrModel: 'stt-rt-v6', translationModel: 'bing-translator', ttsModel: 'edge-tts' };
+    start('run-0001-aaaa', { info: { provider: 'soniox', stages, models, startedAt: 0 } });
+    await writer.settled();
+    // The record is the transcribing provider's; the stages say who translated and who spoke, each with its model.
+    expect(lastArg('openRecord').services).toEqual({ provider: 'soniox', stages, models });
+  });
+
   it('opens nothing for a start that is refused', async () => {
     state.setState({ phase: 'starting', participantSpeech: false, step: 'checking' });
     state.setState({ phase: 'idle', lastEnd: { reason: 'refused' } } as RunState);

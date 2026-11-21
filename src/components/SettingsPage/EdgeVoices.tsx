@@ -17,6 +17,7 @@ import type { LocalInferenceSettings } from '../../providers/localInference/sett
 import { directionVoice, withDirectionVoice } from '../../providers/localInference/voices';
 import { useProviderStore } from '../../stores/providerStore';
 import { languageNameFor } from '../Settings/engine/languageName';
+import { useRunPair } from '../providers/useProviderEntry';
 
 type Status = 'loading' | 'loaded' | 'error';
 
@@ -44,7 +45,10 @@ export function EdgeVoices({ disabled }: { disabled: boolean }) {
   useEffect(() => () => { playing.current?.abort(); appVoicePreview.stop(); }, []);
 
   const settings = entry?.settings as LocalInferenceSettings | undefined;
-  const pair = entry?.pair;
+  // The session's pair, the transcription provider's: the voices are for the language that will be spoken, also when
+  // this device only reads another provider's translation. Each voice is still kept in this device's settings, under
+  // its direction.
+  const pair = useRunPair();
   // The directions that speak, as a session opens them: mine always, theirs when the other side's translation is spoken.
   const rows = useMemo(() => {
     if (!pair) return [];

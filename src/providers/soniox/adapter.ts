@@ -3,8 +3,12 @@
  * from `SonioxClient` (`src/services/clients/SonioxClient.ts`, deleted
  * since) without its display bookkeeping: items,
  * ids, the punctuation lane and the notices are L1's and L2's now.
- * `SonioxCore` runs one STT socket; each speaking leg has its own
- * `LegSpeech`. Both mode (`startBoth`, D23) is two single-leg cores, or one
+ * `SonioxCore` runs one STT socket: the adapter transcribes and translates,
+ * and never speaks. A leg's voice is another unit's (`ttsUnit.ts`), fed from
+ * the translation segments said here: their stable length, their language,
+ * and `lateSpeech`. A config that says the unit transcribes alone
+ * (`transcribesAlone`) opens the socket with no translation and says source
+ * segments only, for another unit to translate. Both mode (`startBoth`, D23) is two single-leg cores, or one
  * core whose socket carries both legs mixed. A socket that drops while live
  * comes back through the core's reconnector (spec 2026-11-05 reconnect §4),
  * one per core. Every timer reads the request's clock, and nothing is said
@@ -17,7 +21,6 @@ import {
   type Adapter,
   type AdapterEvents,
   type AdapterSession,
-  type Ref,
   type SessionContext,
   type StartRequest,
 } from '../../lib/contract/adapter';
@@ -31,7 +34,6 @@ import { closeCodeAction, createReconnector, refusalResult, reissueFailed, type 
 import { PcmMixer } from './pcmMixer';
 import { SonioxSideTracker } from './sideTracker';
 import { nativeSocket, type OpenSocket } from './socket';
-import { LegSpeech } from './speech';
 import { SonioxSttConnectTimeout, SonioxSttStream, type SonioxSttConfig, type SonioxSttMessage, type SonioxToken } from './sttStream';
 import { tokenFrames, Utterances, type SegmentEvent } from './utterances';
 import type { SonioxConfig } from './config';
@@ -99,14 +101,11 @@ export interface SonioxAdapterDeps {
   openSocket: OpenSocket;
 }
 
-/** One leg a core serves: its events, its direction, and its speech when it speaks. */
+/** One leg a core serves: its events and its direction. */
 interface CoreLeg {
   name: LegName;
   events: AdapterEvents;
   context: SessionContext;
-  speech: LegSpeech | null;
-  /** Asked to speak but issued no TTS key (a managed text-only lease): said once the start resolves. */
-  noTtsKey: boolean;
   /** Its utterances carry their people (`config.diarize`). */
   labels: boolean;
 }
@@ -117,6 +116,7 @@ function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
     case 'segmentOpened': events.segmentOpened(event.payload); break;
     case 'segmentText': events.segmentText(event.payload); break;
     case 'segmentClosed': events.segmentClosed(event.payload); break;
+    case 'lateSpeech': events.lateSpeech?.(event.payload); break;
     default: {
       // A kind added to `SegmentEvent` must be routed here: unhandled, it would be dropped without a word.
       const unhandled: never = event;
@@ -127,18 +127,13 @@ function emitSegment(events: AdapterEvents, event: SegmentEvent): void {
 
 /** Face-to-face's sides are its two people, and shared Both's speaker leg is me: a diarization label there would only ever name a phantom (spec, slice 3). A leg whose speaker labels are off carries none either. */
 function withoutPerson(event: SegmentEvent): SegmentEvent {
-  if (event.kind === 'segmentClosed' || !('person' in event.payload)) return event;
+  if (event.kind === 'segmentClosed' || event.kind === 'lateSpeech' || !('person' in event.payload)) return event;
   const { person: _person, ...payload } = event.payload;
   return { ...event, payload } as SegmentEvent;
 }
 
-function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents, openSocket: OpenSocket, counts?: Map<Ref, number>): CoreLeg {
-  const tts = request.config.tts;
-  const key = request.credentials.tts;
-  const speech = tts && key
-    ? new LegSpeech({ leg: name, region: request.credentials.region, key, clientReferenceId: request.credentials.clientReferenceId, voice: tts.voice, speed: tts.speed, events, clock: request.clock, openSocket, ...(counts ? { counts } : {}) })
-    : null;
-  return { name, events, context: request.context, speech, noTtsKey: tts !== undefined && !key, labels: request.config.diarize };
+function coreLeg(name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents): CoreLeg {
+  return { name, events, context: request.context, labels: request.config.diarize };
 }
 
 interface CoreOptions {
@@ -192,8 +187,6 @@ class SonioxCore {
   private readonly tracker: SonioxSideTracker | null;
   /** Shared Both only: the speaker as channel A, the participant as B, 100-ms frames at 0.5 gain (`SonioxClient.ts:400-417`). */
   private readonly mixer: PcmMixer | null;
-  /** Per translation ref, the other legs reading it (shared Both, face-to-face): told when its speech ends. */
-  private readonly abroad = new Map<Ref, Set<LegName>>();
 
   constructor(private readonly o: CoreOptions) {
     const { credentials, clock } = o.primary;
@@ -203,11 +196,7 @@ class SonioxCore {
       clock,
       frame: (type, payload) => this.frame('in', type, payload),
       reconnecting: (e) => this.toLegs((leg) => leg.events.reconnecting(e)),
-      // Each leg's TTS socket is let go first: the blip that dropped the STT socket likely left it half-open (`LegSpeech.recycle`).
-      reconnected: (e) => {
-        for (const leg of o.legs) leg.speech?.recycle();
-        this.toLegs((leg) => leg.events.reconnected(e));
-      },
+      reconnected: (e) => this.toLegs((leg) => leg.events.reconnected(e)),
       gaveUp: (e) => this.gaveUp(e),
       attempt: ({ signal }) => this.attempt(signal),
     });
@@ -240,53 +229,18 @@ class SonioxCore {
           const core = this.leg(leg);
           emitSegment(core.events, !core.labels || this.o.faceToFace || (this.o.shared && leg === 'speaker') ? withoutPerson(event) : event);
         },
-        speak: (leg, ref, text, span, language) => {
-          if (this.ended) return;
-          const core = this.leg(leg);
-          const wire = sonioxWire.toWire(language);
-          // A leg speaks into its own target. App codes on both sides.
-          if (language === core.context.direction.target) {
-            core.speech?.speak(ref, text, span, wire);
-            return;
-          }
-          // Shared Both and face-to-face: a translation into the other leg's target (someone code-switched, a
-          // tail of the last utterance that landed on this one) is read by that leg's voice, into its ear —
-          // "route by the translation's language" (face-to-face design, D10). The row stays this leg's: the
-          // audio and its ranges come back on this leg's events, naming that voice. A lone leg has nobody to hand it to.
-          if (!this.o.shared) return;
-          const other = this.o.legs.find((l) => l !== core && l.context.direction.target === language);
-          if (!other?.speech) return;
-          let abroad = this.abroad.get(ref);
-          if (!abroad) {
-            abroad = new Set();
-            this.abroad.set(ref, abroad);
-          }
-          abroad.add(other.name);
-          other.speech.speak(ref, text, span, wire, core.events);
-        },
-        endSpeech: (leg, ref) => {
-          if (this.ended) return;
-          this.leg(leg).speech?.endUtterance();
-          // The legs that read this translation abroad end its utterance too, so their segments close now.
-          const abroad = this.abroad.get(ref);
-          if (!abroad) return;
-          this.abroad.delete(ref);
-          for (const name of abroad) this.leg(name).speech?.endUtterance();
-        },
       },
       legFor: (token) => this.legFor(token),
       targetFor: (leg) => this.leg(leg).context.direction.target,
+      ...(o.primary.config.transcribesAlone ? { sourceOnly: true } : {}),
     });
   }
 
   /**
-   * Opens the STT socket and each speaking leg's TTS socket at once, and
-   * resolves when the STT socket is open; rejects, opening nothing, when it
-   * cannot open or the signal aborts. The TTS sockets are not awaited: every
-   * STT frame — a bad key's error, a 503 — then lands after the start
-   * resolved, so a failing start only ever rejects (the kit's rule). Awaiting
-   * them would let an STT error that beats a TTS handshake say `failed`
-   * while the start is still pending.
+   * Opens the STT socket and resolves when it is open; rejects, opening
+   * nothing, when it cannot open or the signal aborts. Nothing else is
+   * awaited: every STT frame — a bad key's error, a 503 — then lands after
+   * the start resolved, so a failing start only ever rejects (the kit's rule).
    */
   open(signal: AbortSignal): Promise<void> {
     return new Promise<void>((resolve, reject) => {
@@ -335,12 +289,6 @@ class SonioxCore {
         );
       };
       connect(false);
-      // Opened here, before the STT socket can deliver a word, so no `speak()`
-      // comes first; never awaited. A speech's open never rejects (a TTS socket
-      // that cannot open is retried on the first text: ruling 3), text that
-      // arrives first waits for its socket, and `close()` reaches a socket
-      // still opening.
-      for (const leg of this.o.legs) void leg.speech?.open();
     });
   }
 
@@ -358,7 +306,6 @@ class SonioxCore {
       endTurn: () => this.endTurn(name),
       // A press with no voice sent nothing; what the server still decodes closes on its own endpoint.
       cancelTurn: () => {},
-      setSpeech: (on) => this.leg(name).speech?.setOn(on),
       stop: () => this.stop(),
       agentText: (text, endOfSegment) => this.agentText(text, endOfSegment),
     };
@@ -438,14 +385,19 @@ class SonioxCore {
     const { context, config, credentials } = this.o.primary;
     const key = this.key;
     const { source, target } = context.direction;
+    // Transcription alone: the socket hears the leg's source and writes nothing in its target, so the source is the one hint.
+    const alone = config.transcribesAlone === true;
     // Both languages bias recognition, the source first; an auto source hints nothing, since the target alone would pull an unknown speaker toward the other side.
-    const hints = source === AUTO ? [] : [...new Set([sonioxWire.toWire(source), sonioxWire.toWire(target)])];
+    const hints = source === AUTO ? [] : alone ? [sonioxWire.toWire(source)] : [...new Set([sonioxWire.toWire(source), sonioxWire.toWire(target)])];
+    const translation: SonioxSttConfig['translation'] = this.o.shared
+      ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) }
+      : { type: 'one_way', target_language: sonioxWire.toWire(target) };
     return {
       apiKey: key.stt,
       region: credentials.region,
       model: config.stt.model,
       sampleRate: SAMPLE_RATE,
-      translation: this.o.shared ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) } : { type: 'one_way', target_language: sonioxWire.toWire(target) },
+      ...(alone ? {} : { translation }),
       // D20 keeps an auto source out of Both: the gate refuses the participant leg.
       ...(hints.length ? { languageHints: hints } : {}),
       // The shared socket always labels its people, to tell the sides apart; the participant's own one-way socket does unless speaker labels are off.
@@ -463,16 +415,7 @@ class SonioxCore {
     this.mixer?.start();
     this.watchStall();
     const config = this.sttConfig();
-    this.frame('out', 'session.opened', { region: config.region, translation: config.translation, speaking: this.o.legs.filter((l) => l.speech).map((l) => l.name) });
-    // Once the start can no longer fail — the STT socket is open and `open()`
-    // has settled — so a start that failed owes no notice. It lands just
-    // before the caller's `await` resumes; the runner applies an event that
-    // comes before the session (`run.ts` `onEvent`).
-    queueMicrotask(() => {
-      for (const leg of this.o.legs) {
-        if (leg.noTtsKey && !this.ended) leg.events.degraded({ code: 'tts_degraded', message: 'No TTS key was issued for this leg: it runs text-only.' });
-      }
-    });
+    this.frame('out', 'session.opened', { region: config.region, ...(config.translation ? { translation: config.translation } : {}) });
   }
 
   private newStt(): SonioxSttStream {
@@ -570,7 +513,7 @@ class SonioxCore {
    * make (§4.2): what it had in flight closes as it stands — L1 keeps the
    * last snapshot, and refs go on — and the socket is detached and closed;
    * only then do the attempts begin, the first inside `dropped()` unless the
-   * drop is a flap. The TTS sockets carry on.
+   * drop is a flap.
    */
   private dropped(drop: Pick<DropInfo, 'cause' | 'closeCode' | 'errorCode'>): void {
     if (this.ended) return;
@@ -728,7 +671,6 @@ class SonioxCore {
     }
     stt?.close();
     this.letGo(stt);
-    for (const leg of this.o.legs) leg.speech?.close();
   }
 
   /** The core is done with `stt`: when the lease was told of its first frame, it hears the connection ended, so a report of its key still unacknowledged stops being retried. */
@@ -752,10 +694,10 @@ export type SonioxAdapter = Adapter<SonioxConfig, SonioxCredentials> & {
 
 export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): SonioxAdapter {
   const openSocket = deps.openSocket ?? nativeSocket;
-  /** One leg on its own core, named as the leg it is: what its Logs say (`session.opened`'s `speaking`). */
+  /** One leg on its own core, named as the leg it is. */
   const startLeg = async (name: LegName, request: StartRequest<SonioxConfig, SonioxCredentials>, events: AdapterEvents): Promise<AdapterSession> => {
     if (request.signal.aborted) throw request.signal.reason ?? new Error('aborted');
-    const core = new SonioxCore({ primary: request, legs: [coreLeg(name, request, events, openSocket)], openSocket });
+    const core = new SonioxCore({ primary: request, legs: [coreLeg(name, request, events)], openSocket });
     await core.open(request.signal);
     return core.session(name);
   };
@@ -786,15 +728,14 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
     async startBoth(requests, events) {
       const signal = requests.speaker.signal;
       if (signal.aborted) throw signal.reason ?? new Error('aborted');
-      if (!requests.speaker.config.sharedBoth) return startSplit(requests, events);
-      // Shared Both: one socket on the speaker's key; each leg speaks through its own TTS socket and key (ruling 4).
-      // The two voices number a row's audio entries together: either may read it (route by language).
-      const counts = new Map<Ref, number>();
+      // Legs that transcribe alone never share a socket: one mixed socket carries two directions, and the unit that translates a leg has one.
+      if (!requests.speaker.config.sharedBoth || requests.speaker.config.transcribesAlone) return startSplit(requests, events);
+      // Shared Both: one socket on the speaker's key.
       const core = new SonioxCore({
         primary: requests.speaker,
         legs: [
-          coreLeg('speaker', requests.speaker, events.speaker, openSocket, counts),
-          coreLeg('participant', requests.participant, events.participant, openSocket, counts),
+          coreLeg('speaker', requests.speaker, events.speaker),
+          coreLeg('participant', requests.participant, events.participant),
         ],
         openSocket,
         shared: true,
@@ -804,7 +745,7 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
         await core.open(signal);
       } catch (error) {
         if (signal.aborted) throw error;
-        // The socket and its key are the speaker's; a participant's TTS that cannot open is only degraded speech.
+        // The socket and its key are the speaker's.
         throw new LegStartError('speaker', error);
       }
       // Both facades stop the one core: either leg ending ends both (D21).

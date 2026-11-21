@@ -2,6 +2,7 @@ import {
   AdapterStartError,
   SAMPLE_RATE,
   type Adapter,
+  type AdapterEventKind,
   type AdapterEvents,
   type AdapterSession,
   type Heard,
@@ -21,7 +22,7 @@ import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode
 import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import { defaultEngines, type AsrInit, type AsrLike, type AsrResult, type LocalEngines, type TranslationLike, type TtsLike, type TtsReady } from './engines';
 import { SentenceCut, runtimeOver } from './sentenceCut';
-import { speakTranslation } from './speech';
+import { speakTranslation, ttsLoadFailed, ttsMissing, ttsStopped, voiceFallback } from './speech';
 import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
 
 /**
@@ -112,10 +113,10 @@ function heardIn(text: string, span: HeardSpan): Heard | undefined {
 }
 
 /** Worded as today's `errors.gpuOutOfMemory`; surfaces put `gpu_out_of_memory` into words by code. */
-const GPU_OUT_OF_MEMORY = 'GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model.';
+export const GPU_OUT_OF_MEMORY = 'GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model.';
 
 /** A lost WebGPU device: nothing on this GPU will run again. */
-function isDeviceLost(message: string): boolean {
+export function isDeviceLost(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes('a valid external instance reference no longer exists') || (lower.includes('webgpu') && lower.includes('device lost'));
 }
@@ -126,7 +127,7 @@ function isDeviceLost(message: string): boolean {
  * device too: error messages cascade through several stages, and these are
  * the most distinctive patterns.
  */
-function isGpuOutOfMemory(message: string): boolean {
+export function isGpuOutOfMemory(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes('out_of_device_memory') || lower.includes('out of memory') || isDeviceLost(message);
 }
@@ -143,7 +144,7 @@ const BING_ERROR_MESSAGES: Record<string, string> = {
   network: 'Bing Translator is temporarily unavailable.',
 };
 
-function humanizeTranslationError(error: unknown): string {
+export function humanizeTranslationError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
   if (!raw) return 'Translation failed.';
   const match = raw.match(/^\[bing:(token|unsupported|network|unknown)\]\s*(.*)$/);
@@ -301,10 +302,7 @@ class LocalSession implements AdapterSession {
           // The worker substitutes its default voice at generate time, so speech still works.
           const { voices } = ready as TtsReady;
           if (voices && voices.length > 0 && !voices.some((v) => v.sid === ttsConfig.speakerId)) {
-            this.notices.push({
-              code: 'voice_fallback',
-              message: `Configured voice ${ttsConfig.speakerId} is not loaded; using the model default. Update the selection in settings.`,
-            });
+            this.notices.push({ code: 'voice_fallback', message: voiceFallback(ttsConfig.speakerId) });
           }
         },
       });
@@ -361,7 +359,7 @@ class LocalSession implements AdapterSession {
             if (init.stage === 'tts') {
               init.dispose();
               this.tts = null;
-              this.notices.push({ code: 'tts_degraded', message: `TTS unavailable, continuing without it: ${message}`, cause: error });
+              this.notices.push({ code: 'tts_degraded', message: ttsLoadFailed(message), cause: error });
               settled(init.stage);
               return;
             }
@@ -387,11 +385,7 @@ class LocalSession implements AdapterSession {
   /** A leg that should speak but cannot says so once, at the start (#619), naming the language no model speaks. */
   private announceTtsUnavailable(code: TtsUnavailableCode): void {
     const { target } = this.request.context.direction;
-    const row = code === 'speaker_tts_missing' ? 'Translation the other side hears' : 'Translation I hear';
-    const message = code === 'participant_tts_over_budget'
-      ? "Translation I hear is text only: not enough memory to load the other side's speech model too."
-      : `${row} is text only: no speech model speaks ${target}.`;
-    this.emit('degraded', { code, message, params: { target } });
+    this.emit('degraded', { code, message: ttsMissing(code, target), params: { target } });
   }
 
   /**
@@ -828,7 +822,7 @@ class LocalSession implements AdapterSession {
     this.tts = null;
     tts.dispose();
     this.ttsDeathSettle();
-    const notice = { code: 'tts_degraded' as const, message: `Speech synthesis stopped: ${error}` };
+    const notice = { code: 'tts_degraded' as const, message: ttsStopped(error) };
     if (this.live) this.emit('degraded', notice);
     else this.notices.push(notice);
   }
@@ -849,7 +843,7 @@ class LocalSession implements AdapterSession {
     this.emit('frame', { direction, type, payload: framePayload(payload) });
   }
 
-  private emit<K extends keyof AdapterEvents>(kind: K, payload: Parameters<AdapterEvents[K]>[0]): void {
+  private emit<K extends AdapterEventKind>(kind: K, payload: Parameters<AdapterEvents[K]>[0]): void {
     if (this.ended) return;
     (this.events[kind] as (p: typeof payload) => void)(payload);
   }
