@@ -1,7 +1,6 @@
 # Text models for translation and notes — design
 
-Date: 2026-11-22. Status: proposed; the owner chose the feature and the OpenAI-compatible service, three
-questions are open (§12).
+Date: 2026-11-22. Status: approved by the owner (2026-11-21 23:06Z, answers in §12).
 
 ## 1. Goal
 
@@ -150,8 +149,14 @@ New notice codes only where an existing one does not fit (`model_missing`); each
 | C | Notes on the three services, per-provider notes model, `writtenBy.service` | yes |
 | D (if chosen) | This device's recognition as a unit of its own | yes |
 
-## 12. Open questions for the owner
+## 12. The owner's answers
 
-1. This device transcribing for a text model: in this work, or later?
-2. Pull requests: stacked PRs opened directly as in steps 1–4, or ask before each?
-3. Temporary OpenAI and Gemini keys for the real tests, or automated tests only?
+1. This device transcribing for a text model: **in this work** (Part D). This device's recognition becomes a
+   unit of its own (`transcription`, occupies exactly `['transcription']`), beside the whole unit, the
+   translation unit and the speech unit. A line-up that is all on this device still runs through the whole
+   unit (fewest units first, as in step 4), so its timing does not change.
+2. Pull requests: **stacked PRs opened directly** on kizuna-ai-lab/sokuji; the owner merges.
+3. Real tests: **the owner will post temporary OpenAI and Gemini keys** in the task.
+
+Part order: A (client) and D (this device's recognition alone) are independent and built side by side; then
+B (providers and translation) on both; then C (notes).
