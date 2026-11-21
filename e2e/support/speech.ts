@@ -24,13 +24,40 @@ export const PAUSES_MS = [2400, 400, 2200, 1800, 1400, 2000, 900, 3000];
 
 export interface Clip { pcm: string; rate: number }
 
-/** A 16-bit mono WAV's samples as base64, and its sample rate. */
+/**
+ * A 16-bit mono PCM WAV's samples as base64, and its sample rate. Any other file is refused by name: its samples
+ * would be played at the wrong speed, or as noise.
+ */
 export function clip(name: string): Clip {
-  const wav = fs.readFileSync(path.join(REPO, 'scripts/dev/wire-probe/assets/ja', `${name}.wav`));
-  const rate = wav.readUInt32LE(24);
-  let at = 12;
-  while (wav.toString('latin1', at, at + 4) !== 'data') at += 8 + wav.readUInt32LE(at + 4);
-  return { pcm: wav.subarray(at + 8, at + 8 + wav.readUInt32LE(at + 4)).toString('base64'), rate };
+  const file = path.join(REPO, 'scripts/dev/wire-probe/assets/ja', `${name}.wav`);
+  return pcm16Mono(fs.readFileSync(file), file);
+}
+
+/** The samples and the sample rate of a 16-bit mono PCM WAV; `file` names it in what is thrown. */
+function pcm16Mono(wav: Buffer, file: string): Clip {
+  const refuse = (why: string): never => { throw new Error(`${file}: ${why}`); };
+  const tag = (at: number) => wav.toString('latin1', at, at + 4);
+  if (wav.length < 12 || tag(0) !== 'RIFF' || tag(8) !== 'WAVE') refuse('not a WAV file');
+  let rate: number | null = null;
+  // Each chunk: a four-letter name, its size, its bytes, and a pad byte after an odd size.
+  for (let at = 12; at + 8 <= wav.length;) {
+    const size = wav.readUInt32LE(at + 4);
+    const body = at + 8;
+    if (tag(at) === 'fmt ') {
+      if (size < 16 || body + 16 > wav.length) refuse('its fmt chunk is cut short');
+      const [format, channels, bits] = [wav.readUInt16LE(body), wav.readUInt16LE(body + 2), wav.readUInt16LE(body + 14)];
+      if (format !== 1 || channels !== 1 || bits !== 16) {
+        refuse(`not 16-bit mono PCM (format ${format}, ${channels} channel(s), ${bits} bits)`);
+      }
+      rate = wav.readUInt32LE(body + 4);
+    } else if (tag(at) === 'data') {
+      if (rate === null) return refuse('its data chunk comes before any fmt chunk');
+      if (body + size > wav.length) refuse('its data chunk is cut short');
+      return { pcm: wav.subarray(body, body + size).toString('base64'), rate };
+    }
+    at = body + size + (size % 2);
+  }
+  return refuse('no data chunk');
 }
 
 /** Plays a clip into the app's microphone (seed `'e2e.mic': 'speech'`); resolves when it has been said. */

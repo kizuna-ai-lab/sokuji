@@ -50,13 +50,17 @@ export function baseStorage(provider = 'fake'): Record<string, string> {
   };
 }
 
+/** What a test's user-data directory is named by: nothing is deleted from a directory not named so. */
+const USER_DATA_PREFIX = 'sokuji-e2e-';
+const isTestUserData = (userData: string) => path.basename(userData).startsWith(USER_DATA_PREFIX);
+
 export function newUserData(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'sokuji-e2e-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), USER_DATA_PREFIX));
 }
 
 /** Deletes a user-data directory. For the end of a test that passed: a failed test leaves its directory behind to be looked at. */
 export function removeUserData(userData: string): void {
-  if (path.basename(userData).startsWith('sokuji-e2e-')) fs.rmSync(userData, { recursive: true, force: true });
+  if (isTestUserData(userData)) fs.rmSync(userData, { recursive: true, force: true });
 }
 
 /**
@@ -182,7 +186,7 @@ export async function launch(options: {
  * the recordings stay, to be looked at after a failure.
  */
 export function forgetSecrets(userData: string): void {
-  if (!path.basename(userData).startsWith('sokuji-e2e-')) return;
+  if (!isTestUserData(userData)) return;
   for (const name of ['Local Storage', 'Session Storage', 'IndexedDB', 'Cookies', 'Cookies-journal', 'Network']) {
     fs.rmSync(path.join(userData, name), { recursive: true, force: true });
   }
