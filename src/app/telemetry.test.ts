@@ -22,7 +22,6 @@ import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { runsOn } from '../stores/lineUpStore.testing';
-import { useLineUpStore } from '../stores/lineUpStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import {
   appStartInputs,
@@ -241,7 +240,9 @@ describe('sessionStartProperties', () => {
   });
 });
 
-describe('the line-up at the start of a session', () => {
+// Who serves each stage is on the runner's own event, from the line-up the run froze at start (`stages` is always
+// sent there). The app adds none of its own, and passes the runner's through.
+describe('the stages at the start of a session', () => {
   const base = {
     audio: { noiseSuppressionMode: 'off' as const, isRealVoicePassthroughEnabled: false, isMicMuted: false, isMonitorMuted: false },
     speak: { other: true, me: false, them: false },
@@ -249,12 +250,15 @@ describe('the line-up at the start of a session', () => {
     segmentation: { mode: 'off' as const, size: 0 as const },
     punctuationActive: false,
   };
-  it('names the provider of each stage when a line-up is stored', () => {
-    expect(sessionStartProperties({ ...base, lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }))
-      .toMatchObject({ stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
+  it("the app's own start properties name no stages", () => {
+    expect(sessionStartProperties(base)).not.toHaveProperty('stages');
   });
-  it('adds nothing while no line-up is stored', () => {
-    expect(sessionStartProperties({ ...base, lineUp: null })).not.toHaveProperty('stages');
+  it("the runner's stages reach the event as sent, beside what the app adds", () => {
+    const stages = { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'edge' };
+    const track = vi.fn();
+    decorateSessionAnalytics(() => track, { frames: createFrameLog(), startInputs: () => base })
+      .track('translation_session_start', { source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'kizunaai_soniox', stages });
+    expect(track).toHaveBeenCalledWith('translation_session_start', expect.objectContaining({ provider: 'kizunaai_soniox', stages, noise_suppression_mode: 'off' }));
   });
 });
 
@@ -302,33 +306,6 @@ describe('sessionEndProperties', () => {
       text: { 'speaker|m': { leg: 'speaker', model: 'm', chars: 0, terminals: 0 } },
     };
     expect(sessionEndProperties(tally, run)).toEqual({});
-  });
-});
-
-describe('appStartInputs and the line-up', () => {
-  const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
-  afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
-  it('carries the stored line-up: it is what runs', () => {
-    useProviderStore.setState({ entries: {} });
-    useLineUpStore.setState({ lineUp: local, stored: true, unstoredProvider: null });
-    expect(appStartInputs(false).lineUp).toEqual(local);
-  });
-  it('leaves it out while no line-up is stored, though one is shown', () => {
-    runsOn('local_inference');
-    useProviderStore.setState({ entries: {} });
-    useLineUpStore.setState({ lineUp: local, stored: false });
-    expect(appStartInputs(false).lineUp).toBeNull();
-  });
-  it('names the provider of every stage of an end-to-end provider on translation_session_start', () => {
-    runsOn('openai');
-    useProviderStore.setState({ entries: {} });
-    useLineUpStore.setState({ lineUp: { transcription: 'openai', translation: 'openai', speech: 'openai', summarisation: null }, stored: true });
-    const track = vi.fn();
-    decorateSessionAnalytics(() => track, { frames: createFrameLog(), startInputs: () => appStartInputs(false) })
-      .track('translation_session_start', { source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'openai' });
-    expect(track).toHaveBeenCalledWith('translation_session_start', expect.objectContaining({
-      provider: 'openai', stages: { transcription: 'openai', translation: 'openai', speech: 'openai' },
-    }));
   });
 });
 
@@ -401,6 +378,7 @@ describe('decorateSessionAnalytics', () => {
       target_language: 'ja',
       session_id: 's1',
       provider: 'fake',
+      stages: { transcription: 'fake', translation: 'fake', speech: 'fake' },
       channels: ['speaker'],
     });
 
@@ -411,6 +389,7 @@ describe('decorateSessionAnalytics', () => {
       target_language: 'ja',
       session_id: 's1',
       provider: 'fake',
+      stages: { transcription: 'fake', translation: 'fake', speech: 'fake' },
       channels: ['speaker'],
       ...sessionStartProperties(startInputs()),
     });
@@ -434,6 +413,7 @@ describe('decorateSessionAnalytics', () => {
       target_language: 'ja',
       session_id: 's1',
       provider: 'fake',
+      stages: { transcription: 'fake', translation: 'fake', speech: 'fake' },
       channels: ['speaker', 'participant'],
     });
     analytics.track('translation_session_end', {
@@ -481,11 +461,11 @@ describe('decorateSessionAnalytics', () => {
     const analytics = decorateSessionAnalytics(() => track, { frames, startInputs });
 
     analytics.track('translation_session_start', {
-      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', channels: ['speaker'],
+      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, channels: ['speaker'],
     });
 
     expect(track).toHaveBeenCalledWith('translation_session_start', {
-      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', channels: ['speaker'],
+      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, channels: ['speaker'],
     });
     await settleReports();
     expect(useLogStore.getState().logs.filter((l) => l.type === 'warning')).toHaveLength(1);
@@ -507,7 +487,7 @@ describe('decorateSessionAnalytics', () => {
     const analytics = decorateSessionAnalytics(() => track, { frames, startInputs });
 
     analytics.track('translation_session_start', {
-      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', channels: ['speaker'],
+      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, channels: ['speaker'],
     });
     analytics.track('translation_session_end', { session_id: 's1', duration: 1000, provider: 'fake', reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: true });
 
@@ -531,7 +511,7 @@ describe('decorateSessionAnalytics', () => {
     const analytics = decorateSessionAnalytics(() => current, { frames, startInputs });
 
     analytics.track('translation_session_start', {
-      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', channels: ['speaker'],
+      source_language: 'en', target_language: 'ja', session_id: 's1', provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' }, channels: ['speaker'],
     });
     current = trackB;
     analytics.track('translation_session_end', { session_id: 's1', duration: 1, provider: 'fake' });

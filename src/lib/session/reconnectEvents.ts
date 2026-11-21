@@ -16,6 +16,8 @@ export interface ReconnectAnalyticsEvents {
   'connection_dropped': {
     session_id: string;
     provider: string;
+    /** Who serves each stage of the session, where the sender knows (ids only). */
+    stages?: { transcription: string; translation: string; speech: string };
     managed: boolean;
     channel: Channel;
     cause: DropCause;
@@ -34,6 +36,8 @@ export interface ReconnectAnalyticsEvents {
   'connection_reconnected': {
     session_id: string;
     provider: string;
+    /** Who serves each stage of the session, where the sender knows (ids only). */
+    stages?: { transcription: string; translation: string; speech: string };
     managed: boolean;
     channel: Channel;
     down_ms: number;
@@ -50,6 +54,8 @@ export interface ReconnectAnalyticsEvents {
   'connection_reconnect_failed': {
     session_id: string;
     provider: string;
+    /** Who serves each stage of the session, where the sender knows (ids only). */
+    stages?: { transcription: string; translation: string; speech: string };
     managed: boolean;
     channel: Channel;
     down_ms: number;

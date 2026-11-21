@@ -11,6 +11,9 @@ import { shapeWith } from '../plan/testing';
 import type { RunShape, TurnMode } from './types';
 import type { PlaybackPort } from './ports';
 
+// Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
+const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
+
 /** The fake, with every call its sessions receive written to `log` as `<leg>:<call>`. */
 function spyingProvider(log: string[], patch: Partial<AnyProvider> = {}): AnyProvider {
   return {
@@ -240,7 +243,7 @@ describe('runner — typed text and clearing', () => {
     expect(log).toContain('speaker:text');
     const texts = runner.conversation.snapshot()[0].segments.map((s) => s.text);
     expect(texts).toEqual(['hi', '«hi»']);
-    expect(events('text_input_sent')).toEqual([{ session_id: 'run1', provider: 'fake', text_length: 2 }]);
+    expect(events('text_input_sent')).toEqual([{ session_id: 'run1', provider: 'fake', stages: STAGES, text_length: 2 }]);
   });
 
   it('drops typed text that is blank once trimmed before any adapter sees it, and records nothing', async () => {

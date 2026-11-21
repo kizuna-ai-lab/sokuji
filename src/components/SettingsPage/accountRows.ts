@@ -5,20 +5,11 @@
 // the session runs on).
 import { caps } from '../../lib/lineup/catalog';
 
+// The target itself is made where a notice's action is: the page reads it here.
+export { providerOfTarget, providerTarget } from '../../lib/view/providerTarget';
+
 /** The OpenAI services share one key, so one row. */
 export const OPENAI_IDS: readonly string[] = ['openai', 'openai_translate', 'openai_live'];
-
-const PREFIX = 'provider:';
-
-/** The target that opens Accounts and keys at this provider's row, its key shown. */
-export function providerTarget(providerId: string): string {
-  return `${PREFIX}${providerId}`;
-}
-
-/** The provider a `provider:<id>` target names; null for any other target. */
-export function providerOfTarget(target: string | null | undefined): string | null {
-  return target && target.startsWith(PREFIX) && target.length > PREFIX.length ? target.slice(PREFIX.length) : null;
-}
 
 /** The row that holds a provider's key or sign-in: the hosted services are Kizuna AI's sign-in. */
 export function accountKeyOf(providerId: string): string {

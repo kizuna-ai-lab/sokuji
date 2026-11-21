@@ -14,6 +14,7 @@ import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption, Readiness } from '../lib/provider/types';
 import { languageContext, type Speaking, type SpeechInputs } from '../lib/session/shape';
+import { namingProvider } from '../lib/session/codes';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 
@@ -398,9 +399,12 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       const credentials = readCredentials(p, inputs.settings, inputs.credentials, auth);
       // The provider's own code (a managed provider's `sign_in_required`), or the runner's own for the same gap.
       if (isMissing(credentials)) {
+        const code = credentials.code ?? 'credentials_missing';
+        // A missing key or sign-in names its provider: the notice made of it opens that provider's account row.
+        const params = namingProvider(code, credentials.params, p.id);
         return answered({
-          state: 'not-ready', reason: credentials.missing, code: credentials.code ?? 'credentials_missing',
-          ...(credentials.params ? { params: credentials.params } : {}),
+          state: 'not-ready', reason: credentials.missing, code,
+          ...(params ? { params } : {}),
         });
       }
       // The fields these settings show, for the cache key below.

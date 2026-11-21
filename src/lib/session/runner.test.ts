@@ -17,6 +17,9 @@ import { createRunner } from './runner';
 import { buildSharedSettings } from './shared';
 import type { LeaseContext, RunEnd, RunNotice, RunShape } from './types';
 
+// Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
+const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
+
 // A bare spy: `describeCause`/`reportWarning` stay real (many assertions below
 // read a message `describeCause` built), only `reportError` is observable —
 // F6's "a start that fails is recorded with its cause" test needs to see it.
@@ -177,10 +180,26 @@ describe('runner — starting', () => {
     expect(legs[0].segments[0]).toMatchObject({ side: 'source', text: 'Hello' });
     expect(legs[1].languages).toEqual({ source: 'ja', target: 'en' });
     expect(events('translation_session_start')).toEqual([expect.objectContaining({
-      session_id: 'run1', provider: 'fake', source_language: 'en', target_language: 'ja',
+      session_id: 'run1', provider: 'fake', stages: STAGES, source_language: 'en', target_language: 'ja',
       channels: ['speaker', 'participant'], transport: 'fake', platform: 'electron', translation_model: 'fake',
     })]);
     expect(events('session_control_clicked')).toEqual([{ action: 'start', method: 'button' }]);
+  });
+
+  it("every event that names the provider says who serves each stage: the line-up the run froze, the provider still the one that transcribes", async () => {
+    const stages = { transcription: 'fake', translation: 'fake', speech: 'fake_voice' };
+    const seen: Array<[string, Record<string, unknown>]> = [];
+    const { runner, clock } = setup({ shape: { lineUp: stages }, track: (event, properties) => { seen.push([event, properties as Record<string, unknown>]); } });
+    await runner.start();
+    clock.advance(600);
+    runner.sendText('hi');
+    await runner.stop();
+    const naming = seen.filter(([, properties]) => 'provider' in properties);
+    expect(naming.map(([event]) => event)).toEqual(expect.arrayContaining(['translation_session_start', 'connection_status', 'text_input_sent', 'translation_session_end']));
+    for (const [event, properties] of naming) expect([event, properties.provider, properties.stages]).toEqual([event, 'fake', stages]);
+    // An event that names no provider is passed on as it is.
+    for (const [event, properties] of seen.filter(([, p]) => !('provider' in p))) expect([event, 'stages' in properties]).toEqual([event, false]);
+    expect(seen.some(([event]) => event === 'session_control_clicked')).toBe(true);
   });
 
   it('hands playback every piece of translated audio, attributed to its segment', async () => {
@@ -267,6 +286,58 @@ describe('runner — starting', () => {
       lastEnd: { reason: 'refused', notice: { code: 'sign_in_required', message: 'Sign in first.' } },
     });
     expect(sources).toHaveLength(0);
+  });
+
+  it('a missing key or sign-in names the provider it is about; another refusal names none', async () => {
+    const missing = setup({ settings: { requireKey: true } });
+    await missing.runner.start();
+    expect(missing.runner.state.getState()).toMatchObject({ lastEnd: { notice: { code: 'credentials_missing', params: { provider: 'fake' } } } });
+    const provider = {
+      ...fakeProvider,
+      credentials: { keys: [], fields: () => [], read: () => ({ missing: 'Sign in first.', code: 'sign_in_required', params: { who: 'you' } }) },
+    } as unknown as AnyProvider;
+    const signedOut = setup({ shape: { provider } });
+    await signedOut.runner.start();
+    expect(signedOut.runner.state.getState()).toMatchObject({ lastEnd: { notice: { code: 'sign_in_required', params: { who: 'you', provider: 'fake' } } } });
+    const unready = setup({ ready: { state: 'not-ready', reason: 'model not downloaded' } });
+    await unready.runner.start();
+    expect(unready.runner.state.getState()).toMatchObject({ lastEnd: { notice: { code: 'not_ready' } } });
+    expect(unready.runner.state.getState()).not.toHaveProperty('lastEnd.notice.params');
+  });
+
+  it("a lease the service refuses for the sign-in, at start or later, names the provider whose lease it is", async () => {
+    const refused = {
+      ...fakeProvider,
+      session: { acquire: async () => { throw new AdapterStartError('The session service did not accept the sign-in (HTTP 401).', 'sign_in_required'); } },
+    } as unknown as AnyProvider;
+    const atStart = setup({ shape: { provider: refused } });
+    await atStart.runner.start();
+    expect(atStart.runner.state.getState()).toMatchObject({ lastEnd: { reason: 'start-failed', notice: { code: 'sign_in_required', params: { provider: 'fake' } } } });
+    // A refusal of another kind is passed on as it is.
+    const busy = {
+      ...fakeProvider,
+      session: { acquire: async () => { throw new AdapterStartError('Busy.', 'session_in_use'); } },
+    } as unknown as AnyProvider;
+    const other = setup({ shape: { provider: busy } });
+    await other.runner.start();
+    expect(other.runner.state.getState()).toMatchObject({ lastEnd: { notice: { code: 'session_in_use', message: 'Busy.' } } });
+    expect(other.runner.state.getState()).not.toHaveProperty('lastEnd.notice.params');
+
+    let end: ((notice: RunNotice) => void) | undefined;
+    const ending = {
+      ...fakeProvider,
+      session: {
+        acquire: async (_shape: RunShape, _s: unknown, ctx: { end(notice: RunNotice): void }) => {
+          end = (notice) => ctx.end(notice);
+          return { credentials: () => ({}), release: async () => {} };
+        },
+      },
+    } as unknown as AnyProvider;
+    const later = setup({ shape: { provider: ending } });
+    await later.runner.start();
+    end!({ code: 'sign_in_required', message: 'Sign in again.' });
+    await later.runner.settled();
+    expect(later.runner.state.getState()).toMatchObject({ lastEnd: { reason: 'lease-ended', notice: { code: 'sign_in_required', params: { provider: 'fake' } } } });
   });
 
   it("names the runner's own refusals in snake_case", async () => {
@@ -435,7 +506,7 @@ describe('runner — screen context (spec 2026-10-22 §3.2, §3.6)', () => {
     expect(startRequests.map((r) => r.frames)).toEqual([frames, frames]);
     expect(startRequests[0].frames).toBe(frames);
     expect(startRequests[1].frames).toBe(frames);
-    expect(events('screen_context_on')).toEqual([{ session_id: 'run1', provider: 'fake', source_kind: 'window', platform: 'electron' }]);
+    expect(events('screen_context_on')).toEqual([{ session_id: 'run1', provider: 'fake', stages: STAGES, source_kind: 'window', platform: 'electron' }]);
   });
 
   it('a shape without frames starts requests with no frames key and tracks nothing', async () => {
@@ -463,7 +534,7 @@ describe('runner — screen context (spec 2026-10-22 §3.2, §3.6)', () => {
     const { runner, events } = setup({ shape: { provider, frames: fakeFrameSource() } });
     await runner.start();
     ev.degraded({ code: 'screen_context_lost', message: 'gone' });
-    expect(events('screen_context_lost')).toEqual([{ session_id: 'run1', provider: 'fake', channel: 'speaker' }]);
+    expect(events('screen_context_lost')).toEqual([{ session_id: 'run1', provider: 'fake', stages: STAGES, channel: 'speaker' }]);
     expect(events('api_error')).toEqual([]);
   });
 
@@ -720,10 +791,10 @@ describe('runner — stopping', () => {
     const legs = runner.conversation.snapshot();
     expect(legs[0].segments[0].final).toBe(true);
     expect(onRunEnded).toHaveBeenCalledWith(legs);
-    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake', reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: false }]);
+    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake', stages: STAGES, reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: false }]);
     expect(events('connection_status')).toEqual([
-      { status: 'connected', provider: 'fake', channel: 'speaker' },
-      { status: 'disconnected', provider: 'fake', duration_ms: 600, channel: 'speaker' },
+      { status: 'connected', provider: 'fake', stages: STAGES, channel: 'speaker' },
+      { status: 'disconnected', provider: 'fake', stages: STAGES, duration_ms: 600, channel: 'speaker' },
     ]);
   });
 
@@ -735,12 +806,12 @@ describe('runner — stopping', () => {
     const connectionEvents = events('connection_status');
     expect(connectionEvents).toHaveLength(4);
     expect(connectionEvents).toEqual(expect.arrayContaining([
-      { status: 'connected', provider: 'fake', channel: 'speaker' },
-      { status: 'connected', provider: 'fake', channel: 'participant' },
+      { status: 'connected', provider: 'fake', stages: STAGES, channel: 'speaker' },
+      { status: 'connected', provider: 'fake', stages: STAGES, channel: 'participant' },
     ]));
     expect(connectionEvents.filter((e: any) => e.status === 'disconnected')).toEqual([
-      { status: 'disconnected', provider: 'fake', channel: 'speaker', duration_ms: 4000 },
-      { status: 'disconnected', provider: 'fake', channel: 'participant', duration_ms: 4000 },
+      { status: 'disconnected', provider: 'fake', stages: STAGES, channel: 'speaker', duration_ms: 4000 },
+      { status: 'disconnected', provider: 'fake', stages: STAGES, channel: 'participant', duration_ms: 4000 },
     ]);
   });
 
@@ -1712,7 +1783,7 @@ describe('runner — small corrections (F6)', () => {
     await flush();
     clock.advance(1000); // fires the stack's release timeout — teardown time that must not count
     await stopping;
-    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake', reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: false }]);
+    expect(events('translation_session_end')).toEqual([{ session_id: 'run1', duration: 600, provider: 'fake', stages: STAGES, reconnect_count: 0, reconnect_down_ms: 0, reconnect_failed: false }]);
   });
 
   it('redacts the adapter failure message before tracking api_error', async () => {
