@@ -7,7 +7,7 @@ import type { AnyProvider, SharedSettings } from '../provider/types';
 import { FAKE_LANGUAGES } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { createRunner } from './runner';
-import type { RunShape, SessionHooks } from './types';
+import type { LeaseContext, RunShape, SessionHooks } from './types';
 
 /** The calls of a list, by name. */
 const named = (calls: StubCalls) => calls.map((c) => c[0]);
@@ -15,9 +15,10 @@ const named = (calls: StubCalls) => calls.map((c) => c[0]);
 /**
  * A run over a plan of a stub text unit (`stub_text`: transcription and translation) and a stub speech unit
  * (`stub_voice`: speech). Each provider reads its own credentials, answers its own readiness and describes its own
- * models; every build is listed with the models it was handed. `hooks`: the text provider's session hooks.
+ * models; every build is listed with the models it was handed. `hooks`: the text provider's session hooks;
+ * `voiceHooks`: the voice provider's.
  */
-function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; hooks?: SessionHooks<unknown, unknown, unknown>; lineUpStored?: boolean } = {}) {
+function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; hooks?: SessionHooks<unknown, unknown, unknown>; voiceHooks?: SessionHooks<unknown, unknown, unknown>; lineUpStored?: boolean } = {}) {
   const clock = createVirtualClock(0);
   const calls: StubCalls = [];
   const builds: Array<{ provider: string; shared: SharedSettings }> = [];
@@ -33,7 +34,10 @@ function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; hooks?
       ...(o.hooks ? { session: o.hooks } : {}),
     },
   });
-  const voice = stubSpeechUnit(calls, { answers: true, provider: member('stub_voice', () => ({ asrModel: 'voice-asr', ttsModel: 'voice-tts' })) });
+  const voice = stubSpeechUnit(calls, {
+    answers: true,
+    provider: { ...member('stub_voice', () => ({ asrModel: 'voice-asr', ttsModel: 'voice-tts' })), ...(o.voiceHooks ? { session: o.voiceHooks } : {}) },
+  });
   const shape: RunShape = {
     plan: textAndSpeechPlan(text.planned, voice.planned),
     accounts: { stub_text: { settings: {}, credentials: {} }, stub_voice: { settings: {}, credentials: {} } },
@@ -167,6 +171,56 @@ describe('a run over a plan of a text unit and a speech unit', () => {
     expect(h.started('speaker').request.credentials).toEqual({ lease: 'speaker' });
     expect(h.started('participant').request.credentials).toEqual({ lease: 'participant' });
     expect(h.voice.voices.map((v) => v.request.credentials)).toEqual([{ key: 'stub_voice' }, { key: 'stub_voice' }]);
+  });
+
+  it("a leased voice's unit starts with its lease's credentials for the leg, the text unit with its own provider's", async () => {
+    const release = vi.fn(async () => {});
+    const h = setup({
+      legs: ['speaker', 'participant'],
+      participantSpeech: true,
+      voiceHooks: { acquire: async () => ({ credentials: (leg) => ({ voiceLease: leg }), budget: { totalMs: 60_000, endsAt: 60_000 }, release }) },
+    });
+    await h.runner.start();
+    expect(h.voice.voices.map((v) => [v.request.leg, v.request.credentials])).toEqual([['speaker', { voiceLease: 'speaker' }], ['participant', { voiceLease: 'participant' }]]);
+    expect(h.started('speaker').request.credentials).toEqual({ key: 'stub_text' });
+    expect(h.started('participant').request.credentials).toEqual({ key: 'stub_text' });
+    // The voice's lease is the run's granted time.
+    expect(h.runner.state.getState()).toMatchObject({ phase: 'running', budget: { totalMs: 60_000, endsAt: 60_000 } });
+    await h.runner.stop();
+    expect(release).toHaveBeenCalledTimes(1);
+    // Released after the text session stopped and the voices closed.
+    expect(named(h.calls).filter((c) => c === 'text.stop' || c === 'voice.close')).toHaveLength(4);
+  });
+
+  it("a leased voice's lease ending ends the whole run, the text side included, and is filed under the leased provider", async () => {
+    let ctx!: LeaseContext;
+    const release = vi.fn(async () => {});
+    const h = setup({ voiceHooks: { acquire: async (_shape, _s, given) => { ctx = given; return { credentials: () => ({}), release }; } } });
+    await h.runner.start();
+    ctx.end({ code: 'budget_exhausted', message: 'Session budget exhausted' });
+    await vi.waitFor(() => expect(h.runner.state.getState().phase).toBe('idle'));
+    expect(h.runner.state.getState()).toMatchObject({ lastEnd: { reason: 'lease-ended', notice: { code: 'budget_exhausted' } } });
+    expect(h.runner.conversation.get('speaker')!.snapshot().notices).toEqual([expect.objectContaining({ severity: 'error', code: 'budget_exhausted' })]);
+    expect(named(h.calls)).toContain('text.stop');
+    expect(release).toHaveBeenCalledTimes(1);
+    // The lease is the voice provider's: the error is its, not the transcription provider's, which the run is otherwise named by.
+    expect(h.tracked.filter(([event]) => event === 'api_error')).toEqual([
+      ['api_error', {
+        provider: 'stub_voice', stages: { transcription: 'stub_text', translation: 'stub_text', speech: 'stub_voice' },
+        error_message: 'Session budget exhausted', error_code: 'budget_exhausted', error_type: 'server', channel: 'speaker',
+      }],
+    ]);
+    expect(h.tracked.find(([event]) => event === 'translation_session_start')![1]).toMatchObject({ provider: 'stub_text' });
+  });
+
+  it("an expected end of a leased voice's lease, a segment at its cap, ends the run and tracks no error", async () => {
+    let ctx!: LeaseContext;
+    const h = setup({ voiceHooks: { acquire: async (_shape, _s, given) => { ctx = given; return { credentials: () => ({}), release: async () => {} }; } } });
+    await h.runner.start();
+    ctx.end({ code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, { expected: true });
+    await vi.waitFor(() => expect(h.runner.state.getState().phase).toBe('idle'));
+    expect(h.runner.state.getState()).toMatchObject({ lastEnd: { reason: 'lease-ended', notice: { code: 'segment_ended' } } });
+    expect(h.tracked.map(([event]) => event)).not.toContain('api_error');
   });
 
   it("starts the participant's voice as the participant's, and its speech switched off and on reaches that voice", async () => {

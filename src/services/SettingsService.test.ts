@@ -176,5 +176,22 @@ describe('SettingsService in the extension, for the word list', () => {
     expect(await service.getSetting('settings.words', null)).toEqual({ version: 1, entries: [{ written: 'Sokuji' }] });
     expect(await service.getSetting('settings.sessionBackground', '')).toHaveLength(20_000);
   });
+
+  it('keeps the voice-only lease this device holds in local storage: it must not follow the account to another device', async () => {
+    const areas: Record<'sync' | 'local', Record<string, unknown>> = { sync: {}, local: {} };
+    const area = (name: 'sync' | 'local') => ({
+      set: (items: Record<string, unknown>, cb: () => void) => { Object.assign(areas[name], items); cb(); },
+      get: (key: string, cb: (r: Record<string, unknown>) => void) => cb(key in areas[name] ? { [key]: areas[name][key] } : {}),
+    });
+    (globalThis as Record<string, unknown>).chrome = { storage: { sync: area('sync'), local: area('local') }, runtime: { lastError: undefined } };
+    const service = new SettingsService();
+    const { VOICE_LEASE_KEY } = await import('../providers/soniox/voiceLeaseMemory');
+    await service.setSetting(VOICE_LEASE_KEY, { leaseId: 'lease-1', apiUrl: 'https://api.test' });
+    expect(Object.keys(areas.local)).toEqual([VOICE_LEASE_KEY]);
+    expect(areas.sync).toEqual({});
+    expect(await service.getSetting(VOICE_LEASE_KEY, null)).toEqual({ leaseId: 'lease-1', apiUrl: 'https://api.test' });
+    await service.setSetting(VOICE_LEASE_KEY, null);
+    expect(await service.getSetting(VOICE_LEASE_KEY, null)).toBeNull();
+  });
 });
 

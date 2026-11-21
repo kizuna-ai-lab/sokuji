@@ -165,6 +165,26 @@ export interface SonioxCredentials {
   lease?: SonioxLeasePort;
 }
 
+/** What a voice-only lease hands a leg's voice: where the voice says its connection opened. A session's lease hands the voice none: its STT socket reports the start. */
+export interface SonioxVoiceLeasePort {
+  /** Soniox accepted the speech key: the voice's connection opened for the first time (a voice-only lease's `session-started` for this leg). */
+  streamAccepted(): void;
+}
+
+/**
+ * All a leg's voice reads of its credentials (`ttsUnit.ts`). A leg's `SonioxCredentials` are these too, an own key's
+ * and a session lease's alike; a voice-only lease hands nothing more than these, with its port: it issues no
+ * transcription key, another provider transcribing.
+ */
+export interface SonioxVoiceCredentials {
+  region: SonioxRegion;
+  /** The TTS socket's key; absent, the leg's voice says nothing. */
+  tts?: string;
+  clientReferenceId?: string;
+  /** A voice-only lease only: named apart from `lease`, so a session's lease port never reaches the voice. */
+  voiceLease?: SonioxVoiceLeasePort;
+}
+
 export const sonioxCredentials: Provider<SonioxSettings, SonioxCredentials, never>['credentials'] = {
   keys: SONIOX_KEY_FIELDS,
   fields: (s) => [{ key: sonioxKeyField(asSonioxRegion(s.region)), labelKey: 'setup.credentials.apiKey', secret: true, placeholderKey: 'providers.soniox.apiKeyPlaceholder' }],

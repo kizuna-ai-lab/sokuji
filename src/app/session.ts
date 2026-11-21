@@ -48,7 +48,7 @@ import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
 import { useLineUpStore } from '../stores/lineUpStore';
 import useSettingsStore from '../stores/settingsStore';
-import { getEnvironment, isElectron } from '../utils/environment';
+import { getApiUrl, getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
 import { createAppPunctuation, type AppPunctuation } from './punctuation';
 import { createBrowserNetwork } from './network';
@@ -57,6 +57,7 @@ import { registerAuth } from './currentAuth';
 import { registerRunPhase } from './runPhase';
 import { prepareScreenContext, releaseScreenContext, screenContextWanted, type PickedSource, type PickReason } from './screenContext';
 import { watchSonioxVoiceAccount } from './sonioxVoiceAccount';
+import { watchVoiceLeaseRecovery } from './voiceLeaseRecovery';
 import { registerSubtitleFeed } from './subtitleFeed';
 import { appStartInputs, createFrameLog, decorateSessionAnalytics, teeFrames, type FrameLog } from './telemetry';
 import { ORG_REFUSAL_CODES } from '../lib/session/orgNotice';
@@ -633,6 +634,11 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         // A custom voice filed under the previous account is checked against the new one (voice reconcile).
         watchSonioxVoiceAccount({
           auth: () => bridges.auth, providers: () => presentProviders(),
+          watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
+        }),
+        // A voice-only lease a previous launch never ended still holds the account: ended once the sign-in is there.
+        watchVoiceLeaseRecovery({
+          auth: () => bridges.auth, apiUrl: getApiUrl,
           watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
         }),
       ];

@@ -32,6 +32,15 @@ export function servesSpeech(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): 
   return plan.byStage.speech.provider.id === provider.id;
 }
 
+/**
+ * Whether the plan asks this provider to transcribe: a unit of it serves the transcription stage. With
+ * `servesSpeech` it tells a provider that only speaks in a plan (another provider's text, read by its voice) from
+ * one that runs the whole session.
+ */
+export function servesTranscription(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): boolean {
+  return plan.byStage.transcription.provider.id === provider.id;
+}
+
 /** The stages a provider serves in a plan, in stage order; none for a provider that is not in it. */
 export function stagesOf(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): readonly RunStage[] {
   return RUN_STAGES.filter((stage) => plan.byStage[stage].provider.id === provider.id);

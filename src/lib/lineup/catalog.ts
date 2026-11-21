@@ -45,14 +45,17 @@ export const CAPS: readonly ProviderCaps[] = [
     : []),
 ];
 
-export function caps(id: string): ProviderCaps | undefined {
-  return CAPS.find((c) => c.id === id);
+export function caps(id: string, catalog: readonly ProviderCaps[] = CAPS): ProviderCaps | undefined {
+  return catalog.find((c) => c.id === id);
 }
 
-/** The option a line-up names for a stage, when it is known and serves that stage; undefined otherwise (unset, unknown, or not for that stage). */
-export function optionFor(lineUp: Pick<LineUp, RunStage>, stage: RunStage): ProviderCaps | undefined {
+/**
+ * The option a line-up names for a stage, when it is known and serves that stage; undefined otherwise (unset,
+ * unknown, or not for that stage). `catalog`: the options read, the app's own by default.
+ */
+export function optionFor(lineUp: Pick<LineUp, RunStage>, stage: RunStage, catalog: readonly ProviderCaps[] = CAPS): ProviderCaps | undefined {
   const id = lineUp[stage];
-  const option = id === null ? undefined : caps(id);
+  const option = id === null ? undefined : caps(id, catalog);
   return option?.stages.includes(stage) ? option : undefined;
 }
 

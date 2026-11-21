@@ -60,7 +60,8 @@ export function retentionFor(keep: boolean): Retention {
 
 /**
  * A run's analytics: every event that names the run's provider also says who serves each stage (`stages`), and
- * `provider` stays the one that transcribes. An event that names no provider passes as it is.
+ * `provider` stays the one that transcribes, but on a lease's end, which names the provider whose lease it was. An
+ * event that names no provider passes as it is.
  */
 export function stagedAnalytics(analytics: AnalyticsPort, stages: StageIds): RunAnalytics {
   return {
@@ -381,9 +382,10 @@ export class Run {
           // client's budget exhaustion was (`ManagedSonioxSession.ts:166-173`),
           // unless the lease calls it the normal end of a segment — which the
           // old client deliberately never tracked (`:158-161`).
+          // Filed under the provider whose lease ended: beside another provider's text, that is not the one that transcribes.
           if (!o?.expected) {
             this.analytics.track('api_error', {
-              provider: this.providerId, error_message: redact(notice.message), error_code: notice.code,
+              provider: p.id, error_message: redact(notice.message), error_code: notice.code,
               error_type: apiErrorType(notice.code), channel: shape.legs[0],
             });
           }
