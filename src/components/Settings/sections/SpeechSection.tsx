@@ -141,9 +141,28 @@ function HeldKeyBox({ locked }: { locked: boolean }) {
       setPicking(false);
       setRefused(null);
     };
+    const choose = (e: KeyboardEvent) => {
+      if (!pushKeyAllowed(e.code)) {
+        // A key with no code (an input method's, say) is named by what it types.
+        setRefused(pushKeyLabel(e.code, isMacOS()) || e.key || '?');
+        return;
+      }
+      useTurnModeStore.getState().setPushKey(e.code);
+      stop();
+    };
+    // A modifier is chosen only when it is let go with no other key pressed meanwhile: Shift+Tab and a Ctrl shortcut
+    // begin with the modifier's own press, and must not pick it.
+    let pendingModifier: string | null = null;
     const take = (e: KeyboardEvent) => {
+      if (isModifierKey(e.code)) {
+        if (e.repeat) return;
+        const alone = [e.ctrlKey, e.altKey, e.shiftKey, e.metaKey].filter(Boolean).length <= 1;
+        pendingModifier = pendingModifier === null && alone ? e.code : null;
+        return;
+      }
+      pendingModifier = null;
       // A key pressed with Ctrl, Alt, Shift or Cmd held is a shortcut (the app's or the browser's), not a choice.
-      if (!isModifierKey(e.code) && (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey)) return;
+      if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
       // Tab still moves focus, and Enter or Space still presses Cancel, so the keyboard can leave the picking too.
       if (e.code === 'Tab') return;
       const onButton = e.target instanceof Element && e.target.closest('.turn-mode-box__action') !== null;
@@ -154,13 +173,13 @@ function HeldKeyBox({ locked }: { locked: boolean }) {
         stop();
         return;
       }
-      if (!pushKeyAllowed(e.code)) {
-        // A key with no code (an input method's, say) is named by what it types.
-        setRefused(pushKeyLabel(e.code, isMacOS()) || e.key || '?');
-        return;
-      }
-      useTurnModeStore.getState().setPushKey(e.code);
-      stop();
+      choose(e);
+    };
+    const letGo = (e: KeyboardEvent) => {
+      if (pendingModifier === null || e.code !== pendingModifier) return;
+      pendingModifier = null;
+      e.stopImmediatePropagation();
+      choose(e);
     };
     const away = (e: PointerEvent) => {
       if (e.target instanceof Node && boxRef.current?.contains(e.target)) return;
@@ -172,11 +191,13 @@ function HeldKeyBox({ locked }: { locked: boolean }) {
       if (!(e.target instanceof Node && boxRef.current?.contains(e.target))) stop();
     };
     window.addEventListener('keydown', take, { capture: true });
+    window.addEventListener('keyup', letGo, { capture: true });
     window.addEventListener('pointerdown', away, { capture: true });
     window.addEventListener('focusin', leave);
     window.addEventListener('blur', stop);
     return () => {
       window.removeEventListener('keydown', take, { capture: true });
+      window.removeEventListener('keyup', letGo, { capture: true });
       window.removeEventListener('pointerdown', away, { capture: true });
       window.removeEventListener('focusin', leave);
       window.removeEventListener('blur', stop);

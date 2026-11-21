@@ -324,7 +324,8 @@ describe('SpeechSection — the box under the modes, as the mock lists it', () =
     fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
     expect(keyRow(container).textContent).toContain('Press a key… (Esc to cancel)');
 
-    fireEvent.keyDown(document.body, { code: 'ControlRight', key: 'Control' });
+    fireEvent.keyDown(document.body, { code: 'ControlRight', key: 'Control', ctrlKey: true });
+    fireEvent.keyUp(document.body, { code: 'ControlRight', key: 'Control' });
     expect(useTurnModeStore.getState().pushKey).toBe('ControlRight');
     expect(keyName(container)).toBe('Right Ctrl');
 
@@ -455,10 +456,36 @@ describe('SpeechSection — the box under the modes, as the mock lists it', () =
     expect(keyRow(container).textContent).toContain('Press a key… (Esc to cancel)');
     // Cmd on its own is still named as a key that cannot be used.
     fireEvent.keyDown(document.body, { code: 'MetaLeft', key: 'Meta', metaKey: true });
+    fireEvent.keyUp(document.body, { code: 'MetaLeft', key: 'Meta' });
     expect(keyRow(container).textContent).toContain('Left Windows cannot be used. Press another key.');
     // And Ctrl on its own is still a key it can take.
     fireEvent.keyDown(document.body, { code: 'ControlRight', key: 'Control', ctrlKey: true });
+    fireEvent.keyUp(document.body, { code: 'ControlRight', key: 'Control' });
     expect(useTurnModeStore.getState().pushKey).toBe('ControlRight');
+  });
+
+  it('takes a modifier only when it is let go on its own, so Shift+Tab and Ctrl shortcuts change nothing', () => {
+    useTurnModeStore.setState({ turnMode: 'push-to-talk', pushKey: 'F8' });
+    const { container } = render(<SpeechSection locked={false} />);
+    fireEvent.click(within(keyRow(container)).getByRole('button', { name: 'Change' }));
+    const chords: Array<[string, string, Record<string, boolean>]> = [
+      ['ShiftLeft', 'Tab', { shiftKey: true }],
+      ['ControlLeft', 'KeyR', { ctrlKey: true }],
+      ['ControlLeft', 'ShiftLeft', { ctrlKey: true, shiftKey: true }],
+    ];
+    for (const [modifier, other, held] of chords) {
+      const down = new KeyboardEvent('keydown', { code: modifier, bubbles: true, cancelable: true, ...held });
+      document.body.dispatchEvent(down);
+      expect(down.defaultPrevented, modifier).toBe(false);
+      fireEvent.keyDown(document.body, { code: other, ...held });
+      fireEvent.keyUp(document.body, { code: other, ...held });
+      fireEvent.keyUp(document.body, { code: modifier });
+      expect(useTurnModeStore.getState().pushKey, `${modifier}+${other}`).toBe('F8');
+      expect(keyRow(container).textContent).toContain('Press a key… (Esc to cancel)');
+    }
+    // A modifier that was already down when the picking started is not a choice either.
+    fireEvent.keyUp(document.body, { code: 'AltLeft' });
+    expect(useTurnModeStore.getState().pushKey).toBe('F8');
   });
 
   it('stops picking when the user clicks outside the box, so the next key reaches what they clicked', () => {
