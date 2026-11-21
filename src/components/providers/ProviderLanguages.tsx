@@ -8,7 +8,7 @@ import useAudioStore, { type AudioMode } from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { LanguagePairSection, type ReceiveChoices } from './LanguagePairSection';
-import { useSelectedProvider } from './useSelectedProvider';
+import { useProviderEntry, useStageProvider } from './useProviderEntry';
 
 interface ProviderLanguagesProps {
   providers: readonly AnyProvider[];
@@ -29,15 +29,17 @@ interface ProviderLanguagesProps {
  * its legs and whether the speech unit speaks them (Stage 2 Volcengine
  * AST2, choice 1). Tracks each side that changed with today's
  * `language_changed` (ruling 14) before persisting the new pair.
- * `providers` must be the offered list (`presentProviders()`), because the
- * provider shown comes from the plan and is then looked up in it.
+ * `providers` must be the offered list (`presentProviders()`): until the
+ * plan is ready, the provider shown is looked up in it.
  */
 export function ProviderLanguages({ providers, disabled, sentence, heading, receive }: ProviderLanguagesProps) {
   const { trackEvent } = useAnalytics();
-  // The transcription unit's provider, with its entry; until the plan is ready, the hook's own (it loads the entry).
+  // The transcription unit's provider, with its entry; until the plan is ready, the provider the line-up names for
+  // transcription, so that its entry loads.
   const transcription = useStageUnit('transcription');
   const speechUnit = useStageUnit('speech');
-  const selection = useSelectedProvider(providers, transcription?.provider.id);
+  const transcribing = useStageProvider(providers, 'transcription');
+  const selection = useProviderEntry(transcription?.provider ?? transcribing);
   const legs = useProviderStore((st) => st.legs);
   const speech = useProviderStore((st) => st.speech);
   // What `speechFromStores` reads for Translation I hear, subscribed so "I hear" follows the switch, the mode and the source.

@@ -38,7 +38,7 @@ afterEach(() => {
   getSetting.mockClear();
   setSetting.mockClear();
   runsOn(null);
-  useProviderStore.setState({ entries: {}, intent: undefined, selectionLocked: false });
+  useProviderStore.setState({ entries: {}, intent: undefined });
 });
 
 describe('the Gemini definition', () => {

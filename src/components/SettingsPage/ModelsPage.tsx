@@ -17,8 +17,8 @@ import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { isElectron } from '../../utils/environment';
 import { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } from '../../stores/segmentationStore';
 import { useProviderStore } from '../../stores/providerStore';
-import { storedLocalStages, useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
-import { soleHost } from '../../lib/lineup/catalog';
+import { stageProviderIn, storedLocalStages, useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
+import { RUN_STAGES } from '../../lib/lineup/types';
 import { MODEL_MANIFEST, deviceReady, getManifestEntry, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
 import { wasmCandidates } from '../../lib/local-inference/selection/candidates.wasm';
 import { resolveWasmDirection } from '../../lib/local-inference/selection/resolveWithStages';
@@ -97,15 +97,10 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const packPhase = useSegmentationStore((s) => s.phase);
   const packBytes = useSegmentationStore((s) => s.downloadedBytes);
   const stages = useStoredLocalStages();
-  // Whether sessions run on this computer's engine at all: the stored line-up's service, or before one is stored, the
-  // provider chosen. On another service (Soniox, say) no model here is in use, and deleting one changes no session.
-  const lineUp = useLineUpStore((s) => s.lineUp);
-  const lineUpStored = useLineUpStore((s) => s.stored);
-  const chosen = useProviderStore((s) => s.selected);
-  const runsHere = useMemo(() => {
-    if (!lineUpStored || !lineUp) return chosen === 'local_inference';
-    return soleHost(lineUp) === 'local_inference';
-  }, [lineUp, lineUpStored, chosen]);
+  // Whether a session runs any stage on this computer's engine: a stage of the stored line-up, or before one is
+  // stored, the provider that runs. On another service (Soniox, say) no model here is in use, and deleting one
+  // changes no session.
+  const runsHere = useLineUpStore((s) => RUN_STAGES.some((stage) => stageProviderIn(s, stage) === 'local_inference'));
 
   const [asking, setAsking] = useState<string | null>(null);
   const [open, setOpen] = useState<Partial<Record<Stage, boolean>>>({});

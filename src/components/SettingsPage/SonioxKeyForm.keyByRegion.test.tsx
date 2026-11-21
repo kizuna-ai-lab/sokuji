@@ -33,7 +33,7 @@ beforeEach(async () => {
   registerRunPhase(() => 'idle');
   useRegionChangeStore.setState({ question: null });
   runsOn('soniox');
-  useProviderStore.setState({ entries: {}, readiness: {}, selectionLocked: false });
+  useProviderStore.setState({ entries: {}, readiness: {} });
   await useProviderStore.getState().load(sonioxProvider);
   await useProviderStore.getState().updateSettings(sonioxProvider, { region: 'us' });
   // The key's check, answered here and never asked of Soniox: a key that is stored works.

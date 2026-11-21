@@ -15,7 +15,8 @@ import { stubSpeechUnit, stubTextUnit, textAndSpeechPlan } from '../../lib/plan/
 import type { PlannedUnit } from '../../lib/plan/types';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { localSpeechUnit } from '../../providers/localInference/speechUnit';
-import { selectedFromStores } from '../../lib/session/appShape';
+import { planFromStores } from '../../lib/plan/fromStores';
+import { transcriptionProvider } from '../../lib/plan/read';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useProviderStore } from '../../stores/providerStore';
@@ -62,7 +63,8 @@ describe('openTtsSlot', () => {
 
   it("under a provider with no engine, opens the provider's options and leaves no slot target behind", () => {
     select('soniox', SONIOX_DEFAULTS);
-    expect(selectedFromStores()?.provider.id).toBe('soniox');
+    const found = planFromStores();
+    expect(found.state === 'ready' && transcriptionProvider(found.plan).id).toBe('soniox');
     openTtsSlot('participant');
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider-options');

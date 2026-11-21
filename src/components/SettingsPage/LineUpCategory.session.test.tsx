@@ -44,7 +44,8 @@ const states = (card: HTMLElement) => [...card.querySelectorAll('.lineup-stage__
 beforeEach(() => {
   authState.signedIn = true;
   runsOn('soniox');
-  useProviderStore.setState({ selectionLocked: false, entries: {}, readiness: {} });
+  useLineUpStore.setState({ locked: false });
+  useProviderStore.setState({ entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
   useSettingsStore.setState({ settingsNavigationTarget: null });
 });
@@ -69,7 +70,7 @@ describe('the line-up during a session and after it', () => {
   });
 
   it('refuses a line-up change while the provider is locked by a running session', async () => {
-    useProviderStore.setState({ selectionLocked: true });
+    useLineUpStore.setState({ locked: true });
     expect(await useLineUpStore.getState().choose('speech', 'edge')).toBeNull();
     expect(useLineUpStore.getState().lineUp).toEqual(soniox);
   });

@@ -23,7 +23,7 @@ import { setManagedVoiceStandIn } from '../../providers/soniox/managedVoiceSourc
 import useAudioStore from '../../stores/audioStore';
 import { useConversationDisplayStore, useConversationColours } from '../../stores/conversationDisplayStore';
 import { toneOf } from '../../lib/view/tone';
-import { runUnstored, useLineUpStore } from '../../stores/lineUpStore';
+import { runUnstored, stageProviderId } from '../../stores/lineUpStore';
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -297,7 +297,7 @@ function PreviewOverlayFrame({ view, karaoke, session, controls, compact, measur
  * a signed-in stand-in with no network, so a managed provider (the leased
  * fake) can start here — and to the `&settings=` blocks; Kizuna Soniox's
  * voice library runs on a stand-in that calls nothing; `&script=` applies to
- * whichever fake is selected — `fake_leased` when it is picked
+ * whichever fake runs — `fake_leased` when it is picked
  * (`&provider=fake_leased`), `fake` otherwise.
  */
 export function SpinePreview() {
@@ -305,11 +305,12 @@ export function SpinePreview() {
   const providers = useMemo(() => presentProviders(), []);
   // This page's probes run on the fake unless a parameter asks for another
   // provider (plan 1e-2 ruling 10, `&provider=<id>`). ProviderPanel is a
-  // child, so its own mount effect selects nothing (1e-3b-2 Task 1, P3) — this
-  // effect, together with `loadSessionStores` below, owns the page's
-  // selection; covering the `local_inference` case too (not just "nothing
-  // selected yet") undoes LocalInference's stored default, and `&provider=`
-  // overrides it the other way.
+  // child, and runs nothing at its own mount (1e-3b-2 Task 1, P3): this
+  // effect owns what the page runs, and `loadSessionStores` below leaves a
+  // provider already running in memory as it is. Covering the
+  // `local_inference` case too (not just "nothing runs yet") undoes
+  // LocalInference's stored default, and `&provider=` overrides it the other
+  // way.
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get('provider');
     // Both calls below are in memory: the preview never writes the app's stored provider or its line-up.
@@ -317,8 +318,8 @@ export function SpinePreview() {
       runUnstored(wanted);
       return;
     }
-    const { stored, unstoredProvider } = useLineUpStore.getState();
-    if (!stored && (unstoredProvider === null || unstoredProvider === 'local_inference')) runUnstored('fake');
+    const running = stageProviderId('transcription');
+    if (running === null || running === 'local_inference') runUnstored('fake');
   }, [providers]);
   const session = getAppSession();
   const { runner } = session;

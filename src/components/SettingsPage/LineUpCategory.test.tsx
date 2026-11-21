@@ -61,7 +61,7 @@ beforeEach(() => {
   noHosted.value = false;
   tracked.length = 0;
   runsOn('soniox');
-  useProviderStore.setState({ selectionLocked: false, entries: {}, readiness: {} });
+  useProviderStore.setState({ entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true });
   useSettingsStore.setState({ settingsNavigationTarget: null, textOnly: false });
   useAudioStore.setState({ mode: 'speaker' });

@@ -33,7 +33,7 @@ beforeEach(async () => {
   registerRunPhase(() => 'idle');
   useRegionChangeStore.setState({ question: null });
   runsOn('soniox');
-  useProviderStore.setState({ entries: {}, selectionLocked: false, intent: undefined, readiness: {} });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
   await useProviderStore.getState().load(sonioxProvider);
   await useProviderStore.getState().updateSettings(sonioxProvider, { region: 'us', voice: 'uuid-us' });
   useProviderStore.getState().setCredential(sonioxProvider, 'apiKey', 'sk-us');

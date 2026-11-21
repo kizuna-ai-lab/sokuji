@@ -35,7 +35,7 @@ const row = (name: string) => screen.getByRole('group', { name });
 beforeEach(() => {
   runsOn('soniox');
   useProviderStore.setState({
-    selectionLocked: false, readiness: {},
+    readiness: {},
     entries: {
       soniox: { settings: { region: 'us' }, credentials: { apiKey: 'k', apiKeyEu: '', apiKeyJp: '' }, pair: { source: 'ja', target: 'en' } },
       openai: { settings: {}, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } },

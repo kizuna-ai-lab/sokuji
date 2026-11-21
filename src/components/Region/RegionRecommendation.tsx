@@ -11,7 +11,7 @@ import { usePlan } from '../../lib/plan/fromStores';
 import { providersIn } from '../../lib/plan/read';
 import { isRecommendedProvider } from '../../lib/region/regionalProviders';
 import { RECOMMENDATION_DELAY_MS, recommendationGate, runRegionRecommendation } from '../../lib/region/runRecommendation';
-import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 import { useSetupWizardOpen } from '../../stores/layoutStore';
 import { useAuthContext } from '../providers/useAuthContext';
@@ -26,7 +26,7 @@ export default function RegionRecommendation(): React.JSX.Element {
   // (one provider per plan in this step).
   const plan = usePlan();
   const provider = plan.state === 'ready' ? providersIn(plan.plan).find((p) => isRecommendedProvider(p.id))?.id ?? null : null;
-  const locked = useProviderStore((s) => s.selectionLocked);
+  const locked = useLineUpStore((s) => s.locked);
   const auth = useAuthContext();
   const wizardOpen = useSetupWizardOpen();
   const tourActive = useTour().active;

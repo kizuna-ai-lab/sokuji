@@ -39,7 +39,7 @@ function given(region: string, credentials: Record<string, string>, readiness?: 
   runsOn('soniox');
   useProviderStore.setState({
     refreshReadiness: check as never,
-    selectionLocked: false, readiness: (readiness ? { soniox: readiness } : {}) as never,
+    readiness: (readiness ? { soniox: readiness } : {}) as never,
     entries: { soniox: { settings: { region }, credentials: { apiKey: '', apiKeyEu: '', apiKeyJp: '', apiKeyIn: '', ...credentials }, pair: { source: 'ja', target: 'en' } } } as never,
   });
 }

@@ -11,6 +11,7 @@ import { markActed } from '../../lib/region/record';
 import { requestRegionChange } from '../../lib/region/regionChange';
 import { REGION_FAMILIES, REGION_FAMILY_OF } from '../../lib/region/regionalProviders';
 import { regionRecommendationEvent } from '../../lib/region/runRecommendation';
+import { useLineUpStore, useStageProviderId } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 import { usableHint } from './useRegionHint';
@@ -26,15 +27,16 @@ export default function RegionListModal(): React.JSX.Element | null {
   const record = useRegionRecommendationStore((s) => (s.listOpen ? s.records[s.listOpen] : undefined));
   const setRecord = useRegionRecommendationStore((s) => s.setRecord);
   const closeList = useRegionRecommendationStore((s) => s.closeList);
-  const selected = useProviderStore((s) => s.selected);
-  const locked = useProviderStore((s) => s.selectionLocked);
+  // The provider that transcribes: the hint is about the region a session's recognition runs in.
+  const transcribing = useStageProviderId('transcription');
+  const locked = useLineUpStore((s) => s.locked);
   const settings = useProviderStore((s) => (providerId ? s.entries[providerId]?.settings : undefined));
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
   const idPrefix = useId();
 
   // The list lives only while the hint's own conditions hold; otherwise it closes, writing nothing (the hint returns later).
-  const usable = usableHint(providerId, selected, locked, record, settings);
+  const usable = usableHint(providerId, transcribing, locked, record, settings);
   useEffect(() => {
     if (providerId && !usable) closeList();
   }, [providerId, usable, closeList]);

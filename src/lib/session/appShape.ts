@@ -32,14 +32,6 @@ export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
   return mode === 'both' ? ['speaker', 'participant'] : [mode];
 }
 
-/** The provider a start would run and its loaded entry: the plan's transcription provider, as `planFromStores` finds it; null until the plan is ready. */
-export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEntry } | null {
-  const found = planFromStores();
-  if (found.state !== 'ready') return null;
-  const provider = transcriptionProvider(found.plan);
-  return { provider, entry: found.accounts[provider.id] };
-}
-
 /** The providers that take a capture area: Qwen, with your own key and managed; they share one settings shape. */
 const SCREEN_CONTEXT_PROVIDERS: ReadonlySet<string> = new Set(['qwen_livetranslate', 'kizunaai_qwen']);
 
@@ -166,7 +158,7 @@ export function watchSpeechFromStores(): () => void {
  * Null until the plan is ready. The run's shape, the live gate and the
  * account button's floor all read it.
  */
-export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
+export function runPlanFromStores(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
   const found = planFromStores();
   if (found.state !== 'ready') return null;
   // A run's account is a provider's settings and credentials; its pair is the shape's own.
@@ -175,7 +167,7 @@ export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { ent
 }
 
 export function readShapeFromStores(auth: AuthContext): RunShape | null {
-  const found = planFromSelection();
+  const found = runPlanFromStores();
   if (!found) return null;
   const { plan, accounts, entry } = found;
   const heard = transcriptionProvider(plan);
@@ -235,14 +227,14 @@ function planRefused(refusal: PlanRefusal): Refusal {
  * not reverse (D20), and a managed provider's wallet still loading,
  * unknown, frozen or below its floor. The surfaces keep Start off and show
  * why; the runner still gates the frozen shape at start. Null when nothing
- * is refused, or before the provider's entry has loaded (`providerLoaded`
- * keeps Start off then).
+ * is refused, or while the plan is loading (`providerLoaded` keeps Start
+ * off then).
  */
 export function liveGate(platform: Platform = getEnvironment()): Refusal | null {
   // A stored line-up the composer refuses: Start stays off, and says the composer's reason.
   const state = planFromStores();
   if (state.state === 'refused') return planRefused(state.refusal);
-  const found = planFromSelection();
+  const found = runPlanFromStores();
   if (!found) return null;
   const account = useAccountStore.getState().account;
   return gate({

@@ -11,13 +11,15 @@ import { RECOMMEND_MIN_GAIN_MS } from '../../lib/region/decision';
 import { markActed } from '../../lib/region/record';
 import { regionRecommendationEvent } from '../../lib/region/runRecommendation';
 import { REGION_FAMILIES, REGION_FAMILY_OF, currentRegion, isRecommendedProvider, type RecommendedProviderId } from '../../lib/region/regionalProviders';
+import { useLineUpStore, useStageProviderId } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 import type { RegionRecord } from '../../lib/region/record';
 import type { BannerProps } from '../Banner/Banner';
 
 /**
- * Whether the hint (and its list) may show: the provider is selected and idle,
+ * Whether the hint (and its list) may show: the provider is the one that
+ * transcribes (`selected`) and no run is under way,
  * the record is a `hint` whose recommended region belongs to the family with a
  * measured median, and the live region is not already that one nor, when
  * measured, within `RECOMMEND_MIN_GAIN_MS` of it (changed elsewhere to a
@@ -46,9 +48,10 @@ export function usableHint(
 export function useRegionHint(): BannerProps | null {
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
-  const selected = useProviderStore((s) => s.selected);
-  const locked = useProviderStore((s) => s.selectionLocked);
-  const settings = useProviderStore((s) => (s.selected ? s.entries[s.selected]?.settings : undefined));
+  // The provider that transcribes, known before its entry loads: the hint is about the region its recognition runs in.
+  const selected = useStageProviderId('transcription');
+  const locked = useLineUpStore((s) => s.locked);
+  const settings = useProviderStore((s) => (selected ? s.entries[selected]?.settings : undefined));
   const record = useRegionRecommendationStore((s) => (isRecommendedProvider(selected) ? s.records[selected] : undefined));
   const setRecord = useRegionRecommendationStore((s) => s.setRecord);
   const openList = useRegionRecommendationStore((s) => s.openList);

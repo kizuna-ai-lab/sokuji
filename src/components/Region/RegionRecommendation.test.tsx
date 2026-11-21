@@ -26,6 +26,7 @@ vi.mock('../../providers/registry', async (importOriginal) => {
 
 import RegionRecommendation from './RegionRecommendation';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 
@@ -33,8 +34,8 @@ const entry = { settings: {}, credentials: {}, pair: {} } as never;
 
 function seed(selected: string | null, entries: string[] = selected ? [selected] : []) {
   runsOn(selected);
+  useLineUpStore.setState({ locked: false });
   useProviderStore.setState({
-    selectionLocked: false,
     entries: Object.fromEntries(entries.map((id) => [id, entry])),
   } as never);
 }
@@ -75,23 +76,23 @@ describe('RegionRecommendation', () => {
     act(() => { vi.advanceTimersByTime(10000); });
     expect(run).not.toHaveBeenCalled();
     tour.active = false;
-    act(() => { useProviderStore.setState({ selectionLocked: true }); });
+    act(() => { useLineUpStore.setState({ locked: true }); });
     rerender(<RegionRecommendation />);
     act(() => { vi.advanceTimersByTime(10000); });
     expect(run).not.toHaveBeenCalled();
-    act(() => { useProviderStore.setState({ selectionLocked: false }); });
+    act(() => { useLineUpStore.setState({ locked: false }); });
     act(() => { vi.advanceTimersByTime(5000); });
     expect(run).toHaveBeenCalledTimes(1);
     const { signal } = run.mock.calls[0][1];
     expect(signal.aborted).toBe(false);
-    act(() => { useProviderStore.setState({ selectionLocked: true }); });
+    act(() => { useLineUpStore.setState({ locked: true }); });
     expect(signal.aborted).toBe(true);
   });
 
   it('a session starting before the delay elapses cancels the timer', () => {
     render(<RegionRecommendation />);
     act(() => { vi.advanceTimersByTime(3000); });
-    act(() => { useProviderStore.setState({ selectionLocked: true }); });
+    act(() => { useLineUpStore.setState({ locked: true }); });
     act(() => { vi.advanceTimersByTime(10000); });
     expect(run).not.toHaveBeenCalled();
   });

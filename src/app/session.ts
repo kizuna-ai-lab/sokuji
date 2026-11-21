@@ -46,7 +46,7 @@ import { appProjectionSettings } from '../lib/view/appViewSettings';
 import { createConversationView, type ConversationViewState, type Readable } from '../lib/view/conversationView';
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
-import { useProviderStore } from '../stores/providerStore';
+import { useLineUpStore } from '../stores/lineUpStore';
 import useSettingsStore from '../stores/settingsStore';
 import { getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
@@ -635,10 +635,10 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
           watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
         }),
       ];
-      // The store's own guard on the provider (plan 1e-3b-1 ruling 7).
-      const lock = () => useProviderStore.getState().setSelectionLocked(runner.state.getState().phase !== 'idle');
+      // The line-up store's own guard (plan 1e-3b-1 ruling 7): what runs is fixed while a run is not idle.
+      const lock = () => useLineUpStore.getState().setLocked(runner.state.getState().phase !== 'idle');
       lock();
-      offs.push(runner.state.subscribe(lock), () => useProviderStore.getState().setSelectionLocked(false));
+      offs.push(runner.state.subscribe(lock), () => useLineUpStore.getState().setLocked(false));
       // The extension overlay's publisher reaches the session through this
       // leaf, for as long as the page is attached: the side panel's surface
       // class cannot import the root (plan 1e-4 ruling 1).

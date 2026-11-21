@@ -37,7 +37,7 @@ afterEach(() => {
   getSetting.mockClear();
   setSetting.mockClear();
   runsOn(null);
-  useProviderStore.setState({ entries: {}, intent: undefined, selectionLocked: false, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
+  useProviderStore.setState({ entries: {}, intent: undefined, legs: ['speaker'], speech: { textOnly: false, participantSpeech: false } });
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>

@@ -42,7 +42,7 @@ beforeEach(() => {
   useModelStore.setState({ initialized: true } as never);
   runsOn('soniox');
   useProviderStore.setState({
-    selectionLocked: false, readiness: { soniox: { state: 'ready', models: [] } } as never,
+    readiness: { soniox: { state: 'ready', models: [] } } as never,
     refreshReadiness: (async () => ({ state: 'unknown' })) as never,
     entries: {
       soniox: { settings: { region: 'us' }, credentials: { apiKey: 'sk-us', apiKeyEu: '', apiKeyJp: '', apiKeyIn: '' }, pair: { source: 'ja', target: 'en' } },

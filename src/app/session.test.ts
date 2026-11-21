@@ -154,6 +154,8 @@ import { runsOn } from '../stores/lineUpStore.testing';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useLineUpStore } from '../stores/lineUpStore';
+import { planFromStores } from '../lib/plan/fromStores';
+import { transcriptionProvider } from '../lib/plan/read';
 import { useLiveNotes } from '../lib/notes/live/liveStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
 import { READINESS_DELAY_MS } from './readiness';
@@ -1671,35 +1673,38 @@ describe('attach', () => {
     detach();
   });
 
-  it('keeps the provider put while a run is not idle, and lets it change once idle', async () => {
-    useLogStore.getState().setEnabled(true);
-    useLogStore.getState().clearLogs();
+  it('keeps the line-up put while a run is not idle, and lets it change once idle', async () => {
     const { session } = await setup();
     const detach = session.attach();
+    const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
 
     await session.runner.start();
     expect(session.runner.state.getState().phase).toBe('running');
-    useProviderStore.getState().select('local_inference');
-    expect(useProviderStore.getState().selected).toBe('fake');
-    await settleReports();
-    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot change during a session'))).toHaveLength(1);
+    const before = useLineUpStore.getState().lineUp;
+    // Neither the setup wizard's whole line-up nor a choice on the line-up page lands during a run.
+    expect(await useLineUpStore.getState().replace(local)).toBe(false);
+    expect(await useLineUpStore.getState().choose('speech', 'edge')).toBeNull();
+    expect(useLineUpStore.getState()).toMatchObject({ lineUp: before, unstoredProvider: 'fake' });
+    const running = planFromStores();
+    expect(running.state === 'ready' && transcriptionProvider(running.plan).id).toBe('fake');
 
     await session.runner.stop();
     await session.runner.settled();
-    useProviderStore.getState().select('local_inference');
-    expect(useProviderStore.getState().selected).toBe('local_inference');
+    expect(await useLineUpStore.getState().replace(local)).toBe(true);
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: local });
 
     detach();
+    useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
   });
 
   it('holds the provider from an attach made mid-run, and lets it go on detach', async () => {
     const { session } = await setup();
     await session.runner.start();
     const detach = session.attach();
-    expect(useProviderStore.getState().selectionLocked).toBe(true);
+    expect(useLineUpStore.getState().locked).toBe(true);
 
     detach();
-    expect(useProviderStore.getState().selectionLocked).toBe(false);
+    expect(useLineUpStore.getState().locked).toBe(false);
     await session.runner.stop();
   });
 });

@@ -1,4 +1,4 @@
-// Plan 6, Task 4: Finish writes the line-up, after the provider and before the record.
+// Plan 6, Task 4: Finish writes the line-up, after the provider's credentials and pair and before the record.
 import { describe, it, expect, vi } from 'vitest';
 import { applySetupDraft, type ApplySetupDeps } from './applySetup';
 import { initialDraft, type SetupDraft } from './setupDraft';
@@ -17,7 +17,7 @@ const draft = (over: Partial<SetupDraft>): SetupDraft => ({
 });
 
 describe('Finish writes the line-up', () => {
-  it('writes the provider, then the line-up, then the record', async () => {
+  it("writes the provider's credentials and pair, then the line-up (which says what runs), then the record", async () => {
     const d = deps();
     await applySetupDraft(draft({}), d);
     expect(d.applyLineUp).toHaveBeenCalledWith({ transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen' });

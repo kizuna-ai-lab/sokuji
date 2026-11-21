@@ -59,7 +59,7 @@ beforeEach(() => {
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  useProviderStore.setState({ entries: {}, intent: undefined });
 });
 
 describe('load', () => {
@@ -217,57 +217,6 @@ describe('writes', () => {
     expect(() => useProviderStore.getState().setCredential(probe, 'apiKey', 'x')).toThrow('Provider "probe" is not loaded');
     expect(() => useProviderStore.getState().setPair(probe, { source: 'en', target: 'ja' })).toThrow('Provider "probe" is not loaded');
   });
-
-  it('remembers the chosen provider', () => {
-    expect(useProviderStore.getState().selected).toBeNull();
-    useProviderStore.getState().select('probe');
-    expect(useProviderStore.getState().selected).toBe('probe');
-  });
-
-  it('persists a pick under the old enum spelling; a load writes nothing', async () => {
-    useProviderStore.getState().select('local_inference', 'pick');
-    expect(useProviderStore.getState().selected).toBe('local_inference');
-    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'local_inference'));
-
-    setSetting.mockClear();
-    useProviderStore.getState().select('fake', 'pick');
-    await vi.waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.provider', 'fake'));
-
-    setSetting.mockClear();
-    useProviderStore.getState().select('local_inference');
-    useProviderStore.getState().select('local_inference', 'load');
-    expect(setSetting).not.toHaveBeenCalled();
-  });
-
-  it('refuses a locked pick, so it writes nothing either', () => {
-    useProviderStore.getState().select('probe');
-    useProviderStore.getState().setSelectionLocked(true);
-    useProviderStore.getState().select('x', 'pick');
-    expect(useProviderStore.getState().selected).toBe('probe');
-    expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
-    useProviderStore.getState().setSelectionLocked(false);
-  });
-
-  it('refuses a new choice while the selection is locked, and takes it once unlocked', () => {
-    useProviderStore.getState().select('probe');
-    useProviderStore.getState().setSelectionLocked(true);
-    useProviderStore.getState().select('x');
-    expect(useProviderStore.getState().selected).toBe('probe');
-
-    useProviderStore.getState().setSelectionLocked(false);
-    useProviderStore.getState().select('x');
-    expect(useProviderStore.getState().selected).toBe('x');
-  });
-
-  it('notifies subscribers only when the lock changes', () => {
-    // `attach()` sets it on every runner state change; an unchanged value must not wake the store's readers.
-    const listener = vi.fn();
-    const off = useProviderStore.subscribe(listener);
-    useProviderStore.getState().setSelectionLocked(true);
-    useProviderStore.getState().setSelectionLocked(true);
-    expect(listener).toHaveBeenCalledTimes(1);
-    off();
-  });
 });
 
 describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
@@ -415,8 +364,6 @@ describe('the global pair (unified language codes)', () => {
     setSetting.mockClear();
     expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
     expect(pairOf('narrow')).toEqual({ source: 'en', target: 'de' });
-    useProviderStore.getState().select('narrow', 'pick');
-    useProviderStore.getState().select('probe', 'pick');
     expect(pairOf('probe')).toEqual({ source: 'ja', target: 'fr' });
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.sourceLanguage', expect.anything());
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.targetLanguage', expect.anything());
@@ -587,7 +534,7 @@ describe('flush', () => {
     expect(stored.get('settings.probe.apiKey')).toBe('new');
   });
 
-  it("flush(p) answers for p's own settings and the selection only: another provider's refused value does not fail it", async () => {
+  it("flush(p) answers for p's own settings only: another provider's refused value does not fail it", async () => {
     const other = { ...probe, id: 'other', settings: { ...probe.settings, key: 'other' } } as unknown as AnyProvider;
     await useProviderStore.getState().load(probe);
     await useProviderStore.getState().load(other);
@@ -616,7 +563,7 @@ describe('flush', () => {
     await expect(useProviderStore.getState().flush(probe, ['apiKey'])).resolves.toBe(true);
   });
 
-  it("flush(p, fields) answers for those fields and the selection only: p's other refused value does not fail it", async () => {
+  it("flush(p, fields) answers for those fields only: p's other refused value does not fail it", async () => {
     await useProviderStore.getState().load(probe);
     setSetting.mockImplementation(async (key: string, value: unknown) => {
       if (key === 'settings.probe.count') return { success: false, error: 'QuotaExceededError' };

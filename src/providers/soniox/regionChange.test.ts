@@ -30,7 +30,7 @@ beforeEach(async () => {
   registerRunPhase(() => 'idle');
   useRegionChangeStore.setState({ question: null });
   runsOn(null);
-  useProviderStore.setState({ entries: {}, selectionLocked: false, intent: undefined });
+  useProviderStore.setState({ entries: {}, intent: undefined });
   await useProviderStore.getState().load(kizunaSonioxProvider);
   await useProviderStore.getState().load(sonioxProvider);
 });

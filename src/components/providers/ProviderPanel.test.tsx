@@ -39,6 +39,7 @@ import { fakeProvider } from '../../providers/fake/provider';
 import type { FakeSettings } from '../../providers/fake/settings';
 import type { SettingsProps } from '../../lib/provider/types';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { ProviderPanel } from './ProviderPanel';
 
@@ -47,13 +48,13 @@ const noAuth = { signedIn: false, getToken: async () => null };
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  runsOn(null);
+  // The panel is the development preview's, which always runs a provider: the fake, unless a case says otherwise.
+  useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: 'fake', locked: false });
   useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
 });
 
 describe('ProviderPanel', () => {
   it("loads the provider and shows its language pair and its own settings", async () => {
-    runsOn('fake');
     stored.set('settings.fake.script', 'long');
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
     expect(await screen.findByLabelText('Script')).toHaveValue('long');
@@ -91,7 +92,6 @@ describe('ProviderPanel', () => {
   });
 
   it('saves a new language pair', async () => {
-    runsOn('fake');
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
     fireEvent.change(await screen.findByLabelText('settings.sourceLanguage'), { target: { value: 'ja' } });
     await waitFor(() => expect(setSetting).toHaveBeenCalledWith('settings.common.sourceLanguage', 'ja'));
@@ -108,16 +108,22 @@ describe('ProviderPanel', () => {
     render(<ProviderPanel providers={[fakeProvider, other]} auth={noAuth} />);
     expect(await screen.findByLabelText('simpleSettings.provider')).toHaveValue('fake2');
     fireEvent.change(screen.getByLabelText('simpleSettings.provider'), { target: { value: 'fake' } });
-    expect(useProviderStore.getState().selected).toBe('fake');
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'fake' });
+    expect(await screen.findByLabelText('simpleSettings.provider')).toHaveValue('fake');
   });
 
-  it('shows the first offered provider when the store has none, and selects nothing', async () => {
+  it('before anything has loaded, the picker shows the first offered provider, runs nothing, and the other pieces show nothing', async () => {
+    runsOn(null);
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} />);
-    await screen.findByLabelText('Script');
-    expect(useProviderStore.getState().selected).toBeNull();
+    expect(await screen.findByLabelText('simpleSettings.provider')).toHaveValue('fake');
+    await waitFor(() => expect(useProviderStore.getState().entries.fake).toBeDefined());
+    expect(screen.queryByLabelText('Script')).toBeNull();
+    expect(screen.queryByLabelText('settings.sourceLanguage')).toBeNull();
+    expect(useLineUpStore.getState().unstoredProvider).toBeNull();
+    expect(setSetting).not.toHaveBeenCalled();
   });
 
-  it("persists a person's pick under settings.common.provider, but not the panel's own mount selection", async () => {
+  it("persists a person's pick under settings.common.provider, and nothing at its own mount", async () => {
     const second = { ...fakeProvider, id: 'second', settings: { ...fakeProvider.settings, key: 'second' } };
     render(<ProviderPanel providers={[fakeProvider, second]} auth={noAuth} />);
     await screen.findByLabelText('Script');
@@ -128,7 +134,6 @@ describe('ProviderPanel', () => {
   });
 
   it('locks every control while disabled', async () => {
-    runsOn('fake');
     render(<ProviderPanel providers={[fakeProvider]} auth={noAuth} disabled />);
     expect(await screen.findByLabelText('Script')).toBeDisabled();
     expect(screen.getByLabelText('simpleSettings.provider')).toBeDisabled();

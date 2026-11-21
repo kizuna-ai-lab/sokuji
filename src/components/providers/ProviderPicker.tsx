@@ -11,7 +11,7 @@ import Tooltip from '../Tooltip/Tooltip';
 import { CredentialForm } from './CredentialForm';
 import { ManagedAccountRow } from './ManagedAccountRow';
 import { ProviderOption, useOptionModel } from './ProviderOption';
-import { ownProps, useSelectedProvider } from './useSelectedProvider';
+import { ownProps, useProviderEntry, useStageProvider } from './useProviderEntry';
 // The rich option markup below (icon, name-line, description) is styled by
 // the shared rules ProviderSection.tsx also relies on (`.provider-select__*`,
 // `.provider-name-line`, `.powered-by` — see Settings.scss's "Rich provider
@@ -44,7 +44,7 @@ interface ProviderPickerProps {
   auth: AuthContext;
   /** A run is not idle: the picker and its credentials are locked. */
   disabled?: boolean;
-  /** Present: draws the selected provider's `EngineSummary`, if it has one — Simple mode's way into its `Engine` (1e-3b-2 ruling 3). */
+  /** Present: draws the shown provider's `EngineSummary`, if it has one — Simple mode's way into its `Engine` (1e-3b-2 ruling 3). */
   openSlot?(slot: EngineSlot): void;
 }
 
@@ -61,7 +61,9 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
   const { trackEvent } = useAnalytics();
   const legs = useProviderStore((s) => s.legs);
   const speechParticipant = useProviderStore((s) => s.speech.participantSpeech);
-  const selection = useSelectedProvider(providers);
+  // The provider that transcribes; before anything has loaded, the first offered, which the picker shows without running it.
+  const transcribing = useStageProvider(providers, 'transcription');
+  const selection = useProviderEntry(transcribing ?? providers[0]);
   const [dismissedTutorials, setDismissedTutorials] = useState<Set<string>>(readDismissedTutorials);
   // Whether this runtime renders customizable selects (appearance:
   // base-select) — a one-shot init, like ProviderSection.tsx's own richSelect

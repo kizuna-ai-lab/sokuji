@@ -34,7 +34,7 @@ beforeEach(() => {
     return { success: true };
   });
   runsOn(null);
-  useProviderStore.setState({ entries: {}, selectionLocked: false, intent: undefined });
+  useProviderStore.setState({ entries: {}, intent: undefined });
 });
 
 describe('one OpenAI key', () => {

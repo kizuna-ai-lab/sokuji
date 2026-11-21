@@ -108,13 +108,13 @@ afterEach(() => {
   vi.mocked(openExternalUrl).mockClear();
 });
 
-// The language an import starts with: the selected service's own side, once its entry has loaded.
+// The language an import starts with: the transcribing service's own side, once its entry has loaded.
 describe('myLanguageNow', () => {
-  it("is the selected service's own side once its entry has loaded, else the interface's", () => {
+  it("is the transcribing service's own side once its entry has loaded, else the interface's", () => {
     const before = useProviderStore.getState();
     const first = presentProviders()[0];
     const loaded = (source: string) => ({ [first.id]: { settings: first.settings.defaults, credentials: {}, pair: { source, target: 'zh' } } });
-    // Nothing selected yet: the first service offered is not read, even once its entry has loaded.
+    // The line-up store has not loaded: the first service offered is not read, even once its entry has loaded.
     runsOn(null);
     useProviderStore.setState({ entries: loaded('ja-JP') });
     expect(myLanguageNow('en-US')).toBe('en');
@@ -127,7 +127,7 @@ describe('myLanguageNow', () => {
     expect(myLanguageNow('en-US')).toBe('en');
     useProviderStore.setState({ entries: loaded('ja+en') });
     expect(myLanguageNow('en-US')).toBe('en');
-    runsOn(before.selected);
+    runsOn(null);
     useProviderStore.setState({ entries: before.entries });
   });
 });

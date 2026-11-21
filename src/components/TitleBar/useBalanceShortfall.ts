@@ -9,7 +9,7 @@
 import { usePlan } from '../../lib/plan/fromStores';
 import { capabilitiesOf } from '../../lib/plan/read';
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
-import { faceToFaceFromStores, legsFor, planFromSelection, speechFromStores } from '../../lib/session/appShape';
+import { faceToFaceFromStores, legsFor, runPlanFromStores, speechFromStores } from '../../lib/session/appShape';
 import { ORG_INSUFFICIENT_BALANCE } from '../../lib/session/orgNotice';
 import { useAccountPayer } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
@@ -31,8 +31,8 @@ export function useBalanceShortfall(): boolean {
   useRoutingStore((s) => s.participantSpeech);
   useAudioStore((s) => s.selectedParticipantSource?.deviceId);
   useAudioStore((s) => s.participantCaptureWidened);
-  // The plan exactly as the live gate finds it (`planFromSelection`: the selected provider, else the first present), so before the load selects one the dot and Start still agree.
-  const found = planFromSelection();
+  // The plan exactly as the live gate finds it (`runPlanFromStores`), so the dot and Start agree; none while it is loading or refused.
+  const found = runPlanFromStores();
   if (!found) return false;
   const participantSpeech = speechFromStores(capabilitiesOf(found, 'speech')).them;
   const code = balanceRefusal({ plan: found.plan, accounts: found.accounts, legs: legsFor(mode), textOnly, participantSpeech, faceToFace: faceToFaceFromStores(), account, payer })?.code;

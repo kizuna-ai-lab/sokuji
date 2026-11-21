@@ -40,7 +40,7 @@ const words = (n: number) => Array.from({ length: n }, (_, i) => ({ written: `w$
 
 beforeEach(() => {
   runsOn('soniox');
-  useProviderStore.setState({ selectionLocked: false, entries: {}, readiness: {} });
+  useProviderStore.setState({ entries: {}, readiness: {} });
   useSettingsStore.setState({ settingsNavigationTarget: null });
 });
 afterEach(async () => {

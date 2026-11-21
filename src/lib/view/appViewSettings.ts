@@ -58,7 +58,7 @@ export function projectionFrom(s: StoredSegmentation, boundaries: 'provider' | '
   };
 }
 
-/** The `boundaries` of the plan's transcription unit; `'provider'` until a provider is selected and the plan is ready — nothing here for the cut to time itself against. */
+/** The `boundaries` of the plan's transcription unit; `'provider'` until the plan is ready — nothing here for the cut to time itself against. */
 export function selectedBoundaries(): 'provider' | 'silence' {
   const found = planFromStores();
   return found.state === 'ready' ? capabilitiesOf(found, 'transcription').boundaries : 'provider';

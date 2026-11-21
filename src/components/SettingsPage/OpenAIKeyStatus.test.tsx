@@ -65,7 +65,7 @@ beforeEach(() => {
   useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null }, stored: true });
   runsOn('soniox');
   useProviderStore.setState({
-    selectionLocked: false, readiness: {},
+    readiness: {},
     entries: {
       soniox: { settings: { region: 'us' }, credentials: { apiKey: 'k', apiKeyEu: '', apiKeyJp: '' }, pair: { source: 'ja', target: 'en' } },
       openai: { settings: {}, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } },

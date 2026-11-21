@@ -26,7 +26,10 @@ import { localInferenceProvider } from '../providers/localInference/provider';
 import { kizunaSonioxProvider } from '../providers/soniox/kizuna';
 import { sonioxProvider } from '../providers/soniox/provider';
 import { ServiceFactory } from '../services/ServiceFactory';
-import { useLineUpStore } from '../stores/lineUpStore';
+import { stageProviderId, useLineUpStore } from '../stores/lineUpStore';
+import { registerPresentProviders } from '../lib/plan/present';
+import type { AnyProvider } from '../lib/provider/types';
+import { presentProviders } from '../providers/registry';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { runsOn } from '../stores/lineUpStore.testing';
@@ -35,9 +38,12 @@ import { useSegmentationStore } from '../stores/segmentationStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
 import { planFromStores } from '../lib/plan/fromStores';
 import { liveGate, readShapeFromStores } from '../lib/session/appShape';
-import { loadLineUpProviders, loadSelectedProvider, loadSessionStores } from './loadStores';
+import { loadLineUpProviders, loadSessionStores } from './loadStores';
 
 /** The keys written, besides the line-up — the one migration a load makes (owner, 2026-11-15). */
+/** The provider that transcribes, as the line-up store stands: what a launch left running. */
+const running = () => stageProviderId('transcription');
+
 const writesBesidesLineUp = () => setSetting.mock.calls.map(([key]) => key).filter((key) => key !== 'settings.lineup');
 
 const providersBefore = useProviderStore.getState();
@@ -48,10 +54,10 @@ const turnModeBefore = useTurnModeStore.getState();
 beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
-  runsOn(null);
+  // Each test starts with no line-up in memory, as a launch does. One write, and first: a watch an earlier launch
+  // left behind then sees nothing to load.
+  useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null, locked: false });
   useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
-  // Each test starts with no line-up in memory, as a launch does.
-  useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
 });
 
 afterEach(() => {
@@ -63,7 +69,7 @@ afterEach(() => {
 });
 
 describe('loadSessionStores', () => {
-  it('loads the turn mode, the routing switches, the punctuation pack, and selects the first offered provider in memory — writing nothing but the line-up', async () => {
+  it('loads the turn mode, the routing switches, the punctuation pack, and runs the first offered provider — writing nothing but the line-up', async () => {
     stored.set('settings.common.turnMode', 'push-to-talk');
     stored.set('settings.routing.meeting', false);
     const refresh = vi.fn(async () => {});
@@ -74,19 +80,19 @@ describe('loadSessionStores', () => {
     expect(useTurnModeStore.getState().turnMode).toBe('push-to-talk');
     expect(useRoutingStore.getState().meeting).toBe(false);
     expect(refresh).toHaveBeenCalledTimes(1);
-    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6), loaded and selected.
+    // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6), loaded, and what runs.
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
-    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(running()).toBe('kizunaai_soniox');
     expect(writesBesidesLineUp()).toEqual([]);
   });
 
-  it('selects the stored provider in memory, loads its entry, and never writes it back', async () => {
+  it('runs the stored provider, loads its entry, and never writes it back', async () => {
     stored.set('settings.common.provider', 'local_inference');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 
     await loadSessionStores();
 
-    expect(useProviderStore.getState().selected).toBe('local_inference');
+    expect(running()).toBe('local_inference');
     expect(useProviderStore.getState().entries.local_inference).toBeDefined();
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
   });
@@ -99,49 +105,51 @@ describe('loadSessionStores', () => {
     await loadSessionStores();
 
     // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
-    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(running()).toBe('kizunaai_soniox');
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
+    expect(stored.get('settings.common.provider')).toBe('openai_compatible');
   });
 
-  it("loads the selected provider's entry instead of the first offered, when the page already selected one", async () => {
+  it("loads the entry of the provider the page already runs instead of the first offered", async () => {
     runsOn('fake');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 
     await loadSessionStores();
 
-    expect(useProviderStore.getState().selected).toBe('fake');
+    expect(running()).toBe('fake');
     expect(useProviderStore.getState().entries.fake).toBeDefined();
     // The registry's first offered provider (Stage 2 Kizuna Soniox, ruling 6).
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeUndefined();
+    expect(setSetting).not.toHaveBeenCalledWith('settings.lineup', expect.anything());
   });
 
-  it("selects Kizuna Soniox for a stored 'kizunaai', and never writes it back", async () => {
+  it("runs Kizuna Soniox for a stored 'kizunaai', and never writes it back", async () => {
     stored.set('settings.common.provider', 'kizunaai');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 
     await loadSessionStores();
 
-    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(running()).toBe('kizunaai_soniox');
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
   });
 
-  it("selects Kizuna Soniox for a stored 'kizunaai_volcengine_ast2', and never writes it back", async () => {
+  it("runs Kizuna Soniox for a stored 'kizunaai_volcengine_ast2', and never writes it back", async () => {
     stored.set('settings.common.provider', 'kizunaai_volcengine_ast2');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 
     await loadSessionStores();
 
-    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(running()).toBe('kizunaai_soniox');
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
   });
 
-  it('selects the stored fake provider in a development build', async () => {
+  it('runs the stored fake provider in a development build', async () => {
     stored.set('settings.common.provider', 'fake');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 
     await loadSessionStores();
 
-    expect(useProviderStore.getState().selected).toBe('fake');
+    expect(running()).toBe('fake');
     expect(useProviderStore.getState().entries.fake).toBeDefined();
   });
 
@@ -255,27 +263,35 @@ describe('a launch with a stored line-up', () => {
   });
 });
 
-describe('loadSelectedProvider', () => {
-  it("selects the default managed provider for a stored 'kizunaai' even where it is not offered first, and never writes it back", async () => {
+// The provider that runs while no line-up is stored is resolved by the line-up store, over the providers offered.
+describe('the provider a launch runs, by the order the providers are offered in', () => {
+  const offer = (providers: readonly AnyProvider[]) => registerPresentProviders(() => providers);
+  afterEach(() => registerPresentProviders(presentProviders));
+
+  it("is the default managed provider for a stored 'kizunaai' even where it is not offered first, and is never written back", async () => {
     stored.set('settings.common.provider', 'kizunaai');
     // Not the registry's order: here the first offered is not the managed default, so landing on the first offered would not pass.
-    await loadSelectedProvider(ServiceFactory.getSettingsService(), [localInferenceProvider, sonioxProvider, kizunaSonioxProvider]);
+    offer([localInferenceProvider, sonioxProvider, kizunaSonioxProvider]);
+    await useLineUpStore.getState().load();
+    await loadLineUpProviders([localInferenceProvider, sonioxProvider, kizunaSonioxProvider]);
 
-    expect(useProviderStore.getState().selected).toBe('kizunaai_soniox');
+    expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'kizunaai_soniox' });
     expect(useProviderStore.getState().entries.kizunaai_soniox).toBeDefined();
     expect(setSetting).not.toHaveBeenCalledWith('settings.common.provider', expect.anything());
   });
 
-  it('keeps a stored own-key provider that is offered, though a managed default is offered too', async () => {
+  it('is a stored own-key provider that is offered, though a managed default is offered too', async () => {
     stored.set('settings.common.provider', 'soniox');
-    await loadSelectedProvider(ServiceFactory.getSettingsService(), [kizunaSonioxProvider, localInferenceProvider, sonioxProvider]);
+    offer([kizunaSonioxProvider, localInferenceProvider, sonioxProvider]);
+    await useLineUpStore.getState().load();
+    await loadLineUpProviders([kizunaSonioxProvider, localInferenceProvider, sonioxProvider]);
 
-    expect(useProviderStore.getState().selected).toBe('soniox');
+    expect(useLineUpStore.getState().lineUp).toMatchObject({ transcription: 'soniox' });
     expect(useProviderStore.getState().entries.soniox).toBeDefined();
   });
 });
 
-// A provider may serve a stage of the plan without being the selected one: its entry is loaded all the same.
+// Every provider the line-up names has its entry loaded, and so has the provider that runs while none is stored.
 describe("the entries of the line-up's providers", () => {
   const offered = [kizunaSonioxProvider, sonioxProvider, localInferenceProvider];
   const lineUp = (transcription: string, translation: string, speech: string) => ({ transcription, translation, speech, summarisation: null });
@@ -299,6 +315,12 @@ describe("the entries of the line-up's providers", () => {
     await loadLineUpProviders(offered);
     expect(load).not.toHaveBeenCalled();
     expect(useProviderStore.getState().entries).toEqual({ local_inference: entry });
+  });
+
+  it('loads the provider that runs while no line-up is stored, though the line-up shown does not name it', async () => {
+    useLineUpStore.setState({ lineUp: lineUp('local_inference', 'bing', 'edge'), stored: false, unstoredProvider: 'soniox' });
+    await loadLineUpProviders(offered);
+    expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
   });
 
   it('loads nothing with no line-up, or for a provider this build does not offer', async () => {
@@ -325,7 +347,7 @@ describe("the entries of the line-up's providers", () => {
     stored.set('settings.common.provider', 'soniox');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
     await loadSessionStores();
-    // The plan follows the selection: the line-up names the selected provider alone, and nothing else was loaded.
+    // The line-up worked out at launch names the stored provider alone, and nothing else was loaded.
     expect(Object.keys(useProviderStore.getState().entries)).toEqual(['soniox']);
 
     useLineUpStore.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
