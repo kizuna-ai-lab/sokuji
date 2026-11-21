@@ -17,7 +17,7 @@ const named = (calls: StubCalls) => calls.map((c) => c[0]);
  * (`stub_voice`: speech). Each provider reads its own credentials, answers its own readiness and describes its own
  * models; every build is listed with the models it was handed. `hooks`: the text provider's session hooks.
  */
-function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; hooks?: SessionHooks<unknown, unknown, unknown> } = {}) {
+function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; hooks?: SessionHooks<unknown, unknown, unknown>; lineUpStored?: boolean } = {}) {
   const clock = createVirtualClock(0);
   const calls: StubCalls = [];
   const builds: Array<{ provider: string; shared: SharedSettings }> = [];
@@ -38,6 +38,7 @@ function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; hooks?
     plan: textAndSpeechPlan(text.planned, voice.planned),
     accounts: { stub_text: { settings: {}, credentials: {} }, stub_voice: { settings: {}, credentials: {} } },
     lineUp: { transcription: 'stub_text', translation: 'stub_text', speech: 'stub_voice' },
+    ...(o.lineUpStored === undefined ? {} : { lineUpStored: o.lineUpStored }),
     pair: { source: 'en', target: 'ja' },
     legs: o.legs ?? ['speaker'],
     turnMode: 'auto',
@@ -118,6 +119,18 @@ describe('a run over a plan of a text unit and a speech unit', () => {
     expect(h.tracked.find(([event]) => event === 'translation_session_start')![1]).toMatchObject({
       provider: 'stub_text', asr_model: 'text-asr', translation_model: 'text-translation', tts_model: 'voice-tts',
     });
+  });
+
+  it('hands every builder the line-up frozen at start when it is the stored one, and none otherwise', async () => {
+    const stored = setup({ legs: ['speaker', 'participant'], participantSpeech: true, lineUpStored: true });
+    await stored.runner.start();
+    expect(stored.builds.map((b) => b.shared.lineUp)).toEqual(Array(4).fill({ transcription: 'stub_text', translation: 'stub_text', speech: 'stub_voice' }));
+    for (const lineUpStored of [false, undefined]) {
+      const none = setup({ lineUpStored });
+      await none.runner.start();
+      expect(none.builds).toHaveLength(2);
+      expect(none.builds.every((b) => !('lineUp' in b.shared))).toBe(true);
+    }
   });
 
   it("builds each unit with its own provider's models, and the same of everything else", async () => {

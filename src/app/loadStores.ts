@@ -7,6 +7,8 @@
  */
 import { useWordList } from '../lib/words/list';
 import { describeCause, reportWarning } from '../lib/diagnostics/report';
+import { optionFor } from '../lib/lineup/catalog';
+import { RUN_STAGES } from '../lib/lineup/types';
 import type { AnyProvider } from '../lib/provider/types';
 import { legacyTurnModeKey, migrateTurnMode, selectionFromStored } from '../lib/session/storedSettings';
 import { presentProviders } from '../providers/registry';
@@ -32,6 +34,50 @@ export async function loadSelectedProvider(service: Pick<ISettingsService, 'getS
   if (!provider) return;
   if (useProviderStore.getState().selected !== provider.id) useProviderStore.getState().select(provider.id, 'load');
   await useProviderStore.getState().load(provider);
+}
+
+/**
+ * The loads `loadLineUpProviders` has started and not seen settle, by provider id. An entry appears only when its
+ * load ends, so a call made meanwhile still sees it missing: it waits for the load under way instead of starting
+ * another, whose values would replace settings written since the first one landed.
+ */
+const lineUpLoads = new Map<string, Promise<void>>();
+
+function loadOnce(p: AnyProvider): Promise<void> {
+  const under = lineUpLoads.get(p.id);
+  if (under) return under;
+  const started = useProviderStore.getState().load(p).finally(() => {
+    if (lineUpLoads.get(p.id) === started) lineUpLoads.delete(p.id);
+  });
+  lineUpLoads.set(p.id, started);
+  return started;
+}
+
+/**
+ * The entry of every provider the line-up names is loaded: a provider that serves a stage of the plan without being
+ * the selected one (the local provider reading another provider's text) has its settings at hand for the plan, the
+ * start and the settings that show them. A provider already loaded, or not offered here, is left alone; one being
+ * loaded by an earlier call is waited for, not loaded again.
+ */
+export async function loadLineUpProviders(offered: readonly AnyProvider[]): Promise<void> {
+  const { lineUp } = useLineUpStore.getState();
+  if (!lineUp) return;
+  const hosts = new Set(RUN_STAGES.map((stage) => optionFor(lineUp, stage)?.host));
+  const { entries } = useProviderStore.getState();
+  await Promise.all(offered.filter((p) => hosts.has(p.id) && !entries[p.id]).map(loadOnce));
+}
+
+/** Stops the watch of the line-up a previous `loadSessionStores` started. */
+let stopWatchingLineUp: (() => void) | null = null;
+
+/** Keeps `loadLineUpProviders` true as the line-up changes: a choice may name a provider that was never opened. */
+function watchLineUpProviders(offered: readonly AnyProvider[]): void {
+  stopWatchingLineUp?.();
+  stopWatchingLineUp = useLineUpStore.subscribe((now, before) => {
+    if (now.lineUp === before.lineUp) return;
+    loadLineUpProviders(offered).catch((error: unknown) =>
+      reportWarning('AppSession', `Loading the line-up's providers failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'load:line-up-providers' }));
+  });
 }
 
 /** The global turn mode, migrated once from the stored provider's slice (1e-3 ruling 3); written only by that migration. */
@@ -74,4 +120,11 @@ export async function loadSessionStores(): Promise<void> {
   } catch (error) {
     reportWarning('AppSession', `Loading the line-up failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'load:line-up' });
   }
+  // Every provider the line-up names, now and after each later choice.
+  try {
+    await loadLineUpProviders(offered);
+  } catch (error) {
+    reportWarning('AppSession', `Loading the line-up's providers failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'load:line-up-providers' });
+  }
+  watchLineUpProviders(offered);
 }

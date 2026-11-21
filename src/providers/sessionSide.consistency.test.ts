@@ -95,9 +95,13 @@ function resolveFile(root: string, from: string, spec: string): string | null {
 /**
  * A provider's voice, where it is a unit of its own, runs a session beside the adapter's and is held to the same
  * rules: the file that runs it, by provider folder. Soniox's is `speech.ts` (`LegSpeech`); its speech unit
- * (`ttsUnit.ts`) wraps it and also builds the voice's config, which is the settings side.
+ * (`ttsUnit.ts`) wraps it and also builds the voice's config, which is the settings side. The local provider's is
+ * `speechSession.ts`; its speech unit (`speechUnit.ts`) resolves the voice from the model store, the settings side.
  */
-const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = { 'src/providers/soniox': ['speech.ts'] };
+const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
+  'src/providers/soniox': ['speech.ts'],
+  'src/providers/localInference': ['speechSession.ts'],
+};
 
 /** `dir/adapter.ts`, the files that run the provider's voice, and every file of `dir` they reach by value imports. */
 function sessionSide(root: string, dir: string): string[] {
@@ -189,8 +193,11 @@ describe('a provider session side', () => {
         'src/providers/localInference/engines.ts',
         'src/providers/localInference/sentenceCut.ts',
         'src/providers/localInference/speech.ts',
+        'src/providers/localInference/speechSession.ts',
       ]),
     );
+    // The local voice's unit reads the model store to build its config: the settings side, not the session's.
+    expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/speechUnit.ts');
     const fake = sessionSide(REPO_ROOT, 'src/providers/fake');
     expect(fake).toEqual(expect.arrayContaining(['src/providers/fake/adapter.ts', 'src/providers/fake/synth.ts']));
     expect(fake).not.toContain('src/providers/fake/script.ts');
