@@ -37,16 +37,34 @@ export async function loadSelectedProvider(service: Pick<ISettingsService, 'getS
 }
 
 /**
+ * The loads `loadLineUpProviders` has started and not seen settle, by provider id. An entry appears only when its
+ * load ends, so a call made meanwhile still sees it missing: it waits for the load under way instead of starting
+ * another, whose values would replace settings written since the first one landed.
+ */
+const lineUpLoads = new Map<string, Promise<void>>();
+
+function loadOnce(p: AnyProvider): Promise<void> {
+  const under = lineUpLoads.get(p.id);
+  if (under) return under;
+  const started = useProviderStore.getState().load(p).finally(() => {
+    if (lineUpLoads.get(p.id) === started) lineUpLoads.delete(p.id);
+  });
+  lineUpLoads.set(p.id, started);
+  return started;
+}
+
+/**
  * The entry of every provider the line-up names is loaded: a provider that serves a stage of the plan without being
  * the selected one (the local provider reading another provider's text) has its settings at hand for the plan, the
- * start and the settings that show them. A provider already loaded, or not offered here, is left alone.
+ * start and the settings that show them. A provider already loaded, or not offered here, is left alone; one being
+ * loaded by an earlier call is waited for, not loaded again.
  */
 export async function loadLineUpProviders(offered: readonly AnyProvider[]): Promise<void> {
   const { lineUp } = useLineUpStore.getState();
   if (!lineUp) return;
   const hosts = new Set(RUN_STAGES.map((stage) => optionFor(lineUp, stage)?.host));
-  const { entries, load } = useProviderStore.getState();
-  await Promise.all(offered.filter((p) => hosts.has(p.id) && !entries[p.id]).map((p) => load(p)));
+  const { entries } = useProviderStore.getState();
+  await Promise.all(offered.filter((p) => hosts.has(p.id) && !entries[p.id]).map(loadOnce));
 }
 
 /** Stops the watch of the line-up a previous `loadSessionStores` started. */

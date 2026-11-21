@@ -253,6 +253,19 @@ describe("the entries of the line-up's providers", () => {
     expect(useProviderStore.getState().entries).toEqual({});
   });
 
+  it('two calls that overlap load a provider once', async () => {
+    const load = vi.spyOn(useProviderStore.getState(), 'load');
+    useLineUpStore.setState({ lineUp: lineUp('soniox', 'soniox', 'local_inference'), stored: true });
+    // The second starts before the first has loaded anything: both see the entries missing.
+    await Promise.all([loadLineUpProviders(offered), loadLineUpProviders(offered)]);
+    expect(load.mock.calls.map(([p]) => p.id).sort()).toEqual(['local_inference', 'soniox']);
+    expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+    // Once settled, a load is not held on to: an entry dropped since is loaded again.
+    useProviderStore.setState({ entries: { soniox: useProviderStore.getState().entries.soniox } });
+    await loadLineUpProviders(offered);
+    expect(load.mock.calls.map(([p]) => p.id).sort()).toEqual(['local_inference', 'local_inference', 'soniox']);
+  });
+
   it('a launch loads them, and so does every later change of the line-up', async () => {
     stored.set('settings.common.provider', 'soniox');
     useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });

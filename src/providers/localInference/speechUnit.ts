@@ -16,7 +16,7 @@ import { defaultEngines, type LocalEngines } from './engines';
 import type { LocalInferenceSettings } from './settings';
 import { isOff, startLocalSpeech, type LocalSpeechConfig } from './speechSession';
 
-export type { LocalSpeechConfig } from './speechSession';
+export type { LocalSpeechConfig, LocalSpeechOff } from './speechSession';
 
 export type LocalSpeechUnit = UnitDefinition<LocalInferenceSettings, LocalCredentials, LocalSpeechConfig>;
 
@@ -60,10 +60,26 @@ export function createLocalSpeechUnit(deps: LocalSpeechUnitDeps = {}): LocalSpee
 
 export const localSpeechUnit: LocalSpeechUnit = createLocalSpeechUnit();
 
-/** Whether the configs a provider's `admit` was handed are this unit's: some leg has one, and none names a recognition model. */
+/**
+ * Whether one leg's config is this unit's, told by the shape a speech config has: a leg built silent (`off`), or
+ * a voice, which names its model and speed at the top and no recognition model. The whole local session's config
+ * always names a recognition model (`asr`) and keeps its voice, when it has one, a level down (`tts`), so
+ * neither is ever taken for the other.
+ */
+function isLocalSpeechConfig(config: unknown): config is LocalSpeechConfig {
+  if (typeof config !== 'object' || config === null) return false;
+  if (isOff(config as LocalSpeechConfig)) return (config as { off: unknown }).off === true;
+  return 'modelId' in config && 'speed' in config && !('asr' in config);
+}
+
+/**
+ * Whether the configs a provider's `admit` was handed are this unit's, not the whole local session's: some leg
+ * has one, and every one given is a speech config. The one place that tells the two apart, for `admit` to choose
+ * the budget by: the voice's own models, or the whole session's.
+ */
 export function areLocalSpeechConfigs(configs: Partial<Record<LegName, unknown>>): configs is Partial<Record<LegName, LocalSpeechConfig>> {
   const given = Object.values(configs).filter((c) => c !== undefined && c !== null);
-  return given.length > 0 && given.every((c) => typeof c === 'object' && !('asr' in (c as object)));
+  return given.length > 0 && given.every(isLocalSpeechConfig);
 }
 
 /**

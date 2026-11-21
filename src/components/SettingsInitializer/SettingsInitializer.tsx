@@ -54,9 +54,11 @@ export function SettingsInitializer() {
     if (!speaks || !settings || !source || !target) return;
     const spoken = [{ src: source, tgt: target }, ...(participantSpeaks ? [{ src: target, tgt: source }] : [])];
     const { resolve } = useModelStore.getState();
-    const onEdge = voiceAlone
-      ? (lineUpSpeech === 'edge' ? spoken : [])
-      : spoken.filter((d) => resolve(d.src, d.tgt, settings.selections).tts?.modelId === 'edge-tts');
+    // Which of them Edge reads: all or none by the line-up while the voice is alone, else each by its own selection.
+    let onEdge: typeof spoken;
+    if (!voiceAlone) onEdge = spoken.filter((d) => resolve(d.src, d.tgt, settings.selections).tts?.modelId === 'edge-tts');
+    else if (lineUpSpeech === 'edge') onEdge = spoken;
+    else onEdge = [];
     if (onEdge.length === 0) return;
     let cancelled = false;
     getEdgeTtsVoices()

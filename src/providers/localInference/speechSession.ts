@@ -20,13 +20,15 @@ import type { TtsLike } from './engines';
 import { speakTranslation, ttsLoadFailed, ttsMissing, ttsStopped, voiceFallback } from './speech';
 
 /**
- * The unit's config: the leg's voice. `off`: built for a leg that has no voice to start, which names no speech
- * model; with `unavailable`, the leg should speak and no speech model speaks its target (#619), said once when
- * the session opens.
+ * The config of a leg that has no voice to start, which names no speech model; with `unavailable`, the leg should
+ * speak and no speech model speaks its target (#619), said once when the session opens.
  */
-export type LocalSpeechConfig = LocalTtsConfig | { off: true; unavailable?: TtsUnavailableCode };
+export interface LocalSpeechOff { off: true; unavailable?: TtsUnavailableCode }
 
-export const isOff = (config: LocalSpeechConfig): config is { off: true; unavailable?: TtsUnavailableCode } => 'off' in config;
+/** The unit's config: the leg's voice, or `LocalSpeechOff` for a leg built silent. */
+export type LocalSpeechConfig = LocalTtsConfig | LocalSpeechOff;
+
+export const isOff = (config: LocalSpeechConfig): config is LocalSpeechOff => 'off' in config;
 
 /** One stretch of a row's translation waiting to be read. */
 interface Job { ref: Ref; text: string; span: TextRange; language: string; home?: LegName }

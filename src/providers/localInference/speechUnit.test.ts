@@ -615,6 +615,28 @@ describe("the local provider's speech unit", () => {
       expect(areLocalSpeechConfigs({})).toBe(false);
     });
 
+    it('never takes a whole-session config for a voice, with or without a voice in it, nor a voice for a whole session', () => {
+      const whole = buildLocalInference(ctx(JA_EN), SETTINGS, shared()) as LocalInferenceConfig;
+      const { tts: _tts, ...voiceless } = whole;
+      const voiced: LocalInferenceConfig = { ...voiceless, tts: LOCAL_VOICE };
+      for (const config of [voiced, voiceless, { ...voiceless, ttsUnavailable: 'speaker_tts_missing' }]) {
+        expect(areLocalSpeechConfigs({ speaker: config })).toBe(false);
+        expect(areLocalSpeechConfigs({ speaker: config, participant: config })).toBe(false);
+        // One leg of each never happens; were it to, the whole-session budget counts it.
+        expect(areLocalSpeechConfigs({ speaker: LOCAL_VOICE, participant: config })).toBe(false);
+      }
+      const voices: LocalSpeechConfig[] = [LOCAL_VOICE, EDGE_VOICE, { off: true }, { off: true, unavailable: 'participant_tts_missing' }];
+      for (const config of voices) {
+        expect(areLocalSpeechConfigs({ speaker: config })).toBe(true);
+        expect(areLocalSpeechConfigs({ participant: config, speaker: undefined })).toBe(true);
+      }
+      // A voice is known by what it has, not by what it lacks: a config of neither shape is not one.
+      expect(areLocalSpeechConfigs({ speaker: {} })).toBe(false);
+      expect(areLocalSpeechConfigs({ speaker: { modelId: 'fake-tts-model' } })).toBe(false);
+      expect(areLocalSpeechConfigs({ speaker: { ...LOCAL_VOICE, asr: whole.asr } })).toBe(false);
+      expect(areLocalSpeechConfigs({ speaker: 'edge-tts' })).toBe(false);
+    });
+
     it('counts the voice models of the legs that speak, and nothing else', () => {
       mockSizes = { 'tts-en': 300, 'tts-ja': 300, 'asr-ja': 5000 };
       const voice = (modelId: string): LocalTtsConfig => ({ modelId, speakerId: 0, speed: 1 });

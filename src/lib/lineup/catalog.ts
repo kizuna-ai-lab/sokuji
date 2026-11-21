@@ -74,7 +74,7 @@ export function allStagesBy(id: string): StageIds {
  * While the provider store's selection runs the session, a line-up not stored yet, or one the selection does not
  * run, is not what runs.
  */
-export function storedLineUpRuns(lineUp: Pick<LineUp, RunStage> | null, stored: boolean, providerId: string): lineUp is Pick<LineUp, RunStage> {
+export function storedLineUpRuns(lineUp: Pick<LineUp, RunStage> | null, stored: boolean, providerId: string): boolean {
   return stored && lineUp !== null && soleHost(lineUp) === providerId;
 }
 
@@ -84,7 +84,7 @@ export function storedLineUpRuns(lineUp: Pick<LineUp, RunStage> | null, stored: 
  * about the run.
  */
 export function stageIdsFor(lineUp: Pick<LineUp, RunStage> | null, stored: boolean, providerId: string): StageIds {
-  if (!storedLineUpRuns(lineUp, stored, providerId)) return allStagesBy(providerId);
+  if (lineUp === null || !storedLineUpRuns(lineUp, stored, providerId)) return allStagesBy(providerId);
   // A sole host means every stage names a known option, so none is null here.
   return { transcription: lineUp.transcription!, translation: lineUp.translation!, speech: lineUp.speech! };
 }
