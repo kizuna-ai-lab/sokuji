@@ -276,6 +276,17 @@ describe('languages and line-up', () => {
     expect(screen.queryByText('Also transcribes imported files and records again.')).toBeNull();
   });
 
+  it("says it for Kizuna AI's Soniox too, which transcribes files through the sign-in, and not for Kizuna AI's Qwen", () => {
+    env.electron = true;
+    useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null }, stored: true });
+    const { unmount } = render(<LineUpCategory locked={false} />);
+    expect(screen.getByText('Also transcribes imported files and records again.')).toBeInTheDocument();
+    unmount();
+    useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByText('Also transcribes imported files and records again.')).toBeNull();
+  });
+
   it("says on a stage how many word list entries its service leaves out, once per service", () => {
     useWordList.setState({ entries: Array.from({ length: 1005 }, (_, i) => ({ written: `w${i}`, translation: `t${i}` })), background: '', loaded: true });
     useLineUpStore.setState({ lineUp: { transcription: 'qwen_livetranslate', translation: 'qwen_livetranslate', speech: 'qwen_livetranslate', summarisation: null }, stored: true });
