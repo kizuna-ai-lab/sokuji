@@ -14,11 +14,12 @@ import { FONT_SIZE_MAX, FONT_SIZE_MIN, useSubtitleStore, type DisplayMode } from
 import useSettingsStore from '../../stores/settingsStore';
 import DisplaySettingsPopover from '../Display/DisplaySettingsPopover';
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
+import { usePlanOnceSelected } from '../../lib/plan/fromStores';
+import { transcriptionAccount } from '../../lib/plan/read';
 import { useReadingTargets } from '../../lib/reading/useReadingTargets';
 import { isElectron } from '../../utils/environment';
 import { DisplayPreview, type PreviewValues } from './DisplayPreview';
 import { previewLanguages } from './displaySamples';
-import { useProviderStore } from '../../stores/providerStore';
 import type { CategoryBodyProps } from './SettingsPage';
 
 type Surface = 'conversation' | 'subtitle';
@@ -80,10 +81,12 @@ export function DisplayCategory(_props: CategoryBodyProps) {
   // Readings follow each surface's own rule: always in the main window; in caption mode on the desktop, not compact.
   const readingTargets = useReadingTargets();
   const readingsHere = surface === 'conversation' || (isElectron() && !s.compact) ? readingTargets : undefined;
-  // The sample speaks the selected provider's pair, as the surfaces do (B-22); a side without a sample takes the
-  // interface language.
-  const source = useProviderStore((st) => (st.selected ? st.entries[st.selected]?.pair?.source ?? null : null));
-  const target = useProviderStore((st) => (st.selected ? st.entries[st.selected]?.pair?.target ?? null : null));
+  // The sample speaks the run's pair, the plan's transcription provider's once a provider is selected, as the surfaces
+  // do (B-22); a side without a sample takes the interface language.
+  const plan = usePlanOnceSelected();
+  const pair = plan.state === 'ready' ? transcriptionAccount(plan).pair : null;
+  const source = pair?.source ?? null;
+  const target = pair?.target ?? null;
   const ui = i18n.resolvedLanguage ?? i18n.language;
   const languages = useMemo(() => previewLanguages(source && target ? { source, target } : null, ui), [source, target, ui]);
   const compactLabel = t('settingsPage.display.compact', 'Compact view');

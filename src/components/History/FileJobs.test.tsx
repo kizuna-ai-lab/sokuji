@@ -11,7 +11,7 @@ import { useAccountStore } from '../../stores/accountStore';
 import { openExternalUrl } from '../../utils/openExternalUrl';
 import i18n from '../../locales';
 import { HistoryPageContext } from './historyContext';
-import { FileJobLine, ImportPanel, TranscribePanel, TranscriptChooser } from './FileJobs';
+import { FileJobLine, ImportPanel, myLanguageNow, TranscribePanel, TranscriptChooser } from './FileJobs';
 import { PIN_SEPARATOR } from '../../lib/language/order';
 
 /** A language list's two parts, as the source and target lists have them: the likely languages, a line, then all. */
@@ -23,6 +23,8 @@ function parts(select: HTMLSelectElement) {
   return { likely: values.slice(0, line), all: values.slice(line + 1) };
 }
 import { useSettingsStore } from '../../stores/settingsStore';
+import { useProviderStore } from '../../stores/providerStore';
+import { presentProviders } from '../../providers/registry';
 import en from '../../locales/en/translation.json';
 import zhCN from '../../locales/zh_CN/translation.json';
 import zhTW from '../../locales/zh_TW/translation.json';
@@ -103,6 +105,27 @@ afterEach(() => {
   cleanup();
   useAccountStore.setState({ account: null, refreshAccount: null });
   vi.mocked(openExternalUrl).mockClear();
+});
+
+// The language an import starts with: the selected service's own side, once its entry has loaded.
+describe('myLanguageNow', () => {
+  it("is the selected service's own side once its entry has loaded, else the interface's", () => {
+    const before = useProviderStore.getState();
+    const first = presentProviders()[0];
+    const loaded = (source: string) => ({ [first.id]: { settings: first.settings.defaults, credentials: {}, pair: { source, target: 'zh' } } });
+    // Nothing selected yet: the first service offered is not read, even once its entry has loaded.
+    useProviderStore.setState({ selected: null, entries: loaded('ja-JP') });
+    expect(myLanguageNow('en-US')).toBe('en');
+    useProviderStore.setState({ selected: first.id, entries: {} });
+    expect(myLanguageNow('en-US')).toBe('en');
+    useProviderStore.setState({ entries: loaded('ja-JP') });
+    expect(myLanguageNow('en-US')).toBe('ja');
+    useProviderStore.setState({ entries: loaded('auto') });
+    expect(myLanguageNow('en-US')).toBe('en');
+    useProviderStore.setState({ entries: loaded('ja+en') });
+    expect(myLanguageNow('en-US')).toBe('en');
+    useProviderStore.setState({ selected: before.selected, entries: before.entries });
+  });
 });
 
 describe('importing a file', () => {

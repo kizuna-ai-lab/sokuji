@@ -3,9 +3,9 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '../Modal/Modal';
 import { useTour } from '../Tour/TourProvider';
+import { usePlan } from '../../lib/plan/fromStores';
 import { faceToFaceFromStores, speechFromStores } from '../../lib/session/appShape';
 import useAudioStore from '../../stores/audioStore';
-import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTextOnly } from '../../stores/settingsStore';
 import { useVbCablePresence, useVbCableStore } from '../../stores/vbCableStore';
@@ -31,8 +31,7 @@ const VbCableIntro: React.FC = () => {
   useTextOnly();
   useAudioStore((s) => s.mode);
   useAudioStore((s) => s.otherSide);
-  useProviderStore((s) => s.selected);
-  useProviderStore((s) => s.entries);
+  usePlan();
   useRoutingStore((s) => s.participantSpeech);
   const [open, setOpen] = useState(false);
 

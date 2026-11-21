@@ -16,11 +16,12 @@ import type { FileTranscriptionOptions } from '../../lib/history/types';
 import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../lib/language/order';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import { usd } from '../../lib/notes/notesPricing';
+import { planOnceSelected } from '../../lib/plan/fromStores';
+import { transcriptionAccount } from '../../lib/plan/read';
 import { NOT_ORG_MEMBER, ORG_BALANCE_HELD, ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, orgNoticeParams } from '../../lib/session/orgNotice';
 import { useAccountPayer } from '../../lib/session/payerChoice';
 import { noticeText } from '../../lib/view/noticeText';
 import { useAccountStore } from '../../stores/accountStore';
-import { useProviderStore } from '../../stores/providerStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useHistoryPageContext } from './historyContext';
@@ -29,10 +30,10 @@ import { providerTarget } from '../SettingsPage/accountRows';
 
 const baseOf = (code: string) => code.split(/[-_]/)[0].toLowerCase();
 
-/** The user's language now: the selected service's own side, else the interface's. */
+/** The user's language now: the plan's transcription provider's own side once a provider is selected, else the interface's. */
 export function myLanguageNow(ui: string): string {
-  const { selected, entries } = useProviderStore.getState();
-  const source = selected ? entries[selected]?.pair.source : undefined;
+  const found = planOnceSelected();
+  const source = found.state === 'ready' ? transcriptionAccount(found).pair.source : undefined;
   return source && source !== 'auto' && !source.includes('+') ? baseOf(source) : baseOf(ui);
 }
 

@@ -18,8 +18,30 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   getEnvironment: () => environment.value,
 }));
 
+// The providers offered here are the registry's, unless a case offers the fake first.
+const offered = vi.hoisted(() => ({ fakeFirst: false }));
+vi.mock('../../providers/registry', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../providers/registry')>();
+  return {
+    ...actual,
+    presentProviders: () => {
+      const present = actual.presentProviders();
+      return offered.fakeFirst ? [...present.filter((p) => p.id === 'fake'), ...present.filter((p) => p.id !== 'fake')] : present;
+    },
+  };
+});
+
+// The plan a start would run is the stores' unless a case builds one by hand (a plan of two providers).
+const planned = vi.hoisted(() => ({ found: null as unknown }));
+vi.mock('../plan/fromStores', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../plan/fromStores')>();
+  return { ...actual, planOnceSelected: () => (planned.found ?? actual.planOnceSelected()) as ReturnType<typeof actual.planOnceSelected> };
+});
+
 import { createStore } from 'zustand/vanilla';
 import type { Leg } from '../conversation/types';
+import type { PlannedUnit } from '../plan/types';
+import { unitsOf } from '../plan/wholeUnit';
 import type { Runner } from '../session/runner';
 import type { RunState } from '../session/types';
 import type { ConversationViewState, Readable } from '../view/conversationView';
@@ -51,6 +73,8 @@ afterEach(() => {
   useSettingsStore.setState(settingsBefore, true);
   useRoutingStore.setState(routingBefore, true);
   environment.value = 'electron';
+  offered.fakeFirst = false;
+  planned.found = null;
 });
 
 function setup(options?: { microphoneRequired?(): boolean; provider?: boolean; view?: Readable<ConversationViewState> }) {
@@ -249,5 +273,52 @@ describe('appSubtitleSession — providerLoaded (1e-3b-1 ruling 11)', () => {
     await useProviderStore.getState().load(fakeProvider);
     expect(listener).toHaveBeenCalled();
     expect(session.get().canStart).toBe(true);
+  });
+
+  it('keeps Start off while no provider is selected yet, even once the first offered provider has loaded', () => {
+    offered.fakeFirst = true;
+    useProviderStore.setState({ selected: null, entries: { fake: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } } } });
+    const { session } = setup({ provider: false });
+    expect(session.get().canStart).toBe(false);
+    // The launch load selects it: Start turns on, so it was the selection that held it off.
+    useProviderStore.setState({ selected: 'fake' });
+    expect(session.get().canStart).toBe(true);
+  });
+});
+
+describe('appSubtitleSession — every provider of the plan', () => {
+  const pair = { source: 'en', target: 'ja' };
+  const ready = { state: 'ready' as const, models: [] };
+  const signedOut = { state: 'not-ready' as const, reason: 'Sign in first.', code: 'sign_in_required' };
+
+  /** A plan built by hand: the fake transcribes and translates, the leased fake speaks. */
+  function planTwoProviders(): void {
+    const tr: PlannedUnit = { provider: fakeProvider, unit: unitsOf(fakeProvider)[0], stages: ['transcription', 'translation'] };
+    const sp: PlannedUnit = { provider: fakeLeasedProvider, unit: unitsOf(fakeLeasedProvider)[0], stages: ['speech'] };
+    planned.found = {
+      state: 'ready',
+      plan: { units: [tr, sp], byStage: { transcription: tr, translation: tr, speech: sp } },
+      accounts: { fake: { settings: {}, credentials: {}, pair }, fake_leased: { settings: {}, credentials: {}, pair } },
+    };
+  }
+
+  it('keeps Start off until every provider of the plan is ready, and shows the one that is not', () => {
+    planTwoProviders();
+    const { session } = setup();
+    useProviderStore.setState({ readiness: { fake: ready, fake_leased: signedOut } });
+    expect(session.get()).toMatchObject({ canStart: false, idle: { kind: 'unready', message: 'Sign in first.', code: 'sign_in_required' } });
+
+    useProviderStore.setState({ readiness: { fake: ready, fake_leased: { state: 'checking' } } });
+    expect(session.get().canStart).toBe(false);
+
+    useProviderStore.setState({ readiness: { fake: ready, fake_leased: ready } });
+    expect(session.get().canStart).toBe(true);
+  });
+
+  it("shows a provider's reason before another one's check under way", () => {
+    planTwoProviders();
+    const { session } = setup();
+    useProviderStore.setState({ readiness: { fake: { state: 'checking' }, fake_leased: signedOut } });
+    expect(session.get()).toMatchObject({ canStart: false, idle: { kind: 'unready', message: 'Sign in first.' } });
   });
 });

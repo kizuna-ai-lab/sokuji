@@ -8,11 +8,11 @@ import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
-import { accountOf, capabilitiesOf, transcriptionProvider } from '../plan/read';
-import { wholePlan } from '../plan/wholeUnit';
+import { planFromStores } from '../plan/fromStores';
+import { accountOf, capabilitiesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
+import type { UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
-import { presentProviders } from '../../providers/registry';
 import { accountPayer } from './payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
@@ -30,50 +30,58 @@ export function legsFor(mode: 'speaker' | 'participant' | 'both'): LegName[] {
   return mode === 'both' ? ['speaker', 'participant'] : [mode];
 }
 
-/** The provider a start would run and its loaded entry, as `readShapeFromStores` finds them; null until the entry has loaded. */
+/** The provider a start would run and its loaded entry: the plan's transcription provider, as `planFromStores` finds it; null until the plan is ready. */
 export function selectedFromStores(): { provider: AnyProvider; entry: ProviderEntry } | null {
-  const { selected, entries } = useProviderStore.getState();
-  const providers = presentProviders();
-  const provider = providers.find((p) => p.id === selected) ?? providers[0];
-  const entry = provider ? entries[provider.id] : undefined;
-  return provider && entry ? { provider, entry } : null;
+  const found = planFromStores();
+  if (found.state !== 'ready') return null;
+  const provider = transcriptionProvider(found.plan);
+  return { provider, entry: found.accounts[provider.id] };
 }
 
 /** The providers that take a capture area: Qwen, with your own key and managed; they share one settings shape. */
 const SCREEN_CONTEXT_PROVIDERS: ReadonlySet<string> = new Set(['qwen_livetranslate', 'kizunaai_qwen']);
 
-/**
- * The selected provider is a Qwen provider with its Screen context switch on
- * (spec 2026-10-22 §3.1): the provider a start would run, as
- * `selectedFromStores` finds it, so a Qwen slice under another provider, or
- * where Qwen is not offered, wants nothing.
- */
-export function screenContextWanted(): boolean {
-  const selected = selectedFromStores();
-  if (!selected || !SCREEN_CONTEXT_PROVIDERS.has(selected.provider.id)) return false;
-  return (selected.entry.settings as { screenContext?: unknown }).screenContext === true;
+/** The provider whose unit transcribes in the plan as the stores stand, and its settings; null until the plan is ready. */
+function transcriptionFromStores(): { provider: AnyProvider; settings: unknown } | null {
+  const found = planFromStores();
+  if (found.state !== 'ready') return null;
+  const provider = transcriptionProvider(found.plan);
+  return { provider, settings: found.accounts[provider.id].settings };
 }
 
 /**
- * Start without screen context, chosen in the Start-time picker (owner, 2026-10-22, ruling 3): the selected Qwen
- * provider's switch written off, so the setting and the run agree; turning it on again asks again. Nothing under
+ * The provider whose unit transcribes is a Qwen provider with its Screen
+ * context switch on (spec 2026-10-22 §3.1): in the plan a start would run, as
+ * `planFromStores` finds it, so a Qwen slice under another provider, or
+ * where Qwen is not offered, wants nothing.
+ */
+export function screenContextWanted(): boolean {
+  const transcription = transcriptionFromStores();
+  if (!transcription || !SCREEN_CONTEXT_PROVIDERS.has(transcription.provider.id)) return false;
+  return (transcription.settings as { screenContext?: unknown }).screenContext === true;
+}
+
+/**
+ * Start without screen context, chosen in the Start-time picker (owner, 2026-10-22, ruling 3): the transcribing
+ * Qwen provider's switch written off, so the setting and the run agree; turning it on again asks again. Nothing under
  * another provider.
  */
 export function turnScreenContextOff(): void {
-  const selected = selectedFromStores();
-  if (!selected || !SCREEN_CONTEXT_PROVIDERS.has(selected.provider.id)) return;
-  useProviderStore.getState().updateSettings(selected.provider, { screenContext: false });
+  const transcription = transcriptionFromStores();
+  if (!transcription || !SCREEN_CONTEXT_PROVIDERS.has(transcription.provider.id)) return;
+  useProviderStore.getState().updateSettings(transcription.provider, { screenContext: false });
 }
 
 /**
  * Face-to-face (spec 2026-10-08, slice 3): Both, the other side beside me,
- * under a provider that offers it. The one predicate the run's shape, the
- * capture, the routing and every surface read, so they never disagree; a
- * stored "beside me" under a provider without it is ordinary Both.
+ * under a transcription unit that offers it. The one predicate the run's
+ * shape, the capture, the routing and every surface read, so they never
+ * disagree; a stored "beside me" under a unit without it is ordinary Both.
  */
 export function faceToFaceFromStores(): boolean {
   const { mode, otherSide } = useAudioStore.getState();
-  return isFaceToFace(selectedFromStores()?.provider, mode, otherSide);
+  const found = planFromStores();
+  return isFaceToFace(found.state === 'ready' ? capabilitiesOf(found, 'transcription') : undefined, mode, otherSide);
 }
 
 /** `faceToFaceFromStores`' rule over given values, for a surface that subscribes to them. */
@@ -93,18 +101,24 @@ export function heardFromStores(faceToFace: boolean): boolean {
   return participantSpeechHeard(getEnvironment(), audio.selectedParticipantSource?.deviceId, faceToFace) && !audio.participantCaptureWidened;
 }
 
+/** What the unit that speaks can do, in the plan as the stores stand; undefined until the plan is ready. */
+function speechUnitFromStores(): UnitCapabilities | undefined {
+  const found = planFromStores();
+  return found.state === 'ready' ? capabilitiesOf(found, 'speech') : undefined;
+}
+
 /**
- * Who hears what, as the stores stand (spec 2026-10-10 §4): the selected
- * provider's flags over the switches, the mode, face-to-face and the
+ * Who hears what, as the stores stand (spec 2026-10-10 §4): the speech
+ * unit's flags (by default) over the switches, the mode, face-to-face and the
  * recapture rule. The run's shape, the live gate's floor, the account
  * button's floor, the routing and every surface read it, so they price
- * and play the same legs. Before a provider has loaded it answers as an
+ * and play the same legs. Before the plan is ready it answers as an
  * optional-speech provider would.
  */
-export function speechFromStores(provider: Pick<AnyProvider, 'speech' | 'participantSpeech'> | undefined = selectedFromStores()?.provider): Speak {
+export function speechFromStores(speaking: Pick<AnyProvider, 'speech' | 'participantSpeech'> | undefined = speechUnitFromStores()): Speak {
   const audio = useAudioStore.getState();
   const faceToFace = faceToFaceFromStores();
-  return speakFor(provider ?? { speech: 'optional' }, {
+  return speakFor(speaking ?? { speech: 'optional' }, {
     textOnly: useSettingsStore.getState().textOnly,
     participantSpeech: useRoutingStore.getState().participantSpeech,
     isMonitorMuted: audio.isMonitorMuted,
@@ -145,16 +159,17 @@ export function watchSpeechFromStores(): () => void {
 }
 
 /**
- * The plan a start would run and its providers' accounts, as the stores
- * stand: the selected provider as one whole-provider unit, until the
- * line-up decides the plan. Null until its entry has loaded. The run's
- * shape, the live gate and the account button's floor all read it.
+ * The plan a start would run and its providers' accounts, as
+ * `planFromStores` finds them, with the transcription provider's entry.
+ * Null until the plan is ready. The run's shape, the live gate and the
+ * account button's floor all read it.
  */
 export function planFromSelection(): Pick<RunShape, 'plan' | 'accounts'> & { entry: ProviderEntry } | null {
-  const selected = selectedFromStores();
-  if (!selected) return null;
-  const { provider, entry } = selected;
-  return { plan: wholePlan(provider), accounts: { [provider.id]: { settings: entry.settings, credentials: entry.credentials } }, entry };
+  const found = planFromStores();
+  if (found.state !== 'ready') return null;
+  // A run's account is a provider's settings and credentials; its pair is the shape's own.
+  const accounts = Object.fromEntries(Object.entries(found.accounts).map(([id, { settings, credentials }]) => [id, { settings, credentials }]));
+  return { plan: found.plan, accounts, entry: transcriptionAccount(found) };
 }
 
 export function readShapeFromStores(auth: AuthContext): RunShape | null {

@@ -13,6 +13,8 @@
  * before any of these pieces mount. This hook only loads the shown entry.
  */
 import { useEffect } from 'react';
+import { usePlan } from '../../lib/plan/fromStores';
+import { transcriptionProvider } from '../../lib/plan/read';
 import type { AnyProvider, ModelOption, SettingsProps } from '../../lib/provider/types';
 import type { ProviderEntry, Readiness } from '../../stores/providerStore';
 import { NO_MODELS, UNKNOWN, useProviderStore } from '../../stores/providerStore';
@@ -36,11 +38,18 @@ function updateFor(provider: AnyProvider): (patch: Readonly<Record<string, unkno
   return update;
 }
 
-/** The provider a piece shows (`providers.find(...) ?? providers[0]`), its loaded entry and readiness, loading the entry when missing. Null when `providers` is empty. */
+/**
+ * The provider a piece shows (`providers.find(...) ?? providers[0]`), its loaded entry and readiness, loading the entry
+ * when missing. Null when `providers` is empty. `providers` must be the offered list (`presentProviders()`), because the
+ * provider shown comes from the plan and is then looked up in it.
+ */
 export function useSelectedProvider(providers: readonly AnyProvider[], providerId?: string): SelectedProvider | null {
+  const plan = usePlan();
   const selected = useProviderStore((st) => st.selected);
-  // A stage card of the line-up page names the provider it shows (mock v19); every other piece shows the selected one.
-  const provider = providers.find((p) => p.id === (providerId ?? selected)) ?? providers[0];
+  // A stage card of the line-up page names the provider it shows (mock v19); every other piece shows the plan's
+  // transcription provider, or until the plan is ready, the selected one, so that its entry loads.
+  const shown = providerId ?? (plan.state === 'ready' ? transcriptionProvider(plan.plan).id : selected);
+  const provider = providers.find((p) => p.id === shown) ?? providers[0];
   const entry = useProviderStore((st) => (provider ? st.entries[provider.id] : undefined));
   const readiness = useProviderStore((st) => (provider ? st.readiness[provider.id] : undefined)) ?? UNKNOWN;
   const models = useProviderStore((st) => (provider ? st.models[provider.id] : undefined)) ?? NO_MODELS;

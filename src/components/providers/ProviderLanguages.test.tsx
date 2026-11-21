@@ -12,6 +12,12 @@ vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return { ...actual, useTranslation: () => ({ t: (key: string) => key }) };
 });
+// A test's own provider, offered beside this build's, so the plan can run it.
+const present = vi.hoisted(() => ({ extra: [] as unknown[] }));
+vi.mock('../../providers/registry', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../providers/registry')>();
+  return { ...actual, presentProviders: () => [...actual.presentProviders(), ...present.extra] };
+});
 
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -23,6 +29,7 @@ import { ProviderLanguages } from './ProviderLanguages';
 beforeEach(() => {
   trackEvent.mockClear();
   run.participantSpeech = null;
+  present.extra = [];
   useProviderStore.setState({
     entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
     readiness: {},
@@ -81,6 +88,7 @@ describe('ProviderLanguages — the language context (Stage 2 Volcengine AST2, c
   const sources = () => [...new Set([...(screen.getByLabelText('settings.sourceLanguage') as HTMLSelectElement).options].map((o) => o.value).filter((v) => v !== PIN_SEPARATOR))].sort();
 
   it("offers the languages of the store's context: its legs, and whether they speak", () => {
+    present.extra = [moody];
     useProviderStore.setState({
       entries: { moody: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
       selected: 'moody',

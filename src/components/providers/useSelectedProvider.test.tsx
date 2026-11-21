@@ -12,11 +12,25 @@ vi.mock('../../services/ServiceFactory', () => ({
 
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
+import { sonioxProvider } from '../../providers/soniox/provider';
 import { useProviderStore } from '../../stores/providerStore';
 import { ownProps, useSelectedProvider } from './useSelectedProvider';
 
 beforeEach(() => {
   useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, models: {}, selected: 'fake', legs: ['speaker'] });
+});
+
+describe('useSelectedProvider', () => {
+  it('shows the bare selection while the plan is loading, so that its entry loads', () => {
+    const realLoad = useProviderStore.getState().load;
+    const load = vi.fn(async () => {});
+    useProviderStore.setState({ selected: 'soniox', entries: {}, load });
+    const { result } = renderHook(() => useSelectedProvider([fakeProvider, sonioxProvider]));
+    expect(result.current!.provider).toBe(sonioxProvider);
+    expect(result.current!.entry).toBeUndefined();
+    expect(load).toHaveBeenCalledWith(sonioxProvider);
+    useProviderStore.setState({ load: realLoad });
+  });
 });
 
 describe('ownProps', () => {

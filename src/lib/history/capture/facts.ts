@@ -8,7 +8,9 @@ import { translatesSpeechDirectly } from '../../../providers/localInference/conf
 import useAudioStore from '../../../stores/audioStore';
 import { getAppVersion } from '../../../utils/conversationExport';
 import { isExtension } from '../../../utils/environment';
-import { faceToFaceFromStores, legsFor, selectedFromStores, speechFromStores } from '../../session/appShape';
+import { planFromStores } from '../../plan/fromStores';
+import { transcriptionAccount } from '../../plan/read';
+import { faceToFaceFromStores, legsFor, speechFromStores } from '../../session/appShape';
 import type { ConversationInfo } from '../../session/conversationSet';
 import type { CaptureFacts, LegComposition } from './writer';
 
@@ -32,8 +34,10 @@ export function captureFactsFromStores(o: { info: ConversationInfo | null; parti
       inputName: source?.label ?? null, inputId: source?.deviceId ?? null, spoken: o.participantSpeech,
     };
   }
-  // One connection for both legs: today the providers that offer it name it `bothModeSharedSession`.
-  const settings = selectedFromStores()?.entry.settings as { bothModeSharedSession?: unknown } | undefined;
+  // One connection for both legs: today the providers that offer it name it `bothModeSharedSession`; the plan's
+  // transcription provider's settings say it.
+  const found = planFromStores();
+  const settings = (found.state === 'ready' ? transcriptionAccount(found).settings : undefined) as { bothModeSharedSession?: unknown } | undefined;
   const shared = !faceToFace && legsFor(audio.mode).length > 1 && settings?.bothModeSharedSession === true;
   const models = o.info?.models;
   const originalText = !(o.info?.provider === 'local_inference' && translatesSpeechDirectly(models?.asrModel, models?.translationModel));

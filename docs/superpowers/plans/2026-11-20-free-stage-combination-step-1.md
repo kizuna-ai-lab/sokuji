@@ -434,6 +434,8 @@ Rule for a file not listed that reads the selected provider (`git grep -n "useSe
 
 ### Task C4: the line-up is what is stored; the selection is derived
 
+> **Not done in step 1: moved to step 2.** See "Decisions made while Part C was built". The text below is step 2's input, not part of Part C.
+
 **Files:**
 - Modify: `src/stores/lineUpStore.ts` (`load`, `chooseNow`, `replace`), `src/stores/providerStore.ts` (`selected`, `select`, the write at `:213-215`), `src/app/loadStores.ts`, `src/lib/lineup/migrate.ts`
 - Test: `src/stores/lineUpStore.test.ts`, `src/stores/providerStore.test.ts` (existing, plus new cases)
@@ -454,6 +456,8 @@ Rule for a file not listed that reads the selected provider (`git grep -n "useSe
 
 ### Task C5: the lock belongs to the line-up; remove the seam
 
+> **Not done in step 1: moved to step 2.** See "Decisions made while Part C was built". The text below is step 2's input, not part of Part C.
+
 **Files:**
 - Modify: `src/stores/providerStore.ts` (`selectionLocked`, `setSelectionLocked`), `src/stores/lineUpStore.ts`, `src/app/session.ts:618-630`, `src/components/providers/useSelectedProvider.ts` (delete), `src/lib/session/appShape.ts` (`selectedFromStores` delete)
 - Test: `src/stores/lineUpStore.test.ts`, `src/app/session.test.ts`
@@ -467,7 +471,7 @@ Rule for a file not listed that reads the selected provider (`git grep -n "useSe
 - [ ] **Step 4: Run** `npx tsc --noEmit && npx vitest run`, then the E2E suite. Expected: PASS.
 - [ ] **Step 5: Commit** `refactor(stores): the line-up is locked while a run is not idle`.
 
-**Part C ends here: open PR C.**
+**Part C as built ends after Task C3** (Tasks C4 and C5 moved to step 2): open PR C.
 
 ---
 
@@ -504,7 +508,7 @@ History's `services` gains `stages`; a record written before this has none, and 
 
 They replace the text of Tasks A3 and A4 where the two differ; Parts B to D build on them.
 
-- **The present providers reach a store through a hook, never an import of the registry.** `src/lib/plan/present.ts` has `registerPresentProviders(read)` and `presentHosts()`; the registry registers itself at the end of its module, and `presentHosts()` throws when nothing is registered. A store that imports the registry closes an import cycle (the registry loads the local provider, which reads the line-up store). `fromStores.ts` (Task C1) uses `presentHosts()`.
+- **The present providers reach a store through a hook, never an import of the registry.** `src/lib/plan/present.ts` has `registerPresentProviders(read)` and `presentHosts()`; the registry registers itself at the end of its module, and `presentHosts()` throws when nothing is registered. A store that imports the registry closes an import cycle (the registry loads the local provider, which reads the line-up store). `src/lib/plan/fromStores.ts` (Task C1) imports the registry directly, which is safe as long as nothing the registry imports reaches `fromStores.ts`; a test (`fromStores.cycle.test.ts`) walks the registry's imports and fails if one does.
 - **`soleHost` and `optionFor` live in `src/lib/lineup/catalog.ts`.** They are catalog questions; `src/lib/plan/read.ts` holds `providersIn`, `unitFor`, `transcriptionProvider`. Under `src/lib/lineup/` only `choose.ts` imports from `src/lib/plan/`.
 - **`soleHost` is pure catalog**: all three stages name a known option that serves them, and the three share one host. It does not call `compose`. A test pins it to the rule it replaced, for every triple of ids.
 - **A choice follows the catalog when a provider is not offered.** `choose` moves the other stages when `compose` refuses, except that a refusal only for presence (`lineup_not_offered`) moves them exactly when `soleHost` of the new line-up is null. The rule it replaced never looked at presence.
@@ -526,8 +530,23 @@ They replace the text of Tasks A3 and A4 where the two differ; Parts B to D buil
 
 ---
 
+## Decisions made while Part C was built
+
+- **Tasks C4 and C5 moved to step 2.** Removing the provider store's `selected` and letting the stored line-up decide what runs is a change of the storage model, not a refactor: existing tests pin today's behaviour (a launch never writes `settings.common.provider`; the stored line-up is `version: 1` and a value used unchanged is never rewritten; the setup wizard writes the provider before the line-up), so the task cannot meet this step's bar, and with every provider one whole unit it changes nothing a user can see. Step 2, where a line-up can first name two hosts, designs it with its migration and rewrites those tests on purpose. Their task text above, and these points, are its input: the pre-storage plan follows today's resolved selection and is never composed from the displayed line-up; the line-up store keeps `unstoredProvider`; a read that needs only the id of the provider that runs, before its entry loads, gets a `planProviderId()`; after the switch the plan is `loading` until the line-up store has loaded, so a surface that used the first-offered-provider fallback before the launch load answers nothing in that window (a visible, if tiny, change: decide it then).
+- **In step 1 the plan follows the selection.** `planFromStores()` answers `loading` or `ready` with the whole-provider plan of the selected provider (the first offered provider when the selected id is absent or not offered), ready once its entry has loaded. `refused` is in `PlanState` and nothing produces it yet.
+- **Two families of reader.** A surface whose code read `providerStore.selected` directly answered nothing until the launch load selected a provider; it uses `planOnceSelected` / `usePlanOnceSelected` / `useStageUnitOnceSelected`, which answer `loading` while nothing is selected. A surface that went through the old `selectedFromStores()` always had the first-offered fallback and uses the plain readers. Start is among the first family: it stays off until the selection lands.
+- **Still on the selection, on purpose**, because they answer from the bare id while that provider's entry loads: `SpeechSection.tsx` (the event's provider id), `useStartBasicsTour.ts`, `useRegionHint.tsx`, `RegionListModal.tsx`, `ModelsPage.tsx`, `SettingsInitializer.tsx`, `useFaceToFace.ts` (`speaks`), `telemetry.ts`, and the fallback in `AccountsCategory.tsx` while the plan loads. `LanguagePairSection` keeps its single `provider` prop. `useSelectedProvider`, `selectedFromStores` (now used by one test only) and `selectionLocked` stay until step 2.
+- **A selection this build does not offer** resolves to the first offered provider on every surface that reads the plan (the Start gate, the readiness driver, typed text, boundaries, the caption-share pair, the region recommendation, the account row a notice opens). Before, some of those read the raw id and answered nothing. No shipped path selects such an id: the launch load filters by the offered list and presence is fixed for a session.
+- **The readiness driver** takes `plan()` and keeps its state per provider; the app passes `readinessPlan()` (`src/app/session.ts`). Start needs every provider of the plan ready; a provider whose readiness is still unknown does not block Start, as today: the run checks it when it starts.
+- **Notice targets did not change.** `credentials_missing` and `sign_in_required` keep the target `'provider'` and carry no provider id: the only target that names a provider also scrolls to and highlights its row, a visible change. The per-provider target belongs to step 2.
+- **The `providers` prop** of `useSelectedProvider` and `ProviderLanguages` must be the offered list: the provider shown comes from the plan and is looked up in it.
+
+---
+
 ## What this step leaves for step 2
 
+- Tasks C4 and C5 (the stored line-up decides what runs; the lock moves to the line-up; the selection seam is deleted).
+- The per-provider notice target; `LanguagePairSection` reading the translation provider's targets and the speech unit.
 - `compose` and `soleHost` can disagree once a provider has several units: `soleHost`'s callers move to the plan then.
 - `noUnit`'s split attribution when one host has several options with a `joint` (none has today).
 - `startComposite` over more than one unit: ref mapping, event tagging, the wiring of §7 of the spec.
