@@ -87,16 +87,24 @@ describe('ending a remembered voice-only lease', () => {
     expect(init).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer fresh', 'Content-Type': 'application/json' }, body: '{"leaseId":"lease-1"}' });
   });
 
-  it.each([400, 401, 403, 404, 409])('HTTP %i is an answer: there is nothing left to end', async (status) => {
+  it.each([400, 403, 404, 409])('HTTP %i is an answer: there is nothing left to end', async (status) => {
     expect(await ending(async () => new Response('{}', { status })).run()).toBe('ended');
   });
 
-  it.each([500, 502, 503])('HTTP %i keeps it for the next launch', async (status) => {
+  it.each([401, 408, 429, 500, 502, 503])('HTTP %i keeps it for the next launch', async (status) => {
     expect(await ending(async () => new Response('{}', { status })).run()).toBe('kept');
   });
 
   it('a request that never reached the service keeps it', async () => {
     expect(await ending(async () => { throw new TypeError('Failed to fetch'); }).run()).toBe('kept');
+  });
+
+  it('a request that is not answered in time is given up, and the lease is kept', async () => {
+    const fetch = vi.fn((_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init.signal!.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+    }));
+    expect(await endRememberedVoiceLease({ lease: LEASE, getToken: async () => 'fresh', fetch: fetch as unknown as typeof globalThis.fetch, timeoutMs: 5 })).toBe('kept');
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
   it('with no token nothing is sent, and it is kept', async () => {

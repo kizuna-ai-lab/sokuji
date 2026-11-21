@@ -118,7 +118,10 @@ export function voiceOnlyRequest(
   const speaker = shape.legs.includes('speaker') && !shape.textOnly;
   const participant = participantSpeech && shape.legs.includes('participant') && shape.participantSpeech;
   if (!speaker && !participant) return null;
-  return { mode: 'voice_only', legs: speaker && participant ? 'both' : speaker ? 'speaker' : 'participant', region: asSonioxRegion(s.region) };
+  let legs: VoiceOnlyLeaseRequest['legs'] = 'participant';
+  if (speaker && participant) legs = 'both';
+  else if (speaker) legs = 'speaker';
+  return { mode: 'voice_only', legs, region: asSonioxRegion(s.region) };
 }
 
 /**

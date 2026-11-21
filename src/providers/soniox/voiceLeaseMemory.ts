@@ -70,16 +70,26 @@ export function createVoiceLeaseMemory(storage: VoiceLeaseStorage = settingsStor
 /** The app's own memory, in its settings storage. */
 export const voiceLeaseMemory: StoredVoiceLeases = createVoiceLeaseMemory();
 
+/** The bound of the one request a launch sends: a request that never answers must not hold the recovery for the whole launch. */
+export const VOICE_LEASE_END_TIMEOUT_MS = 10_000;
+
+/** Statuses that are not the backend's word on the lease: the sign-in was not accepted, or the request was not served. */
+const NOT_AN_ANSWER = new Set([401, 408, 429]);
+
 /**
  * Sends `session-end` for a remembered lease, to the API root it was asked of, with a fresh token. `ended`: the
- * backend answered, a refusal included, so nothing is left to end. `kept`: no token, a request that did not
- * arrive, or a 5xx; the next launch tries again.
+ * backend answered about the lease, a refusal included, so nothing is left to end. `kept`: no token, a request
+ * that did not arrive or was not answered in time, a sign-in that was not accepted, a request turned away
+ * unserved, or a 5xx; the next launch tries again.
  */
 export async function endRememberedVoiceLease(o: {
   lease: RememberedVoiceLease;
   getToken(): Promise<string | null>;
   fetch?: typeof fetch;
+  timeoutMs?: number;
 }): Promise<'ended' | 'kept'> {
+  const abort = new AbortController();
+  const timer = setTimeout(() => abort.abort(), o.timeoutMs ?? VOICE_LEASE_END_TIMEOUT_MS);
   try {
     const token = await o.getToken();
     if (!token) return 'kept';
@@ -87,9 +97,12 @@ export async function endRememberedVoiceLease(o: {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ leaseId: o.lease.leaseId }),
+      signal: abort.signal,
     });
-    return res.status >= 500 ? 'kept' : 'ended';
+    return res.status >= 500 || NOT_AN_ANSWER.has(res.status) ? 'kept' : 'ended';
   } catch {
     return 'kept';
+  } finally {
+    clearTimeout(timer);
   }
 }
