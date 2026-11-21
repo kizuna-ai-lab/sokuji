@@ -38,4 +38,16 @@ describe('a direction resolved under a stored line-up', () => {
     // The same choice is pruned once this machine speaks again.
     expect(resolveWasmDirection('en', 'ja', selections, ctx, { translation: 'bing', speech: 'local' }).prunes.some((p) => p.stage === 'tts')).toBe(true);
   });
+
+  it('another provider transcribes and this one translates: a downloaded translation model resolves, and nothing resolves or is noted for recognition', () => {
+    const downloaded = { ...ctx, modelStatuses: { 'opus-mt-en-jap': 'downloaded' as const, 'sensevoice-int8': 'downloaded' as const } };
+    const r = resolveWasmDirection('en', 'ja', {}, downloaded, { translation: 'local', speech: null, transcription: null });
+    expect(r.translation?.modelId).toBe('opus-mt-en-jap');
+    expect(r.asr).toBeNull();
+    expect(r.notes.some((n) => n.stage === 'asr')).toBe(false);
+    // Not downloaded: nothing translates, and Bing does not stand in for it.
+    const none = resolveWasmDirection('en', 'ja', {}, ctx, { translation: 'local', speech: null, transcription: null });
+    expect(none.translation).toBeNull();
+    expect(none.notes.map((n) => n.stage)).toEqual(['translation']);
+  });
 });
