@@ -1862,7 +1862,10 @@
         "keyRefused": "키가 거부됨",
         "keyNotVerified": "키 확인 안 됨",
         "checkingKey": "키 확인 중…",
-        "notUsed": "이번에는 사용 안 함"
+        "notUsed": "이번에는 사용 안 함",
+        "languageNotSpoken": "지원하지 않는 언어",
+        "cannotCombine": "함께 쓸 수 없음",
+        "notAvailable": "여기서는 사용 불가"
       },
       "speechModeHint": "말 한 토막을 언제 번역으로 보낼지; 세션 중에는 바꿀 수 없음",
       "hint": "각 단계를 어떤 서비스가 맡는지",

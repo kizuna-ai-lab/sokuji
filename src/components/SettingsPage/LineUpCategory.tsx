@@ -64,6 +64,9 @@ const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
 /** An engine slot's stage, as the line-up names it. */
 const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
 
+/** The refusals that say the chosen services do not go together. */
+const CANNOT_COMBINE: ReadonlySet<string> = new Set(['lineup_voice_not_alone', 'lineup_voice_not_taken', 'lineup_stage_split', 'lineup_no_unit', 'lineup_two_managed']);
+
 import { stageInSentence } from '../../lib/lineup/stageWords';
 export { stageInSentence };
 
@@ -368,6 +371,19 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       : <em className={className}>{s.text}</em>;
   };
 
+  /**
+   * A stage's state while the line-up is refused on that stage: why, in a few words, in place of its provider's
+   * readiness (the line-up has to change before a key or a sign-in matters). Plain text: nothing in Accounts and
+   * keys answers it. Undefined for a stage with no service, which keeps the state it has.
+   */
+  const refusalTag = (code: string | undefined) => {
+    const text = code === 'lineup_language_not_spoken' ? t('settingsPage.lineup.state.languageNotSpoken', 'Unsupported language')
+      : code === 'lineup_not_offered' ? t('settingsPage.lineup.state.notAvailable', 'Not available here')
+      : code && CANNOT_COMBINE.has(code) ? t('settingsPage.lineup.state.cannotCombine', "Can't be combined")
+      : undefined;
+    return text === undefined ? undefined : <em className="lineup-stage__state">{text}</em>;
+  };
+
   // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own (stateTag), so a key that
   // is missing, rejected or not yet checked reads the same here as on a stage, and takes you to the key (review).
   const kizunaNotesState = auth.signedIn
@@ -464,9 +480,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           const head = (stage: RunStage) => (
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{titleOf(stage)}</span>
-              {idle(stage)
+              {(refusal?.stage === stage ? refusalTag(refusal.code) : undefined) ?? (idle(stage)
                 ? <em className="lineup-stage__state is-unused">{t('settingsPage.lineup.state.notUsed', 'Not used this time')}</em>
-                : stateTag(id)}
+                : stateTag(id))}
             </div>
           );
           // Idle: why the line-up cannot run, and why speech is not used; no options (the choice stays for next time).

@@ -1862,7 +1862,10 @@
         "keyRefused": "המפתח לא התקבל",
         "keyNotVerified": "המפתח לא אומת",
         "checkingKey": "בודקים את המפתח…",
-        "notUsed": "לא בשימוש הפעם"
+        "notUsed": "לא בשימוש הפעם",
+        "languageNotSpoken": "שפה לא נתמכת",
+        "cannotCombine": "לא ניתן לשלב",
+        "notAvailable": "לא זמין כאן"
       },
       "speechModeHint": "מתי קטע דיבור נשלח לתרגום; קבוע במהלך הסשן",
       "hint": "איזה שירות מבצע כל שלב",

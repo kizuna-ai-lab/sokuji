@@ -1862,7 +1862,10 @@
         "keyRefused": "Anahtar kabul edilmedi",
         "keyNotVerified": "Anahtar doğrulanmadı",
         "checkingKey": "Anahtar kontrol ediliyor…",
-        "notUsed": "Bu sefer kullanılmıyor"
+        "notUsed": "Bu sefer kullanılmıyor",
+        "languageNotSpoken": "Dil desteklenmiyor",
+        "cannotCombine": "Birlikte kullanılamaz",
+        "notAvailable": "Burada kullanılamıyor"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",

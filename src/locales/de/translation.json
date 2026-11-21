@@ -1862,7 +1862,10 @@
         "keyRefused": "Schlüssel abgelehnt",
         "keyNotVerified": "Schlüssel nicht geprüft",
         "checkingKey": "Schlüssel wird geprüft …",
-        "notUsed": "Diesmal nicht verwendet"
+        "notUsed": "Diesmal nicht verwendet",
+        "languageNotSpoken": "Sprache nicht unterstützt",
+        "cannotCombine": "Nicht kombinierbar",
+        "notAvailable": "Hier nicht verfügbar"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
       "hint": "Welcher Dienst jede Stufe übernimmt",

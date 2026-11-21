@@ -1862,7 +1862,10 @@
         "keyRefused": "密钥不可用",
         "keyNotVerified": "密钥未验证",
         "checkingKey": "正在验证密钥…",
-        "notUsed": "本次不使用"
+        "notUsed": "本次不使用",
+        "languageNotSpoken": "不支持该语言",
+        "cannotCombine": "无法组合",
+        "notAvailable": "此处不可用"
       },
       "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
       "hint": "每个阶段由哪个服务来做",

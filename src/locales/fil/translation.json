@@ -1862,7 +1862,10 @@
         "keyRefused": "Hindi tinanggap ang key",
         "keyNotVerified": "Hindi pa beripikado ang key",
         "checkingKey": "Sinusuri ang key…",
-        "notUsed": "Hindi gagamitin ngayon"
+        "notUsed": "Hindi gagamitin ngayon",
+        "languageNotSpoken": "Hindi suportado ang wika",
+        "cannotCombine": "Hindi mapagsasama",
+        "notAvailable": "Hindi available dito"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
       "hint": "Aling serbisyo ang gumagawa ng bawat yugto",

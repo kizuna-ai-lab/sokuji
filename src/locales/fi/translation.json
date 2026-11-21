@@ -1862,7 +1862,10 @@
         "keyRefused": "Avainta ei hyväksytty",
         "keyNotVerified": "Avainta ei tarkistettu",
         "checkingKey": "Tarkistetaan avainta…",
-        "notUsed": "Ei käytössä tällä kertaa"
+        "notUsed": "Ei käytössä tällä kertaa",
+        "languageNotSpoken": "Kieltä ei tueta",
+        "cannotCombine": "Ei voi yhdistää",
+        "notAvailable": "Ei käytettävissä täällä"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
       "hint": "Mikä palvelu hoitaa kunkin vaiheen",

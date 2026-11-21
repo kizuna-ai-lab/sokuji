@@ -1862,7 +1862,10 @@
         "keyRefused": "Khóa không được chấp nhận",
         "keyNotVerified": "Chưa xác minh khóa",
         "checkingKey": "Đang kiểm tra khóa…",
-        "notUsed": "Lần này không dùng"
+        "notUsed": "Lần này không dùng",
+        "languageNotSpoken": "Ngôn ngữ không được hỗ trợ",
+        "cannotCombine": "Không thể kết hợp",
+        "notAvailable": "Không có ở đây"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",

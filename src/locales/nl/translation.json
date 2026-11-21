@@ -1862,7 +1862,10 @@
         "keyRefused": "Sleutel geweigerd",
         "keyNotVerified": "Sleutel niet gecontroleerd",
         "checkingKey": "Sleutel controleren…",
-        "notUsed": "Deze keer niet gebruikt"
+        "notUsed": "Deze keer niet gebruikt",
+        "languageNotSpoken": "Taal niet ondersteund",
+        "cannotCombine": "Niet te combineren",
+        "notAvailable": "Hier niet beschikbaar"
       },
       "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
       "hint": "Welke dienst elke stap doet",

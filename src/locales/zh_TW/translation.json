@@ -1862,7 +1862,10 @@
         "keyRefused": "金鑰無法使用",
         "keyNotVerified": "金鑰未驗證",
         "checkingKey": "正在驗證金鑰…",
-        "notUsed": "本次不使用"
+        "notUsed": "本次不使用",
+        "languageNotSpoken": "不支援此語言",
+        "cannotCombine": "無法組合",
+        "notAvailable": "此處無法使用"
       },
       "speechModeHint": "一段話什麼時候送去翻譯，工作階段中不能換",
       "hint": "每個階段由哪個服務來做",

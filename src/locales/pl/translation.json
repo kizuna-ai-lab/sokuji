@@ -1862,7 +1862,10 @@
         "keyRefused": "Klucz odrzucony",
         "keyNotVerified": "Klucz niezweryfikowany",
         "checkingKey": "Sprawdzanie klucza…",
-        "notUsed": "Tym razem nieużywane"
+        "notUsed": "Tym razem nieużywane",
+        "languageNotSpoken": "Język nieobsługiwany",
+        "cannotCombine": "Nie można połączyć",
+        "notAvailable": "Tutaj niedostępne"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
       "hint": "Która usługa wykonuje każdy etap",

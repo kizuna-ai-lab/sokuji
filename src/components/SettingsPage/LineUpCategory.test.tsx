@@ -38,6 +38,12 @@ vi.mock('../../lib/notes/notesPricing', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/notes/notesPricing')>()),
   useNotesPricing: () => notesPricing.value,
 }));
+// A refusal the stores of these tests do not reach, when a test sets one; else the stores' own answer.
+const forcedRefusal = vi.hoisted(() => ({ value: null as null | { code: string; message: string; params: Record<string, string>; stage: string } }));
+vi.mock('../../lib/session/useLineUpNotice', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/session/useLineUpNotice')>();
+  return { useLineUpNotice: () => { const own = actual.useLineUpNotice(); return forcedRefusal.value ?? own; } };
+});
 const tracked = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: (name: string, props: unknown) => tracked.push([name, props]) }) }));
 
@@ -62,6 +68,7 @@ beforeEach(() => {
   notesPricing.value = null;
   noHosted.value = false;
   tracked.length = 0;
+  forcedRefusal.value = null;
   runsOn('soniox');
   useProviderStore.setState({ entries: {}, readiness: {} });
   useLineUpStore.setState({ lineUp: soniox, stored: true, locked: false });
@@ -367,6 +374,115 @@ describe('languages and line-up', () => {
       useLineUpStore.setState({ lineUp: { ...soniox, speech: null }, stored: true });
       render(<LineUpCategory locked={false} />);
       expect(screen.getByRole('status')).toHaveTextContent('Choose a service for speech first.');
+    });
+  });
+
+  // A card that says why the line-up cannot run does not say Ready above it: its state is the reason, in a few words.
+  describe('the state of a card the line-up is refused on', () => {
+    const pair = { source: 'en', target: 'ja' };
+    const load = (target = 'ja', sonioxKey: Record<string, string> = { apiKey: 'k' }) => {
+      const entry = (id: string, credentials: Record<string, string> = {}) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair: { ...pair, target } });
+      useProviderStore.setState({
+        entries: { soniox: entry('soniox', sonioxKey), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference') } as never,
+        readiness: { soniox: { state: 'ready' } } as never,
+      });
+    };
+    const cardOf = (name: string) => screen.getByRole('combobox', { name }).closest('.lineup-stage') as HTMLElement;
+    const stateOfCard = (name: string) => {
+      const states = cardOf(name).querySelectorAll('.lineup-stage__state');
+      expect(states).toHaveLength(1);
+      return states[0] as HTMLElement;
+    };
+    /** Plain text in the tone of a state that needs something: not Ready's, and not a way to an account row. */
+    const expectReason = (state: HTMLElement, text: string) => {
+      expect(state).toHaveTextContent(text);
+      expect(state.tagName).toBe('EM');
+      expect(state.className).toBe('lineup-stage__state');
+    };
+
+    it('a language the voice does not speak: "Unsupported language" on the speech card, the other card as it was', () => {
+      load('eu');
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'edge' }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      expectReason(stateOfCard('Speech'), 'Unsupported language');
+      expect(within(cardOf('Speech')).queryByText('Ready')).toBeNull();
+      expect(within(cardOf('Speech')).getByRole('status')).toHaveClass('lineup-stage__refusal');
+      const text = [...cardOf('Transcription and translation').querySelectorAll('.lineup-stage__state')];
+      expect(text.map((s) => [s.textContent, s.className])).toEqual([['Ready', 'lineup-stage__state is-ready'], ['Ready', 'lineup-stage__state is-ready']]);
+    });
+
+    it("a voice that is not offered alone: \"Can't be combined\" on the speech card", () => {
+      load();
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      expectReason(stateOfCard('Speech'), "Can't be combined");
+    });
+
+    it("a stage given to another service than the one it goes with: \"Can't be combined\" on that stage's card, not Bing's Ready", () => {
+      load();
+      useLineUpStore.setState({ lineUp: { ...soniox, translation: 'bing' }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      expectReason(stateOfCard('Translation'), "Can't be combined");
+      expect(stateOfCard('Transcription')).toHaveTextContent('Ready');
+      expect(stateOfCard('Speech')).toHaveTextContent('Ready');
+    });
+
+    it.each([
+      ['lineup_language_not_spoken', 'Unsupported language'],
+      ['lineup_voice_not_alone', "Can't be combined"],
+      ['lineup_voice_not_taken', "Can't be combined"],
+      ['lineup_stage_split', "Can't be combined"],
+      ['lineup_no_unit', "Can't be combined"],
+      ['lineup_two_managed', "Can't be combined"],
+      ['lineup_not_offered', 'Not available here'],
+    ])('%s reads "%s"', (code, text) => {
+      load();
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'edge' }, stored: true });
+      forcedRefusal.value = { code, message: '', params: { stage: 'speech', provider: 'edge', language: 'eu' }, stage: 'speech' };
+      render(<LineUpCategory locked={false} />);
+      expectReason(stateOfCard('Speech'), text);
+      for (const state of cardOf('Transcription and translation').querySelectorAll('.lineup-stage__state')) expect(state).toHaveTextContent('Ready');
+    });
+
+    it('a stage with no service keeps the state it has', () => {
+      load();
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: null }, stored: true });
+      const refused = render(<LineUpCategory locked={false} />);
+      expect(screen.getByRole('status')).toHaveTextContent('Choose a service for speech first.');
+      const shown = stateOfCard('Speech');
+      const was = [shown.textContent, shown.tagName, shown.className];
+      refused.unmount();
+      // What the card of a stage with no service shows today.
+      expect(was).toEqual(['Ready', 'EM', 'lineup-stage__state is-ready']);
+    });
+
+    it('a key the card\'s service lacks is said when nothing is refused on the card, and the refusal first when both apply', () => {
+      load('ja', {});
+      authState.signedIn = false;
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      // Speech: refused, and its service waits for a sign-in. The refusal is said; it is no link.
+      expectReason(stateOfCard('Speech'), "Can't be combined");
+      expect(within(cardOf('Speech')).queryByRole('button', { name: 'Needs a sign-in' })).toBeNull();
+      // The text card is not refused: its missing key is said as ever, and leads to the key.
+      expect(within(cardOf('Transcription and translation')).getAllByRole('button', { name: 'Needs a key' })).toHaveLength(2);
+    });
+
+    it('a line-up that runs keeps every state it had', () => {
+      load();
+      useLineUpStore.setState({ lineUp: { ...soniox, speech: 'edge' }, stored: true });
+      const first = render(<LineUpCategory locked={false} />);
+      expect(screen.queryByRole('status')).toBeNull();
+      const tags = () => [...document.querySelectorAll('.lineup-section .lineup-stage__state')].slice(0, 3).map((s) => [s.textContent, s.tagName, s.className]);
+      expect(tags()).toEqual([['Ready', 'EM', 'lineup-stage__state is-ready'], ['Ready', 'EM', 'lineup-stage__state is-ready'], ['Ready', 'EM', 'lineup-stage__state is-ready']]);
+      first.unmount();
+      load('ja', {});
+      render(<LineUpCategory locked={false} />);
+      expect(tags()).toEqual([
+        ['Needs a key', 'BUTTON', 'lineup-stage__state lineup-stage__state--link'],
+        ['Needs a key', 'BUTTON', 'lineup-stage__state lineup-stage__state--link'],
+        ['Ready', 'EM', 'lineup-stage__state is-ready'],
+      ]);
     });
   });
 

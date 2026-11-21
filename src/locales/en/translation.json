@@ -1862,7 +1862,10 @@
         "keyRefused": "Key not accepted",
         "keyNotVerified": "Key not verified",
         "checkingKey": "Checking the key…",
-        "notUsed": "Not used this time"
+        "notUsed": "Not used this time",
+        "languageNotSpoken": "Unsupported language",
+        "cannotCombine": "Can't be combined",
+        "notAvailable": "Not available here"
       },
       "speechModeHint": "When a stretch of speech goes off to be translated; fixed during a session",
       "hint": "Which service does each stage",

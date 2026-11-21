@@ -1862,7 +1862,10 @@
         "keyRefused": "Kunci ditolak",
         "keyNotVerified": "Kunci belum diverifikasi",
         "checkingKey": "Memeriksa kunci…",
-        "notUsed": "Tidak dipakai kali ini"
+        "notUsed": "Tidak dipakai kali ini",
+        "languageNotSpoken": "Bahasa tidak didukung",
+        "cannotCombine": "Tidak bisa digabung",
+        "notAvailable": "Tidak tersedia di sini"
       },
       "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
       "hint": "Layanan mana yang mengerjakan tiap tahap",

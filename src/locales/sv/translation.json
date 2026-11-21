@@ -1862,7 +1862,10 @@
         "keyRefused": "Nyckeln godtogs inte",
         "keyNotVerified": "Nyckeln inte kontrollerad",
         "checkingKey": "Kontrollerar nyckeln…",
-        "notUsed": "Används inte den här gången"
+        "notUsed": "Används inte den här gången",
+        "languageNotSpoken": "Språket stöds inte",
+        "cannotCombine": "Kan inte kombineras",
+        "notAvailable": "Inte tillgänglig här"
       },
       "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
       "hint": "Vilken tjänst som gör varje steg",

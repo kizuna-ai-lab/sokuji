@@ -1862,7 +1862,10 @@
         "keyRefused": "キーが受け付けられません",
         "keyNotVerified": "キー未確認",
         "checkingKey": "キーを確認しています…",
-        "notUsed": "今回は使わない"
+        "notUsed": "今回は使わない",
+        "languageNotSpoken": "未対応の言語",
+        "cannotCombine": "組み合わせ不可",
+        "notAvailable": "ここでは利用不可"
       },
       "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
       "hint": "各段階をどのサービスが担当するか",

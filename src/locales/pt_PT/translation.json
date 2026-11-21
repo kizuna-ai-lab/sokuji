@@ -1862,7 +1862,10 @@
         "keyRefused": "Chave recusada",
         "keyNotVerified": "Chave não verificada",
         "checkingKey": "A verificar a chave…",
-        "notUsed": "Não utilizado desta vez"
+        "notUsed": "Não utilizado desta vez",
+        "languageNotSpoken": "Idioma não suportado",
+        "cannotCombine": "Não podem ser combinados",
+        "notAvailable": "Indisponível aqui"
       },
       "speechModeHint": "Quando um trecho de fala segue para tradução; fixo durante a sessão",
       "hint": "Que serviço faz cada etapa",
