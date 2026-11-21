@@ -265,3 +265,84 @@ createJobTranslator(o: {
 - Two legs with one local model load it twice, once per leg, as the whole unit does; memory with a local voice in the same plan is not summed.
 - How often a real model answers blank is not known; each such answer is now a notice.
 - The 60 s deadline was chosen, not measured.
+
+## Decisions made while Part D was built
+
+**The catalog (R6)**
+
+- **A member of its own: `translatesOwn`.** `joint` means what it meant, and only the end-to-end providers have it: stages one connection carries together and never apart. Soniox, with an own key and Kizuna AI's, has `translatesOwn: true` in its place: it translates only what it transcribes, and its transcription may stand alone. Two helpers read both members, and every reader goes through them: `goesWith(option, stage)` (the stages an option must serve itself when it serves `stage`) and `carriedTogether(option)` (the stages one connection of it carries when the line-up gives it all of them: what the line-up page's shared card and the Accounts page's tags read). `soleHost` needed no change: it compares hosts.
+- **The E2E build's `fake` keeps its joint group.** It has no unit that transcribes alone, so the asymmetric rule would say something its units cannot do. `fake_transcriber`, `fake_translator` and `fake_voice` are each a host of one stage, which the composer covers as it stands.
+
+**The composer (R7)**
+
+- **An exact cover, fewest units first.** A host's stages are cut into parts every way there is; a way is a plan when each part has a unit of the host that occupies exactly it. The ways are tried by number of parts, then parts of neighbouring stages first, so one unit for everything wins over any cut: a line-up all on this device, or with this device transcribing and translating, is the whole unit (R2, pinned). Soniox on all three is its text unit and its voice; Soniox transcribing and speaking around another translator is its unit that transcribes alone and its voice; this device translating and speaking is its translation unit and its speech unit.
+- **Stages that go together are never cut.** A part holds every stage `goesWith` names for its stages. A host given only part of such a group is asked for one unit and nothing else, as before: an end-to-end provider's whole unit may still answer for transcription and translation, and what follows is the voice rule's to say.
+- **Soniox's translation without its transcription is said first**, before any unit is looked for, so the refusal is about Soniox and not about the other host's units. The plan's units are in stage order whichever host they belong to.
+- **`lineup_stage_split` is reused for it**, with the stage `transcription`: its sentence reads "Soniox must also do transcription. Choose Soniox for transcription, or use another service instead of Soniox.", which is the rule. End-to-end splits answer the same code as before.
+- **The voice rule with the text on two hosts.** A voice is its host's own only when all three stages are on that host. Otherwise it is fed by the leg of three units and has to be offered alone, on the host that transcribes too; then each host of the text side that is not the voice's own is asked whether it takes another voice, the one that transcribes first. Every released separate line-up passes. `twoManaged` is unchanged.
+
+**The checks that need the run (R8, R9)**
+
+- **Three codes, each a notice in thirty locales with the target `lineup`:** `lineup_source_not_fixed` (an automatic source), `lineup_pair_not_translated` (it carries the pair) and `lineup_face_to_face_apart`. All are on the translation stage; the first two name the line-up's option for translation (Bing, not the provider that runs it), the third the option that transcribes.
+- **They read the units' capabilities.** A translation unit that states `translates` is asked for every leg the run opens, each in its own direction; a unit that does not state it is never refused. Face-to-face is refused when it was asked for, another unit translates, and the unit that transcribes says it cannot run it.
+- **"Asked for" is new to the run's shape: `faceToFaceAsked`.** `faceToFace` is "asked for and offered", and under a unit that does not offer it a stored "beside me" is ordinary Both; that stays true for a provider whose one unit transcribes and translates. Where another unit translates it is refused instead, and the Both popover and the Audio page keep the "Other side" choice on show while it is (`useFaceToFace().refused`), so the user can put the other side back in a meeting without changing the line-up.
+- **The gate says these before the reversed pair.** Otherwise Both with a pair the translator does not take the other way round would read "this provider can't translate the other participants", which names neither the service nor the way out. The voice's language is still judged after the reversed pair, as before.
+
+**Choosing (R6)**
+
+- **One rule: a stage goes with the stages it needs.** The chosen option takes `goesWith` of the stage, and another provider loses a stage whose `goesWith` it just lost part of. So Bing or this device for translation keeps Soniox transcribing; Soniox for translation takes the transcription (reported in `moved`, as a joint partner is); Soniox for transcription keeps a translation by Bing or this device; another provider for transcription takes Soniox's translation with it, to the chosen host's default. "Speech follows" is unchanged.
+- **Every line-up reached by choosing from any host's defaults composes** under the released providers' default settings (a property test walks them all). The separate ones are exactly Soniox, either one, under Bing or this device. What such a line-up can still be refused for needs the run: the three codes above and `lineup_language_not_spoken`.
+
+**Languages (R8)**
+
+- **The translation unit answers, among the transcription provider's languages.** Where another unit translates and states `translates`, the sources are the transcription provider's that have a target, and the targets are that provider's own target list for the source, kept where the unit translates the pair. An automatic source has no target and is not offered. The lists keep the transcription provider's codes, which the pair is stored and reversed in.
+- **Bing's codes need no new mapping for Soniox's list.** Soniox writes Chinese `zh` and Norwegian `no`, which Bing's table already maps; every other code is the same. Eight of Soniox's sixty languages are not on the app's list of Bing's (Albanian, Azerbaijani, Basque, Belarusian, Galician, Gujarati, Kannada, Macedonian): they are offered with a model of this device and not with Bing. The list was not widened here: nothing was run against Bing.
+- **A stored pair the new translator cannot take is kept**, as a pair a voice cannot read is: the picker shows what it is as an option that cannot be chosen, the line-up's card says why, and Start is off until the pair or the line-up changes.
+
+**Readiness and Start**
+
+- **A provider that only translates is checked for the pair as picked.** Before Start, a provider's check read its own entry's pair, the nearest its own lists offer; with another provider transcribing, that can be another pair than the one that runs. The store now hands such a provider the picked pair, and a new pick forgets its answer. A start's own check already read the run's pair.
+- **Nothing else was wrong.** A start reads every provider's credentials and readiness, so Soniox's key (or the sign-in) and this device's translation model are each asked of their own provider and named in their own notice; Bing and Edge need nothing. Kizuna AI's Soniox transcribing for another translator has the text-only floor, and the speaking one when its own voice reads.
+
+**The line-up page (R16)**
+
+- **Soniox's shared card has a second choice.** While Soniox transcribes and translates, the two stages share a card as before, with its one choice on top; the translation's part now has a choice of its own, and the card says "Transcription and translation go over one connection. Another service can do the translation: choose it below." Once another service translates, each stage has its own card and nothing says they go together. An end-to-end provider's card is unchanged.
+- **Soniox is offered for translation everywhere**, enabled: choosing it moves the transcription, as choosing an end-to-end provider moves its stages. Nothing is said before or after; the cards regroup.
+- **Soniox's options where it transcribes alone:** the shared-session choice is not drawn, and agent text reads as it does in split Both. The stored settings are kept.
+- **Card states** reuse the tags there were: "Unsupported language" for the pair and for an automatic source, "Can't be combined" for face-to-face.
+- **The word list:** nothing is said for Bing (the page says nothing for it under this device either).
+
+**Records and analytics**
+
+- Nothing was wrong: the run already hands the record the three ids and each stage's model from its own unit, the export prints the stages when the hosts differ, and a translation error is filed under the provider that translates (Part A). Tests were added at each level. The voice of a plan of two units is still untagged: left as it was.
+
+**Existing tests changed**
+
+- The composer's and the catalog's: the cases that pinned "Soniox transcribes, Bing translates" as refused, "a host with no joint stages is not split" and "translation alone is no unit of it" now state the cover; the old joint case runs under a catalog that holds Soniox's stages jointly.
+- `choose`: a translation chosen under Soniox keeps Soniox, and Soniox chosen for transcription keeps the translation; the property test follows `goesWith`.
+- The Soniox units' list (three, the unit that transcribes alone declared), and Part B's "declared by no definition yet".
+- The local provider's "nothing a user can choose changed" (now: a provider with no unit that transcribes alone has no unit for what is left to it).
+- The line-up page: the shared card's two choices and its sentence; the refused example is Soniox's translation without its transcription.
+- The notice targets' and the notice words' lists, by the three new codes.
+
+## What step 4 leaves
+
+Known limits:
+
+- **Typed text is not available while Soniox transcribes** (R12): it is the transcription unit's capability, and Soniox takes none.
+- **Face-to-face and an automatic source are refused with a separate translator** (R8, R9). Both mode then runs as two connections to Soniox, one per direction.
+- **No unit of this device transcribes alone** (R2): nothing offered translates another provider's transcription but this device and Bing, so "this device transcribes, Soniox translates" is refused, and a line-up with this device transcribing always runs its whole unit.
+- **A run ends when a hosted voice's lease does** (step 3), also where the transcription is on the user's own key and the translation on this device.
+- **Memory is not summed across the units of a plan**: this device's translation model and its voice model are budgeted each on its own.
+- **The targets with a separate translator are the transcription provider's languages.** Bing translates into languages Soniox does not list; they are not offered, though a one-way session would not need Soniox to hear them.
+- **The page's count of word-list entries left out** is Soniox's with translations, also where Soniox is sent the terms alone and more of them fit.
+- **A host of one stage has no default for the others.** Choosing the E2E build's fake translator under the joint `fake` leaves a line-up with no transcription, said as incomplete. No released host is such a host.
+- **The card's readiness before Start** follows the picked pair; a pair Soniox's own lists would move for its language context is checked as picked, and the start's own check decides.
+
+## Not verified
+
+- The E2E suite was not run. Two cases were added to `mixed-line-up.spec.ts` (three fakes; the line-up page) and one `@real` case to `real-mixed-line-up.spec.ts` (Soniox with an own key, Bing, Edge): written and type-checked only.
+- No run against a real service: Soniox asked for no translation, Bing through the job translator, the latency of the first translated sentence, and a hosted session that transcribes alone.
+- No real model of this device ran through the translation unit.
+- The four new strings in the twenty-nine other locales were not reviewed by native speakers. Each quotes that locale's own words for "Auto Detect", "Other side" and "In a meeting".
+- macOS and Windows.
