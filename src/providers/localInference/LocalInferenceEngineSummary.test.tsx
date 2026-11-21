@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
-// The stored line-up: none here, so local models resolve as today.
-vi.mock('../../stores/lineUpStore', () => ({ useStoredLocalStages: () => null, storedLocalStages: () => null }));
+// The stored line-up: none unless a test sets one, so local models resolve as today.
+const mockStored = vi.hoisted(() => ({ value: null as null | { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null } }));
+vi.mock('../../stores/lineUpStore', () => ({ useStoredLocalStages: () => mockStored.value, storedLocalStages: () => mockStored.value }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_k: string, def?: any, opts?: any) => {
@@ -40,6 +41,7 @@ import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 const noNotes = { notes: [], prunes: [] };
 
 beforeEach(() => {
+  mockStored.value = null;
   mockResolve.mockReset();
   mockEstimate.mockReset();
   mockEstimate.mockReturnValue({ vramMb: 0, ramMb: 0 });
@@ -65,6 +67,21 @@ describe('LocalInferenceEngineSummary', () => {
       <LocalInferenceEngineSummary settings={LOCAL_INFERENCE_DEFAULTS} update={vi.fn()} legs={['speaker']} openSlot={vi.fn()} />,
     );
     expect(container.querySelectorAll('.model-chip')).toHaveLength(3);
+  });
+
+  it('shows no chip for a stage another provider serves: nothing of this machine runs for it, and nothing is missing', () => {
+    mockResolve.mockReturnValue({ asr: null, translation: null, tts: { modelId: 'local-tts' }, ...noNotes });
+    mockStored.value = { translation: null, speech: 'local' };
+    const voiceOnly = render(<LocalInferenceEngineSummary settings={LOCAL_INFERENCE_DEFAULTS} update={vi.fn()} legs={['speaker']} openSlot={vi.fn()} />);
+    expect([...voiceOnly.container.querySelectorAll('.model-chip-label')].map((e) => e.textContent)).toEqual(['TTS']);
+    expect(voiceOnly.container.querySelector('.model-warn')).toBeNull();
+    voiceOnly.unmount();
+
+    mockResolve.mockReturnValue({ asr: { modelId: 'asr-model' }, translation: { modelId: 'asr-model' }, tts: null, ...noNotes });
+    mockStored.value = { translation: 'local', speech: null };
+    const textOnly = render(<LocalInferenceEngineSummary settings={LOCAL_INFERENCE_DEFAULTS} update={vi.fn()} legs={['speaker']} openSlot={vi.fn()} />);
+    expect([...textOnly.container.querySelectorAll('.model-chip-label')].map((e) => e.textContent)).toEqual(['ASR', 'MT']);
+    expect(textOnly.container.querySelector('.model-warn')).toBeNull();
   });
 
   it('shows two chips for the participant leg alone (en→ja, no TTS)', () => {

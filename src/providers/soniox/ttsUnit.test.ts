@@ -16,7 +16,7 @@ import type { SharedSettings } from '../../lib/provider/types';
 import type { SonioxTtsConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { AUTO_CTX, b64, KEY, SHARED, type Json } from './testing';
-import { createSonioxTtsUnit, sonioxTtsUnit, sonioxTtsUnitFor, type SonioxTtsUnitConfig } from './ttsUnit';
+import { createSonioxTtsUnit, sonioxSpeaks, sonioxTtsUnit, sonioxTtsUnitFor, type SonioxTtsUnitConfig } from './ttsUnit';
 
 const REVERSED: SharedSettings = { ...SHARED, reversed: () => true };
 const BACK = { ...AUTO_CTX, direction: { source: 'ja', target: 'en' } };
@@ -70,7 +70,7 @@ describe("Soniox's speech unit", () => {
   });
 
   it('says what the voice can do; whether the participant speaks is its definition\'s to say', () => {
-    const can = { speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: false, faceToFace: true };
+    const can = { speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: false, faceToFace: true, speaks: sonioxSpeaks };
     expect(sonioxTtsUnit.capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: true });
     expect(sonioxTtsUnitFor({ participantSpeech: true }).capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: true });
     expect(sonioxTtsUnitFor({ participantSpeech: false }).capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: false });
@@ -308,5 +308,18 @@ describe("a session of Soniox's speech unit", () => {
     session.close();
     await session.open();
     expect(degradedOf(log)).toEqual([]);
+  });
+});
+
+describe("the languages Soniox's voice speaks", () => {
+  const speaks = sonioxTtsUnit.capabilities(SONIOX_DEFAULTS).speaks!;
+  it('the languages its table has a code for, Tagalog under the code the app writes', () => {
+    expect(['en', 'ja', 'zh', 'fil', 'cy'].map((language) => speaks(language))).toEqual([true, true, true, true, true]);
+  });
+  it('no other language, no regional form, and never the automatic source', () => {
+    expect(['yue', 'jv', 'pt-BR', 'tl', 'auto', ''].map((language) => speaks(language))).toEqual([false, false, false, false, false, false]);
+  });
+  it('is the same on both definitions', () => {
+    expect(sonioxTtsUnitFor({ participantSpeech: false }).capabilities(SONIOX_DEFAULTS).speaks!('eu')).toBe(true);
   });
 });

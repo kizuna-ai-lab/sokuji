@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { unservedStages } from '../../../lib/lineup/localStages';
 import { useStoredLocalStages } from '../../../stores/lineUpStore';
 import {
   useModelStore, useModelStatuses, useWebGPUAvailable, useDeviceFeatures,
@@ -108,7 +109,10 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
       // A direction's TTS slot shows only while that leg speaks: the participant's (#619), and mine (owner, 2026-11-18).
       stagesFor: (_dir, isSpeaker): Stage[] => {
         const speaks = isSpeaker ? override.speakerSpeaks !== false : Boolean(override.participantSpeaks);
-        return speaks ? ['asr', 'translation', 'tts'] : ['asr', 'translation'];
+        const shown: Stage[] = speaks ? ['asr', 'translation', 'tts'] : ['asr', 'translation'];
+        // A stage another provider serves has no slot here: no model of this machine runs for it.
+        const elsewhere = unservedStages(stages);
+        return shown.filter((stage) => !elsewhere.includes(stage));
       },
       disabled: isSessionActive,
     };

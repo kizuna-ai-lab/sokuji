@@ -16,13 +16,18 @@ const mockInitialize = vi.fn(async () => { mockInitialized = true; });
 const mockApplyPrunes = vi.fn(async () => {});
 const mockOff = vi.fn();
 const mockSubscribe = vi.fn((_selector: (s: { modelStatuses: unknown }) => unknown, _listener: () => void) => mockOff);
-const mockResolve = vi.fn((src: string, tgt: string, selections: Selections): DirectionResult => {
+type MockStages = { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null } | null;
+// As the engine resolves with a line-up's local stages (`resolveWasmDirection`): nothing resolves for recognition
+// or translation while another provider translates, and Bing translates where the line-up gives it translation.
+const mockResolve = vi.fn((src: string, tgt: string, selections: Selections, stages?: MockStages): DirectionResult => {
   const entry = mockTable[`${src}>${tgt}`];
   const stage = (id: string | null | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
   const translationAuto = selections[directionKey(src, tgt)]?.translation.modelId === '';
+  const elsewhere = stages != null && stages.translation === null;
+  const translation = stages?.translation === 'bing' ? 'bing-translator' : translationAuto ? entry?.autoTranslation : entry?.translation;
   return {
-    asr: stage(entry?.asr),
-    translation: stage(translationAuto ? entry?.autoTranslation : entry?.translation),
+    asr: stage(elsewhere ? null : entry?.asr),
+    translation: stage(elsewhere ? null : translation),
     tts: stage(entry?.tts),
     notes: [],
     prunes: [],
@@ -45,7 +50,7 @@ vi.mock('../../stores/modelStore', () => ({
   },
 }));
 
-let mockStages: { translation: 'bing' | 'local'; speech: 'edge' | 'local' } | null = null;
+let mockStages: MockStages = null;
 vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => mockStages }));
 import { checkLocalInference, watchLocalInferenceReadiness } from './check';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
@@ -188,6 +193,72 @@ describe('the stored line-up in the readiness check', () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't', tts: null } });
     await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] });
     expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'local', speech: 'edge' });
+    mockStages = null;
+  });
+
+  it('is ready with no recognition and no translation model while the line-up gives it speech alone', async () => {
+    resolved({});
+    for (const speech of ['edge', 'local'] as const) {
+      mockStages = { translation: null, speech };
+      mockResolve.mockClear();
+      expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] })).toEqual({ ok: true });
+      // Nothing is asked of the models: a speech model that is missing is said when the session starts.
+      expect(mockResolve).not.toHaveBeenCalled();
+    }
+    mockStages = null;
+  });
+
+  it('still asks for its recognition and translation models while another provider only speaks', async () => {
+    mockStages = { translation: 'local', speech: null };
+    resolved({});
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toMatchObject({ ok: false, code: 'local_models_missing' });
+    mockStages = null;
+  });
+
+  it('reads the stages it is told it serves before the stored line-up: speech alone is ready with no model at all', async () => {
+    mockStages = null;
+    resolved({});
+    mockResolve.mockClear();
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], stages: ['speech'] })).toEqual({ ok: true });
+    // Not even a speech model is asked for: one that is missing is said when the session starts.
+    expect(mockResolve).not.toHaveBeenCalled();
+  });
+
+  // The plan a start checks is the one it froze: the stored line-up may have moved since, or none may be stored.
+  it('told it transcribes and translates, it resolves those stages with its models, whatever the stored line-up says', async () => {
+    const ctx = {
+      pair: { source: 'ja', target: 'en' }, legs: ['speaker'],
+      stages: ['transcription', 'translation'], stageIds: { transcription: 'local_inference', translation: 'local_inference' },
+    } as const;
+    for (const storedStages of [{ translation: null, speech: 'edge' }, { translation: 'bing', speech: 'edge' }, null] as const) {
+      mockStages = storedStages;
+      resolved({});
+      expect(await checkLocalInference(defaults, ctx)).toMatchObject({ ok: false, code: 'local_models_missing' });
+      resolved({ 'ja>en': { asr: 'a', translation: 't', tts: null } });
+      mockResolve.mockClear();
+      expect(await checkLocalInference(defaults, ctx)).toEqual({ ok: true });
+      expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'local', speech: null });
+    }
+    mockStages = null;
+  });
+
+  it('told the plan gives translation to Bing, it asks for a recognition model alone', async () => {
+    mockStages = { translation: 'local', speech: 'local' };
+    const ctx = {
+      pair: { source: 'ja', target: 'en' }, legs: ['speaker'],
+      stages: ['transcription', 'translation'], stageIds: { transcription: 'local_inference', translation: 'bing' },
+    } as const;
+    resolved({ 'ja>en': { asr: 'a', translation: null } });
+    expect(await checkLocalInference(defaults, ctx)).toEqual({ ok: true });
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'bing', speech: null });
+    mockStages = null;
+  });
+
+  it('told its stages without their ids, it resolves each with a model on this machine', async () => {
+    mockStages = { translation: 'bing', speech: 'edge' };
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'], stages: ['transcription', 'translation'] });
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'local', speech: null });
     mockStages = null;
   });
 });

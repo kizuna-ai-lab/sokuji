@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { unservedStages } from '../../lib/lineup/localStages';
 import { useStoredLocalStages } from '../../stores/lineUpStore';
 import { Cpu, AlertTriangle } from 'lucide-react';
 import type { EngineSummaryProps } from '../../lib/provider/types';
@@ -103,21 +104,27 @@ export function LocalInferenceEngineSummary({
       const entry = getManifestEntry(id);
       return entry ? shortenModelName(entry.name, entry.shortName) : id;
     };
+    // A stage another provider serves has no chip: no model of this machine runs for it, and none is missing.
+    const elsewhere = unservedStages(stages);
     return (
       <>
-        <button type="button" className="model-chip" onClick={() => openSlot({ dir, stage: 'asr' })}>
-          <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
-          <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
-            {asrId ? wasmShort(asrId) : t('common.none', 'None')}
-          </span>
-        </button>
-        <button type="button" className="model-chip" onClick={() => openSlot({ dir, stage: 'translation' })}>
-          <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
-          <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
-            {trId ? wasmShort(trId) : t('common.none', 'None')}
-          </span>
-        </button>
-        {includeTts && (() => {
+        {!elsewhere.includes('asr') && (
+          <button type="button" className="model-chip" onClick={() => openSlot({ dir, stage: 'asr' })}>
+            <span className="model-chip-label">{t('providers.local_inference.modelAsr', 'ASR')}</span>
+            <span className={`model-chip-value ${asrId ? 'model-ok' : 'model-warn'}`}>
+              {asrId ? wasmShort(asrId) : t('common.none', 'None')}
+            </span>
+          </button>
+        )}
+        {!elsewhere.includes('translation') && (
+          <button type="button" className="model-chip" onClick={() => openSlot({ dir, stage: 'translation' })}>
+            <span className="model-chip-label">{t('providers.local_inference.modelTranslation', 'MT')}</span>
+            <span className={`model-chip-value ${trId ? 'model-ok' : 'model-warn'}`}>
+              {trId ? wasmShort(trId) : t('common.none', 'None')}
+            </span>
+          </button>
+        )}
+        {includeTts && !elsewhere.includes('tts') && (() => {
           const id = resolved?.tts?.modelId;
           return (
             <button type="button" className="model-chip" onClick={() => openSlot({ dir, stage: 'tts' })}>

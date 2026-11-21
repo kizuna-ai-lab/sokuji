@@ -219,7 +219,9 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     }
     const shape = deps.readShape();
     if (!shape) {
-      set({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'no_provider' satisfies RunNoticeCode, message: 'No provider is chosen, or it has not loaded.' } } });
+      // A line-up that cannot run says why itself; otherwise nothing is chosen, or it has not loaded.
+      const notice = deps.planRefusal?.() ?? { code: 'no_provider' satisfies RunNoticeCode, message: 'No provider is chosen, or it has not loaded.' };
+      set({ phase: 'idle', lastEnd: { reason: 'refused', notice } });
       return;
     }
     const run = new Run(deps, hostFor, shape);

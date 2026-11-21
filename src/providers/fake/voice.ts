@@ -95,6 +95,8 @@ const voiceUnit: UnitDefinition<FakeVoiceSettings, FakeVoiceCredentials, FakeVoi
     textInput: false,
     faceToFace: true,
     participantSpeech: true,
+    // It reads silence: every language.
+    speaks: () => true,
   }),
   build: () => ({ voice: 'fake' }),
   describe: () => ({ ttsModel: 'fake-voice' }),

@@ -9,7 +9,7 @@ import { redact } from '../diagnostics/redact';
 import type { AnyProvider, Platform, Readiness } from '../provider/types';
 import type { NetworkType } from './reconnectEvents';
 import type { OpenSource } from './source';
-import type { RunShape } from './types';
+import type { RunNotice, RunShape } from './types';
 
 /** Where a run's audio goes; plan 1c-2's `Playback` (src/lib/audio/playback.ts) implements it. */
 export interface PlaybackPort {
@@ -75,6 +75,8 @@ export interface RunnerDeps {
   platform: Platform;
   /** Everything a run freezes; null when no provider is chosen or it has not loaded. */
   readShape(): RunShape | null;
+  /** Why `readShape` has none, when the line-up is why: the composer's refusal, as a notice. Absent or null: no provider is chosen, or it has not loaded. */
+  planRefusal?(): RunNotice | null;
   /** Readiness of one provider of the run's plan, on the run's own shape (its settings and credentials there, the pair), through the shared cache; honours `signal`. */
   ensureReady(provider: AnyProvider, shape: RunShape, signal: AbortSignal): Promise<Readiness>;
   /** Writes a `prepare` patch field by field, only where the stored value still equals the run's snapshot. */

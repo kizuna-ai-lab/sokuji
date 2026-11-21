@@ -37,6 +37,7 @@ vi.mock('../../lib/plan/fromStores', async (importOriginal) => {
   return { ...actual, usePlan: () => (plan.found ?? actual.usePlan()) as ReturnType<typeof actual.usePlan> };
 });
 
+import type { LocalStages } from '../../lib/lineup/localStages';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
 import { stubTextUnit, textAndSpeechPlan } from '../../lib/plan/testing';
 import type { PlannedUnit } from '../../lib/plan/types';
@@ -237,6 +238,53 @@ describe('SettingsInitializer', () => {
         await settle();
         expect(edge.voices).not.toHaveBeenCalled();
         expect(updateSettings).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('with a stored line-up that is all on this device', () => {
+      /** The resolver as it reads a stored line-up: Edge wherever the line-up gives speech to it, else what the local selections pick. */
+      const byLineUp = (picked: string) => (_src: string, _tgt: string, _selections: unknown, stages?: LocalStages | null) =>
+        direction(stages?.speech === 'edge' ? 'edge-tts' : stages?.speech === 'local' ? 'piper-ja' : picked);
+      const store = (speech: 'edge' | 'local_inference') =>
+        useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech, summarisation: null }, stored: true, unstoredProvider: null });
+
+      it('picks a voice for a direction Edge reads only because the line-up says Edge: the local selections alone pick a speech model', async () => {
+        useModelStore.setState({ resolve: byLineUp('piper-ja') });
+        selectLocal();
+        store('edge');
+        render(<SettingsInitializer />);
+        await settle();
+        expect(updateSettings).toHaveBeenCalledTimes(1);
+        expect(updateSettings).toHaveBeenCalledWith(localInferenceProvider, { voices: { 'en→ja': { edge: 'ja-JP-NanamiNeural' } } });
+      });
+
+      it('picks one for every direction Edge will read, the other side\'s too', async () => {
+        useModelStore.setState({ resolve: byLineUp('piper-ja') });
+        selectLocal({}, { legs: ['speaker', 'participant'], participantSpeech: true });
+        store('edge');
+        render(<SettingsInitializer />);
+        await settle();
+        expect(updateSettings).toHaveBeenCalledWith(localInferenceProvider, {
+          voices: { 'en→ja': { edge: 'ja-JP-NanamiNeural' }, 'ja→en': { edge: 'en-US-AvaNeural' } },
+        });
+      });
+
+      it('picks nothing when the line-up gives speech to a model on this device, though the local selections alone would pick Edge', async () => {
+        useModelStore.setState({ resolve: byLineUp('edge-tts') });
+        selectLocal();
+        store('local_inference');
+        render(<SettingsInitializer />);
+        await settle();
+        expect(edge.voices).not.toHaveBeenCalled();
+        expect(updateSettings).not.toHaveBeenCalled();
+      });
+
+      it('with no line-up stored the local selections decide, as before', async () => {
+        useModelStore.setState({ resolve: byLineUp('edge-tts') });
+        selectLocal();
+        render(<SettingsInitializer />);
+        await settle();
+        expect(updateSettings).toHaveBeenCalledWith(localInferenceProvider, { voices: { 'en→ja': { edge: 'ja-JP-NanamiNeural' } } });
       });
     });
 

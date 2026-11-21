@@ -5,7 +5,10 @@
  * resolves it; its session is `speechSession.ts`.
  */
 import type { LegName } from '../../lib/conversation/types';
-import { localSpeechStagesOf } from '../../lib/lineup/localStages';
+import { canonicalTag } from '../../lib/language/code';
+import { localSpeechStagesOf, type LocalStages } from '../../lib/lineup/localStages';
+import { EDGE_TTS_LANGUAGES } from '../../lib/local-inference/languageSupport';
+import { getTtsModelsForLanguage } from '../../lib/local-inference/modelManifest';
 import { SP } from '../../lib/lineup/types';
 import { sameStages, type UnitDefinition } from '../../lib/plan/types';
 import type { ProviderRefusal } from '../../lib/provider/types';
@@ -23,6 +26,29 @@ export type LocalSpeechUnit = UnitDefinition<LocalInferenceSettings, LocalCreden
 export interface LocalSpeechUnitDeps {
   /** Today's `TtsEngine` by default; a fake in tests. */
   engines?: Pick<LocalEngines, 'tts'>;
+}
+
+/** A language's base, as the model lists write it ("pt" of "pt-BR"). */
+function baseOf(language: string): string {
+  try {
+    return canonicalTag(language).split('-')[0];
+  } catch {
+    return language;
+  }
+}
+
+/**
+ * Whether the local provider's voice reads `language`. Edge, where the line-up gives speech to it: Edge's own
+ * list. A speech model on this machine: some model of the catalog speaks it, downloaded or not (one not
+ * downloaded is said when the session starts, and can be downloaded). With no line-up stored, either.
+ */
+export function localSpeaks(language: string, stages: LocalStages | null): boolean {
+  const base = baseOf(language);
+  const edge = EDGE_TTS_LANGUAGES.some((l) => baseOf(l) === base);
+  const local = [language, base].some((code) => getTtsModelsForLanguage(code).some((m) => !m.isCloudModel));
+  if (stages?.speech === 'edge') return edge;
+  if (stages === null) return edge || local;
+  return local;
 }
 
 /**
@@ -45,6 +71,7 @@ export function createLocalSpeechUnit(deps: LocalSpeechUnitDeps = {}): LocalSpee
       textInput: false,
       faceToFace: true,
       participantSpeech: true,
+      speaks: (language) => localSpeaks(language, storedLocalStages()),
     }),
     build: (context, s, shared) => {
       if (!context.speech) return { off: true };

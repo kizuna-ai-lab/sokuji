@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { PLAN_REFUSAL_CODES } from '../plan/types';
 import { NOTICE_TARGETS, settingsTargetForCode } from './noticeTargets';
 import { NOTICE_ALIASES, NOTICE_WORDS } from './noticeText';
 
@@ -14,6 +15,10 @@ describe('settingsTargetForCode', () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing']) {
       expect(settingsTargetForCode(code), code).toBe('provider-options');
     }
+  });
+
+  it('sends every refusal of the line-up to the line-up', () => {
+    for (const code of PLAN_REFUSAL_CODES) expect(settingsTargetForCode(code), code).toBe('lineup');
   });
 
   it('sends an unsupported turn mode to the turn-detection section', () => {

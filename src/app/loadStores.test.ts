@@ -354,4 +354,63 @@ describe("the entries of the line-up's providers", () => {
     await vi.waitFor(() => expect(useProviderStore.getState().entries.local_inference).toBeDefined());
     expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
   });
+
+  describe('while the first loads are still awaited', () => {
+    /** The stores and the loader of a page that has never launched: no watch of an earlier launch is listening. */
+    async function freshPage() {
+      vi.resetModules();
+      const [{ loadSessionStores: launch }, lineUpStore, providerStore, segmentationStore] = await Promise.all([
+        import('./loadStores'), import('../stores/lineUpStore'), import('../stores/providerStore'), import('../stores/segmentationStore'),
+      ]);
+      return { launch, lineUps: lineUpStore.useLineUpStore, providers: providerStore.useProviderStore, segmentation: segmentationStore.useSegmentationStore };
+    }
+    afterEach(() => { vi.resetModules(); });
+
+    it('a change of the line-up loads the new host', async () => {
+      stored.set('settings.common.provider', 'soniox');
+      const page = await freshPage();
+      // The punctuation pack is still loading: the launch has not finished.
+      let finish!: () => void;
+      page.segmentation.setState({ refresh: vi.fn(() => new Promise<void>((resolve) => { finish = resolve; })) });
+      const launching = page.launch();
+      await vi.waitFor(() => expect(page.providers.getState().entries.soniox).toBeDefined());
+      expect(page.providers.getState().entries.local_inference).toBeUndefined();
+
+      // Chosen on the settings page meanwhile: Edge reads Soniox's text.
+      page.lineUps.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
+      await vi.waitFor(() => expect(page.providers.getState().entries.local_inference).toBeDefined());
+
+      finish();
+      await launching;
+      expect(Object.keys(page.providers.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+    });
+
+    it('the host the launch itself names is loaded once, by the watch and the launch between them', async () => {
+      stored.set('settings.common.provider', 'soniox');
+      const page = await freshPage();
+      page.segmentation.setState({ refresh: vi.fn(async () => {}) });
+      const load = vi.spyOn(page.providers.getState(), 'load');
+      await page.launch();
+      expect(load.mock.calls.map(([p]) => p.id)).toEqual(['soniox']);
+    });
+
+    it('a launch whose line-up load fails still loads the providers the store names, and reports the failure once', async () => {
+      const page = await freshPage();
+      const [{ default: logs }, { settleReports: settle }] = await Promise.all([import('../stores/logStore'), import('../lib/diagnostics/report')]);
+      logs.getState().setEnabled(true);
+      logs.getState().clearLogs();
+      page.segmentation.setState({ refresh: vi.fn(async () => {}) });
+      // The store already names what runs, and this load changes nothing before it fails: no change of the
+      // line-up follows for the watch to hear.
+      page.lineUps.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
+      vi.spyOn(page.lineUps.getState(), 'load').mockRejectedValue(new Error('disk'));
+      await page.launch();
+      expect(Object.keys(page.providers.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+      await settle();
+      const warnings = logs.getState().allLogs.filter((l) => l.message.includes('line-up'));
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toMatchObject({ type: 'warning' });
+      expect(warnings[0].message).toContain('Loading the line-up failed: disk');
+    });
+  });
 });

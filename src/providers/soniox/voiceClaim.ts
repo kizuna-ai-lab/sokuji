@@ -1,6 +1,6 @@
 /**
- * Kizuna Soniox's `prepare` (survey §1.9, §2.3): before a speaking
- * session, claim the account's cloned voice in the region the session runs
+ * Kizuna Soniox's `prepare` (survey §1.9, §2.3): before a session in which
+ * this provider speaks, claim the account's cloned voice in the region the session runs
  * in — the backend runs Soniox's voice quota as an LRU cache, so a voice
  * chosen days ago may be gone — rebuilding it from this device's clip when
  * it must. Ported from `KizunaAISonioxProviderConfig.prepareToStart`
@@ -14,6 +14,7 @@ import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_DEFAULT_VOICE, isSonioxBuiltInVoice } from '../../lib/soniox/ttsCatalog';
 import { reportWarning } from '../../lib/diagnostics/report';
 import { hasVoiceClip, loadVoiceClip } from '../../lib/soniox/voiceClipStorage';
+import { asksSpeech } from './leaseRequest';
 import { ManagedVoicesClient } from './managedVoicesClient';
 import { sonioxVoiceField, type SonioxSettings } from './settings';
 import { prepareManagedVoice, resolveVoicePrepOutcome } from './voicePrep';
@@ -48,6 +49,8 @@ export function createKizunaVoiceClaim(deps: VoiceClaimDeps = {}) {
   return async function claimVoice(shape: RunShape, s: SonioxSettings, signal: AbortSignal): Promise<Prepared<SonioxSettings>> {
     // The speaker's voice, when it speaks: the participant's speech ships off (ruling 2), and turning it on revisits this (the checklist's item 5).
     if (!shape.legs.includes('speaker') || shape.textOnly) return {};
+    // Another provider's voice reads the translation: this provider's voice is not used, so none is claimed.
+    if (!asksSpeech(shape)) return {};
     const region = asSonioxRegion(s.region);
     // A clone is a UUID inside one region's project: that region's own field.
     const field = sonioxVoiceField(region);

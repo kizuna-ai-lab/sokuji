@@ -1,3 +1,5 @@
+import { PLAN_REFUSAL_CODES } from '../plan/types';
+
 /**
  * The notice codes the runner itself records (spec: "Notices reach the user
  * localized"). snake_case, like the adapters' `CLIENT_DIAGNOSTICS` codes and
@@ -20,6 +22,8 @@ export const RUN_NOTICE_CODES = [
   'source_ended',
   'still_stopping',
   'connection_restored',
+  // A line-up that cannot run: the composer's refusals (`PLAN_REFUSAL_CODES`), which a start answers with.
+  ...PLAN_REFUSAL_CODES,
 ] as const;
 
 export type RunNoticeCode = (typeof RUN_NOTICE_CODES)[number];

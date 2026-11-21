@@ -10,16 +10,21 @@ import type { LineUp, ProviderCaps, RunStage, StageIds } from './types';
 const ALL: readonly RunStage[] = RUN_STAGES;
 const JOINT: readonly RunStage[] = ['transcription', 'translation'];
 
-/** One provider that does every stage over one connection (an end-to-end service), run by itself. */
-const endToEnd = (id: string, account: ProviderCaps['account']): ProviderCaps => ({ id, stages: ALL, host: id, joint: ALL, account });
+/**
+ * One provider that does every stage over one connection (an end-to-end service), run by itself. Its voice reads
+ * only its own translation, and its translation is read only by its own voice: it is not known, per vendor, to stop
+ * making and charging for audio when asked for text alone.
+ */
+const endToEnd = (id: string, account: ProviderCaps['account']): ProviderCaps => ({ id, stages: ALL, host: id, joint: ALL, account, voiceAlone: false, takesVoice: false });
 
 export const CAPS: readonly ProviderCaps[] = [
-  { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', joint: JOINT, account: 'kizuna' },
+  // Its text may be read by another voice (a text-only session of it); its own voice is not offered alone yet.
+  { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', joint: JOINT, account: 'kizuna', voiceAlone: false, takesVoice: true },
   endToEnd('kizunaai_qwen', 'kizuna'),
-  { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none' },
-  { id: 'bing', stages: ['translation'], host: 'local_inference', account: 'none' },
-  { id: 'edge', stages: ['speech'], host: 'local_inference', account: 'none' },
-  { id: 'soniox', stages: ALL, host: 'soniox', joint: JOINT, account: 'key' },
+  { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: true },
+  { id: 'bing', stages: ['translation'], host: 'local_inference', account: 'none', voiceAlone: false, takesVoice: true },
+  { id: 'edge', stages: ['speech'], host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: false },
+  { id: 'soniox', stages: ALL, host: 'soniox', joint: JOINT, account: 'key', voiceAlone: true, takesVoice: true },
   endToEnd('gemini', 'key'),
   endToEnd('volcengine_ast2', 'key'),
   endToEnd('openai', 'key'),
@@ -29,12 +34,13 @@ export const CAPS: readonly ProviderCaps[] = [
   endToEnd('palabraai', 'key'),
   // The E2E build (`--mode e2e`) runs its sessions on the fake providers, so there a line-up may name them.
   // Elsewhere they stay out: a development build reaches the fake through the stored provider alone.
-  // The fake voice serves speech alone, beside another provider's transcription and translation.
+  // The fake transcribes and translates together and may be read by another voice; the fake voice serves speech
+  // alone, beside another provider's transcription and translation.
   ...(import.meta.env.MODE === 'e2e'
     ? [
-        endToEnd('fake', 'none'),
+        { id: 'fake', stages: ALL, host: 'fake', joint: JOINT, account: 'none', voiceAlone: false, takesVoice: true } satisfies ProviderCaps,
         endToEnd('fake_leased', 'none'),
-        { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none' } satisfies ProviderCaps,
+        { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false } satisfies ProviderCaps,
       ]
     : []),
 ];

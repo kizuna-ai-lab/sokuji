@@ -7,15 +7,15 @@ import { providersIn, transcriptionAccount, transcriptionProvider, unitFor } fro
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
 import { directionVoice, withDirectionVoice } from '../../providers/localInference/voices';
-import { useLineUpStore } from '../../stores/lineUpStore';
+import { useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
 import { useModelStatuses, useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
 
 /**
  * What the app keeps true about the local provider's settings while it is in
  * the plan (plan 1e-3b-2 ruling 10): its downloaded models scanned once, and,
- * while it is the one that speaks, an Edge TTS voice that matches each
- * speaking direction's target language. Readiness is the
+ * while it is the one that speaks, an Edge TTS voice that matches the target
+ * language of each speaking direction Edge will read. Readiness is the
  * app session's (`attach()` checks a local provider itself); this writes
  * only through the provider store, the one writer of the provider's stored
  * settings (ruling 11).
@@ -26,6 +26,8 @@ export function SettingsInitializer() {
   const legs = useProviderStore((s) => s.legs);
   const participantSpeech = useProviderStore((s) => s.speech.participantSpeech);
   const lineUpSpeech = useLineUpStore((s) => s.lineUp?.speech);
+  // What the local provider serves of the stored line-up, as its builders read it; null until one is stored.
+  const stages = useStoredLocalStages();
   const modelStatuses = useModelStatuses();
   const plan = found.state === 'ready' ? found.plan : null;
   // Its models are scanned whenever a unit of it runs; its voices are kept only while it is the one that speaks.
@@ -54,9 +56,10 @@ export function SettingsInitializer() {
     if (!speaks || !settings || !source || !target) return;
     const spoken = [{ src: source, tgt: target }, ...(participantSpeaks ? [{ src: target, tgt: source }] : [])];
     const { resolve } = useModelStore.getState();
-    // Which of them Edge reads: all or none by the line-up while the voice is alone, else each by its own selection.
+    // Which of them Edge reads: all or none by the line-up while the voice is alone; else each as a session resolves
+    // it, with the stored line-up's stages, so a direction Edge reads only because the line-up says so has its voice.
     let onEdge: typeof spoken;
-    if (!voiceAlone) onEdge = spoken.filter((d) => resolve(d.src, d.tgt, settings.selections).tts?.modelId === 'edge-tts');
+    if (!voiceAlone) onEdge = spoken.filter((d) => resolve(d.src, d.tgt, settings.selections, stages).tts?.modelId === 'edge-tts');
     else if (lineUpSpeech === 'edge') onEdge = spoken;
     else onEdge = [];
     if (onEdge.length === 0) return;
@@ -79,7 +82,7 @@ export function SettingsInitializer() {
       .catch((error: unknown) =>
         reportWarning('SettingsInitializer', `Choosing an Edge TTS voice failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'edge-voice' }));
     return () => { cancelled = true; };
-  }, [speaks, voiceAlone, lineUpSpeech, settings?.selections, settings?.voices, source, target, participantSpeaks, modelStatuses]);
+  }, [speaks, voiceAlone, lineUpSpeech, stages, settings?.selections, settings?.voices, source, target, participantSpeaks, modelStatuses]);
 
   return null;
 }

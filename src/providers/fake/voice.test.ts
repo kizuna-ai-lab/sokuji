@@ -60,7 +60,7 @@ describe('the fake voice provider', () => {
 
   it('says what a voice can do', () => {
     const can = unit.capabilities({});
-    expect({ ...can }).toEqual({ speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'silence', textInput: false, faceToFace: true, participantSpeech: true });
+    expect({ ...can }).toEqual({ speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'silence', textInput: false, faceToFace: true, participantSpeech: true, speaks: expect.any(Function) });
   });
 
   it('builds and describes its one voice', () => {
@@ -197,7 +197,9 @@ describe('the fake voice in the catalog', () => {
   it('serves speech alone and hosts itself, in the build whose line-up may name the fake', async () => {
     const { catalog } = await build('e2e', false);
     expect(catalog.caps('fake')).toBeDefined();
-    expect(catalog.caps('fake_voice')).toEqual({ id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none' });
+    expect(catalog.caps('fake_voice')).toEqual({ id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false });
+    // The fake's text may be read by it: transcription and translation go together, speech apart.
+    expect(catalog.caps('fake')).toMatchObject({ joint: ['transcription', 'translation'], voiceAlone: false, takesVoice: true });
   });
 
   it('is in no other catalog', async () => {
@@ -224,5 +226,12 @@ describe('the fake voice in the catalog', () => {
     expect(plan.byStage.speech).toBe(plan.units[1]);
     expect(plan.units[0].unit.start).toBeDefined();
     expect(plan.units[1].unit.startSpeech).toBeDefined();
+  });
+});
+
+describe('the languages the fake voice speaks', () => {
+  it('every language: it reads silence', () => {
+    const speaks = unit.capabilities({}).speaks!;
+    expect(['en', 'ja', 'eu', 'xx'].map((language) => speaks(language))).toEqual([true, true, true, true]);
   });
 });

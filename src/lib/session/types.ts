@@ -97,8 +97,12 @@ export interface Prepared<S> {
   notice?: RunNotice;
 }
 
-/** What a managed provider's start floor depends on: the legs, whether the speaker speaks, and whether the participant would. */
-export type BalanceShape = Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'> & Partial<Pick<RunShape, 'faceToFace'>>;
+/**
+ * What a managed provider's start floor depends on: the legs, whether the speaker speaks, whether the participant
+ * would, and the plan, which says whether the speech is this provider's to make (`servesSpeech`). Without a plan
+ * the provider is taken to serve every stage.
+ */
+export type BalanceShape = Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'> & Partial<Pick<RunShape, 'faceToFace' | 'plan'>>;
 
 /** A lease's granted time: the countdown's whole, and when it ends on the run's clock. */
 export interface Budget {

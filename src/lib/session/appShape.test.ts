@@ -40,8 +40,9 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { presentProviders } from '../../providers/registry';
-import { appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, liveGate, persistIfUnchanged, readShapeFromStores, runPlanFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
+import { appMicMuted, appParticipantSpeech, ensureReadyFromStores, faceToFaceFromStores, legsFor, lineUpNoticeFromStores, liveGate, persistIfUnchanged, planRefusalFromStores, readShapeFromStores, runPlanFromStores, screenContextWanted, speechFromStores, speechInputsFromStores, watchLegsFromStores, watchSpeechFromStores } from './appShape';
 import { setUseOwnBalance } from './payerChoice';
+import { gate } from './shape';
 import type { RunShape } from './types';
 
 const auth = { signedIn: false, getToken: async () => null };
@@ -227,6 +228,63 @@ describe('readShapeFromStores — the line-up id that serves each stage', () => 
     useLineUpStore.setState({ lineUp: { transcription: 'later_provider', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     expect(liveGate()).toMatchObject({ code: 'lineup_incomplete', params: { stage: 'transcription' } });
   });
+
+  describe('a line-up that cannot run says why, wherever Start can be pressed', () => {
+    const entries = (pair: { source: string; target: string }) => ({
+      soniox: { settings: SONIOX_DEFAULTS, credentials: { apiKey: 'k' }, pair },
+      kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair },
+      gemini: { settings: presentProviders().find((p) => p.id === 'gemini')!.settings.defaults, credentials: { apiKey: 'k' }, pair },
+      local_inference: localEntry,
+    });
+    const stored = (transcription: string, speech: string) =>
+      useLineUpStore.setState({ lineUp: { transcription, translation: transcription, speech, summarisation: null }, stored: true, unstoredProvider: null });
+
+    it("Kizuna AI's Soniox voice under own-key Soniox text: its voice is not offered alone", () => {
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
+      stored('soniox', 'kizunaai_soniox');
+      expect(readShapeFromStores(auth)).toBeNull();
+      const refusal = { code: 'lineup_voice_not_alone', params: { stage: 'speech', provider: 'kizunaai_soniox', vendor: 'Soniox' } };
+      expect(liveGate()).toMatchObject(refusal);
+      expect(planRefusalFromStores()).toEqual(liveGate());
+      expect(lineUpNoticeFromStores()).toMatchObject({ ...refusal, stage: 'speech' });
+    });
+
+    it("an end-to-end provider's text under Edge: it takes no other voice", () => {
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
+      stored('gemini', 'edge');
+      expect(liveGate()).toMatchObject({ code: 'lineup_voice_not_taken', params: { stage: 'speech', provider: 'gemini' } });
+    });
+
+    it("an end-to-end provider's voice under Soniox text: its stages go together", () => {
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
+      stored('soniox', 'gemini');
+      expect(liveGate()).toMatchObject({ code: 'lineup_stage_split', params: { stage: 'transcription', provider: 'gemini' } });
+    });
+
+    it('Edge under Soniox text, into a language Edge has no voice for: said before anything connects', () => {
+      // Basque: Soniox translates into it, Edge does not speak it.
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'eu' }) });
+      stored('soniox', 'edge');
+      const refusal = { code: 'lineup_language_not_spoken', params: { stage: 'speech', provider: 'edge', language: 'eu' } };
+      expect(liveGate()).toMatchObject(refusal);
+      expect(lineUpNoticeFromStores()).toMatchObject({ ...refusal, stage: 'speech' });
+      // The plan composes: the runner's gate refuses the frozen shape with the same code.
+      expect(planRefusalFromStores()).toBeNull();
+      expect(gate(readShapeFromStores(auth)!, 'electron')).toMatchObject(refusal);
+      // Text only: nothing is read aloud, and the session may start.
+      useSettingsStore.setState({ textOnly: true });
+      expect(liveGate()).toBeNull();
+      expect(lineUpNoticeFromStores()).toBeNull();
+    });
+
+    it('Edge under Soniox text, into a language Edge speaks: nothing is refused', () => {
+      useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
+      stored('soniox', 'edge');
+      expect(liveGate()).toBeNull();
+      expect(planRefusalFromStores()).toBeNull();
+      expect(lineUpNoticeFromStores()).toBeNull();
+    });
+  });
 });
 
 describe('readShapeFromStores — the screen context source (spec 2026-10-22 §4)', () => {
@@ -401,6 +459,43 @@ describe('ensureReadyFromStores', () => {
     const signal = new AbortController().signal;
     await expect(ensureReadyFromStores(provider, shape, signal)).resolves.toEqual({ state: 'ready', models: [] });
     expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], signal });
+  });
+
+  it('tells each provider the stages it serves in the plan, when they are not all it can serve', async () => {
+    const asked: Record<string, CheckContext['stages']> = {};
+    const probe = (id: string) => ({ ...fakeProvider, id, kind: 'local', check: vi.fn(async (_k: unknown, _s: unknown, ctx: CheckContext) => { asked[id] = ctx.stages; return { ok: true as const }; }) }) as unknown as AnyProvider;
+    const [text, voice] = [probe('text'), probe('voice')];
+    const a = { ...planOf(text).units[0], stages: ['transcription', 'translation'] as const };
+    const b = { ...planOf(voice).units[0], stages: ['speech'] as const };
+    const shape = {
+      plan: { units: [a, b], byStage: { transcription: a, translation: a, speech: b } },
+      accounts: { text: { settings: {}, credentials: {} }, voice: { settings: {}, credentials: {} } },
+      pair: { source: 'ja', target: 'en' }, legs: ['speaker'], auth,
+    } as unknown as RunShape;
+    const signal = new AbortController().signal;
+    await ensureReadyFromStores(text, shape, signal);
+    await ensureReadyFromStores(voice, shape, signal);
+    expect(asked).toEqual({ text: ['transcription', 'translation'], voice: ['speech'] });
+  });
+
+  it("tells it the frozen line-up's ids of those stages, when the run runs a stored line-up", async () => {
+    const asked: Array<CheckContext['stageIds']> = [];
+    const probe = (id: string) => ({ ...fakeProvider, id, kind: 'local', check: vi.fn(async (_k: unknown, _s: unknown, ctx: CheckContext) => { asked.push(ctx.stageIds); return { ok: true as const }; }) }) as unknown as AnyProvider;
+    const [text, voice] = [probe('text'), probe('voice')];
+    const a = { ...planOf(text).units[0], stages: ['transcription', 'translation'] as const };
+    const b = { ...planOf(voice).units[0], stages: ['speech'] as const };
+    const shape = {
+      plan: { units: [a, b], byStage: { transcription: a, translation: a, speech: b } },
+      accounts: { text: { settings: {}, credentials: {} }, voice: { settings: {}, credentials: {} } },
+      lineUp: { transcription: 'text', translation: 'bing', speech: 'voice' }, lineUpStored: true,
+      pair: { source: 'ja', target: 'en' }, legs: ['speaker'], auth,
+    } as unknown as RunShape;
+    const signal = new AbortController().signal;
+    await ensureReadyFromStores(text, shape, signal);
+    await ensureReadyFromStores(voice, shape, signal);
+    // No stored line-up is what runs: its ids name nothing about the stages.
+    await ensureReadyFromStores(text, { ...shape, lineUpStored: false }, signal);
+    expect(asked).toEqual([{ transcription: 'text', translation: 'bing' }, { speech: 'voice' }, undefined]);
   });
 });
 
