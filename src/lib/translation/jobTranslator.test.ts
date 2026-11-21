@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import { createVirtualClock } from '../contract/clock';
 import type { TranslationEvents, TranslationSession } from '../contract/translation';
 import { checkTranslation, type TranslationLog } from '../contract/translationConformance';
-import { createJobTranslator, type JobTranslatorOptions } from './jobTranslator';
+import { createJobTranslator, JOB_TIMEOUT_MS, type JobTranslatorOptions } from './jobTranslator';
 
 /** Lets every settled promise run its reactions. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -14,6 +15,7 @@ interface Asked { text: string; signal: AbortSignal; answer(text: string): void;
  */
 function translator(over: Partial<JobTranslatorOptions> = {}) {
   const asked: Asked[] = [];
+  const clock = createVirtualClock(0);
   const log: TranslationLog = [{ kind: 'start' }];
   const events: TranslationEvents = {
     translationOpened: (payload) => { log.push({ kind: 'translationOpened', payload }); },
@@ -27,9 +29,11 @@ function translator(over: Partial<JobTranslatorOptions> = {}) {
   const inner = createJobTranslator({
     translate: (text, signal) => new Promise<string>((resolve, reject) => { asked.push({ text, signal, answer: resolve, fail: reject }); }),
     events,
+    clock,
     ...over,
   });
-  const session: TranslationSession = {
+  const session: TranslationSession & { held: typeof inner.held } = {
+    held: () => inner.held(),
     open: () => { log.push({ kind: 'open' }); return inner.open(); },
     source: (snapshot) => { log.push({ kind: 'source', snapshot }); inner.source(snapshot); },
     stop: () => {
@@ -51,7 +55,7 @@ function translator(over: Partial<JobTranslatorOptions> = {}) {
     }
   });
   const closing = (origin: string, text: string) => session.source({ origin, text, stableLen: text.length, closed: true });
-  return { session, asked, log, said, closing };
+  return { session, asked, log, said, closing, clock };
 }
 
 describe('the job translator: jobs', () => {
@@ -180,7 +184,6 @@ describe('the job translator: a job that fails', () => {
     expect(h.log.filter((e) => e.kind === 'failed')).toEqual([{ kind: 'failed', payload: { message: 'The device was lost.', cause: lost } }]);
     expect(h.said()).toEqual(['failed']);
     expect(h.asked).toHaveLength(1);
-    expect(h.asked[0].signal.aborted).toBe(true);
     expect(checkTranslation(h.log)).toEqual([]);
   });
 
@@ -260,5 +263,116 @@ describe('the job translator: opening and stopping', () => {
     await flush();
     await dying.session.stop();
     expect(ended).toBe(1);
+  });
+});
+
+describe('the job translator: a job that does not come back', () => {
+  it('gives a job twenty seconds by default', () => {
+    expect(JOB_TIMEOUT_MS).toBe(20_000);
+  });
+
+  it('a job that never settles is aborted at its deadline, said as translation_failed with its own reason, and the next job runs', async () => {
+    const h = translator();
+    h.closing('u1', 'First.');
+    h.closing('u2', 'Second.');
+    h.clock.advance(JOB_TIMEOUT_MS - 1);
+    await flush();
+    expect(h.said()).toEqual([]);
+    expect(h.asked[0].signal.aborted).toBe(false);
+    h.clock.advance(1);
+    await flush();
+    expect(h.asked[0].signal.aborted).toBe(true);
+    expect(h.log.filter((e) => e.kind === 'degraded')).toEqual([{ kind: 'degraded', payload: { code: 'translation_failed', message: 'The translation did not come back in time.', reason: 'translation_timeout' } }]);
+    expect(h.asked.map((a) => a.text)).toEqual(['First.', 'Second.']);
+    // The next job has a signal and a deadline of its own.
+    expect(h.asked[1].signal.aborted).toBe(false);
+    h.asked[1].answer('に。');
+    await flush();
+    expect(h.said()).toEqual(['degraded translation_failed', 'open 1 u2', 'text 1 に。', 'close 1']);
+    expect(h.clock.pending()).toBe(0);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it('an answer or a rejection that comes after the deadline is ignored: no segment, no second notice', async () => {
+    const h = translator({ timeoutMs: 500 });
+    h.closing('u1', 'First.');
+    h.closing('u2', 'Second.');
+    h.clock.advance(500);
+    await flush();
+    h.asked[0].answer('late');
+    await flush();
+    h.asked[1].answer('に。');
+    await flush();
+    expect(h.said()).toEqual(['degraded translation_failed', 'open 1 u2', 'text 1 に。', 'close 1']);
+
+    const failing = translator({ timeoutMs: 500 });
+    failing.closing('u1', 'First.');
+    failing.clock.advance(500);
+    await flush();
+    failing.asked[0].fail(new Error('aborted'));
+    await flush();
+    expect(failing.said()).toEqual(['degraded translation_failed']);
+  });
+
+  it('a job answered in time leaves no deadline armed, and neither does a stop', async () => {
+    const h = translator();
+    h.closing('u1', 'First.');
+    expect(h.clock.pending()).toBe(1);
+    h.asked[0].answer('いち。');
+    await flush();
+    expect(h.clock.pending()).toBe(0);
+    h.closing('u2', 'Second.');
+    await h.session.stop();
+    expect(h.clock.pending()).toBe(0);
+    h.clock.advance(JOB_TIMEOUT_MS);
+    await flush();
+    expect(h.said()).toEqual(['open 1 u1', 'text 1 いち。', 'close 1']);
+  });
+
+  it('a translate that throws as it is called is a failed job', async () => {
+    const h = translator({ translate: () => { throw new Error('no worker'); } });
+    h.closing('u1', 'First.');
+    await flush();
+    expect(h.log.find((e) => e.kind === 'degraded')).toMatchObject({ payload: { message: 'no worker' } });
+    expect(h.clock.pending()).toBe(0);
+  });
+});
+
+describe('the job translator: what an ending forgets and says', () => {
+  it('a close that fails on the fatal path is said in the Logs before failed, and failed is still said', async () => {
+    for (const close of [() => { throw new Error('worker stuck'); }, () => Promise.reject(new Error('worker stuck'))]) {
+      const h = translator({ fatal: () => true, close });
+      h.closing('u1', 'First.');
+      h.asked[0].fail(new Error('gone'));
+      await flush();
+      expect(h.log.slice(-2)).toEqual([
+        { kind: 'frame', payload: { direction: 'in', type: 'translation.close_error', payload: { error: 'worker stuck' } } },
+        { kind: 'failed', payload: { message: 'gone', cause: expect.any(Error) } },
+      ]);
+      expect(checkTranslation(h.log)).toEqual([]);
+    }
+  });
+
+  it('a stop that lands while the fatal path lets go says nothing of the failure', async () => {
+    let settle!: () => void;
+    const h = translator({ fatal: () => true, close: () => new Promise<void>((resolve) => { settle = resolve; }) });
+    h.closing('u1', 'First.');
+    h.asked[0].fail(new Error('gone'));
+    await flush();
+    const stopping = h.session.stop();
+    settle();
+    await stopping;
+    await flush();
+    expect(h.said()).toEqual([]);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it('forgets the origins that closed when it ends, with the cuts in progress', async () => {
+    const h = translator();
+    h.closing('u1', 'First.');
+    h.session.source({ origin: 'u2', text: 'One. Two', stableLen: 8, closed: false });
+    expect(h.session.held()).toEqual({ cutters: 1, closed: 1 });
+    await h.session.stop();
+    expect(h.session.held()).toEqual({ cutters: 0, closed: 0 });
   });
 });

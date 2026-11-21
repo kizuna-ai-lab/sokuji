@@ -72,6 +72,7 @@ export function startFakeTranslator(request: TranslationStartRequest<FakeTransla
   const { target } = request.context.direction;
   return createJobTranslator({
     events,
+    clock,
     language: target,
     fatal: (error) => error instanceof FakeTranslatorGone,
     async translate(text, signal) {
