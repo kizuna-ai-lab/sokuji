@@ -506,15 +506,22 @@ export const RecordPage: React.FC = () => {
   };
   // Nothing being typed, saved or asked about: at once, with nothing to wait for.
   const nameBusy = () => Boolean(nameDraftRef.current || nameSave.current || twinAskRef.current);
+  // An answer to the same-name question clears it while it runs; one that fails to save brings it back, the name as
+  // typed, to try again (PR review), unless another record or transcript is shown by then.
+  const answer = async (pending: NonNullable<typeof twinAsk>, run: () => Promise<unknown>): Promise<boolean> => {
+    const where = { record: open.record.id, transcript: open.transcriptId };
+    ask(null);
+    await run();
+    if (!store.getState().error) return true;
+    const now = store.getState().open;
+    if (now?.record.id === where.record && now.transcriptId === where.transcript) ask({ ...pending, focus: true });
+    return false;
+  };
   // Back to the list with the same-name question open keeps the two apart, as leaving saves a name as it was typed
   // (P0); a save that fails stays on the page, which says why.
   const back = async () => {
     const pending = twinAskRef.current;
-    if (pending) {
-      ask(null);
-      await actions.renameSpeaker(pending.side, pending.speaker, pending.value);
-      if (store.getState().error) return;
-    }
+    if (pending && !(await answer(pending, () => actions.renameSpeaker(pending.side, pending.speaker, pending.value)))) return;
     actions.closeRecord();
   };
   // A panel switched on is the one shown where the two share a column. The switch follows the panel as shown.
@@ -600,11 +607,11 @@ export const RecordPage: React.FC = () => {
                         <span>{t('history.mergeAsk', '{{name}} is already a speaker on this side.', { name: asking.into.label })}</span>
                         <span className="record-speakers__ask-buttons">
                           <button type="button" className="history-button" autoFocus={asking.focus} disabled={busy}
-                            onClick={() => { ask(null); void actions.mergeSpeaker(side, s.speaker, asking.into.speaker, { from: asking.label, into: asking.into.label }); }}>
+                            onClick={() => void answer(asking, () => actions.mergeSpeaker(side, s.speaker, asking.into.speaker, { from: asking.label, into: asking.into.label }))}>
                             {t('history.mergeOne', 'Merge into one')}
                           </button>
                           <button type="button" className="history-button" disabled={busy}
-                            onClick={() => { ask(null); void actions.renameSpeaker(side, s.speaker, asking.value); }}>
+                            onClick={() => void answer(asking, () => actions.renameSpeaker(side, s.speaker, asking.value))}>
                             {t('history.keepApart', 'Keep apart')}
                           </button>
                         </span>

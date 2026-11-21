@@ -503,6 +503,26 @@ describe('merging speakers', () => {
     expect(screen.getByRole('button', { name: 'Merge into one' })).toHaveFocus();
   });
 
+  // PR review: an answer that fails to save brings the question back, with the name as typed, to try again.
+  it('an answer that fails to save brings the question back; so does Back', async () => {
+    await show(B);
+    const fail = () => { store.setState({ error: 'failed: disk' }); };
+    vi.spyOn(store.getState(), 'renameSpeaker').mockImplementation(async () => { fail(); });
+    vi.spyOn(store.getState(), 'mergeSpeaker').mockImplementation(async () => { fail(); return 0; });
+    askTwin('enter');
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: 'Keep apart' }));
+    await settle();
+    expect(screen.getByText('Other 1 is already a speaker on this side.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Merge into one' }));
+    await settle();
+    expect(screen.getByText('Other 1 is already a speaker on this side.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back to the list' }));
+    await settle();
+    expect(store.getState().open).not.toBeNull();
+    expect(screen.getByText('Other 1 is already a speaker on this side.')).toBeInTheDocument();
+  });
+
   it('keeping them apart saves the name as typed', async () => {
     await show(B);
     const rename = vi.spyOn(store.getState(), 'renameSpeaker');
