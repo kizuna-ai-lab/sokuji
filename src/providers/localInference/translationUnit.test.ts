@@ -358,6 +358,28 @@ describe('a session of the local translation unit', () => {
     expect(h.engine.disposes).toBe(1);
   });
 
+  it('an open after a stop makes no engine and rejects', async () => {
+    const h = create();
+    await h.session.stop();
+    await expect(h.session.open()).rejects.toThrow();
+    expect(h.engines()).toBe(0);
+  });
+
+  it('a listener that throws when the model is ready fails the open, and the engine is let go', async () => {
+    const engine = new FakeTranslation();
+    const built = createLocalTranslationUnit({ engines: { translation: () => engine } });
+    const events = {
+      translationOpened: () => {}, translationText: () => {}, translationClosed: () => {},
+      failed: () => {}, degraded: () => {}, frame: () => {},
+      loading: () => { throw new Error('listener broke'); },
+    };
+    const session = built.startTranslation!({ leg: 'speaker', context: ctx(EN_JA), config: MODEL, credentials: {}, clock: createVirtualClock(0), signal: new AbortController().signal }, events);
+    const opening = session.open();
+    engine.ready();
+    await expect(opening).rejects.toThrow('listener broke');
+    expect(engine.disposes).toBe(1);
+  });
+
   it('defensively refuses a pair it cannot translate, before any engine is made', async () => {
     const bing = create({ config: BING, direction: { source: 'la', target: 'en' } });
     await expect(bing.session.open()).rejects.toMatchObject({ message: 'Bing Translator does not support this language pair.', code: 'build_refused' });

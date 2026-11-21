@@ -81,6 +81,11 @@ export function startLocalTranslation(
       reject(signal.reason ?? new Error('aborted'));
       return;
     }
+    // Stopped before it was ever opened: no engine is made for a session that is over.
+    if (ended) {
+      reject(new Error('The translation was stopped before its model loaded.'));
+      return;
+    }
     const mine = makeEngine();
     engine = mine;
     const fail = (error: unknown) => {
@@ -101,12 +106,18 @@ export function startLocalTranslation(
       () => {
         // Aborted or stopped while the model loaded: it is not wanted, and is already let go.
         if (ended) return;
+        try {
+          frame('out', 'local.init.translation.ready', { model: config.modelId, initDurationMs: clock.now() - startedAt });
+          events.loading({ stage: 'translation', done: 1, total: 1 });
+        } catch (error) {
+          // A listener that throws must not leave the open pending: the open fails with it, and the engine is let go.
+          fail(error);
+          return;
+        }
         failOpening = null;
         signal.removeEventListener('abort', onAbort);
-        frame('out', 'local.init.translation.ready', { model: config.modelId, initDurationMs: clock.now() - startedAt });
         // A failure no request carries: `translate()` would never settle, so the unit ends here.
         mine.onError = (error) => died(`Translation stopped: ${describeCause(error)}`);
-        events.loading({ stage: 'translation', done: 1, total: 1 });
         resolve();
       },
       (error: unknown) => {
