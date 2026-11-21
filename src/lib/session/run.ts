@@ -5,7 +5,7 @@
  * runner owns the phases and ends a run through `close()`.
  */
 import type { AnalyticsEvents } from '../analytics';
-import type { StageIds } from '../lineup/types';
+import type { RunStage, StageIds } from '../lineup/types';
 import type { AdapterEvents, AdapterSession, Punctuator, StartRequest } from '../contract/adapter';
 import { AdapterStartError, LegStartError } from '../contract/adapter';
 import { eventsFrom, type AdapterEvent } from '../contract/events';
@@ -702,6 +702,15 @@ export class Run {
     return params === giveUp.params ? event : { ...event, payload: { ...event.payload, giveUp: { ...giveUp, params } } };
   }
 
+  /**
+   * The provider an adapter's error is filed under: the one whose unit serves the stage the event came from, when
+   * the composite says which (a plan whose transcription and translation are separate units); otherwise the one
+   * that transcribes, which the run is named by.
+   */
+  private providerOf(stage: RunStage | undefined): string {
+    return stage === undefined ? this.providerId : unitFor(this.shape.plan, stage).provider.id;
+  }
+
   private eventsFor(leg: LegName): AdapterEvents {
     return eventsFrom((event) => this.onEvent(leg, event));
   }
@@ -742,7 +751,7 @@ export class Run {
       case 'failed': {
         const { message, code } = event.payload;
         this.failedReconnect(leg, event.payload);
-        analytics.track('api_error', { provider, error_message: redact(message), error_code: code, error_type: apiErrorType(code), channel: leg });
+        analytics.track('api_error', { provider: this.providerOf(event.payload.runStage), error_message: redact(message), error_code: code, error_type: apiErrorType(code), channel: leg });
         // L1 already recorded the failure as an error notice on this leg.
         this.host.end({ reason: 'leg-failed', notice: { code: code ?? ('leg_failed' satisfies RunNoticeCode), message, ...(event.payload.giveUp?.params ? { params: event.payload.giveUp.params } : {}), leg } });
         return;
@@ -768,7 +777,7 @@ export class Run {
           analytics.track('screen_context_lost', { session_id: this.id, provider, channel: leg });
           return;
         }
-        analytics.track('api_error', { provider, error_message: redact(message), error_code: reason ?? code, error_type: 'server', channel: leg });
+        analytics.track('api_error', { provider: this.providerOf(event.payload.runStage), error_message: redact(message), error_code: reason ?? code, error_type: 'server', channel: leg });
         return;
       }
       case 'closed':
