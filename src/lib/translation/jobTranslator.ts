@@ -3,7 +3,9 @@
 // A translation session over a translator that is asked and answers: given
 // `translate(text) → text`, it cuts each source with the shared cutter, runs
 // the stretches as jobs, one at a time and in order, and says each answer as
-// one translation segment, whole and final. What a unit adds is its
+// one translation segment, whole and final. Each job is told the last few
+// stretches the session translated, with their translations, so a model that
+// reads context can keep names and terms the same. What a unit adds is its
 // `translate`, what it loads to open, and what it lets go to close.
 import type { Clock } from '../contract/clock';
 import type { TranslationEvents, TranslationSession } from '../contract/translation';
@@ -19,12 +21,25 @@ export const JOB_TIMEOUT_MS = 20_000;
  */
 export const CLOSE_TIMEOUT_MS = 5_000;
 
+/** How many translated stretches a job is told of: the session's last three. */
+export const CONTEXT_PAIRS = 3;
+
+/** A stretch of source the session translated, and the translation it said for it. */
+export interface TranslatedPair { source: string; translation: string }
+
+/**
+ * What a job is told of the session before it: the last `CONTEXT_PAIRS` stretches it translated, of any origin,
+ * oldest first. A job that failed, came back blank or past its deadline adds nothing. Each job gets a copy of its own.
+ */
+export interface JobContext { previous: TranslatedPair[] }
+
 export interface JobTranslatorOptions {
   /**
    * Translates one stretch of source. `signal` is the job's own: it aborts at the job's deadline, and when the
-   * session stops or ends. An answer or a rejection that comes afterwards is dropped, unsaid.
+   * session stops or ends. An answer or a rejection that comes afterwards is dropped, unsaid. `context` is what
+   * the session translated before this job; a translator that does not read context ignores it.
    */
-  translate(text: string, signal: AbortSignal): Promise<string>;
+  translate(text: string, signal: AbortSignal, context: JobContext): Promise<string>;
   events: TranslationEvents;
   /** The request's clock: each job's deadline runs on it, and the bound of a fatal failure's letting go. */
   clock: Clock;
@@ -51,8 +66,12 @@ export interface JobTranslatorOptions {
   close?(): void | Promise<void>;
   /** The words of a failed job's notice. Absent: the error's own message. */
   failureMessage?(error: unknown): string;
-  /** Whether a failure is the unit's end, not one job's (a model that is gone). Absent: no failure is. */
-  fatal?(error: unknown): boolean;
+  /**
+   * Whether a failure is the unit's end, not one job's (a model that is gone, a key the service refuses). `true`
+   * ends it; `{ code }` ends it and names why on `failed` (the run's notice for it, as `auth` or `model_missing`).
+   * Absent: no failure is.
+   */
+  fatal?(error: unknown): boolean | { code: string };
 }
 
 interface Job { origin: string; text: string }
@@ -81,6 +100,8 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
   /** Origins that closed: a late snapshot of one starts no second cut. */
   const closed = new Set<string>();
   const jobs: Job[] = [];
+  /** The last stretches translated, oldest first: what the next job is told. */
+  const previous: TranslatedPair[] = [];
   /** Cuts the job in flight short: its signal aborts and its deadline is disarmed. */
   let cutShort: (() => void) | null = null;
   let nextRef = 1;
@@ -105,6 +126,7 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
     closing = new Promise<void>((resolve, reject) => { settle = { resolve, reject }; });
     cutShort?.();
     jobs.length = 0;
+    previous.length = 0;
     cutters.clear();
     closed.clear();
     try {
@@ -169,7 +191,7 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
     const cancel = clock.setTimeout(() => settle({ kind: 'timeout' }), timeoutMs);
     cutShort = () => settle({ kind: 'over' });
     try {
-      o.translate(job.text, abort.signal).then((text) => settle({ kind: 'answer', text }), (error: unknown) => settle({ kind: 'error', error }));
+      o.translate(job.text, abort.signal, { previous: previous.map((pair) => ({ ...pair })) }).then((text) => settle({ kind: 'answer', text }), (error: unknown) => settle({ kind: 'error', error }));
     } catch (error) {
       settle({ kind: 'error', error });
     }
@@ -186,10 +208,11 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
     if (outcome.kind === 'error') {
       const { error } = outcome;
       const message = o.failureMessage?.(error) ?? describeCause(error);
-      if (o.fatal?.(error)) {
+      const fatal = o.fatal?.(error);
+      if (fatal) {
         // Let go before it is said: nothing follows `failed`, so what the letting go says of itself comes first.
         await letGo();
-        if (!stopped) events.failed({ message, cause: error });
+        if (!stopped) events.failed({ message, ...(typeof fatal === 'object' ? { code: fatal.code } : {}), cause: error });
         return;
       }
       failedJob(message, { cause: error });
@@ -200,6 +223,9 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
       failedJob('The translation came back empty.', { reason: 'translation_empty' });
       return;
     }
+    // Had, whatever a listener does with it below: the next job is told of it.
+    previous.push({ source: job.text, translation: answer });
+    if (previous.length > CONTEXT_PAIRS) previous.shift();
     // Each event is a listener's turn, and a listener may stop the session: nothing more is said of the segment
     // then. One that throws, at the open or at the text, still has its segment closed while the session is live.
     const ref = nextRef++;

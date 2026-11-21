@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import type { TranslationEvents, TranslationSession } from '../contract/translation';
-import { checkTranslation, type TranslationLog } from '../contract/translationConformance';
-import { CLOSE_TIMEOUT_MS, createJobTranslator, JOB_TIMEOUT_MS, type JobTranslatorOptions } from './jobTranslator';
+import { checkTranslation, recordTranslation, type TranslationLog } from '../contract/translationConformance';
+import { CLOSE_TIMEOUT_MS, CONTEXT_PAIRS, createJobTranslator, JOB_TIMEOUT_MS, type JobContext, type JobTranslatorOptions } from './jobTranslator';
 
 /** Lets every settled promise run its reactions. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
-interface Asked { text: string; signal: AbortSignal; answer(text: string): void; fail(error: unknown): void }
+interface Asked { text: string; signal: AbortSignal; context: JobContext; answer(text: string): void; fail(error: unknown): void }
 
 /**
  * A job translator over a `translate` the test answers by hand, recorded as the rule suite reads it.
@@ -34,7 +34,7 @@ function translator(over: Partial<JobTranslatorOptions> = {}) {
   };
   const run = new AbortController();
   const inner = createJobTranslator({
-    translate: (text, signal) => new Promise<string>((resolve, reject) => { asked.push({ text, signal, answer: resolve, fail: reject }); }),
+    translate: (text, signal, context) => new Promise<string>((resolve, reject) => { asked.push({ text, signal, context, answer: resolve, fail: reject }); }),
     events: told,
     clock,
     signal: run.signal,
@@ -534,5 +534,150 @@ describe('the job translator: what an ending forgets and says', () => {
     expect(h.session.held()).toEqual({ cutters: 1, closed: 1 });
     await h.session.stop();
     expect(h.session.held()).toEqual({ cutters: 0, closed: 0 });
+  });
+});
+
+describe('the job translator: what a job is told of the session before it', () => {
+  const pairs = (a: Asked) => a.context.previous.map((p) => `${p.source}=${p.translation}`);
+
+  it('hands each job the last three pairs the session translated, oldest first, across origins', async () => {
+    expect(CONTEXT_PAIRS).toBe(3);
+    const h = translator();
+    for (const [k, origin] of ['u1', 'u2', 'u3', 'u4', 'u5'].entries()) {
+      h.closing(origin, `S${k + 1}.`);
+      h.asked[k].answer(`T${k + 1}`);
+      await flush();
+    }
+    expect(h.asked.map(pairs)).toEqual([
+      [],
+      ['S1.=T1'],
+      ['S1.=T1', 'S2.=T2'],
+      ['S1.=T1', 'S2.=T2', 'S3.=T3'],
+      ['S2.=T2', 'S3.=T3', 'S4.=T4'],
+    ]);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it('counts the stretches of one origin as pairs of their own', async () => {
+    const h = translator();
+    h.session.source({ origin: 'u1', text: 'One. Two', stableLen: 8, closed: false });
+    h.asked[0].answer('いち。');
+    await flush();
+    h.closing('u1', 'One. Two.');
+    expect(pairs(h.asked[1])).toEqual(['One.=いち。']);
+  });
+
+  it('a job that failed, came back blank or past its deadline adds nothing', async () => {
+    const h = translator({ timeoutMs: 500 });
+    h.closing('u1', 'One.');
+    h.asked[0].answer('いち。');
+    await flush();
+    h.closing('u2', 'Fails.');
+    h.asked[1].fail(new Error('The service answered 500.'));
+    await flush();
+    h.closing('u3', 'Blank.');
+    h.asked[2].answer('   ');
+    await flush();
+    h.closing('u4', 'Late.');
+    h.clock.advance(500);
+    await flush();
+    h.asked[3].answer('too late');
+    await flush();
+    h.closing('u5', 'Two.');
+    expect(h.asked.map(pairs)).toEqual([[], ['One.=いち。'], ['One.=いち。'], ['One.=いち。'], ['One.=いち。']]);
+    h.asked[4].answer('に。');
+    await flush();
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it("each job's context is its own: a translate that changes it changes nothing for the next", async () => {
+    const h = translator();
+    h.closing('u1', 'One.');
+    h.asked[0].answer('いち。');
+    await flush();
+    h.closing('u2', 'Two.');
+    h.asked[1].context.previous.length = 0;
+    h.asked[1].answer('に。');
+    await flush();
+    h.closing('u3', 'Three.');
+    expect(pairs(h.asked[2])).toEqual(['One.=いち。', 'Two.=に。']);
+  });
+
+  it('a pair counts once the answer is had, even when a listener throws as it is said', async () => {
+    const h = translator();
+    h.listener.on = (kind) => { if (kind === 'translationText') throw new Error('listener'); };
+    h.closing('u1', 'One.');
+    h.asked[0].answer('いち。');
+    await flush();
+    h.closing('u2', 'Two.');
+    expect(pairs(h.asked[1])).toEqual(['One.=いち。']);
+  });
+});
+
+describe('the job translator: a failure that ends the unit, with its code', () => {
+  it('says the code fatal names on failed, with the message and the cause, and nothing follows', async () => {
+    const refused = new Error('Incorrect API key provided.');
+    const h = translator({ fatal: (error) => (error === refused ? { code: 'auth' } : false) });
+    h.closing('u1', 'First.');
+    h.closing('u2', 'Second.');
+    h.asked[0].fail(refused);
+    await flush();
+    h.closing('u3', 'Third.');
+    await flush();
+    expect(h.log.filter((e) => e.kind === 'failed')).toEqual([{ kind: 'failed', payload: { message: 'Incorrect API key provided.', code: 'auth', cause: refused } }]);
+    expect(h.asked).toHaveLength(1);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it('a fatal that answers true says failed with no code, as before', async () => {
+    const h = translator({ fatal: () => true });
+    h.closing('u1', 'First.');
+    h.asked[0].fail(new Error('gone'));
+    await flush();
+    const failed = h.log.find((e) => e.kind === 'failed');
+    expect(failed && 'payload' in failed && 'code' in failed.payload).toBe(false);
+  });
+
+  it('a fatal that answers false leaves the failure one job\'s', async () => {
+    const h = translator({ fatal: () => false });
+    h.closing('u1', 'First.');
+    h.asked[0].fail(new Error('The service answered 429.'));
+    await flush();
+    expect(h.said()).toEqual(['degraded translation_failed']);
+  });
+
+  it('holds to the rule suite as a unit: one job lands with the context, the next ends the unit with its code', async () => {
+    const seen: JobContext[] = [];
+    const refused = Object.assign(new Error('The model does not exist.'), { code: 'model_missing' });
+    const run = new AbortController();
+    const { session, log } = recordTranslation((request, events) => createJobTranslator({
+      events,
+      clock: request.clock,
+      signal: request.signal,
+      language: request.context.direction.target,
+      fatal: (error) => (error === refused ? { code: refused.code } : false),
+      translate: async (text, _signal, context) => {
+        seen.push(context);
+        if (text.startsWith('Second')) throw refused;
+        return `[ja] ${text}`;
+      },
+    }), {
+      leg: 'speaker',
+      context: { direction: { source: 'en', target: 'ja' } } as never,
+      config: {},
+      credentials: {},
+      clock: createVirtualClock(0),
+      signal: run.signal,
+    });
+    await session.open();
+    session.source({ origin: 'u1', text: 'First.', stableLen: 6, closed: true });
+    await flush();
+    session.source({ origin: 'u2', text: 'Second.', stableLen: 7, closed: true });
+    await flush();
+    session.source({ origin: 'u3', text: 'Third.', stableLen: 6, closed: true });
+    await flush();
+    expect(seen.map((c) => c.previous)).toEqual([[], [{ source: 'First.', translation: '[ja] First.' }]]);
+    expect(log.filter((e) => e.kind === 'failed')).toEqual([{ kind: 'failed', payload: { message: 'The model does not exist.', code: 'model_missing', cause: refused } }]);
+    expect(checkTranslation(log)).toEqual([]);
   });
 });
