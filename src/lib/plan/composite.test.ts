@@ -52,6 +52,18 @@ describe('startComposite over one unit', () => {
   });
 });
 
+describe('startComposite over one unit that is a speech unit', () => {
+  it('rejects with plan_unsupported: a voice alone is no session', async () => {
+    const [whole] = planOf(stubProvider('edge')).units;
+    const voice: PlannedUnit = { ...whole, unit: { ...whole.unit, start: undefined, startSpeech: vi.fn() } };
+    const plan: RunPlan = { units: [voice], byStage: { transcription: voice, translation: voice, speech: voice } };
+    const started = startComposite(plan, request(new Map(), () => ({})), recordEvents().events);
+    await expect(started).rejects.toBeInstanceOf(AdapterStartError);
+    await expect(started).rejects.toMatchObject({ code: 'plan_unsupported' });
+    expect(voice.unit.startSpeech).not.toHaveBeenCalled();
+  });
+});
+
 describe('startComposite over several units', () => {
   it('rejects with plan_unsupported and starts no unit', async () => {
     const { plan, starts } = twoUnits();
