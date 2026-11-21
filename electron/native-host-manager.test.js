@@ -36,15 +36,22 @@ describe('resolvePython', () => {
 // uses require(), so both sides see the same cached export objects.
 //
 // We also set SOKUJI_SIDECAR_PYTHON (skips venv path) and HF_HOME (skips
-// electron.app.getPath()) so the real Electron runtime is not needed.
+// electron.app.getPath()) so the real Electron runtime is not needed, and seed
+// the module cache with an empty 'electron': start() requires it before it
+// reads HF_HOME, and the npm package's index.js downloads the Electron binary
+// when it is missing (CI's `npm ci` does not run its install script) - a
+// network fetch inside this test.
 // ---------------------------------------------------------------------------
 describe('NativeHostManager.start() handshake timeout', () => {
   const cp = req('child_process');
   const rl = req('readline');
+  const { Module } = req('module');
+  const electronPath = req.resolve('electron');
 
   let killSpy;
   let origSpawn;
   let origCreateInterface;
+  let origElectron;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -57,6 +64,14 @@ describe('NativeHostManager.start() handshake timeout', () => {
     // Save originals.
     origSpawn = cp.spawn;
     origCreateInterface = rl.createInterface;
+    origElectron = req.cache[electronPath];
+
+    // require('electron') inside start() gets this instead of the npm package.
+    const electron = new Module(electronPath);
+    electron.filename = electronPath;
+    electron.loaded = true;
+    electron.exports = {};
+    req.cache[electronPath] = electron;
 
     // Build a fake child that never emits the handshake line.
     killSpy = vi.fn();
@@ -79,6 +94,8 @@ describe('NativeHostManager.start() handshake timeout', () => {
     // Restore the originals before real-timers resume.
     cp.spawn = origSpawn;
     rl.createInterface = origCreateInterface;
+    if (origElectron) req.cache[electronPath] = origElectron;
+    else delete req.cache[electronPath];
 
     delete process.env.SOKUJI_SIDECAR_PYTHON;
     delete process.env.HF_HOME;
