@@ -35,8 +35,16 @@ export interface ProviderCaps {
   stages: readonly RunStage[];
   /** The provider definition that runs this option: itself, or `local_inference` for `bing` and `edge`. */
   host: string;
-  /** The stages one connection of it carries together; choosing it for one of them chooses it for all (the vendor's interface). Absent: each stage alone. */
+  /**
+   * The stages one connection of it carries together and never apart; choosing it for one of them chooses it for
+   * all (the vendor's interface): an end-to-end service. Absent: each stage alone, but for `translatesOwn`.
+   */
   joint?: readonly RunStage[];
+  /**
+   * True: it translates only what it transcribes itself, on the one connection that does both. Choosing it for
+   * translation chooses it for transcription; its transcription may stand alone, translated by another option.
+   */
+  translatesOwn?: boolean;
   account: 'kizuna' | 'key' | 'none';
   /** True: this option may serve `speech` while another host transcribes and translates. */
   voiceAlone: boolean;

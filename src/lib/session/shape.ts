@@ -91,22 +91,48 @@ export function contextFor(plan: RunPlan, provider: Pick<AnyProvider, 'id'>, con
 }
 
 /**
- * The plan's languages in one provider's shape, each list from the provider
+ * The plan's languages in one provider's shape, each list from the one
  * that answers it: the sources and the reverse of a pair from the
  * transcription provider, the targets from the translation provider, each
  * under its own settings at start (the settings argument is not read) and
  * told that it speaks only when it is the provider that does (`contextFor`).
+ *
+ * Where another unit translates what the transcription unit heard, and says
+ * which pairs it translates (`UnitCapabilities.translates`), the unit
+ * answers, not its provider's lists (those are of a whole session on it):
+ * the targets are the languages the transcription provider works in that
+ * the unit translates the source into, and a source is offered only when
+ * it has such a target. An automatic source has none: a translator of its
+ * own works on one fixed pair. Both lists keep the transcription provider's
+ * codes, which are the ones the pair is stored and reversed in.
  */
 export function planLanguages(shape: Pick<RunShape, 'plan' | 'accounts'>): Pick<AnyProvider, 'languages'> {
   const heard = transcriptionProvider(shape.plan);
-  const translated = unitFor(shape.plan, 'translation').provider;
+  const translating = unitFor(shape.plan, 'translation');
+  const translated = translating.provider;
   const sHeard = accountOf(shape, heard).settings;
   const sTranslated = accountOf(shape, translated).settings;
   const reverse = heard.languages.reverse;
+  const sources = (context: LanguageContext | undefined) => heard.languages.sources(sHeard, contextFor(shape.plan, heard, context));
+  const apart = translating !== unitFor(shape.plan, 'transcription');
+  // Asked on the capabilities themselves: a unit may read them through `this`.
+  const capabilities = apart ? translating.unit.capabilities(sTranslated) : undefined;
+  if (capabilities?.translates) {
+    const among = (source: string, context: LanguageContext | undefined) => heard.languages.targets(source, sHeard, contextFor(shape.plan, heard, context));
+    const targets = (source: string, context: LanguageContext | undefined) => among(source, context).filter((o) => capabilities.translates!(source, o.value));
+    return {
+      languages: {
+        ...heard.languages,
+        sources: (_s, context) => sources(context).filter((o) => among(o.value, context).some((t) => capabilities.translates!(o.value, t.value))),
+        targets: (source, _s, context) => targets(source, context),
+        reverse: reverse && ((pair) => reverse(pair, sHeard)),
+      },
+    };
+  }
   return {
     languages: {
       ...heard.languages,
-      sources: (_s, context) => heard.languages.sources(sHeard, contextFor(shape.plan, heard, context)),
+      sources: (_s, context) => sources(context),
       targets: (source, _s, context) => translated.languages.targets(source, sTranslated, contextFor(shape.plan, translated, context)),
       reverse: reverse && ((pair) => reverse(pair, sHeard)),
     },
@@ -141,15 +167,21 @@ export function contextsFor(shape: Pick<RunShape, 'plan' | 'accounts' | 'pair' |
 }
 
 /** What the start gate reads (F7): a run's frozen shape satisfies it, and so do the stores as they stand. `textOnly`, `participantSpeech` and `account` feed a managed provider's balance floor (Stage 2 Kizuna Soniox); absent, nothing is gated on a balance. `lineUp` names the option a refusal of the plan is about. */
-export type GateInput = Pick<RunShape, 'plan' | 'accounts' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'account' | 'payer' | 'lineUp'>>;
+export type GateInput = Pick<RunShape, 'plan' | 'accounts' | 'pair' | 'legs' | 'turnMode'> & Partial<Pick<RunShape, 'textOnly' | 'participantSpeech' | 'faceToFace' | 'faceToFaceAsked' | 'account' | 'payer' | 'lineUp'>>;
 
 /**
- * What the plan cannot do for this run (`checkPlan`): a leg that is read aloud in a language the voice does not
- * speak. Null when the plan can run it. The gate refuses with it; a surface shows it on the line-up's card.
+ * What the plan cannot do for this run (`checkPlan`): face-to-face with the translation apart, a pair the
+ * translation unit does not translate, a leg that is read aloud in a language the voice does not speak. Null when
+ * the plan can run it. The gate refuses with it; a surface shows it on the line-up's card.
  */
 export function planRefusalFor(shape: GateInput): PlanRefusal | null {
   const contexts = contextsFor({ ...shape, textOnly: shape.textOnly ?? false, participantSpeech: shape.participantSpeech ?? false });
-  return checkPlan(shape.plan, { accounts: shape.accounts, contexts, ...(shape.lineUp ? { lineUp: shape.lineUp } : {}) });
+  return checkPlan(shape.plan, {
+    accounts: shape.accounts,
+    contexts,
+    ...(shape.lineUp ? { lineUp: shape.lineUp } : {}),
+    ...(shape.faceToFaceAsked ? { faceToFaceAsked: true } : {}),
+  });
 }
 
 /** A start refused below a managed provider's floor: worded by the old gate's "Insufficient balance: {{balance}}" (ruling 6). */
@@ -205,9 +237,10 @@ export function balanceRefusal(input: Pick<GateInput, 'plan' | 'accounts' | 'leg
  * or opened — over a run's frozen shape at start (`Run.open`), and over the
  * stores as they stand while idle (`liveGate`, F7), so the surfaces keep
  * Start off and say why before it is pressed. Credentials, readiness, the
- * build and `admit` are refused by the run's later steps. After the legs,
- * the turns and the reversed pair comes the plan itself (a voice that does
- * not speak a leg's target). The gate's own
+ * build and `admit` are refused by the run's later steps. After the legs
+ * and the turns comes what the plan's translation unit refuses (a pair it
+ * does not translate, an automatic source, face-to-face), then the reversed
+ * pair, then a voice that does not speak a leg's target. The gate's own
  * last check is a managed provider's balance: the wallet loading or
  * unknown, frozen, or below the floor.
  */
@@ -221,6 +254,10 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
   if (legs.includes('speaker') && !offered.includes(speakerTurns)) {
     return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${heard.id} does not offer ${speakerTurns} turns with these settings.`, leg: 'speaker' };
   }
+  // The plan against this run's languages and legs. What its translation unit refuses (the pair, a source it
+  // cannot be given, face-to-face) is said before the reversed pair is asked: it names the service and the way out.
+  const unserved = planRefusalFor(shape);
+  if (unserved && unserved.stage !== 'speech') return refusalNotice(unserved, shape.lineUp ?? null, providersIn(shape.plan));
   if (legs.includes('participant')) {
     if (!offered.includes('auto')) {
       return { code: 'turn_mode_unsupported' satisfies RunNoticeCode, message: `${heard.id} does not offer automatic turns, which the participant leg needs.`, leg: 'participant' };
@@ -241,8 +278,7 @@ export function gate(shape: GateInput, platform: Platform): Refusal | null {
       return { code: 'participant_unsupported' satisfies RunNoticeCode, message, leg: 'participant' };
     }
   }
-  // The plan against this run's languages: a leg read aloud in a language the voice does not speak.
-  const unserved = planRefusalFor(shape);
+  // A leg read aloud in a language the voice does not speak.
   if (unserved) return refusalNotice(unserved, shape.lineUp ?? null, providersIn(shape.plan));
   const refusal = balanceRefusal(shape);
   // An organization payer below the floor is not refused here: the status can be minutes old and cannot tell money held

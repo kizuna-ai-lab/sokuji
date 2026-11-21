@@ -69,6 +69,11 @@ export interface RunShape {
   participantSpeech: boolean;
   /** Both with the other side beside me, under a provider that offers it (spec 2026-10-08, slice 3). Absent: false. */
   faceToFace?: boolean;
+  /**
+   * Both with the other side beside me was asked for, whatever the unit that transcribes offers. It differs from
+   * `faceToFace` only under a unit that cannot run it; the gate refuses that where another unit translates.
+   */
+  faceToFaceAsked?: boolean;
   keepReplayAudio: boolean;
   /** What every builder may read, less what the run adds: `models` from its own readiness answer (F2), `speaks`, and the line-up. */
   shared: Omit<SharedSettings, 'models' | 'speaks' | 'lineUp'>;

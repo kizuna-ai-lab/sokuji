@@ -10,7 +10,7 @@ import { isRefusal, PLAN_REFUSAL_CODES } from './types';
 import type { PlannedUnit, RunPlan, UnitCapabilities } from './types';
 import { wholePlan } from './wholeUnit';
 
-const options = (transcription: string, speech: string) => ({ transcription: caps(transcription)!, translation: caps(transcription)!, speech: caps(speech)! });
+const options = (transcription: string, speech: string, translation = transcription) => ({ transcription: caps(transcription)!, translation: caps(translation)!, speech: caps(speech)! });
 
 describe('the catalog says which voices stand alone and which text sides take another voice', () => {
   it("a voice alone: Kizuna AI's Soniox, Soniox with an own key, Edge and this device", () => {
@@ -41,6 +41,41 @@ describe('a voice beside another host\'s text', () => {
     ['the voice is judged first', 'openai', 'gemini', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'gemini' }],
   ] as const)('%s', (_name, transcription, speech, expected) => {
     expect(voiceRefusal(options(transcription, speech))).toEqual(expected);
+  });
+});
+
+describe('a voice beside a text side of two hosts', () => {
+  const notAlone = (id: string) => ({ ...caps(id)!, voiceAlone: false });
+  const takesNone = (id: string) => ({ ...caps(id)!, takesVoice: false });
+
+  it.each([
+    ["Edge reads Bing's translation of what Soniox heard", 'soniox', 'bing', 'edge'],
+    ["a local voice reads a local model's translation of what Kizuna AI's Soniox heard", 'kizunaai_soniox', 'local_inference', 'local_inference'],
+    ["Soniox's own voice reads Bing's translation of what Soniox heard", 'soniox', 'bing', 'soniox'],
+    ["Kizuna AI's Soniox voice reads Bing's translation of what Soniox heard: three hosts", 'soniox', 'bing', 'kizunaai_soniox'],
+    ["Soniox's voice (own key) reads a local translation of what Kizuna AI's Soniox heard", 'kizunaai_soniox', 'local_inference', 'soniox'],
+  ] as const)('%s: taken', (_name, transcription, translation, speech) => {
+    expect(voiceRefusal(options(transcription, speech, translation))).toBeNull();
+  });
+
+  it("a voice that reads only its own translation is refused beside its own transcription too, when another host translates", () => {
+    expect(voiceRefusal({ ...options('kizunaai_soniox', 'kizunaai_soniox', 'bing'), speech: notAlone('kizunaai_soniox') }))
+      .toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
+    // All three on the one host: its own translation, never refused.
+    expect(voiceRefusal({ ...options('kizunaai_soniox', 'kizunaai_soniox'), speech: notAlone('kizunaai_soniox') })).toBeNull();
+  });
+
+  it('each host of the text side is asked whether it takes another voice: the one that transcribes first, then the one that translates', () => {
+    expect(voiceRefusal({ ...options('soniox', 'kizunaai_soniox', 'bing'), transcription: takesNone('soniox') }))
+      .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'soniox' });
+    expect(voiceRefusal({ ...options('soniox', 'kizunaai_soniox', 'bing'), translation: takesNone('bing') }))
+      .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'bing' });
+    // A voice of the host that translates is that host's own to feed.
+    expect(voiceRefusal({ ...options('soniox', 'edge', 'bing'), translation: takesNone('bing') })).toBeNull();
+    // A voice of the host that transcribes: only the translator is another host to it.
+    expect(voiceRefusal({ ...options('soniox', 'soniox', 'bing'), transcription: takesNone('soniox') })).toBeNull();
+    expect(voiceRefusal({ ...options('soniox', 'soniox', 'bing'), translation: takesNone('bing') }))
+      .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'bing' });
   });
 });
 
@@ -163,6 +198,81 @@ describe('the checks that need the run', () => {
   });
 });
 
+describe('the checks that need the run, where another unit translates what one heard', () => {
+  const unitOf = (id: string, stages: RunStage[], capabilities: Partial<UnitCapabilities>): PlannedUnit => {
+    const [whole] = wholePlan(stubProvider(id)).units;
+    return { ...whole, unit: { ...whole.unit, capabilities: (s) => ({ ...whole.unit.capabilities(s), ...capabilities }) }, stages };
+  };
+  const pairs = new Set(['en>ja', 'ja>en', 'en>fr']);
+  const translates = (source: string, target: string) => pairs.has(`${source}>${target}`);
+  const apart = (o: { faceToFace?: boolean; translates?: UnitCapabilities['translates'] } = {}): RunPlan => {
+    const transcription = unitOf('soniox', ['transcription'], { faceToFace: o.faceToFace ?? false });
+    const translation = unitOf('local_inference', ['translation'], { translates: 'translates' in o ? o.translates : translates });
+    const speech = unitOf('fake_voice', ['speech'], {});
+    return { units: [transcription, translation, speech], byStage: { transcription, translation, speech } };
+  };
+  const accounts = { soniox: { settings: undefined }, local_inference: { settings: undefined }, fake_voice: { settings: undefined } };
+  const leg = (source: string, target: string, speech = false) => ({ direction: { source, target }, speech });
+
+  it.each([
+    ['a pair it translates', { speaker: leg('en', 'ja') }, null],
+    ['both directions translated', { speaker: leg('en', 'ja'), participant: leg('ja', 'en') }, null],
+    ['a pair it does not translate', { speaker: leg('en', 'de') }, { refused: 'lineup_pair_not_translated', stage: 'translation', provider: 'local_inference', source: 'en', target: 'de' }],
+    ["the participant leg is judged in its own direction", { speaker: leg('en', 'fr'), participant: leg('fr', 'en') }, { refused: 'lineup_pair_not_translated', stage: 'translation', provider: 'local_inference', source: 'fr', target: 'en' }],
+    ['a source detected automatically', { speaker: leg('auto', 'ja') }, { refused: 'lineup_source_not_fixed', stage: 'translation', provider: 'local_inference' }],
+    ['a leg that is not read aloud is judged all the same: it is still translated', { participant: leg('ja', 'de', false) }, { refused: 'lineup_pair_not_translated', stage: 'translation', provider: 'local_inference', source: 'ja', target: 'de' }],
+    ['no leg', {}, null],
+  ] as Array<[string, Parameters<typeof checkPlan>[1]['contexts'], unknown]>)('%s', (_name, contexts, expected) => {
+    expect(checkPlan(apart(), { accounts, contexts })).toEqual(expected);
+  });
+
+  it("names the line-up's option for translation (Bing, not the provider that runs it)", () => {
+    expect(checkPlan(apart(), { accounts, contexts: { speaker: leg('auto', 'ja') }, lineUp: { translation: 'bing' } }))
+      .toEqual({ refused: 'lineup_source_not_fixed', stage: 'translation', provider: 'bing' });
+    expect(checkPlan(apart(), { accounts, contexts: { speaker: leg('en', 'de') }, lineUp: { translation: 'bing' } }))
+      .toMatchObject({ refused: 'lineup_pair_not_translated', provider: 'bing' });
+  });
+
+  it('a unit that does not say which pairs it translates is never refused: its provider\'s lists are the offer', () => {
+    expect(checkPlan(apart({ translates: undefined }), { accounts, contexts: { speaker: leg('auto', 'xx') } })).toBeNull();
+    expect(checkPlan(wholePlan(stubProvider('openai')), { accounts: { openai: { settings: undefined } }, contexts: { speaker: leg('auto', 'xx') } })).toBeNull();
+  });
+
+  it('a unit that takes an automatic source is asked like any pair', () => {
+    expect(checkPlan(apart({ translates: () => true }), { accounts, contexts: { speaker: leg('auto', 'ja') } })).toBeNull();
+  });
+
+  it("judges nothing while the translation provider's account has not loaded", () => {
+    expect(checkPlan(apart(), { accounts: { soniox: { settings: undefined } }, contexts: { speaker: leg('en', 'de') } })).toBeNull();
+  });
+
+  it('face-to-face asked where the unit that transcribes alone cannot run it: refused, named by the option that transcribes, before the pair', () => {
+    const contexts = { speaker: leg('en', 'de'), participant: leg('de', 'en') };
+    expect(checkPlan(apart(), { accounts, contexts, faceToFaceAsked: true }))
+      .toEqual({ refused: 'lineup_face_to_face_apart', stage: 'translation', provider: 'soniox' });
+    expect(checkPlan(apart(), { accounts, contexts, faceToFaceAsked: true, lineUp: { transcription: 'kizunaai_soniox' } }))
+      .toMatchObject({ refused: 'lineup_face_to_face_apart', provider: 'kizunaai_soniox' });
+    // Not asked: the pair is what is refused.
+    expect(checkPlan(apart(), { accounts, contexts })).toMatchObject({ refused: 'lineup_pair_not_translated' });
+    // A transcription unit that runs face-to-face beside another translator is not refused for it.
+    expect(checkPlan(apart({ faceToFace: true }), { accounts, contexts: { speaker: leg('en', 'ja') }, faceToFaceAsked: true })).toBeNull();
+  });
+
+  it('face-to-face asked of a plan whose one unit transcribes and translates is never refused here: without the capability it is ordinary Both', () => {
+    const text = unitOf('openai', ['transcription', 'translation'], { faceToFace: false });
+    const speech = unitOf('fake_voice', ['speech'], {});
+    expect(checkPlan(textAndSpeechPlan(text, speech), { accounts: { openai: { settings: undefined }, fake_voice: { settings: undefined } }, contexts: { speaker: leg('en', 'ja') }, faceToFaceAsked: true })).toBeNull();
+  });
+
+  it('the translation is judged before the voice', () => {
+    const plan = apart();
+    const speech = unitOf('fake_voice', ['speech'], { speaks: () => false });
+    const withVoice: RunPlan = { units: [plan.units[0], plan.units[1], speech], byStage: { ...plan.byStage, speech } };
+    expect(checkPlan(withVoice, { accounts, contexts: { speaker: leg('en', 'de', true) } })).toMatchObject({ refused: 'lineup_pair_not_translated' });
+    expect(checkPlan(withVoice, { accounts, contexts: { speaker: leg('en', 'ja', true) } })).toMatchObject({ refused: 'lineup_language_not_spoken', language: 'ja' });
+  });
+});
+
 describe('a refusal as a notice', () => {
   const kizuna = stubProvider('kizunaai_soniox', { kind: 'managed', vendor: 'Soniox' });
   const soniox = stubProvider('soniox', { kind: 'own-key', vendor: 'Soniox' });
@@ -181,9 +291,21 @@ describe('a refusal as a notice', () => {
     expect(refusalNotice({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'soniox' }, null, [kizuna, soniox]).params).toEqual({ stage: 'speech', provider: 'soniox' });
     expect(refusalNotice({ refused: 'lineup_language_not_spoken', stage: 'speech', provider: 'edge', language: 'eu' }).params).toEqual({ stage: 'speech', provider: 'edge', language: 'eu' });
   });
+  it('carries the pair a translation unit does not translate, and names the option of the refusals about the translation', () => {
+    expect(refusalNotice({ refused: 'lineup_pair_not_translated', stage: 'translation', provider: 'bing', source: 'eu', target: 'ja' }))
+      .toEqual({ code: 'lineup_pair_not_translated', message: 'bing does not translate eu into ja.', params: { stage: 'translation', provider: 'bing', source: 'eu', target: 'ja' } });
+    expect(refusalNotice({ refused: 'lineup_source_not_fixed', stage: 'translation', provider: 'bing' }).params).toEqual({ stage: 'translation', provider: 'bing' });
+    expect(refusalNotice({ refused: 'lineup_face_to_face_apart', stage: 'translation', provider: 'kizunaai_soniox' }, null, [kizuna, soniox]).params)
+      .toEqual({ stage: 'translation', provider: 'kizunaai_soniox', vendor: 'Soniox' });
+  });
   it('names the option a stage with no unit was given to, and the option whose joint stages were split', () => {
     expect(refusalNotice({ refused: 'lineup_no_unit', stage: 'speech' }, { transcription: 'soniox', translation: 'soniox', speech: 'gemini' }).params).toEqual({ stage: 'speech', provider: 'gemini' });
-    expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'translation' }, { transcription: 'soniox', translation: 'bing', speech: 'soniox' }).params).toEqual({ stage: 'translation', provider: 'soniox' });
+    expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'translation' }, { transcription: 'openai', translation: 'bing', speech: 'openai' }).params).toEqual({ stage: 'translation', provider: 'openai' });
+    // Soniox's translation without its transcription has a code of its own, and carries the option that translates.
+    expect(refusalNotice({ refused: 'lineup_translation_bound', stage: 'transcription', provider: 'kizunaai_soniox' }, { transcription: 'local_inference', translation: 'kizunaai_soniox', speech: 'edge' }, [kizuna, soniox]))
+      .toEqual({ code: 'lineup_translation_bound', message: 'The translation of kizunaai_soniox needs its own transcription, and another provider transcribes.', params: { stage: 'transcription', provider: 'kizunaai_soniox', vendor: 'Soniox' } });
+    // Its transcription stands alone: nothing of Soniox goes with a translation given to Bing.
+    expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'translation' }, { transcription: 'soniox', translation: 'bing', speech: 'soniox' }).params).toEqual({ stage: 'translation' });
     expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'transcription' }, { transcription: 'openai', translation: 'openai', speech: 'gemini' }).params).toEqual({ stage: 'transcription', provider: 'gemini' });
     expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'transcription' }).params).toEqual({ stage: 'transcription' });
   });

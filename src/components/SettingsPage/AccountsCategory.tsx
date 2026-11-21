@@ -10,7 +10,7 @@ import { ExternalLink } from 'lucide-react';
 import { openExternalUrl } from '../../utils/openExternalUrl';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
-import { caps } from '../../lib/lineup/catalog';
+import { caps, carriedTogether } from '../../lib/lineup/catalog';
 import { RUN_STAGES, type RunStage } from '../../lib/lineup/types';
 import { planFromStores } from '../../lib/plan/fromStores';
 import { transcriptionProvider } from '../../lib/plan/read';
@@ -167,7 +167,9 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     for (const id of a.serves) {
       const c = caps(id);
       if (!c) continue;
-      const groups = c.joint && c.joint.length > 1 ? [c.joint] : [];
+      // What one connection of it carries: an end-to-end provider's three stages, or Soniox's transcription and translation.
+      const together = carriedTogether(c);
+      const groups = together && together.length > 1 ? [together] : [];
       for (const g of groups) {
         add(g.length >= RUN_STAGES.length ? t('settingsPage.accounts.endToEnd', 'End to end')
           : g.includes('transcription') && g.includes('translation') && g.length === 2 ? t('settingsPage.accounts.transcribeTranslate', 'Transcription and translation')

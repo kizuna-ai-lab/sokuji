@@ -13,6 +13,7 @@ import { SonioxVoiceField, useByokVoiceSource, type VoiceSourceHook } from './So
 import { sonioxSharedBoth, type SonioxSettings as S } from './settings';
 import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 import { StagePart } from '../../components/providers/stageParts';
+import { useLineUpStore } from '../../stores/lineUpStore';
 
 const helpIcon = <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />;
 
@@ -40,7 +41,10 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
     const region = asSonioxRegion(settings.region);
     const latencies = useRegionLatencies('soniox', !disabled);
     const inBoth = legs?.length === 2;
-    const shared = sonioxSharedBoth(faceToFace === true, settings);
+    // Transcribing for another service's translation (the stored line-up says so): each direction has a session of
+    // its own whatever the setting says, so the shared-session choice is not drawn and Both reads as split.
+    const alone = useLineUpStore((st) => st.stored && st.lineUp !== null && st.lineUp.transcription === providerId && st.lineUp.translation !== providerId);
+    const shared = !alone && sonioxSharedBoth(faceToFace === true, settings);
     // Split Both asks for no agent text (`startSplit`), so the setting shows off there.
     const splitBoth = inBoth && !shared;
     const agentTextOn = !splitBoth && settings.agentText;
@@ -93,6 +97,7 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
 
         <StagePart stages={TR_TL}>
 
+        {!alone && (
         <div className="settings-section" id="soniox-settings-section">
           <h2>
             {t('settings.sonioxSharedSession', 'Shared session in Both mode')}
@@ -117,6 +122,7 @@ export function createSonioxSettingsView({ providerId, managed, useVoiceSource }
             </div>
           )}
         </div>
+        )}
 
         {/* Agent text (spec 2026-11-05 §4.4), read at Start. Split Both sends none (§4.1): there it shows off and locked, the stored value kept. */}
         </StagePart>

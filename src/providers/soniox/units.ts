@@ -6,7 +6,7 @@
  * declare these with their own adapter and their own participant-speech flag.
  * The same connection asked for no translation is a third unit, which
  * transcribes alone for another provider's unit to translate
- * (`sonioxTranscriptionUnitFor`); no definition declares it yet.
+ * (`sonioxTranscriptionUnitFor`).
  */
 import type { Adapter } from '../../lib/contract/adapter';
 import { TR, TR_TL } from '../../lib/lineup/types';
@@ -78,7 +78,11 @@ export function sonioxTranscriptionUnitFor({ start, participantSpeech }: SonioxS
   };
 }
 
-/** A definition's two units, in stage order: its text unit over its adapter, and its voice. */
-export function sonioxUnitsFor(parts: SonioxSttUnitParts): readonly [SonioxSttUnit, SonioxTtsUnit] {
-  return [sonioxSttUnitFor(parts), sonioxTtsUnitFor({ participantSpeech: parts.participantSpeech !== false })];
+/**
+ * A definition's three units: its text unit over its adapter, the same adapter transcribing alone, and its voice.
+ * The composer takes the text unit where the line-up gives Soniox the translation too, and the unit that
+ * transcribes alone where another provider translates.
+ */
+export function sonioxUnitsFor(parts: SonioxSttUnitParts): readonly [SonioxSttUnit, SonioxSttUnit, SonioxTtsUnit] {
+  return [sonioxSttUnitFor(parts), sonioxTranscriptionUnitFor(parts), sonioxTtsUnitFor({ participantSpeech: parts.participantSpeech !== false })];
 }

@@ -150,9 +150,6 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
   // what each source makes its reverse translate into. An automatic source has no reverse to read.
   const mySpoken = spoken?.speaker;
   const theirSpoken = spoken?.participant;
-  // Whether a list is cut down to what a voice reads: what it holds now may then be missing from it.
-  const sourcesNarrowed = Boolean(theirSpoken);
-  const targetsNarrowed = Boolean(mySpoken || theirSpoken);
   /** Whether the other side's voice reads what a pair's reverse would have it read. */
   const theirsRead = useCallback(
     (p: LanguagePair) => !theirSpoken || p.source === AUTO || theirSpoken(leg(p).target),
@@ -304,8 +301,8 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       onChange={(e) => chooseSource(e.target.value)}
       disabled={disabled}
     >
-      {/* What it is now when the voice that reads it does not read it: shown, unchosen. */}
-      {sourcesNarrowed && !sources.some((o) => o.value === pair.source) && <option value={pair.source} disabled>{label(pair.source)}</option>}
+      {/* What it is now when it is not offered (the voice does not read it, or the translation service does not take it): shown, unchosen. */}
+      {!sources.some((o) => o.value === pair.source) && <option value={pair.source} disabled>{label(pair.source)}</option>}
       {options(sourceOptions)}
     </select>
   );
@@ -318,7 +315,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
       onChange={(e) => chooseTarget(e.target.value)}
       disabled={disabled}
     >
-      {targetsNarrowed && !targets.some((o) => o.value === pair.target) && <option value={pair.target} disabled>{label(pair.target)}</option>}
+      {!targets.some((o) => o.value === pair.target) && <option value={pair.target} disabled>{label(pair.target)}</option>}
       {options(targetOptions)}
     </select>
   );
