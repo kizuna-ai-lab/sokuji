@@ -6,6 +6,7 @@ import {
   listModels,
   OPENAI_TEXT_BASE_URL,
   probeModel,
+  PROBE_TOKENS,
   textModelTimeout,
   TextModelTransportError,
   type ChatCompletionOptions,
@@ -349,7 +350,18 @@ describe('a probe of the chosen model', () => {
   it('asks the model for one token with the lowest reasoning, and answers whether it was had', async () => {
     const s = service(reply('H'));
     await expect(probeModel({ service: 'openai', apiKey: KEY, model: 'gpt-5-nano', signal: new AbortController().signal, transport: s.transport })).resolves.toEqual({ ok: true });
-    expect(s.sent[0].body).toEqual({ model: 'gpt-5-nano', messages: [{ role: 'user', content: 'Hi' }], max_completion_tokens: 1, reasoning_effort: 'minimal' });
+    expect(s.sent[0].body).toEqual({ model: 'gpt-5-nano', messages: [{ role: 'user', content: 'Hi' }], max_completion_tokens: PROBE_TOKENS, reasoning_effort: 'minimal' });
+  });
+
+  it('counts a model that ran out of its budget before its first word as answering', async () => {
+    const s = service({ status: 400, body: { error: { message: 'Could not finish the message because max_tokens or model output limit was reached. Please try again with higher max_tokens.' } } });
+    await expect(probeModel({ service: 'openai', apiKey: KEY, model: 'gpt-5-mini', signal: new AbortController().signal, transport: s.transport })).resolves.toEqual({ ok: true });
+  });
+
+  it("reads Gemini's 400 for a refused key as the key's fault", async () => {
+    const s = service({ status: 400, body: [{ error: { code: 400, message: 'Please pass a valid API key', status: 'INVALID_ARGUMENT' } }] });
+    await expect(probeModel({ service: 'gemini', apiKey: KEY, model: 'gemini-3.1-flash-lite', signal: new AbortController().signal, transport: s.transport }))
+      .resolves.toMatchObject({ ok: false, failure: { code: 'auth', status: 400 } });
   });
 
   it('says why a listed model cannot be used', async () => {

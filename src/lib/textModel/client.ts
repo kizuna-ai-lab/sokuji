@@ -189,7 +189,8 @@ const UNKNOWN_MODEL = [
   /\b(?:unknown|invalid|no such|not a valid|nonexistent)\s+model\b/i,
 ];
 /** A refusal of the key that comes as a 400 (Gemini's). */
-const KEY_NOT_VALID = /api[ _]key not valid|invalid api[ _]key|API_KEY_INVALID/i;
+// Gemini answers a refused key with a 400, not a 401: "Please pass a valid API key" (measured 2026-11-22).
+const KEY_NOT_VALID = /api[ _]key not valid|invalid api[ _]key|valid api[ _]key|API_KEY_INVALID/i;
 
 /** The failure a refusal is, in the service's own words. */
 function refusedAs(status: number, raw: string, apiKey: string | undefined): { ok: false; failure: TextModelFailure } {
@@ -318,9 +319,17 @@ export async function listModels(o: Where): Promise<ListModelsResult> {
  * lists may still be refused (Gemini lists models no longer open to new keys); this is how a check finds out.
  */
 export async function probeModel(o: Where & { model: string; memo?: TextModelMemo }): Promise<ProbeResult> {
-  const result = await chatCompletion({ ...o, messages: [{ role: 'user', content: 'Hi' }], maxTokens: 1, reasoning: 'lowest' });
-  return result.ok ? { ok: true } : result;
+  const result = await chatCompletion({ ...o, messages: [{ role: 'user', content: 'Hi' }], maxTokens: PROBE_TOKENS, reasoning: 'lowest' });
+  if (result.ok) return { ok: true };
+  // A reasoning model may spend the whole budget before its first word: OpenAI then refuses the answer as cut
+  // short (measured 2026-11-22, gpt-5-mini). It was reached and it ran: that is all a probe asks.
+  if (result.failure.status === 400 && OUTPUT_LIMIT.test(result.failure.message)) return { ok: true };
+  return result;
 }
+
+/** The probe's budget: a few tokens, so that a model which reasons a little first still answers. */
+export const PROBE_TOKENS = 16;
+const OUTPUT_LIMIT = /max_tokens or model output limit|output limit was reached/i;
 
 /**
  * The JSON object in a model's answer: the whole text, a fenced block, or the outermost braces among other words
