@@ -569,6 +569,20 @@ describe('the pair a provider is checked for when another provider transcribes',
 
   beforeEach(() => { useProviderStore.setState({ stages: {}, stageIds: {}, readiness: {} }); });
 
+  it('is the pair of the provider that transcribes, which Start runs, where that pair is not the one picked', async () => {
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
+    // The one that transcribes offers en and de only; the one that translates offers more.
+    const heard = { ...narrow, id: 'heard' } as unknown as AnyProvider;
+    const translator = { ...probe, id: 'translator', kind: 'local', checkReadsDirection: true, check } as unknown as AnyProvider;
+    await useProviderStore.getState().load(heard);
+    await useProviderStore.getState().load(translator);
+    useProviderStore.getState().setPair(translator, { source: 'en', target: 'ja' });
+    expect(useProviderStore.getState().entries.heard.pair).toEqual({ source: 'en', target: 'de' });
+    useProviderStore.getState().setStages({ heard: ['transcription'], translator: ['translation', 'speech'] });
+    await useProviderStore.getState().refreshReadiness(translator, auth);
+    expect(pairsAsked(check)).toEqual([{ source: 'en', target: 'de' }]);
+  });
+
   it('is the pair as picked, not the nearest its own lists offer, and a new pick forgets its answer though its own pair did not move', async () => {
     const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext) => ({ ok: true as const }));
     // It offers en and de only; the provider that transcribes offers more.

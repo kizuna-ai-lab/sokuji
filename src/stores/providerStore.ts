@@ -206,13 +206,18 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
   };
   /**
    * The pair a provider is checked for when another provider transcribes in the plan (its stages are told, and
-   * transcription is not among them): the pair as picked, which is the transcription provider's, not the nearest
-   * its own lists offer. Undefined for a provider that transcribes, or serves everything, or while no pair is picked.
+   * transcription is not among them): the transcription provider's pair, which is the one Start runs, not the nearest
+   * its own lists offer. That is the transcriber's own entry's pair, where it is known and loaded (the pick held to
+   * what the transcriber offers), and otherwise the pair as picked. Undefined for a provider that transcribes, or
+   * serves everything, or while no pair is picked.
    */
   const heardElsewhere = (id: string): LanguagePair | undefined => {
     const served = get().stages[id];
     const intent = get().intent;
-    return served && !served.includes('transcription') && intent?.source && intent.target ? intent : undefined;
+    if (!served || served.includes('transcription') || !intent?.source || !intent.target) return undefined;
+    const transcriber = Object.entries(get().stages).find(([other, stages]) => other !== id && stages.includes('transcription'))?.[0];
+    const heard = transcriber === undefined ? undefined : get().entries[transcriber]?.pair;
+    return heard?.source && heard.target ? heard : intent;
   };
   /** The intent or the context moved: every loaded entry's pair derived again, nothing written. */
   const rederive = () => {
@@ -224,6 +229,13 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       put(p, { settings: entry.settings, credentials: entry.credentials, pair });
       // A check that reads the pair answered about the other one.
       if (readsDirection(p)) forgetReadiness(p);
+      // So did the check of a provider that is checked for this one's pair, because this one transcribes.
+      if (get().stages[id]?.includes('transcription')) {
+        for (const other of Object.keys(get().stages)) {
+          const q = loadedProviders.get(other);
+          if (q && other !== id && heardElsewhere(other) && readsDirection(q)) forgetReadiness(q);
+        }
+      }
     }
   };
 
@@ -396,7 +408,8 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     async refreshReadiness(p, auth, from, signal) {
       const served = get().stages[p.id];
       const servedIds = served ? get().stageIds[p.id] : undefined;
-      const inputs: ReadinessInputs = from ?? { ...loaded(p), ...(heardElsewhere(p.id) ? { pair: heardElsewhere(p.id)! } : {}), legs: get().legs, ...(served ? { stages: served } : {}), ...(servedIds ? { stageIds: servedIds } : {}) };
+      const heard = heardElsewhere(p.id);
+      const inputs: ReadinessInputs = from ?? { ...loaded(p), ...(heard ? { pair: heard } : {}), legs: get().legs, ...(served ? { stages: served } : {}), ...(servedIds ? { stageIds: servedIds } : {}) };
       // A run's check (`from`) asks about its own shape: it starts no new
       // generation, so a panel check or an edit meanwhile keeps its answer
       // out of the store, but never replaces the answer the run gets back.
