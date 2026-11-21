@@ -105,7 +105,7 @@ export function startLocalTranslation(
         signal.removeEventListener('abort', onAbort);
         frame('out', 'local.init.translation.ready', { model: config.modelId, initDurationMs: clock.now() - startedAt });
         // A failure no request carries: `translate()` would never settle, so the unit ends here.
-        mine.onError = (error) => died(`Translation stopped: ${error}`);
+        mine.onError = (error) => died(`Translation stopped: ${describeCause(error)}`);
         events.loading({ stage: 'translation', done: 1, total: 1 });
         resolve();
       },
