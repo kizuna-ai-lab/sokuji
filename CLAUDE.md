@@ -100,9 +100,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      (`src/lib/conversation/Conversation.ts`) folds each leg's events into segments
    - Local Native is the exception until kizuna-ai-lab/sokuji#578: `LocalNativeClient`
      implements the old `IClient` (`src/services/interfaces/IClient.ts`), registered as
-     `LocalNativeProviderConfig` in `ProviderConfigFactory`, built through `ClientFactory`,
-     and set up in the old settings shell (`ProviderSection`, `LanguageSection`,
-     `ProviderSpecificSettings`), which nothing mounts;
+     `LocalNativeProviderConfig` in `ProviderConfigFactory`, built through `ClientFactory`;
      `src/providers/oldPath.consistency.test.ts` keeps every other file off that path.
      Its folders (`src/services/{clients,providers,interfaces}/`) also hold four shared
      leaves the new code takes — `ProviderConfig` (`LanguageOption`, `VoiceOption`),
@@ -398,16 +396,16 @@ const apiUrl = getApiUrl(); // https://sokuji.kizuna.ai/api
 ### Zustand Store Patterns
 ```typescript
 // Using optimized selectors (preferred - prevents unnecessary re-renders)
-const uiMode = useUIMode();
-const setUIMode = useSetUIMode();
+const textOnly = useTextOnly();
+const setTextOnly = useSetTextOnly();
 
 // Direct store access for multiple values
-const { uiLanguage, uiMode, textOnly } = useSettingsStore();
+const { uiLanguage, textOnly } = useSettingsStore();
 
 // Subscribing to changes outside React
 useSettingsStore.subscribe(
-  (state) => state.uiMode,
-  (uiMode) => console.log('UI mode changed:', uiMode)
+  (state) => state.textOnly,
+  (textOnly) => console.log('Text only changed:', textOnly)
 );
 ```
 
@@ -511,7 +509,7 @@ What the spec's "What adding a provider then touches" lists
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
 `registry.test.ts`'s invariants fail loudly on anything missed. Local Native is the
 exception until kizuna-ai-lab/sokuji#578: it still runs the old path (`src/services/`,
-`ProviderConfigFactory`, the old settings shell).
+`ProviderConfigFactory`).
 
 ### Adding a native model or TTS family
 
@@ -696,9 +694,9 @@ corrected on 2026-09-05.
 
 ## UI Components
 
-### Simple Mode Components
-- **SimpleSettings** (`src/components/Settings/SimpleSettings/SimpleSettings.tsx`): the simple layout's settings — the session settings (`SessionSettingsGeneral` in `ProviderArea.tsx`, shared with Advanced's General tab: languages, the provider picker, speech; sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false), the microphone, the Speech block (`SpeechOutputSection`: who hears what, each row with its own output device and channel; `textOnly` shows inverted as Translation the other side hears, the monitor as I hear it too, the participant-speech switch as Translation I hear), the other side's audio, help. The mode popover's rows mirror the Speech block (a pick in an outlet row writes the outlet and never flips its switch); the face-to-face ears strip and the conversation's ear tags read the outlets (a centred outlet gives no tag); the wizard's Both scenarios write Translation I hear (voice on, text off)
-- **MainPanel**: Unified conversation panel with `uiMode`-driven layout (basic: bubble messages + status footer, advanced: bubble messages + waveform footer with controls)
+### Main Components
+- **SpeechOutputSection** (`src/components/Settings/sections/SpeechOutputSection.tsx`, on the settings page's device categories, `src/components/SettingsPage/DeviceCategories.tsx`): the Speech block — who hears what, each row with its own output device and channel; `textOnly` shows inverted as Translation the other side hears, the monitor as I hear it too, the participant-speech switch as Translation I hear. The mode popover's rows mirror the Speech block (a pick in an outlet row writes the outlet and never flips its switch); the face-to-face ears strip and the conversation's ear tags read the outlets (a centred outlet gives no tag); the wizard's Both scenarios write Translation I hear (voice on, text off). Sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false
+- **MainPanel**: Unified conversation panel: bubble messages and, for everyone, the full footer (waveform and controls); a stored `uiMode` is still read but nothing writes it
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
 
 ### UI Design System
@@ -726,7 +724,7 @@ corrected on 2026-09-05.
   `src/styles/colourLedger.consistency.test.ts` (an exact count of colour literals per file; the
   allow-list is brand marks, the user colour presets and defaults, the viewer and the dev
   previews). Light accent `#007255` as a fill and `#006d51` as text; dark accent `#0fbb8f`; error `#e74c3c` / `#ad3327`. Light status text also clears 4.5:1 on its own 10–15% tint.
-- Component styles defined in colocated SCSS files (e.g., `SimpleSettings.scss`)
+- Component styles defined in colocated SCSS files (e.g., `SettingsPage.scss`)
 - Lucide React icons with consistent sizing (14-16px)
 
 ## Platform Requirements
