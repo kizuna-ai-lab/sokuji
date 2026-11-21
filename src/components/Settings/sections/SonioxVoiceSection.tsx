@@ -473,7 +473,7 @@ const SonioxVoiceSection: React.FC<SonioxVoiceSectionProps> = ({
     // docstring), but narrowed here rather than asserted.
     if (!sample) return null;
     // Same choke point the session path uses (`providers/soniox/config.ts`'s
-    // `buildSoniox`): the slider already constrains this in practice, so
+    // `sonioxTts`): the slider already constrains this in practice, so
     // clamping here is defensive, but the two paths reading the same setting
     // should agree on its bounds rather than one trusting the raw value.
     const speed = clampNumber(settings.ttsSpeed, 0.7, 1.3, 1.0);
