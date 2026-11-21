@@ -164,6 +164,9 @@ export const INVOKE_CHANNELS = [
   'history:recognize',
   'history:recognize-cancel',
   'history:recognize-status',
+  // A compatible text-model service, asked from the main process (electron/text-model-request.js)
+  'text-model:request',
+  'text-model:cancel',
   // Externally-registered (electron-audio-loopback)
   ...EXTERNAL_INVOKE_CHANNELS,
 ];
