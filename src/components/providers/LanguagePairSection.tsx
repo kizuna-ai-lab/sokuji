@@ -371,7 +371,7 @@ export function LanguagePairSection({ provider, settings, pair, onChange, disabl
         onClick={() => reversed && onChange(reversed)}
         disabled={disabled || !reversed}
         aria-label={t('simpleConfig.swapLanguages')}
-        title={swapNotSpoken ? t('simpleConfig.swapNotSpoken', 'The voice does not read this pair the other way round.') : t('simpleConfig.swapLanguages')}
+        title={swapNotSpoken ? t('simpleConfig.swapNotSpoken', 'The speech service does not read these languages the other way round.') : t('simpleConfig.swapLanguages')}
       >
         <ArrowLeftRight size={18} />
       </button>

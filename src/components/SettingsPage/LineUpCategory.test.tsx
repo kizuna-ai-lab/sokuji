@@ -233,7 +233,7 @@ describe('languages and line-up', () => {
       useLineUpStore.setState({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, stored: true });
       render(<LineUpCategory locked={false} />);
       const status = within(cardOf('Speech')).getByRole('status');
-      expect(status).toHaveTextContent("KizunaAI (Soniox)'s voice only reads its own translation. Choose another voice, or use the same service for transcription and translation too.");
+      expect(status).toHaveTextContent('Use KizunaAI (Soniox) for transcription and translation, or choose another speech service.');
       expect(status).toHaveClass('lineup-stage__refusal');
       expect(within(cardOf('Transcription and translation')).queryByRole('status')).toBeNull();
     });
@@ -330,7 +330,7 @@ describe('languages and line-up', () => {
       load();
       useLineUpStore.setState({ lineUp: { ...soniox, translation: 'bing' }, stored: true });
       render(<LineUpCategory locked={false} />);
-      expect(within(cardOf('Translation')).getByRole('status')).toHaveTextContent('Soniox only works when it also does translation. Choose it for that stage too, or choose another service.');
+      expect(within(cardOf('Translation')).getByRole('status')).toHaveTextContent('Soniox must also do translation. Choose Soniox for translation, or use another service instead of Soniox.');
       expect(within(cardOf('Transcription')).queryByRole('status')).toBeNull();
       expect(within(cardOf('Speech')).queryByRole('status')).toBeNull();
     });
@@ -339,7 +339,7 @@ describe('languages and line-up', () => {
       load('eu');
       useLineUpStore.setState({ lineUp: { ...soniox, speech: 'edge' }, stored: true });
       render(<LineUpCategory locked={false} />);
-      expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Edge has no voice for Basque. Choose another voice, or turn speech off for this session.');
+      expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Edge has no voice for Basque. Choose another speech service, or turn speech off for this session.');
     });
 
     it('the same line-up into a language Edge speaks, and a line-up on one provider: nothing is said', () => {
@@ -497,7 +497,7 @@ describe('languages and line-up', () => {
     const all = (id: string) => ({ transcription: id, translation: id, speech: id, summarisation: null });
     const options = (name: string) => within(screen.getByRole('combobox', { name })).getAllByRole('option') as HTMLOptionElement[];
     const option = (name: string, id: string) => options(name).find((o) => o.value === id)!;
-    const REASON = "KizunaAI (Soniox)'s voice only reads its own translation. Choose another voice, or use the same service for transcription and translation too.";
+    const REASON = 'Use KizunaAI (Soniox) for transcription and translation, or choose another speech service.';
 
     it("Kizuna AI's Soniox on every stage: every voice can be chosen, an end-to-end service's too (it takes the other stages with it)", () => {
       load();
@@ -506,7 +506,7 @@ describe('languages and line-up', () => {
       for (const id of ['kizunaai_soniox', 'soniox', 'edge', 'local_inference', 'gemini', 'kizunaai_qwen']) expect([id, option('Speech', id).disabled]).toEqual([id, false]);
       // The only options held back are the ones with no key.
       expect(options('Speech').filter((o) => o.disabled).every((o) => /needs a key/.test(o.textContent ?? ''))).toBe(true);
-      expect(options('Speech').some((o) => /voice only reads/.test(o.textContent ?? ''))).toBe(false);
+      expect(options('Speech').some((o) => /choose another speech service/.test(o.textContent ?? ''))).toBe(false);
     });
 
     it("Kizuna AI's Soniox on every stage: another service for the text can be chosen (Kizuna AI's voice follows it)", () => {
