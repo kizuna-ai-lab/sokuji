@@ -85,7 +85,8 @@ describe("a record's export", () => {
     const read = (blob: Blob) => new Promise<string>((resolve) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.readAsText(blob); });
     const files = async (r: HistoryRecord) => {
       saved.length = 0;
-      render(<RecordExportMenu record={r} legs={legs} rows={[]} transcript={live} />);
+      // A live transcript is exported from its rows, as a file transcript is.
+      render(<RecordExportMenu record={r} legs={legs} rows={rows} transcript={live} />);
       for (const name of ['Save the conversation (.txt)', 'Save the conversation (.json)']) {
         fireEvent.click(screen.getByRole('button', { name: /Export/ }));
         fireEvent.click(screen.getByRole('menuitem', { name }));
