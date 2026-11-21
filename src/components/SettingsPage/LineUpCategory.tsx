@@ -437,7 +437,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                   {t('settingsPage.lineup.granite', 'With translation: Granite Speech turns speech straight into the translation.')}
                 </p>
               )}
-              {stage === 'transcription' && isElectron() && lineUp?.transcription === 'soniox' && (
+              {/* Every recognition that also does files (Soniox with a key, and Kizuna AI's Soniox through the sign-in) says so. */}
+              {stage === 'transcription' && isElectron() && providers.some((p) => p.id === lineUp?.transcription && p.fileRecognition) && (
                 <p className="lineup-stage__joint">
                   <AudioLines size={12} aria-hidden="true" />
                   {t('settingsPage.lineup.alsoFiles', 'Also transcribes imported files and records again.')}
