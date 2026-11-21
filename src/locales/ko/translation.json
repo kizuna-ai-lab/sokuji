@@ -1847,6 +1847,7 @@
       "granite": "번역과 함께: Granite Speech가 음성을 바로 번역문으로 바꿉니다.",
       "needsKey": "키 필요",
       "needsSignIn": "로그인 필요",
+      "voiceFollowed": "음성도 {{provider}} 서비스로 변경되었습니다. {{previous}} 서비스의 음성은 자체 번역만 읽어 줍니다.",
       "options": "{{provider}} 옵션",
       "state": {
         "needsKey": "키 필요",

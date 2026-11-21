@@ -1847,6 +1847,7 @@
       "granite": "Z tłumaczeniem: Granite Speech zamienia mowę od razu w tłumaczenie.",
       "needsKey": "wymaga klucza",
       "needsSignIn": "wymaga zalogowania",
+      "voiceFollowed": "Mowa również przeszła na usługę {{provider}}: głos usługi {{previous}} czyta tylko jej własne tłumaczenie.",
       "options": "Opcje: {{provider}}",
       "state": {
         "needsKey": "Wymaga klucza",

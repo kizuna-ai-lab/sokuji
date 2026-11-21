@@ -7,6 +7,7 @@
 // Pure; nothing here reads a store.
 import { choose } from '../lineup/choose';
 import type { LineUp, RunStage } from '../lineup/types';
+import type { AnyProvider } from '../provider/types';
 import { compose, type ComposeInput } from './compose';
 import { isRefusal } from './types';
 import type { PlanRefusal, PlanRefusalCode } from './types';
@@ -18,6 +19,15 @@ import type { PlanRefusal, PlanRefusalCode } from './types';
  */
 const STRUCTURAL: ReadonlySet<PlanRefusalCode> = new Set(['lineup_voice_not_alone', 'lineup_voice_not_taken', 'lineup_two_managed']);
 
+/**
+ * What the composer is asked with for a choice: the providers offered here, each under its stored settings, or
+ * under its default settings while its entry has not loaded. The page that shows a choice and the store that
+ * makes it both build theirs here, so the line-up an option is tested with is the one a click stores.
+ */
+export function choiceInput(providers: readonly AnyProvider[], entries: Readonly<Record<string, { settings: unknown } | undefined>>): ComposeInput {
+  return { providers, settings: (id) => entries[id]?.settings ?? providers.find((p) => p.id === id)?.settings.defaults };
+}
+
 /** A choice the composer would refuse: its reason, and the line-up the choice would have made (to name the option the reason is about). */
 export interface RefusedChoice { refusal: PlanRefusal; lineUp: LineUp }
 
@@ -26,7 +36,7 @@ export interface RefusedChoice { refusal: PlanRefusal; lineUp: LineUp }
  * moved as `choose` moves them; null when the line-up it makes runs, or is refused for another kind of reason.
  */
 export function refusedChoice(lineUp: LineUp, stage: RunStage, id: string, input: ComposeInput): RefusedChoice | null {
-  const candidate = choose(lineUp, stage, id).lineUp;
+  const candidate = choose(lineUp, stage, id, input).lineUp;
   const plan = compose(candidate, input);
   return isRefusal(plan) && STRUCTURAL.has(plan.refused) ? { refusal: plan, lineUp: candidate } : null;
 }

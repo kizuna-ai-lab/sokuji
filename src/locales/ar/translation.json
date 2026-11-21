@@ -1847,6 +1847,7 @@
       "granite": "مع الترجمة: يحوّل Granite Speech الكلام مباشرةً إلى الترجمة.",
       "needsKey": "يحتاج إلى مفتاح",
       "needsSignIn": "يتطلب تسجيل الدخول",
+      "voiceFollowed": "تغيّر الكلام إلى {{provider}} أيضًا: صوت {{previous}} يقرأ ترجمته هو فقط.",
       "options": "خيارات {{provider}}",
       "state": {
         "needsKey": "يحتاج إلى مفتاح",

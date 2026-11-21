@@ -1847,6 +1847,7 @@
       "granite": "Kasama ang salin: ginagawang salin agad ng Granite Speech ang pagsasalita.",
       "needsKey": "kailangan ng key",
       "needsSignIn": "kailangang mag-sign in",
+      "voiceFollowed": "Napalitan din ng {{provider}} ang pagsasalita: sariling salin lang ang binabasa ng boses ng {{previous}}.",
       "options": "Mga opsyon ng {{provider}}",
       "state": {
         "needsKey": "Kailangan ng key",

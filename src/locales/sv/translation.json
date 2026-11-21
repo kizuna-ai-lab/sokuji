@@ -1847,6 +1847,7 @@
       "granite": "Med översättning: Granite Speech gör tal direkt till översättningen.",
       "needsKey": "behöver nyckel",
       "needsSignIn": "kräver inloggning",
+      "voiceFollowed": "Även tal ändrades till {{provider}}: rösten från {{previous}} läser bara upp sin egen översättning.",
       "options": "Alternativ för {{provider}}",
       "state": {
         "needsKey": "Behöver en nyckel",

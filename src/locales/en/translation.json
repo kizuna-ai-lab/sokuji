@@ -1847,6 +1847,7 @@
       "granite": "With translation: Granite Speech turns speech straight into the translation.",
       "needsKey": "needs a key",
       "needsSignIn": "needs a sign-in",
+      "voiceFollowed": "Speech changed to {{provider}} too: {{previous}}'s voice only reads its own translation.",
       "options": "{{provider}} options",
       "state": {
         "needsKey": "Needs a key",

@@ -231,14 +231,48 @@ describe('languages and line-up', () => {
       expect(within(cardOf('Transcription and translation')).queryByRole('status')).toBeNull();
     });
 
-    it('a choice the composer would refuse cannot be made: the option says why, and the line-up stays', () => {
+    it("another service for the text can be chosen from Kizuna AI's Soniox on every stage: speech follows it, and the speech card says so until the next choice", async () => {
       load();
       useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null }, stored: true });
       render(<LineUpCategory locked={false} />);
       expect(screen.queryByRole('status')).toBeNull();
-      const soniox = within(screen.getByRole('combobox', { name: 'Transcription and translation' })).getAllByRole('option').find((o) => (o as HTMLOptionElement).value === 'soniox') as HTMLOptionElement;
-      expect(soniox.disabled).toBe(true);
-      expect(soniox).toHaveTextContent(/voice only reads its own translation/);
+      const text = screen.getByRole('combobox', { name: 'Transcription and translation' });
+      const option = within(text).getAllByRole('option').find((o) => (o as HTMLOptionElement).value === 'soniox') as HTMLOptionElement;
+      expect(option.disabled).toBe(false);
+      expect(option).toHaveTextContent(/^Soniox$/);
+      fireEvent.change(text, { target: { value: 'soniox' } });
+      await waitFor(() => expect(tracked).toHaveLength(1));
+      expect(useLineUpStore.getState().lineUp).toEqual(soniox);
+      // The voice that followed is one of the stages that moved.
+      expect(tracked).toContainEqual(['lineup_changed', { stage: 'transcription', from: 'kizunaai_soniox', to: 'soniox', moved: ['translation', 'speech'], during_session: false }]);
+      const status = await within(cardOf('Speech')).findByRole('status');
+      expect(status).toHaveTextContent("Speech changed to Soniox too: KizunaAI (Soniox)'s voice only reads its own translation.");
+      expect(status).toHaveClass('lineup-stage__refusal');
+      expect(screen.getAllByRole('status')).toHaveLength(1);
+      // The next choice, which makes nothing follow, takes the line away.
+      fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'edge' } });
+      await waitFor(() => expect(tracked).toHaveLength(2));
+      await waitFor(() => expect(screen.queryByRole('status')).toBeNull());
+    });
+
+    it("this device for the text, from Kizuna AI's Soniox on every stage: speech follows to Edge", async () => {
+      load();
+      useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'local_inference' } });
+      await waitFor(() => expect(tracked).toHaveLength(1));
+      expect(useLineUpStore.getState().lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null });
+      expect(await within(cardOf('Speech')).findByRole('status')).toHaveTextContent("Speech changed to Edge too: KizunaAI (Soniox)'s voice only reads its own translation.");
+    });
+
+    it('a voice that can stay is not said to have changed', async () => {
+      load();
+      useLineUpStore.setState({ lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'edge', summarisation: null }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'soniox' } });
+      await waitFor(() => expect(tracked).toHaveLength(1));
+      expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'edge' });
+      expect(screen.queryByRole('status')).toBeNull();
     });
 
     it('a stage given to another service than the one it goes with: on the card of that stage, naming the service', () => {
@@ -315,17 +349,15 @@ describe('languages and line-up', () => {
       expect(options('Speech').some((o) => /voice only reads/.test(o.textContent ?? ''))).toBe(false);
     });
 
-    it("Kizuna AI's Soniox on every stage: another service for the text cannot be chosen while Kizuna AI's voice stays", () => {
+    it("Kizuna AI's Soniox on every stage: another service for the text can be chosen (Kizuna AI's voice follows it)", () => {
       load();
       useLineUpStore.setState({ lineUp: all('kizunaai_soniox'), stored: true });
       render(<LineUpCategory locked={false} />);
       const text = 'Transcription and translation';
-      expect(option(text, 'soniox').disabled).toBe(true);
-      expect(option(text, 'soniox')).toHaveTextContent(`Soniox (${REASON})`);
-      expect(option(text, 'local_inference').disabled).toBe(true);
-      // An end-to-end service takes speech too.
-      expect(option(text, 'gemini').disabled).toBe(false);
-      expect(option(text, 'kizunaai_soniox').disabled).toBe(false);
+      for (const id of ['soniox', 'local_inference', 'gemini', 'kizunaai_soniox']) expect([id, option(text, id).disabled]).toEqual([id, false]);
+      expect(option(text, 'soniox')).toHaveTextContent(/^Soniox$/);
+      // The only options held back are the ones with no key.
+      expect(options(text).filter((o) => o.disabled).every((o) => /needs a key/.test(o.textContent ?? ''))).toBe(true);
     });
 
     it("Soniox with an own key on every stage: Kizuna AI's Soniox cannot be chosen for speech alone, and says why", () => {
@@ -357,9 +389,9 @@ describe('languages and line-up', () => {
       expect(option('Speech', 'kizunaai_soniox').disabled).toBe(false);
       expect(option('Speech', 'kizunaai_soniox')).toHaveTextContent(/^KizunaAI \(Soniox\)$/);
       for (const id of ['edge', 'soniox', 'local_inference']) expect([id, option('Speech', id).disabled]).toEqual([id, false]);
-      // So does Kizuna AI's Soniox for the text; another text side under the same voice does not.
+      // So does Kizuna AI's Soniox for the text, and another text side: the voice follows it.
       expect(option('Transcription and translation', 'kizunaai_soniox').disabled).toBe(false);
-      expect(option('Transcription and translation', 'local_inference').disabled).toBe(true);
+      expect(option('Transcription and translation', 'local_inference').disabled).toBe(false);
     });
 
     it('where the select draws rich options, the reason is the option\'s muted note', () => {

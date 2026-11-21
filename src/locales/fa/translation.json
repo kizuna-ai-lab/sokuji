@@ -1847,6 +1847,7 @@
       "granite": "همراه ترجمه: Granite Speech گفتار را مستقیم به ترجمه تبدیل می‌کند.",
       "needsKey": "به کلید نیاز دارد",
       "needsSignIn": "نیاز به ورود دارد",
+      "voiceFollowed": "گفتار هم به {{provider}} تغییر کرد: صدای {{previous}} فقط ترجمهٔ خودش را می‌خواند.",
       "options": "گزینه‌های {{provider}}",
       "state": {
         "needsKey": "به کلید نیاز دارد",

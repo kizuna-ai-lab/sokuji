@@ -1847,6 +1847,7 @@
       "granite": "Bersama terjemahan: Granite Speech mengubah ucapan langsung menjadi terjemahan.",
       "needsKey": "perlu kunci",
       "needsSignIn": "perlu masuk",
+      "voiceFollowed": "Ucapan juga berubah ke {{provider}}: suara {{previous}} hanya membacakan terjemahannya sendiri.",
       "options": "Opsi {{provider}}",
       "state": {
         "needsKey": "Perlu kunci",

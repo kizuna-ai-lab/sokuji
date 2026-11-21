@@ -1847,6 +1847,7 @@
       "granite": "Käännöksen kanssa: Granite Speech muuttaa puheen suoraan käännökseksi.",
       "needsKey": "tarvitsee avaimen",
       "needsSignIn": "vaatii kirjautumisen",
+      "voiceFollowed": "Myös puhe vaihtui palveluun {{provider}}: palvelun {{previous}} ääni lukee vain sen omaa käännöstä.",
       "options": "{{provider}}: asetukset",
       "state": {
         "needsKey": "Tarvitsee avaimen",

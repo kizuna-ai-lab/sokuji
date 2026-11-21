@@ -1847,6 +1847,7 @@
       "granite": "অনুবাদের সঙ্গে: Granite Speech কথাকে সরাসরি অনুবাদে পরিণত করে।",
       "needsKey": "কী লাগবে",
       "needsSignIn": "সাইন ইন লাগবে",
+      "voiceFollowed": "বক্তৃতাও {{provider}}-এ বদলে গেছে: {{previous}}-এর ভয়েস কেবল নিজের অনুবাদই পড়ে।",
       "options": "{{provider}}-এর বিকল্প",
       "state": {
         "needsKey": "কী লাগবে",

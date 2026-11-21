@@ -1847,6 +1847,7 @@
       "granite": "יחד עם התרגום: Granite Speech הופך דיבור ישירות לתרגום.",
       "needsKey": "נדרש מפתח",
       "needsSignIn": "נדרשת התחברות",
+      "voiceFollowed": "גם הדיבור עבר אל {{provider}}: הקול של {{previous}} מקריא רק את התרגום שלו עצמו.",
       "options": "אפשרויות {{provider}}",
       "state": {
         "needsKey": "נדרש מפתח",

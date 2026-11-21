@@ -1847,6 +1847,7 @@
       "granite": "Cùng với dịch: Granite Speech chuyển thẳng lời nói thành bản dịch.",
       "needsKey": "cần khóa",
       "needsSignIn": "cần đăng nhập",
+      "voiceFollowed": "Giọng nói cũng đã chuyển sang {{provider}}: giọng nói của {{previous}} chỉ đọc bản dịch của chính nó.",
       "options": "Tùy chọn của {{provider}}",
       "state": {
         "needsKey": "Cần khóa",

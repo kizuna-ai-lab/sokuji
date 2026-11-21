@@ -1847,6 +1847,7 @@
       "granite": "翻訳と一緒に：Granite Speech が音声をそのまま訳文にします。",
       "needsKey": "キーが必要",
       "needsSignIn": "サインインが必要",
+      "voiceFollowed": "音声も {{provider}} に変わりました。{{previous}} の音声は自身の翻訳だけを読み上げます。",
       "options": "{{provider}} のオプション",
       "state": {
         "needsKey": "キーが必要",

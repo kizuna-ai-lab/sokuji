@@ -15,8 +15,7 @@ import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-reac
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
 import { refusalNotice } from '../../lib/plan/checks';
-import { refusedChoice } from '../../lib/plan/choice';
-import type { ComposeInput } from '../../lib/plan/compose';
+import { choiceInput, refusedChoice } from '../../lib/plan/choice';
 import { usePlan } from '../../lib/plan/fromStores';
 import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
 import { noticeText } from '../../lib/view/noticeText';
@@ -37,7 +36,7 @@ import type { ReceiveChoice } from '../providers/LanguagePairSection';
 import { useHearingRows } from '../MainPanel/useHearingRows';
 import { AudioModeSwitch } from './AudioModeSwitch';
 import { ProviderEngine, ProviderOwnSettings, ProviderTurnDetectionControls } from '../providers/ProviderOwnSettings';
-import { ProviderOption, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
+import { ProviderOption, optionText, useOptionModel, type ProviderOptionModel } from '../providers/ProviderOption';
 import { KizunaOpenAIIcon } from '../Icons/ProviderIcons';
 import { SettingsStage, cardOptions, useStageList } from '../providers/stageParts';
 import { useAuthContext } from '../providers/useAuthContext';
@@ -121,6 +120,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   // A slot a notice asked for (a voice to fix, #619): the engine opens it, then it is spent.
   const engineSlotTarget = useEngineSlotTarget();
   const setEngineSlotTarget = useSetEngineSlotTarget();
+  // Speech followed the last choice (its voice could not stay beside the chosen text side): said on the speech
+  // card until the next choice.
+  const [followed, setFollowed] = useState<string | null>(null);
 
   // Every provider with a key is loaded, so that its row can say whether the key is there.
   useEffect(() => {
@@ -136,9 +138,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
 
   const stageName = (s: StageName) => stageInSentence(t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage] ?? s), i18n?.language ?? 'en');
 
-  // What the composer is asked with for a choice not made yet: a provider whose entry has not loaded answers under
-  // its default settings.
-  const composing: ComposeInput = { providers, settings: (id) => entries[id]?.settings ?? providers.find((p) => p.id === id)?.settings.defaults };
+  // What the composer is asked with for a choice not made yet: what the store asks it with when the choice is made.
+  const composing = choiceInput(providers, entries);
 
   const optionsFor = (stage: RunStage): ProviderOptionModel[] => {
     return providers.flatMap((p) => (p.id === 'local_inference' ? [p.id, 'bing', 'edge'] : [p.id]))
@@ -203,6 +204,11 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     const choice = await useLineUpStore.getState().choose(stage, id);
     if (!choice || !before) return;
     trackEvent('lineup_changed', lineUpChangedEvent(stage, before, choice));
+    // Named as an option's text names it: a hosted provider with its engine.
+    const name = (option: string) => optionText(model(option, providers.find((p) => p.id === option)));
+    setFollowed(choice.followed
+      ? t('settingsPage.lineup.voiceFollowed', "Speech changed to {{provider}} too: {{previous}}'s voice only reads its own translation.", { provider: name(choice.followed.to), previous: name(choice.followed.from) })
+      : null);
     // A one-shot target that opened this page is spent once something is chosen here.
     if (target) navigateToSettings(null);
   };
@@ -427,7 +433,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           // The speech stage, not used this time (nothing a running leg says is read aloud).
           const idle = (stage: RunStage) => stage === 'speech' && speechIdle;
           // Why the line-up cannot run a session now, on the card of the stage it is about.
-          const refusalLine = (stage: RunStage) => refusal?.stage === stage && <p className="lineup-stage__refusal" role="status">{noticeText(t, refusal)}</p>;
+          // On the speech card, first: that the voice changed with the last choice.
+          const refusalLine = (stage: RunStage) => (
+            <>
+              {stage === 'speech' && followed && <p className="lineup-stage__refusal" role="status">{followed}</p>}
+              {refusal?.stage === stage && <p className="lineup-stage__refusal" role="status">{noticeText(t, refusal)}</p>}
+            </>
+          );
           const head = (stage: RunStage) => (
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{titleOf(stage)}</span>

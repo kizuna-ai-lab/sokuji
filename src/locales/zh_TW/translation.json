@@ -1847,6 +1847,7 @@
       "granite": "與翻譯一起：Granite Speech 直接把語音變成譯文。",
       "needsKey": "需要金鑰",
       "needsSignIn": "需要登入",
+      "voiceFollowed": "語音也改為 {{provider}}：{{previous}} 的語音只朗讀它自己的譯文。",
       "options": "{{provider}} 的選項",
       "state": {
         "needsKey": "需要金鑰",

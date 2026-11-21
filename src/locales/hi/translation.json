@@ -1847,6 +1847,7 @@
       "granite": "अनुवाद के साथ: Granite Speech बोली को सीधे अनुवाद में बदलता है।",
       "needsKey": "कुंजी चाहिए",
       "needsSignIn": "साइन इन चाहिए",
+      "voiceFollowed": "वाणी भी {{provider}} पर बदल गई: {{previous}} की आवाज़ केवल अपना ही अनुवाद पढ़ती है।",
       "options": "{{provider}} के विकल्प",
       "state": {
         "needsKey": "कुंजी चाहिए",

@@ -1847,6 +1847,7 @@
       "granite": "Con la traduzione: Granite Speech trasforma il parlato direttamente nella traduzione.",
       "needsKey": "serve una chiave",
       "needsSignIn": "serve l’accesso",
+      "voiceFollowed": "Anche la voce è passata a {{provider}}: la voce di {{previous}} legge solo la propria traduzione.",
       "options": "Opzioni di {{provider}}",
       "state": {
         "needsKey": "Serve una chiave",

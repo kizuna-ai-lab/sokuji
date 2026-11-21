@@ -1847,6 +1847,7 @@
       "granite": "Вместе с переводом: Granite Speech сразу превращает речь в перевод.",
       "needsKey": "нужен ключ",
       "needsSignIn": "нужен вход",
+      "voiceFollowed": "Речь тоже переключена на {{provider}}: голос {{previous}} зачитывает только собственный перевод.",
       "options": "Параметры: {{provider}}",
       "state": {
         "needsKey": "Нужен ключ",
