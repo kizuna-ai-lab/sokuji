@@ -16,7 +16,7 @@ const STAGES = { transcription: 'stub_text', translation: 'stub_translation', sp
  * A run over a plan of three stub units, each of a provider of its own: `stub_text` transcribes, `stub_translation`
  * translates, `stub_voice` speaks. Each provider reads its own credentials and describes its own models.
  */
-function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean } = {}) {
+function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; startBoth?: () => never } = {}) {
   const clock = createVirtualClock(0);
   const calls: StubCalls = [];
   const member = (id: string, describe: () => object) => ({
@@ -25,7 +25,7 @@ function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean } = {})
     build: (_context: unknown, _s: unknown, _shared: SharedSettings) => ({ built: id }),
     describe,
   });
-  const text = stubTextUnit(calls, { provider: member('stub_text', () => ({ asrModel: 'text-asr', translationModel: 'text-translation', ttsModel: 'text-tts' })) });
+  const text = stubTextUnit(calls, { provider: { ...member('stub_text', () => ({ asrModel: 'text-asr', translationModel: 'text-translation', ttsModel: 'text-tts' })), ...(o.startBoth ? { session: { startBoth: o.startBoth } } : {}) } });
   const translation = stubTranslationUnit(calls, { provider: member('stub_translation', () => ({ translationModel: 'translation-model' })) });
   const voice = stubSpeechUnit(calls, { answers: true, provider: member('stub_voice', () => ({ ttsModel: 'voice-tts' })) });
   const shape: RunShape = {
@@ -150,5 +150,17 @@ describe('a run over a plan of a unit that transcribes, a unit that translates a
     expect(h.runner.conversation.get('speaker')!.snapshot().segments).toEqual([]);
     await h.runner.stop();
     expect(h.calls.filter((c) => c[0] === 'translation.stop')).toHaveLength(2);
+  });
+
+  it('starts each leg on its own even where the provider that transcribes can start both at once', async () => {
+    const startBoth = vi.fn((): never => { throw new Error('not asked'); });
+    const h = setup({ legs: ['speaker', 'participant'], participantSpeech: true, startBoth });
+    await h.runner.start();
+    expect(h.runner.state.getState()).toMatchObject({ phase: 'running', legs: { speaker: 'live', participant: 'live' } });
+    expect(startBoth).not.toHaveBeenCalled();
+    expect(h.text.starts).toHaveLength(2);
+    expect(h.translation.sessions).toHaveLength(2);
+    expect(h.voice.voices.map((v) => v.request.leg).sort()).toEqual(['participant', 'speaker']);
+    await h.runner.stop();
   });
 });
