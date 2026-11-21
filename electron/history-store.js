@@ -198,24 +198,26 @@ function openHistory({ dir, now = () => Date.now() }) {
   /** The parts of a point a person can edit by hand. */
   const HAND_EDITED = new Set(['text', 'owner', 'due']);
   /**
-   * Where each point of `after` is in `body` now. A point removed by hand moves the ones after it up (P1), so a point
-   * is known by what cannot be edited by hand (its topic, sentences and kinds; not its text, owner or date): at its own
-   * index when that one matches, else the first match not taken, one holding the same text first. A point with no
-   * match has no place.
+   * Where each point of `after` is in `body` now. Points are only ever removed by hand (P1), which moves the later ones
+   * up. With as many points as the fix left, each is where it was, when it still holds what cannot be edited by hand
+   * (its topic, sentences and kinds; not its text, owner or date). With fewer, a point is found by those alone, and only
+   * when no other point holds the same on either side: two it cannot tell apart are left as they are (PR review).
    */
   function pointPlaces(after, body) {
     const left = Array.isArray(after.points) ? after.points : [];
     const current = Array.isArray(body.points) ? body.points : [];
     const identity = (x) => JSON.stringify(isPlainObject(x) ? Object.entries(x).filter(([k]) => !HAND_EDITED.has(k)) : x);
-    const keys = current.map(identity);
-    const taken = new Set();
+    const leftKeys = left.map(identity);
+    const currentKeys = current.map(identity);
     const places = new Map();
-    left.forEach((x, i) => {
-      const k = identity(x);
-      const free = (j) => !taken.has(j) && keys[j] === k;
-      let j = free(i) ? i : keys.findIndex((_, at) => free(at) && current[at]?.text === x?.text);
-      if (j < 0) j = keys.findIndex((_, at) => free(at));
-      if (j >= 0) { taken.add(j); places.set(i, j); }
+    if (left.length === current.length) {
+      leftKeys.forEach((k, i) => { if (currentKeys[i] === k) places.set(i, i); });
+      return places;
+    }
+    const once = (keys, k) => keys.indexOf(k) === keys.lastIndexOf(k);
+    leftKeys.forEach((k, i) => {
+      const at = currentKeys.indexOf(k);
+      if (at >= 0 && once(leftKeys, k) && once(currentKeys, k)) places.set(i, at);
     });
     return places;
   }
