@@ -43,6 +43,12 @@ export interface LegSpeechOptions {
   events: AdapterEvents;
   clock: Clock;
   openSocket: OpenSocket;
+  /**
+   * Called once, when this voice's socket opens for the first time: Soniox accepted the key. A later socket of
+   * the same voice (an idle drop reopened, a recycle) is not said again. Given only where someone must hear it:
+   * a voice-only lease's port (`ttsUnit.ts`).
+   */
+  opened?: () => void;
 }
 
 /** Said when a leg is asked to speak and holds no TTS key (a managed lease that issued none). */
@@ -91,6 +97,8 @@ export class LegSpeech {
   /** The failure episode already reported: cleared when audio flows again or a reconnect succeeds. */
   private reported: SonioxTtsErrorScope | null = null;
   private readable = true;
+  /** Whether `opened` has been said. */
+  private saidOpened = false;
 
   /** The leg's speech rate, learned from its clean fill-ins. */
   private readonly pace: SpeechPace;
@@ -256,6 +264,10 @@ export class LegSpeech {
       } else {
         this.opening = null;
         this.stream = stream;
+        if (!this.saidOpened) {
+          this.saidOpened = true;
+          this.o.opened?.();
+        }
         this.reported = null;
         // A new socket, a new unreadable-frame episode (choice 7).
         this.readable = true;
