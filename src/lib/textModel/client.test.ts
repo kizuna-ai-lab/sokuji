@@ -391,3 +391,23 @@ describe('a JSON object read from an answer', () => {
     expect(jsonObjectOf('')).toBeNull();
   });
 });
+
+describe('review points', () => {
+  it("keeps a compatible service's model ids as it says them; strips models/ only from Gemini's", async () => {
+    const compat = service({ status: 200, body: { data: [{ id: 'models/acme-chat' }, { id: 'plain' }] } });
+    await expect(listModels({ service: 'compatible', baseUrl: 'https://api.example.com/v1', signal: new AbortController().signal, transport: compat.transport })).resolves.toEqual({ ok: true, ids: ['models/acme-chat', 'plain'] });
+    const gemini = service({ status: 200, body: { data: [{ id: 'models/gemini-3.1-flash-lite' }] } });
+    await expect(listModels({ service: 'gemini', apiKey: KEY, signal: new AbortController().signal, transport: gemini.transport })).resolves.toEqual({ ok: true, ids: ['gemini-3.1-flash-lite'] });
+  });
+
+  it('reads a 400 naming a dotted model as not found as the model missing', async () => {
+    const s = service(refusal(400, { message: 'Model gpt-4.1-mini not found' }));
+    expect(await ask(s.transport, { service: 'compatible', baseUrl: 'https://api.example.com/v1', model: 'gpt-4.1-mini' })).toMatchObject({ ok: false, failure: { code: 'model_missing' } });
+  });
+
+  it('never shows a key in a message, however short', async () => {
+    const s = service(refusal(400, { message: 'bad key abc supplied' }));
+    const result = await ask(s.transport, { service: 'compatible', baseUrl: 'https://api.example.com/v1', apiKey: 'abc', model: 'm' });
+    expect(result.ok ? '' : result.failure.message).not.toContain('abc');
+  });
+});

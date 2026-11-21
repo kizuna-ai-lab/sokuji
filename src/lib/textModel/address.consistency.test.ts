@@ -20,7 +20,7 @@ const ADDRESSES = [
   'http://example.com/v1', 'http://192.168.1.10:11434/v1', 'http://localhost.example.com', 'http://127.0.0.2/v1',
   'http://[::2]/v1', 'ftp://example.com', 'file:///etc', 'ws://localhost:1234', 'https://user:pw@example.com/v1',
   'https://:pw@example.com', 'https://example.com/v1?x=1', 'https://example.com/v1#frag', 'not an address', '',
-  'localhost:11434/v1', '//example.com/v1',
+  'localhost:11434/v1', '//example.com/v1', 'https://api.example.com/v1#/models', 'https://api.example.com/v1?/chat/completions',
 ];
 
 describe('the address rule, in the page and in the main process', () => {

@@ -30,6 +30,8 @@ export function normaliseBaseUrl(raw: string): string {
 
 /** What is wrong with the address, as `normaliseBaseUrl` reads it, or null when it can be used. */
 export function compatibleAddressProblem(raw: string): AddressProblem | null {
+  // Before the endpoint is stripped: `…/v1#/models` would read as `…/v1#`, whose fragment is empty.
+  if (/[?#]/.test(raw)) return 'has_query';
   let url: URL;
   try {
     url = new URL(normaliseBaseUrl(raw));

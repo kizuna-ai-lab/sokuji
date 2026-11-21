@@ -43,7 +43,7 @@ function textModelAddressProblem(baseUrl) {
   }
   if (url.protocol !== 'https:' && !(url.protocol === 'http:' && LOCAL_HOSTS.has(url.hostname))) return 'not_https';
   if (url.username !== '' || url.password !== '') return 'has_credentials';
-  if (url.search !== '' || url.hash !== '') return 'has_query';
+  if (url.search !== '' || url.hash !== '' || /[?#]/.test(String(baseUrl))) return 'has_query';
   return null;
 }
 

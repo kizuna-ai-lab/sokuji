@@ -106,7 +106,8 @@ const fetchTransport: TextModelTransport = (url, init) => fetch(url, init);
 
 /** The service's words, trimmed and cut, with the key taken out should it ever be in them. */
 function spoken(text: string, apiKey: string | undefined): string {
-  const scrubbed = apiKey && apiKey.length >= 4 ? text.split(apiKey).join('[key]') : text;
+  // Any key, however short: a compatible service's key may be a few characters, and is never to be shown.
+  const scrubbed = apiKey ? text.split(apiKey).join('[key]') : text;
   const trimmed = scrubbed.trim();
   return trimmed.length > MESSAGE_LIMIT ? `${trimmed.slice(0, MESSAGE_LIMIT - 1)}…` : trimmed;
 }
@@ -185,7 +186,7 @@ function refusalOf(raw: string): { message?: string; code?: string } {
 
 /** A refusal that says the model is not one the service has (OpenAI, Gemini, DeepSeek, OpenRouter, Ollama words). */
 const UNKNOWN_MODEL = [
-  /\bmodels?\b[^.,;:]{0,80}?\b(?:not found|does not exist|not exist|is not available|no longer available)\b/i,
+  /\bmodels?\b(?:[^.,;:\n]|\.(?=\S)){0,80}?\b(?:not found|does not exist|not exist|is not available|no longer available)\b/i,
   /\b(?:unknown|invalid|no such|not a valid|nonexistent)\s+model\b/i,
 ];
 /** A refusal of the key that comes as a 400 (Gemini's). */
@@ -309,7 +310,7 @@ export async function listModels(o: Where): Promise<ListModelsResult> {
   const data = isRecord(parsed) ? parsed.data : undefined;
   if (!Array.isArray(data)) return failed('server', "The service's answer is not a list of models.");
   const ids = data
-    .map((entry) => (isRecord(entry) && typeof entry.id === 'string' ? entry.id.replace(/^models\//, '') : ''))
+    .map((entry) => (isRecord(entry) && typeof entry.id === 'string' ? (o.service === 'gemini' ? entry.id.replace(/^models\//, '') : entry.id) : ''))
     .filter((id) => id !== '');
   return { ok: true, ids: [...new Set(ids)] };
 }
