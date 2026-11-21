@@ -176,5 +176,17 @@ export async function launch(options: {
   };
 }
 
+/**
+ * Deletes what a profile keeps of a key or a sign-in: the page's storage (where the app keeps a key) and the
+ * session's cookies. For the end of a spec that typed a real key or signed in, passed or failed. The history and
+ * the recordings stay, to be looked at after a failure.
+ */
+export function forgetSecrets(userData: string): void {
+  if (!path.basename(userData).startsWith('sokuji-e2e-')) return;
+  for (const name of ['Local Storage', 'Session Storage', 'IndexedDB', 'Cookies', 'Cookies-journal', 'Network']) {
+    fs.rmSync(path.join(userData, name), { recursive: true, force: true });
+  }
+}
+
 /** The Start / End session button. */
 export const mainAction = (page: Page) => page.locator('[data-tour="main-action"]');
