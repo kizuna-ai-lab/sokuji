@@ -7,7 +7,7 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
-import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
 import Modal from '../Modal/Modal';
 import './Region.scss';
@@ -16,7 +16,7 @@ export default function RegionChangeConfirm(): React.JSX.Element | null {
   const { t } = useTranslation();
   const question = useRegionChangeStore((s) => s.question);
   const answer = useRegionChangeStore((s) => s.answer);
-  const locked = useProviderStore((s) => s.selectionLocked);
+  const locked = useLineUpStore((s) => s.locked);
   // A session that starts while the question is open answers it "no" (the change would be refused anyway), resolving the waiting change.
   useEffect(() => {
     if (locked && question) useRegionChangeStore.getState().answer(false);

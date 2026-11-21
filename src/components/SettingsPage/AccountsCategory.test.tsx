@@ -27,13 +27,15 @@ vi.mock('../../utils/openExternalUrl', () => ({ openExternalUrl: (url: string) =
 
 import { AccountsCategory } from './AccountsCategory';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useModelStore } from '../../stores/modelStore';
 
 const row = (name: string) => screen.getByRole('group', { name });
 
 beforeEach(() => {
+  runsOn('soniox');
   useProviderStore.setState({
-    selected: 'soniox', selectionLocked: false, readiness: {},
+    readiness: {},
     entries: {
       soniox: { settings: { region: 'us' }, credentials: { apiKey: 'k', apiKeyEu: '', apiKeyJp: '' }, pair: { source: 'ja', target: 'en' } },
       openai: { settings: {}, credentials: { apiKey: '' }, pair: { source: 'ja', target: 'en' } },
@@ -155,7 +157,7 @@ describe('accounts and keys', () => {
 
 describe('accounts and keys — opened from a notice or the tour', () => {
   it("opened by the 'provider' target, shows the selected provider's key at once", () => {
-    useProviderStore.setState({ selected: 'openai' });
+    runsOn('openai');
     render(<AccountsCategory locked={false} openedBy="provider" />);
     expect(within(row('OpenAI')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(row('Soniox')).getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'false');
@@ -164,7 +166,7 @@ describe('accounts and keys — opened from a notice or the tour', () => {
   // Owner, 2026-11-17: a link about OpenAI's key, with the session on another provider, opens OpenAI's row, which the page then
   // scrolls to by its id.
   it("opened by one provider's target, shows that provider's key, whatever the session runs on", () => {
-    useProviderStore.setState({ selected: 'soniox' });
+    runsOn('soniox');
     render(<AccountsCategory locked={false} openedBy="provider:openai" />);
     expect(within(row('OpenAI')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
     expect(within(row('Soniox')).getByRole('button', { name: 'View' })).toHaveAttribute('aria-expanded', 'false');
@@ -174,7 +176,7 @@ describe('accounts and keys — opened from a notice or the tour', () => {
 
   it("opened by the 'provider' target under a hosted provider, shows the Kizuna AI sign-in", () => {
     authState.signedIn = false;
-    useProviderStore.setState({ selected: 'kizunaai_soniox' });
+    runsOn('kizunaai_soniox');
     render(<AccountsCategory locked={false} openedBy="provider" />);
     expect(within(row('Kizuna AI')).getByText('account row')).toBeInTheDocument();
     authState.signedIn = true;
@@ -184,8 +186,8 @@ describe('accounts and keys — opened from a notice or the tour', () => {
   // its entry has loaded: its account is the one shown.
   it("opened by the 'provider' target with a selection not offered here, shows the first offered provider's account once it has loaded", () => {
     authState.signedIn = false;
+    runsOn('not_offered_here');
     useProviderStore.setState((st) => ({
-      selected: 'not_offered_here',
       entries: { ...st.entries, kizunaai_soniox: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } } as never,
     }));
     render(<AccountsCategory locked={false} openedBy="provider" />);

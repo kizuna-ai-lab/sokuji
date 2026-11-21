@@ -150,9 +150,12 @@ import { useScreenContextStore, type PickedSource } from '../stores/screenContex
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useLineUpStore } from '../stores/lineUpStore';
+import { planFromStores } from '../lib/plan/fromStores';
+import { transcriptionProvider } from '../lib/plan/read';
 import { useLiveNotes } from '../lib/notes/live/liveStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
 import { READINESS_DELAY_MS } from './readiness';
@@ -174,7 +177,8 @@ const segmentationBefore = useSegmentationStore.getState();
 const turnModeBefore = useTurnModeStore.getState();
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, legs: ['speaker'] });
   useAudioStore.setState({ mode: 'speaker', selectedInputDevice: null });
   devices.next = null;
   vi.clearAllMocks();
@@ -192,7 +196,7 @@ afterEach(() => {
 async function setup(options: AppSessionOptions = {}) {
   const clock = createVirtualClock(0);
   await useProviderStore.getState().load(fakeProvider);
-  useProviderStore.getState().select('fake');
+  runsOn('fake');
   const session = createAppSession({
     clock,
     newSessionId: () => 'run1',
@@ -492,7 +496,7 @@ describe('start — screen context (spec 2026-10-22 §3.1)', () => {
   async function qwen(screenContext: boolean, withPicker = true) {
     const clock = createVirtualClock(0);
     await useProviderStore.getState().load(qwenLiveTranslateProvider);
-    useProviderStore.getState().select('qwen_livetranslate');
+    runsOn('qwen_livetranslate');
     useProviderStore.getState().updateSettings(qwenLiveTranslateProvider, { screenContext });
     const session = createAppSession({
       clock,
@@ -750,8 +754,8 @@ describe('attach', () => {
   it('checks a local provider by itself', async () => {
     const { session, clock } = await setup();
     const spy = vi.fn(async () => ({ state: 'unknown' as const }));
+    runsOn('local_inference');
     useProviderStore.setState({
-      selected: 'local_inference',
       entries: { local_inference: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } },
       readiness: {},
       refreshReadiness: spy,
@@ -768,8 +772,8 @@ describe('attach', () => {
 
   it("forgets a managed provider's readiness when the sign-in or the account flips — after the render, not during it", async () => {
     const { session } = await setup();
+    runsOn('fake_leased');
     useProviderStore.setState({
-      selected: 'fake_leased',
       entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
       readiness: { fake_leased: { state: 'ready', models: [] } },
     });
@@ -795,8 +799,8 @@ describe('attach', () => {
 
   it('forgets it too when the sign-in finishes loading', async () => {
     const { session } = await setup();
+    runsOn('fake_leased');
     useProviderStore.setState({
-      selected: 'fake_leased',
       entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
       readiness: { fake_leased: { state: 'ready', models: [] } },
     });
@@ -1619,7 +1623,7 @@ describe('attach', () => {
   async function refusedLease(code: string) {
     const { session } = await setup();
     await useProviderStore.getState().load(fakeLeasedProvider);
-    useProviderStore.getState().select('fake_leased');
+    runsOn('fake_leased');
     const refetchQuota = vi.fn(async () => {});
     session.setBridges({ refetchQuota, auth: { signedIn: true, userId: 'u1', getToken: async () => 't' } });
     const acquire = vi.spyOn(fakeLeasedProvider.session!, 'acquire').mockRejectedValueOnce(new AdapterStartError('The service refused the lease.', code));
@@ -1669,35 +1673,38 @@ describe('attach', () => {
     detach();
   });
 
-  it('keeps the provider put while a run is not idle, and lets it change once idle', async () => {
-    useLogStore.getState().setEnabled(true);
-    useLogStore.getState().clearLogs();
+  it('keeps the line-up put while a run is not idle, and lets it change once idle', async () => {
     const { session } = await setup();
     const detach = session.attach();
+    const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
 
     await session.runner.start();
     expect(session.runner.state.getState().phase).toBe('running');
-    useProviderStore.getState().select('local_inference');
-    expect(useProviderStore.getState().selected).toBe('fake');
-    await settleReports();
-    expect(useLogStore.getState().logs.filter((l) => l.type === 'warning' && l.message.includes('cannot change during a session'))).toHaveLength(1);
+    const before = useLineUpStore.getState().lineUp;
+    // Neither the setup wizard's whole line-up nor a choice on the line-up page lands during a run.
+    expect(await useLineUpStore.getState().replace(local)).toBe(false);
+    expect(await useLineUpStore.getState().choose('speech', 'edge')).toBeNull();
+    expect(useLineUpStore.getState()).toMatchObject({ lineUp: before, unstoredProvider: 'fake' });
+    const running = planFromStores();
+    expect(running.state === 'ready' && transcriptionProvider(running.plan).id).toBe('fake');
 
     await session.runner.stop();
     await session.runner.settled();
-    useProviderStore.getState().select('local_inference');
-    expect(useProviderStore.getState().selected).toBe('local_inference');
+    expect(await useLineUpStore.getState().replace(local)).toBe(true);
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: local });
 
     detach();
+    useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
   });
 
   it('holds the provider from an attach made mid-run, and lets it go on detach', async () => {
     const { session } = await setup();
     await session.runner.start();
     const detach = session.attach();
-    expect(useProviderStore.getState().selectionLocked).toBe(true);
+    expect(useLineUpStore.getState().locked).toBe(true);
 
     detach();
-    expect(useProviderStore.getState().selectionLocked).toBe(false);
+    expect(useLineUpStore.getState().locked).toBe(false);
     await session.runner.stop();
   });
 });
@@ -1713,7 +1720,7 @@ describe('getAppSession', () => {
     const { currentRunPhase } = await import('./runPhase');
     // A provider a start could open, so only `refuse` stands between a start and a run.
     await freshProviders.getState().load(freshFake);
-    freshProviders.getState().select('fake');
+    (await import('../stores/lineUpStore')).useLineUpStore.setState({ unstoredProvider: 'fake' });
     let refusing = true;
     const clock = createVirtualClock(0);
     m.configureAppSession({ refuse: () => refusing, clock, capture: () => async () => createFakeSource(clock) });

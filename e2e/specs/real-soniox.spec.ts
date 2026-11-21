@@ -58,6 +58,7 @@ test(`@real a ${MINUTES}-minute Soniox session hears and translates speech befor
     seed: {
       storage: {
         ...baseStorage('soniox'),
+        // Bare, not the stored form: the app runs the stored provider (a stored line-up with no speech stage cannot start).
         'settings.lineup': JSON.stringify({ transcription: 'soniox', translation: 'soniox', speech: null, summarisation: null }),
         'settings.common.sourceLanguage': 'ja',
         'settings.common.targetLanguage': 'en',

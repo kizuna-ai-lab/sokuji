@@ -15,6 +15,7 @@ vi.mock('./voiceFieldReconcile', () => ({ reconcileSonioxVoiceField: reconcileSp
 import { registerAuth } from '../../app/currentAuth';
 import { registerRunPhase } from '../../app/runPhase';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
 import { kizunaSonioxProvider } from './kizuna';
 import { sonioxProvider } from './provider';
@@ -28,7 +29,8 @@ beforeEach(async () => {
   reconcileSpy.mockClear();
   registerRunPhase(() => 'idle');
   useRegionChangeStore.setState({ question: null });
-  useProviderStore.setState({ entries: {}, selected: null, selectionLocked: false, intent: undefined });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined });
   await useProviderStore.getState().load(kizunaSonioxProvider);
   await useProviderStore.getState().load(sonioxProvider);
 });

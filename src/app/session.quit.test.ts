@@ -133,6 +133,7 @@ import { createVirtualClock } from '../lib/contract/clock';
 import { fakeProvider } from '../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../providers/fake/source';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { useLiveNotes } from '../lib/notes/live/liveStore';
@@ -146,7 +147,8 @@ const settingsBefore = useSettingsStore.getState();
 const lineUpBefore = useLineUpStore.getState().lineUp;
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, legs: ['speaker'] });
   devices.next = null;
   vi.clearAllMocks();
 });
@@ -160,7 +162,7 @@ afterEach(() => {
 async function setup(options: AppSessionOptions = {}) {
   const clock = createVirtualClock(0);
   await useProviderStore.getState().load(fakeProvider);
-  useProviderStore.getState().select('fake');
+  runsOn('fake');
   const session = createAppSession({
     clock,
     newSessionId: () => 'run1',

@@ -3,8 +3,9 @@
 // The one place the wizard writes anything (spec §1.5). Store actions come in
 // as an argument so this stays testable without the stores' import graph, and
 // so the ORDER is a fact of this file rather than of whichever component calls
-// it: the provider's write before the record (the app session's readiness
-// then re-checks once, over final values), record last. No display mode: a
+// it: the provider's credentials and pair, then the line-up (which says what
+// runs), then the record, last (the app session's readiness re-checks once,
+// over final values). No display mode: a
 // mode the user chose stays chosen, whatever the scenario and however often
 // the wizard runs (Stage 2 session end, ruling 1).
 import { getScenario } from '../../lib/setup/scenarios';
@@ -22,10 +23,10 @@ export interface ApplySetupDeps {
   setBothPopoverSeen: (seen: boolean) => void;
   setTextOnly: (v: boolean) => void;
   setParticipantSpeech: (on: boolean | null) => void;
-  /** The provider, its pair and — on the own-key path — its credentials and
+  /** The provider's pair and — on the own-key path — its credentials and
    *  the credential choice its step showed (a settings patch; F4), written
-   *  where the session reads them; the one write the wizard makes besides
-   *  the presets and the record. Rejects with `SetupPersistError` when a
+   *  where the session reads them. It does not make the provider the one
+   *  that runs: the line-up does. Rejects with `SetupPersistError` when a
    *  write did not land; the record is then not written. */
   applyProvider: (
     provider: ProviderType,
@@ -33,7 +34,7 @@ export interface ApplySetupDeps {
     credentials: Record<string, string>,
     settings: Record<string, string>,
   ) => Promise<void>;
-  /** The line-up of the chosen path (Plan 6): stored after the provider, before the record; a rejection stops Finish there. */
+  /** The line-up of the chosen path (Plan 6), which makes its provider the one that runs: stored after the provider's credentials and pair, before the record; a rejection stops Finish there. */
   applyLineUp: (lineUp: Pick<LineUp, RunStage>) => Promise<void>;
   completeSetup: (r: { scenario: ScenarioId; providerPath: ProviderPath; provider: string }) => Promise<void>;
 }

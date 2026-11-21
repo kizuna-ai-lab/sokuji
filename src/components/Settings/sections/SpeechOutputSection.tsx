@@ -4,7 +4,7 @@ import { Info, Play, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SettingRow from '../shared/SettingRow';
 import { useFilteredDevices } from '../shared/hooks';
-import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
+import { ownProps, useProviderEntry, useStageProvider } from '../../providers/useProviderEntry';
 import { openLocalVoices } from '../../providers/openTtsSlot';
 import { getAppAudio } from '../../../lib/audio/appAudio';
 import type { OutletName } from '../../../lib/audio/outlets';
@@ -46,9 +46,11 @@ export interface SpeechOutputSectionProps {
 function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
   const { t } = useTranslation();
   const providers = useMemo(() => presentProviders(), []);
-  // The speech unit's provider, with its entry; until the plan is ready, the hook's own (it loads the entry).
+  // The speech unit's provider, with its entry; until the plan is ready, the provider the line-up names for speech,
+  // so that its entry loads.
   const speechUnit = useStageUnit('speech');
-  const selection = useSelectedProvider(providers, speechUnit?.provider.id);
+  const speaking = useStageProvider(providers, 'speech');
+  const selection = useProviderEntry(speechUnit?.provider ?? speaking);
   const navigateToSettings = useNavigateToSettings();
   const Summary = selection?.provider.VoiceSummary;
   if (!speechUnit || !selection?.entry || !Summary) return null;

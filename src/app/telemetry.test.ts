@@ -21,6 +21,7 @@ import { sentenceEnds } from '../lib/segmentation/sentenceEnd';
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import {
@@ -307,18 +308,20 @@ describe('sessionEndProperties', () => {
 describe('appStartInputs and the line-up', () => {
   const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
   afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
-  it('carries the stored line-up when it runs on the selected provider', () => {
-    useProviderStore.setState({ selected: 'local_inference', entries: {} });
-    useLineUpStore.setState({ lineUp: local, stored: true });
+  it('carries the stored line-up: it is what runs', () => {
+    useProviderStore.setState({ entries: {} });
+    useLineUpStore.setState({ lineUp: local, stored: true, unstoredProvider: null });
     expect(appStartInputs(false).lineUp).toEqual(local);
   });
-  it('leaves it out when the selected provider was changed elsewhere and no longer runs it', () => {
-    useProviderStore.setState({ selected: 'openai', entries: {} });
-    useLineUpStore.setState({ lineUp: local, stored: true });
+  it('leaves it out while no line-up is stored, though one is shown', () => {
+    runsOn('local_inference');
+    useProviderStore.setState({ entries: {} });
+    useLineUpStore.setState({ lineUp: local, stored: false });
     expect(appStartInputs(false).lineUp).toBeNull();
   });
   it('names the provider of every stage of an end-to-end provider on translation_session_start', () => {
-    useProviderStore.setState({ selected: 'openai', entries: {} });
+    runsOn('openai');
+    useProviderStore.setState({ entries: {} });
     useLineUpStore.setState({ lineUp: { transcription: 'openai', translation: 'openai', speech: 'openai', summarisation: null }, stored: true });
     const track = vi.fn();
     decorateSessionAnalytics(() => track, { frames: createFrameLog(), startInputs: () => appStartInputs(false) })
@@ -333,7 +336,8 @@ describe('appStartInputs', () => {
   it('reads the audio, settings and provider stores', () => {
     useAudioStore.setState({ noiseSuppressionMode: 'off', isMicMuted: true, isMonitorMuted: true, mode: 'speaker' });
     useSettingsStore.setState({ textOnly: false, segmentationMode: 'sentences', sentenceSegmentationChunkSentences: 3 });
-    useProviderStore.setState({ selected: null, entries: {} });
+    runsOn(null);
+    useProviderStore.setState({ entries: {} });
 
     const inputs = appStartInputs(true);
 
@@ -346,7 +350,8 @@ describe('appStartInputs', () => {
   });
 
   it('resolves the channels as the routing does: an unplugged centred pick reads as auto, a present one keeps both', () => {
-    useProviderStore.setState({ selected: 'soniox', entries: { soniox: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } } } as never);
+    runsOn('soniox');
+    useProviderStore.setState({ entries: { soniox: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } } } as never);
     const dev = { deviceId: 'out-1', label: 'Out' } as never;
     useAudioStore.setState({
       mode: 'both', otherSide: 'beside', audioMonitorDevices: [dev], selectedMonitorDevice: dev,
@@ -361,7 +366,8 @@ describe('appStartInputs', () => {
     // With no provider `speechFromStores` answers as an optional-speech one would: from the stores set here.
     useAudioStore.setState({ mode: 'speaker', isMonitorMuted: true });
     useSettingsStore.setState({ textOnly: false });
-    useProviderStore.setState({ selected: null, entries: {} });
+    runsOn(null);
+    useProviderStore.setState({ entries: {} });
     expect(() => appStartInputs(false)).not.toThrow();
     expect(appStartInputs(false).speak).toEqual({ other: true, me: false, them: false });
   });

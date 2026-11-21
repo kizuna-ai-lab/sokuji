@@ -13,7 +13,7 @@ import {
   useSegmentationTranslationPause,
   useSetSegmentationTranslationPause,
 } from '../../../stores/settingsStore';
-import { useStageUnitOnceSelected } from '../../../lib/plan/fromStores';
+import { useStageUnit } from '../../../lib/plan/fromStores';
 import { offerFor, selectedBoundaries } from '../../../lib/view/appViewSettings';
 import {
   MAX_SEGMENT_PAUSE_SECONDS,
@@ -84,7 +84,7 @@ const SentenceSegmentationSection: React.FC<SentenceSegmentationSectionProps> = 
   // directly (appViewSettings.ts), so this component only needs a
   // subscription to force a re-render when that unit's provider or its
   // settings change — the offer itself is not read from the subscription.
-  const transcription = useStageUnitOnceSelected('transcription');
+  const transcription = useStageUnit('transcription');
   const offer = useMemo(() => offerFor(selectedBoundaries()), [transcription?.provider.id, transcription?.settings]);
 
   const mode = resolveSegmentationMode(storedMode, offer);

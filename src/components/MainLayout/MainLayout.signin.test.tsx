@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import MainLayout from './MainLayout';
-import { useProviderStore } from '../../stores/providerStore';
-import { useLineUpStore } from '../../stores/lineUpStore';
+import { stageProviderId, useLineUpStore } from '../../stores/lineUpStore';
 
 vi.mock('../MainPanel/MainPanel', () => ({ default: () => <div data-testid="main-panel" /> }));
 vi.mock('../Tour/TourOverlay', () => ({ default: () => null }));
@@ -38,16 +37,15 @@ const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox
 beforeEach(() => {
   cleanup();
   auth.isSignedIn = false;
-  useProviderStore.setState({ selected: 'soniox', selectionLocked: false });
-  useLineUpStore.setState({ lineUp: soniox, stored: true });
+  useLineUpStore.setState({ lineUp: soniox, stored: true, unstoredProvider: null, locked: false });
 });
 
 describe('signing in', () => {
-  it('changes neither the line-up nor the selected provider', () => {
+  it('changes neither the line-up nor the provider that runs', () => {
     const { rerender } = render(<MainLayout />);
     auth.isSignedIn = true;
     rerender(<MainLayout />);
-    expect(useProviderStore.getState().selected).toBe('soniox');
+    expect(stageProviderId('transcription')).toBe('soniox');
     expect(useLineUpStore.getState().lineUp).toEqual(soniox);
   });
 });

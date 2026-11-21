@@ -20,6 +20,7 @@ import { useSubtitleStore } from '../../stores/subtitleStore';
 import useSettingsStore from '../../stores/settingsStore';
 import { useProviderStore } from '../../stores/providerStore';
 
+import { runsOn } from '../../stores/lineUpStore.testing';
 beforeEach(() => {
   useConversationDisplayStore.setState({ fontSize: 14, compactMode: false });
   useSubtitleStore.setState({ fontSize: 24, compactMode: false });
@@ -162,7 +163,8 @@ describe('display — the rows as the mock draws them', () => {
 
   it('draws caption mode over another window, as bands when compact, the newest one lit', () => {
     // The sample speaks the pair (B-22): Chinese for me, Japanese for the other side.
-    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: { settings: {}, credentials: {}, pair: { source: 'zh', target: 'ja' } } } as never });
+    runsOn('local_inference');
+    useProviderStore.setState({ entries: { local_inference: { settings: {}, credentials: {}, pair: { source: 'zh', target: 'ja' } } } as never });
     useSubtitleStore.setState({ compactMode: true });
     render(<DisplayCategory locked={false} />);
     fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
@@ -178,15 +180,18 @@ describe('display — the rows as the mock draws them', () => {
     render(<DisplayCategory locked={false} />);
     fireEvent.click(screen.getByRole('radio', { name: 'Caption mode' }));
     expect(preview().querySelectorAll('.subtitle-stream__item--lit').length).toBe(0);
-    useProviderStore.setState({ selected: null, entries: {} });
+    runsOn(null);
+    useProviderStore.setState({ entries: {} });
   });
 });
 
 // B-22: the sample speaks the user's pair, not a fixed Chinese and Japanese.
 describe('display — the preview speaks the pair', () => {
-  const pairIs = (source: string, target: string) =>
-    useProviderStore.setState({ selected: 'local_inference', entries: { local_inference: { settings: {}, credentials: {}, pair: { source, target } } } as never });
-  afterEach(() => useProviderStore.setState({ selected: null, entries: {} }));
+  const pairIs = (source: string, target: string) => {
+    runsOn('local_inference');
+    useProviderStore.setState({ entries: { local_inference: { settings: {}, credentials: {}, pair: { source, target } } } as never });
+  };
+  afterEach(() => { runsOn(null); useProviderStore.setState({ entries: {} }); });
   const badges = () => [...preview().querySelectorAll('.lang-badge')].map((b) => b.textContent);
 
   it('writes my lines in the language I speak and theirs in the language the other side hears', () => {

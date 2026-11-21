@@ -47,6 +47,7 @@ import type { LeaseContext, RunShape } from '../../lib/session/types';
 import { shapeWith } from '../../lib/plan/testing';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../stores/routingStore';
 import { createKizunaSonioxProvider, kizunaSonioxProvider } from './kizuna';
 import { PARTICIPANT_SPEECH_FIELD } from './leaseRequest';
@@ -128,8 +129,8 @@ describe('the switch', () => {
   /** Kizuna Soniox selected, its entry loaded: the provider a run would start. */
   const selectKizuna = () => {
     useAudioStore.setState({ mode: 'both', selectedParticipantSource: { deviceId: 'app:1', label: 'Zoom' } });
+    runsOn('kizunaai_soniox');
     useProviderStore.setState({
-      selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
   };

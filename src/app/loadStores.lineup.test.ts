@@ -30,6 +30,7 @@ vi.mock('../stores/modelStore', () => ({
 
 import { useLineUpStore, storedLocalStages, LINEUP_KEY } from '../stores/lineUpStore';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { loadSessionStores } from './loadStores';
 
@@ -42,7 +43,8 @@ beforeEach(() => {
   model.resolve.mockImplementation(() => ({
     asr: null, translation: { modelId: 'bing-translator', source: 'auto' }, tts: { modelId: 'edge-tts', source: 'auto' }, notes: [], prunes: [],
   }));
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+  runsOn(null);
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {} });
   useLineUpStore.setState({ lineUp: null, stored: false });
   useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
 });
@@ -62,7 +64,7 @@ describe('the first start of the new version, free provider, nothing downloaded'
     expect(storedLocalStages()).toBeNull(); // the local provider resolves with today's list until the line-up is written
 
     finishScan();
-    await vi.waitFor(() => expect(stored.get(LINEUP_KEY)).toEqual({ version: 1, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }));
+    await vi.waitFor(() => expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }));
     expect(storedLocalStages()).toEqual({ translation: 'bing', speech: 'edge' });
 
     setSetting.mockClear();

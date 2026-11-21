@@ -11,6 +11,7 @@ vi.mock('../../providers/soniox/voiceFieldReconcile', () => ({ reconcileSonioxVo
 import '../../locales';
 import { SonioxKeyForm } from './SonioxKeyForm';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRegionChangeStore } from '../../stores/regionChangeStore';
 import { registerRunPhase } from '../../app/runPhase';
 import { sonioxProvider } from '../../providers/soniox/provider';
@@ -31,7 +32,8 @@ const pasteAndSave = (key: string) => {
 beforeEach(async () => {
   registerRunPhase(() => 'idle');
   useRegionChangeStore.setState({ question: null });
-  useProviderStore.setState({ entries: {}, readiness: {}, selected: 'soniox', selectionLocked: false });
+  runsOn('soniox');
+  useProviderStore.setState({ entries: {}, readiness: {} });
   await useProviderStore.getState().load(sonioxProvider);
   await useProviderStore.getState().updateSettings(sonioxProvider, { region: 'us' });
   // The key's check, answered here and never asked of Soniox: a key that is stored works.

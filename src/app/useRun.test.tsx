@@ -61,6 +61,7 @@ import { createVirtualClock } from '../lib/contract/clock';
 import { fakeProvider } from '../providers/fake/provider';
 import { createFakeSource } from '../providers/fake/source';
 import { useProviderStore } from '../stores/providerStore';
+import { runsOn } from '../stores/lineUpStore.testing';
 import { configureAppSession, getAppSession } from './session';
 import { useRunParticipantSpeech, useSessionLocked } from './useRun';
 
@@ -77,7 +78,7 @@ configureAppSession({
 
 beforeAll(async () => {
   await useProviderStore.getState().load(fakeProvider);
-  useProviderStore.getState().select('fake');
+  runsOn('fake');
   // A start that waits on the clock, so `starting` can be seen.
   useProviderStore.getState().updateSettings(fakeProvider, { startDelayMs: 500 });
 });

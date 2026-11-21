@@ -6,8 +6,6 @@
 import type { AnalyticsEvents } from '../lib/analytics';
 import { useLineUpStore } from '../stores/lineUpStore';
 import type { LineUp } from '../lib/lineup/types';
-import { soleHost } from '../lib/lineup/catalog';
-import { useProviderStore } from '../stores/providerStore';
 import type { LegName } from '../lib/conversation/types';
 import { OUTLET_NAMES, resolveOutlet, type Channel, type OutletName, type Speak } from '../lib/audio/outlets';
 import { faceToFaceFromStores, speechFromStores } from '../lib/session/appShape';
@@ -214,12 +212,10 @@ export function sessionEndProperties(tally: SessionTally, run: RunFacts): Pick<
 }
 
 /** The stores now — the run's shape froze the same values a moment ago. */
-/** The stored line-up, when it runs on the provider a session starts with; null when the provider was changed elsewhere. */
+/** The stored line-up, which is what a session runs; null while none is stored. */
 function lineUpInUse(): LineUp | null {
   const { lineUp, stored } = useLineUpStore.getState();
-  if (!stored || !lineUp) return null;
-  const host = soleHost(lineUp);
-  return host !== null && host === useProviderStore.getState().selected ? lineUp : null;
+  return stored ? lineUp : null;
 }
 
 export function appStartInputs(punctuationActive: boolean): StartInputs {

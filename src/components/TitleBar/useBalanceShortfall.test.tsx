@@ -15,6 +15,7 @@ import { setUseOwnBalance } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { sonioxRolesFloorMicroUsd } from '../../providers/soniox/kizunaBudget';
@@ -28,7 +29,8 @@ import { useBalanceShortfall } from './useBalanceShortfall';
  */
 describe('useBalanceShortfall', () => {
   beforeEach(() => {
-    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null, legs: ['speaker'] });
+    runsOn(null);
+    useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, legs: ['speaker'] });
     useAudioStore.setState({ mode: 'speaker', otherSide: 'meeting', selectedParticipantSource: useAudioStore.getInitialState().selectedParticipantSource });
     useRoutingStore.setState({ participantSpeech: null });
     useSettingsStore.setState({ textOnly: false });
@@ -36,8 +38,8 @@ describe('useBalanceShortfall', () => {
   });
 
   it("is short below the selected provider's floor for these legs", () => {
+    runsOn('kizunaai_soniox');
     useProviderStore.setState({
-      selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     useAudioStore.setState({ mode: 'speaker' });
@@ -53,8 +55,8 @@ describe('useBalanceShortfall', () => {
   });
 
   it("follows a member's payer switch", () => {
+    runsOn('kizunaai_soniox');
     useProviderStore.setState({
-      selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     localStorage.clear();
@@ -72,8 +74,8 @@ describe('useBalanceShortfall', () => {
   });
 
   it('does not flag a low balance for a personal payer whose wallet is not known', () => {
+    runsOn('kizunaai_soniox');
     useProviderStore.setState({
-      selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     localStorage.clear();
@@ -88,8 +90,8 @@ describe('useBalanceShortfall', () => {
   });
 
   it('follows text only and the mode', () => {
+    runsOn('kizunaai_soniox');
     useProviderStore.setState({
-      selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     useAudioStore.setState({ mode: 'speaker' });
@@ -122,8 +124,8 @@ describe('useBalanceShortfall', () => {
   });
 
   it('prices face-to-face as one shared stream with both voices, like the start gate', () => {
+    runsOn('kizunaai_soniox');
     useProviderStore.setState({
-      selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: { ...SONIOX_DEFAULTS, bothModeSharedSession: false }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     // Both sets reach the $1.00/h cap, so their floors are equal; the boundary
@@ -151,8 +153,8 @@ describe('useBalanceShortfall', () => {
   });
 
   it('is never short signed out, for a wallet loading or unknown, an own-key provider, or a frozen wallet', () => {
+    runsOn('kizunaai_soniox');
     useProviderStore.setState({
-      selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     useAudioStore.setState({ mode: 'speaker' });
@@ -166,32 +168,37 @@ describe('useBalanceShortfall', () => {
     useAccountStore.setState({ account: { status: 'unknown' } });
     expect(renderHook(() => useBalanceShortfall()).result.current).toBe(false);
 
+    runsOn('soniox');
     useProviderStore.setState({
-      selected: 'soniox',
       entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 0, frozen: false } });
     expect(renderHook(() => useBalanceShortfall()).result.current).toBe(false);
 
+    runsOn('kizunaai_soniox');
     useProviderStore.setState({
-      selected: 'kizunaai_soniox',
       entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 0, frozen: true } });
     expect(renderHook(() => useBalanceShortfall()).result.current).toBe(false);
   });
 
-  it('finds the provider as the live gate does: before the load selects one, the first present', () => {
+  it('finds the plan as the live gate does: nothing before the line-up store has loaded, then the provider that runs', () => {
+    runsOn(null);
     useProviderStore.setState({
-      selected: null,
       entries: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     });
     useAudioStore.setState({ mode: 'speaker' });
     useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1_000, frozen: false } });
+    // No fallback to the first provider offered: the dot and Start agree that nothing is known yet.
+    expect(renderHook(() => useBalanceShortfall()).result.current).toBe(false);
+    expect(liveGate()).toBeNull();
+    runsOn('kizunaai_soniox');
     expect(renderHook(() => useBalanceShortfall()).result.current).toBe(true);
     expect(liveGate()?.code).toBe('balance_below_floor');
 
-    useProviderStore.setState({ selected: null, entries: {} });
+    runsOn(null);
+    useProviderStore.setState({ entries: {} });
     expect(renderHook(() => useBalanceShortfall()).result.current).toBe(false);
     expect(liveGate()).toBeNull();
   });

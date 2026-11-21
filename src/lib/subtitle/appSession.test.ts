@@ -35,7 +35,7 @@ vi.mock('../../providers/registry', async (importOriginal) => {
 const planned = vi.hoisted(() => ({ found: null as unknown }));
 vi.mock('../plan/fromStores', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../plan/fromStores')>();
-  return { ...actual, planOnceSelected: () => (planned.found ?? actual.planOnceSelected()) as ReturnType<typeof actual.planOnceSelected> };
+  return { ...actual, planFromStores: () => (planned.found ?? actual.planFromStores()) as ReturnType<typeof actual.planFromStores> };
 });
 
 import { createStore } from 'zustand/vanilla';
@@ -52,6 +52,7 @@ import { setUseOwnBalance } from '../session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
@@ -85,8 +86,8 @@ function setup(options?: { microphoneRequired?(): boolean; provider?: boolean; v
   // (plan 1e-3b-1 ruling 11): otherwise every canStart it checks would be
   // false for a reason unrelated to what the case is testing.
   if (options?.provider !== false) {
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       entries: { fake: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
   }
@@ -95,8 +96,8 @@ function setup(options?: { microphoneRequired?(): boolean; provider?: boolean; v
 
 describe('appSubtitleSession', () => {
   it("reads the selected provider's readiness and pair, and the turn mode", () => {
+    runsOn('fake');
     useProviderStore.setState({
-      selected: 'fake',
       readiness: { fake: { state: 'not-ready', reason: 'no key' } },
       entries: { fake: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
@@ -179,8 +180,8 @@ describe("appSubtitleSession — legs follow the audio mode's intent (1e-3b-1 ru
 describe('appSubtitleSession — the balance floor (Stage 2 Kizuna Soniox, rulings 5, 6)', () => {
   it('keeps Start off below the floor, and turns it on when the balance arrives or text only lowers the floor', () => {
     const { session } = setup();
+    runsOn('fake_leased');
     useProviderStore.setState({
-      selected: 'fake_leased',
       entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useAudioStore.setState({ mode: 'speaker' });
@@ -208,8 +209,8 @@ describe('appSubtitleSession — the balance floor (Stage 2 Kizuna Soniox, rulin
 describe('appSubtitleSession — the payer switch moves the wallet the gate checks', () => {
   it('re-evaluates Start when a member flips the switch', () => {
     const { session } = setup();
+    runsOn('fake_leased');
     useProviderStore.setState({
-      selected: 'fake_leased',
       entries: { fake_leased: { settings: { ...FAKE_LEASED_DEFAULTS, minimumBalanceMicroUsd: 1000 }, credentials: {}, pair: { source: 'en', target: 'ja' } } },
     });
     useAudioStore.setState({ mode: 'speaker' });
@@ -240,8 +241,8 @@ describe('appSubtitleSession — the participant-speech switch feeds the balance
     const original = fakeLeasedProvider.session!.minimumBalance!;
     fakeLeasedProvider.session!.minimumBalance = (shape) => (shape.participantSpeech ? 2000 : 500);
     try {
+      runsOn('fake_leased');
       useProviderStore.setState({
-        selected: 'fake_leased',
         entries: { fake_leased: { settings: FAKE_LEASED_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } },
       });
       useAudioStore.setState({ mode: 'speaker', selectedParticipantSource: { deviceId: 'app:1', label: 'App' } });
@@ -265,7 +266,8 @@ describe('appSubtitleSession — the participant-speech switch feeds the balance
 
 describe('appSubtitleSession — providerLoaded (1e-3b-1 ruling 11)', () => {
   it("keeps Start off until the selected provider's entry has loaded, then turns it back on", async () => {
-    useProviderStore.setState({ selected: 'fake', entries: {} });
+    runsOn('fake');
+    useProviderStore.setState({ entries: {} });
     const { session } = setup({ provider: false });
     expect(session.get().canStart).toBe(false);
     const listener = vi.fn();
@@ -277,11 +279,12 @@ describe('appSubtitleSession — providerLoaded (1e-3b-1 ruling 11)', () => {
 
   it('keeps Start off while no provider is selected yet, even once the first offered provider has loaded', () => {
     offered.fakeFirst = true;
-    useProviderStore.setState({ selected: null, entries: { fake: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } } } });
+    runsOn(null);
+    useProviderStore.setState({ entries: { fake: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } } } });
     const { session } = setup({ provider: false });
     expect(session.get().canStart).toBe(false);
     // The launch load selects it: Start turns on, so it was the selection that held it off.
-    useProviderStore.setState({ selected: 'fake' });
+    runsOn('fake');
     expect(session.get().canStart).toBe(true);
   });
 });

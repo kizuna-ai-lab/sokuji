@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ownProps, useSelectedProvider } from '../../providers/useSelectedProvider';
+import { ownProps, useProviderEntry, useStageProvider } from '../../providers/useProviderEntry';
 import { useAnalytics } from '../../../lib/analytics';
 import { useStageUnit } from '../../../lib/plan/fromStores';
 import type { TurnMode } from '../../../lib/session/types';
 import { presentProviders } from '../../../providers/registry';
-import { useProviderStore } from '../../../stores/providerStore';
+import { useStageProviderId } from '../../../stores/lineUpStore';
 import { useNavigateToSettings } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 
@@ -22,7 +22,8 @@ export function TurnModeControl({ locked, title }: { locked: boolean; title?: st
   const { t } = useTranslation();
   const { trackEvent } = useAnalytics();
   const turnMode = useTurnModeStore((s) => s.turnMode);
-  const selected = useProviderStore((s) => s.selected);
+  // The event names the provider that transcribes: turns are its unit's.
+  const selected = useStageProviderId('transcription');
   return (
     <div className="setting-item">
       <div className="turn-detection-options settings-seg" role="group" aria-label={t('settings.speechMode')} title={title}>
@@ -72,9 +73,11 @@ function ProviderTurnDetection({ locked }: { locked: boolean }) {
   const { t } = useTranslation();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const providers = useMemo(() => presentProviders(), []);
-  // The transcription unit's provider, with its entry; until the plan is ready, the hook's own (it loads the entry).
+  // The transcription unit's provider, with its entry; until the plan is ready, the provider the line-up names for
+  // transcription, so that its entry loads.
   const transcription = useStageUnit('transcription');
-  const selection = useSelectedProvider(providers, transcription?.provider.id);
+  const transcribing = useStageProvider(providers, 'transcription');
+  const selection = useProviderEntry(transcription?.provider ?? transcribing);
   const navigateToSettings = useNavigateToSettings();
 
   if (turnMode !== 'auto' || !transcription || !selection?.entry) return null;

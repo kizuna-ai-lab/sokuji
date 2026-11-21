@@ -18,7 +18,7 @@ export function providerIdFromStored(stored: unknown): string | null {
 }
 
 export interface StoredSelection {
-  /** The provider to select, in memory. */
+  /** The provider that runs, in memory. */
   id: string;
   /** False: nothing usable was stored, or it names a provider this build does not offer — this is the fallback, and it is never written back (ruling 2). */
   fromStorage: boolean;
@@ -27,7 +27,7 @@ export interface StoredSelection {
 /** Stored ids of managed providers the new session does not port — the pre-twin `'kizunaai'` and the relay twins (spec: "Migration") — which a load maps to the default managed provider (Stage 2 Kizuna Soniox, choice 13). */
 export const MANAGED_LEGACY_IDS: readonly string[] = ['kizunaai', 'kizunaai_openai_translate', 'kizunaai_volcengine_ast2'];
 
-/** The provider a load selects: the stored one when this build offers it; a managed id it does not port, the default managed provider when one is offered; else the first offered. Never written back. */
+/** The provider a load runs while no line-up is stored: the stored one when this build offers it; a managed id it does not port, the default managed provider when one is offered; else the first offered. Never written back. */
 export function selectionFromStored(stored: unknown, offered: readonly string[], managedDefault: string | null = null): StoredSelection | null {
   const id = providerIdFromStored(stored);
   if (id !== null && offered.includes(id)) return { id, fromStorage: true };
@@ -35,15 +35,6 @@ export function selectionFromStored(stored: unknown, offered: readonly string[],
     return { id: managedDefault, fromStorage: false };
   }
   return offered.length > 0 ? { id: offered[0], fromStorage: false } : null;
-}
-
-/**
- * What a selection writes under `settings.common.provider`: an explicit pick
- * writes the id; a load writes nothing — the stored value, even one naming a
- * provider this build lacks, stays for Stage 2 to find (ruling 2).
- */
-export function selectionToPersist(id: string, how: 'load' | 'pick'): string | null {
-  return how === 'pick' ? id : null;
 }
 
 /** The slice each old `Provider` value kept its settings under (its descriptor's `settingsSliceKey`). */

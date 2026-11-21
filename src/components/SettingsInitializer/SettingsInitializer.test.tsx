@@ -34,7 +34,7 @@ vi.mock('../../lib/edge-tts/voiceList', async (importOriginal) => ({
 const plan = vi.hoisted(() => ({ found: null as unknown }));
 vi.mock('../../lib/plan/fromStores', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../lib/plan/fromStores')>();
-  return { ...actual, usePlanOnceSelected: () => (plan.found ?? actual.usePlanOnceSelected()) as ReturnType<typeof actual.usePlanOnceSelected> };
+  return { ...actual, usePlan: () => (plan.found ?? actual.usePlan()) as ReturnType<typeof actual.usePlan> };
 });
 
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
@@ -49,6 +49,7 @@ import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/setting
 import useAudioStore from '../../stores/audioStore';
 import { useModelStore } from '../../stores/modelStore';
 import { useProviderStore, type ProviderStore } from '../../stores/providerStore';
+import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 import { SettingsInitializer } from './SettingsInitializer';
 
@@ -66,8 +67,8 @@ const direction = (tts: string | null): DirectionResult => ({
 
 /** LocalInference as the store holds it once loaded: `en → ja`, these voices, these legs, Translation I hear on or off. */
 function selectLocal(voices: Record<string, unknown> = {}, o: { legs?: Array<'speaker' | 'participant'>; participantSpeech?: boolean; pair?: { source: string; target: string } } = {}): void {
+  runsOn(localInferenceProvider.id);
   useProviderStore.setState({
-    selected: localInferenceProvider.id,
     entries: { [localInferenceProvider.id]: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices }, credentials: {}, pair: o.pair ?? { source: 'en', target: 'ja' } } },
     legs: o.legs ?? ['speaker'],
     speech: { textOnly: false, participantSpeech: o.participantSpeech ?? false },
@@ -87,8 +88,8 @@ function localVoiceAlone(speech: 'edge' | 'local_inference', o: { voices?: Recor
   const local = localEntry(o.voices);
   const accounts = { stub_text: { settings: {}, credentials: {}, pair: { source: 'en', target: 'ja' } }, [localInferenceProvider.id]: local };
   plan.found = { state: 'ready', plan: textAndSpeechPlan(text, voice), accounts };
+  runsOn('stub_text');
   useProviderStore.setState({
-    selected: 'stub_text',
     entries: { [localInferenceProvider.id]: local },
     legs: o.legs ?? ['speaker'],
     speech: { textOnly: false, participantSpeech: o.participantSpeech ?? false },
@@ -126,7 +127,7 @@ describe('SettingsInitializer', () => {
   it('does not scan the models for a provider other than LocalInference', () => {
     const initialize = vi.fn(async () => {});
     useModelStore.setState({ initialized: false, initialize });
-    useProviderStore.setState({ selected: fakeProvider.id });
+    runsOn(fakeProvider.id);
 
     render(<SettingsInitializer />);
 
@@ -147,7 +148,8 @@ describe('SettingsInitializer', () => {
   it('does not scan the models while the plan is not known, even with the local entry loaded', () => {
     const initialize = vi.fn(async () => {});
     useModelStore.setState({ initialized: false, initialize });
-    useProviderStore.setState({ selected: null, entries: { [localInferenceProvider.id]: localEntry() } } as never);
+    runsOn(null);
+    useProviderStore.setState({ entries: { [localInferenceProvider.id]: localEntry() } } as never);
 
     render(<SettingsInitializer />);
 

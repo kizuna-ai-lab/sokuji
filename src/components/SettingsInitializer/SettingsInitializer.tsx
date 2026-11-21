@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import { filterVoicesByLanguage, getEdgeTtsVoices } from '../../lib/edge-tts/voiceList';
 import { directionKey } from '../../lib/local-inference/selection/types';
-import { usePlanOnceSelected } from '../../lib/plan/fromStores';
+import { usePlan } from '../../lib/plan/fromStores';
 import { providersIn, transcriptionAccount, transcriptionProvider, unitFor } from '../../lib/plan/read';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
@@ -21,7 +21,7 @@ import { useProviderStore } from '../../stores/providerStore';
  * settings (ruling 11).
  */
 export function SettingsInitializer() {
-  const found = usePlanOnceSelected();
+  const found = usePlan();
   const entry = useProviderStore((s) => s.entries[localInferenceProvider.id]);
   const legs = useProviderStore((s) => s.legs);
   const participantSpeech = useProviderStore((s) => s.speech.participantSpeech);

@@ -19,6 +19,7 @@ vi.mock('../../VbCable/VbCableNotice', () => ({ default: () => null }));
 import { changeLanguageWithLoad } from '../../../locales';
 import useAudioStore from '../../../stores/audioStore';
 import { useProviderStore } from '../../../stores/providerStore';
+import { runsOn } from '../../../stores/lineUpStore.testing';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { SONIOX_DEFAULTS } from '../../../providers/soniox/settings';
 import SpeechOutputSection from './SpeechOutputSection';
@@ -27,8 +28,8 @@ import zhCN from '../../../locales/zh_CN/translation.json';
 import en from '../../../locales/en/translation.json';
 
 beforeEach(() => {
+  runsOn('soniox');
   useProviderStore.setState({
-    selected: 'soniox',
     entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } } },
   } as never);
   useAudioStore.setState({ mode: 'speaker', otherSide: 'meeting', audioMonitorDevices: [], selectedMonitorDevice: null } as never);
