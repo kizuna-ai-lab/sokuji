@@ -209,4 +209,23 @@ describe('the stored line-up in the readiness check', () => {
     expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toMatchObject({ ok: false, code: 'local_models_missing' });
     mockStages = null;
   });
+
+  it('reads the stages it is told it serves before the stored line-up: speech alone is ready with no model at all', async () => {
+    mockStages = null;
+    resolved({});
+    mockResolve.mockClear();
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], stages: ['speech'] })).toEqual({ ok: true });
+    // Not even a speech model is asked for: one that is missing is said when the session starts.
+    expect(mockResolve).not.toHaveBeenCalled();
+  });
+
+  it('told it transcribes and translates, it asks for those models, whatever the stored line-up says', async () => {
+    mockStages = { translation: null, speech: 'edge' };
+    resolved({});
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'], stages: ['transcription', 'translation'] }))
+      .toMatchObject({ ok: false, code: 'local_models_missing' });
+    resolved({ 'ja>en': { asr: 'a', translation: 't', tts: null } });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'], stages: ['transcription', 'translation'] })).toEqual({ ok: true });
+    mockStages = null;
+  });
 });

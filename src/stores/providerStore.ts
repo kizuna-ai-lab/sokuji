@@ -8,6 +8,7 @@
  */
 import { create } from 'zustand';
 import type { LegName } from '../lib/conversation/types';
+import type { RunStage } from '../lib/lineup/types';
 import { describeCause, reportError } from '../lib/diagnostics/report';
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
@@ -39,6 +40,8 @@ export interface ReadinessInputs {
   pair: LanguagePair;
   /** The legs a run would open, speaker first. */
   legs: readonly LegName[];
+  /** The stages the provider serves in the plan, when another provider serves the rest (`CheckContext.stages`). Absent: all it can serve. */
+  stages?: readonly RunStage[];
 }
 
 export interface ProviderStore {
@@ -81,7 +84,14 @@ export interface ProviderStore {
   /** Whether a run would speak besides its legs (appShape's `watchSpeechFromStores` keeps it): with the legs, each provider's language context (Stage 2 Volcengine AST2, choice 1). Nothing speaks until it is kept. */
   speech: SpeechInputs;
   /** Every loaded entry's pair is derived again from the intent, nothing written; a provider whose pair moved forgets its readiness when its check reads the pair. The same inputs change nothing. */
-  setSpeech(inputs: SpeechInputs): void;
+  setSpeech(inputs: SpeechInputs): void;  /**
+   * The stages each provider serves in the plan a start would run, by id, for the providers that serve only a
+   * part of it (the readiness driver keeps them); a provider that is absent serves every stage it can. A live
+   * check is told them, and a kept answer is keyed on them.
+   */
+  stages: Readonly<Record<string, readonly RunStage[]>>;
+  /** A provider whose stages changed forgets its readiness, as after an edit: a check that reads them answered about the others. The same stages change nothing. */
+  setStages(stages: Readonly<Record<string, readonly RunStage[]>>): void;
 }
 
 const SOURCE = 'sourceLanguage';
@@ -204,6 +214,15 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       for (const id of Object.keys(get().entries)) if (readsDirection(loadedProviders.get(id))) forgetReadiness({ id });
       rederive();
     },
+    stages: {},
+    setStages(stages) {
+      const now = get().stages;
+      const key = (list: readonly RunStage[] | undefined) => (list ?? []).join(',');
+      const changed = [...new Set([...Object.keys(now), ...Object.keys(stages)])].filter((id) => key(now[id]) !== key(stages[id]));
+      if (changed.length === 0) return;
+      set({ stages });
+      for (const id of changed) forgetReadiness({ id });
+    },
     speech: { textOnly: false, participantSpeech: false },
     setSpeech(inputs) {
       const now = get().speech;
@@ -325,7 +344,8 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
     },
 
     async refreshReadiness(p, auth, from, signal) {
-      const inputs: ReadinessInputs = from ?? { ...loaded(p), legs: get().legs };
+      const served = get().stages[p.id];
+      const inputs: ReadinessInputs = from ?? { ...loaded(p), legs: get().legs, ...(served ? { stages: served } : {}) };
       // A run's check (`from`) asks about its own shape: it starts no new
       // generation, so a panel check or an edit meanwhile keeps its answer
       // out of the store, but never replaces the answer the run gets back.
@@ -364,7 +384,9 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
         : Object.fromEntries(p.checkReads.map((field) => [field, (inputs.settings as Record<string, unknown>)[field]]));
       // The pair and legs key it only for a check that reads them: another pair or audio mode is served from the same answer otherwise.
       const direction = readsDirection(p) ? [inputs.pair, inputs.legs] : [];
-      const key = JSON.stringify([read, values, ...account, ...direction]);
+      // The stages it serves key it whenever they are a part: the answer for every stage is not the answer for some.
+      const stages = inputs.stages ? [inputs.stages] : [];
+      const key = JSON.stringify([read, values, ...account, ...direction, ...stages]);
       const kept = p.kind === 'local' ? undefined : lastAnswer.get(p.id);
       if (kept && kept.inputs === key) return answered(kept.readiness);
 
@@ -375,7 +397,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       let answer: Readiness;
       let threw = false;
       try {
-        const result = await p.check(credentials, inputs.settings, { pair: inputs.pair, legs: inputs.legs, signal });
+        const result = await p.check(credentials, inputs.settings, { pair: inputs.pair, legs: inputs.legs, ...(inputs.stages ? { stages: inputs.stages } : {}), signal });
         if (signal?.aborted) return cancelled();
         answer = result.ok
           // No models found: the one shared empty list, so a component's `models` keeps its identity across answers.

@@ -116,6 +116,11 @@ export interface CheckContext {
   pair: LanguagePair;
   /** The legs a run would open, speaker first: the participant leg runs the pair's reverse. */
   legs: readonly LegName[];
+  /**
+   * The stages this provider serves in the plan, when another provider serves the rest: a provider that only
+   * speaks needs nothing it would need to transcribe. Absent: every stage it can serve.
+   */
+  stages?: readonly RunStage[];
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }

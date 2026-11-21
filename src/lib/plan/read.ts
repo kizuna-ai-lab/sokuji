@@ -6,6 +6,7 @@
 // account, a provider's account as the run froze it, and what a stage's unit
 // can do.
 // Pure; nothing here reads a store or the registry.
+import { RUN_STAGES } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { PlanAccount, RunShape } from '../session/types';
@@ -29,6 +30,21 @@ export function unitFor(plan: RunPlan, stage: RunStage): PlannedUnit {
  */
 export function servesSpeech(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): boolean {
   return plan.byStage.speech.provider.id === provider.id;
+}
+
+/** The stages a provider serves in a plan, in stage order; none for a provider that is not in it. */
+export function stagesOf(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): readonly RunStage[] {
+  return RUN_STAGES.filter((stage) => plan.byStage[stage].provider.id === provider.id);
+}
+
+/**
+ * What a provider's readiness check is told it serves (`CheckContext.stages`): its stages in the plan while
+ * another provider serves the rest. Undefined when it serves every stage, or none: its check then reads all it
+ * can serve.
+ */
+export function checkStagesOf(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): readonly RunStage[] | undefined {
+  const stages = stagesOf(plan, provider);
+  return stages.length === 0 || stages.length === RUN_STAGES.length ? undefined : stages;
 }
 
 /** The provider that transcribes: the run's identity where one provider id is asked for. */

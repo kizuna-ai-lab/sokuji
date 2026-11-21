@@ -460,6 +460,23 @@ describe('ensureReadyFromStores', () => {
     await expect(ensureReadyFromStores(provider, shape, signal)).resolves.toEqual({ state: 'ready', models: [] });
     expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], signal });
   });
+
+  it('tells each provider the stages it serves in the plan, when they are not all it can serve', async () => {
+    const asked: Record<string, CheckContext['stages']> = {};
+    const probe = (id: string) => ({ ...fakeProvider, id, kind: 'local', check: vi.fn(async (_k: unknown, _s: unknown, ctx: CheckContext) => { asked[id] = ctx.stages; return { ok: true as const }; }) }) as unknown as AnyProvider;
+    const [text, voice] = [probe('text'), probe('voice')];
+    const a = { ...planOf(text).units[0], stages: ['transcription', 'translation'] as const };
+    const b = { ...planOf(voice).units[0], stages: ['speech'] as const };
+    const shape = {
+      plan: { units: [a, b], byStage: { transcription: a, translation: a, speech: b } },
+      accounts: { text: { settings: {}, credentials: {} }, voice: { settings: {}, credentials: {} } },
+      pair: { source: 'ja', target: 'en' }, legs: ['speaker'], auth,
+    } as unknown as RunShape;
+    const signal = new AbortController().signal;
+    await ensureReadyFromStores(text, shape, signal);
+    await ensureReadyFromStores(voice, shape, signal);
+    expect(asked).toEqual({ text: ['transcription', 'translation'], voice: ['speech'] });
+  });
 });
 
 describe('watchLegsFromStores', () => {

@@ -37,9 +37,11 @@ export async function checkLocalInference(
   }
 
   const stages = storedLocalStages();
-  // The line-up gives this provider speech alone: it needs no recognition and no translation model. A speech
-  // model that is missing does not stop a start: the leg says so when it opens, and its subtitles go on.
-  if (stages?.translation === null) return { ok: true };
+  // This provider only speaks: it needs no recognition and no translation model. A speech model that is missing
+  // does not stop a start: the leg says so when it opens, and its subtitles go on. The stages it serves are the
+  // ones the check is told (the plan's); told none, the stored line-up's.
+  const speechAlone = ctx.stages ? !ctx.stages.some((stage) => stage !== 'speech') : stages?.translation === null;
+  if (speechAlone) return { ok: true };
   const resolve = (src: string, tgt: string, selections: Selections) =>
     useModelStore.getState().resolve(src, tgt, selections, stages);
   // AST cross-stage guard (see astGuard.ts): `build` applies this same guard

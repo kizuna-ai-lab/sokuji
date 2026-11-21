@@ -11,7 +11,7 @@ import { stageIdsFor } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
-import { accountOf, capabilitiesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, checkStagesOf, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import type { PlanRefusal, UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
@@ -285,9 +285,11 @@ export function liveGate(platform: Platform = getEnvironment()): Refusal | null 
 /** The runner's `ensureReady` in the app: one provider of the shape, with its own inputs from the shape, through the provider store's cache. */
 export function ensureReadyFromStores(provider: AnyProvider, shape: RunShape, signal: AbortSignal): Promise<Readiness> {
   const { settings, credentials } = accountOf(shape, provider);
+  // The stages it serves in the run's plan, when another provider serves the rest.
+  const stages = checkStagesOf(shape.plan, provider);
   return useProviderStore.getState().refreshReadiness(
     provider, shape.auth,
-    { settings, credentials, pair: shape.pair, legs: shape.legs },
+    { settings, credentials, pair: shape.pair, legs: shape.legs, ...(stages ? { stages } : {}) },
     signal,
   );
 }
