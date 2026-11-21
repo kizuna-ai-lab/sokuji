@@ -24,6 +24,10 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   lineup_voice_not_taken: 'lineup',
   lineup_two_managed: 'lineup',
   lineup_language_not_spoken: 'lineup',
+  // What another service that translates refuses: the line-up's card says it, on the page that also holds the pair.
+  lineup_source_not_fixed: 'lineup',
+  lineup_pair_not_translated: 'lineup',
+  lineup_face_to_face_apart: 'lineup',
   credentials_missing: 'provider',
   // A managed provider signed out: the provider section's account row carries the sign-in link (Stage 2 Kizuna Soniox).
   sign_in_required: 'provider',

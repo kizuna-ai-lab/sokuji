@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
-import { caps } from '../../lib/lineup/catalog';
+import { caps, carriedTogether, goesWith } from '../../lib/lineup/catalog';
 import { refusalNotice } from '../../lib/plan/checks';
 import { choiceInput, refusedChoice } from '../../lib/plan/choice';
 import { usePlan } from '../../lib/plan/fromStores';
@@ -65,15 +65,19 @@ const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
 const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
 
 /** The refusals that say the chosen services do not go together. */
-const CANNOT_COMBINE: ReadonlySet<string> = new Set(['lineup_voice_not_alone', 'lineup_voice_not_taken', 'lineup_stage_split', 'lineup_no_unit', 'lineup_two_managed']);
+const CANNOT_COMBINE: ReadonlySet<string> = new Set(['lineup_voice_not_alone', 'lineup_voice_not_taken', 'lineup_stage_split', 'lineup_no_unit', 'lineup_two_managed', 'lineup_face_to_face_apart']);
 
 import { stageInSentence } from '../../lib/lineup/stageWords';
 export { stageInSentence };
 
-/** The stages `id` carries over one connection together with `stage`, when that is more than `stage` alone. */
-function jointOf(id: string, stage: RunStage): readonly RunStage[] | undefined {
-  const joint = caps(id)?.joint;
-  return joint && joint.length > 1 && joint.includes(stage) ? joint : undefined;
+/**
+ * The stages one connection of `id` carries together with `stage` when the line-up gives it all of them, when that
+ * is more than `stage` alone: an end-to-end provider's three, or Soniox's transcription and translation.
+ */
+function carriedWith(id: string, stage: RunStage): readonly RunStage[] | undefined {
+  const option = caps(id);
+  const group = option && carriedTogether(option);
+  return group && group.length > 1 && group.includes(stage) ? group : undefined;
 }
 
 /** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
@@ -325,12 +329,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     );
   };
 
-  /** The line-up's cards: one per stage, but the stages one provider holds jointly, next to each other, in one (owner, 2026-11-17). */
+  /**
+   * The line-up's cards: one per stage, but the stages one provider carries over one connection, next to each
+   * other, in one (owner, 2026-11-17). Soniox transcribing for another service's translation has a card of its own.
+   */
   const cards: RunStage[][] = [];
   for (let i = 0; i < RUN_STAGES.length; ) {
     const stage = RUN_STAGES[i];
     const id = lineUp?.[stage] ?? '';
-    const group = jointOf(id, stage);
+    const group = carriedWith(id, stage);
     let j = i + 1;
     while (group && j < RUN_STAGES.length && group.includes(RUN_STAGES[j]) && (lineUp?.[RUN_STAGES[j]] ?? '') === id) j += 1;
     cards.push(RUN_STAGES.slice(i, j) as RunStage[]);
@@ -382,7 +389,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
    * keys answers it. Undefined for a stage with no service, which keeps the state it has.
    */
   const refusalTag = (code: string | undefined) => {
-    const text = code === 'lineup_language_not_spoken' ? t('settingsPage.lineup.state.languageNotSpoken', 'Unsupported language')
+    const language = code === 'lineup_language_not_spoken' || code === 'lineup_pair_not_translated' || code === 'lineup_source_not_fixed';
+    const text = language ? t('settingsPage.lineup.state.languageNotSpoken', 'Unsupported language')
       : code === 'lineup_not_offered' ? t('settingsPage.lineup.state.notAvailable', 'Not available here')
       : code && CANNOT_COMBINE.has(code) ? t('settingsPage.lineup.state.cannotCombine', "Can't be combined")
       : undefined;
@@ -465,10 +473,14 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         {cards.map((stages) => {
           const first = stages[0];
           const id = lineUp?.[first] ?? '';
-          const group = jointOf(id, first);
-          // Partners the card does not hold (joint, but not next to it): named under the choice.
-          const partners = group?.filter((s) => !stages.includes(s as RunStage)) ?? [];
+          const option = caps(id);
+          // The stages this service must serve too and the card does not hold (not next to it, or given to another
+          // service): named under the choice.
+          const partners = option ? goesWith(option, first).filter((s) => !stages.includes(s)) : [];
           const joint = stages.length > 1;
+          // One connection carries the card's stages, and yet they can be parted: Soniox's translation can be given
+          // to another service, which its transcription then stands beside. The later stages get a choice of their own.
+          const partable = joint && !option?.joint;
           const titleOf = (stage: RunStage) => t(`settingsPage.lineup.stages.${stage}`, STAGE_TITLES[stage]);
           const title = joint ? [titleOf(first), ...stages.slice(1).map(stageName)].join(t('settingsPage.lineup.and', ' and ')) : titleOf(first);
           // The speech stage, not used this time (nothing a running leg says is read aloud).
@@ -543,13 +555,14 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               {stageOptions(stage, id, stages)}
             </>
           ));
-          const select = (
-            <select className="select-dropdown provider-select" value={id} disabled={locked} aria-label={title}
-              onChange={(e) => void choose(first, e.target.value)}>
+          const selectFor = (stage: RunStage, label: string) => (
+            <select className="select-dropdown provider-select" value={lineUp?.[stage] ?? ''} disabled={locked} aria-label={label}
+              onChange={(e) => void choose(stage, e.target.value)}>
               {rich && <button type="button"><selectedcontent /></button>}
-              {optionsFor(first).map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
+              {optionsFor(stage).map((m) => <ProviderOption key={m.id} model={m} rich={rich} />)}
             </select>
           );
+          const select = selectFor(first, title);
           const partnersLine = partners.length > 0 && (
             <p className="lineup-stage__joint">
               <Link2 size={12} aria-hidden="true" />
@@ -566,13 +579,17 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                 <>
                   <p className="lineup-stage__joint">
                     <Link2 size={12} aria-hidden="true" />
-                    {t('settingsPage.lineup.jointCard', '{{stages}} go over one connection; they change together.', { stages: title })}
+                    {partable
+                      ? t('settingsPage.lineup.partableCard', '{{stages}} go over one connection. Another service can do the translation: choose it below.', { stages: title })
+                      : t('settingsPage.lineup.jointCard', '{{stages}} go over one connection; they change together.', { stages: title })}
                   </p>
                   {select}
                   {partnersLine}
                   {stages.map((stage) => (
                     <div className="lineup-stage__part" key={stage}>
                       {head(stage)}
+                      {/* A stage that can be given to another service keeps a choice of its own in the shared card. */}
+                      {partable && stage !== first && selectFor(stage, titleOf(stage))}
                       {stageBody(stage)}
                     </div>
                   ))}

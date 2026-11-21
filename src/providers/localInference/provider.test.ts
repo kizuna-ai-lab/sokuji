@@ -28,6 +28,7 @@ import { RUN_STAGES } from '../../lib/lineup/types';
 import { unitsOf, wholePlan } from '../../lib/plan/wholeUnit';
 import type { RunPlan } from '../../lib/plan/types';
 import { localInferenceProvider } from './provider';
+import { sonioxProvider } from '../soniox/provider';
 import { localSpeechUnit } from './speechUnit';
 import { localTranslationUnit } from './translationUnit';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
@@ -138,11 +139,26 @@ describe('localInferenceProvider', () => {
       expect(localSpeechUnit.occupies(LOCAL_INFERENCE_DEFAULTS, new Set(['translation', 'speech']))).toBeNull();
     });
 
-    it('nothing a user can choose changed: a provider that only transcribes together with its translation still cannot hand this device the translation', () => {
+    it('a provider that only transcribes together with its translation cannot hand this device the translation: it has no unit for what is left to it', () => {
       const text = { id: 'stt', occupies: (_s: unknown, want: ReadonlySet<string>) => (want.size === 2 && !want.has('speech') ? ['transcription', 'translation'] : null) };
       const soniox = { id: 'soniox', units: [text] } as any;
       for (const translation of ['bing', 'local_inference']) {
-        expect(compose({ transcription: 'soniox', translation, speech: 'soniox' }, { providers: [soniox, localInferenceProvider], settings: () => undefined })).toMatchObject({ refused: 'lineup_stage_split' });
+        expect(compose({ transcription: 'soniox', translation, speech: 'soniox' }, { providers: [soniox, localInferenceProvider], settings: () => undefined })).toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
+      }
+    });
+
+    it("Soniox transcribing alone hands it the translation: its translation unit, and its voice where the line-up gives it speech too", () => {
+      const given = { providers: [sonioxProvider, localInferenceProvider], settings: (id: string) => (id === 'soniox' ? sonioxProvider.settings.defaults : LOCAL_INFERENCE_DEFAULTS) };
+      const shape = (plan: unknown) => (plan as RunPlan).units.map((u) => [u.provider.id, u.unit.id, u.stages]);
+      for (const translation of ['bing', 'local_inference']) {
+        expect(shape(compose({ transcription: 'soniox', translation, speech: 'soniox' }, given)))
+          .toEqual([['soniox', 'transcription', ['transcription']], ['local_inference', 'translation', ['translation']], ['soniox', 'tts', ['speech']]]);
+        for (const speech of ['edge', 'local_inference']) {
+          const plan = compose({ transcription: 'soniox', translation, speech }, given) as RunPlan;
+          expect(shape(plan)).toEqual([['soniox', 'transcription', ['transcription']], ['local_inference', 'translation', ['translation']], ['local_inference', 'speech', ['speech']]]);
+          expect(plan.byStage.translation.unit).toBe(localTranslationUnit);
+          expect(plan.byStage.speech.unit).toBe(localSpeechUnit);
+        }
       }
     });
 

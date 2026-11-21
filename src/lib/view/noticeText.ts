@@ -72,6 +72,11 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   lineup_voice_not_taken: 'Choose {{provider}} for speech too, or choose another service for transcription and translation.',
   lineup_two_managed: 'Two Kizuna AI services cannot run in one session yet. Choose one of them.',
   lineup_language_not_spoken: '{{provider}} has no voice for {{language}}. Choose another speech service, or turn speech off for this session.',
+  // Another service translates what one heard: it needs a stated language, it translates some pairs only, and it
+  // cannot run face-to-face. The quoted words are the language menu's and the Both popover's own.
+  lineup_source_not_fixed: '{{provider}} needs to know the spoken language. Choose it instead of “Auto Detect”, or choose another translation service.',
+  lineup_pair_not_translated: '{{provider}} does not translate {{source}} into {{target}}. Choose other languages, or another translation service.',
+  lineup_face_to_face_apart: 'Face-to-face needs one service to transcribe and translate. Choose {{provider}} for translation too, or set “Other side” to “In a meeting”.',
   // A managed lease refused a start, by what blocks the account (its 409's `blocker`).
   session_in_use: 'Another window or device is using this account. Stop the session there, or if Sokuji just closed unexpectedly, try again in a minute.',
   previous_session_ending: 'Your previous session is still ending. Please try again in a minute.',

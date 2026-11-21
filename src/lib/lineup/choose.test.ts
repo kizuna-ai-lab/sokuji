@@ -3,7 +3,7 @@ import { RELEASED } from '../../providers/registry';
 import { choiceInput } from '../plan/choice';
 import { compose } from '../plan/compose';
 import { isRefusal } from '../plan/types';
-import { CAPS, caps, hostDefaults } from './catalog';
+import { CAPS, caps, goesWith, hostDefaults } from './catalog';
 import { choose as chooseWith } from './choose';
 import { RUN_STAGES } from './types';
 import type { LineUp, RunStage } from './types';
@@ -29,9 +29,39 @@ function everyLineUp(): LineUp[] {
   return lineUps;
 }
 
+/** The composer's refusals a line-up reached by choosing can meet, under the released providers' default settings. */
+const REACHABLE_REFUSALS: string[] = [];
+
 describe('choosing a provider for a stage', () => {
-  it('a provider takes the stages it holds jointly, and leaves the others alone', () => {
+  it("Soniox chosen for translation takes the transcription too (it translates only what it transcribes), and leaves the others alone", () => {
     expect(choose(local, 'translation', 'soniox')).toEqual({ lineUp: { ...soniox, speech: 'edge' }, moved: ['transcription'] });
+    expect(choose(local, 'translation', 'kizunaai_soniox')).toEqual({ lineUp: { ...kizuna, speech: 'edge' }, moved: ['transcription'] });
+    // From one Soniox to the other, with another translator between: the transcription follows the translation chosen.
+    expect(choose({ ...kizuna, translation: 'bing' }, 'translation', 'soniox')).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: ['transcription'] });
+    // Already transcribing: nothing else moves.
+    expect(choose({ ...soniox, translation: 'bing' }, 'translation', 'soniox')).toEqual({ lineUp: soniox, moved: [] });
+  });
+
+  it('Bing or this device chosen for translation on a Soniox line-up keeps Soniox transcribing', () => {
+    for (const from of [soniox, kizuna, { ...soniox, speech: 'edge' }, { ...kizuna, speech: 'soniox' }]) {
+      for (const id of ['bing', 'local_inference']) {
+        const chosen = choose(from, 'translation', id);
+        expect(chosen).toEqual({ lineUp: { ...from, translation: id }, moved: [] });
+        expect(isRefusal(compose(chosen.lineUp, input)), JSON.stringify(chosen.lineUp)).toBe(false);
+      }
+    }
+  });
+
+  it('Soniox chosen for transcription keeps a translation by Bing or by this device', () => {
+    expect(choose(local, 'transcription', 'soniox')).toEqual({ lineUp: { ...local, transcription: 'soniox' }, moved: [] });
+    expect(choose({ ...local, translation: 'local_inference' }, 'transcription', 'kizunaai_soniox')).toEqual({ lineUp: { ...local, transcription: 'kizunaai_soniox', translation: 'local_inference' }, moved: [] });
+    // Between the two Soniox, the translator between them stays.
+    expect(choose({ ...soniox, translation: 'bing' }, 'transcription', 'kizunaai_soniox')).toEqual({ lineUp: { ...kizuna, translation: 'bing', speech: 'soniox' }, moved: [] });
+  });
+
+  it("Soniox's translation goes with its transcription when another provider is chosen to transcribe", () => {
+    expect(choose(soniox, 'transcription', 'local_inference')).toEqual({ lineUp: { ...local, speech: 'soniox' }, moved: ['translation'] });
+    expect(choose(soniox, 'transcription', 'kizunaai_soniox')).toEqual({ lineUp: { ...kizuna, speech: 'soniox' }, moved: ['translation'] });
   });
   it('an end-to-end provider takes all three and leaves the notes alone', () => {
     expect(choose({ ...soniox, summarisation: 'x' }, 'speech', 'openai_live').lineUp).toEqual({ transcription: 'openai_live', translation: 'openai_live', speech: 'openai_live', summarisation: 'x' });
@@ -45,12 +75,13 @@ describe('choosing a provider for a stage', () => {
     expect(choose(local, 'speech', 'soniox')).toEqual({ lineUp: { ...local, speech: 'soniox' }, moved: [] });
   });
   it('a text side chosen over another provider\'s voice keeps that voice', () => {
-    expect(choose(local, 'transcription', 'soniox')).toEqual({ lineUp: { ...soniox, speech: 'edge' }, moved: ['translation'] });
+    expect(choose(local, 'transcription', 'soniox')).toEqual({ lineUp: { ...local, transcription: 'soniox' }, moved: [] });
+    expect(choose(gemini, 'transcription', 'soniox')).toEqual({ lineUp: soniox, moved: ['translation', 'speech'] });
     expect(choose(soniox, 'transcription', 'kizunaai_soniox').lineUp).toMatchObject({ transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'soniox' });
   });
 
-  it('a provider that loses a stage of a joint group loses the whole group, to the chosen host\'s defaults', () => {
-    // Soniox's transcription and translation go together: taking one away takes the other, and its voice stays.
+  it('a provider that loses a stage another of its stages needs loses that one too, to the chosen host\'s defaults', () => {
+    // Soniox translates only what it transcribes: taking its transcription away takes its translation, and its voice stays.
     expect(choose(soniox, 'transcription', 'local_inference')).toEqual({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'soniox', summarisation: null }, moved: ['translation'] });
     // An end-to-end provider holds all three together: taking its voice away takes the rest.
     expect(choose(gemini, 'speech', 'edge')).toEqual({ lineUp: local, moved: ['transcription', 'translation'] });
@@ -67,7 +98,9 @@ describe('choosing a provider for a stage', () => {
     const toLocal = choose(kizuna, 'transcription', 'local_inference');
     expect(toLocal).toEqual({ lineUp: { ...local, speech: 'kizunaai_soniox' }, moved: ['translation'] });
     expect(isRefusal(compose(toLocal.lineUp, input))).toBe(false);
-    expect(choose(kizuna, 'translation', 'bing')).toEqual({ lineUp: { ...local, speech: 'kizunaai_soniox' }, moved: ['transcription'] });
+    // Bing for the translation alone: the hosted transcription and the hosted voice both stay.
+    expect(choose(kizuna, 'translation', 'bing')).toEqual({ lineUp: { ...kizuna, translation: 'bing' }, moved: [] });
+    expect(isRefusal(compose({ ...kizuna, translation: 'bing' }, input))).toBe(false);
     // A text side that takes no other voice holds all three stages, so the hosted voice goes with the choice itself.
     expect(choose({ ...soniox, speech: 'kizunaai_soniox' }, 'transcription', 'kizunaai_qwen')).toEqual({
       lineUp: { transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen', summarisation: null }, moved: ['translation', 'speech'],
@@ -84,7 +117,8 @@ describe('choosing a provider for a stage', () => {
     const toLocal = chooseNotAlone(kizuna, 'transcription', 'local_inference');
     expect(toLocal).toEqual({ lineUp: local, moved: ['translation', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'edge' } });
     expect(isRefusal(compose(toLocal.lineUp, notAlone))).toBe(false);
-    expect(chooseNotAlone(kizuna, 'translation', 'bing')).toEqual({ lineUp: local, moved: ['transcription', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'edge' } });
+    // Another translator under its transcription: the voice would read a translation that is not its own.
+    expect(chooseNotAlone(kizuna, 'translation', 'bing')).toEqual({ lineUp: { ...kizuna, translation: 'bing', speech: 'edge' }, moved: ['speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'edge' } });
     // A stored line-up that was already refused for its voice is put right by the next choice of a text side.
     expect(chooseNotAlone({ ...soniox, speech: 'kizunaai_soniox' }, 'transcription', 'local_inference').followed).toEqual({ stage: 'speech', from: 'kizunaai_soniox', to: 'edge' });
   });
@@ -135,21 +169,25 @@ describe('choosing a provider for a stage', () => {
     ["the app's catalog: no voice ever has to follow", input, []],
     // The only voice that ever has to follow is one that is not offered alone.
     ['a voice not offered alone: it follows, and nothing else does', notAlone, ['lineup_voice_not_alone']],
-  ] as const)('for every line-up and every choice: the chosen stage and its joint partners are the choice, any other stage moves only when its provider lost a joint partner, and speech alone may follow (%s)', (_name, input, expected) => {
+  ] as const)('for every line-up and every choice: the chosen stage and the stages that go with it are the choice, any other stage moves only when its provider lost a stage it needs, and speech alone may follow (%s)', (_name, input, expected) => {
     const choose = (lineUp: LineUp, stage: RunStage, id: string) => chooseWith(lineUp, stage, id, input);
     const reasons = new Set<string>();
     for (const from of everyLineUp()) for (const stage of RUN_STAGES) for (const c of CAPS) {
       if (!c.stages.includes(stage)) continue;
       const label = JSON.stringify({ from, stage, id: c.id });
       const { lineUp, moved, followed } = choose(from, stage, c.id);
-      const group: readonly RunStage[] = c.joint?.includes(stage) ? c.joint : [stage];
-      // The line-up by the joint rule alone.
+      const group = goesWith(c, stage);
+      // The line-up by the rule of the stages that go together alone.
       const byJoint = { ...from };
       for (const s of RUN_STAGES) {
         if (group.includes(s)) { byJoint[s] = c.id; continue; }
-        const joint = caps(from[s]!)?.joint;
-        const lostPartner = !!joint && joint.includes(s) && joint.some((t) => group.includes(t) && from[t] === from[s]);
+        const lostPartner = goesWith(caps(from[s]!)!, s).some((t) => group.includes(t) && from[t] === from[s]);
         if (lostPartner) byJoint[s] = hostDefaults(c.host)[s];
+      }
+      // A transcription that stands alone (Soniox's) stays when another option is chosen to translate it; one held
+      // jointly with the translation (an end-to-end provider's) goes with it.
+      if (stage === 'translation' && !group.includes('transcription') && !goesWith(caps(from.transcription!)!, 'transcription').includes('translation')) {
+        expect(lineUp.transcription, label).toBe(from.transcription);
       }
       if (followed) {
         // Only for a choice of another stage, only away from a voice the composer refuses, only to one that runs.
@@ -167,5 +205,33 @@ describe('choosing a provider for a stage', () => {
       expect(lineUp.summarisation, label).toBe(from.summarisation);
     }
     expect([...reasons]).toEqual(expected);
+  });
+  it('every line-up a user can reach by choosing, from any host\'s defaults, runs or is refused for how it is put together', () => {
+    const key = (l: LineUp) => RUN_STAGES.map((s) => l[s]).join('|');
+    const seen = new Map<string, LineUp>();
+    const queue: LineUp[] = [...new Set(CAPS.map((c) => c.host))].map((host) => ({ ...hostDefaults(host), summarisation: null }));
+    for (const start of queue) seen.set(key(start), start);
+    while (queue.length > 0) {
+      const from = queue.pop()!;
+      for (const stage of RUN_STAGES) for (const c of CAPS) {
+        if (!c.stages.includes(stage)) continue;
+        const { lineUp } = choose(from, stage, c.id);
+        if (!seen.has(key(lineUp))) { seen.set(key(lineUp), lineUp); queue.push(lineUp); }
+      }
+    }
+    const refusals = new Set<string>();
+    const separate: string[] = [];
+    for (const lineUp of seen.values()) {
+      const plan = compose(lineUp, input);
+      if (isRefusal(plan)) refusals.add(plan.refused);
+      else if (plan.byStage.transcription !== plan.byStage.translation) separate.push(`${lineUp.transcription}>${lineUp.translation}`);
+    }
+    // None is refused: a choice moves what has to move with it, and every released host has a unit for each way
+    // its stages can be left to it. What a reachable line-up can still be refused for needs the run's pair and
+    // legs (`checkPlan`): `lineup_source_not_fixed`, `lineup_pair_not_translated`, `lineup_face_to_face_apart`
+    // and `lineup_language_not_spoken`.
+    expect([...refusals].sort()).toEqual(REACHABLE_REFUSALS);
+    // The line-ups whose transcription and translation are apart: Soniox, either one, under Bing or this device.
+    expect([...new Set(separate)].sort()).toEqual(['kizunaai_soniox>bing', 'kizunaai_soniox>local_inference', 'soniox>bing', 'soniox>local_inference']);
   });
 });

@@ -1,7 +1,10 @@
 // src/lib/lineup/choose.ts
 //
-// Choosing a provider for one stage: the provider takes the stages it holds
-// jointly, and a provider that loses part of a joint group loses all of it.
+// Choosing a provider for one stage: the provider takes the stages that go
+// with it (its joint group; its transcription, when it translates only what
+// it transcribes), and a provider that loses a stage another of its stages
+// needs loses that one too. A transcription that stands alone stays when
+// another provider is chosen to translate it.
 // One more stage may change: when the text side was chosen and the voice left
 // in place cannot run beside it, speech follows to the chosen host's voice.
 // No option offered today brings that about (every voice with a unit of its
@@ -12,13 +15,13 @@
 import { compose } from '../plan/compose';
 import type { ComposeInput } from '../plan/compose';
 import { isRefusal } from '../plan/types';
-import { caps, hostDefaults } from './catalog';
+import { caps, goesWith, hostDefaults } from './catalog';
 import { RUN_STAGES } from './types';
-import type { LineUp, RunStage, StageName } from './types';
+import type { LineUp, StageName } from './types';
 
 export interface Choice {
   lineUp: LineUp;
-  /** The stages that changed besides the one chosen: its joint partners, a joint group that lost a stage to it, and speech when it followed. */
+  /** The stages that changed besides the one chosen: the stages that go with it, the stages of another provider that needed one it took, and speech when it followed. */
   moved: readonly StageName[];
   /** Set when speech followed the chosen text side: the voice that could not stay, and the one that took its place. */
   followed?: { stage: 'speech'; from: string; to: string };
@@ -34,17 +37,19 @@ export function choose(lineUp: LineUp, stage: StageName, providerId: string | nu
   const chosen = caps(providerId);
   if (!chosen || !chosen.stages.includes(stage)) throw new Error(`${providerId} cannot serve ${stage}.`);
 
-  const group: readonly RunStage[] = chosen.joint?.includes(stage) ? chosen.joint : [stage];
+  const group = goesWith(chosen, stage);
   const defaults = hostDefaults(chosen.host);
   const next: LineUp = { ...lineUp };
   for (const s of group) next[s] = providerId;
 
-  // A provider that lost one stage of a joint group loses the whole group.
+  // A provider that lost a stage one of its other stages needs loses that one too, to the chosen host's default: a
+  // joint group goes whole, and a translation goes with the transcription it is bound to. A transcription whose
+  // translation went to another provider stays: it stands alone.
   for (const s of RUN_STAGES) {
     const previous = lineUp[s];
     if (group.includes(s) || previous === null) continue;
-    const joint = caps(previous)?.joint;
-    const lostPartner = !!joint && joint.includes(s) && joint.some((t) => group.includes(t) && lineUp[t] === previous);
+    const option = caps(previous);
+    const lostPartner = !!option && goesWith(option, s).some((t) => group.includes(t) && lineUp[t] === previous);
     if (lostPartner) next[s] = defaults[s];
   }
 

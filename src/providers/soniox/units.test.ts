@@ -135,22 +135,25 @@ describe("Soniox's unit that transcribes alone", () => {
     }
   });
 
-  it('is declared by no definition yet: the composer answers a line-up as it did', () => {
+  it('is declared by both definitions, and is the one unit of each that occupies transcription alone', () => {
     for (const p of [sonioxProvider, kizunaSonioxProvider] as AnyProvider[]) {
-      expect(unitsOf(p).some((u) => u.occupies(SONIOX_DEFAULTS, new Set(['transcription'])) !== null)).toBe(false);
+      const serving = unitsOf(p).filter((u) => u.occupies(SONIOX_DEFAULTS, new Set(['transcription'])) !== null);
+      expect(serving.map((u) => u.id)).toEqual([SONIOX_TRANSCRIPTION_UNIT]);
+      expect(serving[0].start).toBe(sonioxProvider.start);
     }
   });
 });
 
 describe('the Soniox definitions declare their units', () => {
-  it('each declares its text unit and its voice, over the same adapter, with its own participant-speech flag', () => {
+  it('each declares its text unit, its unit that transcribes alone and its voice, over the same adapter, with its own participant-speech flag', () => {
     for (const p of [sonioxProvider, kizunaSonioxProvider] as AnyProvider[]) {
       const units = unitsOf(p);
       expect(units).toBe(p.units);
-      expect(units.map((u) => u.id)).toEqual(['stt', 'tts']);
+      expect(units.map((u) => u.id)).toEqual(['stt', SONIOX_TRANSCRIPTION_UNIT, 'tts']);
       expect(units[0].start).toBe(sonioxProvider.start);
-      expect(isSpeechUnit(units[1])).toBe(true);
-      expect(units[1].start).toBeUndefined();
+      expect(units[1].start).toBe(sonioxProvider.start);
+      expect(isSpeechUnit(units[2])).toBe(true);
+      expect(units[2].start).toBeUndefined();
       // The definition's own members stay, for a reader not yet on units.
       expect(p.speech).toBe('optional');
       expect(p.build).toBe(buildSoniox);
@@ -158,14 +161,14 @@ describe('the Soniox definitions declare their units', () => {
       expect(p.session!.startBoth).toBe(sonioxProvider.session!.startBoth);
     }
     const off = createKizunaSonioxProvider({ participantSpeech: false });
-    expect(unitsOf(off).map((u) => u.capabilities(SONIOX_DEFAULTS).participantSpeech)).toEqual([false, false]);
-    expect(unitsOf(kizunaSonioxProvider).map((u) => u.capabilities(SONIOX_DEFAULTS).participantSpeech)).toEqual([true, true]);
-    expect(sonioxUnitsFor({ start }).map((u) => u.capabilities(SONIOX_DEFAULTS).participantSpeech)).toEqual([true, true]);
+    expect(unitsOf(off).map((u) => u.capabilities(SONIOX_DEFAULTS).participantSpeech)).toEqual([false, false, false]);
+    expect(unitsOf(kizunaSonioxProvider).map((u) => u.capabilities(SONIOX_DEFAULTS).participantSpeech)).toEqual([true, true, true]);
+    expect(sonioxUnitsFor({ start }).map((u) => u.capabilities(SONIOX_DEFAULTS).participantSpeech)).toEqual([true, true, true]);
   });
 
   it.each([sonioxProvider, kizunaSonioxProvider] as AnyProvider[])('the plan of $id alone is its two units, composed or of the provider', (p) => {
     const plan = planOf(p);
-    const [text, voice] = unitsOf(p);
+    const [text, , voice] = unitsOf(p);
     expect(plan.units.map((u) => [u.unit, u.stages])).toEqual([[text, TR_TL], [voice, ['speech']]]);
     expect(RUN_STAGES.map((stage) => plan.byStage[stage])).toEqual([plan.units[0], plan.units[0], plan.units[1]]);
     expect(textAndSpeech(plan)).toEqual({ text: plan.units[0], speech: plan.units[1] });

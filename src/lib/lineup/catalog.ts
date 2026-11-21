@@ -4,11 +4,11 @@
 // line-up each host runs by default, the one host a line-up runs on by this
 // data alone, and the ids that served a run's stages. Pure data and pure
 // functions; the stores read it, nothing here reads a store.
-import { RUN_STAGES } from './types';
+import { RUN_STAGES, TR_TL } from './types';
 import type { LineUp, ProviderCaps, RunStage, StageIds } from './types';
 
 const ALL: readonly RunStage[] = RUN_STAGES;
-const JOINT: readonly RunStage[] = ['transcription', 'translation'];
+const JOINT: readonly RunStage[] = TR_TL;
 
 /**
  * One provider that does every stage over one connection (an end-to-end service), run by itself. Its voice reads
@@ -19,13 +19,14 @@ const endToEnd = (id: string, account: ProviderCaps['account']): ProviderCaps =>
 
 export const CAPS: readonly ProviderCaps[] = [
   // Its text may be read by another voice (a text-only session of it), and its voice may read another provider's
-  // text (a session of it that holds speech keys only).
-  { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', joint: JOINT, account: 'kizuna', voiceAlone: true, takesVoice: true },
+  // text (a session of it that holds speech keys only). It translates only what it transcribes, and may transcribe
+  // alone for another option to translate (Soniox's connection asked for no translation); so does Soniox below.
+  { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', translatesOwn: true, account: 'kizuna', voiceAlone: true, takesVoice: true },
   endToEnd('kizunaai_qwen', 'kizuna'),
   { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: true },
   { id: 'bing', stages: ['translation'], host: 'local_inference', account: 'none', voiceAlone: false, takesVoice: true },
   { id: 'edge', stages: ['speech'], host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: false },
-  { id: 'soniox', stages: ALL, host: 'soniox', joint: JOINT, account: 'key', voiceAlone: true, takesVoice: true },
+  { id: 'soniox', stages: ALL, host: 'soniox', translatesOwn: true, account: 'key', voiceAlone: true, takesVoice: true },
   endToEnd('gemini', 'key'),
   endToEnd('volcengine_ast2', 'key'),
   endToEnd('openai', 'key'),
@@ -35,7 +36,8 @@ export const CAPS: readonly ProviderCaps[] = [
   endToEnd('palabraai', 'key'),
   // The E2E build (`--mode e2e`) runs its sessions on the fake providers, so there a line-up may name them.
   // Elsewhere they stay out: a development build reaches the fake through the stored provider alone.
-  // The fake transcribes and translates together and may be read by another voice; the fake voice serves speech
+  // The fake transcribes and translates together, never apart (it has no unit that transcribes alone, so its two
+  // stages stay a joint group), and may be read by another voice; the fake voice serves speech
   // alone, beside another provider's transcription and translation. The fake transcriber and the fake translator
   // each serve their one stage, each a host of its own, so a line-up of the three runs every stage apart.
   ...(import.meta.env.MODE === 'e2e'
@@ -61,6 +63,25 @@ export function optionFor(lineUp: Pick<LineUp, RunStage>, stage: RunStage, catal
   const id = lineUp[stage];
   const option = id === null ? undefined : caps(id, catalog);
   return option?.stages.includes(stage) ? option : undefined;
+}
+
+/**
+ * The stages an option must serve itself when it serves `stage`: its joint group when the stage is in it; its
+ * transcription with its translation when it translates only what it transcribes (not the other way round: its
+ * transcription stands alone); otherwise the stage alone.
+ */
+export function goesWith(option: Pick<ProviderCaps, 'joint' | 'translatesOwn'>, stage: RunStage): readonly RunStage[] {
+  if (option.joint?.includes(stage)) return option.joint;
+  if (option.translatesOwn && stage === 'translation') return TR_TL;
+  return [stage];
+}
+
+/**
+ * The stages one connection of an option carries when the line-up gives it all of them: its joint group, or its
+ * transcription and translation when it translates only what it transcribes. Undefined: each stage on its own.
+ */
+export function carriedTogether(option: Pick<ProviderCaps, 'joint' | 'translatesOwn'>): readonly RunStage[] | undefined {
+  return option.joint ?? (option.translatesOwn ? TR_TL : undefined);
 }
 
 /**

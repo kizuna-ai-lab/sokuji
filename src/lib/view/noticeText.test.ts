@@ -88,6 +88,22 @@ describe('noticeText', () => {
       expect(words({ refused: 'lineup_language_not_spoken', stage: 'speech', provider: 'edge', language: 'eu' }))
         .toBe(`Edge has no voice for ${languageLabel('eu', 'en')}. Choose another speech service, or turn speech off for this session.`);
     });
+    it('another service that translates: it names the service, the pair by its languages\' names, and the words of the menus it points to', () => {
+      expect(words({ refused: 'lineup_source_not_fixed', stage: 'translation', provider: 'bing' }))
+        .toBe('Bing needs to know the spoken language. Choose it instead of “Auto Detect”, or choose another translation service.');
+      expect(words({ refused: 'lineup_pair_not_translated', stage: 'translation', provider: 'bing', source: 'eu', target: 'ja' }))
+        .toBe(`Bing does not translate ${languageLabel('eu', 'en')} into ${languageLabel('ja', 'en')}. Choose other languages, or another translation service.`);
+      expect(words({ refused: 'lineup_face_to_face_apart', stage: 'translation', provider: 'soniox' }))
+        .toBe('Face-to-face needs one service to transcribe and translate. Choose Soniox for translation too, or set “Other side” to “In a meeting”.');
+    });
+    it("the words a sentence quotes from a menu are that locale's own, in every locale", () => {
+      for (const [path, catalog] of Object.entries(catalogs)) {
+        const text = (key: string) => String(at(catalog, key));
+        expect(text('notices.lineup_source_not_fixed'), path).toContain(text('common.autoDetect'));
+        expect(text('notices.lineup_face_to_face_apart'), path).toContain(text('popover.otherSide'));
+        expect(text('notices.lineup_face_to_face_apart'), path).toContain(text('popover.otherSideMeeting'));
+      }
+    });
     it('has a sentence for every refusal, the same in the English catalog', () => {
       const enNotices = (en as unknown as { notices: Record<string, string> }).notices;
       for (const code of PLAN_REFUSAL_CODES) {

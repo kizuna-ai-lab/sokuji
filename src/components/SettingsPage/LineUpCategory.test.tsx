@@ -426,13 +426,21 @@ describe('languages and line-up', () => {
       expect(screen.queryByRole('status')).toBeNull();
     });
 
-    it('a stage given to another service than the one it goes with: on the card of that stage, naming the service', () => {
+    it("Soniox's translation without its transcription: on the card of the stage Soniox must also do, naming Soniox", () => {
+      load();
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'soniox', speech: 'soniox', summarisation: null }, stored: true });
+      render(<LineUpCategory locked={false} />);
+      expect(within(cardOf('Transcription')).getByRole('status')).toHaveTextContent('Soniox must also do transcription. Choose Soniox for transcription, or use another service instead of Soniox.');
+      expect(within(cardOf('Translation')).queryByRole('status')).toBeNull();
+      expect(within(cardOf('Speech')).queryByRole('status')).toBeNull();
+    });
+
+    it("Soniox transcribing for Bing's translation runs: a card each, and nothing is refused", () => {
       load();
       useLineUpStore.setState({ lineUp: { ...soniox, translation: 'bing' }, stored: true });
       render(<LineUpCategory locked={false} />);
-      expect(within(cardOf('Translation')).getByRole('status')).toHaveTextContent('Soniox must also do translation. Choose Soniox for translation, or use another service instead of Soniox.');
-      expect(within(cardOf('Transcription')).queryByRole('status')).toBeNull();
-      expect(within(cardOf('Speech')).queryByRole('status')).toBeNull();
+      for (const name of ['Transcription', 'Translation', 'Speech']) expect(within(cardOf(name)).queryByRole('status')).toBeNull();
+      expect(document.querySelector('.lineup-stage.is-joint')).toBeNull();
     });
 
     it('Edge under Soniox text into a language Edge has no voice for: on the speech card', () => {
@@ -552,17 +560,20 @@ describe('languages and line-up', () => {
       expect(tags()).toEqual([['Needs a key', 'BUTTON'], ['Needs a key', 'BUTTON'], ['Ready', 'EM']]);
     });
 
-    it("a stage given to another service than the one it goes with: \"Can't be combined\" on that stage's card, not Bing's Ready", () => {
+    it("Soniox's translation without its transcription: \"Can't be combined\" on the transcription's card, not this device's Ready", () => {
       load();
-      useLineUpStore.setState({ lineUp: { ...soniox, translation: 'bing' }, stored: true });
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'soniox', speech: 'soniox', summarisation: null }, stored: true });
       render(<LineUpCategory locked={false} />);
-      expectReason(stateOfCard('Translation'), "Can't be combined");
-      expect(stateOfCard('Transcription')).toHaveTextContent('Ready');
+      expectReason(stateOfCard('Transcription'), "Can't be combined");
+      expect(stateOfCard('Translation')).toHaveTextContent('Ready');
       expect(stateOfCard('Speech')).toHaveTextContent('Ready');
     });
 
     it.each([
       ['lineup_language_not_spoken', 'Unsupported language'],
+      ['lineup_pair_not_translated', 'Unsupported language'],
+      ['lineup_source_not_fixed', 'Unsupported language'],
+      ['lineup_face_to_face_apart', "Can't be combined"],
       ['lineup_voice_not_alone', "Can't be combined"],
       ['lineup_voice_not_taken', "Can't be combined"],
       ['lineup_stage_split', "Can't be combined"],
@@ -1063,9 +1074,16 @@ describe('languages and line-up — as the mock draws them', () => {
     const joint = cards[0];
     expect([...joint.querySelectorAll('.lineup-stage__head .lineup-stage__name')].map((n) => n.textContent)).toEqual(['Transcription', 'Translation']);
     expect(joint.querySelectorAll('.lineup-stage__head .lineup-stage__state')).toHaveLength(2);
-    expect(within(joint as HTMLElement).getAllByRole('combobox')).toHaveLength(1);
-    expect(within(joint as HTMLElement).getByRole('combobox', { name: 'Transcription and translation' })).toBeInTheDocument();
-    expect(within(joint as HTMLElement).getByText('Transcription and translation go over one connection; they change together.')).toBeInTheDocument();
+    // Soniox's translation can be given to another service: the card's one choice for both, and the translation's own.
+    expect(within(joint as HTMLElement).getAllByRole('combobox').map((c) => c.getAttribute('aria-label'))).toEqual(['Transcription and translation', 'Translation']);
+    expect(within(joint as HTMLElement).getByText('Transcription and translation go over one connection. Another service can do the translation: choose it below.')).toBeInTheDocument();
+    // An end-to-end service holds its stages jointly: one choice for them all, and they change together.
+    cleanup();
+    useLineUpStore.setState({ lineUp: { transcription: 'gemini', translation: 'gemini', speech: 'gemini', summarisation: null }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    const whole = document.querySelector('.lineup-stage.is-joint') as HTMLElement;
+    expect(within(whole).getAllByRole('combobox').map((c) => c.getAttribute('aria-label'))).toEqual(['Transcription and translation and speech']);
+    expect(within(whole).getByText(/go over one connection; they change together\./)).toBeInTheDocument();
   });
 
   // Owner, 2026-11-17: one frame and one choice do not merge the stages' options; each stage keeps its own, under its name.
