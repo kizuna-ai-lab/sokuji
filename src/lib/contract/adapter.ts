@@ -8,6 +8,7 @@
  */
 import type { LegName } from '../conversation/types';
 import type { ClientDiagnosticCode } from '../diagnostics/clientDiagnostics';
+import type { RunStage } from '../lineup/types';
 import type { Clock } from './clock';
 import type { DropInfo, ReconnectedInfo, GiveUp } from './reconnect';
 
@@ -111,8 +112,15 @@ export interface AdapterSession {
   readonly info: { transport?: string; shared?: boolean; region?: string };
 }
 
+/**
+ * Which stage of the plan a lifecycle event came from (`failed`, `degraded`, `loading`, `frame`), said by the
+ * composite adapter over a plan whose transcription and translation are separate units; no unit states it.
+ * Absent: the event is the session's as a whole, and whoever reads it files it under the unit that transcribes.
+ */
+export interface FromStage { runStage?: RunStage }
+
 /** One protocol frame an adapter reported (spec D8): what the Logs panel lists. Never audio, never a credential. */
-export interface AdapterFrame {
+export interface AdapterFrame extends FromStage {
   direction: 'in' | 'out';
   type: string;
   payload?: unknown;
@@ -152,7 +160,7 @@ export interface AdapterEvents {
   reconnecting(e?: { attempt: number; drop?: DropInfo }): void;
   reconnected(e?: ReconnectedInfo): void;
   /** The session is broken. Nothing follows. `giveUp`: the reconnect policy's verdict, when it was a reconnect that ended. */
-  failed(e: { message: string; code?: string; cause?: unknown; drop?: DropInfo; giveUp?: Omit<GiveUp, 'code' | 'message'> }): void;
+  failed(e: { message: string; code?: string; cause?: unknown; drop?: DropInfo; giveUp?: Omit<GiveUp, 'code' | 'message'> } & FromStage): void;
   /**
    * Running, degraded. `reason`: a short machine-readable token for
    * analytics only (`tts_408`, `tts_connect_failed`) — never user text,
@@ -160,8 +168,9 @@ export interface AdapterEvents {
    * (Stage 2 Kizuna Soniox, ruling 8). `params`: the values the notice's
    * words name (`{{target}}`), which L1 records on the notice.
    */
-  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string; params?: Record<string, string | number> }): void;
-  loading(e: { stage: string; done: number; total: number }): void;
+  degraded(e: { code: ClientDiagnosticCode; message: string; cause?: unknown; reason?: string; params?: Record<string, string | number> } & FromStage): void;
+  /** `stage`: what is loading, in the adapter's own words; not a stage of the plan (that is `runStage`). */
+  loading(e: { stage: string; done: number; total: number } & FromStage): void;
   busy(e: boolean): void;
   /** Wire traffic for the Logs panel. Never audio, never a credential. */
   frame(e: AdapterFrame): void;

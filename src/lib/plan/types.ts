@@ -6,6 +6,7 @@
 // plan lives elsewhere.
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../contract/speech';
+import type { TranslationEvents, TranslationSession, TranslationStartRequest } from '../contract/translation';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider, ProviderRefusal, SharedSettings } from '../provider/types';
 
@@ -29,6 +30,11 @@ export interface UnitCapabilities {
    * provider translates into (a whole-provider unit).
    */
   speaks?(language: string): boolean;
+  /**
+   * A unit that translates: whether it translates from `source` into `target` (app codes). Absent: the unit
+   * translates whatever its provider's language lists offer (a whole-provider unit).
+   */
+  translates?(source: string, target: string): boolean;
 }
 
 /**
@@ -43,10 +49,21 @@ export interface UnitDefinition<S = any, K = any, C = any> {
   capabilities(s: S): UnitCapabilities;
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
-  /** Absent on a unit that occupies only `speech`: exactly one of `start` and `startSpeech` is present. */
+  /**
+   * A unit that transcribes, alone or with other stages: started through the adapter contract. Absent on a unit
+   * that occupies only `translation`, only `speech`, or those two: such a unit has the start of each stage it
+   * occupies below, and no `start`.
+   */
   start?: Adapter<C, K>['start'];
-  /** A unit that occupies only `speech`: started through this, and has no `start`. */
+  /** A unit that occupies `translation` and does not transcribe: started through the translation contract. */
+  startTranslation?(request: TranslationStartRequest<C, K>, events: TranslationEvents): TranslationSession;
+  /** A unit that occupies `speech` and does not transcribe: started through the speech contract. */
   startSpeech?(request: SpeechStartRequest<C, K>, events: SpeechEvents): SpeechSession;
+}
+
+/** Whether a unit is started through the translation contract (`startTranslation`), not the adapter contract. */
+export function isTranslationUnit(unit: UnitDefinition): unit is UnitDefinition & { startTranslation: NonNullable<UnitDefinition['startTranslation']> } {
+  return unit.startTranslation !== undefined;
 }
 
 /** Whether a unit is started through the speech contract (`startSpeech`), not the adapter contract. */

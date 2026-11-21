@@ -3,7 +3,9 @@
 // The composite adapter: the adapter contract over a run plan, so that
 // everything above the contract runs a plan as it runs one provider (spec
 // §4.4). A plan of one unit passes the contract straight through to it; a plan
-// of a text unit and a speech unit is wired per leg (`compositeLeg.ts`).
+// of a text unit and a speech unit is wired per leg (`compositeLeg.ts`), and
+// so is a plan whose transcription and translation are separate units
+// (`compositeStages.ts`).
 import { AdapterStartError } from '../contract/adapter';
 import type { AdapterEvents, AdapterSession, SessionContext, StartRequest } from '../contract/adapter';
 import { RUN_STAGES } from '../lineup/types';
@@ -12,6 +14,7 @@ import type { LegName } from '../conversation/types';
 import type { ProviderRefusal, SharedSettings } from '../provider/types';
 import type { RunShape } from '../session/types';
 import { startCompositeLeg, textAndSpeech } from './compositeLeg';
+import { separateStages, startStagedLeg } from './compositeStages';
 import { accountOf, unitFor } from './read';
 import type { PlannedUnit, RunPlan } from './types';
 
@@ -72,9 +75,11 @@ export function describePlan(plan: RunPlan, configs: PlanConfigs): Models {
  * The adapter contract over a plan. `credentials` answers each unit's own `K`.
  * One unit: its own `start`, with its config and credentials and the same
  * `events`, and its own session. A text unit and a speech unit: one leg wired
- * between them. `leg`: the leg's name, told to a speech unit; a lone leg is
- * the speaker to its units unless the caller says otherwise. Any other plan
- * rejects with `plan_unsupported`.
+ * between them. A unit that transcribes, a unit that translates and a unit
+ * that speaks: one leg wired through all three. `leg`: the leg's name, told to
+ * the units that translate and speak; a lone leg is the speaker to its units
+ * unless the caller says otherwise. Any other plan rejects with
+ * `plan_unsupported`.
  */
 export function startComposite(
   plan: RunPlan,
@@ -84,8 +89,10 @@ export function startComposite(
 ): Promise<AdapterSession> {
   if (plan.units.length !== 1) {
     const units = textAndSpeech(plan);
-    if (!units) return Promise.reject(new AdapterStartError('Only a plan of one unit, or of a text unit and a speech unit, can start.', 'plan_unsupported'));
-    return startCompositeLeg(units.text, units.speech, request, events, leg);
+    if (units) return startCompositeLeg(units.text, units.speech, request, events, leg);
+    const staged = separateStages(plan);
+    if (staged) return startStagedLeg(staged, request, events, leg);
+    return Promise.reject(new AdapterStartError('Only a plan of one unit, of a text unit and a speech unit, or of a unit for transcription, one for translation and one for speech, can start.', 'plan_unsupported'));
   }
   const [unit] = plan.units;
   if (!unit.unit.start) return Promise.reject(new AdapterStartError('A plan of a speech unit alone cannot start.', 'plan_unsupported'));

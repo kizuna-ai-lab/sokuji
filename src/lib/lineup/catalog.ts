@@ -36,12 +36,15 @@ export const CAPS: readonly ProviderCaps[] = [
   // The E2E build (`--mode e2e`) runs its sessions on the fake providers, so there a line-up may name them.
   // Elsewhere they stay out: a development build reaches the fake through the stored provider alone.
   // The fake transcribes and translates together and may be read by another voice; the fake voice serves speech
-  // alone, beside another provider's transcription and translation.
+  // alone, beside another provider's transcription and translation. The fake transcriber and the fake translator
+  // each serve their one stage, each a host of its own, so a line-up of the three runs every stage apart.
   ...(import.meta.env.MODE === 'e2e'
     ? [
         { id: 'fake', stages: ALL, host: 'fake', joint: JOINT, account: 'none', voiceAlone: false, takesVoice: true } satisfies ProviderCaps,
         endToEnd('fake_leased', 'none'),
         { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false } satisfies ProviderCaps,
+        { id: 'fake_transcriber', stages: ['transcription'], host: 'fake_transcriber', account: 'none', voiceAlone: false, takesVoice: true } satisfies ProviderCaps,
+        { id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'none', voiceAlone: false, takesVoice: true } satisfies ProviderCaps,
       ]
     : []),
 ];

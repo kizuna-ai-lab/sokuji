@@ -8,6 +8,8 @@ import { LEGACY_SLICE_KEYS } from '../lib/session/storedSettings';
 import { isKizunaAIEnabled } from '../utils/environment';
 import { fakeLeasedProvider } from './fake/leased';
 import { fakeProvider } from './fake/provider';
+import { fakeTranscriberProvider } from './fake/transcriber';
+import { fakeTranslatorProvider } from './fake/translator';
 import { fakeVoiceProvider } from './fake/voice';
 import { FAKE_DEFAULTS } from './fake/settings';
 import { PROVIDERS, currentPresenceEnv, getProvider, presentProviders } from './registry';
@@ -66,6 +68,8 @@ describe('the registry', () => {
     expect(getProvider('fake')).toBe(fakeProvider);
     expect(getProvider('fake_leased')).toBe(fakeLeasedProvider);
     expect(getProvider('fake_voice')).toBe(fakeVoiceProvider);
+    expect(getProvider('fake_transcriber')).toBe(fakeTranscriberProvider);
+    expect(getProvider('fake_translator')).toBe(fakeTranslatorProvider);
     for (const platform of ['electron', 'extension', 'web'] as const) {
       const ids = presentProviders({ platform, dev: true, enabled: new Set(), kizuna: true, switchOn: () => false }).map((p) => p.id);
       expect(ids).toContain('fake');
@@ -80,6 +84,8 @@ describe('the registry', () => {
     expect(released.PROVIDERS.map((p) => p.id)).not.toContain('fake');
     expect(released.PROVIDERS.map((p) => p.id)).not.toContain('fake_leased');
     expect(released.PROVIDERS.map((p) => p.id)).not.toContain('fake_voice');
+    expect(released.PROVIDERS.map((p) => p.id)).not.toContain('fake_transcriber');
+    expect(released.PROVIDERS.map((p) => p.id)).not.toContain('fake_translator');
   });
 
   it("a release build offers no flagged provider and, without the umbrella, no managed one (D24 release check, F6)", () => {
@@ -140,7 +146,7 @@ describe('the invariants every provider meets (F17)', () => {
     vi.resetModules();
   });
 
-  const DEV_ONLY_IDS = ['fake', 'fake_leased', 'fake_voice'];
+  const DEV_ONLY_IDS = ['fake', 'fake_leased', 'fake_voice', 'fake_transcriber', 'fake_translator'];
   const released = PROVIDERS.filter((p) => !DEV_ONLY_IDS.includes(p.id));
   const at = (tree: unknown, path: string) => path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown> | undefined)?.[key], tree);
   const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
@@ -364,8 +370,8 @@ describe('the invariants every provider meets (F17)', () => {
     expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'kizunaai_qwen', 'local_inference', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'qwen_livetranslate', 'palabraai']);
   });
 
-  it('a development build adds exactly the three fakes', () => {
-    expect(PROVIDERS.map((p) => p.id)).toEqual([...released.map((p) => p.id), 'fake', 'fake_leased', 'fake_voice']);
+  it('a development build adds exactly the five fakes', () => {
+    expect(PROVIDERS.map((p) => p.id)).toEqual([...released.map((p) => p.id), 'fake', 'fake_leased', 'fake_voice', 'fake_transcriber', 'fake_translator']);
   });
 });
 

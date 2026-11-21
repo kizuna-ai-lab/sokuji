@@ -3,11 +3,14 @@
 // Both legs of a plan of a text unit and a speech unit, over a text provider
 // that starts both legs at once: one voice per speaking leg, a translation
 // into the other leg's language read by that leg's voice, and one numbering
-// of a row's audio whichever voice reads it (spec §7.2).
+// of a row's audio whichever voice reads it (spec §7.2). A plan whose
+// transcription and translation are separate units starts each leg on its
+// own instead (`compositeStages.ts`).
 import { AdapterStartError } from '../contract/adapter';
 import type { AdapterEvents, AdapterSession, Ref } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import { CompositeLeg, textAndSpeech, type PlanRequest, type Voices } from './compositeLeg';
+import { separateStages, startStagedBoth } from './compositeStages';
 import type { RunPlan } from './types';
 
 const LEGS: readonly LegName[] = ['speaker', 'participant'];
@@ -23,12 +26,17 @@ const LEGS: readonly LegName[] = ['speaker', 'participant'];
  * connection number their rows together, and either voice may read a row; legs that do not number them apart.
  *
  * A text provider that fails to start rejects with its own error (a `LegStartError` names the leg).
+ *
+ * A plan whose transcription and translation are separate units is not started this way: each of its legs starts
+ * on its own, with its own sessions and voice, whether or not the provider that transcribes can start both.
  */
 export async function startCompositeBoth(
   plan: RunPlan,
   requests: Record<LegName, PlanRequest>,
   events: Record<LegName, AdapterEvents>,
 ): Promise<Record<LegName, AdapterSession>> {
+  const staged = separateStages(plan);
+  if (staged) return startStagedBoth(staged, requests, events);
   const units = textAndSpeech(plan);
   const startBoth = units?.text.provider.session?.startBoth;
   if (!units || !startBoth) throw new AdapterStartError('Both legs start together only over a text unit whose provider starts both, and a speech unit.', 'plan_unsupported');

@@ -5,6 +5,8 @@
 // Kizuna Soniox, the own-key one with Soniox (Stage 2).
 import { Provider } from '../../types/Provider';
 import type { ProviderType } from '../../types/Provider';
+import { RUN_STAGES, TR_TL } from '../../lib/lineup/types';
+import type { RunStage } from '../../lib/lineup/types';
 import type { AnyProvider } from '../../lib/provider/types';
 import { providerIdFromStored } from '../../lib/session/storedSettings';
 import { presentProviders } from '../../providers/registry';
@@ -51,8 +53,15 @@ export function providerFits(provider: ProviderType, scenario: ScenarioId): bool
   return p !== undefined && providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true).ok;
 }
 
-/** Whether a provider can run a session by itself: one of its units takes audio and gives text. A provider that only speaks is not a path. */
-const runsAlone = (p: AnyProvider): boolean => unitsOf(p).some((unit) => unit.start !== undefined);
+const TEXT_STAGES: ReadonlySet<RunStage> = new Set(TR_TL);
+const EVERY_STAGE: ReadonlySet<RunStage> = new Set(RUN_STAGES);
+
+/**
+ * Whether a provider can run a session by itself: one of its units takes audio and gives a translation, alone or
+ * with speech. A provider that only speaks, only transcribes or only translates is not a path.
+ */
+const runsAlone = (p: AnyProvider): boolean => unitsOf(p).some((unit) =>
+  unit.start !== undefined && (unit.occupies(p.settings.defaults, EVERY_STAGE) !== null || unit.occupies(p.settings.defaults, TEXT_STAGES) !== null));
 
 /** The registry's own-key providers that can run a session alone, in its order, each with its fit for the scenario — unfit ones greyed with the reason, never hidden. */
 export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {

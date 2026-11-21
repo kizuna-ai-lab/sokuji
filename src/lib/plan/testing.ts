@@ -5,6 +5,7 @@
 // list what they are asked. Imported by tests only.
 import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from '../contract/adapter';
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../contract/speech';
+import type { SourceSnapshot, TranslationEvents, TranslationSession, TranslationStartRequest } from '../contract/translation';
 import type { LegName } from '../conversation/types';
 import { allStagesBy, CAPS } from '../lineup/catalog';
 import type { StageIds } from '../lineup/types';
@@ -79,9 +80,10 @@ export interface StubTextStart {
 /**
  * A text unit (transcription and translation) of a stub provider. A test emits its events through `starts[n].events`.
  * `held`: a start stays pending until the test opens or refuses it, and rejects when its signal aborts.
+ * `deaf`: a held start that does not hear its signal: it settles only when the test says.
  * `fails`: every start rejects with it. `session`: members that replace the stub session's.
  */
-export function stubTextUnit(calls: StubCalls = [], o: { held?: boolean; fails?: unknown; session?: Partial<AdapterSession>; provider?: Record<string, unknown> } = {}) {
+export function stubTextUnit(calls: StubCalls = [], o: { held?: boolean; deaf?: boolean; fails?: unknown; session?: Partial<AdapterSession>; provider?: Record<string, unknown> } = {}) {
   const starts: StubTextStart[] = [];
   const start = (request: StartRequest<unknown, unknown>, events: AdapterEvents): Promise<AdapterSession> => {
     calls.push(['text.start']);
@@ -90,6 +92,7 @@ export function stubTextUnit(calls: StubCalls = [], o: { held?: boolean; fails?:
       const abort = () => reject(request.signal.reason ?? new Error('aborted'));
       starts.push({ request, events, session, open: () => resolve(session), refuse: reject });
       if (o.fails !== undefined) reject(o.fails);
+      else if (o.deaf) return;
       else if (request.signal.aborted) abort();
       else if (o.held) request.signal.addEventListener('abort', abort, { once: true });
       else resolve(session);
@@ -111,9 +114,10 @@ export interface StubVoice {
 /**
  * A speech unit of a stub provider: every call is listed as `voice.<call>` with its leg.
  * `answers`: each `speak` while speech is on is answered at once with one audio entry over its span.
- * `fails`: `startSpeech` throws it. `recycles`: false leaves `recycle` out. `provider`: members of its stub provider.
+ * `fails`: `startSpeech` throws it. `closeFails`: `close` throws it. `recycles`: false leaves `recycle` out.
+ * `provider`: members of its stub provider.
  */
-export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fails?: unknown; openFails?: unknown; recycles?: boolean; provider?: Record<string, unknown> } = {}) {
+export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fails?: unknown; openFails?: unknown; closeFails?: unknown; recycles?: boolean; provider?: Record<string, unknown> } = {}) {
   const voices: StubVoice[] = [];
   const startSpeech = (request: SpeechStartRequest<unknown, unknown>, events: SpeechEvents): SpeechSession => {
     const note = (what: string, ...rest: unknown[]) => { calls.push([`voice.${what}`, request.leg, ...rest]); };
@@ -138,12 +142,72 @@ export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fa
       endUtterance: (ref) => note('endUtterance', ref),
       setOn: (next) => { on = next; note('setOn', next); },
       ...(o.recycles === false ? {} : { recycle: () => note('recycle') }),
-      close: () => { closed = true; note('close'); },
+      close: () => {
+        closed = true;
+        note('close');
+        if (o.closeFails !== undefined) throw o.closeFails;
+      },
     };
   };
   const [whole] = wholePlan(stubProvider('stub_voice', o.provider)).units;
   const planned: PlannedUnit = { ...whole, unit: { ...whole.unit, start: undefined, startSpeech }, stages: ['speech'] };
   return { planned, voices };
+}
+
+/** One session of a stub translation unit. */
+export interface StubTranslation {
+  request: TranslationStartRequest<unknown, unknown>;
+  events: TranslationEvents;
+  /** The snapshots it was handed, in order. */
+  sources: SourceSnapshot[];
+  /** A held open resolves. */
+  open(): void;
+  /** A held open rejects. */
+  refuse(error: unknown): void;
+}
+
+/**
+ * A translation unit of a stub provider: every call is listed as `translation.<call>` with its leg. A test emits
+ * its events through `sessions[n].events`. `held`: an open stays pending until the test opens or refuses it.
+ * `fails`: `startTranslation` throws it. `openFails`: every open rejects with it. `session`: members that replace
+ * the stub session's.
+ */
+export function stubTranslationUnit(calls: StubCalls = [], o: { held?: boolean; fails?: unknown; openFails?: unknown; session?: Partial<TranslationSession>; provider?: Record<string, unknown> } = {}) {
+  const sessions: StubTranslation[] = [];
+  const startTranslation = (request: TranslationStartRequest<unknown, unknown>, events: TranslationEvents): TranslationSession => {
+    const note = (what: string, ...rest: unknown[]) => { calls.push([`translation.${what}`, request.leg, ...rest]); };
+    note('start');
+    if (o.fails !== undefined) throw o.fails;
+    const sources: SourceSnapshot[] = [];
+    let settle!: { resolve(): void; reject(error: unknown): void };
+    const opening = new Promise<void>((resolve, reject) => { settle = { resolve, reject }; });
+    // A held open nobody refuses must not be an unhandled rejection when the test ends.
+    opening.catch(() => {});
+    sessions.push({ request, events, sources, open: () => settle.resolve(), refuse: (error) => settle.reject(error) });
+    return {
+      open: () => {
+        note('open');
+        if (o.openFails !== undefined) return Promise.reject(o.openFails);
+        if (!o.held) settle.resolve();
+        return opening;
+      },
+      source: (snapshot) => { sources.push({ ...snapshot }); note('source', snapshot.origin, snapshot.text, snapshot.stableLen, snapshot.closed); },
+      stop: async () => note('stop'),
+      ...o.session,
+    };
+  };
+  const [whole] = wholePlan(stubProvider('stub_translation', o.provider)).units;
+  const planned: PlannedUnit = { ...whole, unit: { ...whole.unit, start: undefined, startTranslation }, stages: ['translation'] };
+  return { planned, sessions };
+}
+
+/**
+ * The plan of a unit that only transcribes, a unit that translates and a unit that speaks. `transcription`: a stub
+ * text unit, taken here for transcription alone.
+ */
+export function separatePlan(transcription: PlannedUnit, translation: PlannedUnit, speech: PlannedUnit): RunPlan {
+  const alone: PlannedUnit = { ...transcription, stages: ['transcription'] };
+  return { units: [alone, translation, speech], byStage: { transcription: alone, translation, speech } };
 }
 
 /** The plan of a text unit that transcribes and translates and a speech unit that speaks. */
