@@ -1845,7 +1845,6 @@
       "and": " und ",
       "joint": "Läuft mit {{stages}} über eine Verbindung; sie wechseln gemeinsam.",
       "granite": "Mit Übersetzung: Granite Speech macht aus Sprache direkt die Übersetzung.",
-      "moved": "{{stages}} ist ebenfalls zu {{providers}} gewechselt: Mit dieser Wahl lässt sich das noch nicht kombinieren. Mischen wird später unterstützt.",
       "needsKey": "braucht einen Schlüssel",
       "needsSignIn": "Anmeldung nötig",
       "options": "Optionen von {{provider}}",

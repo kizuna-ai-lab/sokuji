@@ -45,7 +45,7 @@ vi.mock('../../stores/modelStore', () => ({
   },
 }));
 
-let mockStages: { translation: 'bing' | 'local'; speech: 'edge' | 'local' } | null = null;
+let mockStages: { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null } | null = null;
 vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => mockStages }));
 import { checkLocalInference, watchLocalInferenceReadiness } from './check';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
@@ -188,6 +188,25 @@ describe('the stored line-up in the readiness check', () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't', tts: null } });
     await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] });
     expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'local', speech: 'edge' });
+    mockStages = null;
+  });
+
+  it('is ready with no recognition and no translation model while the line-up gives it speech alone', async () => {
+    resolved({});
+    for (const speech of ['edge', 'local'] as const) {
+      mockStages = { translation: null, speech };
+      mockResolve.mockClear();
+      expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'] })).toEqual({ ok: true });
+      // Nothing is asked of the models: a speech model that is missing is said when the session starts.
+      expect(mockResolve).not.toHaveBeenCalled();
+    }
+    mockStages = null;
+  });
+
+  it('still asks for its recognition and translation models while another provider only speaks', async () => {
+    mockStages = { translation: 'local', speech: null };
+    resolved({});
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toMatchObject({ ok: false, code: 'local_models_missing' });
     mockStages = null;
   });
 });

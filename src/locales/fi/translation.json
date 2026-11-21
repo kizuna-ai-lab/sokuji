@@ -1845,7 +1845,6 @@
       "and": " ja ",
       "joint": "Kulkee yhdessä vaiheen {{stages}} kanssa yhden yhteyden kautta; ne vaihtuvat yhdessä.",
       "granite": "Käännöksen kanssa: Granite Speech muuttaa puheen suoraan käännökseksi.",
-      "moved": "{{stages}} siirtyi myös palveluun {{providers}}: tätä valintaa ei voi vielä yhdistellä muiden kanssa. Yhdistelyä tuetaan myöhemmin.",
       "needsKey": "tarvitsee avaimen",
       "needsSignIn": "vaatii kirjautumisen",
       "options": "{{provider}}: asetukset",

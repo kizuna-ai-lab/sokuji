@@ -1845,7 +1845,6 @@
       "and": " och ",
       "joint": "Går ihop med {{stages}} över en anslutning; de byts tillsammans.",
       "granite": "Med översättning: Granite Speech gör tal direkt till översättningen.",
-      "moved": "{{stages}} flyttades också till {{providers}}: det går ännu inte att kombinera med det här valet. Blandning kommer att stödjas senare.",
       "needsKey": "behöver nyckel",
       "needsSignIn": "kräver inloggning",
       "options": "Alternativ för {{provider}}",

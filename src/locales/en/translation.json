@@ -1845,7 +1845,6 @@
       "and": " and ",
       "joint": "Goes with {{stages}} over one connection; they change together.",
       "granite": "With translation: Granite Speech turns speech straight into the translation.",
-      "moved": "{{stages}} moved to {{providers}} too: they cannot be combined with this choice yet. Mixing will be supported later.",
       "needsKey": "needs a key",
       "needsSignIn": "needs a sign-in",
       "options": "{{provider}} options",

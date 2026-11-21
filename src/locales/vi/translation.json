@@ -1845,7 +1845,6 @@
       "and": " và ",
       "joint": "Đi cùng {{stages}} qua một kết nối; chúng đổi cùng nhau.",
       "granite": "Cùng với dịch: Granite Speech chuyển thẳng lời nói thành bản dịch.",
-      "moved": "{{stages}} cũng chuyển sang {{providers}}: hiện chưa thể kết hợp với lựa chọn này. Việc phối trộn sẽ được hỗ trợ sau.",
       "needsKey": "cần khóa",
       "needsSignIn": "cần đăng nhập",
       "options": "Tùy chọn của {{provider}}",

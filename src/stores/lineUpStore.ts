@@ -259,7 +259,7 @@ async function chooseNow(stage: StageName, providerId: string | null): Promise<C
   const { getState: get, setState: set } = useLineUpStore;
   const { lineUp, stored, unstoredProvider } = get();
   if (get().locked || !lineUp) return null;
-  const choice = chooseIn(lineUp, stage, providerId, { providers: presentHosts(), settings: (id) => useProviderStore.getState().entries[id]?.settings });
+  const choice = chooseIn(lineUp, stage, providerId);
   // Shown before the save: a run starting while the line-up is being written runs the new one. A line-up shown but
   // not stored yet is stored by its first choice.
   set({ lineUp: choice.lineUp, stored: true, unstoredProvider: null });

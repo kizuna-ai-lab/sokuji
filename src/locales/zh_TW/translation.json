@@ -1845,7 +1845,6 @@
       "and": "和",
       "joint": "和{{stages}}共用一條連線，會一起換。",
       "granite": "與翻譯一起：Granite Speech 直接把語音變成譯文。",
-      "moved": "{{stages}}也換成了{{providers}}：目前還不能和這個選擇混用，以後會支援。",
       "needsKey": "需要金鑰",
       "needsSignIn": "需要登入",
       "options": "{{provider}} 的選項",

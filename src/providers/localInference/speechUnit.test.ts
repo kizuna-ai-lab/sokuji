@@ -137,14 +137,14 @@ describe("the local provider's speech unit", () => {
     const speaks = (language: string) => localSpeechUnit.capabilities(SETTINGS).speaks!(language);
     // Basque: no speech model of the catalog and no Edge voice. Javanese: an Edge voice, and no speech model.
     it("Edge's own list where the line-up gives speech to Edge", () => {
-      mockStored = { translation: 'local', speech: 'edge' };
+      mockStored = { translation: null, speech: 'edge' };
       expect(['en', 'ja', 'jv', 'pt-BR'].map(speaks)).toEqual([true, true, true, true]);
       expect(['eu', 'xx'].map(speaks)).toEqual([false, false]);
       expect(EDGE_TTS_LANGUAGES).toContain('jv');
       expect(EDGE_TTS_LANGUAGES).not.toContain('eu');
     });
     it('the languages some speech model of the catalog speaks, downloaded or not, where a model on this machine speaks', () => {
-      mockStored = { translation: 'local', speech: 'local' };
+      mockStored = { translation: null, speech: 'local' };
       expect(getTtsModelsForLanguage('en').some((m) => !m.isCloudModel)).toBe(true);
       expect(getTtsModelsForLanguage('jv').some((m) => !m.isCloudModel)).toBe(false);
       expect(['en', 'jv', 'eu'].map(speaks)).toEqual([true, false, false]);
@@ -171,7 +171,7 @@ describe("the local provider's speech unit", () => {
 
     it('is the same again when the run hands over a line-up that is all on this device, whatever the store holds', () => {
       // The store disagrees with the frozen line-up: the frozen one is read.
-      mockStored = { translation: 'local', speech: 'local' };
+      mockStored = { translation: null, speech: 'local' };
       const edge = shared({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
       expect(localSpeechUnit.build(ctx(JA_EN), SETTINGS, edge)).toEqual({ modelId: 'edge-tts', speakerId: 3, speed: 1.25, edgeVoice: 'en-US-AvaNeural' });
       expect(localSpeechUnit.build(ctx(JA_EN), SETTINGS, edge)).toEqual(whole(ctx(JA_EN), edge));
