@@ -23,6 +23,11 @@ describe('providerPaths', () => {
     expect(ownKeyOptions('understand-others').map((o) => o.id)).toEqual(['gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'soniox', 'palabraai', 'fake']);
   });
 
+  it('offers no provider that serves one stage alone: one that only speaks, only transcribes or only translates runs no session by itself', () => {
+    const offered = ownKeyOptions('understand-others').map((o) => o.id as string);
+    for (const id of ['fake_voice', 'fake_transcriber', 'fake_translator']) expect(offered, id).not.toContain(id);
+  });
+
   it('greys the offline path for face-to-face: the in-app engine cannot attribute two people', () => {
     expect(offlineFit('face-to-face-voice')).toEqual({ ok: false, reason: 'cannot-face-to-face' });
     expect(offlineFit('two-way-voice')).toEqual({ ok: true });
