@@ -24,13 +24,16 @@ vi.mock('../../../services/ServiceFactory', () => ({
 const runSpeech = vi.hoisted(() => ({ value: null as boolean | null }));
 vi.mock('../../../app/useRun', () => ({ useRunParticipantSpeech: () => runSpeech.value }));
 const shapeOverride = vi.hoisted(() => ({ provider: null as null | { id: string; speech: 'always' | 'optional' | 'never'; participantSpeech?: boolean } }));
-vi.mock('../../../lib/session/appShape', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../lib/session/appShape')>();
+// A stand-in for the speech flags of the plan's provider: the speech unit reads them, its provider stays the plan's.
+vi.mock('../../../lib/plan/fromStores', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../lib/plan/fromStores')>();
   return {
     ...actual,
-    selectedFromStores: () => (shapeOverride.provider
-      ? { provider: shapeOverride.provider, entry: { settings: {}, credentials: {}, pair: { source: 'ja', target: 'en' } } }
-      : actual.selectedFromStores()),
+    useStageUnit: (stage: Parameters<typeof actual.useStageUnit>[0]) => {
+      const unit = actual.useStageUnit(stage);
+      const p = shapeOverride.provider;
+      return p && unit ? { ...unit, capabilities: { speech: p.speech, participantSpeech: p.participantSpeech !== false } as never } : unit;
+    },
   };
 });
 const env = vi.hoisted(() => ({ platform: 'electron' as 'electron' | 'extension' | 'web', os: 'mac' as 'mac' | 'win' | 'linux' }));

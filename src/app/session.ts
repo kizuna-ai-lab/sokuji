@@ -27,6 +27,8 @@ import { notesSpeakerLabel } from '../lib/notes/runner';
 import type { HistorySentence } from '../lib/history/types';
 import { askQuitWhileNotes, type QuitAnswer, type QuitRecord } from '../lib/notes/quitQuestion';
 import type { NotesRunner } from '../lib/notes/runner';
+import { planOnceSelected } from '../lib/plan/fromStores';
+import type { RunPlan } from '../lib/plan/types';
 import type { AuthContext } from '../lib/provider/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
@@ -140,6 +142,16 @@ const IDLE: KaraokeState = { lit: new Map(), replaying: null };
 const HISTORY_CLOSE_WAIT_MS = 2000;
 /** At a quit, how long the cancelled notes versions may take to be saved. */
 const NOTES_CANCEL_WAIT_MS = 5000;
+
+/**
+ * The plan the app's readiness driver checks: the plan as the stores stand once a provider is selected
+ * (`planOnceSelected`), else none. A selection this build does not offer falls back, as the plan does, to the first
+ * provider offered.
+ */
+export function readinessPlan(): RunPlan | null {
+  const found = planOnceSelected();
+  return found.state === 'ready' ? found.plan : null;
+}
 
 export function createAppSession(options: AppSessionOptions = {}): AppSession {
   const clock = options.clock ?? realClock;
@@ -615,7 +627,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         // The languages on offer follow whether a start would speak (Stage 2 Volcengine AST2, choice 1).
         watchSpeechFromStores(),
         driveReadiness({
-          runner, providers: () => presentProviders(), auth: () => bridges.auth, clock,
+          runner, providers: () => presentProviders(), plan: readinessPlan, auth: () => bridges.auth, clock,
           watchSignIn: (fn) => { signInWatchers.add(fn); return () => { signInWatchers.delete(fn); }; },
         }),
         // A custom voice filed under the previous account is checked against the new one (voice reconcile).

@@ -4,9 +4,9 @@
 // it too" — computed once for the speech section and the toolbar's headphones
 // entry, so both follow the same rules (providers and stages design, ruling 19).
 import { useRunParticipantSpeech } from '../../app/useRun';
-import { heardFromStores, selectedFromStores } from '../../lib/session/appShape';
+import { useStageUnit } from '../../lib/plan/fromStores';
+import { heardFromStores } from '../../lib/session/appShape';
 import { useAudioContext, useMode, useParticipantCaptureWidened, useSelectedParticipantSource } from '../../stores/audioStore';
-import { useProviderStore } from '../../stores/providerStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useTextOnly } from '../../stores/settingsStore';
 import { useFaceToFace } from './useFaceToFace';
@@ -15,12 +15,10 @@ export function useHearingRows(isSessionActive: boolean) {
   const mode = useMode();
   const f2f = useFaceToFace();
   const faceToFace = f2f.active;
-  // Subscribed so the provider's speech rules follow a switch of provider.
-  useProviderStore((s) => s.selected);
-  useProviderStore((s) => s.entries);
-  const provider = selectedFromStores()?.provider;
-  const speech = provider?.speech ?? 'optional';
-  const participantOffered = provider?.participantSpeech !== false;
+  // The speech unit's rules, as the plan stands: they follow a change of the plan or of its provider's settings.
+  const speechUnit = useStageUnit('speech');
+  const speech = speechUnit?.capabilities.speech ?? 'optional';
+  const participantOffered = speechUnit ? speechUnit.capabilities.participantSpeech : true;
   const textOnly = useTextOnly();
   const participantSpeech = useRoutingStore((s) => s.participantSpeech);
   const setParticipantSpeech = useRoutingStore((s) => s.setParticipantSpeech);

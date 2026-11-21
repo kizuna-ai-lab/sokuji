@@ -1,8 +1,9 @@
 // src/lib/plan/read.ts
 //
 // Reading a run plan: its providers, the unit that serves a stage, the one
-// provider that stands for the run where a single id is asked for, a
-// provider's account as the run froze it, and what a stage's unit can do.
+// provider that stands for the run where a single id is asked for and its
+// account, a provider's account as the run froze it, and what a stage's unit
+// can do.
 // Pure; nothing here reads a store or the registry.
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
@@ -24,6 +25,17 @@ export function unitFor(plan: RunPlan, stage: RunStage): PlannedUnit {
 /** The provider that transcribes: the run's identity where one provider id is asked for. */
 export function transcriptionProvider(plan: RunPlan): AnyProvider {
   return plan.byStage.transcription.provider;
+}
+
+/**
+ * The transcription provider's entry in a plan's accounts: the run's pair and settings where one provider's are asked
+ * for. Throws when the accounts hold none for it.
+ */
+export function transcriptionAccount<A>(found: { plan: RunPlan; accounts: Readonly<Record<string, A>> }): A {
+  const { id } = transcriptionProvider(found.plan);
+  const account: A | undefined = found.accounts[id];
+  if (account === undefined) throw new Error(`No account was found for ${id}, the plan's transcription provider.`);
+  return account;
 }
 
 /** A provider's settings and saved credential values at start. Throws for a provider that is not in the plan. */

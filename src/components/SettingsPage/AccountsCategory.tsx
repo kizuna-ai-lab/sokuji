@@ -12,6 +12,8 @@ import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
 import { caps } from '../../lib/lineup/catalog';
 import { RUN_STAGES, type RunStage } from '../../lib/lineup/types';
+import { planOnceSelected } from '../../lib/plan/fromStores';
+import { transcriptionProvider } from '../../lib/plan/read';
 import type { AnyProvider } from '../../lib/provider/types';
 import { presentProviders } from '../../providers/registry';
 import { useProviderStore } from '../../stores/providerStore';
@@ -75,14 +77,17 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   }, []);
   const localModels = MODEL_MANIFEST.filter((m) => !m.isCloudModel && m.type !== 'punctuation' && m.type !== 'turn' && statuses[m.id] === 'downloaded').length;
 
-  // Opened by a notice or the tour about a key or a sign-in: the selected provider's account is shown open.
+  // Opened by a notice or the tour about a key or a sign-in: the account of the provider that transcribes is shown open.
   useEffect(() => {
     if (openedBy === 'user-account') { setOpen('kizuna'); return; }
     // One provider's key, named by the link that opened the page (owner, 2026-11-17): that provider's row, whatever the session runs on.
     const named = providerOfTarget(openedBy);
     if (named) { setOpen(accountKeyOf(named)); return; }
     if (openedBy !== 'provider') return;
-    const p = providers.find((x) => x.id === useProviderStore.getState().selected);
+    // The plan's transcription provider; the selection while the plan loads, as before.
+    const found = planOnceSelected();
+    const id = found.state === 'ready' ? transcriptionProvider(found.plan).id : useProviderStore.getState().selected;
+    const p = providers.find((x) => x.id === id);
     if (p?.kind === 'managed') setOpen('kizuna');
     else if (p?.kind === 'own-key') setOpen(OPENAI_IDS.includes(p.id) ? 'openai' : p.id);
   }, [openedBy, providers]);

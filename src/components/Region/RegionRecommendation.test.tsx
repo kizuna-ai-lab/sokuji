@@ -18,6 +18,11 @@ const trackEvent = vi.hoisted(() => vi.fn());
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent }) }));
 const layout = vi.hoisted(() => ({ wizardOpen: false }));
 vi.mock('../../stores/layoutStore', () => ({ useSetupWizardOpen: () => layout.wizardOpen }));
+// Kizuna Qwen is flagged off in this build: offered here, so a selection of it is what the plan runs.
+vi.mock('../../providers/registry', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../providers/registry')>();
+  return { ...actual, presentProviders: () => [...actual.presentProviders(), actual.getProvider('kizunaai_qwen')!] };
+});
 
 import RegionRecommendation from './RegionRecommendation';
 import { useProviderStore } from '../../stores/providerStore';

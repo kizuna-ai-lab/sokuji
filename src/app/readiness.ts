@@ -1,13 +1,15 @@
 /**
  * The app's readiness driver (F1; 1e-3 ruling 16 for local providers; the
- * controller's timing ruling). Checks the selected provider, of every
- * kind, while its readiness is unknown, and only while the runner is idle:
- * a change seen mid-run is checked once idle again.
+ * controller's timing ruling). Checks every provider of the plan a start
+ * would run, of every kind, while its readiness is unknown, and only while
+ * the runner is idle: a change seen mid-run is checked once idle again.
+ * Each provider keeps its own timer, so one provider's edit never pushes
+ * out another's check.
  * - A local provider: every check after `READINESS_DELAY_MS`, as before;
  *   its own inputs changing (`watchReadiness`: LocalInference's
  *   downloads) re-checks it too.
  * - An own-key or managed provider: at once — on the clock's next turn,
- *   never inside a store's notification — when it is selected, when its
+ *   never inside a store's notification — when it joins the plan, when its
  *   entry loads, and on a sign-in flip; every other reset (an edit to its
  *   credentials or to a setting it reads — and, for one whose check reads
  *   them, its pair or the legs) after `NETWORK_READINESS_DELAY_MS`, so
@@ -15,9 +17,11 @@
  *   the pair or the legs: a pick or an audio-mode switch checks none.
  * - A sign-in flip forgets every loaded managed provider's readiness.
  * - A flip heard while a run is on forgets those answers at once; the
- *   selected provider is re-checked once idle, after the edit delay.
+ *   plan's managed providers are re-checked once idle, after the edit delay.
  */
 import type { Clock } from '../lib/contract/clock';
+import { providersIn } from '../lib/plan/read';
+import type { RunPlan } from '../lib/plan/types';
 import type { AnyProvider, AuthContext } from '../lib/provider/types';
 import type { Runner } from '../lib/session/runner';
 import { useProviderStore } from '../stores/providerStore';
@@ -28,7 +32,10 @@ export const NETWORK_READINESS_DELAY_MS = 800;
 
 export interface ReadinessDriverDeps {
   runner: Pick<Runner, 'state'>;
+  /** Every provider offered: a sign-in flip forgets each loaded managed one, in the plan or not. */
   providers(): readonly AnyProvider[];
+  /** The plan whose providers are checked, once every entry of it has loaded; null while there is none. */
+  plan(): RunPlan | null;
   auth(): AuthContext;
   clock: Pick<Clock, 'setTimeout'>;
   /** Calls back on every sign-in flip; returns the unsubscribe. Absent: no sign-in is watched. */
@@ -37,73 +44,97 @@ export interface ReadinessDriverDeps {
   networkDelayMs?: number;
 }
 
-export function driveReadiness({ runner, providers, auth, clock, watchSignIn, delayMs = READINESS_DELAY_MS, networkDelayMs = NETWORK_READINESS_DELAY_MS }: ReadinessDriverDeps): () => void {
-  let cancel: (() => void) | null = null;
-  /** The pending check was scheduled at once: a later reset reads the same live inputs when it runs, so it is not pushed out. */
-  let pendingAtOnce = false;
-  let watched: { id: string; off: () => void } | null = null;
-  /** The selected provider whose loaded entry was last evaluated: any other one is just selected, or just loaded. */
-  let seen: string | null = null;
-  /** Its inputs changed while a run was on: check once the runner is idle again. */
-  let stale = false;
+export function driveReadiness({ runner, providers, plan, auth, clock, watchSignIn, delayMs = READINESS_DELAY_MS, networkDelayMs = NETWORK_READINESS_DELAY_MS }: ReadinessDriverDeps): () => void {
+  /** Each provider's pending check, by id. */
+  const cancel = new Map<string, () => void>();
+  /** The providers whose pending check was scheduled at once: a later reset reads the same live inputs when it runs, so it is not pushed out. */
+  const pendingAtOnce = new Set<string>();
+  /** Each provider of the plan whose own inputs are watched, with its unwatch. */
+  const watched = new Map<string, () => void>();
+  /** The providers of the plan whose loaded entries were last evaluated: any other one just joined the plan, or just loaded. */
+  let seen: ReadonlySet<string> = new Set();
+  /** The providers whose inputs changed while a run was on: checked once the runner is idle again. */
+  const stale = new Set<string>();
+  /** What each provider's last evaluation read of it: a store change that left both as they were was not about this provider. */
+  const read = new Map<string, { entry: unknown; readiness: unknown }>();
   const idle = () => runner.state.getState().phase === 'idle';
-  const current = (): AnyProvider | undefined => {
-    const { selected, entries } = useProviderStore.getState();
-    const p = providers().find((candidate) => candidate.id === selected);
-    return p && entries[p.id] ? p : undefined;
+  const current = (): readonly AnyProvider[] => {
+    const p = plan();
+    return p ? providersIn(p) : [];
   };
-  const check = () => {
-    cancel = null;
-    pendingAtOnce = false;
-    const p = current();
+  /** Its pending check, if any, is dropped. */
+  const drop = (id: string) => {
+    cancel.get(id)?.();
+    cancel.delete(id);
+    pendingAtOnce.delete(id);
+  };
+  const check = (id: string) => {
+    cancel.delete(id);
+    pendingAtOnce.delete(id);
+    const p = current().find((candidate) => candidate.id === id);
     if (!p || !idle()) return;
     // A network provider no longer unknown was checked meanwhile (a Validate, a start); a local one re-checks whatever it knows.
     if (p.kind !== 'local' && (useProviderStore.getState().readiness[p.id]?.state ?? 'unknown') !== 'unknown') return;
     void useProviderStore.getState().refreshReadiness(p, auth());
   };
   const schedule = (p: AnyProvider, atOnce: boolean) => {
-    if (pendingAtOnce) return;
-    cancel?.();
-    pendingAtOnce = atOnce && p.kind !== 'local';
-    cancel = clock.setTimeout(check, p.kind === 'local' ? delayMs : pendingAtOnce ? 0 : networkDelayMs);
+    if (pendingAtOnce.has(p.id)) return;
+    cancel.get(p.id)?.();
+    const now = atOnce && p.kind !== 'local';
+    if (now) pendingAtOnce.add(p.id);
+    cancel.set(p.id, clock.setTimeout(() => check(p.id), p.kind === 'local' ? delayMs : now ? 0 : networkDelayMs));
   };
-  const inputsChanged = () => {
-    const p = current();
+  const inputsChanged = (id: string) => {
+    const p = current().find((candidate) => candidate.id === id);
     if (!p) return;
     if (idle()) schedule(p, false);
-    else stale = true;
+    else stale.add(p.id);
   };
   const evaluate = () => {
-    const p = current();
-    if (watched?.id !== p?.id) {
-      watched?.off();
-      watched = p ? { id: p.id, off: p.watchReadiness?.(inputsChanged) ?? (() => {}) } : null;
+    const ps = current();
+    const ids = new Set(ps.map((p) => p.id));
+    // A provider that left the plan is no longer watched, and its pending check and held change go with it.
+    for (const [id, off] of watched) {
+      if (ids.has(id)) continue;
+      off();
+      watched.delete(id);
     }
-    if (!p) {
-      // Nothing loaded is selected: whichever provider comes next is just selected, even the last one.
-      seen = null;
+    for (const id of [...cancel.keys()]) if (!ids.has(id)) drop(id);
+    for (const id of [...stale]) if (!ids.has(id)) stale.delete(id);
+    for (const id of [...read.keys()]) if (!ids.has(id)) read.delete(id);
+    for (const p of ps) if (!watched.has(p.id)) watched.set(p.id, p.watchReadiness?.(() => inputsChanged(p.id)) ?? (() => {}));
+    if (!ps.length) {
+      // No plan has loaded: whichever provider comes next has just joined, even the last one.
+      seen = new Set();
       return;
     }
     if (!idle()) return;
-    const fresh = p.id !== seen;
-    seen = p.id;
-    // A timer armed for the previous provider must not check this one.
-    if (fresh) { cancel?.(); cancel = null; pendingAtOnce = false; }
-    const readiness = useProviderStore.getState().readiness[p.id];
-    if (stale || !readiness || readiness.state === 'unknown') {
-      stale = false;
-      schedule(p, fresh);
+    const before = seen;
+    seen = ids;
+    for (const p of ps) {
+      const fresh = !before.has(p.id);
+      const { entries, readiness: all } = useProviderStore.getState();
+      const readiness = all[p.id];
+      const was = read.get(p.id);
+      const own = !was || was.entry !== entries[p.id] || was.readiness !== readiness;
+      read.set(p.id, { entry: entries[p.id], readiness });
+      // The store notifies on every provider's change. A pending check is pushed out only by a change to this
+      // provider's own entry or readiness (an edit, a reset): another provider's must not keep moving it later.
+      const unknown = !readiness || readiness.state === 'unknown';
+      if (stale.has(p.id) || (unknown && (own || !cancel.has(p.id)))) {
+        stale.delete(p.id);
+        schedule(p, fresh);
+      }
     }
   };
   const signInChanged = () => {
     const { entries, forgetReadiness } = useProviderStore.getState();
     for (const p of providers()) if (p.kind === 'managed' && entries[p.id]) forgetReadiness(p);
-    // Forgetting notified `evaluate`, which scheduled an edit's delay: a flip checks at once.
-    const p = current();
-    if (p?.kind === 'managed' && idle()) {
-      cancel?.();
-      cancel = null;
-      pendingAtOnce = false;
+    // Forgetting notified `evaluate`, which scheduled an edit's delay: a flip checks the plan's managed providers at once.
+    if (!idle()) return;
+    for (const p of current()) {
+      if (p.kind !== 'managed') continue;
+      drop(p.id);
       schedule(p, true);
     }
   };
@@ -115,10 +146,8 @@ export function driveReadiness({ runner, providers, auth, clock, watchSignIn, de
     offStore();
     offRun();
     offSignIn();
-    watched?.off();
-    watched = null;
-    cancel?.();
-    cancel = null;
-    pendingAtOnce = false;
+    for (const off of watched.values()) off();
+    watched.clear();
+    for (const id of [...cancel.keys()]) drop(id);
   };
 }
