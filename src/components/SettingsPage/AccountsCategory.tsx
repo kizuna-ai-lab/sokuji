@@ -161,7 +161,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     for (const id of a.serves) {
       const c = caps(id);
       if (!c) continue;
-      const groups = c.binds.filter((g) => g.length > 1);
+      const groups = c.joint && c.joint.length > 1 ? [c.joint] : [];
       for (const g of groups) {
         add(g.length >= RUN_STAGES.length ? t('settingsPage.accounts.endToEnd', 'End to end')
           : g.includes('transcription') && g.includes('translation') && g.length === 2 ? t('settingsPage.accounts.transcribeTranslate', 'Transcription and translation')

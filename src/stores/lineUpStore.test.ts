@@ -49,6 +49,12 @@ vi.mock('../services/providers/astGuard', () => ({
 
 import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent } from './lineUpStore';
 import { useProviderStore } from './providerStore';
+import { registerPresentProviders } from '../lib/plan/present';
+import { stubHosts } from '../lib/plan/testing';
+
+// The registry stays out of these tests: every host is offered, as a stub, so a choice composes as it does in the app.
+const hosts = stubHosts().providers;
+registerPresentProviders(() => hosts);
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null };
 const localEntry = { settings: { selections: {} }, credentials: {}, pair: { source: 'ja', target: 'en' } };

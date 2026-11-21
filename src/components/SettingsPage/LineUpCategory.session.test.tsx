@@ -74,9 +74,9 @@ describe('the line-up during a session and after it', () => {
 });
 
 describe('languages and line-up: the four cards', () => {
-  it('draws a card for each of the four stages on the desktop; the stages one provider binds share one', () => {
+  it('draws a card for each of the four stages on the desktop; the stages one provider holds jointly share one', () => {
     render(<LineUpCategory locked={false} />);
-    // Soniox binds transcription and translation: one joint card, then speech, then notes.
+    // Soniox holds transcription and translation jointly: one joint card, then speech, then notes.
     expect(document.querySelectorAll('.lineup-section > .lineup-stage')).toHaveLength(3);
     // With a different provider on each stage: four cards.
     cleanup();

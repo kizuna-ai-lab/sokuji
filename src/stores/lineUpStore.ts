@@ -2,18 +2,19 @@
 //
 // The line-up: which provider serves each stage. Stored as one value,
 // `settings.lineup`; when it is absent it is worked out once from today's
-// values and written (the one migration, owner 2026-11-15). The session still
-// runs through the provider store's selected provider (phase 1): a choice here
-// keeps that selection in step.
+// values and written (the one migration, owner 2026-11-15). The session runs
+// through the provider store's selected provider: a choice here keeps that
+// selection in step.
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
-import { caps, familyDefaults, runOf } from '../lib/lineup/catalog';
+import { caps, hostDefaults, soleHost } from '../lib/lineup/catalog';
 import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';
 import type { LineUp, RunStage, StageName } from '../lib/lineup/types';
 import type { AnalyticsEvents } from '../lib/analytics';
 import type { Selections } from '../lib/local-inference/selection/types';
+import { presentHosts } from '../lib/plan/present';
 import { guardAstCrossStage } from '../services/providers/astGuard';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
@@ -25,7 +26,7 @@ export const LINEUP_KEY = 'settings.lineup';
 interface StoredLineUp { version: 1; stages: LineUp }
 
 export interface LineUpStore {
-  /** What the settings show: the stored line-up, or until the local migration has written, the local family's defaults. */
+  /** What the settings show: the stored line-up, or until the local migration has written, the local host's defaults. */
   lineUp: LineUp | null;
   /** True once a line-up is in storage (read, migrated, or chosen). */
   stored: boolean;
@@ -108,8 +109,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       // The provider is stored before the line-up, so a save cut short by a restart leaves an older line-up
       // beside a newer provider (as does a provider changed in an older version of the app). The provider is the
       // newer choice: a line-up it does not run is worked out again from it, as on the first start.
-      const run = runOf(value.stages);
-      if (!selected || (run.ok && run.provider === selected)) {
+      if (!selected || soleHost(value.stages) === selected) {
         set({ lineUp: value.stages, stored: true });
         return;
       }
@@ -117,7 +117,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       if (!selected) return;
       // Stored, but not something this build can use (another version, a provider it does not know): shown as
       // today's values, never overwritten by the migration; a session resolves as today.
-      set({ lineUp: selected === 'local_inference' ? { ...familyDefaults('local_inference'), summarisation: null } : lineUpFromToday({ selected, local: null }), stored: false });
+      set({ lineUp: selected === 'local_inference' ? { ...hostDefaults('local_inference'), summarisation: null } : lineUpFromToday({ selected, local: null }), stored: false });
       return;
     }
     if (!selected) return;
@@ -126,8 +126,8 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       return;
     }
     // The local provider: what today's automatic choices pick is known only after the scan of downloaded
-    // models. Until then the settings show the family's defaults and a session resolves as today.
-    set({ lineUp: { ...familyDefaults('local_inference'), summarisation: null }, stored: false });
+    // models. Until then the settings show the local host's defaults and a session resolves as today.
+    set({ lineUp: { ...hostDefaults('local_inference'), summarisation: null }, stored: false });
     void (async () => {
       await useModelStore.getState().initialize();
       // A failed scan reports no downloaded model: worked out now, every local choice would read as Bing and
@@ -177,20 +177,20 @@ async function chooseNow(stage: StageName, providerId: string | null): Promise<C
   const { getState: get, setState: set } = useLineUpStore;
   const { lineUp, stored } = get();
   if (useProviderStore.getState().selectionLocked || !stored || !lineUp) return null;
-  const choice = chooseIn(lineUp, stage, providerId);
-  const run = runOf(choice.lineUp);
+  const choice = chooseIn(lineUp, stage, providerId, { providers: presentHosts(), settings: (id) => useProviderStore.getState().entries[id]?.settings });
+  const host = soleHost(choice.lineUp);
   const before = useProviderStore.getState().selected;
-  const moves = run.ok && before !== run.provider;
+  const moves = host !== null && before !== host;
   set({ lineUp: choice.lineUp });
   // The provider before the save: a run starting while the line-up is being written finds the two in step.
-  if (moves) useProviderStore.getState().select(run.provider, 'pick');
+  if (moves) useProviderStore.getState().select(host, 'pick');
   if (await write(choice.lineUp)) return choice;
   // Not stored: the choice is undone, the provider with it, so what is kept stays one line-up and its provider.
   // A run that started meanwhile locks the provider: both stay what it started with until it ends.
   const undo = () => {
     if (get().lineUp !== choice.lineUp) return;
     set({ lineUp });
-    if (moves && before && useProviderStore.getState().selected === run.provider) useProviderStore.getState().select(before, 'pick');
+    if (moves && before && useProviderStore.getState().selected === host) useProviderStore.getState().select(before, 'pick');
   };
   if (!useProviderStore.getState().selectionLocked) undo();
   else {

@@ -198,7 +198,7 @@ describe('languages and line-up', () => {
     expect(tracked).toContainEqual(['lineup_changed', { stage: 'speech', from: 'soniox', to: 'edge', moved: ['transcription', 'translation'], during_session: false }]);
   });
 
-  it('a provider that binds two stages takes both: the joint line says so, the moved line names only the rest', async () => {
+  it('a provider that holds two stages jointly takes both: the joint line says so, the moved line names only the rest', async () => {
     render(<LineUpCategory locked={false} />);
     fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'kizunaai_soniox' } });
     await waitFor(() => expect(tracked).toHaveLength(1));
@@ -210,7 +210,7 @@ describe('languages and line-up', () => {
 
   it('locks everything during a session', () => {
     render(<LineUpCategory locked />);
-    // Soniox binds transcription and translation: one choice for both.
+    // Soniox holds transcription and translation jointly: one choice for both.
     for (const name of ['Transcription and translation', 'Speech', 'Notes']) expect(screen.getByRole('combobox', { name })).toBeDisabled();
   });
 
@@ -397,7 +397,7 @@ describe('languages and line-up — options inside each stage card', () => {
   it("a later card points back to the first for the options acting on several stages, naming them", () => {
     // Soniox's region acts on all three stages, its session background on transcription and translation.
     render(<LineUpCategory locked={false} />);
-    // Transcription and translation share one card (Soniox binds them): the speech card points back to it.
+    // Transcription and translation share one card (Soniox holds them jointly): the speech card points back to it.
     fireEvent.click(within(card('Speech')).getByRole('button', { name: /Soniox options/ }));
     expect(within(card('Speech')).getByText('The options acting on transcription, translation and speech are in the “Transcription” card.')).toBeInTheDocument();
   });
@@ -443,9 +443,9 @@ describe('languages and line-up — as the mock draws them', () => {
     expect(head.nextElementSibling?.tagName).toBe('SELECT');
   });
 
-  // Owner, 2026-11-17: the stages one provider binds were each outlined apart; they share one frame, each stage named
+  // Owner, 2026-11-17: the stages one provider holds jointly were each outlined apart; they share one frame, each stage named
   // with its state, one choice for them all (Rudolf's details). Stages that merely use the same provider stay apart.
-  it('frames the stages one provider binds in one card: each named with its state, one choice for them', () => {
+  it('frames the stages one provider holds jointly in one card: each named with its state, one choice for them', () => {
     render(<LineUpCategory locked={false} />);
     const cards = [...document.querySelectorAll('.lineup-stage')];
     expect(cards.map((c) => c.classList.contains('is-joint'))).toEqual([true, false, false]);
@@ -480,7 +480,7 @@ describe('languages and line-up — as the mock draws them', () => {
   });
 
   it('in a joint card a stage with no options of its own has no fold', () => {
-    // Soniox binds transcription and translation; every option acting on translation also acts on transcription.
+    // Soniox holds transcription and translation jointly; every option acting on translation also acts on transcription.
     render(<LineUpCategory locked={false} />);
     const parts = [...document.querySelectorAll<HTMLElement>('.lineup-stage.is-joint .lineup-stage__part')];
     expect(parts.map((p) => p.querySelector('.lineup-stage__name')?.textContent)).toEqual(['Transcription', 'Translation']);
