@@ -239,11 +239,41 @@ describe('readShapeFromStores — the line-up id that serves each stage', () => 
     const stored = (transcription: string, speech: string) =>
       useLineUpStore.setState({ lineUp: { transcription, translation: transcription, speech, summarisation: null }, stored: true, unstoredProvider: null });
 
-    it("Kizuna AI's Soniox voice under own-key Soniox text: its voice is not offered alone", () => {
+    it("Kizuna AI's Soniox voice under own-key Soniox text runs: nothing about the line-up is refused, and the wallet is held to the voice's own floor", () => {
       useProviderStore.setState({ entries: entries({ source: 'en', target: 'ja' }) });
       stored('soniox', 'kizunaai_soniox');
+      environment.value = 'electron';
+      const shape = readShapeFromStores(auth)!;
+      expect(providersIn(shape.plan).map((p) => p.id)).toEqual(['soniox', 'kizunaai_soniox']);
+      expect(shape.lineUp).toEqual({ transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' });
+      expect(planRefusalFromStores()).toBeNull();
+      expect(lineUpNoticeFromStores()).toBeNull();
+      // Signed out, no wallet is known: the gate says nothing, and the start's sign-in check speaks.
+      expect(liveGate()).toBeNull();
+      // Signed in: the wallet is checked though the text runs on the user's own key, against the floor of the
+      // speech stream alone (4 167), not a whole speaking session's (12 500).
+      const wallet = (balanceMicroUsd: number) => useAccountStore.setState({ account: { status: 'known', balanceMicroUsd, frozen: false } });
+      wallet(4_166);
+      expect(liveGate()).toMatchObject({ code: 'balance_below_floor', params: { balance: '$0.004166' } });
+      expect(gate(readShapeFromStores(auth)!, 'electron')).toMatchObject({ code: 'balance_below_floor' });
+      wallet(4_167);
+      expect(liveGate()).toBeNull();
+      useAccountStore.setState({ account: { status: 'loading' } });
+      expect(liveGate()?.code).toBe('quota_pending');
+      useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 1_000_000, frozen: true } });
+      expect(liveGate()?.code).toBe('wallet_frozen');
+      // Text only: no voice is leased, and no balance is asked.
+      wallet(0);
+      useSettingsStore.setState({ textOnly: true });
+      expect(liveGate()).toBeNull();
+    });
+
+    it("Kizuna AI's Qwen text under Kizuna AI's Soniox voice: it takes no other voice, so the two hosted services never run together", () => {
+      useProviderStore.setState({ entries: { ...entries({ source: 'en', target: 'ja' }), kizunaai_qwen: { settings: QWEN_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } } });
+      stored('kizunaai_qwen', 'kizunaai_soniox');
+      environment.value = 'electron';
       expect(readShapeFromStores(auth)).toBeNull();
-      const refusal = { code: 'lineup_voice_not_alone', params: { stage: 'speech', provider: 'kizunaai_soniox', vendor: 'Soniox' } };
+      const refusal = { code: 'lineup_voice_not_taken', params: { stage: 'speech', provider: 'kizunaai_qwen' } };
       expect(liveGate()).toMatchObject(refusal);
       expect(planRefusalFromStores()).toEqual(liveGate());
       expect(lineUpNoticeFromStores()).toMatchObject({ ...refusal, stage: 'speech' });

@@ -17,6 +17,10 @@ const gemini = { transcription: 'gemini', translation: 'gemini', speech: 'gemini
 // before an entry loads.
 const input = choiceInput(RELEASED, {});
 const choose = (lineUp: LineUp, stage: Parameters<typeof chooseWith>[1], id: string | null) => chooseWith(lineUp, stage, id, input);
+// The same, under a catalog in which Kizuna AI's Soniox voice is not offered alone: no released option makes a
+// voice follow any more, and the rule is kept for a voice that reads only its own translation.
+const notAlone = { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) };
+const chooseNotAlone = (lineUp: LineUp, stage: Parameters<typeof chooseWith>[1], id: string | null) => chooseWith(lineUp, stage, id, notAlone);
 
 /** Every triple of options in the catalog, without notes. */
 function everyLineUp(): LineUp[] {
@@ -53,19 +57,36 @@ describe('choosing a provider for a stage', () => {
     expect(choose(gemini, 'transcription', 'soniox')).toEqual({ lineUp: soniox, moved: ['translation', 'speech'] });
   });
 
-  it('a voice that cannot stay beside the chosen text side follows it, and the result says so', () => {
-    // Kizuna AI's voice only reads its own translation: with own-key Soniox for the text, speech goes to Soniox's voice.
+  it("Kizuna AI's Soniox voice stays beside another text side: it is offered alone, so nothing follows", () => {
+    // Own-key Soniox for the text, under Kizuna AI's Soniox on every stage: the hosted voice reads it.
     const toSoniox = choose(kizuna, 'transcription', 'soniox');
-    expect(toSoniox).toEqual({ lineUp: soniox, moved: ['translation', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'soniox' } });
+    expect(toSoniox).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: ['translation'] });
     expect(isRefusal(compose(toSoniox.lineUp, input))).toBe(false);
-    expect(choose(kizuna, 'translation', 'soniox')).toEqual({ lineUp: soniox, moved: ['transcription', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'soniox' } });
-    // With this device for the text, to this device's default voice.
+    expect(choose(kizuna, 'translation', 'soniox')).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: ['transcription'] });
+    // This device for the text: the same.
     const toLocal = choose(kizuna, 'transcription', 'local_inference');
-    expect(toLocal).toEqual({ lineUp: local, moved: ['translation', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'edge' } });
+    expect(toLocal).toEqual({ lineUp: { ...local, speech: 'kizunaai_soniox' }, moved: ['translation'] });
     expect(isRefusal(compose(toLocal.lineUp, input))).toBe(false);
-    expect(choose(kizuna, 'translation', 'bing')).toEqual({ lineUp: local, moved: ['transcription', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'edge' } });
+    expect(choose(kizuna, 'translation', 'bing')).toEqual({ lineUp: { ...local, speech: 'kizunaai_soniox' }, moved: ['transcription'] });
+    // A text side that takes no other voice holds all three stages, so the hosted voice goes with the choice itself.
+    expect(choose({ ...soniox, speech: 'kizunaai_soniox' }, 'transcription', 'kizunaai_qwen')).toEqual({
+      lineUp: { transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen', summarisation: null }, moved: ['translation', 'speech'],
+    });
+  });
+
+  it('a voice that cannot stay beside the chosen text side follows it, and the result says so (a voice not offered alone)', () => {
+    // A voice that only reads its own translation: with own-key Soniox for the text, speech goes to Soniox's voice.
+    const toSoniox = chooseNotAlone(kizuna, 'transcription', 'soniox');
+    expect(toSoniox).toEqual({ lineUp: soniox, moved: ['translation', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'soniox' } });
+    expect(isRefusal(compose(toSoniox.lineUp, notAlone))).toBe(false);
+    expect(chooseNotAlone(kizuna, 'translation', 'soniox')).toEqual({ lineUp: soniox, moved: ['transcription', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'soniox' } });
+    // With this device for the text, to this device's default voice.
+    const toLocal = chooseNotAlone(kizuna, 'transcription', 'local_inference');
+    expect(toLocal).toEqual({ lineUp: local, moved: ['translation', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'edge' } });
+    expect(isRefusal(compose(toLocal.lineUp, notAlone))).toBe(false);
+    expect(chooseNotAlone(kizuna, 'translation', 'bing')).toEqual({ lineUp: local, moved: ['transcription', 'speech'], followed: { stage: 'speech', from: 'kizunaai_soniox', to: 'edge' } });
     // A stored line-up that was already refused for its voice is put right by the next choice of a text side.
-    expect(choose({ ...soniox, speech: 'kizunaai_soniox' }, 'transcription', 'local_inference').followed).toEqual({ stage: 'speech', from: 'kizunaai_soniox', to: 'edge' });
+    expect(chooseNotAlone({ ...soniox, speech: 'kizunaai_soniox' }, 'transcription', 'local_inference').followed).toEqual({ stage: 'speech', from: 'kizunaai_soniox', to: 'edge' });
   });
 
   it('a voice that can stay beside the chosen text side stays', () => {
@@ -76,18 +97,27 @@ describe('choosing a provider for a stage', () => {
     expect(isRefusal(compose({ ...kizuna, speech: 'soniox' }, input))).toBe(false);
   });
 
+  it("Kizuna AI's Soniox voice chosen under another provider's text moves nothing, and the line-up runs", () => {
+    for (const from of [soniox, local, { ...local, translation: 'local_inference' }]) {
+      const chosen = choose(from, 'speech', 'kizunaai_soniox');
+      expect(chosen).toEqual({ lineUp: { ...from, speech: 'kizunaai_soniox' }, moved: [] });
+      expect(isRefusal(compose(chosen.lineUp, input))).toBe(false);
+    }
+  });
+
   it('a choice made on the speech stage makes nothing follow: a voice that cannot stand alone is kept as chosen, refused', () => {
-    const chosen = choose(soniox, 'speech', 'kizunaai_soniox');
+    const chosen = chooseNotAlone(soniox, 'speech', 'kizunaai_soniox');
     expect(chosen).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: [] });
-    expect(compose(chosen.lineUp, input)).toMatchObject({ refused: 'lineup_voice_not_alone' });
+    expect(compose(chosen.lineUp, notAlone)).toMatchObject({ refused: 'lineup_voice_not_alone' });
   });
 
   it('a refusal of another kind makes nothing follow, and neither does a default voice that would still be refused', () => {
     // No provider is offered: the composer says so before it looks at the voice.
-    const none = choiceInput([], {});
+    const none = { ...choiceInput([], {}), catalog: notAlone.catalog };
+    expect(compose({ ...soniox, speech: 'kizunaai_soniox' }, none)).toMatchObject({ refused: 'lineup_not_offered' });
     expect(chooseWith(kizuna, 'transcription', 'soniox', none)).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: ['translation'] });
     // Soniox is not offered, so its default voice would not run either: the choice is kept as made.
-    const withoutSoniox = choiceInput(RELEASED.filter((p) => p.id !== 'soniox'), {});
+    const withoutSoniox = { ...choiceInput(RELEASED.filter((p) => p.id !== 'soniox'), {}), catalog: notAlone.catalog };
     expect(chooseWith(kizuna, 'transcription', 'soniox', withoutSoniox)).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: ['translation'] });
   });
 
@@ -98,7 +128,15 @@ describe('choosing a provider for a stage', () => {
   it('only the notes can be switched off', () => { expect(() => choose(soniox, 'speech', null)).toThrow(); expect(choose(soniox, 'summarisation', null).lineUp.summarisation).toBeNull(); });
   it('refuses an option that does not serve the stage', () => { expect(() => choose(soniox, 'transcription', 'edge')).toThrow(); });
 
-  it('for every line-up and every choice: the chosen stage and its joint partners are the choice, any other stage moves only when its provider lost a joint partner, and speech alone may follow', () => {
+  // Under the app's catalog, and under one in which Kizuna AI's Soniox voice is not offered alone.
+  it.each([
+    // Every voice that has a unit of its own is offered alone, and a text side that takes no other voice holds all
+    // three stages jointly, so choosing it already moves speech: no choice makes a voice follow.
+    ["the app's catalog: no voice ever has to follow", input, []],
+    // The only voice that ever has to follow is one that is not offered alone.
+    ['a voice not offered alone: it follows, and nothing else does', notAlone, ['lineup_voice_not_alone']],
+  ] as const)('for every line-up and every choice: the chosen stage and its joint partners are the choice, any other stage moves only when its provider lost a joint partner, and speech alone may follow (%s)', (_name, input, expected) => {
+    const choose = (lineUp: LineUp, stage: RunStage, id: string) => chooseWith(lineUp, stage, id, input);
     const reasons = new Set<string>();
     for (const from of everyLineUp()) for (const stage of RUN_STAGES) for (const c of CAPS) {
       if (!c.stages.includes(stage)) continue;
@@ -128,8 +166,6 @@ describe('choosing a provider for a stage', () => {
       expect(moved, label).toEqual(RUN_STAGES.filter((s) => s !== stage && lineUp[s] !== from[s]));
       expect(lineUp.summarisation, label).toBe(from.summarisation);
     }
-    // A text side that takes no other voice holds all three stages jointly, so choosing it already moves speech:
-    // the only voice that ever has to follow is one that is not offered alone.
-    expect([...reasons]).toEqual(['lineup_voice_not_alone']);
+    expect([...reasons]).toEqual(expected);
   });
 });

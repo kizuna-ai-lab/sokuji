@@ -2,8 +2,7 @@
  * Kizuna AI's Soniox voice alone, under Soniox with an own key for transcription and translation: the floor, the
  * voice claim and the lease read "this plan asks this provider for speech and another for the text". The request is
  * the voice-only one, the floor prices the speech streams asked for, and the cloned voice is claimed as for any
- * session in which this provider speaks. The app's catalog does not offer this line-up yet, so the plan is composed
- * under a catalog whose option does.
+ * session in which this provider speaks.
  */
 import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
@@ -15,6 +14,7 @@ import { servesSpeech, servesTranscription } from '../../lib/plan/read';
 import { isRefusal, type RunPlan } from '../../lib/plan/types';
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
+import { useProviderStore } from '../../stores/providerStore';
 import { kizunaSonioxProvider } from './kizuna';
 import { createKizunaLease } from './lease';
 import { asksSpeech, asksVoiceAlone } from './leaseRequest';
@@ -24,12 +24,10 @@ import { createKizunaVoiceClaim } from './voiceClaim';
 import { VOICE_LEASE_KEY, voiceLeaseMemory } from './voiceLeaseMemory';
 
 const LINE_UP = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
-/** The app's catalog, with Kizuna AI's Soniox voice offered alone. */
-const OFFERED = CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: true } : c));
 const input = { providers: [sonioxProvider, kizunaSonioxProvider], settings: () => SONIOX_DEFAULTS };
 
 const plan = ((): RunPlan => {
-  const composed = compose(LINE_UP, { ...input, catalog: OFFERED });
+  const composed = compose(LINE_UP, input);
   if (isRefusal(composed)) throw new Error(`expected a plan, got ${composed.refused}`);
   return composed;
 })();
@@ -47,8 +45,9 @@ const shapeOn = (legs: LegName[], o: { textOnly?: boolean; participantSpeech?: b
 });
 
 describe('the plan', () => {
-  it("is refused by the app's own catalog, and composes once the option offers the voice alone", () => {
-    expect(compose(LINE_UP, input)).toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
+  it("composes under the app's own catalog, which offers the voice alone, and is refused under one that does not", () => {
+    expect(compose(LINE_UP, { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) }))
+      .toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
     expect(plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([['soniox', 'stt', ['transcription', 'translation']], ['kizunaai_soniox', 'tts', ['speech']]]);
   });
 
@@ -78,6 +77,20 @@ describe('the start gate', () => {
     expect(balanceRefusal({ ...shapeOn(['speaker']), account: account(4_000) })).toMatchObject({ code: BALANCE_BELOW_FLOOR });
     // No leg speaks: nothing is leased, and no balance is asked.
     expect(balanceRefusal({ ...shapeOn(['speaker'], { textOnly: true }), account: account(0) })).toBeNull();
+  });
+});
+
+describe('readiness before Start', () => {
+  const inputs = { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' }, legs: ['speaker' as const], stages: ['speech' as const] };
+
+  it("signed out, Kizuna AI's Soniox is not ready for the speech stage alone, and the reason names it: its account row is the one to open", async () => {
+    const readiness = await useProviderStore.getState().refreshReadiness(kizunaSonioxProvider, { signedIn: false, getToken: async () => null }, inputs);
+    expect(readiness).toMatchObject({ state: 'not-ready', code: 'sign_in_required', params: { provider: 'kizunaai_soniox' } });
+  });
+
+  it('signed in, it is ready: the wallet is the start gate\'s to judge', async () => {
+    const readiness = await useProviderStore.getState().refreshReadiness(kizunaSonioxProvider, { signedIn: true, userId: 'u1', getToken: async () => 'tok' }, inputs);
+    expect(readiness.state).toBe('ready');
   });
 });
 

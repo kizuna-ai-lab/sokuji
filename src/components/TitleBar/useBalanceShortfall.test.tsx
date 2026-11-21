@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, onTestFinished, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
 vi.mock('../../services/ServiceFactory', () => ({
@@ -15,6 +15,7 @@ import { setUseOwnBalance } from '../../lib/session/payerChoice';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -181,6 +182,37 @@ describe('useBalanceShortfall', () => {
     });
     useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 0, frozen: true } });
     expect(renderHook(() => useBalanceShortfall()).result.current).toBe(false);
+  });
+
+  it("is short below the floor of Kizuna AI's Soniox voice alone, though the text runs on the user's own key", () => {
+    useProviderStore.setState({
+      entries: {
+        soniox: { settings: SONIOX_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'ja', target: 'en' } },
+        kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair: { source: 'ja', target: 'en' } },
+      },
+    });
+    const before = useLineUpStore.getState();
+    onTestFinished(() => useLineUpStore.setState({ lineUp: before.lineUp, stored: before.stored }));
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox', summarisation: null }, stored: true, unstoredProvider: null });
+    useAudioStore.setState({ mode: 'speaker' });
+    // The one speech stream's floor: a whole speaking session's would be 12 500.
+    const floor = sonioxRolesFloorMicroUsd(['spk_tts']);
+    expect(floor).toBe(4_167);
+    useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: floor - 1, frozen: false } });
+    const { result } = renderHook(() => useBalanceShortfall());
+    expect(result.current).toBe(true);
+    expect(liveGate('electron')?.code).toBe('balance_below_floor');
+    act(() => {
+      useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: floor, frozen: false } });
+    });
+    expect(result.current).toBe(false);
+    expect(liveGate('electron')).toBeNull();
+    // Text only: no voice is leased, so no balance is short.
+    act(() => {
+      useAccountStore.setState({ account: { status: 'known', balanceMicroUsd: 0, frozen: false } });
+      useSettingsStore.setState({ textOnly: true });
+    });
+    expect(result.current).toBe(false);
   });
 
   it('finds the plan as the live gate does: nothing before the line-up store has loaded, then the provider that runs', () => {

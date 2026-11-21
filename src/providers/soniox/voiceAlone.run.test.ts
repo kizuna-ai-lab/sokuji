@@ -1,11 +1,14 @@
 /**
  * Soniox with an own key for transcription and translation, read by Kizuna AI's Soniox voice, through the runner:
- * the line-up composes once its option offers the voice alone, and the run goes through the composite. The text
+ * the line-up composes, its option offering the voice alone, and the run goes through the composite. The text
  * side connects on the user's key; the voice on the lease's speech key, under that stream's own client reference;
  * each speaking leg's voice is reported started once; Stop tells the service the session is over. Sockets are
  * fake and the service is a stub `fetch`; nothing reaches a network.
  */
+import { createElement } from 'react';
+import { cleanup, render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import SessionCountdown from '../../components/MainPanel/SessionCountdown';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
@@ -29,7 +32,7 @@ import { sonioxSttUnitFor } from './units';
 const API = 'https://api.test';
 const LINE_UP = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
 
-function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech'>> = {}, grantSeconds = 600) {
+function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech' | 'auth' | 'account'>> = {}, grantSeconds = 600) {
   const sockets = fakeSockets();
   const clock = createVirtualClock(0);
   const adapter = createSonioxAdapter({ openSocket: sockets.create });
@@ -65,9 +68,9 @@ function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeec
   } as AnyProvider;
 
   const input = { providers: [own, hosted], settings: () => SONIOX_DEFAULTS };
-  // The app's catalog does not offer this voice alone yet: the line-up is refused there, and composes once it does.
-  const refused = compose(LINE_UP, input);
-  const plan = compose(LINE_UP, { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: true } : c)) });
+  // The app's catalog offers this voice alone: the line-up composes there, and is refused under one that does not.
+  const refused = compose(LINE_UP, { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) });
+  const plan = compose(LINE_UP, input);
   if (isRefusal(plan)) throw new Error(`expected a plan, got ${plan.refused}`);
 
   const shape: RunShape = {
@@ -135,7 +138,7 @@ function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeec
 }
 
 describe("Soniox with an own key, read by Kizuna AI's Soniox voice", () => {
-  it("composes once the option offers the voice alone, as the text unit of one and the voice of the other", () => {
+  it("composes, the option offering the voice alone, as the text unit of one and the voice of the other", () => {
     const h = setup();
     expect(h.refused).toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
     expect(h.plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([
@@ -240,5 +243,82 @@ describe("Soniox with an own key, read by Kizuna AI's Soniox voice", () => {
     expect(h.tracked.filter(([event]) => event === 'api_error').map(([, props]) => props)).toEqual([
       expect.objectContaining({ provider: 'kizunaai_soniox', stages: LINE_UP, error_code: 'budget_exhausted' }),
     ]);
+  });
+
+  it("signed out: the start is refused for the sign-in, the notice naming Kizuna AI's Soniox though Soniox transcribes on a key that is there", async () => {
+    const h = setup({ auth: { signedIn: false, getToken: async () => null } });
+    await h.runner.start();
+    expect(h.runner.state.getState()).toMatchObject({
+      phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'sign_in_required', params: { provider: 'kizunaai_soniox' } } },
+    });
+    // Nothing was connected and nothing was asked of the service.
+    expect(h.sockets.all).toEqual([]);
+    expect(h.requests).toEqual([]);
+  });
+
+  it("a wallet below the voice's own floor refuses the start; one between that floor and a whole session's starts", async () => {
+    const wallet = (balanceMicroUsd: number) => ({ status: 'known' as const, balanceMicroUsd, frozen: false });
+    const low = setup({ account: wallet(4_166) });
+    await low.runner.start();
+    expect(low.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'balance_below_floor', params: { balance: '$0.004166' } } } });
+    expect(low.sockets.all).toEqual([]);
+    expect(low.requests).toEqual([]);
+    // 12 500 would be asked of a whole speaking session; the voice alone asks 4 167.
+    const enough = setup({ account: wallet(4_167) });
+    await enough.start();
+    expect(enough.runner.state.getState().phase).toBe('running');
+    await enough.runner.stop();
+    // A frozen wallet refuses it too, and text only asks no balance at all.
+    const frozen = setup({ account: { status: 'known', balanceMicroUsd: 1_000_000, frozen: true } });
+    await frozen.runner.start();
+    expect(frozen.runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { notice: { code: 'wallet_frozen' } } });
+    const textOnly = setup({ account: wallet(0), textOnly: true });
+    await textOnly.start();
+    expect(textOnly.runner.state.getState().phase).toBe('running');
+    await textOnly.runner.stop();
+  });
+
+  it("the countdown is the voice lease's: an hour at most, shown in the footer, and at its end the run ends as a segment does", async () => {
+    const h = setup({}, 3600);
+    await h.start();
+    const running = h.runner.state.getState();
+    expect(running).toMatchObject({ phase: 'running', budget: { totalMs: 3_600_000, endsAt: 3_600_000 } });
+    if (running.phase !== 'running' || !running.budget) throw new Error('expected a running state with a budget');
+    // What the footers mount for a running state that has a budget.
+    const { container } = render(createElement(SessionCountdown, { budget: running.budget, now: () => h.clock.now() }));
+    expect(container.querySelector('.session-remaining-time')?.textContent).toBe('01:00:00');
+    cleanup();
+
+    // The transcription service keeps answering meanwhile, so its socket lives: only the lease's time ends the run.
+    for (let elapsed = 0; elapsed < 3_600_000 && h.runner.state.getState().phase === 'running'; elapsed += 2_000) {
+      h.stt()[0].receive(msg());
+      h.clock.advance(2_000);
+      await flush();
+    }
+    expect(h.stt()).toHaveLength(1);
+    await vi.waitFor(() => expect(h.runner.state.getState().phase).toBe('idle'));
+    // At the hour's cap: the words of a segment that ended, and nothing filed as an error.
+    expect(h.runner.state.getState()).toMatchObject({ lastEnd: { reason: 'lease-ended', notice: { code: 'segment_ended' } } });
+    expect(h.sent('/soniox/session-end').map((r) => r.body)).toEqual([{ leaseId: 'lease-1' }]);
+    expect(h.tracked.filter(([event]) => event === 'api_error')).toEqual([]);
+  });
+
+  it("the session's record names Kizuna AI's Soniox on the speech stage and Soniox on the other two, under the provider that transcribes", async () => {
+    const h = setup();
+    await h.start();
+    expect(h.runner.conversation.info).toMatchObject({ provider: 'soniox', stages: LINE_UP, models: { asrModel: 'stt-rt-v6', ttsModel: 'tts-rt-v2' } });
+    await h.runner.stop();
+    // Kept after the run, for the record that is written from it.
+    expect(h.runner.conversation.info).toMatchObject({ provider: 'soniox', stages: LINE_UP });
+  });
+
+  it("a drop of the transcription connection is reported as the own key's: `managed` says who runs the connection that dropped, and `stages` names the hosted voice", async () => {
+    const h = setup();
+    await h.start();
+    h.stt()[0].drop();
+    await flush();
+    const dropped = h.tracked.filter(([event]) => event === 'connection_dropped').map(([, props]) => props);
+    expect(dropped).toEqual([expect.objectContaining({ provider: 'soniox', managed: false, stages: LINE_UP })]);
+    await h.runner.stop();
   });
 });
