@@ -20,12 +20,12 @@ import { unitsOf } from '../../lib/plan/wholeUnit';
 import type { AnyProvider, SharedSettings } from '../../lib/provider/types';
 import { legSpeaks } from '../../lib/session/shape';
 import { createSonioxAdapter } from './adapter';
-import { buildSoniox, describeSoniox, type SonioxConfig } from './config';
+import { buildSoniox, buildSonioxAlone, describeSoniox, type SonioxConfig } from './config';
 import { createKizunaSonioxProvider, kizunaSonioxProvider } from './kizuna';
 import { sonioxProvider } from './provider';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { AUTO_CTX, isStt, KEY, SHARED, trackedClock, type Json } from './testing';
-import { sonioxSttUnitFor, sonioxUnitsFor } from './units';
+import { SONIOX_TRANSCRIPTION_UNIT, sonioxSttUnitFor, sonioxTranscriptionUnitFor, sonioxUnitsFor } from './units';
 
 const start = vi.fn();
 const stt = sonioxSttUnitFor({ start });
@@ -101,6 +101,43 @@ describe("Soniox's text unit", () => {
       expect(sockets.all[sockets.all.length - 1].sentJson<Json>()[0].enable_agent_text_input).toBe(true);
       expect(log.filter((e) => e.kind === 'degraded')).toEqual([]);
       await session.stop();
+    }
+  });
+});
+
+describe("Soniox's unit that transcribes alone", () => {
+  const alone = sonioxTranscriptionUnitFor({ start });
+
+  it('occupies transcription when asked for exactly that, and nothing else', () => {
+    expect(alone.id).toBe(SONIOX_TRANSCRIPTION_UNIT);
+    expect(alone.start).toBe(start);
+    expect(alone.startTranslation).toBeUndefined();
+    expect(isSpeechUnit(alone)).toBe(false);
+    expect(alone.occupies(SONIOX_DEFAULTS, new Set(['transcription']))).toEqual(['transcription']);
+    for (const want of [RUN_STAGES, TR_TL, ['translation'], ['speech'], ['translation', 'speech'], ['transcription', 'speech'], []] as RunStage[][]) {
+      expect(alone.occupies(SONIOX_DEFAULTS, new Set(want)), want.join('+')).toBeNull();
+    }
+  });
+
+  it("keeps the connection's turns, boundaries and typed text, and is not face-to-face", () => {
+    const { faceToFace: _f, ...together } = stt.capabilities(SONIOX_DEFAULTS);
+    expect(alone.capabilities(SONIOX_DEFAULTS)).toEqual({ ...together, faceToFace: false });
+    expect(sonioxTranscriptionUnitFor({ start, participantSpeech: false }).capabilities(SONIOX_DEFAULTS).participantSpeech).toBe(false);
+  });
+
+  it('builds a config that says it transcribes alone, the same whether the leg speaks or not, and names no translation model', () => {
+    for (const shared of [SHARED, { ...SHARED, faceToFace: true }, { ...SHARED, reversed: () => true }] as SharedSettings[]) {
+      const config = alone.build(SILENT, SONIOX_DEFAULTS, shared) as SonioxConfig;
+      expect(config).toEqual(buildSonioxAlone(SILENT, SONIOX_DEFAULTS, shared));
+      expect(config).toMatchObject({ transcribesAlone: true, sharedBoth: false });
+      expect(alone.build(AUTO_CTX, SONIOX_DEFAULTS, shared)).toEqual(config);
+      expect(alone.describe(config)).toEqual({ asrModel: 'stt-rt-v6' });
+    }
+  });
+
+  it('is declared by no definition yet: the composer answers a line-up as it did', () => {
+    for (const p of [sonioxProvider, kizunaSonioxProvider] as AnyProvider[]) {
+      expect(unitsOf(p).some((u) => u.occupies(SONIOX_DEFAULTS, new Set(['transcription'])) !== null)).toBe(false);
     }
   });
 });

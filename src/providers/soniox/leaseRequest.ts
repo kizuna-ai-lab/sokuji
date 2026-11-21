@@ -80,11 +80,23 @@ export function asksVoiceAlone(shape: Partial<Pick<RunShape, 'plan'>>): boolean 
 }
 
 /**
+ * Whether the plan asks Kizuna AI's Soniox to transcribe alone: it serves the transcription stage and another
+ * provider translates. Each leg then has a connection of its own, since a connection that carries both legs has
+ * one direction too many for the unit that translates. A shape that carries no plan is a session on Kizuna AI's
+ * Soniox alone, so never this.
+ */
+export function asksTranscriptionAlone(shape: Partial<Pick<RunShape, 'plan'>>): boolean {
+  return shape.plan !== undefined && servesTranscription(shape.plan, KIZUNA_SONIOX) && shape.plan.byStage.translation.provider.id !== KIZUNA_SONIOX.id;
+}
+
+/**
  * A session's request, for a plan that asks this provider to transcribe (`startRequest` tells which request a
  * start makes): its legs; the speaker's speech, when the plan asks this provider for it; split Both from
  * the settings `startBoth` reads; the settings' region; and, the flag on, whether the participant speaks through
  * this provider. A plan that gives speech to another provider makes it exactly a text-only session's request: no
- * speech role is asked for.
+ * speech role is asked for. A plan that gives translation to another provider changes nothing of the request but
+ * this: Both is always split, whatever the settings say. With this provider's voice it is a speaking session's
+ * request, transcription and speech roles alike.
  */
 export function leaseRequest(
   shape: Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeech' | 'faceToFace'> & Partial<Pick<RunShape, 'plan'>>,
@@ -98,7 +110,8 @@ export function leaseRequest(
     textOnly: !speech || !shape.legs.includes('speaker') || shape.textOnly,
     // Must agree with the adapter's `config.sharedBoth` (`startBoth`): both read the settings the run built from,
     // and face-to-face is always one shared stream (`buildSoniox`).
-    bothSplit: both && !sonioxSharedBoth(shape.faceToFace === true, s),
+    // Transcription alone is never one shared stream: each leg's own unit translates what its own connection heard.
+    bothSplit: both && (asksTranscriptionAlone(shape) || !sonioxSharedBoth(shape.faceToFace === true, s)),
     region: asSonioxRegion(s.region),
     ...(participantSpeech ? { participantSpeaks: speech && shape.legs.includes('participant') && shape.participantSpeech } : {}),
   };

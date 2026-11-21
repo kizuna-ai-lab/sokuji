@@ -177,3 +177,44 @@ createJobTranslator(o: {
 - The cutter has no length cap and was tried on English and Japanese text only.
 - Memory: the composite keeps one number per source segment and one label per origin whose unit names a speaker for the length of a session (a translation's number is released at its close), and the job translator one string per closed origin.
 - A `stop()` whose `close()` never settles is not bounded: only the fatal path is.
+
+## Decisions made while Part B was built
+
+**The unit**
+
+- **Transcription alone is a unit of its own, beside the text unit, not a second shape of it.** A unit's `build` and `capabilities` are not told which stages it was planned for, so one definition could not build two configs or answer face-to-face two ways. `sonioxTranscriptionUnitFor(parts)` (`src/providers/soniox/units.ts`, id `SONIOX_TRANSCRIPTION_UNIT`, `'transcription'`) is the same adapter over `buildSonioxAlone`: it occupies `transcription` exactly, keeps the connection's turns and boundaries, takes no typed text, and is not face-to-face. It describes the STT model and no translation model. The text unit (`stt`) is unchanged.
+- **No definition declares it yet.** The composer finds the unit that occupies exactly a host's stages, and what refuses "Soniox transcribes, Bing translates" today is that Soniox has no unit for transcription alone. Declaring the unit would change that refusal (to `lineup_no_unit` on the other host) before the catalog's rule and the language refusal exist. Part D adds it to `sonioxUnitsFor`, which both definitions call, together with the catalog change. Until then a plan holds it only where a test builds one.
+- **A config says it transcribes alone: `SonioxConfig.transcribesAlone`.** The adapter reads nothing else to tell the two apart, so a plan is told by its unit's stages and a config by this member.
+
+**The wire**
+
+- **`translation` is optional in the STT config, and left out of the frame when absent.** With a translation the frame's members and their order are what they were. The opening's line in the Logs (`session.opened`) leaves it out too.
+- **The hint is the leg's source, alone.** With a translation the hints stay source and target, as before: the target is a language the socket writes in. A socket that transcribes alone writes nothing in the target, and in Both the other side has its own socket hinted with its own source, so the target would only pull recognition toward a language nobody on this socket speaks. An automatic source hints nothing, as before (R8 refuses it with a separate translator anyway).
+- **The word list: terms and background, no translations (R13).** The entries are counted against Soniox's context limit as terms alone, so translations that are not sent push no term out.
+- **Agent text follows the rule of the socket that also translates, split Both's included.** The speaker's socket asks for it in a run that speaks with the setting on, and never in a run of both legs. Split Both strips it in the adapter's start of both legs; legs that transcribe alone are started one at a time, so the builder has to know. `SharedSettings.bothLegs` says the run has both legs; the run sets it, and only `buildSonioxAlone` reads it.
+
+**What the adapter says, alone**
+
+- **Source segments only.** A token marked as a translation, which a socket asked for none does not send, is dropped before it can open a segment.
+- **Every source snapshot states how much of it is final, once any of it is.** `heard.stableLen` is the length of the final tokens, stated whether or not the words could be placed on the run's clock (the pieces are then none), and a partial that turns final with the same words is said again with its new stable length. A socket that also translates states `heard` as before, only when it has a piece.
+- **A source closes at its boundary and nothing waits.** `<end>` and `<fin>` close it at once; the utterance is not kept for late translation tokens and no grace is armed.
+- **A reconnect closes the open source as it stands, as before.** The adapter closes it before it says `reconnecting`, so the composite hands it to the translator at that close, once, and finds nothing open at `reconnecting`.
+- **A start of both legs over such configs is always two sockets**, whatever `sharedBoth` says. The composite does not use it (it starts each leg through the unit's own `start`); the rule is there so no caller can open the mixed socket for legs whose translation is elsewhere.
+
+**Kizuna AI's Soniox**
+
+- **Others translate and speak: exactly today's text-only request**, with the same floor and cap. `asksTranscriptionAlone(shape)` (`leaseRequest.ts`) tells the plan.
+- **Both is always asked split when it transcribes alone**, whatever the shared-session setting says, and under face-to-face too (which the composer is to refuse, R9).
+- **Its own voice reading another's translation is a speaking session's request**: a transcription role and a speech role a leg, as on this provider alone. It is not the voice-only request: `asksVoiceAlone` is false, because it transcribes. The voice gets the lease's speech key in the leg's credentials, as in a session on this provider alone, and reports nothing: the transcription socket reports the start, once.
+
+**Existing tests changed**
+
+- None. Tests were added beside them: the frame without a translation and the order of its members (`sttStream.test.ts`), the config (`config.test.ts`), the utterances (`utterances.alone.test.ts`), the unit (`units.test.ts`), the request and the floor (`leaseRequest.test.ts`, `kizunaBudget.test.ts`), and the adapter, the leg of three units and the hosted run (`transcriptionAlone.run.test.ts`).
+
+## Not verified in Part B
+
+- Nothing ran against the real service here. That a session opens and finishes with no `translation` and with `context.terms` was verified before this part; what its tokens' `translation_status` reads then, and whether `is_final` tokens arrive at the same pace without a translation, were not looked at. The latency of the first translated sentence depends on that pace.
+- The real-session test (`@real`) was not written: no line-up reaches the unit before Part D.
+- Whether the service prices a hosted session differently when it is asked for no translation is not known to the client; the request and the floor are today's.
+- The settings page still shows the shared-session choice and the agent text row as it did; with the unit undeclared no user can reach a run where they do not apply. Part D decides what the page says there.
+- Face-to-face is not refused anywhere yet for this unit: its capability reads false, and Part D's composer check is what refuses it.
