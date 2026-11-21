@@ -579,6 +579,22 @@ describe('editing the notes in place', () => {
     expect(field).not.toHaveAttribute('readonly');
   });
 
+  // PR review: an editor belongs to the version it was opened on; another version shown closes it, so a draft (or a
+  // retry after a failed save) never lands in that other version.
+  it('another version shown closes an open editor', async () => {
+    const edit = onEdit();
+    const { rerender } = render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the title')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Draft for version 7' } });
+    const other = { ...complete, id: 8, body: { ...complete.body!, title: 'Version 8' } };
+    rerender(<RecordNotes {...props({ onEdit: edit, notes: other })} />);
+    expect(screen.queryByRole('textbox', { name: 'Title' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Version 8' })).toBeInTheDocument();
+    fireEvent.click(pencils('Edit the title')[0]);
+    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLTextAreaElement).value).toBe('Version 8');
+    expect(edit).not.toHaveBeenCalled();
+  });
+
   // PR review: a save that ends after its field was closed and opened again leaves the new editor alone.
   it('a save that ends after the field was opened again does not close it', async () => {
     let finish!: (saved: boolean) => void;
