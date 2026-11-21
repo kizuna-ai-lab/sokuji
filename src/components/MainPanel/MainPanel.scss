@@ -683,6 +683,19 @@
     &:disabled { opacity: 0.5; cursor: not-allowed; }
   }
 
+  // The desktop footer's hold button sits beside the session button: the same text size and icon gap.
+  .push-to-talk-button {
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  // Text centred by its letters' own height, not the font's line box, whose space above and below is uneven and leaves
+  // the text about 1px under the icon beside it.
+  .push-to-talk-button > span,
+  .session-button > span {
+    text-box: trim-both cap alphabetic;
+  }
+
   .main-action-btn {
     background: tk.$color-primary-fill;
     border: none;
