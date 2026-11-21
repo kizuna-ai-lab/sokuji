@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localSpeechStagesOf, localStagesOf, localTranslationStagesOf, unservedStages } from './localStages';
+import { localSpeechStagesOf, localStagesOf, localTranscriptionStagesOf, localTranslationStagesOf, unservedStages } from './localStages';
 
 describe('the local stages of a line-up', () => {
   it('the line-up decides Bing and Edge: an all-local line-up reads as before', () => {
@@ -48,5 +48,26 @@ describe('the local stages of a line-up', () => {
     expect(unservedStages({ translation: 'local', speech: 'local', transcription: null })).toEqual(['asr']);
     expect(unservedStages({ translation: 'bing', speech: null, transcription: null })).toEqual(['asr', 'tts']);
     expect(unservedStages({ translation: null, speech: null, transcription: null })).toEqual(['asr', 'translation', 'tts']);
+  });
+  it('says so when it transcribes what another provider translates: then, and only then, transcription is stated as served here', () => {
+    expect(localStagesOf({ transcription: 'local_inference', translation: 'soniox', speech: 'edge', summarisation: null })).toEqual({ translation: null, speech: 'edge', transcription: 'local' });
+    expect(localStagesOf({ transcription: 'local_inference', translation: 'openai', speech: 'local_inference', summarisation: null })).toEqual({ translation: null, speech: 'local', transcription: 'local' });
+    expect(localStagesOf({ transcription: 'local_inference', translation: 'soniox', speech: 'soniox', summarisation: null })).toEqual({ translation: null, speech: null, transcription: 'local' });
+    // Recognition with translation on this device is the whole session, as before: nothing more is stated.
+    expect(localStagesOf({ transcription: 'local_inference', translation: 'local_inference', speech: 'soniox', summarisation: null })).not.toHaveProperty('transcription');
+  });
+  it("the engine's stages another provider serves: translation alone, where this device transcribes what another translates", () => {
+    expect(unservedStages({ translation: null, speech: 'edge', transcription: 'local' })).toEqual(['translation']);
+    expect(unservedStages({ translation: null, speech: null, transcription: 'local' })).toEqual(['translation', 'tts']);
+    // Without the member, recognition still goes with translation, as every value written before reads.
+    expect(unservedStages({ translation: null, speech: 'edge' })).toEqual(['asr', 'translation']);
+  });
+  it("the local recognition's stages as a unit of its own: a recognition model of this machine, and never a translation model", () => {
+    expect(localTranscriptionStagesOf({ transcription: 'local_inference', translation: 'soniox', speech: 'edge' })).toEqual({ translation: null, speech: 'edge', transcription: 'local' });
+    expect(localTranscriptionStagesOf({ transcription: 'local_inference', translation: 'soniox', speech: 'soniox' })).toEqual({ translation: null, speech: null, transcription: 'local' });
+    // Built for a plan the line-up does not describe, or with no line-up: still no translation model.
+    expect(localTranscriptionStagesOf({ transcription: 'local_inference', translation: 'bing', speech: 'edge' })).toEqual({ translation: null, speech: 'edge', transcription: 'local' });
+    expect(localTranscriptionStagesOf(null)).toEqual({ translation: null, speech: null, transcription: 'local' });
+    expect(unservedStages(localTranscriptionStagesOf(null))).toEqual(['translation', 'tts']);
   });
 });
