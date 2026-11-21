@@ -151,6 +151,12 @@ export interface SharedSettings {
   faceToFace?: boolean;
   /** Some leg of this run produces translated speech (its context's `speech`), fixed at start: a builder may ready a socket for it (Soniox asks for agent text when its own setting is on, spec 2026-11-05 §4.3). Whether the speech plays locally is not asked: speech that is not local makes no echo. Set by the run; absent: false. */
   speaks?: boolean;
+  /**
+   * The run has both legs, each built with its own direction. A builder whose unit is started one leg at a time
+   * reads it here, where a start of both legs at once would have told its adapter (Soniox transcribing alone asks
+   * for no agent text then, as its split Both does not). Set by the run; absent: false.
+   */
+  bothLegs?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
   /** The app's word list and session background, read at start (spec §9): each builder sends what `wordsFor` gives its service. Absent: none. */

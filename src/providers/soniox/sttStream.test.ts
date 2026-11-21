@@ -105,6 +105,26 @@ describe('SonioxSttStream', () => {
     expect(first.translation).toEqual({ type: 'two_way', language_a: 'zh', language_b: 'en' });
   });
 
+  it('transcribes alone when no translation is configured: the frame names none, and is otherwise the same frame', async () => {
+    const { translation: _translation, ...alone } = CONFIG;
+    const context = { terms: ['Sokuji'], text: 'Agenda' };
+    const { ws } = await openStream({ ...alone, languageHints: ['zh'], context });
+    const first = JSON.parse(ws.sent[0] as string);
+    expect('translation' in first).toBe(false);
+    expect(first).toEqual({
+      model: 'stt-rt-v6',
+      audio_format: 'pcm_s16le', sample_rate: 24000, num_channels: 1,
+      enable_endpoint_detection: true,
+      context,
+      enable_language_identification: true,
+      language_hints: ['zh'],
+    });
+    // With a translation, the same config sends the same members in the same order, the translation after the hints.
+    MockWebSocket.instances = [];
+    const { ws: both } = await openStream({ ...CONFIG, languageHints: ['zh'], context });
+    expect(Object.keys(JSON.parse(both.sent[0] as string))).toEqual([...Object.keys(first), 'translation']);
+  });
+
   it('forwards audio frames as binary and end() as an empty TEXT frame', async () => {
     const { s, ws } = await openStream();
     const pcm = new Int16Array([1, 2, 3]);

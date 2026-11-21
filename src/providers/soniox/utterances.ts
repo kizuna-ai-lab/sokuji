@@ -49,6 +49,13 @@ export interface UtteranceOptions {
    * With it, final original words become `heard` pieces of their source segment; without it, none is stated.
    */
   heardAt?: (streamMs: number) => number | undefined;
+  /**
+   * The socket transcribes alone, and another unit translates what is said here: only source segments are said.
+   * Each source snapshot states how much of it is final (`heard.stableLen`), whether or not its words could be
+   * placed on the run's clock, since that start is what the other unit may translate before the close. A token
+   * marked as a translation, which a socket asked for none does not send, is dropped. Absent: false.
+   */
+  sourceOnly?: boolean;
 }
 
 interface Utterance {
@@ -126,6 +133,7 @@ export class Utterances {
         continue;
       }
       if (token.translation_status === 'translation') {
+        if (this.o.sourceOnly) continue;
         const u = this.current ?? this.previous ?? this.begin(token);
         // A late partial opens nothing: partials are shown only on the current
         // utterance, so it would open an empty row the grace then closes with
@@ -237,6 +245,8 @@ export class Utterances {
       this.emit(u, { kind: 'segmentClosed', payload: { ref: u.sourceRef, origin: u.origin } });
     }
     this.current = null;
+    // Nothing follows an utterance whose socket translates nothing: it is done at its boundary, with no grace to wait out.
+    if (this.o.sourceOnly) return;
     this.previous = u;
     if (kind === 'end') this.closeTranslation(u);
     else if (u.translation === 'open') this.armGrace(u);
@@ -299,12 +309,13 @@ export class Utterances {
       const text = u.sourceFinal + sourcePartial;
       const timing = u.startMs !== undefined && u.endMs !== undefined ? { startMs: u.startMs, endMs: u.endMs } : undefined;
       // With a table, how much is final is part of what is stated (`heard.stableLen`); without one it is not sent.
-      const stable = this.o.heardAt ? [u.pieces.length, u.sourceFinal.length] : [];
+      const stable = this.o.heardAt || this.o.sourceOnly ? [u.pieces.length, u.sourceFinal.length] : [];
       const key = JSON.stringify([text, timing, u.sourceLanguage, personOf(u), ...stable]);
       if (key !== u.sourceShown) {
         u.sourceShown = key;
         // The pieces handed out are a copy: the utterance goes on adding to its own.
-        const heard = u.pieces.length > 0 ? { heard: { pieces: [...u.pieces], stableLen: u.sourceFinal.length } } : {};
+        // Alone, the final start is stated as soon as there is one: it is what the unit that translates may take.
+        const heard = u.pieces.length > 0 || (this.o.sourceOnly && u.sourceFinal.length > 0) ? { heard: { pieces: [...u.pieces], stableLen: u.sourceFinal.length } } : {};
         this.emit(u, { kind: 'segmentText', payload: { ref: u.sourceRef, text, ...(timing ? { timing } : {}), ...(u.sourceLanguage ? { language: u.sourceLanguage } : {}), ...personField(u), ...heard } });
       }
     }
