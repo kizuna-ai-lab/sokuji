@@ -13,6 +13,12 @@ import { createSourceCutter, type SourceCutter } from './cutter';
 /** How long one job may take before it is given up, unless a unit says otherwise. */
 export const JOB_TIMEOUT_MS = 20_000;
 
+/**
+ * How long a failure that ends the session waits for what it lets go (`close`) before it says `failed` without
+ * it. A worker that is gone may never answer its own closing, and the leg has to hear that it failed.
+ */
+export const CLOSE_TIMEOUT_MS = 5_000;
+
 export interface JobTranslatorOptions {
   /**
    * Translates one stretch of source. `signal` is the job's own: it aborts at the job's deadline, and when the
@@ -20,8 +26,10 @@ export interface JobTranslatorOptions {
    */
   translate(text: string, signal: AbortSignal): Promise<string>;
   events: TranslationEvents;
-  /** The request's clock: each job's deadline runs on it. */
+  /** The request's clock: each job's deadline runs on it, and the bound of a fatal failure's letting go. */
   clock: Clock;
+  /** The request's signal: the run was cancelled. An open still pending rejects with its reason. */
+  signal: AbortSignal;
   /**
    * How long one job may take, in ms; `JOB_TIMEOUT_MS` when absent. Jobs run one at a time, so a `translate` that
    * never settles would hold every later job back: at its deadline the job's signal aborts, the job is said as
@@ -30,9 +38,16 @@ export interface JobTranslatorOptions {
   timeoutMs?: number;
   /** The language the answers are in, stated on every translation. Absent: none is stated. */
   language?: string;
-  /** What the session awaits to open: a model loaded, a worker ready. A rejection is the start's. Absent: open at once. */
-  open?(): Promise<void>;
-  /** What is let go when the session stops, or ends on a fatal failure. Called once. */
+  /**
+   * What the session awaits to open: a model loaded, a worker ready. A rejection is the start's. `signal` is the
+   * request's: when it aborts the session's open rejects at once, whatever this is still doing, and the caller
+   * stops the session, which lets go (`close`) what this had loaded. Absent: open at once.
+   */
+  open?(signal: AbortSignal): Promise<void>;
+  /**
+   * What is let go when the session stops, or ends on a fatal failure. Called once. A stop waits for it; a fatal
+   * failure waits `CLOSE_TIMEOUT_MS` and no longer.
+   */
   close?(): void | Promise<void>;
   /** The words of a failed job's notice. Absent: the error's own message. */
   failureMessage?(error: unknown): string;
@@ -53,7 +68,11 @@ export type JobTranslatorSession = TranslationSession & { held(): { cutters: num
  * flight. A job's answer opens a segment with the job's origin, says the whole answer with all of it stable, and
  * closes it. A job that fails, or is answered with nothing, says `translation_failed` and the next job runs: the
  * row keeps its source; so does a job that is not answered by its deadline. A failure `fatal` names says `failed`
- * and ends the session. `stop()` aborts the job in flight and drops what waits; nothing is said afterwards.
+ * and ends the session. `stop()` aborts the job in flight and drops what waits; nothing is said afterwards, not
+ * even the rest of a segment whose listener was the one that stopped it.
+ *
+ * What the session says of itself in the Logs (`frame`) is said as it can be: a listener that throws on one costs
+ * neither the `failed` that follows nor the jobs that wait.
  */
 export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSession {
   const { events, clock } = o;
@@ -71,22 +90,62 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
   /** The caller stopped the session: not even a failure that was on its way is said. */
   let stopped = false;
   let closing: Promise<void> | null = null;
+  /** Ends the wait of a fatal failure for what it lets go, unsaid: the caller's stop took over. */
+  let unbound: (() => void) | null = null;
 
-  /** Ends the session, once: the job in flight is aborted, what waits is dropped, and what was opened is let go. */
+  /**
+   * Ends the session, once: the job in flight is aborted, what waits is dropped, and what was opened is let go.
+   * The promise every ending shares is there before anything is told of the ending, so a stop asked from inside it
+   * (a job's abort listener, the close itself) joins this one and lets nothing go twice.
+   */
   const end = (): Promise<void> => {
     over = true;
     if (closing) return closing;
+    let settle!: { resolve(): void; reject(error: unknown): void };
+    closing = new Promise<void>((resolve, reject) => { settle = { resolve, reject }; });
     cutShort?.();
     jobs.length = 0;
     cutters.clear();
     closed.clear();
     try {
-      closing = Promise.resolve(o.close?.());
+      Promise.resolve(o.close?.()).then(settle.resolve, settle.reject);
     } catch (error) {
-      closing = Promise.reject(error);
+      settle.reject(error);
     }
     return closing;
   };
+
+  /** A word of the session's own for the Logs. Whoever listens may throw: that is the Logs' loss, and nothing else's. */
+  const note = (type: string, payload: unknown) => {
+    try {
+      events.frame({ direction: 'in', type, payload });
+    } catch {
+      // Unsaid.
+    }
+  };
+
+  /**
+   * Ends the session on a failure, and waits for what it lets go: until it settles, or `CLOSE_TIMEOUT_MS`, or the
+   * caller's stop. What the letting go says of itself goes to the Logs. Past the bound it is given up: a later
+   * stop does not wait for it, and whatever it does afterwards is unheard.
+   */
+  const letGo = (): Promise<void> => new Promise<void>((resolve) => {
+    let waiting = true;
+    const done = (say?: () => void) => {
+      if (!waiting) return;
+      waiting = false;
+      cancel();
+      unbound = null;
+      if (!stopped) say?.();
+      resolve();
+    };
+    const cancel = clock.setTimeout(() => done(() => {
+      closing = Promise.resolve();
+      note('translation.close_timeout', { afterMs: CLOSE_TIMEOUT_MS });
+    }), CLOSE_TIMEOUT_MS);
+    unbound = () => done();
+    end().then(() => done(), (error: unknown) => done(() => note('translation.close_error', { error: describeCause(error) })));
+  });
 
   const failedJob = (message: string, extra: { cause?: unknown; reason?: string }) => {
     events.degraded({ code: 'translation_failed', message, ...extra });
@@ -129,11 +188,7 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
       const message = o.failureMessage?.(error) ?? describeCause(error);
       if (o.fatal?.(error)) {
         // Let go before it is said: nothing follows `failed`, so what the letting go says of itself comes first.
-        try {
-          await end();
-        } catch (closing) {
-          if (!stopped) events.frame({ direction: 'in', type: 'translation.close_error', payload: { error: describeCause(closing) } });
-        }
+        await letGo();
         if (!stopped) events.failed({ message, cause: error });
         return;
       }
@@ -145,12 +200,14 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
       failedJob('The translation came back empty.', { reason: 'translation_empty' });
       return;
     }
+    // Each event is a listener's turn, and a listener may stop the session: nothing more is said of the segment
+    // then. One that throws, at the open or at the text, still has its segment closed while the session is live.
     const ref = nextRef++;
-    events.translationOpened({ ref, origin: job.origin });
     try {
-      events.translationText({ ref, text: answer, stableLen: answer.length, ...(o.language === undefined ? {} : { language: o.language }) });
+      events.translationOpened({ ref, origin: job.origin });
+      if (!over) events.translationText({ ref, text: answer, stableLen: answer.length, ...(o.language === undefined ? {} : { language: o.language }) });
     } finally {
-      events.translationClosed({ ref });
+      if (!over) events.translationClosed({ ref });
     }
   };
 
@@ -162,7 +219,7 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
           await run(jobs.shift()!);
         } catch (error) {
           // Not the translation: a listener that threw. Said in the Logs, and the queue moves on.
-          if (!over) events.frame({ direction: 'in', type: 'translation.job_error', payload: { error: describeCause(error) } });
+          if (!over) note('translation.job_error', { error: describeCause(error) });
         }
       }
     } finally {
@@ -170,8 +227,26 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
     }
   };
 
+  /** Opens what the unit has to open, unless the run is cancelled first: then it rejects with the signal's reason. */
+  const open = (): Promise<void> => new Promise<void>((resolve, reject) => {
+    const { signal } = o;
+    const cancelled = () => reject(signal.reason ?? new Error('aborted'));
+    if (signal.aborted) return cancelled();
+    if (!o.open) return resolve();
+    signal.addEventListener('abort', cancelled, { once: true });
+    const heard = () => signal.removeEventListener('abort', cancelled);
+    let opening: Promise<void>;
+    try {
+      opening = o.open(signal);
+    } catch (error) {
+      heard();
+      return reject(error);
+    }
+    opening.then(() => { heard(); resolve(); }, (error: unknown) => { heard(); reject(error); });
+  });
+
   return {
-    open: () => (o.open ? o.open() : Promise.resolve()),
+    open,
     source(snapshot) {
       const { origin } = snapshot;
       if (over || closed.has(origin)) return;
@@ -190,7 +265,10 @@ export function createJobTranslator(o: JobTranslatorOptions): JobTranslatorSessi
     },
     stop: () => {
       stopped = true;
-      return end();
+      const ending = end();
+      // A failure that was waiting to say itself says nothing now, and its bound is disarmed.
+      unbound?.();
+      return ending;
     },
     held: () => ({ cutters: cutters.size, closed: closed.size }),
   };

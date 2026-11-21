@@ -694,7 +694,7 @@ describe('a leg of three units is an adapter (spec §4.4)', () => {
       };
       // A real job translator over a `translate` that answers at once.
       const translation = stubTranslationUnit();
-      translation.planned.unit.startTranslation = (request, events) => (scenario.translation = createJobTranslator({ translate: async (text) => `«${text}»`, events, clock: request.clock }));
+      translation.planned.unit.startTranslation = (request, events) => (scenario.translation = createJobTranslator({ translate: async (text) => `«${text}»`, events, clock: request.clock, signal: request.signal }));
       scenario.plan = separatePlan(scenario.text.planned, translation.planned, scenario.voice.planned);
       now = scenario;
       return scenario;

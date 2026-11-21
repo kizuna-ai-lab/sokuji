@@ -68,15 +68,16 @@ const TRANSLATED = new Set(['en', 'ja', 'zh']);
  * target (`[ja] Hello.`), so a test reads which direction translated a row.
  */
 export function startFakeTranslator(request: TranslationStartRequest<FakeTranslatorConfig, FakeTranslatorCredentials>, events: TranslationEvents): TranslationSession {
-  const { clock, config } = request;
+  const { clock, config, signal } = request;
   const { target } = request.context.direction;
   return createJobTranslator({
     events,
     clock,
+    signal,
     language: target,
     fatal: (error) => error instanceof FakeTranslatorGone,
-    async translate(text, signal) {
-      if (config.delayMs > 0) await wait(clock, config.delayMs, signal);
+    async translate(text, job) {
+      if (config.delayMs > 0) await wait(clock, config.delayMs, job);
       if (config.dieOn !== '' && text.includes(config.dieOn)) throw new FakeTranslatorGone('The fake translator is gone (fault knob).');
       if (config.failOn !== '' && text.includes(config.failOn)) throw new Error('The fake translator failed this sentence (fault knob).');
       return `[${target}] ${text}`;

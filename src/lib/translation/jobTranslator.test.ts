@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import type { TranslationEvents, TranslationSession } from '../contract/translation';
 import { checkTranslation, type TranslationLog } from '../contract/translationConformance';
-import { createJobTranslator, JOB_TIMEOUT_MS, type JobTranslatorOptions } from './jobTranslator';
+import { CLOSE_TIMEOUT_MS, createJobTranslator, JOB_TIMEOUT_MS, type JobTranslatorOptions } from './jobTranslator';
 
 /** Lets every settled promise run its reactions. */
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -17,19 +17,27 @@ function translator(over: Partial<JobTranslatorOptions> = {}) {
   const asked: Asked[] = [];
   const clock = createVirtualClock(0);
   const log: TranslationLog = [{ kind: 'start' }];
-  const events: TranslationEvents = {
-    translationOpened: (payload) => { log.push({ kind: 'translationOpened', payload }); },
-    translationText: (payload) => { log.push({ kind: 'translationText', payload }); },
-    translationClosed: (payload) => { log.push({ kind: 'translationClosed', payload }); },
-    failed: (payload) => { log.push({ kind: 'failed', payload }); },
-    degraded: (payload) => { log.push({ kind: 'degraded', payload }); },
-    loading: (payload) => { log.push({ kind: 'loading', payload }); },
-    frame: (payload) => { log.push({ kind: 'frame', payload }); },
+  /** What a listener does once it has heard an event (it is recorded first): a test's fault. */
+  const listener: { on?: (kind: string, payload: unknown) => void } = {};
+  const heard = <K extends keyof TranslationEvents>(kind: K) => ((payload: Parameters<TranslationEvents[K]>[0]) => {
+    log.push({ kind, payload } as TranslationLog[number]);
+    listener.on?.(kind, payload);
+  }) as TranslationEvents[K];
+  const told: TranslationEvents = {
+    translationOpened: heard('translationOpened'),
+    translationText: heard('translationText'),
+    translationClosed: heard('translationClosed'),
+    failed: heard('failed'),
+    degraded: heard('degraded'),
+    loading: heard('loading'),
+    frame: heard('frame'),
   };
+  const run = new AbortController();
   const inner = createJobTranslator({
     translate: (text, signal) => new Promise<string>((resolve, reject) => { asked.push({ text, signal, answer: resolve, fail: reject }); }),
-    events,
+    events: told,
     clock,
+    signal: run.signal,
     ...over,
   });
   const session: TranslationSession & { held: typeof inner.held } = {
@@ -55,7 +63,7 @@ function translator(over: Partial<JobTranslatorOptions> = {}) {
     }
   });
   const closing = (origin: string, text: string) => session.source({ origin, text, stableLen: text.length, closed: true });
-  return { session, asked, log, said, closing, clock };
+  return { session, asked, log, said, closing, clock, listener, run };
 }
 
 describe('the job translator: jobs', () => {
@@ -220,11 +228,115 @@ describe('the job translator: a job that fails', () => {
   });
 });
 
+describe('the job translator: a listener that throws, or stops the session', () => {
+  it('a listener that throws as a segment opens costs that job only: the segment is closed, and the next job runs', async () => {
+    const h = translator();
+    let thrown = false;
+    // It has the ref, then throws.
+    h.listener.on = (kind) => {
+      if (thrown || kind !== 'translationOpened') return;
+      thrown = true;
+      throw new Error('listener');
+    };
+    h.closing('u1', 'First.');
+    h.closing('u2', 'Second.');
+    h.asked[0].answer('いち。');
+    await flush();
+    h.asked[1].answer('に。');
+    await flush();
+    expect(h.said()).toEqual(['open 1 u1', 'close 1', 'open 2 u2', 'text 2 に。', 'close 2']);
+    expect(h.log.filter((e) => e.kind === 'frame').map((e) => (e.payload as { type: string }).type)).toEqual(['translation.job_error']);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it('a listener that stops the session as a segment opens hears no text and no close of it', async () => {
+    const h = translator();
+    h.listener.on = (kind) => { if (kind === 'translationOpened') void h.session.stop(); };
+    h.closing('u1', 'First.');
+    h.asked[0].answer('いち。');
+    await flush();
+    expect(h.said()).toEqual(['open 1 u1']);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it('a listener that stops the session at a segment\'s text hears no close of it', async () => {
+    const h = translator();
+    h.listener.on = (kind) => { if (kind === 'translationText') void h.session.stop(); };
+    h.closing('u1', 'First.');
+    h.asked[0].answer('いち。');
+    await flush();
+    expect(h.said()).toEqual(['open 1 u1', 'text 1 いち。']);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it('a listener that throws at the Logs\' word of a failed job does not hold the queue: the next job runs', async () => {
+    const h = translator();
+    h.listener.on = (kind) => { if (kind === 'frame' || (kind === 'translationText' && h.asked.length === 1)) throw new Error('listener'); };
+    h.closing('u1', 'First.');
+    h.closing('u2', 'Second.');
+    h.asked[0].answer('いち。');
+    await flush();
+    expect(h.asked.map((a) => a.text)).toEqual(['First.', 'Second.']);
+    h.asked[1].answer('に。');
+    await flush();
+    expect(h.said()).toEqual(['open 1 u1', 'text 1 いち。', 'close 1', 'open 2 u2', 'text 2 に。', 'close 2']);
+  });
+
+  it('a listener that throws at the Logs\' word of a close that failed does not keep failed from being said', async () => {
+    const h = translator({ fatal: () => true, close: () => Promise.reject(new Error('worker stuck')) });
+    h.listener.on = (kind) => { if (kind === 'frame') throw new Error('listener'); };
+    h.closing('u1', 'First.');
+    h.asked[0].fail(new Error('gone'));
+    await flush();
+    expect(h.said()).toEqual(['failed']);
+  });
+});
+
 describe('the job translator: opening and stopping', () => {
   it('opens at once when it is given nothing to open, and with what it is given otherwise', async () => {
     await expect(translator().session.open()).resolves.toBeUndefined();
     const refused = new Error('no model');
     await expect(translator({ open: () => Promise.reject(refused) }).session.open()).rejects.toBe(refused);
+  });
+
+  it('an open is handed the run\'s signal, and rejects when the run is cancelled before it or while it loads', async () => {
+    const before = translator({ open: () => Promise.resolve() });
+    before.run.abort(new Error('cancelled'));
+    await expect(before.session.open()).rejects.toThrow('cancelled');
+    // With nothing to open, too.
+    const bare = translator();
+    bare.run.abort(new Error('cancelled'));
+    await expect(bare.session.open()).rejects.toThrow('cancelled');
+
+    let handed: AbortSignal | undefined;
+    const during = translator({ open: (signal) => { handed = signal; return new Promise<void>(() => {}); } });
+    const opening = during.session.open();
+    expect(handed).toBe(during.run.signal);
+    during.run.abort(new Error('cancelled'));
+    await expect(opening).rejects.toThrow('cancelled');
+  });
+
+  it('a stop that a job\'s abort asks for joins the stop that aborted it: what it lets go is let go once', async () => {
+    let closes = 0;
+    let nested: Promise<void> | undefined;
+    const sessions: TranslationSession[] = [];
+    const h = translator({
+      close: () => { closes += 1; },
+      translate: (_text, signal) => new Promise<string>(() => { signal.addEventListener('abort', () => { nested = sessions[0].stop(); }); }),
+    });
+    sessions.push(h.session);
+    h.closing('u1', 'First.');
+    const stopping = h.session.stop();
+    expect(closes).toBe(1);
+    await Promise.all([stopping, nested]);
+    expect(closes).toBe(1);
+  });
+
+  it('every stop settles as the first did, when what it lets go rejects', async () => {
+    const stuck = new Error('worker stuck');
+    const h = translator({ close: () => Promise.reject(stuck) });
+    await expect(h.session.stop()).rejects.toBe(stuck);
+    await expect(h.session.stop()).rejects.toBe(stuck);
   });
 
   it('a stop in the middle of a job aborts it, and nothing is said of its answer or of what waited', async () => {
@@ -361,6 +473,44 @@ describe('the job translator: what an ending forgets and says', () => {
     }
   });
 
+  it('waits five seconds, no longer, for what it lets go on the fatal path', () => {
+    expect(CLOSE_TIMEOUT_MS).toBe(5_000);
+  });
+
+  it('a close that never settles on the fatal path is given up at its bound: failed is said, the Logs say why, and nothing is said late', async () => {
+    let settle!: (error: unknown) => void;
+    const h = translator({ fatal: () => true, close: () => new Promise<void>((_resolve, reject) => { settle = reject; }) });
+    h.closing('u1', 'First.');
+    h.asked[0].fail(new Error('gone'));
+    await flush();
+    h.clock.advance(CLOSE_TIMEOUT_MS - 1);
+    await flush();
+    expect(h.said()).toEqual([]);
+    h.clock.advance(1);
+    await flush();
+    expect(h.log.slice(-2)).toEqual([
+      { kind: 'frame', payload: { direction: 'in', type: 'translation.close_timeout', payload: { afterMs: CLOSE_TIMEOUT_MS } } },
+      { kind: 'failed', payload: { message: 'gone', cause: expect.any(Error) } },
+    ]);
+    const said = h.log.length;
+    // A stop afterwards does not wait for what was given up, and what it says late is unheard.
+    await h.session.stop();
+    settle(new Error('worker stuck'));
+    await flush();
+    expect(h.log.filter((e) => e.kind !== 'stop' && e.kind !== 'stopped')).toHaveLength(said);
+    expect(h.clock.pending()).toBe(0);
+    expect(checkTranslation(h.log)).toEqual([]);
+  });
+
+  it('a close that settles in time leaves no bound armed', async () => {
+    const h = translator({ fatal: () => true, close: () => Promise.resolve() });
+    h.closing('u1', 'First.');
+    h.asked[0].fail(new Error('gone'));
+    await flush();
+    expect(h.said()).toEqual(['failed']);
+    expect(h.clock.pending()).toBe(0);
+  });
+
   it('a stop that lands while the fatal path lets go says nothing of the failure', async () => {
     let settle!: () => void;
     const h = translator({ fatal: () => true, close: () => new Promise<void>((resolve) => { settle = resolve; }) });
@@ -368,6 +518,8 @@ describe('the job translator: what an ending forgets and says', () => {
     h.asked[0].fail(new Error('gone'));
     await flush();
     const stopping = h.session.stop();
+    // The stop waits for the close itself: the bound was the failure's.
+    expect(h.clock.pending()).toBe(0);
     settle();
     await stopping;
     await flush();

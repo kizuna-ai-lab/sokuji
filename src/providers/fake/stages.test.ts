@@ -136,6 +136,16 @@ describe('the fake that only translates', () => {
     return { clock, session: s, log, texts };
   }
 
+  it('a start whose run was already cancelled rejects its open, and one that was not opens', async () => {
+    const config = translator.build({ ...SPEAKS, speech: false }, FAKE_TRANSLATOR_DEFAULTS, SHARED) as FakeTranslatorConfig;
+    const cancelled = new AbortController();
+    cancelled.abort(new Error('cancelled'));
+    const { session: s, log } = recordTranslation(startFakeTranslator, { leg: 'speaker', context: { ...SPEAKS, speech: false }, config, credentials: {}, clock: createVirtualClock(0), signal: cancelled.signal });
+    await expect(s.open()).rejects.toThrow('cancelled');
+    expect(log.map((e) => e.kind)).toEqual(['start', 'open']);
+    await expect(session().session.open()).resolves.toBeUndefined();
+  });
+
   it('is a unit for translation alone, started through the translation contract', () => {
     expect(translator.occupies(FAKE_TRANSLATOR_DEFAULTS, new Set(['translation']))).toEqual(['translation']);
     expect(translator.occupies(FAKE_TRANSLATOR_DEFAULTS, new Set(['transcription', 'translation']))).toBeNull();
