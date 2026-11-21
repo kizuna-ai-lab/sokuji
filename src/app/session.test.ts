@@ -6,11 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // ServiceFactory no longer reaches ModernAudioRecorder at all; this test's
 // subject, session.ts, reaches it only via `capture/mic`, which is mocked
 // directly below. Not needed by the current graph for that reason.
+// `storedSettings`: what a test puts in the settings storage before the page attaches; empty otherwise.
+const { storedSettings, settingWrites } = vi.hoisted(() => ({ storedSettings: {} as Record<string, unknown>, settingWrites: [] as Array<[string, unknown]> }));
 vi.mock('../services/ServiceFactory', () => ({
   ServiceFactory: {
     getSettingsService: () => ({
-      getSetting: async (_key: string, def: unknown) => def,
-      setSetting: async () => ({ success: true }),
+      getSetting: async (key: string, def: unknown) => (key in storedSettings ? storedSettings[key] : def),
+      setSetting: async (key: string, value: unknown) => { settingWrites.push([key, value]); return { success: true }; },
     }),
   },
 }));
@@ -795,6 +797,30 @@ describe('attach', () => {
     expect(readiness()).toEqual({ state: 'unknown' });
 
     detach();
+  });
+
+  it('ends a voice-only lease a previous launch left behind once the sign-in is there, and forgets it', async () => {
+    const { getApiUrl } = await import('../utils/environment');
+    storedSettings['soniox.voiceOnlyLease'] = { leaseId: 'lease-left', apiUrl: getApiUrl() };
+    settingWrites.length = 0;
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchStub);
+    try {
+      const { session } = await setup();
+      const detach = session.attach();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      // Signed out: nothing is sent.
+      expect(fetchStub).not.toHaveBeenCalled();
+      session.setBridges({ auth: { signedIn: true, userId: 'u1', getToken: async () => 'fresh' } });
+      await vi.waitFor(() => expect(settingWrites).toContainEqual(['soniox.voiceOnlyLease', null]));
+      const ends = fetchStub.mock.calls.filter(([url]) => url === `${getApiUrl()}/soniox/session-end`);
+      expect(ends).toHaveLength(1);
+      expect(ends[0][1]).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer fresh' }, body: '{"leaseId":"lease-left"}' });
+      detach();
+    } finally {
+      delete storedSettings['soniox.voiceOnlyLease'];
+      vi.unstubAllGlobals();
+    }
   });
 
   it('forgets it too when the sign-in finishes loading', async () => {

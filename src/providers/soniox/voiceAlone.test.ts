@@ -21,6 +21,7 @@ import { asksSpeech, asksVoiceAlone } from './leaseRequest';
 import { sonioxProvider } from './provider';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 import { createKizunaVoiceClaim } from './voiceClaim';
+import { VOICE_LEASE_KEY, voiceLeaseMemory } from './voiceLeaseMemory';
 
 const LINE_UP = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
 /** The app's catalog, with Kizuna AI's Soniox voice offered alone. */
@@ -129,5 +130,34 @@ describe('the lease', () => {
 
   it('asks the service for nothing when no leg speaks', async () => {
     expect(await bodySent(shapeOn(['speaker'], { textOnly: true }))).toBeUndefined();
+  });
+});
+
+describe("the definition's own lease", () => {
+  it("remembers a voice-only lease in the app's storage while it is held, and forgets it once session-end is answered", async () => {
+    const fetchStub = vi.fn(async (url: string, _init?: RequestInit) => (url.endsWith('/soniox/session-key')
+      ? new Response(JSON.stringify({
+          leaseId: 'lease-9', clientReferenceId: 'ref-spk_tts', region: 'us', maxSessionDurationSeconds: 600,
+          streams: [{ role: 'spk_tts', apiKey: 'k-spk_tts', clientReferenceId: 'ref-spk_tts' }],
+        }), { status: 200 })
+      : new Response('{}', { status: 200 })));
+    vi.stubGlobal('fetch', fetchStub);
+    try {
+      const ctx: LeaseContext = { signal: new AbortController().signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn() };
+      const resources = await kizunaSonioxProvider.session!.acquire!(shapeOn(['speaker']), SONIOX_DEFAULTS, ctx);
+      await flush();
+      const remembered = await voiceLeaseMemory.read();
+      expect(remembered).toMatchObject({ leaseId: 'lease-9' });
+      expect(fetchStub.mock.calls[0][0]).toBe(`${remembered!.apiUrl}/soniox/session-key`);
+      // The id and the service's address: no key, no token.
+      expect(JSON.parse(localStorage.getItem(VOICE_LEASE_KEY)!)).toEqual(remembered);
+      expect(localStorage.getItem(VOICE_LEASE_KEY)).not.toMatch(/k-spk_tts|tok/);
+      await resources.release();
+      await flush();
+      expect(await voiceLeaseMemory.read()).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+      localStorage.removeItem(VOICE_LEASE_KEY);
+    }
   });
 });

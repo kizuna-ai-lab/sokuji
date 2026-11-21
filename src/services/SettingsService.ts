@@ -8,9 +8,11 @@ import { reportWarning, describeCause } from '../lib/diagnostics/report';
  */
 /**
  * Settings too large for `chrome.storage.sync` (8 KB an item, 120 writes a minute): the extension keeps them in
- * `chrome.storage.local`, which takes megabytes. The word list and the session background (spec §9).
+ * `chrome.storage.local`, which takes megabytes. The word list and the session background (spec §9). And what
+ * belongs to this device alone and must not follow the account to another: the voice-only lease it holds
+ * (`providers/soniox/voiceLeaseMemory.ts`).
  */
-const LOCAL_AREA_KEYS: ReadonlySet<string> = new Set(['settings.words', 'settings.sessionBackground']);
+const LOCAL_AREA_KEYS: ReadonlySet<string> = new Set(['settings.words', 'settings.sessionBackground', 'soniox.voiceOnlyLease']);
 
 /** The extension's storage area for `key`. */
 // @ts-ignore - Chrome API is defined in global scope for extensions
