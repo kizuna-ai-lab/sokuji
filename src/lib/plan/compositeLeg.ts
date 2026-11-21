@@ -55,8 +55,10 @@ export class CompositeLeg {
   private voice: SpeechSession | null = null;
   /** `closing`: a stop is closing the voice, which may still say a frame. `closed`: nothing of it passes on. */
   private voiceState: 'none' | 'live' | 'closing' | 'closed' = 'none';
-  /** The speech unit could not start: said as a degradation once the leg is open. */
-  private voiceFailure: { error: unknown } | null = null;
+  /** The text unit has opened: until then a start can still fail, and a failed start says nothing of its voice. */
+  private isOpen = false;
+  /** What the voice said of itself before the leg opened (no key, a unit that could not start): said once it has. */
+  private held: Array<Parameters<AdapterEvents['degraded']>[0]> = [];
   /** The leg said `failed` or `closed`, or was stopped: no voice is asked anything more, and no audio reaches its rows. */
   private ended = false;
   private unexpectedAudio = false;
@@ -79,6 +81,13 @@ export class CompositeLeg {
       segmentOpened: (e) => { events.segmentOpened(e); if (!this.ended) this.feed.opened(e); },
       segmentText: (e) => { events.segmentText(e); if (!this.ended) this.feed.text(e); },
       segmentClosed: (e) => { events.segmentClosed(e); if (!this.ended) this.feed.closed(e); },
+      // Text that came after its segment closed: read as any stretch, by the voice that reads the row, and its
+      // utterance ended again. It is not passed on: nothing above the contract takes it.
+      lateSpeech: (e) => {
+        if (this.ended) return;
+        voices.speak(this, e.ref, e.text, e.span, e.language);
+        voices.end(this, e.ref);
+      },
       audio: () => this.unexpected('audio'),
       speechRanges: () => this.unexpected('speechRanges'),
       // The leg is over: its voice goes first, unheard, so nothing follows the ending.
@@ -116,11 +125,14 @@ export class CompositeLeg {
   /**
    * Starts the leg's voice, when its context speaks, and opens it without waiting: text that comes first waits in
    * the voice. `counts`: the audio entries per row, shared with every voice that may read the same rows.
-   * A speech unit that cannot start leaves the leg without a voice; `opened()` says so.
+   * A speech unit that cannot start leaves the leg without a voice. That, and anything a voice says of itself while
+   * the text unit is still opening, is said by `opened()`.
+   * A leg that has ended starts none: its text unit says nothing more, so the voice would stay open, unasked, until
+   * the run stops.
    */
   openVoice(counts: Map<Ref, number>): void {
     const { request } = this;
-    if (!request.context.speech) return;
+    if (this.ended || !request.context.speech) return;
     try {
       this.voice = this.speech.unit.startSpeech!({
         leg: this.name,
@@ -140,15 +152,16 @@ export class CompositeLeg {
       });
     } catch (error) {
       this.closeVoice(false);
-      this.voiceFailure = { error };
+      this.voiceLost(error);
     }
   }
 
-  /** The leg is open: a voice that could not start is said now, once, so a start that fails says nothing of it. */
+  /** The leg is open: what its voice said of itself meanwhile is said now, in order, so a start that fails says nothing of it. */
   opened(): void {
-    const failure = this.voiceFailure;
-    this.voiceFailure = null;
-    if (failure) this.voiceLost(failure.error);
+    this.isOpen = true;
+    const held = this.held;
+    this.held = [];
+    for (const e of held) this.degraded(e);
   }
 
   /** Asks this leg's voice to read. `home`: the leg whose row it is, when not this one. */
@@ -237,15 +250,21 @@ export class CompositeLeg {
       speechRanges: ({ ref, ranges, home }) => {
         if (this.voiceState === 'live') this.row(home)?.rowRanges({ ref, ranges });
       },
-      degraded: (e) => { if (this.voiceState === 'live') this.events.degraded(e); },
+      degraded: (e) => { if (this.voiceState === 'live') this.degraded(e); },
       frame: (e) => { if (this.voiceState === 'live' || this.voiceState === 'closing') this.events.frame(e); },
     };
   }
 
   /** Speech is gone for this leg and its subtitles go on (spec §7.5). */
   private voiceLost(error: unknown): void {
+    this.degraded({ code: 'tts_degraded', message: `Translated speech could not start: ${describeCause(error)}`, cause: error });
+  }
+
+  /** Speech is degraded: said at once on an open leg, held while the text unit is still opening, dropped once the leg is over. */
+  private degraded(e: Parameters<AdapterEvents['degraded']>[0]): void {
     if (this.ended) return;
-    this.events.degraded({ code: 'tts_degraded', message: `Translated speech could not start: ${describeCause(error)}`, cause: error });
+    if (this.isOpen) this.events.degraded(e);
+    else this.held.push(e);
   }
 
   /** A text unit asked for no speech emitted some: a programming error, said once in the Logs and dropped. */

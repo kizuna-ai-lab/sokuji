@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { stubHosts } from '../plan/testing';
+import { compose } from '../plan/compose';
+import { stubHosts, stubProvider } from '../plan/testing';
+import { isRefusal } from '../plan/types';
 import { CAPS } from './catalog';
 import { choose } from './choose';
 import { oldChoose, oldRunOf } from './oldRules.testing';
@@ -35,6 +37,17 @@ describe('choosing a provider for a stage', () => {
   it('the two hosted providers are separate choices', () => {
     expect(choose(soniox, 'transcription', 'kizunaai_qwen', allPresent).lineUp).toMatchObject({ transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen' });
     expect(choose(soniox, 'transcription', 'kizunaai_soniox', allPresent).lineUp).toMatchObject({ transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox' });
+  });
+  it('a line-up that would run on two providers moves onto the chosen one, while a session runs one provider', () => {
+    // Providers whose text and voice are units of their own: the composer would run one's text with the other's voice.
+    const text = { id: 'stt', occupies: (_s: unknown, want: ReadonlySet<string>) => (want.size === 2 && want.has('transcription') && want.has('translation') ? ['transcription', 'translation'] : null), start: () => undefined };
+    const voice = { id: 'tts', occupies: (_s: unknown, want: ReadonlySet<string>) => (want.size === 1 && want.has('speech') ? ['speech'] : null), startSpeech: () => undefined };
+    const inUnits = { ...allPresent, providers: allPresent.providers.map((p) => (p.id === 'soniox' || p.id === 'kizunaai_soniox' ? stubProvider(p.id, { units: [text, voice] }) : p)) };
+    expect(isRefusal(compose({ transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'soniox' }, inUnits))).toBe(false);
+    expect(choose(soniox, 'transcription', 'kizunaai_soniox', inUnits).lineUp).toMatchObject({ transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox' });
+    expect(choose(local, 'speech', 'soniox', inUnits)).toEqual({ lineUp: soniox, moved: ['transcription', 'translation'] });
+    // On one provider its two units run together: nothing else moves.
+    expect(choose({ ...soniox, summarisation: 'x' }, 'speech', 'soniox', inUnits)).toEqual({ lineUp: { ...soniox, summarisation: 'x' }, moved: [] });
   });
   it('only the notes can be switched off', () => { expect(() => choose(soniox, 'speech', null, allPresent)).toThrow(); expect(choose(soniox, 'summarisation', null, allPresent).lineUp.summarisation).toBeNull(); });
 

@@ -1,5 +1,6 @@
 /**
- * Soniox's `C`, `build` and `describe` (survey §2.7). `build` never
+ * Soniox's `C`, `build` and `describe` (survey §2.7): the text side's
+ * config, and the voice and speed its speech unit is built with. `build` never
  * refuses: an auto source with the participant leg is the gate's (D20).
  * The context is the app's word list (`wordsFor`), no longer Soniox's own
  * vocabulary settings.
@@ -30,8 +31,6 @@ export interface SonioxConfig {
     /** Ask for agent text on this leg's socket: the speaker's leg, whose socket hears the microphone, in a run that speaks with the agent text setting on at Start (§4.3); split Both strips it (`startSplit`). Absent: off. */
     agentText?: true;
   };
-  /** Present when this leg speaks, in this leg's own voice: the participant's leg in `participantVoice`. */
-  tts?: { voice: string; speed: number };
   /** Both mode on one mixed socket (D23); read by `startBoth`. */
   sharedBoth: boolean;
   /** Face-to-face: two people at one microphone (slice 3). Absent: false. */
@@ -63,11 +62,24 @@ export function sonioxContext(words: SessionWords | undefined): SonioxWireContex
   return Object.keys(wire).length > 0 ? wire : undefined;
 }
 
-export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
-  const wire = sonioxContext(shared.words);
+/** What one leg's speech is asked with: its voice and its speaking speed. */
+export interface SonioxTtsConfig { voice: string; speed: number }
+
+/** A leg's own voice and speed: the participant's voice on the participant's leg. */
+export function sonioxTts(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxTtsConfig {
   const speakerVoice = sonioxSpeakerVoice(s);
   // Chosen here, by leg: a lone leg's adapter session cannot tell which leg it serves.
   const voice = shared.reversed(context.direction) ? participantVoiceFor(s, speakerVoice) : speakerVoice;
+  return { voice, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) };
+}
+
+/** The model a leg's speech names. */
+export function describeSonioxTts(): { ttsModel: string } {
+  return { ttsModel: SONIOX_TTS_MODEL };
+}
+
+export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
+  const wire = sonioxContext(shared.words);
   return {
     stt: {
       model: SONIOX_STT_MODEL,
@@ -78,9 +90,6 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
       // The narrow rule (spec 2026-11-05 §4.3): the flag alone made Soniox drop talk-over turns when speech echoed into the microphone, so only with the setting on.
       ...(!shared.reversed(context.direction) && shared.speaks === true && s.agentText === true ? { agentText: true as const } : {}),
     },
-    ...(context.speech
-      ? { tts: { voice, speed: clampNumber(s.ttsSpeed, 0.7, 1.3, 1.0) } }
-      : {}),
     // Face-to-face is one microphone: there is nothing to split.
     sharedBoth: sonioxSharedBoth(shared.faceToFace === true, s),
     ...(shared.faceToFace ? { faceToFace: true as const } : {}),
@@ -90,6 +99,7 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
   };
 }
 
-export function describeSoniox(c: SonioxConfig): { asrModel?: string; ttsModel?: string } {
-  return { asrModel: c.stt.model, ...(c.tts ? { ttsModel: SONIOX_TTS_MODEL } : {}) };
+/** The text side's model. The speech model is the voice's to name (`describeSonioxTts`). */
+export function describeSoniox(c: SonioxConfig): { asrModel?: string } {
+  return { asrModel: c.stt.model };
 }

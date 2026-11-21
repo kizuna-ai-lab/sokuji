@@ -3,7 +3,8 @@
 // A provider seen as one unit: it serves every stage together, as it does
 // today, and the plan of a run on it alone. Pure functions over the provider
 // definition.
-import { RUN_STAGES } from '../lineup/types';
+import { RUN_STAGES, SP, TR_TL } from '../lineup/types';
+import type { RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import { sameStages } from './types';
 import type { PlannedUnit, RunPlan, UnitDefinition } from './types';
@@ -43,14 +44,34 @@ const cache = new WeakMap<AnyProvider, readonly UnitDefinition[]>();
 export function unitsOf(p: AnyProvider): readonly UnitDefinition[] {
   let units = cache.get(p);
   if (!units) {
-    units = (p as { units?: readonly UnitDefinition[] }).units ?? [wholeUnit(p)];
+    units = p.units ?? [wholeUnit(p)];
     cache.set(p, units);
   }
   return units;
 }
 
-/** The plan in which a provider's first unit serves all three stages: a run of that provider alone. */
+/** A provider's unit that occupies exactly `stages` when asked for them, under no settings: the first that does. */
+function unitServing(p: AnyProvider, stages: readonly RunStage[]): PlannedUnit | null {
+  const want = new Set(stages);
+  for (const unit of unitsOf(p)) {
+    const got = unit.occupies(undefined, want);
+    if (got !== null && sameStages(got, want)) return { provider: p, unit, stages: got };
+  }
+  return null;
+}
+
+/**
+ * The plan of a run on one provider alone: the unit of it that serves all three stages, or, when no single unit
+ * does, its unit for transcription and translation beside its unit for speech. A provider with neither (one that
+ * only speaks) gets its first unit on all three stages, as a provider with one unit always did.
+ */
 export function wholePlan(p: AnyProvider): RunPlan {
-  const u: PlannedUnit = { provider: p, unit: unitsOf(p)[0], stages: RUN_STAGES };
+  const whole = unitServing(p, RUN_STAGES);
+  if (!whole) {
+    const text = unitServing(p, TR_TL);
+    const speech = unitServing(p, SP);
+    if (text && speech) return { units: [text, speech], byStage: { transcription: text, translation: text, speech } };
+  }
+  const u: PlannedUnit = whole ?? { provider: p, unit: unitsOf(p)[0], stages: RUN_STAGES };
   return { units: [u], byStage: { transcription: u, translation: u, speech: u } };
 }

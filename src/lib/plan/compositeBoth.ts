@@ -17,7 +17,8 @@ const LEGS: readonly LegName[] = ['speaker', 'participant'];
  * both and one each, and says which through its sessions' `info.shared`.
  *
  * The text sessions start first and the voices right after, opened and not awaited, before this resolves — so
- * before the caller can send any audio, and no word can come first. A voice's count of audio entries is fixed when
+ * before the caller can send any audio, and no word can come first. A leg whose text session failed or closed
+ * while the legs were starting gets no voice. A voice's count of audio entries is fixed when
  * it starts, and whether the voices share one is known only from the started text sessions: legs that share a
  * connection number their rows together, and either voice may read a row; legs that do not number them apart.
  *

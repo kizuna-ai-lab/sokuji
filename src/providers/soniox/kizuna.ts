@@ -7,6 +7,7 @@ import { getApiUrl } from '../../utils/environment';
 import { useManagedVoiceSource } from './managedVoiceSource';
 import { sonioxFileRecognitionBase, sonioxProvider } from './provider';
 import { createSonioxSettingsView } from './SonioxSettings';
+import { sonioxUnitsFor } from './units';
 import { createSonioxVoiceSummary } from './SonioxVoiceSummary';
 import { createKizunaVoiceClaim } from './voiceClaim';
 
@@ -42,6 +43,8 @@ export function createKizunaSonioxProvider({ participantSpeech }: { participantS
     VoiceSummary: KizunaSonioxVoiceSummary,
     signedOut: 'Sign in to use Kizuna AI Soniox.',
     participantSpeech,
+    // Soniox's two units over the same adapter, with this definition's own participant-speech flag.
+    units: sonioxUnitsFor({ start: sonioxProvider.start, participantSpeech }),
     // A saved recording as a file job of the signed-in account at the Kizuna AI service, which runs it at Soniox in the
     // region the settings name, the same one live sessions use (owner, 2026-11-18). No key: the History page attaches
     // the service's address and the sign-in.

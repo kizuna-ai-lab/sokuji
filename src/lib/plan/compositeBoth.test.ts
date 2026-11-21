@@ -25,12 +25,14 @@ interface Options {
   speaks?: readonly LegName[];
   voice?: Parameters<typeof stubSpeechUnit>[1];
   fails?: unknown;
+  /** What a leg's text session says while the legs start. */
+  during?: (events: Record<LegName, AdapterEvents>) => void;
 }
 
 /** Both legs over a stub text provider that starts both and a stub speech unit, started. */
 async function both(o: Options = {}) {
   const calls: StubCalls = [];
-  const text = stubStartBoth(calls, { shared: o.shared ?? true, fails: o.fails });
+  const text = stubStartBoth(calls, { shared: o.shared ?? true, fails: o.fails, during: o.during });
   const textUnit = stubTextUnit(calls, { provider: { session: { startBoth: text.startBoth } } });
   const voice = stubSpeechUnit(calls, { answers: true, ...o.voice });
   const plan = textAndSpeechPlan(textUnit.planned, voice.planned);
@@ -109,6 +111,22 @@ describe('startCompositeBoth: start and stop', () => {
   it('starts no speech session for a leg that does not speak', async () => {
     const h = await both({ speaks: ['speaker'] });
     expect(h.voice.voices.map((v) => v.request.leg)).toEqual(['speaker']);
+  });
+
+  it.each([
+    ['failed', (e: AdapterEvents) => e.failed({ message: 'gone' })],
+    ['closed', (e: AdapterEvents) => e.closed({ reason: 'server' })],
+  ] as const)("starts no voice for a leg whose text session %s while the legs were starting; the other leg's voice still starts", async (kind, end) => {
+    for (const shared of [true, false]) {
+      const h = await both({ shared, during: (events) => end(events.speaker) });
+      expect(named(h.calls)).toEqual(['text.startBoth', 'voice.start', 'voice.open']);
+      expect(h.voice.voices.map((v) => v.request.leg)).toEqual(['participant']);
+      expect(h.rec.speaker.log.map((e) => e.kind)).toEqual([kind]);
+      translate(h.emit('participant'), 2, 'Good morning.');
+      expect(h.of('participant', 'audio')).toHaveLength(1);
+      await h.sessions.participant.stop();
+      expect(only(h.calls, 'voice.close')).toEqual([['voice.close', 'participant']]);
+    }
   });
 
   it('gives both voices one count of audio entries when the legs share a connection, and each its own when they do not', async () => {
@@ -198,6 +216,25 @@ describe('startCompositeBoth: which voice reads a translation (spec §7.2)', () 
     translate(h.emit('speaker'), 4, 'おはよう。');
     expect(only(h.calls, 'voice.speak').slice(1)).toEqual([['voice.speak', 'speaker', 4, 'おはよう。', [0, 5], 'ja', undefined]]);
     expect(h.of('speaker', 'audio')[1]).toEqual({ pcm: expect.any(Int16Array), ref: 4, range: [0, 5] });
+  });
+
+  it("shared: text that came after its segment closed is read by the voice that reads its language, on the row's leg, and both voices end the utterance", async () => {
+    const h = await both();
+    translate(h.emit('speaker'), 2, 'おはよう');
+    h.emit('speaker').lateSpeech!({ ref: 2, text: ' Fine.', span: [4, 10], language: 'en' });
+    expect(only(h.calls, 'voice.speak', 'voice.endUtterance')).toEqual([
+      ['voice.speak', 'speaker', 2, 'おはよう', [0, 4], 'ja', undefined],
+      ['voice.endUtterance', 'speaker', 2],
+      ['voice.speak', 'participant', 2, ' Fine.', [4, 10], 'en', 'speaker'],
+      ['voice.endUtterance', 'speaker', 2],
+      ['voice.endUtterance', 'participant', 2],
+    ]);
+    // Its audio returns on the speaker's row, naming the participant's voice, numbered after the row's own.
+    expect(h.of('speaker', 'audio')).toEqual([
+      { pcm: expect.any(Int16Array), ref: 2, range: [0, 4] },
+      { pcm: expect.any(Int16Array), ref: 2, range: [4, 10], voice: 'participant' },
+    ]);
+    expect(h.of('speaker', 'lateSpeech')).toEqual([]);
   });
 
   it('shared: a row both voices read is numbered once, by the count they share', async () => {

@@ -98,6 +98,18 @@ describe('checkSpeech rules', () => {
     expect(rules(start, speak(1, 'Hi.', [0, 3]), setOn(false), setOn(true), speak(1, ' You.', [3, 8]), audio(1, [3, 8]), speak(2, 'Yo.', [0, 3]), audio(2))).toEqual([]);
   });
 
+  it('flags audio over a stretch handed over while speech was off, also once the same row is spoken again', () => {
+    const resumed: Step[] = [start, speak(1, 'One', [0, 3]), setOn(false), speak(1, 'two', [3, 6]), setOn(true), speak(1, 'six', [6, 9])];
+    expect(rules(...resumed, audio(1, [3, 6]))).toEqual(['silent-when-off']);
+    // A stretch spoken before the switch is not read after it either, and a range that reaches into one is flagged.
+    expect(rules(...resumed, audio(1, [0, 3]))).toEqual(['silent-when-off']);
+    expect(rules(...resumed, audio(1, [5, 8]))).toEqual(['silent-when-off']);
+    // What was spoken since the row came back is read; so is audio that says no range.
+    expect(rules(...resumed, audio(1, [6, 9]), audio(1))).toEqual([]);
+    // Ranges filled in later for entries already emitted are not audio: they are held to the spans spoken, as before.
+    expect(rules(start, speak(1, 'One', [0, 3]), audio(1), setOn(false), speak(1, 'two', [3, 6]), setOn(true), speak(1, 'six', [6, 9]), audio(1), ranges(1, [[0, [0, 3]], [1, [6, 9]]]))).toEqual([]);
+  });
+
   it('flags an event after close, and lets only a frame come before close has returned', () => {
     const frame: Step = { kind: 'frame', payload: { direction: 'in', type: 'tts.closed' } };
     expect(rules(start, speak(1, 'Hi.', [0, 3]), { kind: 'close' }, frame, { kind: 'closed' })).toEqual([]);

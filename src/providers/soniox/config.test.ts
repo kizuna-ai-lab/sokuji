@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { SharedSettings } from '../../lib/provider/types';
-import { buildSoniox, describeSoniox } from './config';
+import { buildSoniox, describeSoniox, describeSonioxTts, sonioxTts } from './config';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 
 const AUTO_CTX: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };
@@ -16,6 +16,9 @@ const SHARED: SharedSettings = {
 
 const build = (patch: Partial<SonioxSettings> = {}, context: SessionContext = AUTO_CTX) =>
   buildSoniox(context, { ...SONIOX_DEFAULTS, ...patch }, SHARED);
+/** The voice and speed a leg's speech unit is built with. */
+const voice = (patch: Partial<SonioxSettings> = {}, context: SessionContext = AUTO_CTX) =>
+  sonioxTts(context, { ...SONIOX_DEFAULTS, ...patch }, SHARED);
 
 describe('buildSoniox — stt', () => {
   it('builds stt-rt-v6 with no context and the server-default knobs at defaults', () => {
@@ -42,36 +45,43 @@ describe('buildSoniox — stt', () => {
   });
 
   it('clamps the knobs, rounds the integer ones, and falls back on non-finite input', () => {
-    const hi = build({ endpointSensitivity: 5, endpointLatencyAdjustmentLevel: 2.6, endpointMaxDelayMs: 99_999, ttsSpeed: 9 });
+    const hi = build({ endpointSensitivity: 5, endpointLatencyAdjustmentLevel: 2.6, endpointMaxDelayMs: 99_999 });
     expect(hi.stt.endpointSensitivity).toBe(1);
     expect(hi.stt.endpointLatencyAdjustmentLevel).toBe(3);
     expect(hi.stt.endpointMaxDelayMs).toBe(3000);
-    expect(hi.tts?.speed).toBe(1.3);
 
     // The lower bounds (SonioxProviderConfig.test.ts:106-113).
-    const lo = build({ endpointSensitivity: -5, endpointLatencyAdjustmentLevel: -2, endpointMaxDelayMs: 100, ttsSpeed: 0.1 });
+    const lo = build({ endpointSensitivity: -5, endpointLatencyAdjustmentLevel: -2, endpointMaxDelayMs: 100 });
     expect(lo.stt.endpointSensitivity).toBe(-1);
     expect(lo.stt.endpointLatencyAdjustmentLevel).toBe(0);
     expect(lo.stt.endpointMaxDelayMs).toBe(500);
-    expect(lo.tts?.speed).toBe(0.7);
 
-    const bad = build({ endpointMaxDelayMs: Number.NaN, ttsSpeed: Number.POSITIVE_INFINITY });
+    const bad = build({ endpointMaxDelayMs: Number.NaN });
     expect(bad.stt.endpointMaxDelayMs).toBe(2000);
-    expect(bad.tts?.speed).toBe(1);
+  });
+
+  it('builds no voice, whether the leg speaks or not: the voice is the speech unit\'s', () => {
+    expect(build()).not.toHaveProperty('tts');
+    expect(build({}, { ...AUTO_CTX, speech: false })).toEqual(build());
   });
 
 });
 
-describe('buildSoniox — tts', () => {
-  it("speaks only when the context speaks, in its leg's voice: the region's for the speaker, the participant's own for the participant", () => {
+describe('sonioxTts: the voice and speed of a leg\'s speech', () => {
+  it("is the leg's voice: the region's for the speaker, the participant's own for the participant", () => {
     const speaker: SessionContext = { ...AUTO_CTX, direction: { source: 'en', target: 'ja' } };
-    expect(build({}, { ...AUTO_CTX, speech: false }).tts).toBeUndefined();
-    expect(build({ region: 'jp', voiceJp: 'Clone-UUID' }, speaker).tts).toEqual({ voice: 'Clone-UUID', speed: 1 });
-    expect(build({ region: 'jp', voiceJp: 'Clone-UUID' }).tts).toEqual({ voice: 'Grace', speed: 1 });
-    expect(build({ region: 'in', voiceIn: 'Clone-IN' }, speaker).tts).toEqual({ voice: 'Clone-IN', speed: 1 });
-    expect(build({ region: 'eu', voiceEu: '' }, speaker).tts?.voice).toBe('Adrian');
+    expect(voice({ region: 'jp', voiceJp: 'Clone-UUID' }, speaker)).toEqual({ voice: 'Clone-UUID', speed: 1 });
+    expect(voice({ region: 'jp', voiceJp: 'Clone-UUID' })).toEqual({ voice: 'Grace', speed: 1 });
+    expect(voice({ region: 'in', voiceIn: 'Clone-IN' }, speaker)).toEqual({ voice: 'Clone-IN', speed: 1 });
+    expect(voice({ region: 'eu', voiceEu: '' }, speaker).voice).toBe('Adrian');
     // The participant's choice is the speaker's own: the other default.
-    expect(build({ voice: 'Grace' }).tts?.voice).toBe('Adrian');
+    expect(voice({ voice: 'Grace' }).voice).toBe('Adrian');
+  });
+
+  it('clamps the speed, and falls back on non-finite input', () => {
+    expect(voice({ ttsSpeed: 9 }).speed).toBe(1.3);
+    expect(voice({ ttsSpeed: 0.1 }).speed).toBe(0.7);
+    expect(voice({ ttsSpeed: Number.POSITIVE_INFINITY }).speed).toBe(1);
   });
 });
 
@@ -100,9 +110,10 @@ describe('buildSoniox — diarize', () => {
 });
 
 describe('describeSoniox', () => {
-  it('describes the STT model always, and the TTS model only for a leg that speaks', () => {
-    expect(describeSoniox(build())).toEqual({ asrModel: 'stt-rt-v6', ttsModel: 'tts-rt-v2' });
+  it('describes the STT model alone, whether the leg speaks or not; the speech model is the voice\'s to name', () => {
+    expect(describeSoniox(build())).toEqual({ asrModel: 'stt-rt-v6' });
     expect(describeSoniox(build({}, { ...AUTO_CTX, speech: false }))).toEqual({ asrModel: 'stt-rt-v6' });
+    expect(describeSonioxTts()).toEqual({ ttsModel: 'tts-rt-v2' });
   });
 });
 

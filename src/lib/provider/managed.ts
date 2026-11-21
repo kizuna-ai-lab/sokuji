@@ -10,6 +10,7 @@ import type { ComponentType } from 'react';
 import type { SessionHooks } from '../session/types';
 import type { AuthContext, CredentialsMissing, FileRecognitionSpec, Provider, SessionWords, SettingsProps, VoiceSummaryProps } from './types';
 import type { RunStage } from '../lineup/types';
+import type { UnitDefinition } from '../plan/types';
 
 /** What a managed `read` answers (the read type `R`, choice 1): the sign-in, never a key — the lease mints those. */
 export interface ManagedSignIn {
@@ -40,6 +41,8 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   signedOut: string;
   /** The participant-speech flag (ruling 2); absent, the twin carries the base's own flag, if it has one. */
   participantSpeech?: boolean;
+  /** The twin's own units, where the base declares units; absent, the twin is one whole-provider unit, whatever the base declares. */
+  units?: readonly UnitDefinition[];
   /** The twin is flagged on its own; the base's flag never carries over. */
   flagged?: true;
   /** The twin's own file recognition, through the sign-in; absent, it transcribes no file (the base's needs a key). */
@@ -84,6 +87,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     build: base.build,
     describe: base.describe,
     start: base.start,
+    ...(o.units ? { units: o.units } : {}),
     // The base's `startBoth` only: its other hooks (`prepare`, `admit`, `acquire`) are the base's own business, never the twin's.
     session: { ...(base.session?.startBoth ? { startBoth: base.session.startBoth } : {}), ...o.session },
   };
