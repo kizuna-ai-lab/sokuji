@@ -102,6 +102,8 @@ describe('kizunaSonioxProvider', () => {
       build: fakeProvider.build,
       describe: fakeProvider.describe,
       start: fakeProvider.start,
+      // One whole unit over the stand-in, not Soniox's own two.
+      units: undefined,
       session: { ...kizunaSonioxProvider.session, startBoth: undefined },
     } as AnyProvider;
     const fetch = vi.fn(async (url: string) => (url.endsWith('/soniox/session-key')

@@ -32,6 +32,24 @@ function noUnit(asked: readonly RunStage[], options: Readonly<Record<RunStage, P
   return { refused: 'lineup_no_unit', stage: asked[0] };
 }
 
+/**
+ * The ways a host's stages may be shared out among its units, in the order they are tried: one unit for all of
+ * them; then, where an option there states stages that go together and the host was given more than those, one
+ * unit for that joint group beside one for the rest (Soniox on all three: its text unit and its voice).
+ */
+function sharings(asked: readonly RunStage[], options: Readonly<Record<RunStage, ProviderCaps>>): RunStage[][][] {
+  const ways: RunStage[][][] = [[[...asked]]];
+  for (const stage of asked) {
+    const joint = options[stage].joint;
+    if (!joint || joint.length >= asked.length || !joint.every((st) => asked.includes(st))) continue;
+    // In stage order, the part that holds the earlier stage first.
+    const parts = [asked.filter((st) => joint.includes(st)), asked.filter((st) => !joint.includes(st))];
+    ways.push(parts.sort((a, b) => asked.indexOf(a[0]) - asked.indexOf(b[0])));
+    break;
+  }
+  return ways;
+}
+
 /** The plan that runs this line-up on the providers offered here, or the first reason it cannot run. */
 export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): RunPlan | PlanRefusal {
   const options = {} as Record<RunStage, ProviderCaps>;
@@ -60,19 +78,29 @@ export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): Ru
   const byStage = {} as Record<RunStage, PlannedUnit>;
   for (const [host, asked] of groups) {
     const provider = hosts.get(host)!;
-    const want = new Set(asked);
     const s = input.settings(provider.id);
-    let planned: PlannedUnit | undefined;
-    for (const unit of unitsOf(provider)) {
-      const got = unit.occupies(s, want);
-      if (got !== null && sameStages(got, want)) {
-        planned = { provider, unit, stages: got };
+    /** The host's first unit that occupies exactly these stages. */
+    const serving = (stages: readonly RunStage[]): PlannedUnit | undefined => {
+      const want = new Set(stages);
+      for (const unit of unitsOf(provider)) {
+        const got = unit.occupies(s, want);
+        if (got !== null && sameStages(got, want)) return { provider, unit, stages: got };
+      }
+      return undefined;
+    };
+    let planned: PlannedUnit[] | undefined;
+    for (const parts of sharings(asked, options)) {
+      const found = parts.map(serving);
+      if (found.every((unit): unit is PlannedUnit => unit !== undefined)) {
+        planned = found;
         break;
       }
     }
     if (!planned) return noUnit(asked, options);
-    units.push(planned);
-    for (const stage of asked) byStage[stage] = planned;
+    for (const unit of planned) {
+      units.push(unit);
+      for (const stage of unit.stages) byStage[stage] = unit;
+    }
   }
   return { units, byStage };
 }

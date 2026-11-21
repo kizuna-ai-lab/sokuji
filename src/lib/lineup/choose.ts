@@ -6,6 +6,7 @@
 // moves them to the chosen provider's host (design section 11).
 import { compose } from '../plan/compose';
 import type { ComposeInput } from '../plan/compose';
+import { providersIn } from '../plan/read';
 import { isRefusal } from '../plan/types';
 import { caps, hostDefaults, soleHost } from './catalog';
 import { RUN_STAGES } from './types';
@@ -41,8 +42,10 @@ export function choose(lineUp: LineUp, stage: StageName, providerId: string | nu
   // A line-up the composer cannot run: the rest follows the chosen provider. Which providers are offered never
   // moves a stage: a refusal only for a provider not offered here moves the rest when the catalog alone says the
   // line-up does not run, as it would with every provider offered.
+  // Until the stored line-up decides what runs, a session runs the one selected provider: a line-up the composer
+  // would run on two providers (one's text with another's voice) is moved like one it refuses.
   const plan = compose(next, input);
-  const runs = !isRefusal(plan) || (plan.refused === 'lineup_not_offered' && soleHost(next) !== null);
+  const runs = isRefusal(plan) ? plan.refused === 'lineup_not_offered' && soleHost(next) !== null : providersIn(plan).length === 1;
   if (!runs) for (const s of RUN_STAGES) if (!group.includes(s)) next[s] = defaults[s];
 
   return { lineUp: next, moved: RUN_STAGES.filter((s) => s !== stage && next[s] !== lineUp[s]) };

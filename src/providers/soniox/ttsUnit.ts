@@ -25,7 +25,10 @@ export interface SonioxTtsUnitDeps {
   participantSpeech?: boolean;
 }
 
-export type SonioxTtsUnit = UnitDefinition<SonioxSettings, SonioxCredentials, SonioxTtsConfig>;
+/** The unit's config: the leg's voice and speed. `off`: built for a leg that does not speak, which starts no voice and names no speech model. */
+export type SonioxTtsUnitConfig = SonioxTtsConfig & { off?: true };
+
+export type SonioxTtsUnit = UnitDefinition<SonioxSettings, SonioxCredentials, SonioxTtsUnitConfig>;
 
 /** The members of `AdapterEvents` a voice has no business calling. */
 type NotSpeech = Exclude<keyof AdapterEvents, keyof SpeechEvents>;
@@ -77,7 +80,7 @@ function silentSession(events: SpeechEvents): SpeechSession {
   };
 }
 
-function startSonioxSpeech(openSocket: OpenSocket, request: SpeechStartRequest<SonioxTtsConfig, SonioxCredentials>, events: SpeechEvents): SpeechSession {
+function startSonioxSpeech(openSocket: OpenSocket, request: SpeechStartRequest<SonioxTtsUnitConfig, SonioxCredentials>, events: SpeechEvents): SpeechSession {
   const { config, credentials } = request;
   const key = credentials.tts;
   if (!key) return silentSession(events);
@@ -142,7 +145,8 @@ export function createSonioxTtsUnit(deps: SonioxTtsUnitDeps = {}): SonioxTtsUnit
     id: 'tts',
     occupies: (_s, want) => (sameStages(SP, want) ? SP : null),
     capabilities: () => ({
-      speech: 'always',
+      // Whether a leg is read aloud is the user's switch to say, as it is for Soniox as a whole.
+      speech: 'optional',
       turns: ['auto', 'manual'],
       turnOwner: 'either',
       boundaries: 'provider',
@@ -150,8 +154,8 @@ export function createSonioxTtsUnit(deps: SonioxTtsUnitDeps = {}): SonioxTtsUnit
       faceToFace: true,
       participantSpeech,
     }),
-    build: sonioxTts,
-    describe: describeSonioxTts,
+    build: (context, s, shared) => (context.speech ? sonioxTts(context, s, shared) : { ...sonioxTts(context, s, shared), off: true }),
+    describe: (c) => (c.off ? {} : describeSonioxTts()),
     startSpeech: (request, events) => startSonioxSpeech(openSocket, request, events),
   };
 }

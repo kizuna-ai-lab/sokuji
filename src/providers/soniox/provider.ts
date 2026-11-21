@@ -11,6 +11,7 @@ import { asSonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_LANGUAGES, sonioxWire } from './languages';
 import { AUTO } from '../../lib/provider/languages';
 import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
+import { sonioxUnitsFor } from './units';
 
 const adapter = createSonioxAdapter();
 
@@ -86,6 +87,9 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
   build: buildSoniox,
   describe: describeSoniox,
   start: adapter.start,
+
+  // What a session runs: the STT connection for transcription and translation, the voice for speech.
+  units: sonioxUnitsFor({ start: adapter.start }),
 
   session: { startBoth: adapter.startBoth },
 };

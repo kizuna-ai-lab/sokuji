@@ -2,7 +2,8 @@
 //
 // The run plan as the stores stand: the one place the app reads it, for a
 // start, the start gate and every surface. Until the stored line-up decides
-// it, the plan is the selected provider's, as one whole-provider unit.
+// it, the plan is the selected provider's alone: its one whole-provider unit,
+// or the units it declares for a session on it alone.
 // Nothing the provider registry imports may import this file: it imports the
 // registry (`fromStores.cycle.test.ts` checks it).
 import { useMemo } from 'react';
@@ -43,7 +44,7 @@ function planIn({ selected, entries }: Pick<ProviderStore, 'selected' | 'entries
 
 /**
  * The plan as the stores stand: the selected provider (the first offered when the selection is not offered here)
- * as one whole-provider unit, once its entry has loaded. The same object until the provider or its entry changes.
+ * alone (`wholePlan`), once its entry has loaded. The same object until the provider or its entry changes.
  */
 export function planFromStores(): PlanState {
   return planIn(useProviderStore.getState());

@@ -104,7 +104,7 @@ const voiceUnit: UnitDefinition<FakeVoiceSettings, FakeVoiceCredentials, FakeVoi
  * The fake voice provider: no key, always ready, the fake's languages. It is never a text provider: generic code
  * reads its `units`, and its own `start` rejects.
  */
-export const fakeVoiceProvider: Provider<FakeVoiceSettings, FakeVoiceCredentials, FakeVoiceConfig> & { id: 'fake_voice'; units: readonly UnitDefinition[] } = {
+export const fakeVoiceProvider: Provider<FakeVoiceSettings, FakeVoiceCredentials, FakeVoiceConfig> & { id: 'fake_voice' } = {
   id: 'fake_voice',
   kind: 'own-key',
   platforms: ['electron', 'extension', 'web'],

@@ -8,6 +8,7 @@ import type { PreviewClip } from '../audio/playback';
 import type { Adapter, SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import type { RunStage } from '../lineup/types';
+import type { UnitDefinition } from '../plan/types';
 import type { SessionHooks } from '../session/types';
 import type { WireTable } from '../language/wire';
 
@@ -447,6 +448,12 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
   describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
   start: Adapter<C, K>['start'];
+
+  /**
+   * The provider's units, when a session may run it in pieces: each serves some of the stages, with a config of its
+   * own. Absent: one unit that is the whole provider, from `build`, `describe` and `start` (`unitsOf`).
+   */
+  units?: readonly UnitDefinition[];
 
   // across legs and time — optional
   session?: SessionHooks<S, K, C>;

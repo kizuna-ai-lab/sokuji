@@ -16,7 +16,7 @@ import type { SharedSettings } from '../../lib/provider/types';
 import { buildSoniox, describeSoniox, type SonioxTtsConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { AUTO_CTX, b64, KEY, SHARED, type Json } from './testing';
-import { createSonioxTtsUnit, sonioxTtsUnit, sonioxTtsUnitFor } from './ttsUnit';
+import { createSonioxTtsUnit, sonioxTtsUnit, sonioxTtsUnitFor, type SonioxTtsUnitConfig } from './ttsUnit';
 
 const REVERSED: SharedSettings = { ...SHARED, reversed: () => true };
 const BACK = { ...AUTO_CTX, direction: { source: 'ja', target: 'en' } };
@@ -70,7 +70,7 @@ describe("Soniox's speech unit", () => {
   });
 
   it('says what the voice can do; whether the participant speaks is its definition\'s to say', () => {
-    const can = { speech: 'always', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: false, faceToFace: true };
+    const can = { speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: false, faceToFace: true };
     expect(sonioxTtsUnit.capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: true });
     expect(sonioxTtsUnitFor({ participantSpeech: true }).capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: true });
     expect(sonioxTtsUnitFor({ participantSpeech: false }).capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: false });
@@ -101,6 +101,14 @@ describe("Soniox's speech unit", () => {
 
   it('describes its model and nothing else', () => {
     expect(sonioxTtsUnit.describe({ voice: 'Adrian', speed: 1 })).toEqual({ ttsModel: 'tts-rt-v2' });
+  });
+
+  it('names no speech model for a leg that does not speak, as the whole provider names none', () => {
+    const silent = { ...AUTO_CTX, speech: false };
+    const config = sonioxTtsUnit.build(silent, SONIOX_DEFAULTS, SHARED) as SonioxTtsUnitConfig;
+    expect(config).toEqual({ ...sonioxTtsUnit.build(AUTO_CTX, SONIOX_DEFAULTS, SHARED), off: true });
+    expect(sonioxTtsUnit.describe(config)).toEqual({});
+    expect(describeSoniox(buildSoniox(silent, SONIOX_DEFAULTS, SHARED))).not.toHaveProperty('ttsModel');
   });
 });
 
