@@ -123,7 +123,8 @@ export interface AdapterEvents {
   segmentOpened(e: { ref: Ref; side: Side; origin?: string; person?: string }): void;
   /** Always the whole text; a snapshot, never a delta. A defined `person` replaces the segment's. */
   /** `heard`: when its words were heard, if the adapter knows; a defined one replaces the segment's. */
-  segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string; heard?: Heard }): void;
+  /** `stableLen`: on a translation segment, the first `stableLen` characters of `text` will not change. Absent: nothing is known to be stable until the segment closes. */
+  segmentText(e: { ref: Ref; text: string; timing?: SegmentTiming; language?: string; person?: string; heard?: Heard; stableLen?: number }): void;
   segmentClosed(e: { ref: Ref; origin?: string }): void;
   /** `ref` absent: attributable to no segment (plays, pairs with nothing).
    *  `range` absent: this segment's audio, which characters unknown.
