@@ -122,6 +122,7 @@ export function startLocalTranslation(
   const jobs = createJobTranslator({
     events,
     clock,
+    signal,
     language: target,
     timeoutMs: config.modelId === BING_TRANSLATOR ? JOB_TIMEOUT_MS : LOCAL_MODEL_JOB_TIMEOUT_MS,
     open: load,
