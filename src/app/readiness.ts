@@ -16,14 +16,15 @@
  *   typing a key checks once per pause. No released network provider reads
  *   the pair or the legs: a pick or an audio-mode switch checks none.
  * - The stages each provider serves in the plan are kept in the provider
- *   store, for its check to read; a provider whose stages changed forgets
- *   its readiness and is checked again, as after an edit.
+ *   store, with the stored line-up's id for each, for its check to read; a
+ *   provider whose stages or ids changed forgets its readiness and is
+ *   checked again, as after an edit.
  * - A sign-in flip forgets every loaded managed provider's readiness.
  * - A flip heard while a run is on forgets those answers at once; the
  *   plan's managed providers are re-checked once idle, after the edit delay.
  */
 import type { Clock } from '../lib/contract/clock';
-import { checkStagesOf, providersIn } from '../lib/plan/read';
+import { checkStageIdsOf, checkStagesOf, providersIn } from '../lib/plan/read';
 import type { RunPlan } from '../lib/plan/types';
 import type { AnyProvider, AuthContext } from '../lib/provider/types';
 import type { Runner } from '../lib/session/runner';
@@ -96,7 +97,7 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
   };
   /**
    * Keeps the store's stages on the plan's: what each provider of the plan serves there, when that is only a part
-   * of it. True when they moved: the store forgot those providers' readiness and notified, and that evaluation
+   * of it, and the id the stored line-up gives each of those stages. True when they moved: the store forgot those providers' readiness and notified, and that evaluation
    * was this one. A provider outside the plan keeps what it was last told, and without a plan nothing moves: a
    * provider that leaves and comes back to the same stages keeps its answer.
    */
@@ -105,12 +106,18 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
     if (!p) return false;
     const before = useProviderStore.getState().stages;
     const next = { ...before };
+    const nextIds = { ...useProviderStore.getState().stageIds };
+    // A stored line-up is what the plan was composed from; one that is only shown names nothing about it.
+    const { lineUp, stored } = useLineUpStore.getState();
     for (const provider of providersIn(p)) {
       const stages = checkStagesOf(p, provider);
+      const ids = checkStageIdsOf(stages, stored ? lineUp : null);
       if (stages) next[provider.id] = stages;
       else delete next[provider.id];
+      if (ids) nextIds[provider.id] = ids;
+      else delete nextIds[provider.id];
     }
-    useProviderStore.getState().setStages(next);
+    useProviderStore.getState().setStages(next, nextIds);
     return useProviderStore.getState().stages !== before;
   };
   const evaluate = () => {

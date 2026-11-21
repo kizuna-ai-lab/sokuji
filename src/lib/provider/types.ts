@@ -121,6 +121,12 @@ export interface CheckContext {
    * speaks needs nothing it would need to transcribe. Absent: every stage it can serve.
    */
   stages?: readonly RunStage[];
+  /**
+   * The line-up id each of `stages` was given to, where the plan runs a stored line-up: a provider that runs a
+   * stage in more than one way reads which here (the local provider: Bing or a local model, Edge or a local voice).
+   * Absent: `stages` is absent, or no stored line-up is what runs.
+   */
+  stageIds?: Readonly<Partial<StageIds>>;
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }

@@ -8,6 +8,7 @@ import type { RunState } from '../lib/session/types';
 import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../providers/fake/settings';
 import { useProviderStore } from '../stores/providerStore';
+import { useLineUpStore } from '../stores/lineUpStore';
 import { runsOn } from '../stores/lineUpStore.testing';
 import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS } from './readiness';
 import { readinessPlan } from './session';
@@ -76,7 +77,8 @@ const realRefresh = useProviderStore.getState().refreshReadiness;
 beforeEach(() => {
   offered.list = [];
   runsOn(null);
-  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, stages: {}, legs: ['speaker'], refreshReadiness: realRefresh });
+  useLineUpStore.setState({ lineUp: null, stored: false });
+  useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, stages: {}, stageIds: {}, legs: ['speaker'], refreshReadiness: realRefresh });
 });
 
 /**
@@ -792,6 +794,33 @@ describe('the stages each provider serves', () => {
     await flush();
     expect(stagesAsked(a.check)).toEqual([['transcription', 'translation']]);
     expect(stagesAsked(b.check)).toEqual([['speech']]);
+    detach();
+  });
+
+  // A provider that runs a stage in more than one way (the local one: Bing or a model) reads which from the ids.
+  it("the stored line-up's ids of those stages are kept beside them, reach the check, and a change of one checks its provider again", async () => {
+    const a = makeProbe('a');
+    const b = makeProbe('b');
+    setupStore(a.provider, b.provider);
+    useLineUpStore.setState({ lineUp: { transcription: 'a', translation: 'bing', speech: 'b', summarisation: null }, stored: true, unstoredProvider: null });
+    const clock = createVirtualClock(0);
+    const two = planOfTwo(a.provider as unknown as AnyProvider, b.provider as unknown as AnyProvider);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [], plan: () => two, auth: () => auth, clock });
+    expect(useProviderStore.getState().stageIds).toEqual({ a: { transcription: 'a', translation: 'bing' }, b: { speech: 'b' } });
+    clock.advance(READINESS_DELAY_MS);
+    await flush();
+    const idsAsked = (check: { mock: { calls: unknown[][] } }) => check.mock.calls.map((call) => (call[2] as { stageIds?: unknown }).stageIds);
+    expect(idsAsked(a.check)).toEqual([{ transcription: 'a', translation: 'bing' }]);
+    expect(idsAsked(b.check)).toEqual([{ speech: 'b' }]);
+
+    // The same stages, another id for one of them: `a` is asked again, `b` is not.
+    useLineUpStore.setState({ lineUp: { transcription: 'a', translation: 'a', speech: 'b', summarisation: null } });
+    expect(useProviderStore.getState().readiness.a).toEqual({ state: 'unknown' });
+    expect(useProviderStore.getState().readiness.b).toMatchObject({ state: 'ready' });
+    clock.advance(READINESS_DELAY_MS);
+    await flush();
+    expect(idsAsked(a.check)).toEqual([{ transcription: 'a', translation: 'bing' }, { transcription: 'a', translation: 'a' }]);
+    expect(b.check).toHaveBeenCalledTimes(1);
     detach();
   });
 
