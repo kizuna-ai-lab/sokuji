@@ -514,6 +514,18 @@ They replace the text of Tasks A3 and A4 where the two differ; Parts B to D buil
 
 ---
 
+## Decisions made while Part B was built
+
+- **The plan of a shape comes from the selection until Part C.** `planFromSelection()` in `src/lib/session/appShape.ts` builds the whole-provider plan of the selected provider and its account; `readShapeFromStores`, `liveGate` and the account button's balance check all use it. Task C1 replaces this one function with `planFromStores()`.
+- **The whole-provider unit asks the provider when it is asked.** Its capabilities are computed on read and its `start` and `describe` are read at call time, so generic code calls the provider's functions exactly as often as before. Generic code reads the member it needs and never spreads the capabilities object.
+- **`capabilitiesOf(plan, stage)`** is in `src/lib/plan/read.ts`.
+- **A lease's keys are read for every leg before any leg starts**, as before.
+- **`ensureReady(provider, shape, signal)`** is the runner's port; the run calls it once per provider of the plan.
+- **Left as they are, for step 2**, because one unit cannot reach them: `admit` runs once per planned unit; each leg has one `shared` and one model list (the transcription provider's); a run has one budget (the last lease's); `prepare` and `acquire` receive the whole shape, every provider's account included; a plan of several units is refused only when the adapter starts.
+- **For Task C2:** `faceToFaceFromStores` still reads the selected provider; the table in Task B1 gives it to the transcription unit.
+
+---
+
 ## What this step leaves for step 2
 
 - `compose` and `soleHost` can disagree once a provider has several units: `soleHost`'s callers move to the plan then.

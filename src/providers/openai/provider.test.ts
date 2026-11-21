@@ -20,6 +20,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import { readCredentials } from '../../lib/provider/credentials';
 import { AUTO } from '../../lib/provider/languages';
+import { planOf } from '../../lib/plan/testing';
 import { contextsFor, gate } from '../../lib/session/shape';
 import { selectionFromStored } from '../../lib/session/storedSettings';
 import type { RunShape } from '../../lib/session/types';
@@ -41,7 +42,7 @@ afterEach(() => {
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>
-  ({ provider: openaiProvider, settings: REALTIME_DEFAULTS, pair, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: false, turnMode: 'auto', ...patch }) as unknown as RunShape;
+  ({ plan: planOf(openaiProvider), accounts: { [openaiProvider.id]: { settings: REALTIME_DEFAULTS, credentials: {} } }, pair, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: false, turnMode: 'auto', ...patch }) as unknown as RunShape;
 const noAuth = { signedIn: false, getToken: async () => null };
 
 describe('the OpenAI Realtime definition', () => {

@@ -7,6 +7,7 @@ import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { FakeConfig, FakeCredentials } from '../../providers/fake/adapter';
 import { createRunner } from './runner';
+import { shapeWith } from '../plan/testing';
 import type { RunShape, TurnMode } from './types';
 import type { PlaybackPort } from './ports';
 
@@ -38,8 +39,7 @@ function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: Any
   const playback = { audio: vi.fn(), held: vi.fn(), clear: vi.fn(), live: vi.fn() };
   Object.assign(playback, o.playback);
   const tracked: Array<[string, unknown]> = [];
-  const shape: RunShape = {
-    provider: o.provider ?? spyingProvider(log),
+  const shape: RunShape = shapeWith(o.provider ?? spyingProvider(log), {
     settings: FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },
@@ -54,7 +54,7 @@ function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: Any
       segmentation: { mode: 'off', sentencesPerRow: 0 },
     },
     auth: { signedIn: false, getToken: async () => null },
-  };
+  });
   const runner = createRunner({
     clock,
     platform: 'electron',

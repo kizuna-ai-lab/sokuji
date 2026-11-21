@@ -24,6 +24,7 @@ import { createVirtualClock } from '../contract/clock';
 import { createSampler } from '../screen/sampler';
 import { QWEN_DEFAULTS } from '../../providers/qwen_livetranslate/settings';
 import { useScreenContextStore } from '../../stores/screenContextStore';
+import { planOf } from '../plan/testing';
 import { fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
@@ -75,9 +76,8 @@ describe('readShapeFromStores', () => {
     useSettingsStore.setState({ textOnly: true, keepReplayAudio: false });
     const shape = readShapeFromStores(auth)!;
     expect(shape).toMatchObject({
-      provider: fakeProvider,
-      settings: FAKE_DEFAULTS,
-      credentials: { apiKey: 'k' },
+      plan: planOf(fakeProvider),
+      accounts: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' } } },
       pair: { source: 'en', target: 'ja' },
       legs: ['speaker', 'participant'],
       turnMode: 'push-to-talk',
@@ -291,10 +291,10 @@ describe('ensureReadyFromStores', () => {
     const provider = { ...fakeProvider, kind: 'local', check } as unknown as AnyProvider;
     const settings = { ...FAKE_DEFAULTS };
     const shape = {
-      provider, settings, credentials: {}, pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], auth,
+      plan: planOf(provider), accounts: { fake: { settings, credentials: {} } }, pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], auth,
     } as unknown as RunShape;
     const signal = new AbortController().signal;
-    await expect(ensureReadyFromStores(shape, signal)).resolves.toEqual({ state: 'ready', models: [] });
+    await expect(ensureReadyFromStores(provider, shape, signal)).resolves.toEqual({ state: 'ready', models: [] });
     expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], signal });
   });
 });

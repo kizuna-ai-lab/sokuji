@@ -19,6 +19,7 @@ import { VolcengineIcon } from '../../components/Icons/ProviderIcons';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import { readCredentials } from '../../lib/provider/credentials';
+import { planOf } from '../../lib/plan/testing';
 import { contextsFor } from '../../lib/session/shape';
 import type { RunShape } from '../../lib/session/types';
 import { useProviderStore } from '../../stores/providerStore';
@@ -70,7 +71,7 @@ describe('the Doubao AST 2.0 definition', () => {
   });
 
   it('lets the participant speak when its switch is on, speech to speech on the reversed pair (ruling 4)', () => {
-    const shape = { provider: volcengineAst2Provider, pair: { source: 'zh', target: 'en' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
+    const shape = { plan: planOf(volcengineAst2Provider), accounts: { [volcengineAst2Provider.id]: { settings: undefined, credentials: {} } }, pair: { source: 'zh', target: 'en' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
     const participant = contextsFor(shape).participant!;
     expect(participant).toEqual({ direction: { source: 'en', target: 'zh' }, speech: true, turns: 'auto' });
     expect((volcengineAst2Provider.build(participant, AST2_DEFAULTS, SHARED) as Ast2Config).mode).toBe('s2s');

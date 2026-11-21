@@ -141,7 +141,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
           await run.close(result);
           if (liveSince !== null && !abandoned.has(run)) {
             const duration = endedAt - liveSince;
-            const provider = run.shape.provider.id;
+            const provider = run.providerId;
             // One per leg, as `connected` was.
             run.shape.legs.forEach((leg) => deps.analytics.track('connection_status', { status: 'disconnected', provider, duration_ms: duration, channel: leg }));
             // Read once the run has closed: a reconnect its end cut short is in.
@@ -240,7 +240,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       reportError('SessionRunner', `The session did not start: ${message}`, { cause: error });
       deps.analytics.track('error_occurred', {
         error_type: 'session_start', error_message: message, component: 'session-runner',
-        severity: 'high', provider: shape.provider.id, recoverable: true,
+        severity: 'high', provider: run.providerId, recoverable: true,
       });
       // A start that fails reaches `api_error` too, as the old `onConnectFailed`
       // tracked every connect failure (`participantTelemetry.ts:104-123` on
@@ -252,7 +252,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
       // (spec 2026-10-13 §4).
       const code = adapterError?.code;
       deps.analytics.track('api_error', {
-        provider: shape.provider.id,
+        provider: run.providerId,
         error_message: redact(message),
         ...(code ? { error_code: code } : {}),
         error_type: error instanceof LegOpenError && error.stage === 'source' ? 'device' : apiErrorType(code),
@@ -276,7 +276,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     set({ phase: 'running', participantSpeech: run.shape.participantSpeech, ...payerOf(run.shape), since: run.liveSince!, legs: legs(run), ...(run.budget ? { budget: run.budget } : {}), ...reconnect(run) });
     deps.analytics.track('translation_session_start', {
       session_id: run.id,
-      provider: shape.provider.id,
+      provider: run.providerId,
       source_language: shape.pair.source,
       target_language: shape.pair.target,
       asr_model: run.models.asrModel,
@@ -288,7 +288,7 @@ export function createRunner(rawDeps: RunnerDeps): Runner {
     });
     // Once per run, at the step to running, as the session's own start (spec 2026-10-22 §3.6): the kind, never the title.
     if (shape.frames) {
-      deps.analytics.track('screen_context_on', { session_id: run.id, provider: shape.provider.id, source_kind: shape.frames.kind, platform: deps.platform });
+      deps.analytics.track('screen_context_on', { session_id: run.id, provider: run.providerId, source_kind: shape.frames.kind, platform: deps.platform });
     }
   };
 

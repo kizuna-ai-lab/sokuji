@@ -9,6 +9,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
 import type { SessionContext } from '../../lib/contract/adapter';
 import { recordEvents } from '../../lib/contract/events';
+import { planOf } from '../../lib/plan/testing';
 import { gate } from '../../lib/session/shape';
 import { buildSoniox, describeSoniox } from './config';
 import { leaseRequest } from './leaseRequest';
@@ -94,7 +95,7 @@ describe('sonioxProvider', () => {
   });
 
   it('the gate refuses Both on an auto source, and lets manual turns through (D20, ruling 5)', () => {
-    const both = { provider: sonioxProvider, settings: SONIOX_DEFAULTS, pair: { source: 'auto', target: 'en' }, legs: ['speaker', 'participant'] as const, turnMode: 'auto' as const };
+    const both = { plan: planOf(sonioxProvider), accounts: { soniox: { settings: SONIOX_DEFAULTS, credentials: {} } }, pair: { source: 'auto', target: 'en' }, legs: ['speaker', 'participant'] as const, turnMode: 'auto' as const };
     // An auto source never reverses, so the participant leg has no pair.
     expect(gate(both, 'electron')).toMatchObject({ code: 'participant_unsupported' });
     expect(gate({ ...both, pair: { source: 'ja', target: 'en' } }, 'electron')).toBeNull();

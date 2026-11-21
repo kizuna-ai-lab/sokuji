@@ -4,6 +4,7 @@ import { AdapterStartError } from '../../lib/contract/adapter';
 import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
+import { shapeWith, stubProvider } from '../../lib/plan/testing';
 import {
   CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS, SESSION_STARTED_RETRY_DELAYS_MS, SESSION_STARTED_RETRY_MAX_MS,
   SESSION_STARTED_UNACKNOWLEDGED,
@@ -37,8 +38,8 @@ const grant = (over: Record<string, unknown> = {}) => ({
 
 type Options = { textOnly?: boolean; participantSpeech?: boolean; token?: string | null; settings?: Partial<QwenSettings>; frames?: RunShape['frames']; clock?: VirtualClock };
 
-const shapeFor = (legs: LegName[], o: Options = {}): RunShape => ({
-  provider: {} as RunShape['provider'], settings: { ...QWEN_DEFAULTS, ...o.settings }, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
+const shapeFor = (legs: LegName[], o: Options = {}): RunShape => shapeWith(stubProvider('kizunaai_qwen'), {
+  settings: { ...QWEN_DEFAULTS, ...o.settings }, credentials: {}, pair: { source: 'ja', target: 'en' }, legs,
   turnMode: 'auto', textOnly: o.textOnly ?? false, participantSpeech: o.participantSpeech ?? false, keepReplayAudio: true, frames: o.frames,
   shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
   auth: { signedIn: o.token !== null, userId: 'u1', getToken: vi.fn(async () => (o.token === undefined ? 'tok' : o.token)) },

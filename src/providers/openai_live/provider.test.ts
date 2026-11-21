@@ -20,6 +20,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import { readCredentials } from '../../lib/provider/credentials';
 import { AUTO } from '../../lib/provider/languages';
+import { planOf } from '../../lib/plan/testing';
 import { contextsFor, gate } from '../../lib/session/shape';
 import type { RunShape } from '../../lib/session/types';
 import { useProviderStore } from '../../stores/providerStore';
@@ -39,7 +40,7 @@ afterEach(() => {
 });
 
 const both = (pair: { source: string; target: string }, patch: Partial<RunShape> = {}) =>
-  ({ provider: openaiLiveProvider, settings: LIVE_DEFAULTS, pair, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: false, turnMode: 'auto', ...patch }) as unknown as RunShape;
+  ({ plan: planOf(openaiLiveProvider), accounts: { [openaiLiveProvider.id]: { settings: LIVE_DEFAULTS, credentials: {} } }, pair, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: false, turnMode: 'auto', ...patch }) as unknown as RunShape;
 const noAuth = { signedIn: false, getToken: async () => null };
 const env = (platform: 'electron' | 'extension' | 'web') => ({ platform, dev: false, enabled: new Set<string>(), kizuna: true, switchOn: () => false });
 

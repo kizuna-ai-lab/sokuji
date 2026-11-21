@@ -18,6 +18,7 @@ import type { AnyProvider } from '../../lib/provider/types';
 import type { FramePort } from '../../lib/session/ports';
 import { createRunner } from '../../lib/session/runner';
 import type { RunShape } from '../../lib/session/types';
+import { shapeWith } from '../../lib/plan/testing';
 import { fakeProvider } from '../fake/provider';
 import { FAKE_DEFAULTS } from '../fake/settings';
 import { createFakeSource } from '../fake/source';
@@ -45,8 +46,7 @@ function setup() {
   } as unknown as AnyProvider;
   const seen: string[] = [];
   const frames: FramePort = { frame: (_leg, f) => { if (ENDING.has(f.type)) seen.push(f.type); } };
-  const shape: RunShape = {
-    provider,
+  const shape: RunShape = shapeWith(provider, {
     settings: FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'ja', target: 'en' },
@@ -57,7 +57,7 @@ function setup() {
     keepReplayAudio: true,
     shared: { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } },
     auth: { signedIn: false, getToken: async () => null },
-  };
+  });
   // No `timeoutMs`: the runner's own default bound on a release, the app's.
   const runner = createRunner({
     clock,
