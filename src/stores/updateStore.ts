@@ -155,7 +155,11 @@ const useUpdateStore = create<UpdateStore>()(
         // A check the main process says the user asked for (the Help menu) is the user's. Any other one the
         // user did not start here (the store is not already `checking`) is the app's own.
         if (data.status === 'checking') {
-          if (data.by === 'user') update.lastCheckBy = 'user';
+          if (data.by === 'user') {
+            update.lastCheckBy = 'user';
+            // A newer check than any started here: an earlier one's timeout must not end it.
+            checkSeq++;
+          }
           else if (get().status !== 'checking') update.lastCheckBy = 'auto';
         }
 

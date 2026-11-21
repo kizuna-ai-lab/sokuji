@@ -244,6 +244,19 @@ describe("the update's notes open when an update is found", () => {
     expect(useUpdateStore.getState().dialogOpen).toBe(true);
   });
 
+  it("an earlier check's timeout does not end a later check asked for from the Help menu", () => {
+    vi.useFakeTimers();
+    registerRunPhase(() => 'running');
+    useUpdateStore.getState().checkForUpdates();
+    status({ status: 'not-available' });
+    vi.advanceTimersByTime(10_000);
+    status({ status: 'checking', by: 'user' });
+    vi.advanceTimersByTime(5_000);
+    expect(useUpdateStore.getState()).toMatchObject({ status: 'checking', lastCheckBy: 'user' });
+    status({ status: 'available', version: '0.52.0' });
+    expect(useUpdateStore.getState().dialogOpen).toBe(true);
+  });
+
   it('does not open them again for an update already announced, once closed', () => {
     status({ status: 'available', version: '0.52.0' });
     useUpdateStore.getState().closeDialog();
