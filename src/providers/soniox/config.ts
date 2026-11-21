@@ -37,6 +37,12 @@ export interface SonioxConfig {
   faceToFace?: true;
   /** The participant's leg, unless speaker labels are off: its utterances carry their people, and its own socket asks for them (the shared socket always does, to tell the sides apart). */
   diarize: boolean;
+  /**
+   * The unit serves transcription alone (`buildSonioxAlone`): another unit translates what it hears. The socket is
+   * asked for no translation, only source segments are said, and each states how much of it is final. Absent: the
+   * socket transcribes and translates.
+   */
+  transcribesAlone?: true;
 }
 
 export function clampNumber(value: unknown, min: number, max: number, dflt: number): number {
@@ -49,8 +55,10 @@ export function clampNumber(value: unknown, min: number, max: number, dflt: numb
  * The app's word list (spec §9) as Soniox's context, kept under its limit: the same for a live session and a file.
  * Absent when there is nothing to send. Its own old vocabulary is no longer read.
  */
-export function sonioxContext(words: SessionWords | undefined): SonioxWireContext | undefined {
-  const w = wordsFor('soniox', words?.entries ?? [], words?.background ?? '');
+export function sonioxContext(words: SessionWords | undefined, o: { translations?: false } = {}): SonioxWireContext | undefined {
+  // Without translations (a socket that transcribes alone): the entries count against the limit as terms alone.
+  const entries = o.translations === false ? (words?.entries ?? []).map(({ translation: _translation, ...entry }) => entry) : words?.entries ?? [];
+  const w = wordsFor('soniox', entries, words?.background ?? '');
   if (w.leftOut > 0) {
     reportWarning('SonioxConfig', `The word list is over Soniox's context limit: ${w.leftOut} entries were left out`, { dedupeKey: 'soniox:context-budget' });
   }
@@ -78,8 +86,8 @@ export function describeSonioxTts(): { ttsModel: string } {
   return { ttsModel: SONIOX_TTS_MODEL };
 }
 
-export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
-  const wire = sonioxContext(shared.words);
+/** One leg's config over the context its socket is sent. */
+function configWith(wire: SonioxWireContext | undefined, context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
   return {
     stt: {
       model: SONIOX_STT_MODEL,
@@ -97,6 +105,22 @@ export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: 
     // own language labels both: a lone voice stays unlabelled anyway.
     diarize: s.speakerLabels && shared.reversed(context.direction),
   };
+}
+
+export function buildSoniox(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
+  return configWith(sonioxContext(shared.words), context, s, shared);
+}
+
+/**
+ * The config of the unit that transcribes alone (step 4, R9): the same socket and the same knobs, asked for no
+ * translation. The word list's translations are left out, its terms and the background stay (R13). Never one
+ * shared socket for Both and never face-to-face: a leg whose translation is another unit's has a socket of its
+ * own. Agent text follows the rule of a socket that also translates, split Both's included: in a run of both
+ * legs none is asked for (`startSplit` strips it there; here each leg is started on its own, so the builder does).
+ */
+export function buildSonioxAlone(context: SessionContext, s: SonioxSettings, shared: SharedSettings): SonioxConfig {
+  const { stt: { agentText, ...stt }, diarize } = configWith(sonioxContext(shared.words, { translations: false }), context, s, shared);
+  return { stt: { ...stt, ...(agentText && !shared.bothLegs ? { agentText } : {}) }, sharedBoth: false, diarize, transcribesAlone: true };
 }
 
 /** The text side's model. The speech model is the voice's to name (`describeSonioxTts`). */

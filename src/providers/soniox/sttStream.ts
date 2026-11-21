@@ -1,5 +1,6 @@
 /**
- * Soniox real-time STT+translation WebSocket wire component.
+ * Soniox real-time STT WebSocket wire component: transcription with its
+ * translation on the one socket, or transcription alone.
  *
  * Protocol-only: this class knows the Soniox STT wire protocol and nothing
  * about IClient or Sokuji conversation semantics (that is `adapter.ts`'s job).
@@ -60,7 +61,8 @@ export interface SonioxSttConfig {
   model: string;
   sampleRate: number;
   languageHints?: string[];
-  translation: SonioxTranslationConfig;
+  /** Absent: the socket transcribes alone. The frame then names no translation, and no token is one. */
+  translation?: SonioxTranslationConfig;
   /** Custom vocabulary and background text, wire-shaped (snake_case). Omitted from the config frame when absent. */
   context?: {
     terms?: string[];
@@ -172,7 +174,7 @@ export class SonioxSttStream {
           ...(config.enableAgentTextInput ? { enable_agent_text_input: true } : {}),
           enable_language_identification: true,
           ...(config.languageHints?.length ? { language_hints: config.languageHints } : {}),
-          translation: config.translation,
+          ...(config.translation ? { translation: config.translation } : {}),
           ...(config.clientReferenceId ? { client_reference_id: config.clientReferenceId } : {}),
         }));
         this.lastAudioAt = this.clock.now();

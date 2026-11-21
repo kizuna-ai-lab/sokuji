@@ -6,7 +6,9 @@
  * `SonioxCore` runs one STT socket: the adapter transcribes and translates,
  * and never speaks. A leg's voice is another unit's (`ttsUnit.ts`), fed from
  * the translation segments said here: their stable length, their language,
- * and `lateSpeech`. Both mode (`startBoth`, D23) is two single-leg cores, or one
+ * and `lateSpeech`. A config that says the unit transcribes alone
+ * (`transcribesAlone`) opens the socket with no translation and says source
+ * segments only, for another unit to translate. Both mode (`startBoth`, D23) is two single-leg cores, or one
  * core whose socket carries both legs mixed. A socket that drops while live
  * comes back through the core's reconnector (spec 2026-11-05 reconnect §4),
  * one per core. Every timer reads the request's clock, and nothing is said
@@ -230,6 +232,7 @@ class SonioxCore {
       },
       legFor: (token) => this.legFor(token),
       targetFor: (leg) => this.leg(leg).context.direction.target,
+      ...(o.primary.config.transcribesAlone ? { sourceOnly: true } : {}),
     });
   }
 
@@ -382,14 +385,19 @@ class SonioxCore {
     const { context, config, credentials } = this.o.primary;
     const key = this.key;
     const { source, target } = context.direction;
+    // Transcription alone: the socket hears the leg's source and writes nothing in its target, so the source is the one hint.
+    const alone = config.transcribesAlone === true;
     // Both languages bias recognition, the source first; an auto source hints nothing, since the target alone would pull an unknown speaker toward the other side.
-    const hints = source === AUTO ? [] : [...new Set([sonioxWire.toWire(source), sonioxWire.toWire(target)])];
+    const hints = source === AUTO ? [] : alone ? [sonioxWire.toWire(source)] : [...new Set([sonioxWire.toWire(source), sonioxWire.toWire(target)])];
+    const translation: SonioxSttConfig['translation'] = this.o.shared
+      ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) }
+      : { type: 'one_way', target_language: sonioxWire.toWire(target) };
     return {
       apiKey: key.stt,
       region: credentials.region,
       model: config.stt.model,
       sampleRate: SAMPLE_RATE,
-      translation: this.o.shared ? { type: 'two_way', language_a: sonioxWire.toWire(source), language_b: sonioxWire.toWire(target) } : { type: 'one_way', target_language: sonioxWire.toWire(target) },
+      ...(alone ? {} : { translation }),
       // D20 keeps an auto source out of Both: the gate refuses the participant leg.
       ...(hints.length ? { languageHints: hints } : {}),
       // The shared socket always labels its people, to tell the sides apart; the participant's own one-way socket does unless speaker labels are off.
@@ -407,7 +415,7 @@ class SonioxCore {
     this.mixer?.start();
     this.watchStall();
     const config = this.sttConfig();
-    this.frame('out', 'session.opened', { region: config.region, translation: config.translation });
+    this.frame('out', 'session.opened', { region: config.region, ...(config.translation ? { translation: config.translation } : {}) });
   }
 
   private newStt(): SonioxSttStream {
@@ -720,7 +728,8 @@ export function createSonioxAdapter(deps: Partial<SonioxAdapterDeps> = {}): Soni
     async startBoth(requests, events) {
       const signal = requests.speaker.signal;
       if (signal.aborted) throw signal.reason ?? new Error('aborted');
-      if (!requests.speaker.config.sharedBoth) return startSplit(requests, events);
+      // Legs that transcribe alone never share a socket: one mixed socket carries two directions, and the unit that translates a leg has one.
+      if (!requests.speaker.config.sharedBoth || requests.speaker.config.transcribesAlone) return startSplit(requests, events);
       // Shared Both: one socket on the speaker's key.
       const core = new SonioxCore({
         primary: requests.speaker,

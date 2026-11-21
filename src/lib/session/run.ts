@@ -279,6 +279,7 @@ export class Run {
         ...shape.shared,
         models: models.get(unit.provider.id)!,
         speaks,
+        ...(shape.legs.length === 2 ? { bothLegs: true } : {}),
         reversed: () => leg === 'participant',
         ...(shape.lineUpStored ? { lineUp: shape.lineUp } : {}),
       }));
