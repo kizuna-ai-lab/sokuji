@@ -113,10 +113,10 @@ function heardIn(text: string, span: HeardSpan): Heard | undefined {
 }
 
 /** Worded as today's `errors.gpuOutOfMemory`; surfaces put `gpu_out_of_memory` into words by code. */
-const GPU_OUT_OF_MEMORY = 'GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model.';
+export const GPU_OUT_OF_MEMORY = 'GPU out of memory — the selected model is too large for your GPU. Please switch to a smaller model.';
 
 /** A lost WebGPU device: nothing on this GPU will run again. */
-function isDeviceLost(message: string): boolean {
+export function isDeviceLost(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes('a valid external instance reference no longer exists') || (lower.includes('webgpu') && lower.includes('device lost'));
 }
@@ -127,7 +127,7 @@ function isDeviceLost(message: string): boolean {
  * device too: error messages cascade through several stages, and these are
  * the most distinctive patterns.
  */
-function isGpuOutOfMemory(message: string): boolean {
+export function isGpuOutOfMemory(message: string): boolean {
   const lower = message.toLowerCase();
   return lower.includes('out_of_device_memory') || lower.includes('out of memory') || isDeviceLost(message);
 }
@@ -144,7 +144,7 @@ const BING_ERROR_MESSAGES: Record<string, string> = {
   network: 'Bing Translator is temporarily unavailable.',
 };
 
-function humanizeTranslationError(error: unknown): string {
+export function humanizeTranslationError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
   if (!raw) return 'Translation failed.';
   const match = raw.match(/^\[bing:(token|unsupported|network|unknown)\]\s*(.*)$/);

@@ -29,6 +29,7 @@ import { unitsOf, wholePlan } from '../../lib/plan/wholeUnit';
 import type { RunPlan } from '../../lib/plan/types';
 import { localInferenceProvider } from './provider';
 import { localSpeechUnit } from './speechUnit';
+import { localTranslationUnit } from './translationUnit';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { PROVIDERS } from '../registry';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
@@ -97,9 +98,10 @@ describe('localInferenceProvider', () => {
   describe('its units', () => {
     const offered = { providers: [localInferenceProvider], settings: () => LOCAL_INFERENCE_DEFAULTS };
 
-    it('are the whole of it, as a provider with one unit has, and its voice', () => {
-      const [whole, voice] = localInferenceProvider.units!;
-      expect(localInferenceProvider.units).toHaveLength(2);
+    it('are the whole of it, as a provider with one unit has, its translation alone, and its voice', () => {
+      const [whole, translation, voice] = localInferenceProvider.units!;
+      expect(localInferenceProvider.units).toHaveLength(3);
+      expect(translation).toBe(localTranslationUnit);
       expect(localInferenceProvider.units).toBe(localInferenceProvider.units);
       expect(unitsOf(localInferenceProvider)).toBe(localInferenceProvider.units);
       expect(voice).toBe(localSpeechUnit);
@@ -127,6 +129,20 @@ describe('localInferenceProvider', () => {
         { transcription: 'local_inference', translation: 'bing', speech: 'local_inference' },
       ]) {
         expect(compose(lineUp, offered), JSON.stringify(lineUp)).toEqual(alone);
+      }
+    });
+
+    it('its translation unit serves translation alone, and translation with speech is two units', () => {
+      expect(localTranslationUnit.occupies(LOCAL_INFERENCE_DEFAULTS, new Set(['translation']))).toEqual(['translation']);
+      expect(localTranslationUnit.occupies(LOCAL_INFERENCE_DEFAULTS, new Set(['translation', 'speech']))).toBeNull();
+      expect(localSpeechUnit.occupies(LOCAL_INFERENCE_DEFAULTS, new Set(['translation', 'speech']))).toBeNull();
+    });
+
+    it('nothing a user can choose changed: a provider that only transcribes together with its translation still cannot hand this device the translation', () => {
+      const text = { id: 'stt', occupies: (_s: unknown, want: ReadonlySet<string>) => (want.size === 2 && !want.has('speech') ? ['transcription', 'translation'] : null) };
+      const soniox = { id: 'soniox', units: [text] } as any;
+      for (const translation of ['bing', 'local_inference']) {
+        expect(compose({ transcription: 'soniox', translation, speech: 'soniox' }, { providers: [soniox, localInferenceProvider], settings: () => undefined })).toMatchObject({ refused: 'lineup_stage_split' });
       }
     });
 

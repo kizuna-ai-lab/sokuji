@@ -262,3 +262,62 @@ describe('the stored line-up in the readiness check', () => {
     mockStages = null;
   });
 });
+
+describe('readiness when this device translates what another provider transcribes', () => {
+  const told = (translation: 'bing' | 'local_inference', legs: readonly ('speaker' | 'participant')[] = ['speaker'], pair = { source: 'ja', target: 'en' }) => ({
+    pair, legs, stages: ['translation'], stageIds: { translation },
+  }) as const;
+
+  it('asks for the translation model of the direction and for no recognition model', async () => {
+    resolved({ 'ja>en': { asr: null, translation: 't' } });
+    expect(await checkLocalInference(defaults, told('local_inference'))).toEqual({ ok: true });
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'local', speech: null, transcription: null });
+  });
+
+  it('a recognition model is not enough: without the translation model it is not ready, in the code of models that are missing', async () => {
+    resolved({ 'ja>en': { asr: 'a', translation: null } });
+    expect(await checkLocalInference(defaults, told('local_inference'))).toMatchObject({ ok: false, code: 'local_models_missing' });
+  });
+
+  it('with both legs, each direction needs its translation: no leg runs transcription-only here', async () => {
+    resolved({ 'ja>en': { translation: 't' }, 'en>ja': { asr: 'a', translation: null } });
+    expect(await checkLocalInference(defaults, told('local_inference', ['speaker', 'participant']))).toMatchObject({ ok: false, code: 'local_models_missing', reason: expect.stringContaining('reverse') });
+    resolved({ 'ja>en': { translation: 't' }, 'en>ja': { translation: 'u' } });
+    expect(await checkLocalInference(defaults, told('local_inference', ['speaker', 'participant']))).toEqual({ ok: true });
+  });
+
+  it('with the participant leg alone, only the reverse direction is asked for', async () => {
+    resolved({ 'en>ja': { translation: 'u' } });
+    expect(await checkLocalInference(defaults, told('local_inference', ['participant']))).toEqual({ ok: true });
+    resolved({ 'ja>en': { translation: 't' } });
+    expect(await checkLocalInference(defaults, told('local_inference', ['participant']))).toMatchObject({ ok: false, code: 'local_models_missing', reason: expect.stringContaining('selected') });
+  });
+
+  it('Bing needs no download, and no model of this machine at all', async () => {
+    resolved({});
+    expect(await checkLocalInference(defaults, told('bing'))).toEqual({ ok: true });
+    expect(await checkLocalInference(defaults, told('bing', ['speaker', 'participant']))).toEqual({ ok: true });
+  });
+
+  it('Bing is not ready for a pair it does not take, even where a model of this machine would translate it', async () => {
+    resolved({ 'la>en': { translation: 't' }, 'en>la': { translation: 'u' } });
+    expect(await checkLocalInference(defaults, told('bing', ['speaker'], { source: 'la', target: 'en' }))).toMatchObject({ ok: false, code: 'local_models_missing' });
+    expect(await checkLocalInference(defaults, told('local_inference', ['speaker'], { source: 'la', target: 'en' }))).toEqual({ ok: true });
+  });
+
+  it('with translation and speech on this device and transcription elsewhere, speech still never gates', async () => {
+    resolved({ 'ja>en': { translation: 't', tts: null } });
+    const ctx = { pair: { source: 'ja', target: 'en' }, legs: ['speaker'], stages: ['translation', 'speech'], stageIds: { translation: 'local_inference', speech: 'local_inference' } } as const;
+    expect(await checkLocalInference(defaults, ctx)).toEqual({ ok: true });
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: 'local', speech: 'local', transcription: null });
+  });
+
+  it('told no stages, a stored line-up that gives it translation alone is read the same way', async () => {
+    mockStages = { translation: 'local', speech: null, transcription: null } as MockStages;
+    resolved({ 'ja>en': { asr: null, translation: 't' } });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toEqual({ ok: true });
+    resolved({ 'ja>en': { asr: 'a', translation: null } });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toMatchObject({ ok: false, code: 'local_models_missing' });
+    mockStages = null;
+  });
+});

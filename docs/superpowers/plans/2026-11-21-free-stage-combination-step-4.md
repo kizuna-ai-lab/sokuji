@@ -218,3 +218,50 @@ createJobTranslator(o: {
 - Whether the service prices a hosted session differently when it is asked for no translation is not known to the client; the request and the floor are today's.
 - The settings page still shows the shared-session choice and the agent text row as it did; with the unit undeclared no user can reach a run where they do not apply. Part D decides what the page says there.
 - Face-to-face is not refused anywhere yet for this unit: its capability reads false, and Part D's composer check is what refuses it.
+
+## Decisions made while Part C was built
+
+**The unit**
+
+- **A third unit of the local provider, `translation`** (`src/providers/localInference/translationUnit.ts`, session in `translationSession.ts`). It occupies translation alone. Translation and speech on this device are two units (R7): neither occupies the two together. `units` is `[whole, translation, speech]`, and a line-up that is all on this device still resolves to the whole unit (R2).
+- **The whole unit's session was not touched.** `adapter.ts` only exports four helpers it already had (`humanizeTranslationError`, `isDeviceLost`, `isGpuOutOfMemory`, `GPU_OUT_OF_MEMORY`), and `config.ts` gives the prompt it built inline a name (`localTranslationPrompt`). No test of the whole unit changed.
+- **Its config is `{ modelId, instructions, wrapTranscript }`.** `admit` tells the three units' configs apart by shape: the whole session's names `asr`, the voice's names a speed (or `off`), this one names instructions. Its memory budget counts its translation models only; Bing counts nothing. Memory is still not summed across the units of a plan.
+
+**Which engine translates**
+
+- **The line-up's translation option says, and it is read from what `build` is handed** (`shared.lineUp`, the line-up the run froze). `bing` is `bing-translator`. `local_inference` is the model the direction resolves to among this machine's models, with no recognition model resolved beside it. Handed no line-up, the stored one says; with none stored either, the direction resolves as the local provider does without a line-up, where Bing is one of the local choices.
+- **Neither stands in for the other (R8).** Under a foreign transcriber, a pair Bing does not take is a refused build, and the unit's own start refuses it again (`build_refused`) before any engine is made. With no model for the direction, the build is refused as `local_models_missing`; Bing is not tried. The fallback inside `resolveWasmDirection` (Bing's pair unsupported, stay on local models) still exists for the whole unit and is not reached by this unit.
+- **A recognition model that translates speech itself is not a translator of text.** If the direction's translation resolves to one, the build is refused as `local_models_missing`.
+- **`capabilities.translates` reads the stored line-up**, as the speech unit's `speaks` does: capabilities are asked without a run. Part D may prefer the pure `localTranslates(option, source, target)`, which takes the option id.
+
+**Languages**
+
+- **`translates` is about the catalog, not about downloads.** Bing: both codes are on Bing's own list and are not one language to Bing (`zh` and `zh-CN`, `no` and `nb`). This machine's models: some translation model of the manifest takes the pair, downloaded or not, whatever device it needs. A model that is not downloaded is a matter of readiness. An automatic source is never translated.
+- **Because the manifest has models that take any language, `translates` for `local_inference` is true for almost every pair.** Whether the device can run such a model (they need WebGPU) is not part of the answer; readiness says the model is missing.
+- **Codes are read as written.** A regional code is not folded onto its base language: the engine is loaded with the code it is given. Bing takes `zh-CN`, `zh-TW`, `zh-HK` and not `zh-Hant` or `zh-Hans`. Whether a foreign transcriber's codes need mapping for this unit is Part D's to decide with the pair picker.
+- **For the pair picker:** `localTranslationTargets(option, source, among?)`, `localTranslationSources(option, target, among?)` and `localTranslationLanguages(option)`, with `option` being `'bing'` or `'local_inference'`. A model that takes any language names none, so for local models pass the transcriber's languages as `among`.
+
+**Readiness**
+
+- **`LocalStages` gained an optional `transcription: null`**, stated only when this device translates and another provider transcribes. Absent, the provider transcribes whenever it translates, so every value written before reads as before. `unservedStages` then leaves out recognition alone.
+- **The check asks for what will run.** Translating for a foreign transcriber: each leg that runs needs the translation of its own direction and no recognition model; Bing needs no download. Unlike the whole unit, the reverse direction is not allowed to lack a translation: a leg of this unit cannot run transcription-only. Bing with a pair outside its list is not ready. All of these say `local_models_missing`, the existing notice and target.
+
+**The session**
+
+- **The model loads in `open()`**, so the composite starts the transcriber only after it. It says the frames the whole unit says for a translation engine and one `loading` event (`translation`, 1 of 1). A load that fails rejects the start in the whole unit's words (`Translation engine init failed: …`, or `gpu_out_of_memory`). A start cancelled, or a stop, while the model loads rejects the open and lets the engine go.
+- **A blank answer is said**, as Part A's job translator does it (`translation_failed`, reason `translation_empty`). The whole unit shows nothing and says nothing for a blank answer; there the source row is its own. Here a row would keep another provider's source with no translation and no word of why.
+- **No job is taken back.** No engine here has a way to stop a request, so a job given up at its deadline or at a stop is left to finish and its late answer is dropped. The deadline is 60 s for a model on this machine (`LOCAL_MODEL_JOB_TIMEOUT_MS`) and the shared 20 s for Bing. The whole unit has no deadline; a slow model's answer to a long stretch is still wanted, so the model's deadline is the longer one.
+- **Failure (R11).** One job failing is `translation_failed` in the whole unit's words, Bing's tagged errors included. A lost GPU device on a job, or the worker's `onError`, ends the unit: the session is stopped first, then `failed` is said, so nothing follows it; the composite fails the leg.
+- **Word list and prompt (R13).** A local model gets the prompt the whole unit builds, word list and session background included. Bing's config has empty instructions.
+- **No punctuation model runs.** The shared cutter works on the punctuation the transcriber wrote. A transcriber that does not punctuate gets one job per source, at its close.
+
+**Existing tests changed**
+
+- `src/providers/localInference/provider.test.ts`: the test of `units` now expects three and names the translation unit. Nothing else existing changed; tests were added to `check.test.ts`, `localStages.test.ts` and `resolveWithStages.test.ts`.
+
+## Not verified in Part C
+
+- No real model and no real Bing ran through the unit: every session here is over a fake engine.
+- Two legs with one local model load it twice, once per leg, as the whole unit does; memory with a local voice in the same plan is not summed.
+- How often a real model answers blank is not known; each such answer is now a notice.
+- The 60 s deadline was chosen, not measured.
