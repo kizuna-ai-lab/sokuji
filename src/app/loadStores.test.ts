@@ -26,12 +26,13 @@ import { localInferenceProvider } from '../providers/localInference/provider';
 import { kizunaSonioxProvider } from '../providers/soniox/kizuna';
 import { sonioxProvider } from '../providers/soniox/provider';
 import { ServiceFactory } from '../services/ServiceFactory';
+import { useLineUpStore } from '../stores/lineUpStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
 import { useRoutingStore } from '../stores/routingStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useTurnModeStore } from '../stores/turnModeStore';
-import { loadSelectedProvider, loadSessionStores } from './loadStores';
+import { loadLineUpProviders, loadSelectedProvider, loadSessionStores } from './loadStores';
 
 /** The keys written, besides the line-up — the one migration a load makes (owner, 2026-11-15). */
 const writesBesidesLineUp = () => setSetting.mock.calls.map(([key]) => key).filter((key) => key !== 'settings.lineup');
@@ -45,6 +46,8 @@ beforeEach(() => {
   stored.clear();
   setSetting.mockClear();
   useProviderStore.setState({ entries: {}, intent: undefined, readiness: {}, selected: null });
+  // Each test starts with no line-up in memory, as a launch does.
+  useLineUpStore.setState({ lineUp: null, stored: false });
 });
 
 afterEach(() => {
@@ -214,5 +217,51 @@ describe('loadSelectedProvider', () => {
 
     expect(useProviderStore.getState().selected).toBe('soniox');
     expect(useProviderStore.getState().entries.soniox).toBeDefined();
+  });
+});
+
+// A provider may serve a stage of the plan without being the selected one: its entry is loaded all the same.
+describe("the entries of the line-up's providers", () => {
+  const offered = [kizunaSonioxProvider, sonioxProvider, localInferenceProvider];
+  const lineUp = (transcription: string, translation: string, speech: string) => ({ transcription, translation, speech, summarisation: null });
+
+  it("loads every provider the line-up names: the local provider when its voice reads another provider's text", async () => {
+    await useProviderStore.getState().load(sonioxProvider);
+    for (const speech of ['edge', 'local_inference']) {
+      useProviderStore.setState({ entries: { soniox: useProviderStore.getState().entries.soniox } });
+      useLineUpStore.setState({ lineUp: lineUp('soniox', 'soniox', speech), stored: true });
+      await loadLineUpProviders(offered);
+      expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+      expect(useProviderStore.getState().entries.local_inference.settings).toMatchObject({ voices: {}, ttsSpeed: 1 });
+    }
+  });
+
+  it('leaves a loaded entry as it is, and loads nothing the line-up does not name', async () => {
+    await useProviderStore.getState().load(localInferenceProvider);
+    const entry = useProviderStore.getState().entries.local_inference;
+    const load = vi.spyOn(useProviderStore.getState(), 'load');
+    useLineUpStore.setState({ lineUp: lineUp('local_inference', 'bing', 'edge'), stored: true });
+    await loadLineUpProviders(offered);
+    expect(load).not.toHaveBeenCalled();
+    expect(useProviderStore.getState().entries).toEqual({ local_inference: entry });
+  });
+
+  it('loads nothing with no line-up, or for a provider this build does not offer', async () => {
+    await loadLineUpProviders(offered);
+    useLineUpStore.setState({ lineUp: lineUp('openai', 'openai', 'openai'), stored: true });
+    await loadLineUpProviders(offered);
+    expect(useProviderStore.getState().entries).toEqual({});
+  });
+
+  it('a launch loads them, and so does every later change of the line-up', async () => {
+    stored.set('settings.common.provider', 'soniox');
+    useSegmentationStore.setState({ refresh: vi.fn(async () => {}) });
+    await loadSessionStores();
+    // The plan follows the selection: the line-up names the selected provider alone, and nothing else was loaded.
+    expect(Object.keys(useProviderStore.getState().entries)).toEqual(['soniox']);
+
+    useLineUpStore.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
+    await vi.waitFor(() => expect(useProviderStore.getState().entries.local_inference).toBeDefined());
+    expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
   });
 });
