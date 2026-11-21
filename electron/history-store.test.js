@@ -878,6 +878,20 @@ describe('editing a finished record', () => {
     expect(s.getNotes({ id: notesId }).editedAt).toBe(11);
   });
 
+  // Review on the P1 PR: a point removed by hand moves the points after it up. A fix's revert finds each of its points
+  // by what the point holds, not by where it was, so it neither rewrites another point nor misses its own.
+  it('a revert after a point was removed changes back its own points and no other', () => {
+    const pt = (text, n) => ({ topic: 0, text, sentences: [n], kinds: ['decision'] });
+    const body = { ...BODY, topics: [{ title: '发布', summary: '', first: 1 }], points: [pt('搜库机', 1), pt('Sokuji', 2), pt('搜库机上线', 3)] };
+    const notesId = notesOf(body);
+    const fixed = { ...body, points: [pt('Sokuji', 1), pt('Sokuji', 2), pt('Sokuji上线', 3)] };
+    const id = s.applyCorrection(fix({ notes: { id: notesId, before: JSON.stringify(body), after: JSON.stringify(fixed) } }));
+    const removed = { ...fixed, points: fixed.points.slice(1) };
+    s.editNotes({ id: notesId, before: JSON.stringify(fixed), after: JSON.stringify(removed), editedAt: 5 });
+    expect(s.revertCorrection({ id })).toEqual({ restored: 2, kept: 1 });
+    expect(s.getNotes({ id: notesId }).body.points.map((p) => p.text)).toEqual(['Sokuji', '搜库机上线']);
+  });
+
   it('reassignSentences moves every sentence in one write, null included; an unknown n refuses all', () => {
     s.reassignSentence({ transcriptId: t, n: 3, speaker: 'u1' });
     s.reassignSentences({ transcriptId: t, moves: [{ n: 1, speaker: '2' }, { n: 2, speaker: '2' }, { n: 3, speaker: null }] });

@@ -195,6 +195,30 @@ function openHistory({ dir, now = () => Date.now() }) {
     ];
   }
   const textAt = (body, path) => path.reduce((x, k) => (x === null || x === undefined ? undefined : x[k]), body);
+  /** The parts of a point a person can edit by hand. */
+  const HAND_EDITED = new Set(['text', 'owner', 'due']);
+  /**
+   * Where each point of `after` is in `body` now. A point removed by hand moves the ones after it up (P1), so a point
+   * is known by what cannot be edited by hand (its topic, sentences and kinds; not its text, owner or date): at its own
+   * index when that one matches, else the first match not taken, one holding the same text first. A point with no
+   * match has no place.
+   */
+  function pointPlaces(after, body) {
+    const left = Array.isArray(after.points) ? after.points : [];
+    const current = Array.isArray(body.points) ? body.points : [];
+    const identity = (x) => JSON.stringify(isPlainObject(x) ? Object.entries(x).filter(([k]) => !HAND_EDITED.has(k)) : x);
+    const keys = current.map(identity);
+    const taken = new Set();
+    const places = new Map();
+    left.forEach((x, i) => {
+      const k = identity(x);
+      const free = (j) => !taken.has(j) && keys[j] === k;
+      let j = free(i) ? i : keys.findIndex((_, at) => free(at) && current[at]?.text === x?.text);
+      if (j < 0) j = keys.findIndex((_, at) => free(at));
+      if (j >= 0) { taken.add(j); places.set(i, j); }
+    });
+    return places;
+  }
   function putText(body, path, value) {
     const holder = textAt(body, path.slice(0, -1));
     if (holder !== null && typeof holder === 'object') holder[path[path.length - 1]] = value;
@@ -561,12 +585,19 @@ function openHistory({ dir, now = () => Date.now() }) {
             const before = JSON.parse(notes.before);
             const after = JSON.parse(notes.after);
             const body = JSON.parse(n.body);
+            // A point is found where it is now, not where the fix left it (a point removed since moved it; P1 review).
+            const places = pointPlaces(after, body);
+            const placeOf = (path) => {
+              if (path[0] !== 'points') return path;
+              return places.has(path[1]) ? ['points', places.get(path[1]), ...path.slice(2)] : null;
+            };
             let back = 0;
             for (const path of notesTextPaths(after)) {
               const was = textAt(before, path);
               const wrote = textAt(after, path);
               if (typeof was !== 'string' || was === wrote) continue;
-              if (textAt(body, path) === wrote) { putText(body, path, was); back += 1; } else kept += 1;
+              const at = placeOf(path);
+              if (at && textAt(body, at) === wrote) { putText(body, at, was); back += 1; } else kept += 1;
             }
             if (back > 0) {
               writeNotesBody(notes.id, JSON.stringify(body));
