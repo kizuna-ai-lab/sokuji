@@ -29,13 +29,14 @@ import { createSonioxAdapter } from './adapter';
 import { sonioxProvider } from './provider';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { b64, isStt, SHARED, trackedClock, type Json } from './testing';
-import { createSonioxTtsUnit } from './ttsUnit';
+import type { OpenSocket } from './socket';
+import { createSonioxTtsUnit, type SonioxTtsUnit } from './ttsUnit';
 import { sonioxSttUnitFor } from './units';
 
 export type Mode = 'leg' | 'split' | 'shared' | 'faceToFace';
 const LEGS: readonly LegName[] = ['speaker', 'participant'];
 
-/** Each leg's own keys, so a socket says whose it is: the TTS key rides in the handshake. */
+/** Each leg's own keys: the TTS key rides in the handshake, so a leg's socket is seen to carry the leg's own. */
 export const SPK: SonioxCredentials = { region: 'us', stt: 'k-spk', tts: 'k-spk-tts' };
 export const PAR: SonioxCredentials = { region: 'us', stt: 'k-par', tts: 'k-par-tts' };
 
@@ -93,18 +94,27 @@ export interface Run {
 /**
  * A Soniox definition with its adapter and its two units on these sockets, and its own plan: the text unit beside
  * the voice. `of`: the definition, Soniox with an own key by default. `participantSpeech`: the definition's flag.
+ * `voiceSocket`: what a leg's voice opens its sockets through, so a test knows whose each is; `sockets.create` for
+ * every leg by default.
  */
 export function sonioxOnSockets(
   sockets: ReturnType<typeof fakeSockets>,
-  o: { of?: AnyProvider; participantSpeech?: boolean } = {},
+  o: { of?: AnyProvider; participantSpeech?: boolean; voiceSocket?: (leg: LegName) => OpenSocket } = {},
 ): { provider: AnyProvider; plan: RunPlan } {
   const adapter = createSonioxAdapter({ openSocket: sockets.create });
   const of = o.of ?? (sonioxProvider as AnyProvider);
   const flag = o.participantSpeech === undefined ? {} : { participantSpeech: o.participantSpeech };
+  const voiceOn = (openSocket: OpenSocket): SonioxTtsUnit => createSonioxTtsUnit({ openSocket, ...flag });
+  let voice = voiceOn(sockets.create);
+  if (o.voiceSocket) {
+    // One unit per leg, each on that leg's sockets, behind the one unit the plan holds.
+    const byLeg: Record<LegName, SonioxTtsUnit> = { speaker: voiceOn(o.voiceSocket('speaker')), participant: voiceOn(o.voiceSocket('participant')) };
+    voice = { ...voice, startSpeech: (request, events) => byLeg[request.leg].startSpeech!(request, events) };
+  }
   const provider = {
     ...of,
     start: adapter.start,
-    units: [sonioxSttUnitFor({ start: adapter.start, ...flag }), createSonioxTtsUnit({ openSocket: sockets.create, ...flag })],
+    units: [sonioxSttUnitFor({ start: adapter.start, ...flag }), voice],
     session: { ...of.session, startBoth: adapter.startBoth },
   } as AnyProvider;
   return { provider, plan: wholePlan(provider) };
@@ -193,14 +203,29 @@ export function starting(o: CompositeOptions): Run {
   });
   const events: Record<LegName, AdapterEvents> = { speaker: eventsOf('speaker'), participant: eventsOf('participant') };
 
-  const { plan } = sonioxOnSockets(sockets);
+  /** Each TTS socket's leg: the one whose voice opened it. Legs may hold one key, so the key does not say. */
+  const voiceLeg = new Map<FakeSocket, LegName>();
+  const voiceSocket = (leg: LegName): OpenSocket => (url, protocols) => {
+    const socket = sockets.create(url, protocols);
+    voiceLeg.set(socket as unknown as FakeSocket, leg);
+    return socket;
+  };
+  const { plan } = sonioxOnSockets(sockets, { voiceSocket });
   const request = (leg: LegName) => planRequest(plan, { context: contexts[leg], settings, shared: shared(leg), credentials: credentials[leg], clock, signal });
   const start: Promise<Partial<Record<LegName, AdapterSession>>> = o.mode === 'leg'
     ? startComposite(plan, request(legs[0]), events[legs[0]], legs[0]).then((session) => ({ [legs[0]]: session }))
     : startCompositeBoth(plan, { speaker: request('speaker'), participant: request('participant') }, events);
 
   const sttSockets = () => sockets.all.filter(isStt);
-  const ttsSockets = (leg: LegName) => sockets.all.filter((s) => !isStt(s) && Array.isArray(s.protocols) && s.protocols[1] === credentials[leg].tts);
+  /** The sockets `leg`'s voice opened, each on the leg's own speech key. */
+  const ttsSockets = (leg: LegName) => {
+    const own = sockets.all.filter((s) => voiceLeg.get(s) === leg);
+    for (const s of own) {
+      const key = Array.isArray(s.protocols) ? s.protocols[1] : undefined;
+      if (key !== credentials[leg].tts) throw new Error(`A TTS socket of the ${leg} leg carries the key ${String(key)}, not the leg's own.`);
+    }
+    return own;
+  };
   const run: Run = {
     legs, sockets, clock, timers, controller, log, sessions, opened, agentCalls, leaseCalls, mic,
     started: start.then((got) => { Object.assign(sessions, got); }, (error: unknown) => { run.failure = error; }),

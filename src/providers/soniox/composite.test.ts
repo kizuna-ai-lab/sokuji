@@ -1214,11 +1214,23 @@ describe('Soniox over its text unit and its voice: both legs', () => {
   it("shared Both: a chunk after <end> in the other leg's language is read by that leg's voice, and both end the utterance", async () => {
     const run = await live({ mode: 'shared' });
     const stt = run.stt();
+    /** The streams a voice ended itself, with `text_end`, in order. */
+    const ended = (leg: LegName) => run.tts(leg).sentJson<Json>().filter((m) => m.text_end === true).map((m) => m.stream_id);
     stt.receive(msg(orig('Hi.'), tr('やあ。'), END));
+    // Each voice ends the utterance it read: its own stream's `text_end` is out before the server's answer to it.
+    const hi = lastStream(run.tts('speaker'));
+    expect(hi).toBeDefined();
+    expect(ended('speaker')).toEqual([hi]);
     answer(run, 'speaker', [1200]);
     stt.receive(msg(tr(' Bye.', 'en', 'ja')));
+    const bye = lastStream(run.tts('participant'));
+    expect(bye).toBeDefined();
+    expect(ended('participant')).toEqual([bye]);
     answer(run, 'participant', [600]);
     stt.receive(msg(orig('Next.'), tr('次。'), END));
+    const next = lastStream(run.tts('speaker'));
+    expect(next).not.toBe(hi);
+    expect(ended('speaker')).toEqual([hi, next]);
     answer(run, 'speaker', [1200]);
     await stopAll(run);
     expect(said(run, 'speaker')).toEqual([
@@ -1246,8 +1258,9 @@ describe('Soniox over its text unit and its voice: both legs', () => {
     expect(spoken(run, 'speaker')).toEqual(['やあ。', '次。']);
     expect(spoken(run, 'participant')).toEqual([' Bye.']);
     expect(audioByRow(run)['speaker:2'].audio.map((a) => a.voice)).toEqual(['speaker', 'participant']);
-    // Each voice ended the utterance it read: its stream was closed with text_end.
-    for (const leg of run.legs) expect(run.tts(leg).sentJson<Json>().filter((m) => m.text_end === true).length, leg).toBeGreaterThanOrEqual(1);
+    // The stop ended no stream again: each was ended once, by the voice that read it.
+    expect(ended('speaker')).toEqual([hi, next]);
+    expect(ended('participant')).toEqual([bye]);
   });
 
   it('shared Both, a leg that does not speak: no voice, no TTS socket, no notice for it', async () => {
@@ -1276,6 +1289,21 @@ describe('Soniox over its text unit and its voice: both legs', () => {
     ]);
     expect(run.ttsSockets('speaker')).toEqual([]);
     expect(run.ttsSockets('participant')).toHaveLength(1);
+  });
+
+  it.each(['split', 'shared'] as const)('%s Both on one key for both legs, one leg silent: the silent leg has no TTS socket, the speaking leg has one', async (mode) => {
+    const run = await live({ mode, speaks: { speaker: true, participant: false }, credentials: { participant: SPK } });
+    const [speaker, participant = speaker] = run.sttSockets();
+    speaker.receive(msg(orig('Hello.'), tr('こんにちは。'), END));
+    participant.receive(msg({ ...ja('はい。'), speaker: '2' }, tr('Yes.', 'en', 'ja'), END));
+    answer(run, 'speaker', [1200]);
+    expect(run.ttsSockets('participant')).toEqual([]);
+    expect(run.ttsSockets('speaker')).toHaveLength(1);
+    expect(run.tts('speaker').protocols).toEqual(['soniox-api-key', SPK.tts]);
+    expect(spoken(run, 'speaker')).toEqual(['こんにちは。']);
+    expect(spoken(run, 'participant')).toEqual([]);
+    expect(pictureOf(run).tts.participant).toEqual([]);
+    await stopAll(run);
   });
 
   it('a language switch inside one utterance, shared Both: each run is read by the voice of its language, on one row', async () => {

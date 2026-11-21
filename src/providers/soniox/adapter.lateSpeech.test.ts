@@ -21,14 +21,20 @@ async function live(context: SessionContext) {
   const { clock } = trackedClock();
   const { events, log } = recordEvents();
   const late: Late[] = [];
+  /** Each segment's close and each late text, as they were said: `[what, ref]`. */
+  const trace: Array<['segmentClosed' | 'lateSpeech', number]> = [];
   const starting = createSonioxAdapter({ openSocket: sockets.create }).start(
     { context, config: buildSoniox(context, SONIOX_DEFAULTS, SHARED), credentials: KEY, clock, signal: new AbortController().signal },
-    { ...events, lateSpeech: (e) => late.push(e) },
+    {
+      ...events,
+      segmentClosed: (e) => { trace.push(['segmentClosed', e.ref]); events.segmentClosed(e); },
+      lateSpeech: (e) => { trace.push(['lateSpeech', e.ref]); late.push(e); },
+    },
   );
   for (const s of sockets.all) if (s.readyState === FakeSocket.CONNECTING) s.open();
   const session = await starting;
   const stt = sockets.all.filter(isStt)[0];
-  return { session, stt, sockets, log, late };
+  return { session, stt, sockets, log, late, of: (ref: number) => trace.filter((t) => t[1] === ref) };
 }
 
 describe('the Soniox adapter: a translation chunk after its segment closed', () => {
@@ -37,9 +43,12 @@ describe('the Soniox adapter: a translation chunk after its segment closed', () 
     h.stt.receive(msg(orig('Hi.'), tr('やあ'), END));
     await flush();
     expect(h.late).toEqual([]);
+    expect(h.of(2)).toEqual([['segmentClosed', 2]]);
     h.stt.receive(msg(tr('。')));
     await flush();
     expect(h.late).toEqual([{ ref: 2, text: '。', span: [2, 3], language: 'ja' }]);
+    // In one order: the segment's close, then its one late text.
+    expect(h.of(2)).toEqual([['segmentClosed', 2], ['lateSpeech', 2]]);
     await h.session.stop();
   });
 
@@ -49,6 +58,7 @@ describe('the Soniox adapter: a translation chunk after its segment closed', () 
     h.stt.receive(msg(tr('。')));
     await flush();
     expect(h.late).toEqual([{ ref: 2, text: '。', span: [2, 3], language: 'ja' }]);
+    expect(h.of(2)).toEqual([['segmentClosed', 2], ['lateSpeech', 2]]);
     expect(h.sockets.all.every(isStt)).toBe(true);
     expect(h.log.some((e) => e.kind === 'audio' || e.kind === 'degraded')).toBe(false);
     await h.session.stop();

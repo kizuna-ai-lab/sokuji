@@ -8,6 +8,7 @@ import { runScenario, scenarioNames, type AdapterHarness } from '../contract/tes
 import type { LegName } from '../conversation/types';
 import type { SharedSettings } from '../provider/types';
 import { buildPlan, startComposite, type PlanConfigs } from './composite';
+import { CompositeLeg } from './compositeLeg';
 import { planOf, stubProvider, stubSpeechUnit, stubTextUnit, textAndSpeechPlan, type StubCalls } from './testing';
 import type { PlannedUnit, RunPlan } from './types';
 
@@ -456,6 +457,40 @@ describe('startComposite over a text unit and a speech unit: after the end', () 
     await start(failed);
     text.starts[1].events.failed({ message: 'gone' });
     expect(failed.log.map((e) => e.kind)).toEqual(['failed']);
+  });
+});
+
+describe('CompositeLeg: a voice is not started for a leg that has ended', () => {
+  /** A leg whose voice the caller opens itself, as both legs started together have theirs opened. */
+  function made() {
+    const calls: StubCalls = [];
+    const text = stubTextUnit(calls);
+    const voice = stubSpeechUnit(calls);
+    const request = { context: SPEAKS, config: new Map<PlannedUnit, unknown>(), credentials: () => ({}), clock: createVirtualClock(0), signal: new AbortController().signal };
+    const rec = recordEvents();
+    return { calls, rec, leg: new CompositeLeg('speaker', text.planned, voice.planned, request, rec.events) };
+  }
+
+  it('starts the voice of a leg that goes on', () => {
+    const h = made();
+    h.leg.openVoice(new Map());
+    expect(named(h.calls)).toEqual(['voice.start', 'voice.open']);
+    expect(h.leg.speaks).toBe(true);
+  });
+
+  it.each([
+    ['its text session failed', (leg: CompositeLeg) => leg.textEvents.failed({ message: 'gone' })],
+    ['its text session closed', (leg: CompositeLeg) => leg.textEvents.closed({ reason: 'server' })],
+    ['it was cut', (leg: CompositeLeg) => leg.cut()],
+  ] as const)('starts none once %s, and says nothing of it', (_what, end) => {
+    const h = made();
+    end(h.leg);
+    const said = h.rec.log.length;
+    h.leg.openVoice(new Map());
+    h.leg.opened();
+    expect(h.calls).toEqual([]);
+    expect(h.leg.speaks).toBe(false);
+    expect(h.rec.log).toHaveLength(said);
   });
 });
 

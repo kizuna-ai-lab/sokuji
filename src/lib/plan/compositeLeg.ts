@@ -127,10 +127,12 @@ export class CompositeLeg {
    * the voice. `counts`: the audio entries per row, shared with every voice that may read the same rows.
    * A speech unit that cannot start leaves the leg without a voice. That, and anything a voice says of itself while
    * the text unit is still opening, is said by `opened()`.
+   * A leg that has ended starts none: its text unit says nothing more, so the voice would stay open, unasked, until
+   * the run stops.
    */
   openVoice(counts: Map<Ref, number>): void {
     const { request } = this;
-    if (!request.context.speech) return;
+    if (this.ended || !request.context.speech) return;
     try {
       this.voice = this.speech.unit.startSpeech!({
         leg: this.name,

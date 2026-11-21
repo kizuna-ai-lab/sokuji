@@ -25,12 +25,14 @@ interface Options {
   speaks?: readonly LegName[];
   voice?: Parameters<typeof stubSpeechUnit>[1];
   fails?: unknown;
+  /** What a leg's text session says while the legs start. */
+  during?: (events: Record<LegName, AdapterEvents>) => void;
 }
 
 /** Both legs over a stub text provider that starts both and a stub speech unit, started. */
 async function both(o: Options = {}) {
   const calls: StubCalls = [];
-  const text = stubStartBoth(calls, { shared: o.shared ?? true, fails: o.fails });
+  const text = stubStartBoth(calls, { shared: o.shared ?? true, fails: o.fails, during: o.during });
   const textUnit = stubTextUnit(calls, { provider: { session: { startBoth: text.startBoth } } });
   const voice = stubSpeechUnit(calls, { answers: true, ...o.voice });
   const plan = textAndSpeechPlan(textUnit.planned, voice.planned);
@@ -109,6 +111,22 @@ describe('startCompositeBoth: start and stop', () => {
   it('starts no speech session for a leg that does not speak', async () => {
     const h = await both({ speaks: ['speaker'] });
     expect(h.voice.voices.map((v) => v.request.leg)).toEqual(['speaker']);
+  });
+
+  it.each([
+    ['failed', (e: AdapterEvents) => e.failed({ message: 'gone' })],
+    ['closed', (e: AdapterEvents) => e.closed({ reason: 'server' })],
+  ] as const)("starts no voice for a leg whose text session %s while the legs were starting; the other leg's voice still starts", async (kind, end) => {
+    for (const shared of [true, false]) {
+      const h = await both({ shared, during: (events) => end(events.speaker) });
+      expect(named(h.calls)).toEqual(['text.startBoth', 'voice.start', 'voice.open']);
+      expect(h.voice.voices.map((v) => v.request.leg)).toEqual(['participant']);
+      expect(h.rec.speaker.log.map((e) => e.kind)).toEqual([kind]);
+      translate(h.emit('participant'), 2, 'Good morning.');
+      expect(h.of('participant', 'audio')).toHaveLength(1);
+      await h.sessions.participant.stop();
+      expect(only(h.calls, 'voice.close')).toEqual([['voice.close', 'participant']]);
+    }
   });
 
   it('gives both voices one count of audio entries when the legs share a connection, and each its own when they do not', async () => {
