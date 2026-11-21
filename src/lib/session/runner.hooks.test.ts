@@ -6,7 +6,8 @@ import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import { accountOf } from '../plan/read';
-import { shapeWith } from '../plan/testing';
+import { shapeWith, stubSpeechUnit, textAndSpeechPlan, type StubCalls } from '../plan/testing';
+import type { PlannedUnit } from '../plan/types';
 import type { AnyProvider } from '../provider/types';
 import { fakeProvider } from '../../providers/fake/provider';
 import { fakeScript } from '../../providers/fake/scripts';
@@ -345,6 +346,30 @@ describe('runner — startBoth (D23)', () => {
     expect(runner.state.getState()).toMatchObject({ phase: 'running', legs: { speaker: 'live', participant: 'live' } });
     clock.advance(600);
     expect(runner.conversation.snapshot().map((l) => l.segments.length)).toEqual([1, 1]);
+  });
+
+  it('a plan of a text unit and a speech unit starts both legs through its text provider\'s startBoth, once, and each speaking leg gets its voice', async () => {
+    const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => ({
+      speaker: await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker),
+      participant: await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant),
+    }));
+    const provider = withHooks({ startBoth });
+    const { runner, sources, clock, shape } = setup(provider, ['speaker', 'participant']);
+    const calls: StubCalls = [];
+    const voice = stubSpeechUnit(calls, { answers: true, provider: { credentials: { fields: () => [], read: () => ({ key: 'voice' }) } } });
+    const text: PlannedUnit = { ...shape.plan.units[0], stages: ['transcription', 'translation'] };
+    Object.assign(shape, { plan: textAndSpeechPlan(text, voice.planned), accounts: { ...shape.accounts, [voice.planned.provider.id]: { settings: {}, credentials: {} } } });
+    await runner.start();
+    expect(startBoth).toHaveBeenCalledTimes(1);
+    expect(sources).toHaveLength(2);
+    expect(runner.state.getState()).toMatchObject({ phase: 'running', legs: { speaker: 'live', participant: 'live' } });
+    // The text sessions are asked for no speech; the speaker's leg speaks, so it alone has a voice.
+    expect(startBoth.mock.calls[0][0].speaker.context.speech).toBe(false);
+    expect(voice.voices.map((v) => v.request.leg)).toEqual(['speaker']);
+    clock.advance(600);
+    expect(runner.conversation.snapshot().map((l) => l.segments.length)).toEqual([1, 1]);
+    await runner.stop();
+    expect(calls.map((c) => c[0])).toContain('voice.close');
   });
 
   it('opens a single leg the ordinary way', async () => {

@@ -14,7 +14,8 @@ import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
 import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../plan/composite';
-import { accountOf, capabilitiesOf, providersIn, transcriptionProvider } from '../plan/read';
+import { startCompositeBoth } from '../plan/compositeBoth';
+import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
 import type { PlannedUnit } from '../plan/types';
 import { isMissing, readCredentials } from '../provider/credentials';
 import type { AnyProvider, ModelOption, SharedSettings } from '../provider/types';
@@ -299,9 +300,10 @@ export class Run {
     }
     for (const notice of notices) this.conversations.get(shape.legs[0])!.notice({ severity: 'warning', ...notice });
 
-    // Both legs at once (D23) where the plan is one unit and its provider starts both; otherwise the composite adapter per leg.
+    // Both legs at once (D23) where the provider of the unit that transcribes starts both; otherwise the composite adapter per leg.
+    // A plan of one unit hands its provider's `startBoth` the legs itself; a plan of several goes through the composite.
     const sole = plan.units.length === 1 ? plan.units[0] : undefined;
-    const together = shape.legs.length === 2 && !!sole?.provider.session?.startBoth;
+    const together = shape.legs.length === 2 && !!unitFor(plan, 'transcription').provider.session?.startBoth;
     // Each lease's release slot, reserved beneath the sources it follows: the
     // stack unwinds last in first out, so the legs' sessions and then their
     // sources — the microphone, the system audio, the tab — close before the
@@ -384,13 +386,17 @@ export class Run {
       ...(shape.frames ? { frames: shape.frames } : {}),
     });
 
+    const planRequest = (leg: LegName) => request(leg, configs[leg]!, (unit: PlannedUnit) => legKeys.get(leg)!.get(unit.provider.id));
     if (together) {
-      const unit = sole!;
-      const requests = Object.fromEntries(shape.legs.map((leg) => [leg, request(leg, configs[leg]!.get(unit), legKeys.get(leg)!.get(unit.provider.id))])) as Record<LegName, StartRequest<unknown, unknown>>;
       const events = { speaker: this.eventsFor('speaker'), participant: this.eventsFor('participant') };
       let sessions: Record<LegName, AdapterSession>;
       try {
-        sessions = await unit.provider.session!.startBoth!(requests, events);
+        if (sole) {
+          const requests = Object.fromEntries(shape.legs.map((leg) => [leg, request(leg, configs[leg]!.get(sole), legKeys.get(leg)!.get(sole.provider.id))])) as Record<LegName, StartRequest<unknown, unknown>>;
+          sessions = await sole.provider.session!.startBoth!(requests, events);
+        } else {
+          sessions = await startCompositeBoth(plan, { speaker: planRequest('speaker'), participant: planRequest('participant') }, events);
+        }
       } catch (error) {
         // A provider that knows which leg failed says so; otherwise the start is the first leg's.
         if (error instanceof LegStartError) throw new LegOpenError(error.leg, error.cause, 'adapter');
@@ -401,7 +407,7 @@ export class Run {
       this.throwIfAborted();
       shape.legs.forEach((leg, i) => this.connect(leg, sources![i], sessions[leg]));
     } else {
-      await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, request(leg, configs[leg]!, (unit: PlannedUnit) => legKeys.get(leg)!.get(unit.provider.id)), sources?.[i]))));
+      await Promise.all(shape.legs.map((leg, i) => this.opened(this.openLeg(leg, planRequest(leg), sources?.[i]))));
     }
     this.throwIfAborted();
     // The network back (spec 2026-11-05 reconnect §4.2): a session waiting out a reconnect's backoff tries now. Undone as the run unwinds.

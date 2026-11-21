@@ -111,9 +111,9 @@ export interface StubVoice {
 /**
  * A speech unit of a stub provider: every call is listed as `voice.<call>` with its leg.
  * `answers`: each `speak` while speech is on is answered at once with one audio entry over its span.
- * `fails`: `startSpeech` throws it. `recycles`: false leaves `recycle` out.
+ * `fails`: `startSpeech` throws it. `recycles`: false leaves `recycle` out. `provider`: members of its stub provider.
  */
-export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fails?: unknown; recycles?: boolean } = {}) {
+export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fails?: unknown; recycles?: boolean; provider?: Record<string, unknown> } = {}) {
   const voices: StubVoice[] = [];
   const startSpeech = (request: SpeechStartRequest<unknown, unknown>, events: SpeechEvents): SpeechSession => {
     const note = (what: string, ...rest: unknown[]) => { calls.push([`voice.${what}`, request.leg, ...rest]); };
@@ -138,7 +138,7 @@ export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fa
       close: () => { closed = true; note('close'); },
     };
   };
-  const [whole] = wholePlan(stubProvider('stub_voice')).units;
+  const [whole] = wholePlan(stubProvider('stub_voice', o.provider)).units;
   const planned: PlannedUnit = { ...whole, unit: { ...whole.unit, start: undefined, startSpeech }, stages: ['speech'] };
   return { planned, voices };
 }
