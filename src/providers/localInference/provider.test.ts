@@ -23,16 +23,24 @@ vi.mock('./config', () => ({
   fitsBudget: (...args: unknown[]) => mockFits(...args),
 }));
 
-import { compose } from '../../lib/plan/compose';
+import { compose, type ComposeInput } from '../../lib/plan/compose';
+import { CAPS } from '../../lib/lineup/catalog';
 import { RUN_STAGES } from '../../lib/lineup/types';
+import type { ProviderCaps } from '../../lib/lineup/types';
 import { unitsOf, wholePlan } from '../../lib/plan/wholeUnit';
-import type { RunPlan } from '../../lib/plan/types';
+import { choiceInput } from '../../lib/plan/choice';
+import { separateStages } from '../../lib/plan/compositeStages';
+import { isRefusal, type PlanRefusal, type RunPlan } from '../../lib/plan/types';
+import type { AnyProvider } from '../../lib/provider/types';
 import { localInferenceProvider } from './provider';
 import { sonioxProvider } from '../soniox/provider';
+import { fakeTranslatorProvider } from '../fake/translator';
+import { fakeVoiceProvider } from '../fake/voice';
 import { localSpeechUnit } from './speechUnit';
+import { localTranscriptionUnit } from './transcriptionUnit';
 import { localTranslationUnit } from './translationUnit';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
-import { PROVIDERS } from '../registry';
+import { PROVIDERS, RELEASED } from '../registry';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
 import { LocalInferenceVoiceSummary } from './LocalInferenceVoiceSummary';
 import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
@@ -88,6 +96,12 @@ describe('localInferenceProvider', () => {
       .toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
     expect(mockFits).toHaveBeenLastCalledWith(['tts-en', 'tts-ja']);
     expect(mockAdmit).not.toHaveBeenCalled();
+    // Its recognition alone counts its recognition models only, never the whole session's budget.
+    mockFits.mockReturnValue(true);
+    const alone = (modelId: string) => ({ asr: { modelId, streaming: false }, vad: {}, translation: { kind: 'none' }, transcribesAlone: true });
+    expect(localInferenceProvider.session?.admit?.({ speaker: alone('asr-en'), participant: alone('asr-ja') } as never)).toBe(true);
+    expect(mockFits).toHaveBeenLastCalledWith(['asr-en', 'asr-ja']);
+    expect(mockAdmit).not.toHaveBeenCalled();
     // The whole session's configs name a recognition model: its own admission, with whatever it answers.
     const whole = { speaker: { asr: { modelId: 'asr', streaming: false }, tts: voice } };
     const adjusted = { configs: { participant: {} } };
@@ -99,9 +113,10 @@ describe('localInferenceProvider', () => {
   describe('its units', () => {
     const offered = { providers: [localInferenceProvider], settings: () => LOCAL_INFERENCE_DEFAULTS };
 
-    it('are the whole of it, as a provider with one unit has, its translation alone, and its voice', () => {
-      const [whole, translation, voice] = localInferenceProvider.units!;
-      expect(localInferenceProvider.units).toHaveLength(3);
+    it('are the whole of it, as a provider with one unit has, its recognition alone, its translation alone, and its voice', () => {
+      const [whole, transcription, translation, voice] = localInferenceProvider.units!;
+      expect(localInferenceProvider.units).toHaveLength(4);
+      expect(transcription).toBe(localTranscriptionUnit);
       expect(translation).toBe(localTranslationUnit);
       expect(localInferenceProvider.units).toBe(localInferenceProvider.units);
       expect(unitsOf(localInferenceProvider)).toBe(localInferenceProvider.units);
@@ -131,6 +146,95 @@ describe('localInferenceProvider', () => {
       ]) {
         expect(compose(lineUp, offered), JSON.stringify(lineUp)).toEqual(alone);
       }
+    });
+
+    it('every line-up of this device, Bing and Edge runs on the whole unit where it composes: its recognition alone is never taken where this device also translates', () => {
+      const [whole] = localInferenceProvider.units!;
+      const ids = ['local_inference', 'bing', 'edge'];
+      let composed = 0;
+      for (const transcription of ids) for (const translation of ids) for (const speech of ids) {
+        const lineUp = { transcription, translation, speech };
+        const plan = compose(lineUp, offered);
+        if (isRefusal(plan)) {
+          // Bing only translates and Edge only speaks: such a line-up names no option for some stage.
+          expect(plan.refused, JSON.stringify(lineUp)).toBe('lineup_incomplete');
+          continue;
+        }
+        composed++;
+        expect(plan.units.map((u) => u.unit), JSON.stringify(lineUp)).toEqual([whole]);
+      }
+      expect(composed).toBe(4);
+    });
+
+    it('its recognition unit serves transcription alone, and transcription with anything else is another unit or none', () => {
+      expect(localTranscriptionUnit.occupies(LOCAL_INFERENCE_DEFAULTS, new Set(['transcription']))).toEqual(['transcription']);
+      for (const with_ of [['translation'], ['speech'], ['translation', 'speech']] as const) {
+        expect(localTranscriptionUnit.occupies(LOCAL_INFERENCE_DEFAULTS, new Set(['transcription', ...with_]))).toBeNull();
+      }
+    });
+
+    it('with another provider translating, it transcribes alone: its recognition unit beside the other\'s translation, and a voice of either', () => {
+      // A test catalog: no released option translates another provider's transcription yet (the text models do).
+      const catalog: ProviderCaps[] = [
+        ...CAPS,
+        { id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'none', voiceAlone: false, takesVoice: true },
+        { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false },
+      ];
+      const input: ComposeInput = {
+        providers: [localInferenceProvider, fakeTranslatorProvider as AnyProvider, fakeVoiceProvider as AnyProvider],
+        settings: (id) => (id === 'local_inference' ? LOCAL_INFERENCE_DEFAULTS : undefined),
+        catalog,
+      };
+      const shape = (plan: RunPlan | PlanRefusal) => (isRefusal(plan) ? plan : plan.units.map((u) => [u.provider.id, u.unit.id, u.stages]));
+      const voiceElsewhere = compose({ transcription: 'local_inference', translation: 'fake_translator', speech: 'fake_voice' }, input);
+      expect(shape(voiceElsewhere)).toEqual([['local_inference', 'transcription', ['transcription']], ['fake_translator', 'translator', ['translation']], ['fake_voice', 'voice', ['speech']]]);
+      expect((voiceElsewhere as RunPlan).byStage.transcription.unit).toBe(localTranscriptionUnit);
+      expect(separateStages(voiceElsewhere as RunPlan)).not.toBeNull();
+      for (const speech of ['edge', 'local_inference']) {
+        const plan = compose({ transcription: 'local_inference', translation: 'fake_translator', speech }, input) as RunPlan;
+        expect(shape(plan), speech).toEqual([['local_inference', 'transcription', ['transcription']], ['fake_translator', 'translator', ['translation']], ['local_inference', 'speech', ['speech']]]);
+        expect(plan.byStage.speech.unit).toBe(localSpeechUnit);
+        expect(separateStages(plan)).not.toBeNull();
+      }
+      // This device translating as well is the whole unit again, whoever speaks.
+      for (const translation of ['local_inference', 'bing']) {
+        expect(shape(compose({ transcription: 'local_inference', translation, speech: 'fake_voice' }, input))).toEqual([['local_inference', 'whole', ['transcription', 'translation']], ['fake_voice', 'voice', ['speech']]]);
+      }
+    });
+
+    it('no released line-up changes: every triple of the catalog runs as it did without its recognition unit, and only refusals no choice reaches are worded otherwise', () => {
+      const released = choiceInput(RELEASED, {});
+      const local = released.providers.find((p) => p.id === 'local_inference')!;
+      const before = { ...local, units: unitsOf(local).filter((u) => u !== localTranscriptionUnit) } as AnyProvider;
+      const without: ComposeInput = { ...released, providers: released.providers.map((p) => (p === local ? before : p)) };
+      const shape = (plan: RunPlan | PlanRefusal) => (isRefusal(plan) ? plan : plan.units.map((u) => [u.provider.id, u.unit.id, u.stages]));
+      const reworded: string[] = [];
+      for (const t of CAPS) for (const tl of CAPS) for (const sp of CAPS) {
+        const lineUp = { transcription: t.id, translation: tl.id, speech: sp.id };
+        const label = JSON.stringify(lineUp);
+        const now = compose(lineUp, released);
+        const then = compose(lineUp, without);
+        // No line-up that ran runs otherwise, and none that was refused runs now: nothing offered translates what
+        // this device hears but this device itself.
+        expect(isRefusal(now), label).toBe(isRefusal(then));
+        if (!isRefusal(now)) {
+          expect(shape(now), label).toEqual(shape(then));
+          expect(now.units.some((u) => u.unit === localTranscriptionUnit), label).toBe(false);
+        } else if (JSON.stringify(now) !== JSON.stringify(then)) {
+          reworded.push(`${tl.id}/${sp.id}`);
+          // This device transcribing and an end-to-end provider translating: the refusal is now the one any
+          // transcriber that stands alone meets there (the end-to-end provider's stages go together), where it was
+          // that this device had no unit. `choose` never makes such a line-up: it moves an end-to-end provider's
+          // stages together (the walk of every reachable line-up in `choose.test.ts`).
+          expect(t.id, label).toBe('local_inference');
+          expect(tl.joint, label).toEqual(['transcription', 'translation', 'speech']);
+          expect(then, label).toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
+          expect(now, label).toEqual({ refused: 'lineup_stage_split', stage: 'transcription' });
+        }
+      }
+      // Each end-to-end provider, under each option that speaks (one that does not leaves the line-up incomplete).
+      const endToEnd = CAPS.filter((c) => c.joint?.includes('translation'));
+      expect(reworded).toHaveLength(endToEnd.length * CAPS.filter((c) => c.stages.includes('speech')).length);
     });
 
     it('its translation unit serves translation alone, and translation with speech is two units', () => {

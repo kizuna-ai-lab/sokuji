@@ -13,6 +13,7 @@ import { LocalInferenceSettingsView } from './LocalInferenceSettings';
 import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 import { LOCAL_INFERENCE_DEFAULTS, localInferenceLanguages, type LocalInferenceSettings } from './settings';
 import { admitLocalSpeech, areLocalSpeechConfigs, localSpeechUnit } from './speechUnit';
+import { admitLocalTranscription, areLocalTranscriptionConfigs, localTranscriptionUnit } from './transcriptionUnit';
 import { admitLocalTranslation, areLocalTranslationConfigs, localTranslationUnit } from './translationUnit';
 
 const adapter = createLocalInferenceAdapter();
@@ -71,21 +72,24 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   start: adapter.start,
 
   /**
-   * Three units. The whole provider, for a line-up that is all on this device: every stage together, as before.
-   * Its translation alone (a local model, or Bing), which translates what another provider heard. And its voice
-   * alone (Edge, or a local speech model), which reads another provider's translations.
+   * Four units. The whole provider, for a line-up in which this device transcribes and translates: those stages
+   * together, as before, and the composer takes it there before any cut (fewest units first). Its recognition alone,
+   * which transcribes for another provider to translate. Its translation alone (a local model, or Bing), which
+   * translates what another provider heard. And its voice alone (Edge, or a local speech model), which reads another
+   * provider's translations.
    */
   get units(): readonly UnitDefinition[] {
-    units ??= [wholeUnit(localInferenceProvider), localTranslationUnit, localSpeechUnit];
+    units ??= [wholeUnit(localInferenceProvider), localTranscriptionUnit, localTranslationUnit, localSpeechUnit];
     return units;
   },
 
   session: {
     // Asked once per planned unit, with that unit's configs: the voice alone counts its own models only, and so
-    // does the translation alone.
+    // do the translation alone and the recognition alone.
     admit: (configs) => {
       if (areLocalSpeechConfigs(configs)) return admitLocalSpeech(configs);
       if (areLocalTranslationConfigs(configs)) return admitLocalTranslation(configs);
+      if (areLocalTranscriptionConfigs(configs)) return admitLocalTranscription(configs);
       return admitLocalInference(configs);
     },
   },

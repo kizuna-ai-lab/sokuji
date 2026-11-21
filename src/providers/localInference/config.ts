@@ -49,6 +49,12 @@ export interface LocalInferenceConfig {
    * runs).
    */
   jobSentences?: number;
+  /**
+   * The recognition serves transcription alone (`buildLocalTranscription`): another unit translates what it hears.
+   * Its translation is `none` and it has no voice; it says source segments only, each final stating that all of it
+   * is stable, and says nothing of a missing translation. Absent: the whole session, as before.
+   */
+  transcribesAlone?: true;
 }
 
 /**
@@ -139,6 +145,35 @@ export function ttsMissingCode(direction: SessionContext['direction'], shared: P
   return shared.reversed(direction) ? 'participant_tts_missing' : 'speaker_tts_missing';
 }
 
+/** Why a direction cannot be heard: no recognition model resolves for its source. */
+export function noAsr(source: string): ProviderRefusal {
+  return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source } };
+}
+
+/**
+ * The recognition of a direction whose recognition model is `asrModelId`: the model, whether it streams, and the VAD
+ * with Smart Turn where the settings ask for it and the model's worker takes it. One builder for the whole local
+ * session and for the local recognition as a unit of its own.
+ */
+export function localRecognition(s: LocalInferenceSettings, asrModelId: string): Pick<LocalInferenceConfig, 'asr' | 'vad'> {
+  const asrEntry = getManifestEntry(asrModelId);
+  const asr = { modelId: asrModelId, streaming: asrEntry?.type === 'asr-stream' };
+
+  const vad: LocalInferenceConfig['vad'] = {
+    threshold: s.vadThreshold,
+    minSilenceDuration: s.vadMinSilenceDuration,
+    minSpeechDuration: s.vadMinSpeechDuration,
+    maxSpeechDuration: s.vadMaxSpeechDuration,
+    preSpeechPadDuration: s.vadPreSpeechPadDuration,
+  };
+  if (s.vadNegativeThreshold) vad.negativeThreshold = s.vadNegativeThreshold;
+  if (s.vadEndOfTurn === 'smart' && supportsSmartTurn(asrEntry)) {
+    const checkAfter = effectiveCheckAfter(s.smartTurnCheckAfter, s.vadMinSilenceDuration);
+    if (checkAfter !== null) vad.smartTurn = { checkAfter, threshold: s.smartTurnThreshold };
+  }
+  return { asr, vad };
+}
+
 /**
  * LocalInference's builder (spec: "`build`"). Ports `buildSessionConfig` /
  * `buildParticipantSessionConfig` (`LocalInferenceProviderConfig.ts`): model
@@ -155,25 +190,9 @@ export function buildLocalInference(
   // A line-up says whether translation and speech go to Bing and Edge or to this machine's models.
   const resolved = resolveLocal(context.direction, s, localStagesFor(shared));
 
-  if (!resolved.asr) {
-    return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source } };
-  }
+  if (!resolved.asr) return noAsr(source);
 
-  const asrEntry = getManifestEntry(resolved.asr.modelId);
-  const asr = { modelId: resolved.asr.modelId, streaming: asrEntry?.type === 'asr-stream' };
-
-  const vad: LocalInferenceConfig['vad'] = {
-    threshold: s.vadThreshold,
-    minSilenceDuration: s.vadMinSilenceDuration,
-    minSpeechDuration: s.vadMinSpeechDuration,
-    maxSpeechDuration: s.vadMaxSpeechDuration,
-    preSpeechPadDuration: s.vadPreSpeechPadDuration,
-  };
-  if (s.vadNegativeThreshold) vad.negativeThreshold = s.vadNegativeThreshold;
-  if (s.vadEndOfTurn === 'smart' && supportsSmartTurn(asrEntry)) {
-    const checkAfter = effectiveCheckAfter(s.smartTurnCheckAfter, s.vadMinSilenceDuration);
-    if (checkAfter !== null) vad.smartTurn = { checkAfter, threshold: s.smartTurnThreshold };
-  }
+  const { asr, vad } = localRecognition(s, resolved.asr.modelId);
 
   // Today's inference (LocalInferenceClient.ts ~406-408): the ASR model
   // handles translation itself (Granite Speech) when it was also picked,
