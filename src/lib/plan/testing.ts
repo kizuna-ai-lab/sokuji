@@ -113,7 +113,7 @@ export interface StubVoice {
  * `answers`: each `speak` while speech is on is answered at once with one audio entry over its span.
  * `fails`: `startSpeech` throws it. `recycles`: false leaves `recycle` out. `provider`: members of its stub provider.
  */
-export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fails?: unknown; recycles?: boolean; provider?: Record<string, unknown> } = {}) {
+export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fails?: unknown; openFails?: unknown; recycles?: boolean; provider?: Record<string, unknown> } = {}) {
   const voices: StubVoice[] = [];
   const startSpeech = (request: SpeechStartRequest<unknown, unknown>, events: SpeechEvents): SpeechSession => {
     const note = (what: string, ...rest: unknown[]) => { calls.push([`voice.${what}`, request.leg, ...rest]); };
@@ -127,7 +127,10 @@ export function stubSpeechUnit(calls: StubCalls = [], o: { answers?: boolean; fa
     };
     voices.push({ request, events, audio });
     return {
-      open: async () => note('open'),
+      open: async () => {
+        note('open');
+        if (o.openFails !== undefined) throw o.openFails;
+      },
       speak: (ref, text, span, language, home) => {
         note('speak', ref, text, span, language, home);
         if (o.answers && on && !closed) audio(ref, span, home);

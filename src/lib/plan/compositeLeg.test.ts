@@ -299,6 +299,19 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     expect(named(h.calls)).toEqual(['voice.start', 'text.start', 'text.stop']);
   });
 
+  it('closes a speech session whose open rejects, says tts_degraded once, and asks nothing more of it', async () => {
+    const cause = new Error('refused');
+    const h = leg({ voice: { openFails: cause } });
+    const session = await h.starting;
+    await flush();
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause } }]);
+    translate(h.emit(), 2, 'こんにちは。');
+    session.setSpeech!(false);
+    h.emit().reconnected();
+    await session.stop();
+    expect(named(h.calls)).toEqual(['voice.start', 'voice.open', 'text.start', 'voice.close', 'text.stop']);
+  });
+
   it('says nothing of a speech unit that could not start when the text unit fails to start too', async () => {
     const error = new Error('refused');
     const h = leg({ voice: { fails: new Error('no model') }, text: { fails: error } });

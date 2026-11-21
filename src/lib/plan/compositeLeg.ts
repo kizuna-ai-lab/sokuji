@@ -132,8 +132,12 @@ export class CompositeLeg {
         counts,
       }, this.voiceEvents());
       this.voiceState = 'live';
-      // An open never rejects by the contract; one that does is speech lost, not a failed leg.
-      this.voice.open().catch((error: unknown) => this.voiceLost(error));
+      // An open never rejects by the contract; one that does is speech lost, not a failed leg: the voice is
+      // closed and asked nothing more.
+      this.voice.open().catch((error: unknown) => {
+        this.closeVoice(false);
+        this.voiceLost(error);
+      });
     } catch (error) {
       this.closeVoice(false);
       this.voiceFailure = { error };

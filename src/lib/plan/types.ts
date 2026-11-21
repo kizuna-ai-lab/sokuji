@@ -45,7 +45,7 @@ export interface UnitDefinition<S = any, K = any, C = any> {
 }
 
 /** Whether a unit is started through the speech contract (`startSpeech`), not the adapter contract. */
-export function isSpeechUnit(unit: UnitDefinition): boolean {
+export function isSpeechUnit(unit: UnitDefinition): unit is UnitDefinition & { startSpeech: NonNullable<UnitDefinition['startSpeech']> } {
   return unit.startSpeech !== undefined;
 }
 

@@ -5,6 +5,7 @@
  * as it stood then, so the rules about numbering can be checked from the log
  * alone.
  */
+import type { LegName } from '../conversation/types';
 import type { Ref, TextRange } from './adapter';
 import type { Violation } from './conformance';
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from './speech';
@@ -16,7 +17,7 @@ type SpeechEvent = { [K in keyof SpeechEvents]: { kind: K; payload: PayloadOf<K>
 export type SpeechCall =
   | { kind: 'start' }
   | { kind: 'open' }
-  | { kind: 'speak'; ref: Ref; text: string; span: TextRange; language: string; home?: string }
+  | { kind: 'speak'; ref: Ref; text: string; span: TextRange; language: string; home?: LegName }
   | { kind: 'endUtterance'; ref: Ref }
   | { kind: 'setOn'; on: boolean }
   | { kind: 'recycle' }
@@ -154,7 +155,9 @@ export function checkSpeech(log: SpeechLog): Violation[] {
 
     switch (entry.kind) {
       case 'speak':
-        addSpan(entry.ref, entry.span);
+        // A malformed span is not merged: it would make a range outside the spoken text look spoken.
+        if (validRange(entry.span)) addSpan(entry.ref, entry.span);
+        else flag('range-in-span', `ref ${entry.ref}: the spoken span [${entry.span[0]}, ${entry.span[1]}] is not a range`, index);
         spoken.add(entry.ref);
         if (on) live.add(entry.ref);
         break;
