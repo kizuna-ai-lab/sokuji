@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "Kies eerst een dienst voor de stap ‘{{stage}}’.",
     "lineup_not_offered": "{{provider}} is niet beschikbaar in deze versie. Kies een andere dienst voor de stap ‘{{stage}}’.",
     "lineup_stage_split": "{{provider}} moet ook de stap ‘{{stage}}’ doen. Kies {{provider}} voor de stap ‘{{stage}}’, of gebruik een andere dienst in plaats van {{provider}}.",
+    "lineup_translation_bound": "Vertaling door {{provider}} vereist transcriptie door {{provider}}. Kies {{provider}} voor transcriptie, of kies een andere vertaaldienst.",
     "lineup_no_unit": "{{provider}} kan de stap ‘{{stage}}’ hier niet alleen doen. Kies het voor de stappen die het samen doet, of kies een andere dienst.",
     "lineup_voice_not_alone": "Gebruik {{provider}} voor transcriptie en vertaling, of kies een andere spraakdienst.",
     "lineup_voice_not_taken": "Kies {{provider}} ook voor spraak, of kies een andere dienst voor transcriptie en vertaling.",

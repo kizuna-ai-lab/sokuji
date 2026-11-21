@@ -85,6 +85,7 @@ export const PLAN_REFUSAL_CODES = [
   'lineup_incomplete',
   'lineup_not_offered',
   'lineup_stage_split',
+  'lineup_translation_bound',
   'lineup_no_unit',
   'lineup_voice_not_alone',
   'lineup_voice_not_taken',

@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "Trước tiên hãy chọn một dịch vụ cho khâu “{{stage}}”.",
     "lineup_not_offered": "{{provider}} không có trong phiên bản này. Hãy chọn một dịch vụ khác cho khâu “{{stage}}”.",
     "lineup_stage_split": "{{provider}} phải làm cả khâu “{{stage}}”. Hãy chọn {{provider}} cho khâu “{{stage}}”, hoặc dùng một dịch vụ khác thay cho {{provider}}.",
+    "lineup_translation_bound": "Bản dịch của {{provider}} cần phần chép lời của {{provider}}. Hãy chọn {{provider}} cho chép lời, hoặc chọn một dịch vụ dịch khác.",
     "lineup_no_unit": "{{provider}} không thể làm riêng khâu “{{stage}}” ở đây. Hãy chọn nó cho các khâu mà nó làm cùng nhau, hoặc chọn một dịch vụ khác.",
     "lineup_voice_not_alone": "Hãy dùng {{provider}} cho chép lời và dịch, hoặc chọn một dịch vụ giọng nói khác.",
     "lineup_voice_not_taken": "Hãy chọn {{provider}} cho cả giọng nói, hoặc chọn một dịch vụ khác cho chép lời và dịch.",

@@ -67,6 +67,8 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   lineup_incomplete: 'Choose a service for {{stage}} first.',
   lineup_not_offered: '{{provider}} is not available in this version. Choose another service for {{stage}}.',
   lineup_stage_split: '{{provider}} must also do {{stage}}. Choose {{provider}} for {{stage}}, or use another service instead of {{provider}}.',
+  // A translation bound to its own transcription (Soniox's), beside another service's: which stage to change.
+  lineup_translation_bound: '{{provider}} translation requires {{provider}} transcription. Choose {{provider}} for transcription, or choose another translation service.',
   lineup_no_unit: '{{provider}} cannot do {{stage}} on its own here. Choose it for the stages it does together, or choose another service.',
   lineup_voice_not_alone: 'Use {{provider}} for transcription and translation, or choose another speech service.',
   lineup_voice_not_taken: 'Choose {{provider}} for speech too, or choose another service for transcription and translation.',

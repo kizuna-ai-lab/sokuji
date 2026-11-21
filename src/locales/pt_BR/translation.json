@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "Escolha primeiro um serviço para a etapa “{{stage}}”.",
     "lineup_not_offered": "{{provider}} não está disponível nesta versão. Escolha outro serviço para a etapa “{{stage}}”.",
     "lineup_stage_split": "{{provider}} também precisa fazer a etapa “{{stage}}”. Escolha {{provider}} para a etapa “{{stage}}” ou use outro serviço no lugar de {{provider}}.",
+    "lineup_translation_bound": "A tradução de {{provider}} exige a transcrição de {{provider}}. Escolha {{provider}} para a transcrição ou escolha outro serviço de tradução.",
     "lineup_no_unit": "{{provider}} não consegue fazer a etapa “{{stage}}” sozinho aqui. Escolha-o para as etapas que ele faz juntas ou escolha outro serviço.",
     "lineup_voice_not_alone": "Use {{provider}} para a transcrição e a tradução ou escolha outro serviço de fala.",
     "lineup_voice_not_taken": "Escolha {{provider}} também para a fala ou escolha outro serviço para a transcrição e a tradução.",

@@ -96,6 +96,14 @@ describe('noticeText', () => {
       expect(words({ refused: 'lineup_face_to_face_apart', stage: 'translation', provider: 'soniox' }))
         .toBe('Face-to-face needs one service to transcribe and translate. Choose Soniox for translation too, or set “Other side” to “In a meeting”.');
     });
+    it("a translation bound to its own transcription says which stage to change; an end-to-end service's split stages keep their sentence", () => {
+      expect(words({ refused: 'lineup_translation_bound', stage: 'transcription', provider: 'soniox' }))
+        .toBe('Soniox translation requires Soniox transcription. Choose Soniox for transcription, or choose another translation service.');
+      expect(words({ refused: 'lineup_stage_split', stage: 'translation', provider: 'gemini' }))
+        .toBe('gemini must also do translation. Choose gemini for translation, or use another service instead of gemini.');
+      expect(String(at(catalogs['../../locales/zh_CN/translation.json'], 'notices.lineup_translation_bound')))
+        .toBe('{{provider}} 翻译需要搭配 {{provider}} 转写。请选择 {{provider}} 转写，或更换翻译服务。');
+    });
     it("the words a sentence quotes from a menu are that locale's own, in every locale", () => {
       for (const [path, catalog] of Object.entries(catalogs)) {
         const text = (key: string) => String(at(catalog, key));

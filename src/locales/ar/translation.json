@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "اختر أولًا خدمة لمرحلة «{{stage}}».",
     "lineup_not_offered": "{{provider}} غير متاح في هذا الإصدار. اختر خدمة أخرى لمرحلة «{{stage}}».",
     "lineup_stage_split": "يجب أن يتولّى {{provider}} مرحلة «{{stage}}» أيضًا. اختر {{provider}} لمرحلة «{{stage}}»، أو استخدم خدمة أخرى بدلًا من {{provider}}.",
+    "lineup_translation_bound": "ترجمة {{provider}} تتطلّب النسخ من {{provider}}. اختر {{provider}} للنسخ، أو اختر خدمة ترجمة أخرى.",
     "lineup_no_unit": "{{provider}} لا يستطيع تولّي مرحلة «{{stage}}» وحدها هنا. اختره للمراحل التي يؤديها معًا، أو اختر خدمة أخرى.",
     "lineup_voice_not_alone": "استخدم {{provider}} للنسخ والترجمة، أو اختر خدمة كلام أخرى.",
     "lineup_voice_not_taken": "اختر {{provider}} للكلام أيضًا، أو اختر خدمة أخرى للنسخ والترجمة.",

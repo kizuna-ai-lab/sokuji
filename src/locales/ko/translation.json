@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "먼저 ‘{{stage}}’ 단계를 맡을 서비스를 선택하세요.",
     "lineup_not_offered": "{{provider}} 서비스는 이 버전에서 사용할 수 없습니다. ‘{{stage}}’ 단계에는 다른 서비스를 선택하세요.",
     "lineup_stage_split": "{{provider}} 서비스는 ‘{{stage}}’ 단계도 맡아야 합니다. ‘{{stage}}’ 단계에 {{provider}} 서비스를 선택하거나 {{provider}} 대신 다른 서비스를 사용하세요.",
+    "lineup_translation_bound": "{{provider}} 번역에는 {{provider}} 전사가 필요합니다. 전사에 {{provider}} 서비스를 선택하거나 다른 번역 서비스를 선택하세요.",
     "lineup_no_unit": "{{provider}} 서비스는 여기에서 ‘{{stage}}’ 단계만 따로 맡을 수 없습니다. 함께 맡는 단계에 모두 선택하거나 다른 서비스를 선택하세요.",
     "lineup_voice_not_alone": "전사와 번역에 {{provider}} 서비스를 사용하거나 다른 음성 서비스를 선택하세요.",
     "lineup_voice_not_taken": "음성에도 {{provider}} 서비스를 선택하거나, 전사와 번역에 다른 서비스를 선택하세요.",

@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "Pumili muna ng serbisyo para sa yugtong “{{stage}}”.",
     "lineup_not_offered": "Hindi available ang {{provider}} sa bersyong ito. Pumili ng ibang serbisyo para sa yugtong “{{stage}}”.",
     "lineup_stage_split": "Dapat gawin din ng {{provider}} ang yugtong “{{stage}}”. Piliin ang {{provider}} para sa yugtong “{{stage}}”, o gumamit ng ibang serbisyo kapalit ng {{provider}}.",
+    "lineup_translation_bound": "Kailangan ng salin ng {{provider}} ang transkripsyon ng {{provider}}. Piliin ang {{provider}} para sa transkripsyon, o pumili ng ibang serbisyo sa pagsasalin.",
     "lineup_no_unit": "Hindi kayang gawin ng {{provider}} nang mag-isa ang yugtong “{{stage}}” dito. Piliin ito para sa mga yugtong sabay nitong ginagawa, o pumili ng ibang serbisyo.",
     "lineup_voice_not_alone": "Gamitin ang {{provider}} para sa transkripsyon at salin, o pumili ng ibang serbisyo sa pagsasalita.",
     "lineup_voice_not_taken": "Piliin din ang {{provider}} para sa pagsasalita, o pumili ng ibang serbisyo para sa transkripsyon at salin.",

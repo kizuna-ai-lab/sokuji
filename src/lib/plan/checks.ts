@@ -151,6 +151,7 @@ export function refusalNotice(refusal: PlanRefusal, lineUp: Readonly<Pick<LineUp
     lineup_incomplete: `The line-up names no provider for ${stage}.`,
     lineup_not_offered: `The line-up names ${named} for ${stage}, which is not offered here.`,
     lineup_stage_split: `The line-up gives ${stage} to another provider than the stage it goes with.`,
+    lineup_translation_bound: `The translation of ${named} needs its own transcription, and another provider transcribes.`,
     lineup_no_unit: `The provider the line-up names for ${stage} cannot serve it beside the other stages.`,
     lineup_voice_not_alone: `The voice of ${named} is not offered beside another provider's transcription.`,
     lineup_voice_not_taken: `The translation of ${named} is not read by another provider's voice.`,

@@ -65,7 +65,7 @@ const TARGET_CARD: Readonly<Record<string, RunStage | 'first'>> = {
 const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', translation: 'translation', tts: 'speech' };
 
 /** The refusals that say the chosen services do not go together. */
-const CANNOT_COMBINE: ReadonlySet<string> = new Set(['lineup_voice_not_alone', 'lineup_voice_not_taken', 'lineup_stage_split', 'lineup_no_unit', 'lineup_two_managed', 'lineup_face_to_face_apart']);
+const CANNOT_COMBINE: ReadonlySet<string> = new Set(['lineup_voice_not_alone', 'lineup_voice_not_taken', 'lineup_stage_split', 'lineup_translation_bound', 'lineup_no_unit', 'lineup_two_managed', 'lineup_face_to_face_apart']);
 
 import { stageInSentence } from '../../lib/lineup/stageWords';
 export { stageInSentence };
@@ -474,9 +474,10 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           const first = stages[0];
           const id = lineUp?.[first] ?? '';
           const option = caps(id);
-          // The stages this service must serve too and the card does not hold (not next to it, or given to another
-          // service): named under the choice.
-          const partners = option ? goesWith(option, first).filter((s) => !stages.includes(s)) : [];
+          // The stages this service serves with this one in this line-up and the card does not hold (not next to it):
+          // named under the choice. A stage it must serve too and another service was given is not joined with this
+          // one: the refusal says so on its card, and neither the line nor the frame of a joint card is drawn.
+          const partners = option ? goesWith(option, first).filter((s) => !stages.includes(s) && lineUp?.[s] === id) : [];
           const joint = stages.length > 1;
           // One connection carries the card's stages, and yet they can be parted: Soniox's translation can be given
           // to another service, which its transcription then stands beside. The later stages get a choice of their own.

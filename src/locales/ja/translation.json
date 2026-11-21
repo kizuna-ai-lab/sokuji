@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "先に「{{stage}}」を担当するサービスを選んでください。",
     "lineup_not_offered": "{{provider}} はこのバージョンでは利用できません。「{{stage}}」には別のサービスを選んでください。",
     "lineup_stage_split": "{{provider}} は「{{stage}}」も担当する必要があります。「{{stage}}」に {{provider}} を選ぶか、{{provider}} の代わりに別のサービスを使ってください。",
+    "lineup_translation_bound": "{{provider}} の翻訳には {{provider}} の文字起こしが必要です。文字起こしに {{provider}} を選ぶか、別の翻訳サービスを選んでください。",
     "lineup_no_unit": "{{provider}} はここでは「{{stage}}」だけを担当できません。一緒に担当する段階にまとめて選ぶか、別のサービスを選んでください。",
     "lineup_voice_not_alone": "文字起こしと翻訳に {{provider}} を使うか、別の音声サービスを選んでください。",
     "lineup_voice_not_taken": "音声にも {{provider}} を選ぶか、文字起こしと翻訳に別のサービスを選んでください。",

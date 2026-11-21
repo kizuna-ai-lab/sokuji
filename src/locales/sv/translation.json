@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "Välj först en tjänst för steget ”{{stage}}”.",
     "lineup_not_offered": "{{provider}} är inte tillgänglig i den här versionen. Välj en annan tjänst för steget ”{{stage}}”.",
     "lineup_stage_split": "{{provider}} måste också göra steget ”{{stage}}”. Välj {{provider}} för steget ”{{stage}}”, eller använd en annan tjänst i stället för {{provider}}.",
+    "lineup_translation_bound": "Översättning med {{provider}} kräver transkribering med {{provider}}. Välj {{provider}} för transkribering, eller välj en annan översättningstjänst.",
     "lineup_no_unit": "{{provider}} kan inte göra steget ”{{stage}}” på egen hand här. Välj den för de steg den gör tillsammans, eller välj en annan tjänst.",
     "lineup_voice_not_alone": "Använd {{provider}} för transkribering och översättning, eller välj en annan taltjänst.",
     "lineup_voice_not_taken": "Välj {{provider}} även för tal, eller välj en annan tjänst för transkribering och översättning.",

@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "בחרו תחילה שירות לשלב “{{stage}}”.",
     "lineup_not_offered": "{{provider}} אינו זמין בגרסה זו. בחרו שירות אחר לשלב “{{stage}}”.",
     "lineup_stage_split": "{{provider}} חייב לבצע גם את השלב “{{stage}}”. בחרו ב-{{provider}} לשלב “{{stage}}”, או השתמשו בשירות אחר במקום {{provider}}.",
+    "lineup_translation_bound": "התרגום של {{provider}} דורש את התמלול של {{provider}}. בחרו ב-{{provider}} לתמלול, או בחרו שירות תרגום אחר.",
     "lineup_no_unit": "{{provider}} אינו יכול לבצע כאן את השלב “{{stage}}” לבדו. בחרו בו לשלבים שהוא מבצע יחד, או בחרו שירות אחר.",
     "lineup_voice_not_alone": "השתמשו ב-{{provider}} לתמלול ולתרגום, או בחרו שירות דיבור אחר.",
     "lineup_voice_not_taken": "בחרו ב-{{provider}} גם לדיבור, או בחרו שירות אחר לתמלול ולתרגום.",

@@ -426,13 +426,52 @@ describe('languages and line-up', () => {
       expect(screen.queryByRole('status')).toBeNull();
     });
 
-    it("Soniox's translation without its transcription: on the card of the stage Soniox must also do, naming Soniox", () => {
+    it("Soniox's translation without its transcription: on the transcription card, naming Soniox and the stage to change", () => {
       load();
       useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'soniox', speech: 'soniox', summarisation: null }, stored: true });
       render(<LineUpCategory locked={false} />);
-      expect(within(cardOf('Transcription')).getByRole('status')).toHaveTextContent('Soniox must also do transcription. Choose Soniox for transcription, or use another service instead of Soniox.');
+      expect(within(cardOf('Transcription')).getByRole('status')).toHaveTextContent('Soniox translation requires Soniox transcription. Choose Soniox for transcription, or choose another translation service.');
       expect(within(cardOf('Translation')).queryByRole('status')).toBeNull();
       expect(within(cardOf('Speech')).queryByRole('status')).toBeNull();
+    });
+
+    // A design review, 2026-11-21: the translation card of such a stored line-up kept the frame and the line of
+    // stages joined over one connection, beside "Can't be combined" on the transcription card.
+    describe('the frame and the line of stages joined over one connection', () => {
+      const JOINED = /over one connection/;
+      const framed = () => [...document.querySelectorAll('.lineup-stage')].filter((c) => c.classList.contains('is-joint'));
+
+      it.each([
+        ['this device', 'local_inference', 'edge'],
+        ['this device, Soniox speaking', 'local_inference', 'soniox'],
+      ])("Soniox's translation beside the transcription of %s: neither, on any card; the refusal stays", (_name, transcription, speech) => {
+        load();
+        useLineUpStore.setState({ lineUp: { transcription, translation: 'soniox', speech, summarisation: null }, stored: true });
+        render(<LineUpCategory locked={false} />);
+        expect(framed()).toEqual([]);
+        expect(screen.queryByText(JOINED)).toBeNull();
+        expect(cardOf('Transcription').querySelector('.lineup-stage__state')).toHaveTextContent("Can't be combined");
+        expect(within(cardOf('Transcription')).getByRole('status')).toHaveClass('lineup-stage__refusal');
+        expect(screen.getByRole('combobox', { name: 'Translation' })).toHaveValue('soniox');
+      });
+
+      it('Soniox on both stages: the one card they share is framed and says they go over one connection, as before', () => {
+        load();
+        useLineUpStore.setState({ lineUp: { ...soniox, speech: 'edge' }, stored: true });
+        render(<LineUpCategory locked={false} />);
+        expect(framed()).toEqual([cardOf('Transcription and translation')]);
+        expect(screen.getAllByText(JOINED).map((line) => line.textContent)).toEqual(['Transcription and translation go over one connection. Another service can do the translation: choose it below.']);
+        expect(screen.queryByRole('status')).toBeNull();
+      });
+
+      it("Soniox transcribing for Bing's translation: no frame and no line, as before", () => {
+        load();
+        useLineUpStore.setState({ lineUp: { ...soniox, translation: 'bing' }, stored: true });
+        render(<LineUpCategory locked={false} />);
+        expect(framed()).toEqual([]);
+        expect(screen.queryByText(JOINED)).toBeNull();
+        expect(screen.queryByRole('status')).toBeNull();
+      });
     });
 
     it("Soniox transcribing for Bing's translation runs: a card each, and nothing is refused", () => {
@@ -577,6 +616,7 @@ describe('languages and line-up', () => {
       ['lineup_voice_not_alone', "Can't be combined"],
       ['lineup_voice_not_taken', "Can't be combined"],
       ['lineup_stage_split', "Can't be combined"],
+      ['lineup_translation_bound', "Can't be combined"],
       ['lineup_no_unit', "Can't be combined"],
       ['lineup_two_managed', "Can't be combined"],
       ['lineup_not_offered', 'Not available here'],

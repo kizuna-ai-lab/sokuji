@@ -82,9 +82,10 @@ export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): Ru
   }
 
   // A translation that is bound to its own transcription, beside another option's: said before any unit is looked
-  // for, so that the refusal names what the translation needs, not the other host's units.
+  // for, so that the refusal names what the translation needs, not the other host's units. Its own code: the
+  // sentence says which stage to change, which the sentence of an end-to-end provider's split stages cannot.
   if (options.translation.translatesOwn && options.transcription.id !== options.translation.id) {
-    return { refused: 'lineup_stage_split', stage: 'transcription' };
+    return { refused: 'lineup_translation_bound', stage: 'transcription', provider: options.translation.id };
   }
 
   // Each host's stages, hosts in the order of their first stage.

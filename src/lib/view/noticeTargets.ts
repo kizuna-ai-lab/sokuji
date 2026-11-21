@@ -19,6 +19,7 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   lineup_incomplete: 'lineup',
   lineup_not_offered: 'lineup',
   lineup_stage_split: 'lineup',
+  lineup_translation_bound: 'lineup',
   lineup_no_unit: 'lineup',
   lineup_voice_not_alone: 'lineup',
   lineup_voice_not_taken: 'lineup',

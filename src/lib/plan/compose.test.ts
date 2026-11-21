@@ -31,8 +31,8 @@ const cases: Array<[string, Pick<LineUp, RunStage>, 'ok' | PlanRefusalCode, RunS
   ['Soniox text with Edge speech', { transcription: 'soniox', translation: 'soniox', speech: 'edge' }, 'lineup_no_unit', 'speech'],
   // Providers of one unit each: Soniox has none here for transcription beside its voice alone.
   ['Soniox transcribes, Bing translates, on a provider whose one unit serves everything', { transcription: 'soniox', translation: 'bing', speech: 'soniox' }, 'lineup_no_unit', 'transcription'],
-  ["Soniox's translation without its transcription", { transcription: 'local_inference', translation: 'soniox', speech: 'soniox' }, 'lineup_stage_split', 'transcription'],
-  ["Soniox's translation without its transcription, said before the other host's units are looked at", { transcription: 'local_inference', translation: 'soniox', speech: 'edge' }, 'lineup_stage_split', 'transcription'],
+  ["Soniox's translation without its transcription", { transcription: 'local_inference', translation: 'soniox', speech: 'soniox' }, 'lineup_translation_bound', 'transcription'],
+  ["Soniox's translation without its transcription, said before the other host's units are looked at", { transcription: 'local_inference', translation: 'soniox', speech: 'edge' }, 'lineup_translation_bound', 'transcription'],
   ['two end-to-end providers', { transcription: 'openai', translation: 'openai', speech: 'gemini' }, 'lineup_stage_split', 'transcription'],
 ];
 
@@ -121,8 +121,8 @@ describe('compose', () => {
         ['Soniox transcribes, a local model translates, a local voice speaks: the same three', { transcription: 'soniox', translation: 'local_inference', speech: 'local_inference' }, [['soniox', 'tr', ['transcription']], ['local_inference', 'translation', ['translation']], ['local_inference', 'speech', ['speech']]]],
         ["Soniox transcribes and speaks, Bing translates between: Soniox's two units around this device's, in stage order", { transcription: 'soniox', translation: 'bing', speech: 'soniox' }, [['soniox', 'tr', ['transcription']], ['local_inference', 'translation', ['translation']], ['soniox', 'tts', ['speech']]]],
         ['this device transcribes and translates: the whole unit, never its translation unit, whoever speaks', { transcription: 'local_inference', translation: 'bing', speech: 'soniox' }, [['local_inference', 'whole', ['transcription', 'translation']], ['soniox', 'tts', ['speech']]]],
-        ["Soniox's translation needs Soniox's transcription", { transcription: 'local_inference', translation: 'soniox', speech: 'edge' }, { refused: 'lineup_stage_split', stage: 'transcription' }],
-        ['this device has no unit that transcribes alone', { transcription: 'local_inference', translation: 'soniox', speech: 'soniox' }, { refused: 'lineup_stage_split', stage: 'transcription' }],
+        ["Soniox's translation needs Soniox's transcription", { transcription: 'local_inference', translation: 'soniox', speech: 'edge' }, { refused: 'lineup_translation_bound', stage: 'transcription', provider: 'soniox' }],
+        ['this device has no unit that transcribes alone', { transcription: 'local_inference', translation: 'soniox', speech: 'soniox' }, { refused: 'lineup_translation_bound', stage: 'transcription', provider: 'soniox' }],
       ] as Array<[string, Pick<LineUp, RunStage>, unknown]>)('%s', (_name, lineUp, expected) => {
         expect(shape(compose(lineUp, given))).toEqual(expected);
       });

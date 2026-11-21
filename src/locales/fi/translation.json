@@ -1538,6 +1538,7 @@
     "lineup_incomplete": "Valitse ensin palvelu vaiheelle ”{{stage}}”.",
     "lineup_not_offered": "{{provider}} ei ole käytettävissä tässä versiossa. Valitse toinen palvelu vaiheelle ”{{stage}}”.",
     "lineup_stage_split": "Palvelun {{provider}} on hoidettava myös vaihe ”{{stage}}”. Valitse {{provider}} vaiheelle ”{{stage}}” tai käytä toista palvelua palvelun {{provider}} sijaan.",
+    "lineup_translation_bound": "Palvelun {{provider}} käännös edellyttää palvelun {{provider}} litterointia. Valitse {{provider}} litterointiin tai valitse toinen käännöspalvelu.",
     "lineup_no_unit": "{{provider}} ei voi hoitaa vaihetta ”{{stage}}” täällä yksinään. Valitse se vaiheisiin, jotka se hoitaa yhdessä, tai valitse toinen palvelu.",
     "lineup_voice_not_alone": "Käytä palvelua {{provider}} litterointiin ja käännökseen tai valitse toinen puhepalvelu.",
     "lineup_voice_not_taken": "Valitse {{provider}} myös puheeseen tai valitse toinen palvelu litterointiin ja käännökseen.",

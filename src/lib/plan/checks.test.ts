@@ -301,8 +301,9 @@ describe('a refusal as a notice', () => {
   it('names the option a stage with no unit was given to, and the option whose joint stages were split', () => {
     expect(refusalNotice({ refused: 'lineup_no_unit', stage: 'speech' }, { transcription: 'soniox', translation: 'soniox', speech: 'gemini' }).params).toEqual({ stage: 'speech', provider: 'gemini' });
     expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'translation' }, { transcription: 'openai', translation: 'bing', speech: 'openai' }).params).toEqual({ stage: 'translation', provider: 'openai' });
-    // Soniox's translation without its transcription: Soniox is the one that must also transcribe.
-    expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'transcription' }, { transcription: 'local_inference', translation: 'soniox', speech: 'edge' }).params).toEqual({ stage: 'transcription', provider: 'soniox' });
+    // Soniox's translation without its transcription has a code of its own, and carries the option that translates.
+    expect(refusalNotice({ refused: 'lineup_translation_bound', stage: 'transcription', provider: 'kizunaai_soniox' }, { transcription: 'local_inference', translation: 'kizunaai_soniox', speech: 'edge' }, [kizuna, soniox]))
+      .toEqual({ code: 'lineup_translation_bound', message: 'The translation of kizunaai_soniox needs its own transcription, and another provider transcribes.', params: { stage: 'transcription', provider: 'kizunaai_soniox', vendor: 'Soniox' } });
     // Its transcription stands alone: nothing of Soniox goes with a translation given to Bing.
     expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'translation' }, { transcription: 'soniox', translation: 'bing', speech: 'soniox' }).params).toEqual({ stage: 'translation' });
     expect(refusalNotice({ refused: 'lineup_stage_split', stage: 'transcription' }, { transcription: 'openai', translation: 'openai', speech: 'gemini' }).params).toEqual({ stage: 'transcription', provider: 'gemini' });
