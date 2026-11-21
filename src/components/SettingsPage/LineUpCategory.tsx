@@ -445,7 +445,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           // On the speech card, first: that the voice changed with the last choice.
           const refusalLine = (stage: RunStage) => (
             <>
-              {stage === 'speech' && followed && <p className="lineup-stage__refusal" role="status">{followed}</p>}
+              {/* Said plainly, as the joint lines are: the voice followed, nothing is wrong. */}
+              {stage === 'speech' && followed && <p className="lineup-stage__joint" role="status">{followed}</p>}
               {refusal?.stage === stage && <p className="lineup-stage__refusal" role="status">{noticeText(t, refusal)}</p>}
             </>
           );
