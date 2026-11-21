@@ -15,7 +15,8 @@ export interface NotesFieldEditorProps {
   text: string;
   /** A to-do's owner (as the interface words it) and date, edited beside its text. */
   todo?: { owner: string; due: string } | null;
-  onSave(value: NotesFieldValue): Promise<void> | void;
+  /** Saves; `false` when it failed, which keeps the editor open with what was typed. */
+  onSave(value: NotesFieldValue): Promise<boolean | void> | boolean | void;
   onDone(): void;
 }
 
@@ -25,6 +26,9 @@ export function NotesFieldEditor({ label, text, todo = null, onSave, onDone }: N
   const [owner, setOwner] = useState(todo?.owner ?? '');
   const [due, setDue] = useState(todo?.due ?? '');
   const ended = useRef(false);
+  // While a save runs nothing more can be typed: it would be lost when the save ends (PR review).
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const boxRef = useRef<HTMLDivElement>(null);
   const fieldRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { fieldRef.current?.focus(); }, []);
@@ -34,10 +38,29 @@ export function NotesFieldEditor({ label, text, todo = null, onSave, onDone }: N
     if (ended.current) return;
     ended.current = true;
     const changed = value !== text || (todo !== null && (owner !== todo.owner || due !== todo.due));
-    if (changed) await onSave(todo ? { text: value, owner, due } : { text: value });
+    if (changed) {
+      setSaving(true);
+      savingRef.current = true;
+      let saved: boolean | void = false;
+      try {
+        saved = await onSave(todo ? { text: value, owner, due } : { text: value });
+      } catch {
+        saved = false;
+      }
+      savingRef.current = false;
+      if (saved === false) {
+        // Failed: the page says why; what was typed stays, to try again or cancel.
+        ended.current = false;
+        setSaving(false);
+        fieldRef.current?.focus();
+        return;
+      }
+    }
     onDone();
   };
   const cancel = () => {
+    // A save under way is waited for: should it fail, what was typed still has its editor.
+    if (savingRef.current) return;
     ended.current = true;
     onDone();
   };
@@ -66,6 +89,7 @@ export function NotesFieldEditor({ label, text, todo = null, onSave, onDone }: N
         className="record-notes-edit__field"
         aria-label={label}
         value={value}
+        readOnly={saving}
         rows={Math.max(2, Math.ceil(value.length / 60))}
         spellCheck={false}
         onChange={(e) => setValue(e.target.value)}
@@ -74,11 +98,11 @@ export function NotesFieldEditor({ label, text, todo = null, onSave, onDone }: N
         <div className="record-notes-edit__todo">
           <label>
             <span>{t('history.notesOwner', 'Owner')}</span>
-            <input type="text" aria-label={t('history.notesOwner', 'Owner')} value={owner} onChange={(e) => setOwner(e.target.value)} />
+            <input type="text" aria-label={t('history.notesOwner', 'Owner')} value={owner} readOnly={saving} onChange={(e) => setOwner(e.target.value)} />
           </label>
           <label>
             <span>{t('history.notesDue', 'Due')}</span>
-            <input type="text" aria-label={t('history.notesDue', 'Due')} value={due} onChange={(e) => setDue(e.target.value)} />
+            <input type="text" aria-label={t('history.notesDue', 'Due')} value={due} readOnly={saving} onChange={(e) => setDue(e.target.value)} />
           </label>
         </div>
       )}

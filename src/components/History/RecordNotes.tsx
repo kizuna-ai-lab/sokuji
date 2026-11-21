@@ -13,7 +13,7 @@ import { notesExplanation } from './notesExplain';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import { englishLanguageName, languageLabel } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
-import { readNotesBody, type NoteKind } from '../../lib/notes/write';
+import { readNotesBody, type NoteKind, type NotesPoint } from '../../lib/notes/write';
 import { ownerWord } from '../../lib/notes/exportNotes';
 import { formatDateTime } from './format';
 import { playable } from '../../lib/history/playback';
@@ -49,7 +49,7 @@ export interface RecordNotesProps {
   /** The explanation was shown and accepted. */
   onExplained(): void;
   /** Saves one part of the version shown, changed by hand (design P1 §1); absent, nothing can be edited. */
-  onEdit?(edit: NotesEdit): Promise<void>;
+  onEdit?(edit: NotesEdit): Promise<boolean | void>;
 }
 
 /** The program's own reasons, by code (`notes:<code>`); a service's words are shown as they are. */
@@ -104,9 +104,24 @@ export function RecordNotes(p: RecordNotesProps) {
   const again = (language: string) => () => write({ code: language, name: englishLanguageName(language) });
 
   // Design P1 §1: each part of the notes edited in place, one at a time, from its pencil.
-  const [editing, setEditing] = useState<string | null>(null);
+  // `n` tells one opening from the next, so a save that ends late closes only its own editor (PR review). A point is
+  // also known by what it holds (`point`): one removed before it moves it up, and its editor goes with it.
+  const [editing, setEditing] = useState<{ n: number; key: string; at?: number; point?: string } | null>(null);
+  const openings = useRef(0);
   const keyOf = (f: NotesField) => JSON.stringify(f);
-  const isEditing = (f: NotesField) => !!p.onEdit && editing === keyOf(f);
+  const pointId = (pt: NotesPoint) => JSON.stringify([pt.topic, pt.sentences, pt.kinds, pt.text]);
+  const isEditing = (f: NotesField) => !!p.onEdit && f.part !== 'point' && editing?.key === keyOf(f);
+  /** Where the point being edited is now: its old place while it holds the same, else where it went; -1 when gone. */
+  const editingPoint = (points: readonly NotesPoint[]): number => {
+    if (!p.onEdit || editing?.point === undefined || editing.at === undefined) return -1;
+    if (points[editing.at] && pointId(points[editing.at]) === editing.point) return editing.at;
+    return points.findIndex((pt) => pointId(pt) === editing.point);
+  };
+  const startEditing = (f: NotesField) => {
+    const pt = f.part === 'point' && p.notes?.body ? readNotesBody(p.notes.body).points[f.point] : undefined;
+    openings.current += 1;
+    setEditing({ n: openings.current, key: keyOf(f), ...(f.part === 'point' && pt ? { at: f.point, point: pointId(pt) } : {}) });
+  };
   const TITLE: NotesField = { part: 'title' };
   const OVERVIEW: NotesField = { part: 'overview' };
   const editWords = {
@@ -120,7 +135,7 @@ export function RecordNotes(p: RecordNotesProps) {
     point: t('history.notesField.point', 'Point'),
   };
   const pencil = (f: NotesField, label: string) => p.onEdit && (
-    <button type="button" className="record-notes__edit" aria-label={label} title={label} onClick={() => setEditing(keyOf(f))}>
+    <button type="button" className="record-notes__edit" aria-label={label} title={label} onClick={() => startEditing(f)}>
       <Pencil size={12} />
     </button>
   );
@@ -128,18 +143,20 @@ export function RecordNotes(p: RecordNotesProps) {
   const tail = (f: NotesField, label: string) => p.onEdit && <span className="record-notes__tail">{pencil(f, label)}</span>;
   // A side, as the interface words it, is stored as the side it stands for.
   const storedOwner = (owner: string) => (owner === sides.mySide ? 'My side' : owner === sides.otherSide ? 'Other side' : owner);
-  const editor = (f: NotesField, label: string, text: string, todo: { owner: string; due: string } | null = null) => (
-    <NotesFieldEditor
-      label={label}
-      text={text}
-      todo={todo}
-      // Closes its own editor only: another field opened while this one was saving stays open.
-      onDone={() => setEditing((cur) => (cur === keyOf(f) ? null : cur))}
-      onSave={async (v) => {
-        await p.onEdit?.(todo ? { field: f, text: v.text, owner: storedOwner(v.owner ?? ''), due: v.due ?? '' } : { field: f, text: v.text });
-      }}
-    />
-  );
+  const editor = (f: NotesField, label: string, text: string, todo: { owner: string; due: string } | null = null) => {
+    const mine = editing?.n;
+    return (
+      <NotesFieldEditor
+        key={mine}
+        label={label}
+        text={text}
+        todo={todo}
+        // Closes its own opening only: another field, or this one opened again, while it was saving stays open.
+        onDone={() => setEditing((cur) => (cur?.n === mine ? null : cur))}
+        onSave={(v) => p.onEdit?.(todo ? { field: f, text: v.text, owner: storedOwner(v.owner ?? ''), due: v.due ?? '' } : { field: f, text: v.text })}
+      />
+    );
+  };
 
   const kindWord: Record<NoteKind, string> = {
     decision: t('history.notesKind.decision', 'Decision'),
@@ -248,6 +265,7 @@ export function RecordNotes(p: RecordNotesProps) {
   } else {
     const body = readNotesBody(p.notes.body);
     const shown = (kinds: readonly NoteKind[]) => filter === 'all' || kinds.includes(filter);
+    const pointAt = editingPoint(body.points);
     const latest = p.latest && p.latest.state !== 'complete' ? p.latest : null;
     content = (
       <>
@@ -305,9 +323,10 @@ export function RecordNotes(p: RecordNotesProps) {
                     const who = todo ? [ownerWord(pt.owner, sides), pt.due].filter(Boolean).join(' · ') : '';
                     // The stored point's own place: a filter shows some of them only.
                     const field: NotesField = { part: 'point', point: body.points.indexOf(pt) };
-                    if (isEditing(field)) {
+                    if (field.point === pointAt) {
                       return (
-                        <li key={i} className="record-notes__point">
+                        // Keyed by its opening, not its place: a point removed before it keeps what was typed.
+                        <li key={`edit-${editing?.n}`} className="record-notes__point">
                           {editor(field, fieldWords.point, pt.text, todo ? { owner: ownerWord(pt.owner, sides) ?? '', due: pt.due ?? '' } : null)}
                         </li>
                       );

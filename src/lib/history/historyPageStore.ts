@@ -217,8 +217,11 @@ export interface HistoryPageActions {
   canEdit(): boolean;
   /** The shown notes can be edited: the record can be, they are complete, and no version is being written for it. */
   canEditNotes(): boolean;
-  /** One field of the shown notes changed by hand (design P1 §1): marked edited, undoable. */
-  editNotes(edit: NotesEdit): Promise<void>;
+  /**
+   * One field of the shown notes changed by hand (design P1 §1): marked edited, undoable. True once saved, or when there
+   * was nothing to save; false when the write failed (the page says why).
+   */
+  editNotes(edit: NotesEdit): Promise<boolean>;
   /**
    * Every sentence of `side` whose speaker is `from` moved to `into` in one write (design P1 §2), undoable sentence by
    * sentence; `labels` name them as the page shows them. Returns how many moved (0: nothing to do, or not editable).
@@ -866,14 +869,16 @@ export function createHistoryPageStore(
 
       async editNotes(edit) {
         const open = get().open;
-        if (!open?.notes?.body || !get().canEditNotes()) return;
+        if (!open?.notes?.body || !get().canEditNotes()) return false;
         const shown = open.notes;
         const made = applyNotesEdit(shown.body!, edit);
-        if (!made) return;
+        if (!made) return true;
         const titleChanged = made.body.title !== shown.body!.title;
         const scope = scopeNow();
+        let saved = false;
         await act(async () => {
           await port.editNotes({ id: shown.id, before: JSON.stringify(shown.body), after: JSON.stringify(made.body), editedAt: clock.now() });
+          saved = true;
           if (!stillIn(scope)) return;
           remember({ kind: 'notes', id: shown.id, undo: made.undo, editedAt: shown.editedAt ?? null });
           say({ kind: made.undo.kind === 'removed' ? 'notesRemoved' : 'notesEdited' });
@@ -881,6 +886,7 @@ export function createHistoryPageStore(
           if (titleChanged) await reload();
           await reread();
         });
+        return saved;
       },
 
       async fixWords(from, to, o) {

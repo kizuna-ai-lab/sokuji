@@ -423,6 +423,16 @@ describe('editing the notes', () => {
     expect(store.getState().canUndo).toBe(false);
   });
 
+  // PR review: the editor stays open on a failed save, so it is told how the save went.
+  it('editNotes says whether it saved', async () => {
+    expect(await store.getState().editNotes({ field: { part: 'overview' }, text: '第一次' })).toBe(true);
+    const shown = notes();
+    real.store.editNotes({ id: shown.id, before: JSON.stringify(shown.body), after: JSON.stringify({ ...shown.body, overview: { text: '别处改的', format: 'plain' } }), editedAt: 5 });
+    // The version shown is now stale: the write is refused.
+    expect(await store.getState().editNotes({ field: { part: 'overview' }, text: '第二次' })).toBe(false);
+    expect(store.getState().error).not.toBeNull();
+  });
+
   it('nothing is edited while a version is being written, the record is open, or it is transcribed again', async () => {
     expect(store.getState().canEditNotes()).toBe(true);
     store.setState({ notesRunning: [A] });

@@ -536,6 +536,80 @@ describe('editing the notes in place', () => {
     expect((screen.getByRole('textbox', { name: 'Overview' }) as HTMLTextAreaElement).value).toBe('Typed while the title saved');
   });
 
+  // PR review: a save that fails leaves the field open with what was typed, to try again or cancel.
+  it('a save that fails keeps the field open with what was typed', async () => {
+    const edit = vi.fn(async () => false);
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: 'Kept after a failure' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledTimes(1);
+    expect((screen.getByRole('textbox', { name: 'Overview' }) as HTMLTextAreaElement).value).toBe('Kept after a failure');
+  });
+
+  // PR review: what is typed while a save runs would be lost when it ends, so nothing can be typed then.
+  it('while a field saves, it and its owner and date cannot be typed in', async () => {
+    let finish!: (saved: boolean) => void;
+    const edit = vi.fn(() => new Promise<boolean>((resolve) => { finish = resolve; }));
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the point')[1]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: 'Send the tracking link' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    expect(screen.getByRole('textbox', { name: 'Point' })).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox', { name: 'Owner' })).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox', { name: 'Due' })).toHaveAttribute('readonly');
+    await act(async () => { finish(true); await Promise.resolve(); });
+    expect(screen.queryByRole('textbox', { name: 'Point' })).toBeNull();
+  });
+
+  // OCR: a save that throws is a failed one; Escape waits for a save under way, so a failure still has its editor.
+  it('a save that throws keeps the field open and editable; Escape does nothing while a save runs', async () => {
+    let fail!: (e: Error) => void;
+    const edit = vi.fn(() => new Promise<boolean>((_, reject) => { fail = reject; }));
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Overview' }), { target: { value: 'Kept after a throw' } });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Escape' });
+    expect(screen.getByRole('textbox', { name: 'Overview' })).toBeInTheDocument();
+    await act(async () => { fail(new Error('disk')); await Promise.resolve(); });
+    const field = screen.getByRole('textbox', { name: 'Overview' }) as HTMLTextAreaElement;
+    expect(field.value).toBe('Kept after a throw');
+    expect(field).not.toHaveAttribute('readonly');
+  });
+
+  // PR review: a save that ends after its field was closed and opened again leaves the new editor alone.
+  it('a save that ends after the field was opened again does not close it', async () => {
+    let finish!: (saved: boolean) => void;
+    const edit = vi.fn(() => new Promise<boolean>((resolve) => { finish = resolve; }));
+    render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the title')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Supplier call' } });
+    fireEvent.blur(screen.getByRole('textbox', { name: 'Title' }));
+    // Another field opened and left, then the title again, while the first save still runs.
+    fireEvent.click(pencils('Edit the overview')[0]);
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Overview' }), { key: 'Escape' });
+    fireEvent.click(pencils('Edit the title')[0]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Title' }), { target: { value: 'Typed again' } });
+    await act(async () => { finish(true); await Promise.resolve(); });
+    expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLTextAreaElement).value).toBe('Typed again');
+  });
+
+  // PR review: a point removed before the one being edited moves it up; the editor stays with its point and saves it there.
+  it('a point being edited stays with its point when one before it is removed', async () => {
+    const edit = onEdit();
+    const { rerender } = render(<RecordNotes {...props({ onEdit: edit })} />);
+    fireEvent.click(pencils('Edit the point')[1]);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Point' }), { target: { value: 'Send the tracking link' } });
+    const removed = { ...complete, body: { ...complete.body!, points: complete.body!.points.slice(1) } };
+    rerender(<RecordNotes {...props({ onEdit: edit, notes: removed })} />);
+    expect((screen.getByRole('textbox', { name: 'Point' }) as HTMLTextAreaElement).value).toBe('Send the tracking link');
+    fireEvent.keyDown(screen.getByRole('textbox', { name: 'Point' }), { key: 'Enter' });
+    await act(async () => { await Promise.resolve(); });
+    expect(edit).toHaveBeenCalledWith({ field: { part: 'point', point: 0 }, text: 'Send the tracking link', owner: 'My side', due: 'Tuesday' });
+  });
+
   it('the title edits as the others do, and an edited version says so', () => {
     const { unmount } = render(<RecordNotes {...props({ onEdit: onEdit(), notes: { ...complete, editedAt: 5 } })} />);
     expect(screen.getByText('Edited by hand')).toBeInTheDocument();
