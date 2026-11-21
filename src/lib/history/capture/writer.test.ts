@@ -115,6 +115,14 @@ describe('the history writer', () => {
     expect(lastArg('openRecord').services).toEqual({ provider: 'local_inference', stages, models: { asrModel: 'm' } });
   });
 
+  it("stores the provider of each stage in the record: Soniox with an own key, read by Kizuna AI's Soniox voice", async () => {
+    const stages = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
+    start('run-0001-aaaa', { info: { provider: 'soniox', stages, models: { asrModel: 'stt-rt-v6', ttsModel: 'tts-rt-v2' }, startedAt: 0 } });
+    await writer.settled();
+    // The record is the transcribing provider's; the stages say whose voice read it.
+    expect(lastArg('openRecord').services).toEqual({ provider: 'soniox', stages, models: { asrModel: 'stt-rt-v6', ttsModel: 'tts-rt-v2' } });
+  });
+
   it('opens nothing for a start that is refused', async () => {
     state.setState({ phase: 'starting', participantSpeech: false, step: 'checking' });
     state.setState({ phase: 'idle', lastEnd: { reason: 'refused' } } as RunState);

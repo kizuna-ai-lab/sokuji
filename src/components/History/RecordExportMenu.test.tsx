@@ -105,6 +105,11 @@ describe("a record's export", () => {
       const [text, json] = await files(mixed);
       expect(text).toContain('Provider: transcription=soniox, translation=soniox, speech=edge\n');
       expect(JSON.parse(json)).toMatchObject({ provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } });
+      // Own-key Soniox read by Kizuna AI's Soniox voice: two services, though both are Soniox's engine.
+      const hostedVoice = { ...without, services: { ...without.services, provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' } } } as unknown as HistoryRecord;
+      const [hostedText, hostedJson] = await files(hostedVoice);
+      expect(hostedText).toContain('Provider: transcription=soniox, translation=soniox, speech=kizunaai_soniox\n');
+      expect(JSON.parse(hostedJson)).toMatchObject({ provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' } });
     } finally {
       URL.createObjectURL = createObjectURL;
       URL.revokeObjectURL = revokeObjectURL;
