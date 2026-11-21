@@ -354,4 +354,44 @@ describe("the entries of the line-up's providers", () => {
     await vi.waitFor(() => expect(useProviderStore.getState().entries.local_inference).toBeDefined());
     expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
   });
+
+  describe('while the first loads are still awaited', () => {
+    /** The stores and the loader of a page that has never launched: no watch of an earlier launch is listening. */
+    async function freshPage() {
+      vi.resetModules();
+      const [{ loadSessionStores: launch }, lineUpStore, providerStore, segmentationStore] = await Promise.all([
+        import('./loadStores'), import('../stores/lineUpStore'), import('../stores/providerStore'), import('../stores/segmentationStore'),
+      ]);
+      return { launch, lineUps: lineUpStore.useLineUpStore, providers: providerStore.useProviderStore, segmentation: segmentationStore.useSegmentationStore };
+    }
+    afterEach(() => { vi.resetModules(); });
+
+    it('a change of the line-up loads the new host', async () => {
+      stored.set('settings.common.provider', 'soniox');
+      const page = await freshPage();
+      // The punctuation pack is still loading: the launch has not finished.
+      let finish!: () => void;
+      page.segmentation.setState({ refresh: vi.fn(() => new Promise<void>((resolve) => { finish = resolve; })) });
+      const launching = page.launch();
+      await vi.waitFor(() => expect(page.providers.getState().entries.soniox).toBeDefined());
+      expect(page.providers.getState().entries.local_inference).toBeUndefined();
+
+      // Chosen on the settings page meanwhile: Edge reads Soniox's text.
+      page.lineUps.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
+      await vi.waitFor(() => expect(page.providers.getState().entries.local_inference).toBeDefined());
+
+      finish();
+      await launching;
+      expect(Object.keys(page.providers.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+    });
+
+    it('the host the launch itself names is loaded once, by the watch and the launch between them', async () => {
+      stored.set('settings.common.provider', 'soniox');
+      const page = await freshPage();
+      page.segmentation.setState({ refresh: vi.fn(async () => {}) });
+      const load = vi.spyOn(page.providers.getState(), 'load');
+      await page.launch();
+      expect(load.mock.calls.map(([p]) => p.id)).toEqual(['soniox']);
+    });
+  });
 });

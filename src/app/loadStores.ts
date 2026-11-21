@@ -56,7 +56,10 @@ export async function loadLineUpProviders(offered: readonly AnyProvider[]): Prom
 /** Stops the watch of the line-up a previous `loadSessionStores` started. */
 let stopWatchingLineUp: (() => void) | null = null;
 
-/** Keeps `loadLineUpProviders` true as the line-up changes: a choice may name a provider that was never opened. */
+/**
+ * Keeps `loadLineUpProviders` true as the line-up changes: a choice may name a provider that was never opened.
+ * Installed before a launch's first load of them, so no change falls between the two.
+ */
 function watchLineUpProviders(offered: readonly AnyProvider[]): void {
   stopWatchingLineUp?.();
   stopWatchingLineUp = useLineUpStore.subscribe((now, before) => {
@@ -82,6 +85,10 @@ export async function loadTurnMode(service: Pick<ISettingsService, 'getSetting'>
 export async function loadSessionStores(): Promise<void> {
   const service = ServiceFactory.getSettingsService();
   const offered = presentProviders();
+  // Heard from before the first load on: a line-up that changes while the loads below are awaited (the line-up
+  // store's own load landing, a choice on the settings page) still gets every provider it names loaded. A load
+  // under way is shared with the launch's own below, so no provider is loaded twice.
+  watchLineUpProviders(offered);
   const loads: Array<[string, () => Promise<void>]> = [
     ['turn mode', () => loadTurnMode(service)],
     ['routing switches', () => useRoutingStore.getState().load()],
@@ -105,6 +112,4 @@ export async function loadSessionStores(): Promise<void> {
   } catch (error) {
     reportWarning('AppSession', `Loading the word list failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'load:words' });
   }
-  // Every provider the line-up names after each later choice.
-  watchLineUpProviders(offered);
 }
