@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "chỉ đọc bản dịch của chính nó",
       "voiceNotTaken": "chỉ dùng giọng nói của chính nó",
       "twoManaged": "mỗi lần chỉ một dịch vụ của Kizuna AI",
-      "voiceFollowed": "Giọng nói cũng đã chuyển sang {{provider}}: giọng nói của {{previous}} chỉ đọc bản dịch của chính nó.",
+      "voiceFollowed": "Giọng nói đã chuyển sang {{provider}}. Dịch vụ giọng nói trước đó chỉ hỗ trợ bản dịch của chính nó.",
       "options": "Tùy chọn của {{provider}}",
       "state": {
         "needsKey": "Cần khóa",

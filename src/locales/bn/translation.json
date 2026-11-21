@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "কেবল নিজের অনুবাদ পড়ে",
       "voiceNotTaken": "কেবল নিজের ভয়েস ব্যবহার করে",
       "twoManaged": "একবারে Kizuna AI-এর একটি সেবা",
-      "voiceFollowed": "বক্তৃতাও {{provider}}-এ বদলে গেছে: {{previous}}-এর ভয়েস কেবল নিজের অনুবাদই পড়ে।",
+      "voiceFollowed": "বক্তৃতা {{provider}}-এ বদলে গেছে। আগের বক্তৃতা সেবাটি কেবল নিজের অনুবাদই সমর্থন করে।",
       "options": "{{provider}}-এর বিকল্প",
       "state": {
         "needsKey": "কী লাগবে",

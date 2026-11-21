@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "केवल अपना अनुवाद पढ़ती है",
       "voiceNotTaken": "केवल अपनी आवाज़ इस्तेमाल करती है",
       "twoManaged": "एक समय में Kizuna AI की एक ही सेवा",
-      "voiceFollowed": "वाणी भी {{provider}} पर बदल गई: {{previous}} की आवाज़ केवल अपना ही अनुवाद पढ़ती है।",
+      "voiceFollowed": "वाणी {{provider}} पर बदल गई। पिछली वाणी सेवा केवल अपने ही अनुवादों का समर्थन करती है।",
       "options": "{{provider}} के विकल्प",
       "state": {
         "needsKey": "कुंजी चाहिए",

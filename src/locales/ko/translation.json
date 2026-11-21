@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "자체 번역만 읽음",
       "voiceNotTaken": "자체 음성만 사용",
       "twoManaged": "Kizuna AI 서비스는 한 번에 하나",
-      "voiceFollowed": "음성도 {{provider}} 서비스로 변경되었습니다. {{previous}} 서비스의 음성은 자체 번역만 읽어 줍니다.",
+      "voiceFollowed": "음성이 {{provider}} 서비스로 전환되었습니다. 이전 음성 서비스는 자체 번역만 지원합니다.",
       "options": "{{provider}} 옵션",
       "state": {
         "needsKey": "키 필요",

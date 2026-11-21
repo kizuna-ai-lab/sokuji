@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "leest alleen de eigen vertaling voor",
       "voiceNotTaken": "gebruikt alleen de eigen stem",
       "twoManaged": "één dienst van Kizuna AI tegelijk",
-      "voiceFollowed": "Spraak is ook overgezet naar {{provider}}: de stem van {{previous}} leest alleen de eigen vertaling voor.",
+      "voiceFollowed": "Spraak is overgezet naar {{provider}}. De vorige spraakdienst ondersteunt alleen de eigen vertalingen.",
       "options": "Opties van {{provider}}",
       "state": {
         "needsKey": "Sleutel nodig",

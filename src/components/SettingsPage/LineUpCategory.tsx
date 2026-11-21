@@ -228,7 +228,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     const name = (option: string) => optionText(model(option, providers.find((p) => p.id === option)));
     if (choice.followed) {
       setFollowedBy({
-        text: t('settingsPage.lineup.voiceFollowed', "Speech changed to {{provider}} too: {{previous}}'s voice only reads its own translation.", { provider: name(choice.followed.to), previous: name(choice.followed.from) }),
+        text: t('settingsPage.lineup.voiceFollowed', 'Speech switched to {{provider}}. The previous speech service only supports its own translations.', { provider: name(choice.followed.to) }),
         lineUp: choice.lineUp,
       });
     }

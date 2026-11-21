@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "yalnızca kendi çevirisini okur",
       "voiceNotTaken": "yalnızca kendi sesini kullanır",
       "twoManaged": "aynı anda tek Kizuna AI hizmeti",
-      "voiceFollowed": "Konuşma da {{provider}} olarak değişti: {{previous}} sesi yalnızca kendi çevirisini okur.",
+      "voiceFollowed": "Konuşma {{provider}} olarak değişti. Önceki konuşma hizmeti yalnızca kendi çevirilerini destekler.",
       "options": "{{provider}} seçenekleri",
       "state": {
         "needsKey": "Anahtar gerekli",

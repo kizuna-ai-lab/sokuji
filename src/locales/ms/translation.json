@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "hanya membacakan terjemahannya sendiri",
       "voiceNotTaken": "hanya menggunakan suaranya sendiri",
       "twoManaged": "satu perkhidmatan Kizuna AI pada satu masa",
-      "voiceFollowed": "Pertuturan juga bertukar kepada {{provider}}: suara {{previous}} hanya membacakan terjemahannya sendiri.",
+      "voiceFollowed": "Pertuturan bertukar kepada {{provider}}. Perkhidmatan pertuturan sebelum ini hanya menyokong terjemahannya sendiri.",
       "options": "Pilihan {{provider}}",
       "state": {
         "needsKey": "Perlu kunci",

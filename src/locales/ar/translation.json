@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "يقرأ ترجمته هو فقط",
       "voiceNotTaken": "يستخدم صوته هو فقط",
       "twoManaged": "خدمة واحدة من Kizuna AI في كل مرة",
-      "voiceFollowed": "تغيّر الكلام إلى {{provider}} أيضًا: صوت {{previous}} يقرأ ترجمته هو فقط.",
+      "voiceFollowed": "تحوّل الكلام إلى {{provider}}. خدمة الكلام السابقة لا تدعم إلا ترجماتها.",
       "options": "خيارات {{provider}}",
       "state": {
         "needsKey": "يحتاج إلى مفتاح",

@@ -253,7 +253,7 @@ describe('languages and line-up', () => {
       // The voice that followed is one of the stages that moved.
       expect(tracked).toContainEqual(['lineup_changed', { stage: 'transcription', from: 'kizunaai_soniox', to: 'soniox', moved: ['translation', 'speech'], during_session: false }]);
       const status = await within(cardOf('Speech')).findByRole('status');
-      expect(status).toHaveTextContent("Speech changed to Soniox too: KizunaAI (Soniox)'s voice only reads its own translation.");
+      expect(status).toHaveTextContent('Speech switched to Soniox. The previous speech service only supports its own translations.');
       // News, not a refusal: it wears the joint lines' plain tone.
       expect(status).toHaveClass('lineup-stage__joint');
       expect(screen.getAllByRole('status')).toHaveLength(1);
@@ -270,19 +270,19 @@ describe('languages and line-up', () => {
         useLineUpStore.setState({ lineUp: everyStage, stored: true });
         render(<LineUpCategory locked={false} />);
         fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'soniox' } });
-        expect(await within(cardOf('Speech')).findByRole('status')).toHaveTextContent('Speech changed to Soniox too');
+        expect(await within(cardOf('Speech')).findByRole('status')).toHaveTextContent('Speech switched to Soniox.');
       };
 
       it('a line-up replaced from outside takes the line away', async () => {
         await follow();
         // The same line-up stored again (another window's copy) is still the one the choice made.
         act(() => useLineUpStore.setState({ lineUp: { ...soniox } }));
-        expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Speech changed to Soniox too');
+        expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Speech switched to Soniox.');
         act(() => useLineUpStore.setState({ lineUp: { ...soniox, speech: 'edge' } }));
-        expect(screen.queryByText(/Speech changed to/)).toBeNull();
+        expect(screen.queryByText(/Speech switched to/)).toBeNull();
         // Back by another way: the line was about the choice, and is not said again.
         act(() => useLineUpStore.setState({ lineUp: soniox }));
-        expect(screen.queryByText(/Speech changed to/)).toBeNull();
+        expect(screen.queryByText(/Speech switched to/)).toBeNull();
       });
 
       it('a choice that is refused takes the line away', async () => {
@@ -291,7 +291,7 @@ describe('languages and line-up', () => {
         act(() => useLineUpStore.setState({ locked: true }));
         const before = tracked.length;
         fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'edge' } });
-        await waitFor(() => expect(screen.queryByText(/Speech changed to/)).toBeNull());
+        await waitFor(() => expect(screen.queryByText(/Speech switched to/)).toBeNull());
         expect(useLineUpStore.getState().lineUp).toEqual(soniox);
         expect(tracked).toHaveLength(before);
       });
@@ -300,9 +300,9 @@ describe('languages and line-up', () => {
         await follow();
         const openai = { settings: RELEASED.find((p) => p.id === 'openai')!.settings.defaults, credentials: { apiKey: 'k' }, pair };
         act(() => useProviderStore.setState((s) => ({ entries: { ...s.entries, openai } as never })));
-        expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Speech changed to Soniox too');
+        expect(within(cardOf('Speech')).getByRole('status')).toHaveTextContent('Speech switched to Soniox.');
         fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
-        await waitFor(() => expect(screen.queryByText(/Speech changed to/)).toBeNull());
+        await waitFor(() => expect(screen.queryByText(/Speech switched to/)).toBeNull());
       });
     });
 
@@ -313,7 +313,7 @@ describe('languages and line-up', () => {
       fireEvent.change(screen.getByRole('combobox', { name: 'Transcription and translation' }), { target: { value: 'local_inference' } });
       await waitFor(() => expect(tracked).toHaveLength(1));
       expect(useLineUpStore.getState().lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null });
-      expect(await within(cardOf('Speech')).findByRole('status')).toHaveTextContent("Speech changed to Edge too: KizunaAI (Soniox)'s voice only reads its own translation.");
+      expect(await within(cardOf('Speech')).findByRole('status')).toHaveTextContent('Speech switched to Edge. The previous speech service only supports its own translations.');
     });
 
     it('a voice that can stay is not said to have changed', async () => {

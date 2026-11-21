@@ -24,10 +24,10 @@ describe('the note that another stage moved with a line-up choice', () => {
 
 // When the voice cannot stay beside a newly chosen text side, speech follows it and the speech card says so.
 describe('the note that speech followed a line-up choice', () => {
-  it.each(codes)('%s: names the new voice and the one that could not stay, once each', (code) => {
+  it.each(codes)('%s: names the service speech switched to, once, and no other', (code) => {
     const text = lineUpIn(code).voiceFollowed;
     expect(typeof text).toBe('string');
-    expect((text as string).match(/\{\{[^}]+\}\}/g)?.sort()).toEqual(['{{previous}}', '{{provider}}']);
+    expect((text as string).match(/\{\{[^}]+\}\}/g)?.sort()).toEqual(['{{provider}}']);
   });
   it.each(codes.filter((code) => code !== 'en'))('%s: is translated', (code) => {
     expect(lineUpIn(code).voiceFollowed).not.toBe(lineUpIn('en').voiceFollowed);

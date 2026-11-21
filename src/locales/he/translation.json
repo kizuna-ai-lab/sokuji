@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "מקריא רק את התרגום שלו",
       "voiceNotTaken": "משתמש רק בקול שלו",
       "twoManaged": "שירות אחד של Kizuna AI בכל פעם",
-      "voiceFollowed": "גם הדיבור עבר אל {{provider}}: הקול של {{previous}} מקריא רק את התרגום שלו עצמו.",
+      "voiceFollowed": "הדיבור עבר אל {{provider}}. שירות הדיבור הקודם תומך רק בתרגומים שלו.",
       "options": "אפשרויות {{provider}}",
       "state": {
         "needsKey": "נדרש מפתח",

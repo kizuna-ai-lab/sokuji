@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "läser bara upp sin egen översättning",
       "voiceNotTaken": "använder bara sin egen röst",
       "twoManaged": "en tjänst från Kizuna AI åt gången",
-      "voiceFollowed": "Även tal ändrades till {{provider}}: rösten från {{previous}} läser bara upp sin egen översättning.",
+      "voiceFollowed": "Tal ändrades till {{provider}}. Den tidigare taltjänsten stöder bara sina egna översättningar.",
       "options": "Alternativ för {{provider}}",
       "state": {
         "needsKey": "Behöver en nyckel",

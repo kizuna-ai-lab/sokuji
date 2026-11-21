@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "فقط ترجمهٔ خودش را می‌خواند",
       "voiceNotTaken": "فقط از صدای خودش استفاده می‌کند",
       "twoManaged": "هر بار فقط یک سرویس Kizuna AI",
-      "voiceFollowed": "گفتار هم به {{provider}} تغییر کرد: صدای {{previous}} فقط ترجمهٔ خودش را می‌خواند.",
+      "voiceFollowed": "گفتار به {{provider}} تغییر کرد. سرویس گفتار قبلی فقط از ترجمه‌های خودش پشتیبانی می‌کند.",
       "options": "گزینه‌های {{provider}}",
       "state": {
         "needsKey": "به کلید نیاز دارد",

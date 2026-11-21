@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "solo lee su propia traducción",
       "voiceNotTaken": "solo usa su propia voz",
       "twoManaged": "un solo servicio de Kizuna AI a la vez",
-      "voiceFollowed": "La voz también ha cambiado a {{provider}}: la voz de {{previous}} solo lee su propia traducción.",
+      "voiceFollowed": "La voz ha cambiado a {{provider}}. El servicio de voz anterior solo admite sus propias traducciones.",
       "options": "Opciones de {{provider}}",
       "state": {
         "needsKey": "Necesita una clave",

@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "sariling salin lang ang binabasa",
       "voiceNotTaken": "sariling boses lang ang ginagamit",
       "twoManaged": "isang serbisyo ng Kizuna AI lang sa bawat pagkakataon",
-      "voiceFollowed": "Napalitan din ng {{provider}} ang pagsasalita: sariling salin lang ang binabasa ng boses ng {{previous}}.",
+      "voiceFollowed": "Lumipat sa {{provider}} ang pagsasalita. Sariling mga salin lang ang sinusuportahan ng dating serbisyo sa pagsasalita.",
       "options": "Mga opsyon ng {{provider}}",
       "state": {
         "needsKey": "Kailangan ng key",

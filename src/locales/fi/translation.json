@@ -1851,7 +1851,7 @@
       "voiceNotAlone": "lukee vain omaa käännöstään",
       "voiceNotTaken": "käyttää vain omaa ääntään",
       "twoManaged": "yksi Kizuna AI:n palvelu kerrallaan",
-      "voiceFollowed": "Myös puhe vaihtui palveluun {{provider}}: palvelun {{previous}} ääni lukee vain sen omaa käännöstä.",
+      "voiceFollowed": "Puhe vaihtui palveluun {{provider}}. Aiempi puhepalvelu tukee vain omia käännöksiään.",
       "options": "{{provider}}: asetukset",
       "state": {
         "needsKey": "Tarvitsee avaimen",
