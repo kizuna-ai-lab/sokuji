@@ -73,10 +73,12 @@ const EXCHANGES = [
   { source: 'Hello, how are you?', translation: 'こんにちは、お元気ですか？' },
   { source: 'I am fine. Thank you.', translation: '元気です。ありがとう。' },
 ];
+const EDITED = 'Hello, how have you been?';
 
-// A record exports as it was said: copying and the .txt give the same conversation (the .txt with a header), the
-// .json is the conversation export's own format with the same sentences at the same times, the two subtitle files
-// hold the same cues on the record's clock, and the recording is saved where the Save dialog says and plays.
+// A record exports as the page shows it, an edited sentence included: copying and the .txt give the same
+// conversation (the .txt with a header), the .json is the transcript export's format with the same sentences at the
+// same times, the two subtitle files hold the same cues on the record's clock, and the recording is saved where the
+// Save dialog says and plays.
 test('a record exports the same conversation as text, JSON and subtitles, and saves its recording', async ({ launchApp }, testInfo) => {
   const sokuji = await launchApp({ seed: { storage: baseStorage('fake') } });
   const { page, app, userData } = sokuji;
@@ -94,6 +96,14 @@ test('a record exports the same conversation as text, JSON and subtitles, and sa
 
   await page.getByRole('button', { name: 'History', exact: true }).click();
   await page.locator('[data-record] .history-row__open').first().click();
+
+  // The first sentence is edited on the page: every export below carries the edit, not what was recognized.
+  await page.locator('.record-sentence__more[data-for="1"]').getByRole('button', { name: 'Edit this sentence' }).click();
+  await page.getByRole('textbox', { name: 'Sentence' }).fill(EDITED);
+  await page.getByRole('textbox', { name: 'Sentence' }).press('Enter');
+  await expect(page.getByText(EDITED)).toBeVisible();
+  const said = [{ ...EXCHANGES[0], source: EDITED }, EXCHANGES[1]];
+
   const exportButton = page.getByRole('button', { name: 'Export', exact: true });
   const item = (name: string) => page.getByRole('menuitem', { name, exact: true });
   await exportButton.click();
@@ -113,7 +123,7 @@ test('a record exports the same conversation as text, JSON and subtitles, and sa
   await expect.poll(async () => (copied = await app.evaluate(({ clipboard }) => clipboard.readText())), { timeout: 5_000 }).not.toBe('');
   const block = /^\[(\d{2}:\d{2}:\d{2})\] Me\n {2}(.+)\n {2}→ (.+)$/;
   const blocks = copied.trim().split('\n\n').map((b) => b.match(block));
-  expect(blocks.map((b) => b && [b[2], b[3]])).toEqual(EXCHANGES.map((e) => [e.source, e.translation]));
+  expect(blocks.map((b) => b && [b[2], b[3]])).toEqual(said.map((e) => [e.source, e.translation]));
   const clock = blocks.map((b) => b![1]);
 
   // .txt: a header naming the service, then exactly what was copied.
@@ -129,21 +139,21 @@ test('a record exports the same conversation as text, JSON and subtitles, and sa
   expect(txt.name).toBe(`sokuji-conversation-${stamp(header[1]).slice(0, 8)}-${stamp(header[1]).slice(8)}.txt`);
   expect(txt.text.endsWith(`\n\n${copied}`)).toBe(true);
 
-  // .json: the conversation export's format, the same sentences, at the times the text shows.
+  // .json: the transcript export's format, the same sentences, at the times the text shows.
   await exportButton.click();
   const json = await download(app, dir, () => item('Save the conversation (.json)').click());
   expect(json.name).toBe(txt.name.replace(/\.txt$/, '.json'));
   const data = JSON.parse(json.text) as {
     format: string; provider: string; sessionStartedAt: string; exportedAt: string;
-    groups: { t: number; source: { text: string }; translation: { text: string } }[];
+    groups: { t: string; source: { text: string }; translation: { text: string } }[];
   };
-  expect(Object.keys(data)).toEqual(['format', 'sessionStartedAt', 'exportedAt', 'appVersion', 'provider', 'models', 'languages', 'groups', 'notices']);
-  expect(data.format).toBe('sokuji-conversation/2');
+  expect(Object.keys(data)).toEqual(['format', 'sessionStartedAt', 'exportedAt', 'appVersion', 'provider', 'models', 'languages', 'groups']);
+  expect(data.format).toBe('sokuji-transcript/1');
   expect(data.provider).toBe('fake');
   expect(data.groups.map((g) => [g.source.text, g.translation.text]))
-    .toEqual(EXCHANGES.map((e) => [e.source, e.translation]));
-  for (const group of data.groups) expect(Object.keys(group)).toEqual(['id', 'leg', 't', 'pairing', 'source', 'translation']);
-  const times = data.groups.map((g) => g.t);
+    .toEqual(said.map((e) => [e.source, e.translation]));
+  for (const group of data.groups) expect(Object.keys(group)).toEqual(['leg', 't', 'speaker', 'source', 'translation']);
+  const times = data.groups.map((g) => Date.parse(g.t));
   expect(times.map((t) => new Date(t).toTimeString().slice(0, 8))).toEqual(clock);
   // The session started before its first sentence, and the file was saved after its last.
   expect(Date.parse(data.sessionStartedAt)).toBeLessThanOrEqual(times[0]);
@@ -160,7 +170,7 @@ test('a record exports the same conversation as text, JSON and subtitles, and sa
   expect(vtt.text.startsWith('WEBVTT\n\n')).toBe(true);
   const cues = cuesOf(srt.text);
   expect(cues.map((c) => c.index)).toEqual(['1', '2']);
-  expect(cues.map((c) => c.lines)).toEqual(EXCHANGES.map((e) => [e.source, e.translation]));
+  expect(cues.map((c) => c.lines)).toEqual(said.map((e) => [e.source, e.translation]));
   expect(cuesOf(vtt.text).map(({ startMs, endMs, lines }) => ({ startMs, endMs, lines })))
     .toEqual(cues.map(({ startMs, endMs, lines }) => ({ startMs, endMs, lines })));
   for (const cue of cues) expect(cue.endMs).toBeGreaterThan(cue.startMs);
