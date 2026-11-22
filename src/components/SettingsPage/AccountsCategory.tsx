@@ -125,11 +125,15 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     return list;
   }, [providers, t]);
 
-  /** The fields of a provider's key that are still empty; one that may stay empty (a compatible service's key) never is. */
+  /**
+   * The fields of a provider's key that are still empty; one that may stay empty (a compatible service's key) never is.
+   * Nothing stored yet: every field its default settings ask for (a compatible service's address first).
+   */
   const unfilled = (p: AnyProvider | undefined) => {
-    const entry = p ? entries[p.id] : undefined;
-    if (!p || !entry) return [{ key: 'apiKey' }];
-    return p.credentials.fields(entry.settings as never).filter((f) => !f.optional && String(entry.credentials[f.key] ?? '').trim() === '');
+    if (!p) return [{ key: 'apiKey' }];
+    const entry = entries[p.id];
+    return p.credentials.fields((entry?.settings ?? p.settings.defaults) as never)
+      .filter((f) => !f.optional && String(entry?.credentials[f.key] ?? '').trim() === '');
   };
   const keySaved = (p: AnyProvider | undefined) => unfilled(p).length === 0;
 

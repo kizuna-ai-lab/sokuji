@@ -178,6 +178,20 @@ describe('accounts and keys', () => {
     expect(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Find models' })).toBeEnabled();
   });
 
+  it('a compatible service never configured (nothing stored yet) needs an address, and is configured, not keyed', () => {
+    // Its entry is not loaded: the row reads the fields its provider asks for, as it does once one is.
+    const load = useProviderStore.getState().load;
+    useProviderStore.setState({ load: async () => {} } as never);
+    try {
+      render(<AccountsCategory locked={false} />);
+      expect(useProviderStore.getState().entries.openai_compatible).toBeUndefined();
+      expect(row('OpenAI-compatible service').querySelector('.accounts-row__state')).toHaveTextContent('Needs an address');
+      expect(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Configure' })).toBeInTheDocument();
+    } finally {
+      useProviderStore.setState({ load } as never);
+    }
+  });
+
   it('refuses edits during a session', () => {
     render(<AccountsCategory locked />);
     fireEvent.click(within(row('Soniox')).getByRole('button', { name: /View/ }));
