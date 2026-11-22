@@ -113,6 +113,15 @@ describe('refreshReadiness', () => {
     expect(check).toHaveBeenCalledWith({ key: 'sk-9' }, { mode: 'a' }, { pair: { source: 'en', target: 'ja' }, legs: ['speaker'], signal: undefined });
   });
 
+  it.each([['local', true], ['own-key', false]] as const)("hands a %s provider's check this device's models: %s", async (kind, handed) => {
+    const { localModels } = await import('./localModels');
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext): Promise<CheckResult> => ({ ok: true }));
+    const p = probe(kind, check);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(check.mock.calls[0][2].localModels).toBe(handed ? localModels : undefined);
+  });
+
   it('records a refusal as not ready, with its reason', async () => {
     const p = probe('own-key', async () => ({ ok: false, reason: 'bad key' }));
     await loadedWithKey(p);

@@ -10,12 +10,13 @@ import { shapeWith, stubSpeechUnit, withWhole, textAndSpeechPlan, type StubCalls
 import type { PlannedUnit } from '../plan/types';
 import type { WholeUnitParts } from '../plan/wholeUnit';
 import type { AnyProvider } from '../provider/types';
-import { FAKE_WHOLE, fakeProvider, startFake } from '../../providers/fake/provider';
+import { buildFake, FAKE_WHOLE, fakeProvider, startFake } from '../../providers/fake/provider';
 import { fakeScript } from '../../providers/fake/scripts';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';
-import type { FramePort } from './ports';
+import { fakeLocalModels } from '../local-inference/selection/localModels.testing';
+import type { FramePort, RunnerDeps } from './ports';
 import { createRunner } from './runner';
 import { SourceOpenError, type Source } from './source';
 import type { RunEnd, RunShape } from './types';
@@ -30,7 +31,7 @@ function withHooks(session: SessionHooks<unknown, unknown, unknown, AnyProvider>
   return withWhole(fakeProvider, FAKE_WHOLE, { ...patch, session });
 }
 
-function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], openSource?: (leg: LegName) => Source, track: (event: string, props?: unknown) => void = () => {}, frames?: FramePort) {
+function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], openSource?: (leg: LegName) => Source, track: (event: string, props?: unknown) => void = () => {}, frames?: FramePort, deps: Partial<RunnerDeps> = {}) {
   const clock = createVirtualClock(0);
   const sources: FakeSource[] = [];
   const persistIfUnchanged = vi.fn();
@@ -62,6 +63,7 @@ function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], open
     frames,
     newSessionId: () => 'run1',
     timeoutMs: 1000,
+    ...deps,
   });
   return { clock, runner, sources, persistIfUnchanged, shape };
 }
@@ -109,7 +111,24 @@ describe('runner — admit', () => {
     const admit = vi.fn(() => true as const);
     const { runner } = setup(withHooks({ admit }), ['speaker', 'participant']);
     await runner.start();
-    expect(admit).toHaveBeenCalledWith({ speaker: expect.objectContaining({ script: expect.anything() }), participant: expect.objectContaining({ script: expect.anything() }) });
+    expect(admit).toHaveBeenCalledWith({ speaker: expect.objectContaining({ script: expect.anything() }), participant: expect.objectContaining({ script: expect.anything() }) }, expect.anything());
+  });
+
+  it("hands admit what the builders of its unit were handed, this device's local models among it", async () => {
+    const admit = vi.fn(() => true as const);
+    const models = fakeLocalModels();
+    await setup(withHooks({ admit }), ['speaker', 'participant'], undefined, undefined, undefined, { localModels: models }).runner.start();
+    expect(admit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ models: [], localModels: models }));
+  });
+
+  it("hands every builder this device's local models, and none when the runner has none", async () => {
+    const build = vi.fn(buildFake);
+    const models = fakeLocalModels();
+    await setup(withHooks({}, { build }), ['speaker'], undefined, undefined, undefined, { localModels: models }).runner.start();
+    expect(build.mock.calls[0][2].localModels).toBe(models);
+    build.mockClear();
+    await setup(withHooks({}, { build })).runner.start();
+    expect(build.mock.calls[0][2]).not.toHaveProperty('localModels');
   });
 
   it('refuses a start admit refuses, opening nothing', async () => {

@@ -6,6 +6,7 @@ import type { Punctuator } from '../conversation/fillIn';
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
+import type { LocalModels } from '../local-inference/selection/types';
 import type { AnyProvider, Platform, Readiness } from '../provider/types';
 import type { NetworkType } from './reconnectEvents';
 import type { OpenSource } from './source';
@@ -99,6 +100,11 @@ export interface RunnerDeps {
    * instead of by pause. Absent: `punctuate` alone decides.
    */
   punctuationReady?(): boolean;
+  /**
+   * This device's local models, handed to every builder (`SharedSettings.localModels`) and every `admit`. Absent:
+   * none is handed, and no local unit can build.
+   */
+  localModels?: LocalModels;
   newSessionId(): string;
   /** After a run that went live has ended and its legs are final — that run's own legs: where auto-save plugs in. */
   onRunEnded?(legs: readonly Leg[]): Promise<void> | void;

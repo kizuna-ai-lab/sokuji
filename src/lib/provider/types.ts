@@ -6,6 +6,7 @@ import type { ComponentType } from 'react';
 import type { PreviewClip } from '../audio/previewClip';
 import type { LegName } from '../conversation/types';
 import type { RunStage } from '../lineup/types';
+import type { LocalModels } from '../local-inference/selection/types';
 import type { AuthContext, LanguagePair, ModelOption, SessionHooks, SessionWords, UnitDefinition } from '../run/types';
 import type { WireTable } from '../language/wire';
 
@@ -114,6 +115,11 @@ export interface CheckContext {
    * Absent: it does not.
    */
   notes?: boolean;
+  /**
+   * This device's local models, for the check of a provider whose models are on this device: the provider store hands
+   * them to a `local` provider's check, and to no other.
+   */
+  localModels?: LocalModels;
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }
@@ -356,10 +362,11 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   /**
    * Calls back when something `check` reads besides the settings,
    * credentials, pair and legs has changed — a local engine's models
-   * downloading. The app re-checks a local provider then (plan 1e-3a
+   * downloading, which it watches through `localModels` (the readiness
+   * driver hands them). The app re-checks a local provider then (plan 1e-3a
    * ruling 6). Returns the unsubscribe.
    */
-  watchReadiness?(onChange: () => void): () => void;
+  watchReadiness?(onChange: () => void, localModels: LocalModels): () => void;
 
   languages: {
     /** Includes `AUTO` when the provider detects the language. Without a `context`: the widest offer. */

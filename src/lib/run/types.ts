@@ -10,6 +10,7 @@ import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../contrac
 import type { TranslationEvents, TranslationSession, TranslationStartRequest } from '../contract/translation';
 import type { LegName } from '../conversation/types';
 import type { RunStage, StageIds } from '../lineup/types';
+import type { LocalModels } from '../local-inference/selection/types';
 import type { WordEntry } from '../words/list';
 
 export interface LanguagePair { source: string; target: string }
@@ -63,6 +64,12 @@ export interface SharedSettings {
    * voice). Absent: no stored line-up is what runs, or the caller is not a run.
    */
   lineUp?: StageIds;
+  /**
+   * This device's local models (`LocalModels`): what a builder of a unit that runs them (the local provider's) resolves
+   * its models through, and what its `admit` budgets by. Set by the run when its deps have them (the app's always do);
+   * absent where the caller is not a run.
+   */
+  localModels?: LocalModels;
 }
 
 /** The word list as a run reads it at start. */
@@ -292,8 +299,11 @@ export interface AdmittedConfigs<C> {
 /** What a provider may add across legs and time (spec: "Session hooks on the provider definition"). */
 export interface SessionHooks<S, K, C, P> {
   prepare?(shape: RunShapeOf<P>, s: S, signal: AbortSignal): Promise<Prepared<S>>;
-  /** Cross-leg checks over the configs actually built: run them, refuse, or run some legs on adjusted configs. */
-  admit?(configs: Partial<Record<LegName, C>>): true | ProviderRefusal | AdmittedConfigs<C>;
+  /**
+   * Cross-leg checks over the configs actually built: run them, refuse, or run some legs on adjusted configs.
+   * `shared`: what the builders of this unit were handed, less which leg each built.
+   */
+  admit?(configs: Partial<Record<LegName, C>>, shared: Omit<SharedSettings, 'reversed'>): true | ProviderRefusal | AdmittedConfigs<C>;
   /** `end` stops the run with a notice: budget exhausted, duration cutoff — the code says which. */
   acquire?(shape: RunShapeOf<P>, s: S, ctx: LeaseContext): Promise<Resources<K>>;
   /** Both legs at once (D23): the provider decides between one mixed socket and two. */

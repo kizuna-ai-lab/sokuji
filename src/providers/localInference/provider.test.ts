@@ -41,6 +41,7 @@ import { fakeVoiceProvider } from '../fake/voice';
 import { localSpeechUnit } from './speechUnit';
 import { localTranscriptionUnit } from './transcriptionUnit';
 import { localTranslationUnit } from './translationUnit';
+import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { describeLocalInference } from './config';
 import { PROVIDERS, RELEASED } from '../registry';
@@ -49,6 +50,10 @@ import { LocalInferenceVoiceSummary } from './LocalInferenceVoiceSummary';
 import { LocalInferenceTurnDetectionControls, LocalInferenceTurnDetectionHelp, LocalInferenceTurnDetectionSummary } from './LocalInferenceTurnDetection';
 
 const noAuth = { signedIn: false, getToken: async () => null };
+/** The GPU's features this device's models report. */
+const FEATURES = ['shader-f16'];
+/** What a run hands `admit` besides the configs: this device's models among it. */
+const SHARED = { localModels: fakeLocalModels({ deviceFeatures: () => FEATURES }) } as never;
 
 beforeEach(() => {
   mockCheck.mockReset();
@@ -86,31 +91,31 @@ describe('localInferenceProvider', () => {
   it('has an admit hook, the memory budget', () => {
     expect(localInferenceProvider.session?.admit).toBeDefined();
     mockAdmit.mockReturnValue(true);
-    expect(localInferenceProvider.session?.admit?.({})).toBe(true);
+    expect(localInferenceProvider.session?.admit?.({}, SHARED)).toBe(true);
     expect(mockAdmit).toHaveBeenCalledWith({});
   });
 
   it("admits its voice's configs on their own: the voice models alone, never the whole session's budget", () => {
     const voice = { modelId: 'tts-en', speakerId: 0, speed: 1 };
     mockFits.mockReturnValue(true);
-    expect(localInferenceProvider.session?.admit?.({ speaker: voice, participant: { off: true } } as never)).toBe(true);
+    expect(localInferenceProvider.session?.admit?.({ speaker: voice, participant: { off: true } } as never, SHARED)).toBe(true);
     expect(mockFits).toHaveBeenCalledWith(['tts-en']);
     mockFits.mockReturnValue(false);
-    expect(localInferenceProvider.session?.admit?.({ speaker: voice, participant: { ...voice, modelId: 'tts-ja' } } as never))
+    expect(localInferenceProvider.session?.admit?.({ speaker: voice, participant: { ...voice, modelId: 'tts-ja' } } as never, SHARED))
       .toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
     expect(mockFits).toHaveBeenLastCalledWith(['tts-en', 'tts-ja']);
     expect(mockAdmit).not.toHaveBeenCalled();
     // Its recognition alone counts its recognition models only, never the whole session's budget.
     mockFits.mockReturnValue(true);
     const alone = (modelId: string) => ({ asr: { modelId, streaming: false }, vad: {}, translation: { kind: 'none' }, transcribesAlone: true });
-    expect(localInferenceProvider.session?.admit?.({ speaker: alone('asr-en'), participant: alone('asr-ja') } as never)).toBe(true);
+    expect(localInferenceProvider.session?.admit?.({ speaker: alone('asr-en'), participant: alone('asr-ja') } as never, SHARED)).toBe(true);
     expect(mockFits).toHaveBeenLastCalledWith(['asr-en', 'asr-ja']);
     expect(mockAdmit).not.toHaveBeenCalled();
     // The whole session's configs name a recognition model: its own admission, with whatever it answers.
     const whole = { speaker: { asr: { modelId: 'asr', streaming: false }, tts: voice } };
     const adjusted = { configs: { participant: {} } };
     mockAdmit.mockReturnValue(adjusted);
-    expect(localInferenceProvider.session?.admit?.(whole as never)).toBe(adjusted);
+    expect(localInferenceProvider.session?.admit?.(whole as never, SHARED)).toBe(adjusted);
     expect(mockAdmit).toHaveBeenCalledWith(whole);
   });
 
@@ -356,7 +361,7 @@ describe('localInferenceProvider', () => {
     const off = vi.fn();
     mockWatchReadiness.mockReturnValue(off);
     const onChange = vi.fn();
-    const result = localInferenceProvider.watchReadiness?.(onChange);
+    const result = localInferenceProvider.watchReadiness?.(onChange, fakeLocalModels());
     expect(mockWatchReadiness).toHaveBeenCalledWith(onChange);
     expect(result).toBe(off);
   });

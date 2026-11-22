@@ -34,6 +34,7 @@ import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useAccountStore } from '../../stores/accountStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
+import { localModels } from '../../stores/localModels';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
@@ -515,7 +516,7 @@ describe('ensureReadyFromStores', () => {
     } as unknown as RunShape;
     const signal = new AbortController().signal;
     await expect(ensureReadyFromStores(provider, shape, signal)).resolves.toEqual({ state: 'ready', models: [] });
-    expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], signal });
+    expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], localModels, signal });
   });
 
   it('tells each provider the stages it serves in the plan, when they are not all it can serve', async () => {
