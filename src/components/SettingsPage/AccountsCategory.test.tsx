@@ -185,8 +185,8 @@ describe('accounts and keys', () => {
     try {
       render(<AccountsCategory locked={false} />);
       expect(useProviderStore.getState().entries.openai_compatible).toBeUndefined();
-      expect(row('OpenAI-compatible service').querySelector('.accounts-row__state')).toHaveTextContent('Needs an address');
-      expect(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Configure' })).toBeInTheDocument();
+      expect(row('OpenAI-Compatible Service').querySelector('.accounts-row__state')).toHaveTextContent('Needs an address');
+      expect(within(row('OpenAI-Compatible Service')).getByRole('button', { name: 'Configure' })).toBeInTheDocument();
     } finally {
       useProviderStore.setState({ load } as never);
     }

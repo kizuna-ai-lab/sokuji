@@ -17,30 +17,15 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import { isMissing, readCredentials } from '../../lib/provider/credentials';
 import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import { UNKNOWN, useProviderStore, type ProviderEntry, type Readiness } from '../../stores/providerStore';
+import { fingerprint } from '../../lib/textModel/fingerprint';
 
 /** As long as the readiness driver waits after an edit (`NETWORK_READINESS_DELAY_MS`): a pause in typing. */
 export const NOTES_CHECK_DELAY_MS = 800;
 
 const CHECKING: Readiness = { state: 'checking' };
 
-/**
- * A short digest of credential values (53 bits, base 36), enough to tell that they changed and no way back to them:
- * what an answer is kept with holds this, never a key (a second copy of it in memory). Not for anything but change
- * detection.
- */
-export function fingerprint(values: readonly string[]): string {
-  const text = JSON.stringify(values);
-  let h1 = 0xdeadbeef;
-  let h2 = 0x41c6ce57;
-  for (let i = 0; i < text.length; i++) {
-    const c = text.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 2654435761);
-    h2 = Math.imul(h2 ^ c, 1597334677);
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
-}
+/** The digest kept with an answer: the page's one fingerprint of credential values (`lib/textModel/fingerprint`). */
+export { fingerprint };
 
 /**
  * What the notes' check reads: the provider, the notes' model and reasoning, and the credentials it shows (by their
@@ -106,12 +91,13 @@ export function useNotesReadiness(provider: AnyProvider | undefined, auth: AuthC
     if (known?.inputs === inputs && settled(known.readiness)) return undefined;
     const controller = new AbortController();
     const timer = setTimeout(() => {
+      // Asked only once the timer fires: a check cancelled before it does leaves the next one immediate.
+      askedBefore.current = true;
       useNotesAnswers.getState().put(provider.id, inputs, CHECKING);
       void checkNotes(provider, entry, auth, controller.signal).then((readiness) => {
         if (!controller.signal.aborted) useNotesAnswers.getState().put(provider.id, inputs, readiness);
       });
     }, askedBefore.current ? NOTES_CHECK_DELAY_MS : 0);
-    askedBefore.current = true;
     return () => {
       clearTimeout(timer);
       controller.abort();
