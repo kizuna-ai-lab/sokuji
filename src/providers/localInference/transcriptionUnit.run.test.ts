@@ -15,6 +15,7 @@ import type { LocalStages } from '../../lib/lineup/localStages';
 import { allCaps } from '../../lib/lineup/catalog';
 import type { ProviderCaps, StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
+import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
 import { compose } from '../../lib/plan/compose';
 import { describePlan, startComposite } from '../../lib/plan/composite';
 import type { PlanConfigs } from '../../lib/plan/types';
@@ -35,18 +36,12 @@ import { getLocalInferenceLanguages } from '../../lib/local-inference/modelManif
  */
 const mockAsr: Record<string, string> = { 'en>ja': 'stream-en-kroko', 'ja>en': 'asr-ja' };
 let mockStagesSeen: Array<LocalStages | null | undefined> = [];
-vi.mock('../../stores/modelStore', () => ({
-  useModelStore: {
-    getState: () => ({
-      resolve: (src: string, tgt: string, _selections: unknown, stages?: LocalStages | null): DirectionResult => {
-        mockStagesSeen.push(stages);
-        const asr = mockAsr[`${src}>${tgt}`];
-        return { asr: asr ? { modelId: asr, source: 'explicit' } : null, translation: null, tts: null, notes: [], prunes: [] };
-      },
-      deviceFeatures: [],
-    }),
-  },
-}));
+/** How this device's models resolve a direction: its recognition model from `mockAsr`, recording the stages each resolution is under. */
+const resolve = (src: string, tgt: string, _selections: unknown, stages?: LocalStages | null): DirectionResult => {
+  mockStagesSeen.push(stages);
+  const asr = mockAsr[`${src}>${tgt}`];
+  return { asr: asr ? { modelId: asr, source: 'explicit' } : null, translation: null, tts: null, notes: [], prunes: [] };
+};
 vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => null }));
 
 import { createFakeSource } from '../fake/source';
@@ -65,12 +60,15 @@ const SPEAKER: SessionContext = { direction: { source: 'en', target: 'ja' }, spe
 const PARTICIPANT: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };
 const CONTEXTS: Record<LegName, SessionContext> = { speaker: SPEAKER, participant: PARTICIPANT };
 const LINE_UP: StageIds = { transcription: 'local_inference', translation: 'fake_translator', speech: 'fake_voice' };
+/** This device's models as a run hands them: resolved by `resolve`, with no GPU feature. */
+const models = fakeLocalModels({ resolve, deviceFeatures: () => [] });
 const sharedFor = (leg: LegName): SharedSettings => ({
   pauses: { sourceSeconds: 0, translationSeconds: 0 },
   reversed: () => leg === 'participant',
   segmentation: { mode: 'off', sentencesPerRow: 0 },
   models: [],
   lineUp: LINE_UP,
+  localModels: models,
 });
 
 /** Engines that make one recognizer per model (one per leg's direction), and refuse to make anything else. */
@@ -392,6 +390,8 @@ describe('a run of this device transcribing, the fake translator translating and
       openSource: async () => createFakeSource(clock),
       playback: { audio: (leg, ref) => { played.push({ leg, ref }); return []; }, held: () => {}, clear: () => {}, live: () => {} },
       analytics: { track: () => {} },
+      // What the app's runner hands every builder and every admit: this device's models.
+      localModels: models,
       newSessionId: () => 'run1',
       timeoutMs: 1000,
     });

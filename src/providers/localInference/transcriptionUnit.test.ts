@@ -12,34 +12,29 @@ import { flush } from '../../lib/contract/testing/drive';
 import type { LocalStages } from '../../lib/lineup/localStages';
 import type { StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
+import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
 import type { SharedSettings } from '../../lib/run/types';
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below.
 /** What each direction resolves to, keyed `${src}>${tgt}`, as the engine resolves under a line-up's local stages. */
 let mockTable: Record<string, { asr?: string; translation?: string; tts?: string }> = {};
 let mockStagesSeen: Array<LocalStages | null | undefined> = [];
-vi.mock('../../stores/modelStore', () => ({
-  useModelStore: {
-    getState: () => ({
-      resolve: (src: string, tgt: string, _selections: unknown, stages?: LocalStages | null): DirectionResult => {
-        mockStagesSeen.push(stages);
-        const entry = mockTable[`${src}>${tgt}`];
-        const stage = (id: string | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
-        // As `resolveWasmDirection` does: nothing resolves for a stage another provider serves.
-        const translationHere = stages == null || stages.translation !== null;
-        const asrHere = stages == null || stages.transcription === 'local' || (stages.translation !== null && stages.transcription !== null);
-        return {
-          asr: stage(asrHere ? entry?.asr : undefined),
-          translation: stage(translationHere ? entry?.translation : undefined),
-          tts: stage(stages?.speech === null ? undefined : entry?.tts),
-          notes: [],
-          prunes: [],
-        };
-      },
-      deviceFeatures: [],
-    }),
-  },
-}));
+/** How this device's models resolve a direction: from `mockTable`, recording the stages each resolution is under. */
+const resolve = (src: string, tgt: string, _selections: unknown, stages?: LocalStages | null): DirectionResult => {
+  mockStagesSeen.push(stages);
+  const entry = mockTable[`${src}>${tgt}`];
+  const stage = (id: string | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
+  // As `resolveWasmDirection` does: nothing resolves for a stage another provider serves.
+  const translationHere = stages == null || stages.translation !== null;
+  const asrHere = stages == null || stages.transcription === 'local' || (stages.translation !== null && stages.transcription !== null);
+  return {
+    asr: stage(asrHere ? entry?.asr : undefined),
+    translation: stage(translationHere ? entry?.translation : undefined),
+    tts: stage(stages?.speech === null ? undefined : entry?.tts),
+    notes: [],
+    prunes: [],
+  };
+};
 
 vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => null }));
 
@@ -62,11 +57,14 @@ import {
 const EN_JA = { source: 'en', target: 'ja' };
 const JA_EN = { source: 'ja', target: 'en' };
 const ctx = (direction: SessionContext['direction'], o: { speech?: boolean; turns?: SessionContext['turns'] } = {}): SessionContext => ({ direction, speech: o.speech ?? false, turns: o.turns ?? 'auto' });
+/** This device's models as a run hands them: resolved by `resolve`, with no GPU feature. */
+const models = fakeLocalModels({ resolve, deviceFeatures: () => [] });
 const shared = (over: { reversed?: boolean; lineUp?: StageIds; sentences?: boolean } = {}): SharedSettings => ({
   pauses: { sourceSeconds: 0, translationSeconds: 0 },
   reversed: () => over.reversed ?? false,
   segmentation: over.sentences ? { mode: 'sentences', sentencesPerRow: 1 } : { mode: 'off', sentencesPerRow: 0 },
   models: [],
+  localModels: models,
   ...(over.lineUp ? { lineUp: over.lineUp } : {}),
 });
 const SETTINGS: LocalInferenceSettings = LOCAL_INFERENCE_DEFAULTS;
@@ -203,10 +201,10 @@ describe('admission', () => {
     const legs = { speaker: aloneConfig({ asr: { modelId: 'asr-en', streaming: false } }), participant: aloneConfig({ asr: { modelId: 'asr-ja', streaming: false } }) };
     vi.stubGlobal('navigator', { deviceMemory: 4 });
     try {
-      expect(admitLocalTranscription(legs)).toBe(true);
+      expect(admitLocalTranscription(legs, [])).toBe(true);
       mockSizes = { 'asr-en': 2000, 'asr-ja': 2000 };
-      expect(admitLocalTranscription(legs)).toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
-      expect(admitLocalTranscription({ speaker: legs.speaker })).toBe(true);
+      expect(admitLocalTranscription(legs, [])).toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
+      expect(admitLocalTranscription({ speaker: legs.speaker }, [])).toBe(true);
     } finally {
       vi.unstubAllGlobals();
     }

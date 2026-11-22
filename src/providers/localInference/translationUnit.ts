@@ -16,7 +16,7 @@ import { sameStages } from '../../lib/plan/types';
 import type { ProviderRefusal, SharedSettings, UnitDefinition } from '../../lib/run/types';
 import type { LocalCredentials } from './adapter';
 import { LOCAL_MODELS_MISSING } from './check';
-import { fitsBudget, localTranslationPrompt, resolveLocal } from './config';
+import { fitsBudget, localModelsOf, localTranslationPrompt, resolveLocal } from './config';
 import { defaultEngines, type LocalEngines } from './engines';
 import type { LocalInferenceSettings } from './settings';
 import { localTranslationRefusal, startLocalTranslation, type LocalTranslationConfig } from '../../lib/local-inference/sessions/translationSession';
@@ -118,7 +118,7 @@ export function createLocalTranslationUnit(deps: LocalTranslationUnitDeps = {}):
       if (unknown) return unknown;
       // Resolved as the whole local session resolves it, with no recognition model: a model that is chosen and
       // not downloaded does not resolve, and one that only translates speech itself is no translator of text.
-      const modelId = resolveLocal(context.direction, s, stages).translation?.modelId;
+      const modelId = resolveLocal(context.direction, s, stages, localModelsOf(shared)).translation?.modelId;
       if (!modelId || getManifestEntry(modelId)?.type !== 'translation') {
         return { refused: `No translation model for ${source} → ${target}.`, code: LOCAL_MODELS_MISSING };
       }
@@ -150,8 +150,8 @@ export function areLocalTranslationConfigs(configs: Partial<Record<LegName, unkn
  * The memory budget of a run in which the local provider only translates: the translation models of its legs,
  * and no recognition model. Over budget, the start is refused.
  */
-export function admitLocalTranslation(configs: Partial<Record<LegName, LocalTranslationConfig>>): true | ProviderRefusal {
+export function admitLocalTranslation(configs: Partial<Record<LegName, LocalTranslationConfig>>, deviceFeatures: readonly string[]): true | ProviderRefusal {
   const ids = Object.values(configs).flatMap((c) => (c ? [c.modelId] : []));
-  if (fitsBudget(ids)) return true;
+  if (fitsBudget(ids, deviceFeatures)) return true;
   return { refused: 'The models need more memory than this device has.', code: 'memory_exceeded' };
 }

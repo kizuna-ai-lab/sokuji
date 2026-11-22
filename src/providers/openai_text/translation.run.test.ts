@@ -14,6 +14,7 @@ import type { LegName } from '../../lib/conversation/types';
 import { allCaps } from '../../lib/lineup/catalog';
 import type { ProviderCaps, StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
+import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
 import { compose } from '../../lib/plan/compose';
 import { describePlan, startComposite } from '../../lib/plan/composite';
 import type { PlanConfigs } from '../../lib/plan/types';
@@ -26,17 +27,11 @@ import type { TextModelRequestInit, TextModelTransport } from '../../lib/textMod
 import { TEXT_MODEL_DEFAULTS } from '../../lib/textModel/unit';
 
 const mockAsr: Record<string, string> = { 'en>ja': 'stream-en-kroko', 'ja>en': 'asr-ja' };
-vi.mock('../../stores/modelStore', () => ({
-  useModelStore: {
-    getState: () => ({
-      resolve: (src: string, tgt: string): DirectionResult => {
-        const asr = mockAsr[`${src}>${tgt}`];
-        return { asr: asr ? { modelId: asr, source: 'explicit' } : null, translation: null, tts: null, notes: [], prunes: [] };
-      },
-      deviceFeatures: [],
-    }),
-  },
-}));
+/** How this device's models resolve a direction: its recognition model from `mockAsr`. */
+const resolve = (src: string, tgt: string): DirectionResult => {
+  const asr = mockAsr[`${src}>${tgt}`];
+  return { asr: asr ? { modelId: asr, source: 'explicit' } : null, translation: null, tts: null, notes: [], prunes: [] };
+};
 vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => null }));
 
 import { createFakeSource } from '../fake/source';
@@ -55,12 +50,15 @@ registerReleasedCatalog();
 const KEY = 'test-key-0000';
 const SPEAKER: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 const LINE_UP: StageIds = { transcription: 'local_inference', translation: 'openai_text', speech: 'fake_voice' };
+/** This device's models as a run hands them: resolved by `resolve`, with no GPU feature. */
+const models = fakeLocalModels({ resolve, deviceFeatures: () => [] });
 const sharedFor = (leg: LegName): SharedSettings => ({
   pauses: { sourceSeconds: 0, translationSeconds: 0 },
   reversed: () => leg === 'participant',
   segmentation: { mode: 'off', sentencesPerRow: 0 },
   models: [{ id: 'gpt-5-mini' }],
   lineUp: LINE_UP,
+  localModels: models,
 });
 
 type Reply = { status: number; body: unknown };
@@ -230,6 +228,8 @@ describe("a run of this device, OpenAI's text model and a voice, through the run
       openSource: async () => createFakeSource(clock),
       playback: { audio: () => [], held: () => {}, clear: () => {}, live: () => {} },
       analytics: { track: (event, properties) => { tracked.push([event, properties as Record<string, unknown>]); } },
+      // What the app's runner hands every builder and every admit: this device's models.
+      localModels: models,
       newSessionId: () => 'run1',
       timeoutMs: 1000,
     });

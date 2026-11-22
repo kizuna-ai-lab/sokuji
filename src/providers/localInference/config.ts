@@ -3,12 +3,11 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import { ALL_LOCAL_STAGES, localStagesOf, type LocalStages } from '../../lib/lineup/localStages';
 import type { AdmittedConfigs, ProviderRefusal, SharedSettings } from '../../lib/run/types';
-import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
 import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { effectiveCheckAfter, supportsSmartTurn } from '../../lib/turn/smartTurn';
-import { directionKey, type DirectionResult } from '../../lib/local-inference/selection/types';
+import { directionKey, type DirectionResult, type LocalModels } from '../../lib/local-inference/selection/types';
 import type { LocalInferenceSettings } from './settings';
 import { directionVoice, speakerIdFor } from './voices';
 import type { LocalTtsConfig, TtsUnavailableCode } from '../../lib/local-inference/sessions/speech';
@@ -119,16 +118,25 @@ export function localStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalSta
 }
 
 /**
- * A direction's models as a session resolves them, with the AST cross-stage guard (see astGuard.ts), which
- * downgrades an explicit AST-mismatched translation pick back to auto before it is judged. Always under stages:
- * resolved with none, Bing and Edge would be among the choices.
+ * A direction's models as a session resolves them among this device's (`models`), with the AST cross-stage guard
+ * (see astGuard.ts), which downgrades an explicit AST-mismatched translation pick back to auto before it is judged.
+ * Always under stages: resolved with none, Bing and Edge would be among the choices.
  */
-export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages): DirectionResult {
+export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages, models: LocalModels): DirectionResult {
   const { source, target } = direction;
-  const rawResolved = useModelStore.getState().resolve(source, target, s.selections, stages);
+  const rawResolved = models.resolve(source, target, s.selections, stages);
   return guardAstCrossStage(
     source, target, s.selections, rawResolved,
-    (masked) => useModelStore.getState().resolve(source, target, masked, stages));
+    (masked) => models.resolve(source, target, masked, stages));
+}
+
+/**
+ * This device's models as a run hands them to a builder or to `admit` (`shared.localModels`). A run always hands
+ * them; a caller that is not a run has none to resolve through, and is told so rather than read from a store.
+ */
+export function localModelsOf(shared: Pick<SharedSettings, 'localModels'>): LocalModels {
+  if (!shared.localModels) throw new Error("The local provider was built without this device's models (SharedSettings.localModels): only a run hands them.");
+  return shared.localModels;
 }
 
 /** The voice a direction speaks in on `modelId`: each direction has its own (#619). */
@@ -185,7 +193,7 @@ export function buildLocalInference(
 ): LocalInferenceConfig | ProviderRefusal {
   const { source } = context.direction;
   // A line-up says whether translation and speech go to this machine's models or to another provider.
-  const resolved = resolveLocal(context.direction, s, localStagesFor(shared));
+  const resolved = resolveLocal(context.direction, s, localStagesFor(shared), localModelsOf(shared));
 
   if (!resolved.asr) return noAsr(source);
 
@@ -257,9 +265,12 @@ function modelIdsOf(configs: Partial<Record<LegName, LocalInferenceConfig>>): st
   return ids;
 }
 
-/** Whether these models fit: VRAM only when its budget is set via localStorage (no API reports GPU memory), RAM always. */
-export function fitsBudget(modelIds: string[]): boolean {
-  const { vramMb, ramMb } = estimateModelMemoryByDevice(modelIds, useModelStore.getState().deviceFeatures);
+/**
+ * Whether these models fit: VRAM only when its budget is set via localStorage (no API reports GPU memory), RAM always.
+ * `deviceFeatures`: the GPU's, which pick the variant of a model that loads (`LocalModels.deviceFeatures`).
+ */
+export function fitsBudget(modelIds: string[], deviceFeatures: readonly string[]): boolean {
+  const { vramMb, ramMb } = estimateModelMemoryByDevice(modelIds, [...deviceFeatures]);
   const vramBudgetMb = readDebugNumber('debug:vram-budget');
   if (vramBudgetMb !== null && vramMb > vramBudgetMb) return false;
   const deviceMemoryGb = readDebugNumber('debug:device-memory')
@@ -275,13 +286,13 @@ export function fitsBudget(modelIds: string[]): boolean {
  * leg runs text only and says why; a cloud speech model takes no memory, so
  * dropping one never helps. My own leg's speech model is never dropped.
  */
-export function admitLocalInference(configs: Partial<Record<LegName, LocalInferenceConfig>>): true | ProviderRefusal | AdmittedConfigs<LocalInferenceConfig> {
-  if (fitsBudget(modelIdsOf(configs))) return true;
+export function admitLocalInference(configs: Partial<Record<LegName, LocalInferenceConfig>>, deviceFeatures: readonly string[]): true | ProviderRefusal | AdmittedConfigs<LocalInferenceConfig> {
+  if (fitsBudget(modelIdsOf(configs), deviceFeatures)) return true;
   const refusal: ProviderRefusal = { refused: 'The models need more memory than this device has.', code: 'memory_exceeded' };
   const { participant } = configs;
   if (!participant?.tts) return refusal;
   const textOnly: LocalInferenceConfig = { ...participant, ttsUnavailable: 'participant_tts_over_budget' };
   delete textOnly.tts;
-  if (!fitsBudget(modelIdsOf({ ...configs, participant: textOnly }))) return refusal;
+  if (!fitsBudget(modelIdsOf({ ...configs, participant: textOnly }), deviceFeatures)) return refusal;
   return { configs: { participant: textOnly } };
 }

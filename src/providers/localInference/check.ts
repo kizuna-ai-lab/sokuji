@@ -1,4 +1,3 @@
-import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
@@ -13,7 +12,8 @@ export const LOCAL_MODELS_MISSING = 'local_models_missing';
  * LocalInference's readiness check (spec: "Readiness is one check"). Ports
  * today's `ensureSelectionReady` (`src/stores/modelStore.ts`) without its
  * settingsStore/audioStore reads and its `applyPrunes` write: the pair and
- * legs come from `ctx` instead of a store, and a stale selection is left for
+ * legs come from `ctx` instead of a store, and this device's models come from
+ * `ctx.localModels`, not the model store; a stale selection is left for
  * `build` to resolve around — exactly as `resolve()` already does — rather
  * than pruned here.
  *
@@ -43,16 +43,17 @@ export async function checkLocalInference(
   s: LocalInferenceSettings,
   ctx: CheckContext,
 ): Promise<CheckResult> {
-  if (!useModelStore.getState().initialized) {
-    await raceInitialize(ctx.signal);
-  }
+  const models = ctx.localModels;
+  if (!models) throw new Error("The local check was asked without this device's models (CheckContext.localModels).");
+  // The first scan of this device's models, before anything is resolved: a start pressed at launch waits for it.
+  await models.scanned(ctx.signal);
 
   const stages = effectiveStages(ctx);
   // This provider only speaks: it needs no recognition and no translation model. A speech model that is missing
   // does not stop a start: the leg says so when it opens, and its subtitles go on.
   if (stages.translation === null && stages.transcription !== 'local') return { ok: true };
   const resolve = (src: string, tgt: string, selections: Selections) =>
-    useModelStore.getState().resolve(src, tgt, selections, stages);
+    models.resolve(src, tgt, selections, stages);
   // AST cross-stage guard (see astGuard.ts): `build` applies this same guard
   // to the resolved translation stage before a session starts, which can
   // downgrade an explicit AST-mismatched pick to auto (possibly null).
@@ -143,33 +144,4 @@ function effectiveStages(ctx: Pick<CheckContext, 'stages'>): LocalStages {
   // It transcribes what another provider translates: a recognition model is asked for, and no translation model.
   if (stages.translation === null && told.includes('transcription')) stages.transcription = 'local';
   return stages;
-}
-
-/** `check` reads the model store: a download, a delete or the store's first load can change its answer. */
-export function watchLocalInferenceReadiness(onChange: () => void): () => void {
-  return useModelStore.subscribe((s) => s.modelStatuses, () => onChange());
-}
-
-/**
- * Resolves once the model store finishes initializing, or rejects with the
- * abort reason if `signal` fires first (mirrors `fake/adapter.ts`'s own
- * signal race — `Adapter.start`'s `request.signal` follows the same rule,
- * and `CheckContext.signal` is documented the same way: "Aborted when the
- * start that asked is cancelled").
- */
-function raceInitialize(signal?: AbortSignal): Promise<void> {
-  const init = useModelStore.getState().initialize();
-  if (!signal) return init;
-  if (signal.aborted) {
-    init.catch(() => {}); // already answered by the abort below — never surfaced
-    return Promise.reject(signal.reason ?? new Error('aborted'));
-  }
-  return new Promise<void>((resolveInit, reject) => {
-    const onAbort = () => reject(signal.reason ?? new Error('aborted'));
-    signal.addEventListener('abort', onAbort, { once: true });
-    init.then(
-      () => { signal.removeEventListener('abort', onAbort); resolveInit(); },
-      (err) => { signal.removeEventListener('abort', onAbort); reject(err); },
-    );
-  });
 }

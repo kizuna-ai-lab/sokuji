@@ -1,26 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockCheck = vi.fn();
-const mockWatchReadiness = vi.fn();
 vi.mock('./check', () => ({
   checkLocalInference: (...args: unknown[]) => mockCheck(...args),
-  // Wrapped, not a direct reference: this factory is invoked as soon as
-  // something imports './check' (via this test file's own hoisted `vi.mock`
-  // call), which happens before `mockWatchReadiness` (declared above, but
-  // after the hoisted call) is assigned — a direct reference here would
-  // throw a TDZ ReferenceError.
-  watchLocalInferenceReadiness: (onChange: () => void) => mockWatchReadiness(onChange),
 }));
 
 const mockBuild = vi.fn();
 const mockDescribe = vi.fn();
 const mockAdmit = vi.fn();
 const mockFits = vi.fn();
-vi.mock('./config', () => ({
+vi.mock('./config', async (importOriginal) => ({
   buildLocalInference: (...args: unknown[]) => mockBuild(...args),
   describeLocalInference: (...args: unknown[]) => mockDescribe(...args),
   admitLocalInference: (...args: unknown[]) => mockAdmit(...args),
   fitsBudget: (...args: unknown[]) => mockFits(...args),
+  // The real one: `admit` reads the GPU's features from the models it is handed.
+  localModelsOf: (await importOriginal<typeof import('./config')>()).localModelsOf,
 }));
 
 import { compose, type ComposeInput } from '../../lib/plan/compose';
@@ -57,7 +52,6 @@ const SHARED = { localModels: fakeLocalModels({ deviceFeatures: () => FEATURES }
 
 beforeEach(() => {
   mockCheck.mockReset();
-  mockWatchReadiness.mockReset();
   mockBuild.mockReset();
   mockDescribe.mockReset();
   mockAdmit.mockReset();
@@ -92,31 +86,31 @@ describe('localInferenceProvider', () => {
     expect(localInferenceProvider.session?.admit).toBeDefined();
     mockAdmit.mockReturnValue(true);
     expect(localInferenceProvider.session?.admit?.({}, SHARED)).toBe(true);
-    expect(mockAdmit).toHaveBeenCalledWith({});
+    expect(mockAdmit).toHaveBeenCalledWith({}, FEATURES);
   });
 
   it("admits its voice's configs on their own: the voice models alone, never the whole session's budget", () => {
     const voice = { modelId: 'tts-en', speakerId: 0, speed: 1 };
     mockFits.mockReturnValue(true);
     expect(localInferenceProvider.session?.admit?.({ speaker: voice, participant: { off: true } } as never, SHARED)).toBe(true);
-    expect(mockFits).toHaveBeenCalledWith(['tts-en']);
+    expect(mockFits).toHaveBeenCalledWith(['tts-en'], FEATURES);
     mockFits.mockReturnValue(false);
     expect(localInferenceProvider.session?.admit?.({ speaker: voice, participant: { ...voice, modelId: 'tts-ja' } } as never, SHARED))
       .toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
-    expect(mockFits).toHaveBeenLastCalledWith(['tts-en', 'tts-ja']);
+    expect(mockFits).toHaveBeenLastCalledWith(['tts-en', 'tts-ja'], FEATURES);
     expect(mockAdmit).not.toHaveBeenCalled();
     // Its recognition alone counts its recognition models only, never the whole session's budget.
     mockFits.mockReturnValue(true);
     const alone = (modelId: string) => ({ asr: { modelId, streaming: false }, vad: {}, translation: { kind: 'none' }, transcribesAlone: true });
     expect(localInferenceProvider.session?.admit?.({ speaker: alone('asr-en'), participant: alone('asr-ja') } as never, SHARED)).toBe(true);
-    expect(mockFits).toHaveBeenLastCalledWith(['asr-en', 'asr-ja']);
+    expect(mockFits).toHaveBeenLastCalledWith(['asr-en', 'asr-ja'], FEATURES);
     expect(mockAdmit).not.toHaveBeenCalled();
     // The whole session's configs name a recognition model: its own admission, with whatever it answers.
     const whole = { speaker: { asr: { modelId: 'asr', streaming: false }, tts: voice } };
     const adjusted = { configs: { participant: {} } };
     mockAdmit.mockReturnValue(adjusted);
     expect(localInferenceProvider.session?.admit?.(whole as never, SHARED)).toBe(adjusted);
-    expect(mockAdmit).toHaveBeenCalledWith(whole);
+    expect(mockAdmit).toHaveBeenCalledWith(whole, FEATURES);
   });
 
   describe('its units', () => {
@@ -357,13 +351,12 @@ describe('localInferenceProvider', () => {
     });
   });
 
-  it('delegates watchReadiness() to watchLocalInferenceReadiness', () => {
+  it("watches its readiness through this device's models", () => {
     const off = vi.fn();
-    mockWatchReadiness.mockReturnValue(off);
+    const watch = vi.fn(() => off);
     const onChange = vi.fn();
-    const result = localInferenceProvider.watchReadiness?.(onChange, fakeLocalModels());
-    expect(mockWatchReadiness).toHaveBeenCalledWith(onChange);
-    expect(result).toBe(off);
+    expect(localInferenceProvider.watchReadiness?.(onChange, fakeLocalModels({ watch }))).toBe(off);
+    expect(watch).toHaveBeenCalledWith(onChange);
   });
 
   it('names its voices in the Speech block, and picks them in its engine (#619)', () => {

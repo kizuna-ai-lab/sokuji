@@ -14,7 +14,6 @@ type Table = Record<string, TableEntry>;
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below
 // (see check.test.ts for the same convention).
 let mockTable: Table = {};
-let mockDeviceFeatures: string[] = [];
 const mockResolve = vi.fn((src: string, tgt: string, selections: Selections): DirectionResult => {
   const entry = mockTable[`${src}>${tgt}`];
   const stage = (id: string | null | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
@@ -28,34 +27,35 @@ const mockResolve = vi.fn((src: string, tgt: string, selections: Selections): Di
   };
 });
 
-vi.mock('../../stores/modelStore', () => ({
-  useModelStore: {
-    getState: () => ({
-      resolve: mockResolve,
-      get deviceFeatures() { return mockDeviceFeatures; },
-    }),
-  },
-}));
-
 /** Per-model manifest stub: only the fields `build`/`admit` read. Absent id: a
  *  plain offline ASR entry, no AST capability. */
 let mockManifest: Record<string, { type?: string; asrEngine?: string; astLanguages?: unknown; asrWorkerType?: string; ttsConfig?: { defaultSid?: number } }> = {};
 /** Per-model memory size in MB, summed by the mocked `estimateModelMemoryByDevice`. */
 let mockSizes: Record<string, number> = {};
 
-vi.mock('../../lib/local-inference/modelManifest', () => ({
-  getManifestEntry: (id: string) => mockManifest[id] ?? { type: 'asr' },
-  estimateModelMemoryByDevice: (ids: ReadonlyArray<string | undefined | null>) => {
-    let ramMb = 0;
-    for (const id of ids) {
-      if (id && mockSizes[id] != null) ramMb += mockSizes[id];
-    }
-    return { vramMb: 0, ramMb };
-  },
+/** The mocked `estimateModelMemoryByDevice`: sums each id's size from `mockSizes`, whatever the GPU's features. */
+const estimate = vi.hoisted(() => vi.fn((ids: ReadonlyArray<string | undefined | null>, _deviceFeatures?: string[]) => {
+  let ramMb = 0;
+  for (const id of ids) {
+    if (id && mockSizes[id] != null) ramMb += mockSizes[id];
+  }
+  return { vramMb: 0, ramMb };
 }));
 
+vi.mock('../../lib/local-inference/modelManifest', () => ({
+  getManifestEntry: (id: string) => mockManifest[id] ?? { type: 'asr' },
+  estimateModelMemoryByDevice: estimate,
+}));
+
+import { ALL_LOCAL_STAGES } from '../../lib/lineup/localStages';
+import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
 import { buildLocalInference, describeLocalInference, admitLocalInference, type LocalInferenceConfig } from './config';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from './settings';
+
+/** The GPU's features this device's models report: none. */
+const FEATURES: readonly string[] = [];
+/** This device's models as a run hands them: resolved by `mockResolve`. */
+const models = fakeLocalModels({ resolve: mockResolve, deviceFeatures: () => FEATURES });
 
 /** Sets what `resolve(src, tgt, …)` answers, keyed `${src}>${tgt}`. */
 function resolved(table: Table): void {
@@ -76,6 +76,7 @@ function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['
     reversed: () => overrides.reversed ?? false,
     segmentation: overrides.segmentation ?? { mode: 'off', sentencesPerRow: 0 },
     models: [],
+    localModels: models,
     ...(overrides.words ? { words: overrides.words } : {}),
     ...(overrides.lineUp ? { lineUp: overrides.lineUp } : {}),
   };
@@ -105,7 +106,6 @@ function sizes(table: Record<string, number>): void {
 
 beforeEach(() => {
   mockTable = {};
-  mockDeviceFeatures = [];
   mockManifest = {};
   mockSizes = {};
   mockResolve.mockClear();
@@ -113,6 +113,17 @@ beforeEach(() => {
 });
 
 describe('buildLocalInference', () => {
+  it("resolves a direction through this device's models as the run hands them", () => {
+    // A spy of its own that answers as `mockResolve` does: `vi.fn(mockResolve)` would be `mockResolve` itself.
+    const resolve = vi.fn((...args: Parameters<typeof mockResolve>) => mockResolve(...args));
+    buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), { ...shared(), localModels: fakeLocalModels({ resolve }) });
+    expect(resolve).toHaveBeenCalledWith('ja', 'en', LOCAL_INFERENCE_DEFAULTS.selections, ALL_LOCAL_STAGES);
+  });
+
+  it("throws when no run handed it this device's models", () => {
+    expect(() => buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), { ...shared(), localModels: undefined })).toThrow(/SharedSettings\.localModels/);
+  });
+
   it("builds the speaker's direction with its own prompt, TTS when speaking, and a job cut sized by the stored Auto sentences-per-row", () => {
     resolved({ 'ja>en': { asr: 'sherpa-ja', translation: 'opus-ja-en', tts: 'piper-en' } });
     const c = buildLocalInference(ctx({ source: 'ja', target: 'en' }, { speech: true }), settings({ useTemplateMode: true }), shared({ segmentation: { mode: 'sentences', sentencesPerRow: 0 } }));
@@ -302,8 +313,13 @@ describe('describeLocalInference / admitLocalInference', () => {
     expect(describeLocalInference(c)).toEqual({ asrModel: 'a', translationModel: 't', ttsModel: 'x' });
     budget(1_000);
     sizes({ a: 400, t: 300, x: 200 });
-    expect(admitLocalInference({ speaker: c })).toBe(true);
-    expect(admitLocalInference({ speaker: c, participant: c })).toMatchObject({ code: 'memory_exceeded' });
+    expect(admitLocalInference({ speaker: c }, FEATURES)).toBe(true);
+    expect(admitLocalInference({ speaker: c, participant: c }, FEATURES)).toMatchObject({ code: 'memory_exceeded' });
+  });
+
+  it('budgets by the GPU features it is handed', () => {
+    admitLocalInference({ speaker: cfg({ asr: 'a' }) }, ['shader-f16']);
+    expect(estimate).toHaveBeenLastCalledWith(['a'], ['shader-f16']);
   });
 
   it("runs the other side's leg text only when its speech model alone tips the budget, saying why", () => {
@@ -311,7 +327,7 @@ describe('describeLocalInference / admitLocalInference', () => {
     sizes({ a: 200, t: 150, x: 200 });
     const speaker = cfg({ asr: 'a', translation: 't', tts: 'x' });
     const participant = cfg({ asr: 'a', translation: 't', tts: 'x' });
-    const answer = admitLocalInference({ speaker, participant });
+    const answer = admitLocalInference({ speaker, participant }, FEATURES);
     expect(answer).toEqual({ configs: { participant: expect.objectContaining({ ttsUnavailable: 'participant_tts_over_budget' }) } });
     const adjusted = (answer as { configs: { participant: LocalInferenceConfig } }).configs.participant;
     expect(adjusted).not.toHaveProperty('tts');
@@ -323,19 +339,19 @@ describe('describeLocalInference / admitLocalInference', () => {
   it("refuses when dropping the other side's speech model is not enough", () => {
     budget(1_000);
     sizes({ a: 400, t: 300, x: 200 });
-    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't', tts: 'x' }), participant: cfg({ asr: 'a', translation: 't', tts: 'x' }) })).toMatchObject({ code: 'memory_exceeded' });
+    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't', tts: 'x' }), participant: cfg({ asr: 'a', translation: 't', tts: 'x' }) }, FEATURES)).toMatchObject({ code: 'memory_exceeded' });
   });
 
   it("refuses when the other side's speech model takes no memory: a cloud voice frees nothing", () => {
     budget(1_000);
     sizes({ a: 400, t: 300 });
-    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't' }), participant: cfg({ asr: 'a', translation: 't', tts: 'edge-tts' }) })).toMatchObject({ code: 'memory_exceeded' });
+    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't' }), participant: cfg({ asr: 'a', translation: 't', tts: 'edge-tts' }) }, FEATURES)).toMatchObject({ code: 'memory_exceeded' });
   });
 
   it('never drops my own speech model: a speaker-only run over budget refuses', () => {
     budget(1_000);
     sizes({ a: 500, t: 300, x: 300 });
-    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't', tts: 'x' }) })).toMatchObject({ code: 'memory_exceeded' });
+    expect(admitLocalInference({ speaker: cfg({ asr: 'a', translation: 't', tts: 'x' }) }, FEATURES)).toMatchObject({ code: 'memory_exceeded' });
   });
 });
 
