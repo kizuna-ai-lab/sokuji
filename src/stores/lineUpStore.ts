@@ -167,10 +167,10 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     if (superseded(provider)) return;
     // A run that locked the store during the write froze what is shown: it is shown once the run ends, if still
     // current. What was written stays in storage, and the next load reads it.
-    await new Promise<void>((done) => whenUnlocked(() => {
+    // Not awaited: the launch's loading must not wait for a run.
+    whenUnlocked(() => {
       if (!superseded(provider)) set(landed ? { lineUp, stored: true, unstoredProvider: null } : { lineUp, stored: false });
-      done();
-    }));
+    });
   };
   /**
    * Runs `apply` once the store is not locked: at once when it is not, otherwise on the first unlock, which also

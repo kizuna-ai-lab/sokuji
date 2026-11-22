@@ -292,13 +292,13 @@ describe('the line-up store', () => {
     const before = useLineUpStore.getState().lineUp;
     useLineUpStore.getState().setLocked(true);
     release();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The launch's loading does not wait for the run.
+    await loading;
     expect(useLineUpStore.getState().lineUp).toBe(before);
     expect(useLineUpStore.getState().stored).toBe(false);
     if (how === 'superseded') useLineUpStore.setState({ unstoredProvider: 'openai' });
     const shown = useLineUpStore.getState().lineUp;
     useLineUpStore.getState().setLocked(false);
-    await loading;
     if (how === 'unlock') expect(useLineUpStore.getState()).toMatchObject({ stored: true, unstoredProvider: null, lineUp: { transcription: hosts[0].id } });
     else expect(useLineUpStore.getState().lineUp).toBe(shown);
   });
