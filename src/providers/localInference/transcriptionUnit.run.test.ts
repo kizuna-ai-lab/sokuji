@@ -12,7 +12,7 @@ import { checkConformance, recordConformance } from '../../lib/contract/conforma
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
 import type { LocalStages } from '../../lib/lineup/localStages';
-import { CAPS } from '../../lib/lineup/catalog';
+import { allCaps } from '../../lib/lineup/catalog';
 import type { ProviderCaps, StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
 import { compose } from '../../lib/plan/compose';
@@ -88,7 +88,7 @@ function fakeEngines() {
 
 /** The test catalog: the released options and the fake translator and voice, each a host of its one stage. */
 const CATALOG: ProviderCaps[] = [
-  ...CAPS,
+  ...allCaps(),
   { id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'none', voiceAlone: false, takesVoice: true },
   { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false },
 ];

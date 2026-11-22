@@ -8,7 +8,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
-import { CAPS } from '../../lib/lineup/catalog';
+import { allCaps } from '../../lib/lineup/catalog';
 import { compose } from '../../lib/plan/compose';
 import { servesSpeech, servesTranscription } from '../../lib/plan/read';
 import { isRefusal, type RunPlan } from '../../lib/plan/types';
@@ -46,7 +46,7 @@ const shapeOn = (legs: LegName[], o: { textOnly?: boolean; participantSpeech?: b
 
 describe('the plan', () => {
   it("composes under the app's own catalog, which offers the voice alone, and is refused under one that does not", () => {
-    expect(compose(LINE_UP, { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) }))
+    expect(compose(LINE_UP, { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) }))
       .toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
     expect(plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([['soniox', 'stt', ['transcription', 'translation']], ['kizunaai_soniox', 'tts', ['speech']]]);
   });

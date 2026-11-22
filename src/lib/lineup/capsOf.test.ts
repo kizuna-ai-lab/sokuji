@@ -17,15 +17,18 @@ describe('capsOf', () => {
     expect(catalogOf(RELEASED).map((c) => c.id)).toEqual(RELEASED.map((p) => p.id));
     expect(byId(catalogOf(RELEASED))).toStrictEqual(byId(RELEASED_CAPS));
   });
-  it("and for the E2E build's fakes", () => { expect(byId(catalogOf(DEV_ONLY))).toStrictEqual(byId(E2E_CAPS)); });
-  it('no provider occupies other stages under other settings: no settings and its defaults give the same', () => {
+  it("and for the E2E build's fakes, in the registry's order", () => {
+    expect(catalogOf(DEV_ONLY).map((c) => c.id)).toEqual(DEV_ONLY.map((p) => p.id));
+    expect(byId(catalogOf(DEV_ONLY))).toStrictEqual(byId(E2E_CAPS));
+  });
+  it("a provider's occupations are the same with no settings as with its default settings", () => {
     for (const p of [...RELEASED, ...DEV_ONLY]) expect(occupationsOf(p, undefined), p.id).toEqual(occupationsOf(p, p.settings.defaults));
   });
   // Removed in Task 3, with the list it compares against.
   it('the golden list is the catalog declared by hand; the fakes differ only in their account, which follows their kind', async () => {
-    expect(byId(RELEASED_CAPS)).toStrictEqual(byId((await import('./catalog')).CAPS));
+    expect(byId(RELEASED_CAPS)).toStrictEqual(byId((await import('./catalog')).allCaps()));
     vi.stubEnv('MODE', 'e2e'); vi.resetModules();
-    const declared = (await import('./catalog')).CAPS.filter((c) => !RELEASED_CAPS.some((r) => r.id === c.id));
+    const declared = (await import('./catalog')).allCaps().filter((c) => !RELEASED_CAPS.some((r) => r.id === c.id));
     expect(byId(declared)).toStrictEqual(byId(E2E_CAPS.map((c) => ({ ...c, account: 'none' as const }))));
   });
   it('stages: what its units occupy, together', () => { expect(capsOf(provider({ units: [unit('a', TR), unit('b', SP)] })).stages).toEqual(['transcription', 'speech']); });

@@ -1,6 +1,6 @@
 // src/lib/plan/checks.test.ts
 import { describe, expect, it } from 'vitest';
-import { CAPS, caps } from '../lineup/catalog';
+import { allCaps, caps } from '../lineup/catalog';
 import type { LineUp, RunStage } from '../lineup/types';
 import { checkPlan, refusalNotice, twoManaged, voiceRefusal } from './checks';
 import { compose } from './compose';
@@ -17,10 +17,10 @@ const options = (transcription: string, speech: string, translation = transcript
 
 describe('the catalog says which voices stand alone and which text sides take another voice', () => {
   it("a voice alone: Kizuna AI's Soniox, Soniox with an own key, Edge and this device", () => {
-    expect(CAPS.filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'soniox']);
+    expect(allCaps().filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'soniox']);
   });
   it("another voice is taken by Kizuna AI's Soniox, Soniox and this device (Bing only translates, so it is never asked)", () => {
-    expect(CAPS.filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'local_inference', 'soniox']);
+    expect(allCaps().filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'local_inference', 'soniox']);
   });
 });
 
@@ -118,7 +118,7 @@ describe('compose runs these checks after its own, the voice first', () => {
     expect(plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([['soniox', 'stt', ['transcription', 'translation']], ['kizunaai_soniox', 'tts', ['speech']]]);
   });
   it("the same line-up is refused under a catalog whose option does not offer that voice alone, though its units would serve: the composer reads the option, nothing else", () => {
-    const catalog = CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c));
+    const catalog = allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c));
     expect(compose(mix('soniox', 'kizunaai_soniox'), { ...given(twoUnits('soniox'), twoUnits('kizunaai_soniox', 'managed')), catalog }))
       .toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
     // An id the given catalog does not hold is a stage left unset, as with the app's own.

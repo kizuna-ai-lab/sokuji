@@ -17,7 +17,7 @@ const JOINT: readonly RunStage[] = TR_TL;
  */
 const endToEnd = (id: string, account: ProviderCaps['account']): ProviderCaps => ({ id, stages: ALL, host: id, joint: ALL, account, voiceAlone: false, takesVoice: false });
 
-export const CAPS: readonly ProviderCaps[] = [
+const DECLARED: readonly ProviderCaps[] = [
   // Its text may be read by another voice (a text-only session of it), and its voice may read another provider's
   // text (a session of it that holds speech keys only). It translates only what it transcribes, and may transcribe
   // alone for another option to translate (Soniox's connection asked for no translation); so does Soniox below.
@@ -58,7 +58,12 @@ export const CAPS: readonly ProviderCaps[] = [
     : []),
 ];
 
-export function caps(id: string, catalog: readonly ProviderCaps[] = CAPS): ProviderCaps | undefined {
+/** The catalog every reader asks: what each option can serve. */
+export function allCaps(): readonly ProviderCaps[] {
+  return DECLARED;
+}
+
+export function caps(id: string, catalog: readonly ProviderCaps[] = allCaps()): ProviderCaps | undefined {
   return catalog.find((c) => c.id === id);
 }
 
@@ -67,7 +72,7 @@ export function caps(id: string, catalog: readonly ProviderCaps[] = CAPS): Provi
  * stage by itself, or one the catalog does not know (a development build's fake). A text model only translates
  * another provider's transcription, so a stored selection of its id (the retired OpenAI Compatible's) does not run.
  */
-export function runsByItself(id: string, catalog: readonly ProviderCaps[] = CAPS): boolean {
+export function runsByItself(id: string, catalog: readonly ProviderCaps[] = allCaps()): boolean {
   const own = caps(id, catalog);
   return own === undefined || own.stages.length === RUN_STAGES.length;
 }
@@ -76,7 +81,7 @@ export function runsByItself(id: string, catalog: readonly ProviderCaps[] = CAPS
  * The option a line-up names for a stage, when it is known and serves that stage; undefined otherwise (unset,
  * unknown, or not for that stage). `catalog`: the options read, the app's own by default.
  */
-export function optionFor(lineUp: Pick<LineUp, RunStage>, stage: RunStage, catalog: readonly ProviderCaps[] = CAPS): ProviderCaps | undefined {
+export function optionFor(lineUp: Pick<LineUp, RunStage>, stage: RunStage, catalog: readonly ProviderCaps[] = allCaps()): ProviderCaps | undefined {
   const id = lineUp[stage];
   const option = id === null ? undefined : caps(id, catalog);
   return option?.stages.includes(stage) ? option : undefined;
@@ -149,7 +154,7 @@ const ON_THIS_DEVICE: Pick<LineUp, RunStage> = { transcription: 'local_inference
  * translates) has no default of its own for the others: they are this device's, which needs no key and no
  * sign-in, so choosing such a host where another provider must give up its stages leaves a line-up that runs.
  */
-export function hostDefaults(host: string, catalog: readonly ProviderCaps[] = CAPS): Pick<LineUp, RunStage> {
+export function hostDefaults(host: string, catalog: readonly ProviderCaps[] = allCaps()): Pick<LineUp, RunStage> {
   if (host === 'local_inference') return ON_THIS_DEVICE;
   const own = caps(host, catalog);
   if (!own || own.host !== host || own.stages.length === RUN_STAGES.length) return { transcription: host, translation: host, speech: host };

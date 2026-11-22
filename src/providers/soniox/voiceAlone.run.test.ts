@@ -13,7 +13,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
-import { CAPS } from '../../lib/lineup/catalog';
+import { allCaps } from '../../lib/lineup/catalog';
 import { compose } from '../../lib/plan/compose';
 import { isRefusal } from '../../lib/plan/types';
 import type { AnyProvider } from '../../lib/provider/types';
@@ -69,7 +69,7 @@ function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeec
 
   const input = { providers: [own, hosted], settings: () => SONIOX_DEFAULTS };
   // The app's catalog offers this voice alone: the line-up composes there, and is refused under one that does not.
-  const refused = compose(LINE_UP, { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) });
+  const refused = compose(LINE_UP, { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) });
   const plan = compose(LINE_UP, input);
   if (isRefusal(plan)) throw new Error(`expected a plan, got ${plan.refused}`);
 

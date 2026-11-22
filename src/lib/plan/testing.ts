@@ -7,7 +7,7 @@ import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../contract/speech';
 import type { SourceSnapshot, TranslationEvents, TranslationSession, TranslationStartRequest } from '../contract/translation';
 import type { LegName } from '../conversation/types';
-import { allStagesBy, CAPS } from '../lineup/catalog';
+import { allStagesBy, allCaps } from '../lineup/catalog';
 import type { StageIds } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { RunShape } from '../session/types';
@@ -30,7 +30,7 @@ export const stubProvider = (id: string, over: Record<string, unknown> = {}): An
 
 /** A composer input that offers a stub provider for every host in the catalog, so every option is offered; `over` goes to each stub. */
 export function stubHosts(over: Record<string, unknown> = {}): ComposeInput {
-  return { providers: [...new Set(CAPS.map((c) => c.host))].map((id) => stubProvider(id, over)), settings: () => undefined };
+  return { providers: [...new Set(allCaps().map((c) => c.host))].map((id) => stubProvider(id, over)), settings: () => undefined };
 }
 
 /** The plan of a line-up that names `p` on every stage, built without the catalog (a test's stub provider is not in it). */

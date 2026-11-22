@@ -19,7 +19,7 @@
   - `stages` is the union of what the units occupy.
   - `voiceAlone`: some unit occupies exactly `[speech]`.
   - `translatesOwn`: Soniox's shape.
-  - `joint`: the stages no unit serves apart from each other.
+  - `joint`: the stages it serves that no unit can serve apart from each other.
   - `account` comes from `kind`.
 - End-to-end services carry `joint: ALL` and `takesVoice: false` through one provider flag: it is not known per vendor that they stop making, and charging for, audio when asked for text alone.
 - `optionStages` is layout. It is kept and renamed.
@@ -410,7 +410,7 @@ settingsStages?: readonly (readonly RunStage[])[];
 
 A throwaway test derived every entry from all 21 providers (the 16 released ones and the 5 fakes) and compared it with `CAPS`:
 - `host`, `stages` and `voiceAlone` hold for every entry.
-- `joint` and `takesVoice` hold for every entry that is not end to end.
+- `joint` (worded: "the stages it serves that no unit can serve apart from each other"; as first worded, "the stages no unit serves apart", it held vacuously for a stage nothing serves) and `takesVoice` hold for every entry that is not end to end.
   - Eight providers differ: the seven own-key end-to-end ones plus `kizunaai_qwen`, and `fake_leased`. Their units give `joint: TR_TL` and `takesVoice: true`, because their whole unit also serves text alone when `speech` is not `'always'`. The `endToEnd` flag covers exactly these nine.
 - `translatesOwn` as worded ("TR is occupied without TL, and TL never without TR") is vacuously true for `fake_transcriber`, which never occupies TL. The added condition "some occupation has TL" fixes it, and then it holds for all 21.
 - `takesVoice` for providers that are not end to end had no rule. "Some occupation has no speech" holds for all 21.

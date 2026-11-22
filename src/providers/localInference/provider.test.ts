@@ -24,7 +24,7 @@ vi.mock('./config', () => ({
 }));
 
 import { compose, type ComposeInput } from '../../lib/plan/compose';
-import { CAPS } from '../../lib/lineup/catalog';
+import { allCaps } from '../../lib/lineup/catalog';
 import { RUN_STAGES } from '../../lib/lineup/types';
 import type { ProviderCaps } from '../../lib/lineup/types';
 import { unitsOf, wholePlan } from '../../lib/plan/wholeUnit';
@@ -191,7 +191,7 @@ describe('localInferenceProvider', () => {
     it('with another provider translating, it transcribes alone: its recognition unit beside the other\'s translation, and a voice of either', () => {
       // A test catalog: no released option translates another provider's transcription yet (the text models do).
       const catalog: ProviderCaps[] = [
-        ...CAPS,
+        ...allCaps(),
         { id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'none', voiceAlone: false, takesVoice: true },
         { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false },
       ];
@@ -225,7 +225,7 @@ describe('localInferenceProvider', () => {
       const textModels = ['openai_text', 'gemini_text', 'openai_compatible'];
       const reworded: string[] = [];
       const newlyRun: string[] = [];
-      for (const t of CAPS) for (const tl of CAPS) for (const sp of CAPS) {
+      for (const t of allCaps()) for (const tl of allCaps()) for (const sp of allCaps()) {
         const lineUp = { transcription: t.id, translation: tl.id, speech: sp.id };
         const label = JSON.stringify(lineUp);
         const now = compose(lineUp, released);
@@ -257,14 +257,14 @@ describe('localInferenceProvider', () => {
       }
       // Each end-to-end provider, under each option that speaks (one that does not leaves the line-up incomplete);
       // and each text model, under each end-to-end provider's voice.
-      const endToEnd = CAPS.filter((c) => c.joint?.includes('translation'));
-      const speaking = CAPS.filter((c) => c.stages.includes('speech'));
+      const endToEnd = allCaps().filter((c) => c.joint?.includes('translation'));
+      const speaking = allCaps().filter((c) => c.stages.includes('speech'));
       expect(reworded.sort()).toEqual([
         ...endToEnd.flatMap((tl) => speaking.map((sp) => `${tl.id}/${sp.id}`)),
         ...[...textModels, 'bing'].flatMap((tl) => endToEnd.map((sp) => `${tl}/${sp.id}`)),
       ].sort());
       // Each text model, under each voice that stands alone.
-      const alone = CAPS.filter((c) => c.stages.includes('speech') && c.voiceAlone).map((c) => c.id);
+      const alone = allCaps().filter((c) => c.stages.includes('speech') && c.voiceAlone).map((c) => c.id);
       expect(newlyRun.sort()).toEqual([...textModels, 'bing'].flatMap((model) => alone.map((voice) => `${model}/${voice}`)).sort());
     });
 

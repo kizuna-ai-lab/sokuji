@@ -52,10 +52,10 @@ vi.mock('../services/providers/astGuard', () => ({
 const voiceNotAlone = vi.hoisted(() => ({ on: false }));
 vi.mock('../lib/plan/choice', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/plan/choice')>();
-  const { CAPS } = await import('../lib/lineup/catalog');
+  const { allCaps } = await import('../lib/lineup/catalog');
   const choiceInput: typeof actual.choiceInput = (providers, entries) => {
     const input = actual.choiceInput(providers, entries);
-    return voiceNotAlone.on ? { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) } : input;
+    return voiceNotAlone.on ? { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) } : input;
   };
   return { ...actual, choiceInput };
 });

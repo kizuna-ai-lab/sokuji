@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { allStagesBy, belongsTo, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, stageIdsFor } from './catalog';
+import { allStagesBy, belongsTo, allCaps, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, stageIdsFor } from './catalog';
 import type { LineUp, RunStage } from './types';
 
 describe('the line-up catalog', () => {
   it('every option is its own host', () => {
-    for (const c of CAPS) expect([c.id, c.host]).toEqual([c.id, c.id]);
+    for (const c of allCaps()) expect([c.id, c.host]).toEqual([c.id, c.id]);
   });
 
   it('the free line-up belongs to this device', () => {
@@ -22,7 +22,7 @@ describe('the line-up catalog', () => {
   });
 
   it('covers every released provider, plus Bing and Edge', () => {
-    expect(new Set(CAPS.map((c) => c.id))).toEqual(new Set([...RELEASED.map((p) => p.id), 'bing', 'edge']));
+    expect(new Set(allCaps().map((c) => c.id))).toEqual(new Set([...RELEASED.map((p) => p.id), 'bing', 'edge']));
   });
 
   it('a text model translates alone, on a key, for any voice that stands alone: its host is itself, and nothing goes with it', () => {
@@ -37,7 +37,7 @@ describe('the line-up catalog', () => {
     for (const id of ['openai_text', 'gemini_text', 'openai_compatible']) expect(hostDefaults(id), id).toEqual({ transcription: 'local_inference', translation: id, speech: 'edge' });
     // Under a catalog of one-stage hosts, each keeps its own stage and takes this device's for the rest.
     const oneStage = [
-      ...CAPS,
+      ...allCaps(),
       { id: 'only_voice', stages: ['speech' as const], host: 'only_voice', account: 'none' as const, voiceAlone: true, takesVoice: false },
       { id: 'only_ears', stages: ['transcription' as const], host: 'only_ears', account: 'none' as const, voiceAlone: false, takesVoice: true },
     ];
@@ -48,7 +48,7 @@ describe('the line-up catalog', () => {
   });
 
   it('a stored selection may run only a provider that serves every stage by itself, or one the catalog does not know', () => {
-    for (const c of CAPS) if (c.host === c.id) expect(runsByItself(c.id), c.id).toBe(c.stages.length === 3);
+    for (const c of allCaps()) if (c.host === c.id) expect(runsByItself(c.id), c.id).toBe(c.stages.length === 3);
     expect(runsByItself('openai_compatible')).toBe(false);
     expect(runsByItself('soniox')).toBe(true);
     expect(runsByItself('fake')).toBe(true);
@@ -59,12 +59,12 @@ describe('the stages that go together', () => {
   const endToEnd = ['kizunaai_qwen', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'qwen_livetranslate', 'palabraai'];
 
   it('an end-to-end provider holds all three jointly; nothing else is joint', () => {
-    expect(CAPS.filter((c) => c.joint).map((c) => c.id).sort()).toEqual([...endToEnd].sort());
+    expect(allCaps().filter((c) => c.joint).map((c) => c.id).sort()).toEqual([...endToEnd].sort());
     for (const id of endToEnd) expect(caps(id)!.joint).toEqual(['transcription', 'translation', 'speech']);
   });
 
   it('Soniox, with an own key or Kizuna AI\'s, translates only what it transcribes; no other option says so', () => {
-    expect(CAPS.filter((c) => c.translatesOwn).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'soniox']);
+    expect(allCaps().filter((c) => c.translatesOwn).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'soniox']);
   });
 
   it('an end-to-end provider chosen for any stage goes with all three', () => {
