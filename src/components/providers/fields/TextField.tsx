@@ -52,7 +52,7 @@ export function TextField({ id, label, tooltip, value, onChange, disabled = fals
         disabled={disabled}
         placeholder=""
       />
-      {note !== undefined && <div className="models-info">{note}</div>}
+      {note !== undefined && <p className="setting-description">{note}</p>}
     </div>
   );
 }
