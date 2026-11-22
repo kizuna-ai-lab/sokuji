@@ -358,7 +358,12 @@ export function stageProviderIn(s: Pick<LineUpStore, 'lineUp' | 'stored' | 'unst
  * names nothing about the run.
  */
 export function lineUpThatRuns(): { lineUp: LineUp | null; stored: boolean } {
-  const { lineUp, stored, unstoredProvider } = useLineUpStore.getState();
+  return lineUpThatRunsIn(useLineUpStore.getState());
+}
+
+/** `lineUpThatRuns` as a line-up store state stands. */
+function lineUpThatRunsIn(s: Pick<LineUpStore, 'lineUp' | 'stored' | 'unstoredProvider'>): { lineUp: LineUp | null; stored: boolean } {
+  const { lineUp, stored, unstoredProvider } = s;
   return { lineUp, stored: stored || (unstoredProvider === 'local_inference' && lineUp !== null) };
 }
 
@@ -372,16 +377,21 @@ export function useStageProviderId(stage: RunStage): string | null {
   return useLineUpStore((s) => stageProviderIn(s, stage));
 }
 
-/** The same, for a component: it re-renders when the stored line-up changes. */
+/** The same, for a component: it re-renders when the line-up that runs changes. */
 export function useStoredLocalStages(): LocalStages | null {
   const lineUp = useLineUpStore((s) => s.lineUp);
-  const stored = useLineUpStore((s) => s.stored);
-  return useMemo(() => (stored ? localStagesOf(lineUp) : null), [lineUp, stored]);
+  const runs = useLineUpStore((s) => lineUpThatRunsIn(s).stored);
+  return useMemo(() => (runs ? localStagesOf(lineUp) : null), [lineUp, runs]);
 }
 
-/** The local stages of the stored line-up; null until one is stored, so the local provider resolves as today. */
+/**
+ * The local stages of the line-up that runs (`lineUpThatRuns`), so a local surface resolves the stages the session
+ * will: the stored line-up's, or before one is stored the shown one's where this device runs. Null while that
+ * line-up names nothing about the run (another provider runs alone) or gives this provider no stage. The name is
+ * older than the unstored line-up's running.
+ */
 export function storedLocalStages(): LocalStages | null {
-  const { lineUp, stored } = useLineUpStore.getState();
+  const { lineUp, stored } = lineUpThatRuns();
   return stored ? localStagesOf(lineUp) : null;
 }
 

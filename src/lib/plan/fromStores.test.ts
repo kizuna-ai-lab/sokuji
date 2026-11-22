@@ -106,7 +106,8 @@ describe('planFromStores', () => {
     const shared: SharedSettings = { pauses: { sourceSeconds: 0, translationSeconds: 0 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
     expect(edgeUnit.unit.build({ direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' }, found.accounts.edge.settings, shared))
       .toMatchObject({ modelId: 'edge-tts', edgeVoice: 'ja-JP-NanamiNeural' });
-    expect(storedLocalStages()).toBeNull();
+    // The local surfaces resolve the stages the plan runs: recognition alone on this device.
+    expect(storedLocalStages()).toEqual({ translation: null, speech: null, transcription: 'local' });
   });
 
   it('answers a new plan for another provider object offered under the same id, with the same entry', () => {

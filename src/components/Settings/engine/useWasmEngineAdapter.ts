@@ -38,9 +38,9 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
   const sourceLanguage = override.pair.source;
   const targetLanguage = override.pair.target;
   const selections = override.settings.selections;
-  // Bing and Edge are providers of their own: the local list and its automatic picks never hold them. A stored line-up
-  // says which stages this machine serves; until one is stored, all of them (an unstored line-up resolves to `null`,
-  // which would let the resolver answer with Bing or Edge, a value the list does not offer).
+  // Bing and Edge are providers of their own: the local list and its automatic picks never hold them. The line-up that
+  // runs says which stages this machine serves; where none does (another provider runs alone), all of them (`null`
+  // would let the resolver answer with Bing or Edge, a value the list does not offer).
   const storedStages = useStoredLocalStages();
   const stages: LocalStages = storedStages ?? ALL_LOCAL_STAGES;
 

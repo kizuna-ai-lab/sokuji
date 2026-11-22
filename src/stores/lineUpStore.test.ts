@@ -60,7 +60,8 @@ vi.mock('../lib/plan/choice', async (importOriginal) => {
   return { ...actual, choiceInput };
 });
 
-import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent, lineUpThatRuns, runUnstored } from './lineUpStore';
+import { act, renderHook } from '@testing-library/react';
+import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent, lineUpThatRuns, runUnstored, storedLocalStages, useStoredLocalStages } from './lineUpStore';
 import { useProviderStore } from './providerStore';
 import useLogStore from './logStore';
 import { settleReports } from '../lib/diagnostics/report';
@@ -585,6 +586,22 @@ describe('the line-up store', () => {
     useLineUpStore.getState().setLocked(true);
     expect(runUnstored('openai', 'pick')).toBe(false);
     expect(useLineUpStore.getState().unstoredProvider).toBe('gemini');
+  });
+
+  // The local surfaces resolve the stages the session will: before a line-up is stored, those of the one shown.
+  it("the local stages are the line-up's that runs: the stored one's, the shown one's while this device runs unstored, none while another provider runs alone", () => {
+    const free = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
+    const recognitionAlone = { translation: null, speech: null, transcription: 'local' };
+    const { result } = renderHook(() => useStoredLocalStages());
+    act(() => { useLineUpStore.setState({ lineUp: free, stored: false, unstoredProvider: 'local_inference' }); });
+    expect(storedLocalStages()).toEqual(recognitionAlone);
+    expect(result.current).toEqual(recognitionAlone);
+    act(() => { useLineUpStore.setState({ lineUp: { ...free, translation: 'local_inference' }, stored: true, unstoredProvider: null }); });
+    expect(storedLocalStages()).toEqual({ translation: 'local', speech: null });
+    expect(result.current).toEqual({ translation: 'local', speech: null });
+    act(() => { useLineUpStore.setState({ lineUp: free, stored: false, unstoredProvider: 'openai' }); });
+    expect(storedLocalStages()).toBeNull();
+    expect(result.current).toBeNull();
   });
 
   it('reports a change per stage, never content', () => {
