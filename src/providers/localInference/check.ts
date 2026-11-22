@@ -35,6 +35,11 @@ export const LOCAL_MODELS_MISSING = 'local_models_missing';
  * recognition model is asked for at all: each leg that runs needs the
  * translation of its own direction, a model on this machine that is
  * downloaded, or Bing, which needs none.
+ *
+ * Where it transcribes what another provider translates, no translation
+ * model is asked for: each leg that runs needs a recognition model for its
+ * own source, and a leg that lacks one is named by that source (`no_asr`,
+ * the code `build` refuses the same gap with).
  */
 export async function checkLocalInference(
   s: LocalInferenceSettings,
@@ -47,7 +52,7 @@ export async function checkLocalInference(
   const stages = effectiveStages(ctx);
   // This provider only speaks: it needs no recognition and no translation model. A speech model that is missing
   // does not stop a start: the leg says so when it opens, and its subtitles go on.
-  if (stages?.translation === null) return { ok: true };
+  if (stages?.translation === null && stages.transcription !== 'local') return { ok: true };
   const resolve = (src: string, tgt: string, selections: Selections) =>
     useModelStore.getState().resolve(src, tgt, selections, stages);
   // AST cross-stage guard (see astGuard.ts): `build` applies this same guard
@@ -60,8 +65,23 @@ export async function checkLocalInference(
     return guardAstCrossStage(src, tgt, s.selections, raw, (masked) => resolve(src, tgt, masked));
   };
 
-  const speaker = guarded(ctx.pair.source, ctx.pair.target);
   const participantOnly = ctx.legs.length === 1 && ctx.legs[0] === 'participant';
+
+  // This provider transcribes and another translates what it heard: each leg that runs needs a recognition model for
+  // its own source, and no translation model. Nothing is translated here, so no AST guard applies.
+  if (stages?.transcription === 'local') {
+    const missing = (source: string, reverse: boolean): CheckResult => ({
+      ok: false,
+      reason: `A speech recognition model is not available for the ${reverse ? 'reverse' : 'selected'} language pair.`,
+      code: 'no_asr',
+      params: { source },
+    });
+    if (ctx.legs.includes('speaker') && !resolve(ctx.pair.source, ctx.pair.target, s.selections).asr) return missing(ctx.pair.source, false);
+    if (ctx.legs.includes('participant') && !resolve(ctx.pair.target, ctx.pair.source, s.selections).asr) return missing(ctx.pair.target, !participantOnly);
+    return { ok: true };
+  }
+
+  const speaker = guarded(ctx.pair.source, ctx.pair.target);
   const participant = ctx.legs.includes('participant')
     ? guarded(ctx.pair.target, ctx.pair.source)
     : undefined;
@@ -112,7 +132,8 @@ export async function checkLocalInference(
  * stored line-up may no longer match (or none may be stored). Translation goes to Bing, and speech to Edge, where
  * the plan's line-up names them (`ctx.stageIds`), else to a model on this machine; a stage the provider is not
  * told is another provider's, transcription included: told translation without it, it translates what another
- * provider heard. Told none, the stored line-up says, and null (none stored) resolves as today.
+ * provider heard; told transcription without translation, it transcribes for another provider to translate. Told
+ * none, the stored line-up says, and null (none stored) resolves as today.
  */
 function effectiveStages(ctx: Pick<CheckContext, 'stages' | 'stageIds'>): LocalStages | null {
   const told = ctx.stages;
@@ -123,6 +144,8 @@ function effectiveStages(ctx: Pick<CheckContext, 'stages' | 'stageIds'>): LocalS
   };
   // It translates what another provider transcribes: no recognition model is asked for.
   if (stages.translation !== null && !told.includes('transcription')) stages.transcription = null;
+  // It transcribes what another provider translates: a recognition model is asked for, and no translation model.
+  if (stages.translation === null && told.includes('transcription')) stages.transcription = 'local';
   return stages;
 }
 

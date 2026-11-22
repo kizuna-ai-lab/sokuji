@@ -50,4 +50,17 @@ describe('a direction resolved under a stored line-up', () => {
     expect(none.translation).toBeNull();
     expect(none.notes.map((n) => n.stage)).toEqual(['translation']);
   });
+
+  it('this one transcribes and another provider translates: a downloaded recognition model resolves, and nothing resolves or is noted for translation', () => {
+    const downloaded = { ...ctx, modelStatuses: { 'opus-mt-en-jap': 'downloaded' as const, 'sensevoice-int8': 'downloaded' as const } };
+    const r = resolveWasmDirection('en', 'ja', {}, downloaded, { translation: null, speech: null, transcription: 'local' });
+    expect(r.asr?.modelId).toBe('sensevoice-int8');
+    expect(r.translation).toBeNull();
+    expect(r.notes.some((n) => n.stage === 'translation')).toBe(false);
+    // Not downloaded: nothing recognises, and that is noted.
+    const none = resolveWasmDirection('en', 'ja', {}, ctx, { translation: null, speech: null, transcription: 'local' });
+    expect(none.asr).toBeNull();
+    expect(none.translation).toBeNull();
+    expect(none.notes.map((n) => n.stage)).toEqual(['asr']);
+  });
 });

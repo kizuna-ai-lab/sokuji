@@ -33,7 +33,9 @@ import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
  * are L1/L2's now. What stays is the pipeline: which engines load, source
  * segments from the ASR's partials and finals, and serial translation jobs —
  * one per final, or, in the stream shape, one every N sentences inside the
- * utterance.
+ * utterance. Over a config that transcribes alone (`transcribesAlone`) it is
+ * this device's recognition as a unit of its own: source segments only, for
+ * another unit to translate (`transcriptionUnit.ts`).
  */
 
 export type LocalCredentials = Record<string, never>;
@@ -333,11 +335,14 @@ class LocalSession implements AdapterSession {
         signal.removeEventListener('abort', onAbort);
         this.failOpening = null;
         this.live = true;
-        this.frame('out', 'local.session.opened', {
-          asrModel: config.asr.modelId,
-          translationPair: `${source} → ${target}`,
-          ttsModel: config.tts?.modelId ?? null,
-        });
+        // Transcribing alone, it has no pair and no voice: another unit translates, and its own opening says so.
+        this.frame('out', 'local.session.opened', config.transcribesAlone
+          ? { asrModel: config.asr.modelId, language: source }
+          : {
+            asrModel: config.asr.modelId,
+            translationPair: `${source} → ${target}`,
+            ttsModel: config.tts?.modelId ?? null,
+          });
         resolve();
       };
 
@@ -374,11 +379,14 @@ class LocalSession implements AdapterSession {
     });
   }
 
-  /** The notices the start found, transcription-only's own and a missing voice's, once the start has resolved. */
+  /**
+   * The notices the start found, transcription-only's own and a missing voice's, once the start has resolved. A
+   * session that transcribes alone is not transcription-only: another unit translates what it hears.
+   */
   announce(): void {
     for (const notice of this.notices) this.emit('degraded', notice);
     this.notices = [];
-    if (this.config.translation.kind === 'none') this.announceTranslationUnavailable();
+    if (this.config.translation.kind === 'none' && !this.config.transcribesAlone) this.announceTranslationUnavailable();
     if (this.config.ttsUnavailable && this.request.context.speech) this.announceTtsUnavailable(this.config.ttsUnavailable);
   }
 
@@ -418,7 +426,9 @@ class LocalSession implements AdapterSession {
    * ignored, as today. An AST or transcription-only session has no engine to
    * hand the text to: the source segment only, and `translation_unavailable`
    * once (never twice with the start's own notice) — worded for AST as typed
-   * text going untranslated, since AST's speech is translated.
+   * text going untranslated, since AST's speech is translated. A session that
+   * transcribes alone says only the source segment: the unit that translates
+   * the leg translates it.
    */
   appendText(text: string): void {
     if (this.ended || !text.trim()) return;
@@ -429,7 +439,7 @@ class LocalSession implements AdapterSession {
     this.emit('segmentClosed', { ref, origin });
     if (this.config.translation.kind === 'engine') {
       this.enqueue({ text: text.trim(), origin, fill: this.config.jobSentences !== undefined });
-    } else {
+    } else if (!this.config.transcribesAlone) {
       this.announceTranslationUnavailable();
     }
   }
@@ -637,7 +647,10 @@ class LocalSession implements AdapterSession {
     const segment = current ?? { ref: this.nextRef++, origin: this.nextOrigin(), text: '' };
     if (!current) this.emit('segmentOpened', { ref: segment.ref, side: 'source', origin: segment.origin });
     // When it was heard, once known, even for a text the partials already showed: History times its sentences by it.
-    const heard = span ? heardIn(text, span) : undefined;
+    // Transcribing alone, a final always says that all of it is stable, placed in time or not: the unit that
+    // translates reads how much of a source is stable from it.
+    const timed = span ? heardIn(text, span) : undefined;
+    const heard = timed ?? (this.config.transcribesAlone ? { pieces: [], stableLen: text.length } : undefined);
     if (text !== segment.text || heard) this.emit('segmentText', { ref: segment.ref, text, ...(heard ? { heard } : {}) });
     this.emit('segmentClosed', { ref: segment.ref, origin: segment.origin });
     if (kind === 'engine') this.enqueue({ text, origin: segment.origin, fill });

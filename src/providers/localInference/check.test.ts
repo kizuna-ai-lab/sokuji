@@ -16,9 +16,10 @@ const mockInitialize = vi.fn(async () => { mockInitialized = true; });
 const mockApplyPrunes = vi.fn(async () => {});
 const mockOff = vi.fn();
 const mockSubscribe = vi.fn((_selector: (s: { modelStatuses: unknown }) => unknown, _listener: () => void) => mockOff);
-type MockStages = { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null } | null;
+type MockStages = { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null; transcription?: 'local' | null } | null;
 // As the engine resolves with a line-up's local stages (`resolveWasmDirection`): nothing resolves for recognition
-// or translation while another provider translates, and Bing translates where the line-up gives it translation.
+// or translation while another provider translates (but recognition where this device transcribes alone), and Bing
+// translates where the line-up gives it translation.
 const mockResolve = vi.fn((src: string, tgt: string, selections: Selections, stages?: MockStages): DirectionResult => {
   const entry = mockTable[`${src}>${tgt}`];
   const stage = (id: string | null | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
@@ -26,7 +27,7 @@ const mockResolve = vi.fn((src: string, tgt: string, selections: Selections, sta
   const elsewhere = stages != null && stages.translation === null;
   const translation = stages?.translation === 'bing' ? 'bing-translator' : translationAuto ? entry?.autoTranslation : entry?.translation;
   return {
-    asr: stage(elsewhere ? null : entry?.asr),
+    asr: stage(elsewhere && stages?.transcription !== 'local' ? null : entry?.asr),
     translation: stage(elsewhere ? null : translation),
     tts: stage(entry?.tts),
     notes: [],
@@ -318,6 +319,59 @@ describe('readiness when this device translates what another provider transcribe
     expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toEqual({ ok: true });
     resolved({ 'ja>en': { asr: 'a', translation: null } });
     expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toMatchObject({ ok: false, code: 'local_models_missing' });
+    mockStages = null;
+  });
+});
+
+describe('readiness when this device transcribes what another provider translates', () => {
+  const told = (legs: readonly ('speaker' | 'participant')[] = ['speaker'], speech = false): Parameters<typeof checkLocalInference>[1] => ({
+    pair: { source: 'ja', target: 'en' }, legs,
+    stages: speech ? ['transcription', 'speech'] : ['transcription'],
+    stageIds: speech ? { transcription: 'local_inference', speech: 'local_inference' } : { transcription: 'local_inference' },
+  });
+
+  it('asks for the recognition model of the direction and for no translation model', async () => {
+    resolved({ 'ja>en': { asr: 'a', translation: null } });
+    expect(await checkLocalInference(defaults, told())).toEqual({ ok: true });
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: null, speech: null, transcription: 'local' });
+  });
+
+  it('a translation model is not enough: without the recognition model it is not ready, naming the language no model recognises', async () => {
+    resolved({ 'ja>en': { asr: null, translation: 't' } });
+    expect(await checkLocalInference(defaults, told())).toMatchObject({ ok: false, code: 'no_asr', params: { source: 'ja' } });
+  });
+
+  it('with both legs, each direction needs its recognition, and the reverse one is named by its own source', async () => {
+    resolved({ 'ja>en': { asr: 'a' }, 'en>ja': { asr: null, translation: 'u' } });
+    expect(await checkLocalInference(defaults, told(['speaker', 'participant']))).toEqual({
+      ok: false, code: 'no_asr', params: { source: 'en' }, reason: expect.stringContaining('reverse'),
+    });
+    resolved({ 'ja>en': { asr: null }, 'en>ja': { asr: null } });
+    expect(await checkLocalInference(defaults, told(['speaker', 'participant']))).toMatchObject({ ok: false, code: 'no_asr', params: { source: 'ja' } });
+    resolved({ 'ja>en': { asr: 'a' }, 'en>ja': { asr: 'b' } });
+    expect(await checkLocalInference(defaults, told(['speaker', 'participant']))).toEqual({ ok: true });
+  });
+
+  it('with the participant leg alone, only the reverse direction is asked for', async () => {
+    resolved({ 'en>ja': { asr: 'b' } });
+    expect(await checkLocalInference(defaults, told(['participant']))).toEqual({ ok: true });
+    expect(mockResolve).not.toHaveBeenCalledWith('ja', 'en', expect.anything(), expect.anything());
+    resolved({ 'ja>en': { asr: 'a' } });
+    expect(await checkLocalInference(defaults, told(['participant']))).toMatchObject({ ok: false, code: 'no_asr', params: { source: 'en' } });
+  });
+
+  it('with transcription and speech on this device and translation elsewhere, speech still never gates', async () => {
+    resolved({ 'ja>en': { asr: 'a', tts: null } });
+    expect(await checkLocalInference(defaults, told(['speaker'], true))).toEqual({ ok: true });
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', expect.anything(), { translation: null, speech: 'local', transcription: 'local' });
+  });
+
+  it('told no stages, a stored line-up that gives it transcription alone is read the same way', async () => {
+    mockStages = { translation: null, speech: 'edge', transcription: 'local' };
+    resolved({ 'ja>en': { asr: 'a', translation: null } });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toEqual({ ok: true });
+    resolved({ 'ja>en': { asr: null, translation: 't' } });
+    expect(await checkLocalInference(defaults, { pair: { source: 'ja', target: 'en' }, legs: ['speaker'] })).toMatchObject({ ok: false, code: 'no_asr' });
     mockStages = null;
   });
 });

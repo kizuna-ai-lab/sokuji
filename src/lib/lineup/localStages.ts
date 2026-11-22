@@ -2,7 +2,8 @@
 //
 // What the local provider reads from a stored line-up: for translation and
 // for speech, whether the stage goes to Bing or Edge (providers of their own
-// that it runs), to a model on this machine, or to another provider.
+// that it runs), to a model on this machine, or to another provider; and, where
+// it serves one of transcription and translation without the other, which.
 import { optionFor } from './catalog';
 import { RUN_STAGES } from './types';
 import type { LineUp, RunStage } from './types';
@@ -10,10 +11,12 @@ import type { LineUp, RunStage } from './types';
 /**
  * Per stage, what the local provider serves: `translation` by Bing or by a model on this machine, `speech` by
  * Edge or by a model on this machine; null where another provider serves the stage. It transcribes whenever it
- * translates, in one session, unless `transcription` says null: then another provider transcribes, and this one
- * translates what that one heard. `transcription` is stated only then.
+ * translates, in one session, and not otherwise, unless `transcription` says so: null, another provider
+ * transcribes and this one translates what that one heard; 'local', a model on this machine transcribes and
+ * another provider translates what it heard. `transcription` is stated only in those two cases, so every value
+ * written before reads as it did.
  */
-export interface LocalStages { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null; transcription?: null }
+export interface LocalStages { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null; transcription?: 'local' | null }
 
 const HOST = 'local_inference';
 
@@ -30,8 +33,11 @@ export function localStagesOf(lineUp: LineUp | Pick<LineUp, RunStage> | null): L
     return lineUp[stage] === online ? online : 'local';
   };
   const stages: LocalStages = { translation: served('translation', 'bing'), speech: served('speech', 'edge') };
+  const transcribes = optionFor(lineUp, 'transcription')?.host === HOST;
   // It translates and another provider transcribes: no recognition model of this machine runs.
-  if (stages.translation !== null && optionFor(lineUp, 'transcription')?.host !== HOST) stages.transcription = null;
+  if (stages.translation !== null && !transcribes) stages.transcription = null;
+  // It transcribes and another provider translates: a recognition model of this machine runs, and no translation model.
+  if (stages.translation === null && transcribes) stages.transcription = 'local';
   return stages;
 }
 
@@ -55,15 +61,27 @@ export function localTranslationStagesOf(lineUp: Pick<LineUp, RunStage>): LocalS
 }
 
 /**
+ * The same for the local provider's recognition as a unit of its own, which transcribes for another provider to
+ * translate: a recognition model on this machine, never a translation model. Speech is what the line-up says of it;
+ * with no line-up, none.
+ */
+export function localTranscriptionStagesOf(lineUp: Pick<LineUp, RunStage> | null): LocalStages {
+  const stages = localStagesOf(lineUp);
+  return { translation: null, speech: stages?.speech ?? null, transcription: 'local' };
+}
+
+/**
  * The local engine's stages (`asr`, `translation`, `tts`) another provider serves in a stored line-up: speech
- * where the line-up gives it elsewhere, recognition with translation where it gives translation elsewhere, and
- * recognition alone where another provider transcribes what this one translates. None without a stored line-up.
- * No model of this machine runs for such a stage, and none is missing for it.
+ * where the line-up gives it elsewhere, recognition with translation where it gives translation elsewhere (unless
+ * this device transcribes alone), and recognition alone where another provider transcribes what this one
+ * translates. None without a stored line-up. No model of this machine runs for such a stage, and none is missing
+ * for it.
  */
 export function unservedStages(stages: LocalStages | null): Array<'asr' | 'translation' | 'tts'> {
   if (!stages) return [];
+  const transcribes = stages.transcription === 'local' || (stages.translation !== null && stages.transcription !== null);
   return [
-    ...(stages.translation === null || stages.transcription === null ? (['asr'] as const) : []),
+    ...(transcribes ? [] : (['asr'] as const)),
     ...(stages.translation === null ? (['translation'] as const) : []),
     ...(stages.speech === null ? (['tts'] as const) : []),
   ];
