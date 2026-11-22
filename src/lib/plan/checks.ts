@@ -11,11 +11,11 @@ import type { LegName } from '../conversation/types';
 import { AUTO } from '../language/code';
 import { caps, goesWith } from '../lineup/catalog';
 import { RUN_STAGES } from '../lineup/types';
-import { unitsOf } from './wholeUnit';
 import type { LineUp, ProviderCaps, RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { PlanAccount, RunNotice } from '../session/types';
 import type { PlannedUnit, PlanRefusal, RunPlan, UnitCapabilities } from './types';
+import { unitsOf } from './wholeUnit';
 
 /**
  * A voice that reads a translation its own host did not both hear and make: refused when the voice is not offered

@@ -33,7 +33,7 @@ export interface LineUp {
 export interface ProviderCaps {
   id: string;
   stages: readonly RunStage[];
-  /** The provider definition that runs this option: itself: every option is a host of its own. */
+  /** The provider definition that runs this option. Every option is a host of its own, so this is its own id. */
   host: string;
   /**
    * The stages one connection of it carries together and never apart; choosing it for one of them chooses it for
