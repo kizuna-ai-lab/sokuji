@@ -54,7 +54,7 @@
   - on branch `refactor/stages-declared-once`;
   - stage explicit paths;
   - end each message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-- Do not push to `kizuna-ai-lab/sokuji`, and do not open the PR to `main`, before the owner says so (Task 5).
+- The owner authorised (2026-11-22, task #131) finishing steps 2-4 and opening their PRs directly, each stacked on the previous one; Task 5 pushes and opens this PR into `main`.
 
 ### Accepted differences (tell the owner; do not hide)
 

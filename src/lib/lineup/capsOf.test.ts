@@ -23,6 +23,19 @@ describe('capsOf', () => {
   it("a provider's occupations are the same with no settings as with its default settings", () => {
     for (const p of [...RELEASED, ...DEV_ONLY]) expect(occupationsOf(p, undefined), p.id).toEqual(occupationsOf(p, p.settings.defaults));
   });
+  it('occupies never reads the settings: the catalog is derived from it once, without any', () => {
+    const trap = new Proxy({}, { get: (_t, k) => { throw new Error(`occupies read settings.${String(k)}`); }, has: () => { throw new Error('occupies probed settings'); } });
+    for (const p of [...RELEASED, ...DEV_ONLY]) {
+      expect(() => occupationsOf(p, trap), p.id).not.toThrow();
+      expect(occupationsOf(p, trap), p.id).toEqual(occupationsOf(p, p.settings.defaults));
+    }
+  });
+  it('a provider that declares no units is end to end, except the fakes listed here', () => {
+    // `fake`: the E2E build's stand-in, a plain transcribe/translate/speak provider that is not a vendor's end-to-end service.
+    const NOT_END_TO_END = new Set(['fake']);
+    const forgotten = [...RELEASED, ...DEV_ONLY].filter((p) => !p.units && !NOT_END_TO_END.has(p.id) && p.endToEnd !== true).map((p) => p.id);
+    expect(forgotten).toEqual([]);
+  });
   it('stages: what its units occupy, together', () => { expect(capsOf(provider({ units: [unit('a', TR), unit('b', SP)] })).stages).toEqual(['transcription', 'speech']); });
   it('voiceAlone: a unit occupies speech alone', () => {
     expect(capsOf(provider({ units: [unit('a', SP)] })).voiceAlone).toBe(true);
