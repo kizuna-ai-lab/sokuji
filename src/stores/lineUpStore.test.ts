@@ -60,7 +60,7 @@ vi.mock('../lib/plan/choice', async (importOriginal) => {
   return { ...actual, choiceInput };
 });
 
-import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent, runUnstored } from './lineUpStore';
+import { useLineUpStore, LINEUP_KEY, lineUpChangedEvent, lineUpThatRuns, runUnstored } from './lineUpStore';
 import { useProviderStore } from './providerStore';
 import useLogStore from './logStore';
 import { settleReports } from '../lib/diagnostics/report';
@@ -185,6 +185,59 @@ describe('the line-up store', () => {
       await useLineUpStore.getState().load();
       expect(setSetting).not.toHaveBeenCalled();
       expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'openai', lineUp: { transcription: 'openai', translation: 'openai', speech: 'openai' } });
+    }
+  });
+
+  // Such a value under this device: what runs is the user's own local choices, as before the line-up was stored,
+  // never Bing and Edge online by default. Shown once the scan ends, and never written.
+  it("a stored value this build cannot read, under this device: today's local choices are shown and run once the scan ends, and nothing is written", async () => {
+    let finishScan!: () => void;
+    model.scan = new Promise<void>((resolve) => { finishScan = resolve; });
+    model.resolved = { translation: 'hy-mt15-1.8b-translation', tts: 'edge-tts' };
+    const later = { version: 3, stages: soniox };
+    stored.set(LINEUP_KEY, later);
+    stored.set(PROVIDER_KEY, 'local_inference');
+    useProviderStore.setState({ entries: { local_inference: localEntry } as never });
+    await useLineUpStore.getState().load();
+    // Until the scan ends: the local host's defaults, as on the first start.
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'local_inference', lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
+    finishScan();
+    const today = { transcription: 'local_inference', translation: 'local_inference', speech: 'edge', summarisation: null };
+    await vi.waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual(today));
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'local_inference' });
+    expect(lineUpThatRuns()).toEqual({ lineUp: today, stored: true });
+    expect(setSetting).not.toHaveBeenCalled();
+    expect(stored.get(LINEUP_KEY)).toBe(later);
+  });
+
+  it('a stored value this build cannot read, under this device, keeps the shown defaults when the scan failed', async () => {
+    model.initialized = false;
+    model.resolved = { translation: 'hy-mt15-1.8b-translation', tts: 'supertonic-3' };
+    stored.set(LINEUP_KEY, { version: 3, stages: soniox });
+    stored.set(PROVIDER_KEY, 'local_inference');
+    useProviderStore.setState({ entries: { local_inference: localEntry } as never });
+    await useLineUpStore.getState().load();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(useLineUpStore.getState()).toMatchObject({ stored: false, unstoredProvider: 'local_inference', lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } });
+    expect(setSetting).not.toHaveBeenCalled();
+  });
+
+  it("a stored value this build cannot read, under this device, shows nothing over a provider that came to run, or a line-up chosen, while the scan ran", async () => {
+    model.resolved = { translation: 'hy-mt15-1.8b-translation', tts: 'supertonic-3' };
+    stored.set(PROVIDER_KEY, 'local_inference');
+    useProviderStore.setState({ entries: { local_inference: localEntry } as never });
+    for (const meanwhile of ['run', 'choose'] as const) {
+      let finishScan!: () => void;
+      model.scan = new Promise<void>((resolve) => { finishScan = resolve; });
+      stored.set(LINEUP_KEY, { version: 3, stages: soniox });
+      useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
+      await useLineUpStore.getState().load();
+      if (meanwhile === 'run') expect(runUnstored('openai')).toBe(true);
+      else await useLineUpStore.getState().choose('speech', 'soniox');
+      const before = useLineUpStore.getState().lineUp;
+      finishScan();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(useLineUpStore.getState().lineUp, meanwhile).toBe(before);
     }
   });
 

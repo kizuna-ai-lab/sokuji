@@ -43,7 +43,7 @@ interface StoredLineUp { version: 1 | 2; stages: LineUp }
 export interface LineUpStore {
   /**
    * What the settings show: the stored line-up; while none is stored, today's values for the provider that runs
-   * (the local host's defaults until the local migration has written). Null before the load.
+   * (for this device, the local host's defaults until the scan has told today's choices). Null before the load.
    */
   lineUp: LineUp | null;
   /** True once a line-up is in storage (read, migrated, or chosen): it is then what a session runs. */
@@ -131,12 +131,27 @@ function todayLocal(): { translation: string | null; tts: string | null } {
   };
 }
 
+/**
+ * The line-up today's local choices make (`lineUpFromToday`), once the scan of downloaded models has ended; null
+ * after a failed scan, which reports no downloaded model: worked out then, every local choice would read as Bing and
+ * Edge. Today's choices are read from the local provider's own settings and pair: its entry is loaded first.
+ */
+async function localLineUpFromToday(provider: string): Promise<LineUp | null> {
+  await useModelStore.getState().initialize();
+  if (!useModelStore.getState().initialized) return null;
+  const local = presentHosts().find((p) => p.id === provider);
+  if (local && !useProviderStore.getState().entries[provider]) await useProviderStore.getState().load(local);
+  return lineUpFromToday({ provider, local: todayLocal() });
+}
+
 /** Replaces in progress (the setup wizard's Finish): the local migration writes nothing while one runs. */
 let replacing = 0;
 /** The local migration's write while it is in flight: a replace waits for it, so its own write lands last. */
 let migrationWrite: Promise<boolean> | null = null;
 
 export const useLineUpStore = create<LineUpStore>()((set, get) => {
+  /** A line-up stored, being replaced, or another provider that came to run: what was worked out for `provider` is left unused. */
+  const superseded = (provider: string) => get().stored || replacing > 0 || get().unstoredProvider !== provider;
   /**
    * The one migration's write, of the line-up worked out for `provider`. A line-up stored meanwhile (the setup
    * wizard) stands: none is written over it, and one stored while this write is in flight is not replaced in
@@ -145,13 +160,25 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
    * runs, and what runs now is left as it is.
    */
   const migrate = async (provider: string, lineUp: LineUp): Promise<void> => {
-    const superseded = () => get().stored || replacing > 0 || get().unstoredProvider !== provider;
-    if (superseded()) return;
+    if (superseded(provider)) return;
     migrationWrite = write(lineUp);
     const landed = await migrationWrite;
     migrationWrite = null;
-    if (superseded()) return;
+    if (superseded(provider)) return;
     set(landed ? { lineUp, stored: true, unstoredProvider: null } : { lineUp, stored: false });
+  };
+  /**
+   * The local provider's line-up from today's choices, worked out once the scan has ended and then `use`d; nothing
+   * after a failed scan, so the next start tries again. A scan or a local entry's load that fails is reported, and
+   * changes nothing.
+   */
+  const workOutLocal = (provider: string, use: (lineUp: LineUp) => Promise<void> | void): void => {
+    void (async () => {
+      const lineUp = await localLineUpFromToday(provider);
+      if (lineUp) await use(lineUp);
+    })().catch((error: unknown) => {
+      reportWarning('LineUpStore', `Working out the line-up of this device failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'line-up:local-migration' });
+    });
   };
   return {
   lineUp: null,
@@ -192,8 +219,17 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     } else if (value !== null && value !== undefined) {
       if (!provider) return;
       // Stored, but not a line-up this build can read (another version, a provider it does not know): shown as
-      // today's values, never overwritten by the migration; a session runs today's provider.
+      // today's values, never overwritten by the migration; a session runs today's provider. For this device,
+      // today's values are its own choices, known after the scan: until then the local host's defaults are shown,
+      // and after it what the migration would store is shown and runs, never written (a failed scan leaves the
+      // defaults).
       set({ lineUp: shownFor(provider), stored: false, unstoredProvider: provider });
+      if (provider === 'local_inference') {
+        workOutLocal(provider, (lineUp) => {
+          // What runs may have changed during the waits: as `migrate`, only for the provider this started for.
+          if (!superseded(provider)) set({ lineUp, stored: false });
+        });
+      }
       return;
     }
     if (!provider) return;
@@ -211,21 +247,9 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     // The local provider: what today's automatic choices pick is known only after the scan of downloaded
     // models. Until then the settings show the local host's defaults and a session resolves as today.
     set({ lineUp: shownFor(provider), stored: false });
-    void (async () => {
-      await useModelStore.getState().initialize();
-      // A failed scan reports no downloaded model: worked out now, every local choice would read as Bing and
-      // Edge for good. Write nothing; the next start tries again, and until then a session resolves as today.
-      if (!useModelStore.getState().initialized) return;
-      // Today's choices are read from the local provider's own settings and pair: its entry is loaded first.
-      const local = presentHosts().find((p) => p.id === provider);
-      if (local && !useProviderStore.getState().entries[provider]) await useProviderStore.getState().load(local);
-      // What runs may have changed during the waits above: `migrate` writes only for the provider this started for.
-      await migrate(provider, lineUpFromToday({ provider, local: todayLocal() }));
-    })().catch((error: unknown) => {
-      // The scan or the local entry's load failed: as after a failed scan, nothing is written and the next start
-      // tries again.
-      reportWarning('LineUpStore', `Working out the line-up of this device failed: ${describeCause(error)}`, { cause: error, dedupeKey: 'line-up:local-migration' });
-    });
+    // A failed scan writes nothing: worked out then, every local choice would read as Bing and Edge for good. What
+    // runs may have changed during the waits: `migrate` writes only for the provider this started for.
+    workOutLocal(provider, (lineUp) => migrate(provider, lineUp));
   },
 
   async replace(stages) {
