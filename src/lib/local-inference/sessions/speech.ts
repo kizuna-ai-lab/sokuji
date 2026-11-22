@@ -1,11 +1,16 @@
-import { SAMPLE_RATE, type TextRange } from '../../lib/contract/adapter';
-import type { Clock } from '../../lib/contract/clock';
-import { describeCause } from '../../lib/diagnostics/describeCause';
-import { getManifestEntry } from '../../lib/local-inference/modelManifest';
-import { float32ToInt16, resampleFloat32 } from '../../utils/audio-conversion';
-import { splitSentences } from '../../utils/splitSentences';
+import { SAMPLE_RATE, type TextRange } from '../../contract/adapter';
+import type { Clock } from '../../contract/clock';
+import { describeCause } from '../../diagnostics/describeCause';
+import { getManifestEntry } from '../modelManifest';
+import { float32ToInt16, resampleFloat32 } from '../../../utils/audio-conversion';
+import { splitSentences } from '../../../utils/splitSentences';
 import type { TtsLike } from './engines';
-import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
+
+/** Why a leg that should speak will not (#619): the notice code its adapter emits at the start. */
+export type TtsUnavailableCode = 'speaker_tts_missing' | 'participant_tts_missing' | 'participant_tts_over_budget';
+
+/** One direction's voice: the speech model, and the speaker or the Edge voice it reads in. */
+export interface LocalTtsConfig { modelId: string; speakerId: number; speed: number; edgeVoice?: string }
 
 /**
  * What a session says of its local voice, in one wording wherever that voice
@@ -77,7 +82,7 @@ export async function speakTranslation(
   tts: TtsLike,
   text: string,
   lang: string,
-  config: NonNullable<LocalInferenceConfig['tts']>,
+  config: LocalTtsConfig,
   emit: SpeechEmit,
   isEnded: () => boolean,
   clock: Clock,
@@ -137,7 +142,7 @@ async function speakSentence(
   tts: TtsLike,
   sentence: string,
   lang: string,
-  config: NonNullable<LocalInferenceConfig['tts']>,
+  config: LocalTtsConfig,
 ): Promise<Int16Array> {
   const result = await tts.generate(sentence, config.speakerId, config.speed, lang);
   return float32ToInt16(resampleFloat32(result.samples, result.sampleRate, SAMPLE_RATE));
@@ -148,7 +153,7 @@ async function speakEdgeSentence(
   tts: TtsLike,
   sentence: string,
   lang: string,
-  config: NonNullable<LocalInferenceConfig['tts']>,
+  config: LocalTtsConfig,
 ): Promise<Int16Array> {
   const chunks: Int16Array[] = [];
   // sid is unused for edge-tts (today's client passes 0 too: LocalInferenceClient.ts ~1261).

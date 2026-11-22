@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import type { TextRange } from '../../lib/contract/adapter';
-import { createVirtualClock } from '../../lib/contract/clock';
+import type { TextRange } from '../../contract/adapter';
+import { createVirtualClock } from '../../contract/clock';
 import { locateSentence, speakTranslation } from './speech';
-import { FakeTts } from './fakeEngines';
-import type { LocalInferenceConfig } from './config';
+import { FakeTts } from '../../../providers/localInference/fakeEngines';
+import type { LocalInferenceConfig } from '../../../providers/localInference/config';
 
 type TtsConfig = NonNullable<LocalInferenceConfig['tts']>;
 

@@ -17,9 +17,9 @@ import type { LocalCredentials } from './adapter';
 import { fitsBudget, localTts, resolveLocal, ttsMissingCode } from './config';
 import { defaultEngines, type LocalEngines } from './engines';
 import type { LocalInferenceSettings } from './settings';
-import { isOff, startLocalSpeech, type LocalSpeechConfig } from './speechSession';
+import { isOff, startLocalSpeech, type LocalSpeechConfig } from '../../lib/local-inference/sessions/speechSession';
 
-export type { LocalSpeechConfig, LocalSpeechOff } from './speechSession';
+export type { LocalSpeechConfig, LocalSpeechOff } from '../../lib/local-inference/sessions/speechSession';
 
 export type LocalSpeechUnit = UnitDefinition<LocalInferenceSettings, LocalCredentials, LocalSpeechConfig>;
 

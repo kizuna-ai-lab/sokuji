@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { isSupportedByBing, mapToBingCode } from '../../lib/bing-translator/languageMap';
 import { SONIOX_LANGUAGES } from '../soniox/languages';
 import { BING_TRANSLATOR, localTranslates, localTranslationTargets } from './translationUnit';
-import { localTranslationRefusal } from './translationSession';
+import { localTranslationRefusal } from '../../lib/local-inference/sessions/translationSession';
 
 const soniox = SONIOX_LANGUAGES.map((o) => o.value);
 

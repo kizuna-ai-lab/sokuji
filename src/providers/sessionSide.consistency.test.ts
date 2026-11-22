@@ -100,7 +100,6 @@ function resolveFile(root: string, from: string, spec: string): string | null {
  */
 const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/soniox': ['speech.ts'],
-  'src/providers/localInference': ['speechSession.ts'],
 };
 
 /**
@@ -111,7 +110,6 @@ const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
  * unit and provider (`translator.ts`) reach the fake's definition and its scripts, the settings side.
  */
 const TRANSLATION_SESSIONS: Readonly<Record<string, readonly string[]>> = {
-  'src/providers/localInference': ['translationSession.ts'],
   'src/providers/fake': ['translatorSession.ts'],
   // The text models' sessions are their adapters (text models, part B): each starts the shared session of
   // `src/lib/textModel/translation.ts`, which `TEXT_MODEL_SESSION` below holds to the same rules.
@@ -124,6 +122,17 @@ const TRANSLATION_SESSIONS: Readonly<Record<string, readonly string[]>> = {
  * The text models' one session, outside any provider's folder (a provider never imports another's), and the client
  * it asks with: held to the session side's rules by name, since the walk does not follow `src/lib`.
  */
+/**
+ * The engine-backed translation and speech sessions live in `src/lib/local-inference/sessions/`, shared by any provider
+ * that runs a local engine (the local provider, the Bing and Edge providers), so they sit outside every provider's
+ * folder: the walk follows into this folder, and the files that start a session are seeded by the provider that runs
+ * them. Every file of it is held to the same rules ("no store, no reporter", no global timer) whichever provider reaches it.
+ */
+const SHARED_SESSIONS_DIR = 'src/lib/local-inference/sessions';
+const SHARED_SESSIONS: Readonly<Record<string, readonly string[]>> = {
+  'src/providers/localInference': [`${SHARED_SESSIONS_DIR}/speechSession.ts`, `${SHARED_SESSIONS_DIR}/translationSession.ts`],
+};
+
 const TEXT_MODEL_SESSION = ['src/lib/textModel/translation.ts', 'src/lib/textModel/client.ts', 'src/lib/textModel/prompt.ts', 'src/lib/textModel/desktopTransport.ts'];
 
 /**
@@ -134,13 +143,14 @@ function sessionSide(root: string, dir: string): string[] {
   const seen = new Set([
     `${dir}/adapter.ts`,
     ...[...(VOICE_SESSIONS[dir] ?? []), ...(TRANSLATION_SESSIONS[dir] ?? [])].map((file) => `${dir}/${file}`),
+    ...(SHARED_SESSIONS[dir] ?? []),
   ]);
   const queue = [...seen];
   while (queue.length > 0) {
     const file = queue.shift()!;
     for (const spec of valueImports(readFileSync(join(root, file), 'utf-8'), file)) {
       const next = resolveFile(root, file, spec);
-      if (next && next.startsWith(`${dir}/`) && !seen.has(next)) { seen.add(next); queue.push(next); }
+      if (next && (next.startsWith(`${dir}/`) || next.startsWith(`${SHARED_SESSIONS_DIR}/`)) && !seen.has(next)) { seen.add(next); queue.push(next); }
     }
   }
   return [...seen].sort();
@@ -221,14 +231,15 @@ describe('a provider session side', () => {
         'src/providers/localInference/adapter.ts',
         'src/providers/localInference/engines.ts',
         'src/providers/localInference/sentenceCut.ts',
-        'src/providers/localInference/speech.ts',
-        'src/providers/localInference/speechSession.ts',
+        'src/lib/local-inference/sessions/errors.ts',
+        'src/lib/local-inference/sessions/speech.ts',
+        'src/lib/local-inference/sessions/speechSession.ts',
       ]),
     );
     // The local voice's unit reads the model store to build its config: the settings side, not the session's.
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/speechUnit.ts');
     // The local translation's session is walked; its unit, which resolves the engine from the stores, is the settings side.
-    expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).toContain('src/providers/localInference/translationSession.ts');
+    expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).toContain('src/lib/local-inference/sessions/translationSession.ts');
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/translationUnit.ts');
     const fake = sessionSide(REPO_ROOT, 'src/providers/fake');
     expect(fake).toEqual(expect.arrayContaining(['src/providers/fake/adapter.ts', 'src/providers/fake/synth.ts', 'src/providers/fake/translatorSession.ts']));

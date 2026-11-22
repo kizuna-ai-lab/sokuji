@@ -13,12 +13,10 @@ import { directionKey, type DirectionResult } from '../../lib/local-inference/se
 import type { AdmittedConfigs } from '../../lib/session/types';
 import type { LocalInferenceSettings } from './settings';
 import { directionVoice, speakerIdFor } from './voices';
+import type { LocalTtsConfig, TtsUnavailableCode } from '../../lib/local-inference/sessions/speech';
 
-/** Why a leg that should speak will not (#619): the notice code its adapter emits at the start. */
-export type TtsUnavailableCode = 'speaker_tts_missing' | 'participant_tts_missing' | 'participant_tts_over_budget';
-
-/** One direction's voice: the speech model, and the speaker or the Edge voice it reads in. */
-export interface LocalTtsConfig { modelId: string; speakerId: number; speed: number; edgeVoice?: string }
+// Declared with the session code that reads them (`src/lib/local-inference/sessions/speech.ts`); re-exported here for the provider's callers.
+export type { LocalTtsConfig, TtsUnavailableCode };
 
 /**
  * LocalInference's `C` (spec: "`C`, the config `build` returns"). Ports

@@ -21,10 +21,10 @@ import { LOCAL_MODELS_MISSING } from './check';
 import { fitsBudget, localTranslationPrompt, resolveLocal } from './config';
 import { defaultEngines, type LocalEngines } from './engines';
 import type { LocalInferenceSettings } from './settings';
-import { BING_TRANSLATOR, localTranslationRefusal, startLocalTranslation, type LocalTranslationConfig } from './translationSession';
+import { BING_TRANSLATOR, localTranslationRefusal, startLocalTranslation, type LocalTranslationConfig } from '../../lib/local-inference/sessions/translationSession';
 
-export { BING_TRANSLATOR } from './translationSession';
-export type { LocalTranslationConfig } from './translationSession';
+export { BING_TRANSLATOR } from '../../lib/local-inference/sessions/translationSession';
+export type { LocalTranslationConfig } from '../../lib/local-inference/sessions/translationSession';
 
 export type LocalTranslationUnit = UnitDefinition<LocalInferenceSettings, LocalCredentials, LocalTranslationConfig>;
 

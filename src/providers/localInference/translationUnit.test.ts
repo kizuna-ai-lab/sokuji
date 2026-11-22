@@ -59,7 +59,7 @@ import { buildLocalInference, type LocalInferenceConfig } from './config';
 import { FakeTranslation } from './fakeEngines';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from './settings';
 import { areLocalSpeechConfigs } from './speechUnit';
-import { LOCAL_MODEL_JOB_TIMEOUT_MS } from './translationSession';
+import { LOCAL_MODEL_JOB_TIMEOUT_MS } from '../../lib/local-inference/sessions/translationSession';
 import {
   admitLocalTranslation, areLocalTranslationConfigs, BING_TRANSLATOR, createLocalTranslationUnit, localTranslates, localTranslationLanguages,
   localTranslationSources, localTranslationTargets, localTranslationUnit, localUnitTranslates, type LocalTranslationConfig,
