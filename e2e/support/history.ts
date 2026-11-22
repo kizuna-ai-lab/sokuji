@@ -40,3 +40,31 @@ export function readHistory(userData: string): StoredRecord[] {
     db.close();
   }
 }
+
+/** One version of a record's notes as stored: who wrote it (`writtenBy`, parsed), its state, and why it failed. */
+export interface StoredNotes {
+  recordId: string;
+  state: string;
+  failure: string | null;
+  writtenBy: { kind: string; model?: string; service?: string; promptVersion?: number | string };
+  /** The notes' title, when the version is complete. */
+  title: string | null;
+}
+
+/** Every notes version the history database holds, oldest first. Call it after the app has closed. */
+export function readNotes(userData: string): StoredNotes[] {
+  const file = path.join(userData, 'history', 'history.db');
+  if (!fs.existsSync(file)) return [];
+  const db = new DatabaseSync(file, { readOnly: true });
+  try {
+    return (db.prepare('select record_id, state, failure, written_by, body from notes order by id').all() as Record<string, unknown>[]).map((row) => ({
+      recordId: String(row.record_id),
+      state: String(row.state),
+      failure: row.failure === null ? null : String(row.failure),
+      writtenBy: JSON.parse(String(row.written_by)) as StoredNotes['writtenBy'],
+      title: row.body === null ? null : String((JSON.parse(String(row.body)) as { title?: unknown }).title ?? ''),
+    }));
+  } finally {
+    db.close();
+  }
+}
