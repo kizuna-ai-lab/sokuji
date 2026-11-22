@@ -319,6 +319,28 @@ describe('the line-up store', () => {
     expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: soniox });
   });
 
+  it.each(['unlock', 'superseded'] as const)('the local migration, its scan ended during a run, writes nothing until the run ends (%s)', async (how) => {
+    let finishScan!: () => void;
+    model.scan = new Promise<void>((resolve) => { finishScan = resolve; });
+    model.resolved = { translation: 'hy-mt15-1.8b-translation', tts: 'edge-tts' };
+    stored.set(PROVIDER_KEY, 'local_inference');
+    useProviderStore.setState({ entries: { local_inference: localEntry } as never });
+    await useLineUpStore.getState().load();
+    useLineUpStore.getState().setLocked(true);
+    finishScan();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(setSetting).not.toHaveBeenCalled();
+    if (how === 'superseded') useLineUpStore.setState({ unstoredProvider: 'openai' });
+    useLineUpStore.getState().setLocked(false);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    if (how === 'unlock') {
+      expect(setSetting).toHaveBeenCalledWith(LINEUP_KEY, expect.anything());
+      expect(useLineUpStore.getState().stored).toBe(true);
+    } else {
+      expect(setSetting).not.toHaveBeenCalled();
+    }
+  });
+
   it('the local migration waits for the scan, then writes what today resolves to', async () => {
     let finishScan!: () => void;
     model.scan = new Promise<void>((resolve) => { finishScan = resolve; });

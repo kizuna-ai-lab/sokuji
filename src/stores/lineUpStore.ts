@@ -168,6 +168,18 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     set(landed ? { lineUp, stored: true, unstoredProvider: null } : { lineUp, stored: false });
   };
   /**
+   * Runs `apply` once the store is not locked: at once when it is not, otherwise on the first unlock, which also
+   * ends the wait. A run froze what is shown and stored, so a result worked out during it waits for it to end.
+   */
+  const whenUnlocked = (apply: () => void): void => {
+    if (!get().locked) { apply(); return; }
+    const unsubscribe = useLineUpStore.subscribe((state) => {
+      if (state.locked) return;
+      unsubscribe();
+      apply();
+    });
+  };
+  /**
    * The local provider's line-up from today's choices, worked out once the scan has ended and then `use`d; nothing
    * after a failed scan, so the next start tries again. A scan or a local entry's load that fails is reported, and
    * changes nothing.
@@ -228,13 +240,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
         workOutLocal(provider, (lineUp) => {
           // What runs may have changed during the waits: as `migrate`, only for the provider this started for. A run
           // froze the line-up shown: the result waits, once, for the run to end, and is checked again then.
-          const apply = () => { if (!superseded(provider)) set({ lineUp, stored: false }); };
-          if (!get().locked) { apply(); return; }
-          const unsubscribe = useLineUpStore.subscribe((state) => {
-            if (state.locked) return;
-            unsubscribe();
-            apply();
-          });
+          whenUnlocked(() => { if (!superseded(provider)) set({ lineUp, stored: false }); });
         });
       }
       return;
@@ -256,7 +262,8 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
     set({ lineUp: shownFor(provider), stored: false });
     // A failed scan writes nothing: worked out then, every local choice would read as Bing and Edge for good. What
     // runs may have changed during the waits: `migrate` writes only for the provider this started for.
-    workOutLocal(provider, (lineUp) => migrate(provider, lineUp));
+    // A run holding the lock waits it out: `migrate` checks again, then.
+    workOutLocal(provider, (lineUp) => whenUnlocked(() => { void migrate(provider, lineUp); }));
   },
 
   async replace(stages) {
