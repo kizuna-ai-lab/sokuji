@@ -5,7 +5,7 @@
 // filled; and the reasoning, Off, Lowest, Low, Medium or High, or a value typed by hand, sent as it is. A service
 // that lists no model (a compatible one may not) shows only the name. Every one of these is the provider's own
 // setting, per stage (`translationModel`, `translationReasoning`); its readiness check tries what is chosen.
-import { useEffect, useState, type ComponentType } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip/Tooltip';
@@ -30,8 +30,9 @@ const LEVEL_WORDS: Readonly<Record<ReasoningLevel, { key: string; fallback: stri
 };
 
 /**
- * The service's text models, from the page's list (asked once per key and address), or from the provider's last
- * ready check while the list is on its way. 'none': there is nothing to ask with (no key, no address); 'loading': asked.
+ * The service's text models, from the page's list (asked afresh when the card opens, then once per key and address),
+ * or from the provider's last ready check while the list is on its way. 'none': there is nothing to ask with (no key,
+ * no address); 'loading': asked.
  */
 /** How long the key and address must stay unchanged before the model list is asked for. */
 export const MODEL_LIST_DELAY_MS = 500;
@@ -43,12 +44,16 @@ function useModelList(service: TextModelService, credentials: Readonly<Record<st
   const key = JSON.stringify([service, baseUrl, apiKey]);
   // Nothing to ask with: no key for a service that needs one, or no address for a compatible one.
   const askable = service === 'compatible' ? (baseUrl ?? '').trim() !== '' : apiKey.trim() !== '';
+  // The card's first list is asked afresh: a model the service added since the page last asked is offered.
+  const fresh = useRef(true);
   useEffect(() => {
     if (!askable) return;
     let live = true;
     // After the key or address has stopped changing: a half-typed key is never sent to a half-typed address.
     const timer = setTimeout(() => {
-      void textModelList({ service, ...(baseUrl === undefined ? {} : { baseUrl }), apiKey }).then((result) => {
+      const again = fresh.current;
+      fresh.current = false;
+      void textModelList({ service, ...(baseUrl === undefined ? {} : { baseUrl }), apiKey }, again).then((result) => {
         if (live) setAnswer({ key, result });
       }, (error: unknown) => {
         // A list that could not be had says so, rather than "Finding models…" for ever.

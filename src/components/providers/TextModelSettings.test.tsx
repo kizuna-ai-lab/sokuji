@@ -6,9 +6,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
-const lists = vi.hoisted(() => ({ calls: [] as unknown[], answer: { ok: true, ids: [] as string[] } as unknown }));
+const lists = vi.hoisted(() => ({ calls: [] as unknown[], again: [] as boolean[], answer: { ok: true, ids: [] as string[] } as unknown }));
 vi.mock('../../lib/textModel/modelList', () => ({
-  textModelList: (q: unknown) => { lists.calls.push(q); return Promise.resolve(lists.answer); },
+  textModelList: (q: unknown, again = false) => { lists.calls.push(q); lists.again.push(again); return Promise.resolve(lists.answer); },
 }));
 
 import '../../locales';
@@ -27,6 +27,7 @@ function draw(o: { service?: 'openai' | 'gemini' | 'compatible'; settings?: Part
 
 beforeEach(() => {
   lists.calls = [];
+  lists.again = [];
   lists.answer = { ok: true, ids: ['gpt-5-mini', 'gpt-5.4', 'gpt-4.1-mini'] };
 });
 afterEach(() => cleanup());
@@ -40,6 +41,18 @@ describe("a text model's options", () => {
     expect(lists.calls).toEqual([{ service: 'openai', apiKey: 'test-key-0000' }]);
     fireEvent.change(select, { target: { value: 'gpt-5.4' } });
     expect(update).toHaveBeenCalledWith({ translationModel: { listed: 'gpt-5.4', typed: '' } });
+  });
+
+  // Review of #853: a model the service added since is offered without a restart; a key changed meanwhile is asked with once.
+  it('asks the list afresh each time the card opens, and by what it keeps for a key changed while it is open', async () => {
+    const first = render(<TextModelSettingsView service="openai" settings={TEXT_MODEL_DEFAULTS} update={vi.fn()} account={account({ apiKey: 'test-key-0000' })} />);
+    await waitFor(() => expect(lists.calls).toHaveLength(1));
+    first.rerender(<TextModelSettingsView service="openai" settings={TEXT_MODEL_DEFAULTS} update={vi.fn()} account={account({ apiKey: 'test-key-0001' })} />);
+    await waitFor(() => expect(lists.calls).toHaveLength(2));
+    first.unmount();
+    draw();
+    await waitFor(() => expect(lists.calls).toHaveLength(3));
+    expect(lists.again).toEqual([true, false, true]);
   });
 
   it("a model's name typed wins: the list is set aside while it is filled", async () => {
