@@ -28,21 +28,6 @@ function storedEntry(voices: LocalInferenceSettings['voices'], dir: string): Rec
   return { ...others, ...directionVoice(voices, dir) };
 }
 
-/**
- * TODO(Task 7): goes with the two callers below. The Edge voice a direction's entry still stores (`edge`), which
- * the local provider no longer reads or writes: only the Edge auto-pick and the Edge voices page, until they use
- * Edge's own settings.
- */
-export function storedEdgeVoice(voices: LocalInferenceSettings['voices'], dir: string): string | undefined {
-  const edge = storedEntry(voices, dir).edge;
-  return typeof edge === 'string' && edge !== '' ? edge : undefined;
-}
-
-/** TODO(Task 7), with `storedEdgeVoice`: the patch writing one direction's stored Edge voice, its other fields kept. */
-export function withStoredEdgeVoice(voices: LocalInferenceSettings['voices'], dir: string, edge: string): Pick<LocalInferenceSettings, 'voices'> {
-  return withDirectionVoice(voices, dir, { edge } as DirectionVoice);
-}
-
 /** The speaker id a run uses: the direction's own, else the model's default (`ttsConfig.defaultSid`, Supertonic's 7), else 0. */
 export function speakerIdFor(voice: DirectionVoice, modelId: string): number {
   return voice.speaker ?? getManifestEntry(modelId)?.ttsConfig?.defaultSid ?? 0;
