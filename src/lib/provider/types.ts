@@ -13,7 +13,11 @@ import type { SessionHooks } from '../session/types';
 import type { WireTable } from '../language/wire';
 
 export type Platform = 'electron' | 'extension' | 'web';
-export type ProviderKind = 'own-key' | 'managed' | 'local';
+/**
+ * What a provider asks of the user: `own-key` a key of their own, `managed` a Kizuna sign-in, `local` models on this
+ * device, `online` nothing at all (a free online service: no key, no sign-in, no model).
+ */
+export type ProviderKind = 'own-key' | 'managed' | 'local' | 'online';
 
 /** A language on offer: an app code (`src/lib/language/code.ts`), named by `languageLabel` wherever it shows. */
 export interface LanguageOption { value: string }

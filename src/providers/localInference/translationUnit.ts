@@ -7,7 +7,7 @@
  * A line-up that is all on this device does not come here: it runs the whole
  * local session, as before.
  */
-import { BING_SUPPORTED_LANGUAGES, isSupportedByBing, mapToBingCode } from '../../lib/bing-translator/languageMap';
+import { BING_SUPPORTED_LANGUAGES, isSupportedByBing } from '../../lib/bing-translator/languageMap';
 import type { LegName } from '../../lib/conversation/types';
 import { AUTO, canonicalTag } from '../../lib/language/code';
 import { localTranslationStagesOf, type LocalStages } from '../../lib/lineup/localStages';
@@ -16,6 +16,7 @@ import { getManifestByType, getManifestEntry, isTranslationModelCompatible, type
 import { sameStages, type UnitDefinition } from '../../lib/plan/types';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { storedLocalStages } from '../../stores/lineUpStore';
+import { bingTranslates } from '../bing/languages';
 import type { LocalCredentials } from './adapter';
 import { LOCAL_MODELS_MISSING } from './check';
 import { fitsBudget, localTranslationPrompt, resolveLocal } from './config';
@@ -41,15 +42,6 @@ function localModels(): ModelManifestEntry[] {
   return getManifestByType('translation').filter((m) => !m.isCloudModel);
 }
 
-/** Two codes Bing reads as one language (`no` and `nb`, `zh` and `zh-CN`). */
-function sameForBing(a: string, b: string): boolean {
-  try {
-    return mapToBingCode(a) === mapToBingCode(b);
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Whether a translation option of this device translates from `source` into `target` (app codes). Bing: both are
  * on Bing's own list. This machine's models: some model of the catalog takes the pair, downloaded or not (one not
@@ -59,7 +51,7 @@ function sameForBing(a: string, b: string): boolean {
  */
 export function localTranslates(option: LocalTranslationOption, source: string, target: string): boolean {
   if (source === AUTO || target === AUTO || source === target) return false;
-  if (option === 'bing') return isSupportedByBing(source) && isSupportedByBing(target) && !sameForBing(source, target);
+  if (option === 'bing') return bingTranslates(source, target);
   return localModels().some((m) => isTranslationModelCompatible(m, source, target));
 }
 

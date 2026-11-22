@@ -75,7 +75,8 @@ describe('the Gemini definition', () => {
   });
 
   it('sits after LocalInference (ruling 6)', () => {
-    expect(PROVIDERS.slice(0, 4).map((p) => p.id)).toEqual(['kizunaai_soniox', 'kizunaai_qwen', 'local_inference', 'gemini']);
+    // Bing, an online translator that is no whole session, sits between them.
+    expect(PROVIDERS.slice(0, 5).map((p) => p.id)).toEqual(['kizunaai_soniox', 'kizunaai_qwen', 'local_inference', 'bing', 'gemini']);
   });
 
   it("lets the participant speak when its switch is on, voiced in its own voice (ruling 5; the participant voice, 2026-10-12)", () => {

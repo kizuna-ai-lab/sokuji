@@ -119,10 +119,6 @@ const TRANSLATION_SESSIONS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * The text models' one session, outside any provider's folder (a provider never imports another's), and the client
- * it asks with: held to the session side's rules by name, since the walk does not follow `src/lib`.
- */
-/**
  * The engine-backed translation and speech sessions live in `src/lib/local-inference/sessions/`, shared by any provider
  * that runs a local engine (the local provider, the Bing and Edge providers), so they sit outside every provider's
  * folder: the walk follows into this folder, and the files that start a session are seeded by the provider that runs
@@ -131,8 +127,22 @@ const TRANSLATION_SESSIONS: Readonly<Record<string, readonly string[]>> = {
 const SHARED_SESSIONS_DIR = 'src/lib/local-inference/sessions';
 const SHARED_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/localInference': [`${SHARED_SESSIONS_DIR}/speechSession.ts`, `${SHARED_SESSIONS_DIR}/translationSession.ts`],
+  // Bing's session is the shared translation session: it has no adapter of its own.
+  'src/providers/bing': [`${SHARED_SESSIONS_DIR}/translationSession.ts`],
 };
 
+/** Providers whose session is a shared one outside their folder, so they keep no `adapter.ts`. */
+const NO_ADAPTER: ReadonlySet<string> = new Set(['src/providers/bing']);
+
+/** Every `.ts` file of the shared sessions folder: each is held to the rules whichever provider reaches it. */
+const sharedSessionFiles = (root: string): string[] => readdirSync(join(root, SHARED_SESSIONS_DIR))
+  .filter((entry) => /\.tsx?$/.test(entry) && !/\.(test|d)\.tsx?$/.test(entry))
+  .map((entry) => `${SHARED_SESSIONS_DIR}/${entry}`);
+
+/**
+ * The text models' one session, outside any provider's folder (a provider never imports another's), and the client
+ * it asks with: held to the session side's rules by name, since the walk does not follow `src/lib`.
+ */
 const TEXT_MODEL_SESSION = ['src/lib/textModel/translation.ts', 'src/lib/textModel/client.ts', 'src/lib/textModel/prompt.ts', 'src/lib/textModel/desktopTransport.ts'];
 
 /**
@@ -141,7 +151,7 @@ const TEXT_MODEL_SESSION = ['src/lib/textModel/translation.ts', 'src/lib/textMod
  */
 function sessionSide(root: string, dir: string): string[] {
   const seen = new Set([
-    `${dir}/adapter.ts`,
+    ...(NO_ADAPTER.has(dir) ? [] : [`${dir}/adapter.ts`]),
     ...[...(VOICE_SESSIONS[dir] ?? []), ...(TRANSLATION_SESSIONS[dir] ?? [])].map((file) => `${dir}/${file}`),
     ...(SHARED_SESSIONS[dir] ?? []),
   ]);
@@ -224,8 +234,11 @@ function importGraph(root: string): { files: string[]; importers: Map<string, Se
 describe('a provider session side', () => {
   it('every provider keeps its adapter in adapter.ts, and the walk follows its folder', () => {
     for (const dir of providerDirs()) {
-      expect(existsSync(join(REPO_ROOT, dir, 'adapter.ts')), `${dir}: missing adapter.ts`).toBe(true);
+      expect(existsSync(join(REPO_ROOT, dir, 'adapter.ts')), `${dir}: ${NO_ADAPTER.has(dir) ? 'has an adapter.ts although its session is a shared one' : 'missing adapter.ts'}`).toBe(!NO_ADAPTER.has(dir));
     }
+    // Bing runs the shared translation session; its own folder is the definition (the settings side), none of it the session's.
+    expect(sessionSide(REPO_ROOT, 'src/providers/bing')).toEqual(expect.arrayContaining([`${SHARED_SESSIONS_DIR}/translationSession.ts`, `${SHARED_SESSIONS_DIR}/errors.ts`]));
+    expect(sessionSide(REPO_ROOT, 'src/providers/bing').filter((f) => f.startsWith('src/providers/bing/'))).toEqual([]);
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).toEqual(
       expect.arrayContaining([
         'src/providers/localInference/adapter.ts',
@@ -374,10 +387,15 @@ describe('a provider session side', () => {
 
   it('a session side imports no store and no reporter as a value', () => {
     expect(providerDirs().flatMap((dir) => storeOffenders(REPO_ROOT, dir))).toEqual([]);
+    // Every file of the shared sessions folder, not only those a provider's value imports reach.
+    expect(sharedSessionFiles(REPO_ROOT).length).toBeGreaterThan(3);
+    expect(sharedSessionFiles(REPO_ROOT).flatMap((file) => valueImports(readFileSync(join(REPO_ROOT, file), 'utf-8'), file)
+      .filter((s) => FORBIDDEN.some((re) => re.test(s))).map((s) => `${file}: ${s}`))).toEqual([]);
   });
 
   it("a session side runs no global timer: every timer reads the request's clock", () => {
     expect(providerDirs().flatMap((dir) => timerOffenders(REPO_ROOT, dir))).toEqual([]);
+    for (const file of sharedSessionFiles(REPO_ROOT)) expect(globalTimerCalls(readFileSync(join(REPO_ROOT, file), 'utf-8'), file), file).toEqual([]);
     // The walk does not follow `src/lib/**`: the one shared module two session sides cut their segments with, by name (Stage 2 translation cuts, choice 1).
     expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
     // Nor the text models' shared session and its client: every deadline is the job translator's, on the request's clock.
