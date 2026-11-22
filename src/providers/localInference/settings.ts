@@ -4,9 +4,11 @@ import type { Selections } from '../../lib/local-inference/selection/types';
 import { getLocalInferenceLanguages, getLocalInferenceTargetLanguages } from '../../lib/local-inference/modelManifest';
 import type { VadEndOfTurn } from '../../lib/turn/smartTurn';
 
-/** One direction's voice (#619): an Edge TTS voice ShortName, and a speaker id for Supertonic and the multi-speaker local models. */
+/**
+ * One direction's voice (#619): a speaker id for Supertonic and the multi-speaker local models. A stored entry may
+ * still carry an `edge` voice, which Edge's own settings migrate from and which is left as stored.
+ */
 export interface DirectionVoice {
-  edge?: string;
   speaker?: number;
 }
 

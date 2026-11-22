@@ -146,7 +146,6 @@ export function LocalVoices({ disabled }: { disabled: boolean }) {
           <div className="local-voices__row" key={dir}>
             <span className="local-voices__label">{label}</span>
             <LocalInferenceVoiceSection ttsModel={modelId} isSessionActive={disabled}
-              edgeVoices={[]} edgeVoiceStatus="loaded" edgeVoice=""
               supertonicVoices={library} supertonicSelectedId={selected}
               onImportVoice={importVoice} onRenameVoice={renameVoice} onDeleteVoice={deleteVoice}
               speakerId={speakerId} numSpeakers={model.numSpeakers ?? 1} onUpdate={(patch) => write(dir, patch)} />

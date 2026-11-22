@@ -51,7 +51,7 @@ function ready() {
 }
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, readiness: {}, stages: {}, stageIds: {}, intent: undefined });
+  useProviderStore.setState({ entries: {}, readiness: {}, stages: {}, intent: undefined });
   useAudioStore.setState({ mode: 'speaker', otherSide: 'meeting' } as never);
   useSettingsStore.setState({ textOnly: false });
   useRoutingStore.setState({ participantSpeech: null });

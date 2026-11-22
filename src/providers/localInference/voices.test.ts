@@ -5,18 +5,18 @@ import type { LocalInferenceSettings } from './settings';
 const table = (v: unknown) => v as LocalInferenceSettings['voices'];
 
 describe('directionVoice', () => {
-  it("reads a direction's Edge voice and speaker id", () => {
-    expect(directionVoice(table({ 'ja→en': { edge: 'en-US-AvaNeural', speaker: 3 } }), 'ja→en')).toEqual({ edge: 'en-US-AvaNeural', speaker: 3 });
+  it("reads a direction's speaker id, and no Edge voice stored beside it", () => {
+    expect(directionVoice(table({ 'ja→en': { edge: 'en-US-AvaNeural', speaker: 3 } }), 'ja→en')).toEqual({ speaker: 3 });
   });
 
   it('reads another direction as nothing set', () => {
     expect(directionVoice(table({ 'ja→en': { edge: 'en-US-AvaNeural' } }), 'en→ja')).toEqual({});
   });
 
-  it('reads a field of the wrong kind as absent, keeping the other', () => {
-    expect(directionVoice(table({ d: { edge: 5, speaker: 2 } }), 'd')).toEqual({ speaker: 2 });
-    expect(directionVoice(table({ d: { edge: '', speaker: 'x' } }), 'd')).toEqual({});
-    expect(directionVoice(table({ d: { edge: 'v', speaker: Number.NaN } }), 'd')).toEqual({ edge: 'v' });
+  it('reads a speaker of the wrong kind as absent', () => {
+    expect(directionVoice(table({ d: { speaker: 2 } }), 'd')).toEqual({ speaker: 2 });
+    expect(directionVoice(table({ d: { speaker: 'x' } }), 'd')).toEqual({});
+    expect(directionVoice(table({ d: { speaker: Number.NaN } }), 'd')).toEqual({});
   });
 
   it('reads a stored table that is not one as nothing set', () => {
@@ -42,10 +42,10 @@ describe('speakerIdFor', () => {
 });
 
 describe('withDirectionVoice', () => {
-  it("writes one direction's field, keeping its other field and every other direction", () => {
+  it("writes one direction's speaker, keeping its other stored fields and every other direction", () => {
     const voices = table({ 'ja→en': { edge: 'en-US-AvaNeural', speaker: 3 }, 'en→ja': { speaker: 5 } });
-    expect(withDirectionVoice(voices, 'ja→en', { edge: 'en-US-GuyNeural' })).toEqual({
-      voices: { 'ja→en': { edge: 'en-US-GuyNeural', speaker: 3 }, 'en→ja': { speaker: 5 } },
+    expect(withDirectionVoice(voices, 'ja→en', { speaker: 6 })).toEqual({
+      voices: { 'ja→en': { edge: 'en-US-AvaNeural', speaker: 6 }, 'en→ja': { speaker: 5 } },
     });
   });
 
@@ -75,5 +75,12 @@ describe('voicesWithoutImported', () => {
   it('changes nothing, and says so, when no direction spoke in it', () => {
     expect(voicesWithoutImported(table({ d: { speaker: 2 } }), 1001, tts({ d: 'supertonic-3' }))).toBeNull();
     expect(voicesWithoutImported(undefined as never, 1001, tts({}))).toBeNull();
+  });
+});
+
+describe('withDirectionVoice and a stored Edge voice', () => {
+  it('a local voice change keeps the Edge voice stored in the same direction', () => {
+    const stored = { 'en→ja': { edge: 'ja-JP-NanamiNeural', speaker: 1 } } as never;
+    expect(withDirectionVoice(stored, 'en→ja', { speaker: 4 }).voices['en→ja']).toEqual({ edge: 'ja-JP-NanamiNeural', speaker: 4 });
   });
 });

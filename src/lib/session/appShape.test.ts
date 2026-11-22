@@ -511,9 +511,9 @@ describe('ensureReadyFromStores', () => {
     expect(asked).toEqual({ text: ['transcription', 'translation'], voice: ['speech'] });
   });
 
-  it("tells it the frozen line-up's ids of those stages, when the run runs a stored line-up", async () => {
-    const asked: Array<CheckContext['stageIds']> = [];
-    const probe = (id: string) => ({ ...fakeProvider, id, kind: 'local', check: vi.fn(async (_k: unknown, _s: unknown, ctx: CheckContext) => { asked.push(ctx.stageIds); return { ok: true as const }; }) }) as unknown as AnyProvider;
+  it("tells it no ids of the line-up, whether the run runs a stored one or not", async () => {
+    const asked: Array<CheckContext> = [];
+    const probe = (id: string) => ({ ...fakeProvider, id, kind: 'local', check: vi.fn(async (_k: unknown, _s: unknown, ctx: CheckContext) => { asked.push(ctx); return { ok: true as const }; }) }) as unknown as AnyProvider;
     const [text, voice] = [probe('text'), probe('voice')];
     const a = { ...planOf(text).units[0], stages: ['transcription', 'translation'] as const };
     const b = { ...planOf(voice).units[0], stages: ['speech'] as const };
@@ -526,9 +526,8 @@ describe('ensureReadyFromStores', () => {
     const signal = new AbortController().signal;
     await ensureReadyFromStores(text, shape, signal);
     await ensureReadyFromStores(voice, shape, signal);
-    // No stored line-up is what runs: its ids name nothing about the stages.
-    await ensureReadyFromStores(text, { ...shape, lineUpStored: false }, signal);
-    expect(asked).toEqual([{ transcription: 'text', translation: 'bing' }, { speech: 'voice' }, undefined]);
+    expect(asked.map((ctx) => ctx.stages)).toEqual([['transcription', 'translation'], ['speech']]);
+    for (const ctx of asked) expect(ctx).not.toHaveProperty('stageIds');
   });
 });
 

@@ -6,7 +6,7 @@ import { usePlan } from '../../lib/plan/fromStores';
 import { providersIn, transcriptionAccount, transcriptionProvider, unitFor } from '../../lib/plan/read';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
-import { directionVoice, withDirectionVoice } from '../../providers/localInference/voices';
+import { storedEdgeVoice, withStoredEdgeVoice } from '../../providers/localInference/voices';
 import { useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
 import { useModelStatuses, useModelStore } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -74,8 +74,8 @@ export function SettingsInitializer() {
         for (const { src, tgt } of onEdge) {
           const dir = directionKey(src, tgt);
           const candidates = filterVoicesByLanguage(voices, tgt);
-          if (candidates.length === 0 || candidates.some((v) => v.ShortName === directionVoice(table, dir).edge)) continue;
-          table = withDirectionVoice(table, dir, { edge: candidates[0].ShortName }).voices;
+          if (candidates.length === 0 || candidates.some((v) => v.ShortName === storedEdgeVoice(table, dir))) continue;
+          table = withStoredEdgeVoice(table, dir, candidates[0].ShortName).voices;
         }
         if (table !== latest.voices) useProviderStore.getState().updateSettings(localInferenceProvider, { voices: table });
       })

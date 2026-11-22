@@ -473,12 +473,12 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
   it("for a provider whose voices sit with its engine, the name opens its voices in the line-up's speech card (B-20)", () => {
     runsOn('local_inference');
     useProviderStore.setState({
-      entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: { 'ja→en': { edge: 'en-US-AvaNeural' } } }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
+      entries: { local_inference: { settings: { ...LOCAL_INFERENCE_DEFAULTS, voices: { 'ja→en': { speaker: 1 } } }, credentials: {}, pair: { source: 'ja', target: 'en' } } },
     } as never);
-    useModelStore.setState({ resolve: () => ({ asr: null, translation: null, tts: { modelId: 'edge-tts', source: 'auto' }, notes: [], prunes: [] }) } as never);
+    useModelStore.setState({ resolve: () => ({ asr: null, translation: null, tts: { modelId: 'supertonic-3', source: 'auto' }, notes: [], prunes: [] }) } as never);
     useSettingsStore.setState({ uiMode: 'basic', settingsNavigationTarget: null, engineSlotTarget: null });
     mount();
-    fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Ava' }));
+    fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Lily' }));
     expect(useSettingsStore.getState().uiMode).toBe('basic');
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('local-voices');

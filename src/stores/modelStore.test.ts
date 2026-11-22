@@ -252,21 +252,21 @@ describe('modelStore.resolve with the line-up\'s local stages', () => {
     expect(r.tts?.modelId).toBe('edge-tts');
   });
 
-  it('a stage the line-up gives to Bing runs Bing whatever is stored, and the stored choice is untouched', () => {
+  it('under a line-up the stored choice is untouched, and a stage this device serves never runs Bing', () => {
     const before = JSON.stringify(stored);
-    const r = useModelStore.getState().resolve('ja', 'en', stored, { translation: 'bing', speech: 'local' });
-    expect(r.translation).toEqual({ modelId: 'bing-translator', variant: undefined, source: 'explicit' });
+    const r = useModelStore.getState().resolve('ja', 'en', stored, { translation: 'local', speech: 'local' });
+    expect(r.translation?.modelId).toBe('local-mt');
     expect(JSON.stringify(stored)).toBe(before);
   });
 
-  // PR review: Bing has its own list of languages; a pair outside it must not be handed to Bing.
-  it('a stage the line-up gives to Bing stays on this machine for a pair Bing does not support', () => {
+  // Bing has its own list of languages, but it is no model of this machine: a pair outside it is the same as any.
+  it('a stage this device serves stays on this machine, for a pair Bing does not support too', () => {
     vi.mocked(isTranslationModelCompatible).mockImplementation((m: { id: string }, _s: string, t: string) => m.id !== 'bing-translator' || t !== 'gu');
     try {
       const gu = directionKey('ja', 'gu');
-      const r = useModelStore.getState().resolve('ja', 'gu', { [gu]: { asr: { modelId: '' }, translation: { modelId: 'local-mt' }, tts: { modelId: '' } } }, { translation: 'bing', speech: 'edge' });
+      const r = useModelStore.getState().resolve('ja', 'gu', { [gu]: { asr: { modelId: '' }, translation: { modelId: 'local-mt' }, tts: { modelId: '' } } }, { translation: 'local', speech: 'local' });
       expect(r.translation?.modelId).toBe('local-mt');
-      expect(r.tts?.modelId).toBe('edge-tts');
+      expect(r.tts?.modelId).toBe('local-tts');
     } finally {
       vi.mocked(isTranslationModelCompatible).mockImplementation(() => true);
     }

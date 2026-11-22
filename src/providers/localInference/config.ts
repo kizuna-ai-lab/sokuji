@@ -2,7 +2,6 @@ import { wordsFor } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import { localStagesOf, type LocalStages } from '../../lib/lineup/localStages';
-import { storedLocalStages } from '../../stores/lineUpStore';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
@@ -112,12 +111,12 @@ export function translatesSpeechDirectly(asrModelId: string | undefined, transla
 }
 
 /**
- * Whether translation and speech go to Bing and Edge or to this machine's models, for a build: from the line-up a
- * run froze at its start when it hands one over, else from the stored line-up (a caller outside a run). Null: no
- * line-up says, and a direction resolves with Bing and Edge among the local choices.
+ * Which stages of the engine this machine serves, for a build: from the line-up a run froze at its start when it
+ * hands one over. Null: none says (or it gives this provider no stage), and a direction resolves as it does
+ * without a line-up. The whole local session's build only; the units of this provider never resolve with null.
  */
 export function localStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalStages | null {
-  return shared.lineUp ? localStagesOf(shared.lineUp) : storedLocalStages();
+  return localStagesOf(shared.lineUp ?? null);
 }
 
 /**
@@ -135,7 +134,7 @@ export function resolveLocal(direction: SessionContext['direction'], s: LocalInf
 /** The voice a direction speaks in on `modelId`: each direction has its own (#619). */
 export function localTts(direction: SessionContext['direction'], s: LocalInferenceSettings, modelId: string): LocalTtsConfig {
   const voice = directionVoice(s.voices, directionKey(direction.source, direction.target));
-  return { modelId, speakerId: speakerIdFor(voice, modelId), speed: s.ttsSpeed, edgeVoice: voice.edge };
+  return { modelId, speakerId: speakerIdFor(voice, modelId), speed: s.ttsSpeed };
 }
 
 /** Why a leg that should speak has no speech model. Which leg this is, the runner tells outright (`shared.reversed`). */

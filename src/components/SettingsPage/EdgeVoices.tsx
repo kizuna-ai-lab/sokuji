@@ -14,7 +14,7 @@ import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { directionKey } from '../../lib/local-inference/selection/types';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
-import { directionVoice, withDirectionVoice } from '../../providers/localInference/voices';
+import { storedEdgeVoice, withStoredEdgeVoice } from '../../providers/localInference/voices';
 import { useProviderStore } from '../../stores/providerStore';
 import { languageNameFor } from '../Settings/engine/languageName';
 import { useRunPair } from '../providers/useProviderEntry';
@@ -64,7 +64,7 @@ export function EdgeVoices({ disabled }: { disabled: boolean }) {
   if (!settings || rows.length === 0) return null;
 
   const write = (dir: string, edge: string) =>
-    useProviderStore.getState().updateSettings(localInferenceProvider, withDirectionVoice(settings.voices, dir, { edge }));
+    useProviderStore.getState().updateSettings(localInferenceProvider, withStoredEdgeVoice(settings.voices, dir, edge));
 
   const play = async (voice: string, language: string) => {
     playing.current?.abort();
@@ -81,7 +81,7 @@ export function EdgeVoices({ disabled }: { disabled: boolean }) {
       {rows.map(({ dir, language, who }) => {
         const label = t('settingsPage.lineup.edgeVoices.voiceFor', '{{who}} ({{language}})', { who, language: languageNameFor(language) });
         const voices = filterVoicesByLanguage(all, language);
-        const value = directionVoice(settings.voices, dir).edge ?? '';
+        const value = storedEdgeVoice(settings.voices, dir) ?? '';
         const placeholder = status === 'loading' ? t('settings.loadingVoices', 'Loading voices...')
           : status === 'error' ? t('settings.edgeTtsVoiceLoadError', 'Failed to load voices — check LogsPanel')
           : voices.length === 0 ? t('settings.edgeTtsNoVoicesForLanguage', 'No voices available for this language')

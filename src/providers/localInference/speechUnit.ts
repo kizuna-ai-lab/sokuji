@@ -1,18 +1,16 @@
 /**
- * The local provider's voice as a unit that only speaks: Edge, or a speech
- * model on this machine, reading the translations of whichever unit makes
+ * The local provider's voice as a unit that only speaks: a speech model on
+ * this machine, reading the translations of whichever unit makes
  * them. Its config is the leg's voice, resolved as the whole local session
  * resolves it; its session is `speechSession.ts`.
  */
 import type { LegName } from '../../lib/conversation/types';
 import { canonicalTag } from '../../lib/language/code';
-import { localSpeechStagesOf, type LocalStages } from '../../lib/lineup/localStages';
-import { EDGE_TTS_LANGUAGES } from '../../lib/local-inference/languageSupport';
+import { localSpeechStagesOf } from '../../lib/lineup/localStages';
 import { getTtsModelsForLanguage } from '../../lib/local-inference/modelManifest';
 import { SP } from '../../lib/lineup/types';
 import { sameStages, type UnitDefinition } from '../../lib/plan/types';
 import type { ProviderRefusal } from '../../lib/provider/types';
-import { storedLocalStages } from '../../stores/lineUpStore';
 import type { LocalCredentials } from './adapter';
 import { fitsBudget, localTts, resolveLocal, ttsMissingCode } from './config';
 import { defaultEngines, type LocalEngines } from './engines';
@@ -38,23 +36,17 @@ function baseOf(language: string): string {
 }
 
 /**
- * Whether the local provider's voice reads `language`. Edge, where the line-up gives speech to it: Edge's own
- * list. A speech model on this machine: some model of the catalog speaks it, downloaded or not (one not
- * downloaded is said when the session starts, and can be downloaded). With no line-up stored, either.
+ * Whether the local provider's voice reads `language`: some speech model on this machine speaks it, downloaded or
+ * not (one not downloaded is said when the session starts, and can be downloaded).
  */
-export function localSpeaks(language: string, stages: LocalStages | null): boolean {
+export function localSpeaks(language: string): boolean {
   const base = baseOf(language);
-  const edge = EDGE_TTS_LANGUAGES.some((l) => baseOf(l) === base);
-  const local = [language, base].some((code) => getTtsModelsForLanguage(code).some((m) => !m.isCloudModel));
-  if (stages?.speech === 'edge') return edge;
-  if (stages === null) return edge || local;
-  return local;
+  return [language, base].some((code) => getTtsModelsForLanguage(code).some((m) => !m.isCloudModel));
 }
 
 /**
- * The local provider's speech unit: speech, and only when asked for exactly that. The model is Edge's when the
- * line-up gives speech to Edge, else the direction's local voice model; with no line-up handed over, what the
- * whole local session resolves for the direction. A leg that should speak and has no model for its target is
+ * The local provider's speech unit: speech, and only when asked for exactly that. The model is the direction's
+ * local voice model, resolved as the whole local session resolves it. A leg that should speak and has no model for its target is
  * built silent and says so when it opens, as the whole local session does: its subtitles go on.
  */
 export function createLocalSpeechUnit(deps: LocalSpeechUnitDeps = {}): LocalSpeechUnit {
@@ -71,12 +63,11 @@ export function createLocalSpeechUnit(deps: LocalSpeechUnitDeps = {}): LocalSpee
       textInput: false,
       faceToFace: true,
       participantSpeech: true,
-      speaks: (language) => localSpeaks(language, storedLocalStages()),
+      speaks: localSpeaks,
     }),
     build: (context, s, shared) => {
       if (!context.speech) return { off: true };
-      const stages = shared.lineUp ? localSpeechStagesOf(shared.lineUp) : storedLocalStages();
-      const { tts } = resolveLocal(context.direction, s, stages);
+      const { tts } = resolveLocal(context.direction, s, localSpeechStagesOf(shared.lineUp ?? null));
       if (!tts) return { off: true, unavailable: ttsMissingCode(context.direction, shared) };
       return localTts(context.direction, s, tts.modelId);
     },
@@ -111,7 +102,7 @@ export function areLocalSpeechConfigs(configs: Partial<Record<LegName, unknown>>
 
 /**
  * The memory budget of a run in which the local provider only speaks: the voice models of the legs that speak,
- * and nothing else (Edge takes none). Over budget, the start is refused.
+ * and nothing else. Over budget, the start is refused.
  */
 export function admitLocalSpeech(configs: Partial<Record<LegName, LocalSpeechConfig>>): true | ProviderRefusal {
   const ids = Object.values(configs).flatMap((c) => (c && !isOff(c) ? [c.modelId] : []));

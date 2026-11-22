@@ -28,7 +28,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { compose } from '../plan/compose';
 import { buildPlan, describePlan } from '../plan/composite';
 import { planFromStores } from '../plan/fromStores';
-import { checkStageIdsOf, checkStagesOf, transcriptionProvider } from '../plan/read';
+import { checkStagesOf, transcriptionProvider } from '../plan/read';
 import type { RunPlan } from '../plan/types';
 import type { AnyProvider, SharedSettings } from '../provider/types';
 import { ensureReadyFromStores, faceToFaceFromStores, lineUpNoticeFromStores, liveGate, readShapeFromStores } from './appShape';
@@ -55,7 +55,7 @@ function ready() {
 }
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, readiness: {}, stages: {}, stageIds: {}, intent: undefined });
+  useProviderStore.setState({ entries: {}, readiness: {}, stages: {}, intent: undefined });
   useAudioStore.setState({ mode: 'speaker', otherSide: 'meeting' } as never);
   useSettingsStore.setState({ textOnly: false });
   useRoutingStore.setState({ participantSpeech: null });
@@ -205,10 +205,9 @@ describe('what a start needs of each provider, each named in its own notice', ()
     await stored(lineUp('soniox', 'local_inference', 'edge'), {});
     useProviderStore.getState().setPair(sonioxProvider, { source: 'en', target: 'ja' });
     const plan = ready().plan;
-    // What its check is told: the two stages it serves and their ids.
+    // What its check is told: the stages it serves.
     const stages = checkStagesOf(plan, localInferenceProvider);
     expect(stages).toEqual(['translation']);
-    expect(checkStageIdsOf(stages, useLineUpStore.getState().lineUp)).toEqual({ translation: 'local_inference' });
     expect(checkStagesOf(plan, edgeProvider)).toEqual(['speech']);
     expect(checkStagesOf(plan, sonioxProvider)).toEqual(['transcription']);
     expect(await check(localInferenceProvider)).toMatchObject({ state: 'not-ready', code: 'local_models_missing' });

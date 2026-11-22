@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStoredLocalStages } from '../../stores/lineUpStore';
 import type { VoiceSummaryProps } from '../../lib/provider/types';
-import { voiceNameFromShortName } from '../../lib/edge-tts/voiceList';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import { shortenModelName } from '../../lib/local-inference/modelName';
 import { dbKeyFromImportedSid } from '../../lib/local-inference/sidMapping';
@@ -14,7 +13,7 @@ import { directionVoice, speakerIdFor } from './voices';
 
 /**
  * The voice a spoken leg reads in (#619), from its direction's resolved TTS
- * model and `voices` entry: an Edge voice by its own name; a Supertonic
+ * model and `voices` entry: a Supertonic
  * preset by name, an imported one as a custom voice (its name lives in
  * IndexedDB); another multi-speaker model by its short name and speaker
  * number, as the Library edits it; a single-voice model by its short name.
@@ -33,7 +32,6 @@ export function LocalInferenceVoiceSummary({ settings, pair = FALLBACK_PAIR, leg
   const entry = getManifestEntry(ttsId);
   const modelName = entry ? shortenModelName(entry.name, entry.shortName) : ttsId;
   const voice = directionVoice(settings.voices, directionKey(src, tgt));
-  if (entry?.engine === 'edge-tts') return <>{voice.edge ? voiceNameFromShortName(voice.edge) : modelName}</>;
   const sid = speakerIdFor(voice, ttsId);
   if (entry?.engine === 'supertonic') {
     if (dbKeyFromImportedSid(sid) !== null) return <>{t('settings.voiceCustom', 'Custom voice')}</>;

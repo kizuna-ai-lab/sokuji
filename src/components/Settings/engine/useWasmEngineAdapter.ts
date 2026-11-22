@@ -38,13 +38,14 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
   const sourceLanguage = override.pair.source;
   const targetLanguage = override.pair.target;
   const selections = override.settings.selections;
-  // A stored line-up gives Bing and Edge stages of their own: the local list and its automatic picks leave them out.
+  // Bing and Edge are providers of their own: the local list and its automatic picks never hold them. A stored line-up
+  // also says which stages this machine serves.
   const stages = useStoredLocalStages();
 
   return useMemo<EngineAdapter>(() => {
     const speaker = directionKey(sourceLanguage, targetLanguage);
     const participant = directionKey(targetLanguage, sourceLanguage);
-    const source = wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures, withCloud: stages === null });
+    const source = wasmCandidates({ modelStatuses, webgpuAvailable, deviceFeatures, withCloud: false });
     const split = (dir: string): [string, string] => {
       const i = dir.indexOf('→');
       return [dir.slice(0, i), dir.slice(i + 1)];

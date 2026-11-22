@@ -11,7 +11,7 @@ import { stageIdsFor } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
-import { accountOf, capabilitiesOf, checkStageIdsOf, checkStagesOf, providersIn, servesSpeech, transcriptionAccount, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, checkStagesOf, providersIn, servesSpeech, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import type { PlanRefusal, UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
@@ -315,10 +315,9 @@ export function ensureReadyFromStores(provider: AnyProvider, shape: RunShape, si
   // The stages it serves in the run's plan, when another provider serves the rest.
   const stages = checkStagesOf(shape.plan, provider);
   // The ids the run's frozen line-up gives those stages, when a stored line-up is what runs.
-  const stageIds = checkStageIdsOf(stages, shape.lineUpStored ? shape.lineUp : null);
   return useProviderStore.getState().refreshReadiness(
     provider, shape.auth,
-    { settings, credentials, pair: shape.pair, legs: shape.legs, ...(stages ? { stages } : {}), ...(stageIds ? { stageIds } : {}) },
+    { settings, credentials, pair: shape.pair, legs: shape.legs, ...(stages ? { stages } : {}) },
     signal,
   );
 }

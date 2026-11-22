@@ -244,7 +244,7 @@ describe('SettingsInitializer', () => {
     describe('with a stored line-up that is all on this device', () => {
       /** The resolver as it reads a stored line-up: Edge wherever the line-up gives speech to it, else what the local selections pick. */
       const byLineUp = (picked: string) => (_src: string, _tgt: string, _selections: unknown, stages?: LocalStages | null) =>
-        direction(stages?.speech === 'edge' ? 'edge-tts' : stages?.speech === 'local' ? 'piper-ja' : picked);
+        direction((stages?.speech as string | null | undefined) === 'edge' ? 'edge-tts' : stages?.speech === 'local' ? 'piper-ja' : picked);
       const store = (speech: 'edge' | 'local_inference') =>
         useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech, summarisation: null }, stored: true, unstoredProvider: null });
 
