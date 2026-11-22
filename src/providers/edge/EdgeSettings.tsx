@@ -86,7 +86,10 @@ export function EdgeSettingsView({ settings, update, disabled = false, pair: own
           {rows.map(({ dir, language, who }) => {
             const label = t('settingsPage.lineup.edgeVoices.voiceFor', '{{who}} ({{language}})', { who, language: languageNameFor(language) });
             const voices = filterVoicesByLanguage(all, language);
-            const value = settings.voices[dir] ?? '';
+            // What is shown is what plays and what is stored: no stored voice, or one this language does not list, is the
+            // first listed voice, the one SettingsInitializer stores for it.
+            const stored = settings.voices[dir];
+            const value = voices.find((v) => v.ShortName === stored)?.ShortName ?? voices[0]?.ShortName ?? '';
             const placeholder = status === 'loading' ? t('settings.loadingVoices', 'Loading voices...')
               : status === 'error' ? t('settings.edgeTtsVoiceLoadError', 'Failed to load voices — check LogsPanel')
               : voices.length === 0 ? t('settings.edgeTtsNoVoicesForLanguage', 'No voices available for this language')

@@ -66,6 +66,21 @@ describe("Edge's settings", () => {
     expect(mine).toHaveValue('ja-JP-NanamiNeural');
   });
 
+  it('with no voice stored for a direction, shows the first listed voice, previews it, and stores it when chosen', async () => {
+    given({ voices: {}, participantSpeech: false });
+    render(<EdgeCard />);
+    const mine = await screen.findByRole('combobox', { name: 'Translation the other side hears (English)' });
+    await waitFor(() => expect(within(mine).getAllByRole('option')).toHaveLength(2));
+    expect(mine).toHaveValue('en-US-AvaNeural');
+    const button = screen.getByRole('button', { name: /^Preview / });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+    await waitFor(() => expect(preview.make).toHaveBeenCalledWith('en-US-AvaNeural', 'en', expect.anything()));
+    fireEvent.change(mine, { target: { value: 'en-US-AndrewNeural' } });
+    fireEvent.change(mine, { target: { value: 'en-US-AvaNeural' } });
+    expect(saved().voices['ja→en']).toBe('en-US-AvaNeural');
+  });
+
   it("keeps a choice in that direction's voice, the other direction's untouched", async () => {
     given({ voices: { 'en→ja': 'ja-JP-NanamiNeural' } });
     render(<EdgeCard />);
