@@ -243,9 +243,12 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   };
 }
 
-/** A refusal of the line-up as the stores stand, as the notice every surface words: it names the stored line-up's option. */
+/**
+ * A refusal of the line-up as the stores stand, as the notice every surface words: it names the option of the line-up
+ * that runs (`lineUpThatRuns`: the stored one, or the one shown where this device runs before one is stored).
+ */
 function planRefused(refusal: PlanRefusal): Refusal {
-  const { lineUp, stored } = useLineUpStore.getState();
+  const { lineUp, stored } = lineUpThatRuns();
   return refusalNotice(refusal, stored ? lineUp : null, presentProviders());
 }
 

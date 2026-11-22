@@ -202,6 +202,20 @@ describe('readShapeFromStores — the line-up id that serves each stage', () => 
     expect(providersIn(shape.plan).map((p) => p.id)).toEqual(['local_inference', 'bing', 'edge']);
   });
 
+  // The line-up shown where this device runs is the one that runs before one is stored: a refusal of it names its option,
+  // as a stored one's does (a split names the option the stage goes with, which only the line-up tells).
+  it("a refusal of the line-up shown where this device runs names that line-up's option, as a stored one's does", () => {
+    const gemini = { settings: presentProviders().find((p) => p.id === 'gemini')!.settings.defaults, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } };
+    useProviderStore.setState({ entries: { local_inference: localEntry, gemini, edge: entryOf('edge') } });
+    const split = { transcription: 'local_inference', translation: 'gemini', speech: 'edge', summarisation: null };
+    const refusal = { code: 'lineup_stage_split', params: { stage: 'transcription', provider: 'gemini' } };
+    useLineUpStore.setState({ lineUp: split, stored: false, unstoredProvider: 'local_inference' });
+    expect(planRefusalFromStores()).toMatchObject(refusal);
+    expect(lineUpNoticeFromStores()).toMatchObject({ ...refusal, stage: 'transcription' });
+    useLineUpStore.setState({ lineUp: split, stored: true, unstoredProvider: null });
+    expect(planRefusalFromStores()).toMatchObject(refusal);
+  });
+
   it('freezes the stored line-up, not the provider that ran before it was stored', () => {
     runsOn('fake');
     useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } }, local_inference: localEntry, bing: entryOf('bing'), edge: entryOf('edge') } });
