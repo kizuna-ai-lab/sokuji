@@ -45,6 +45,7 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
 
   // Text only is offered: a leg that does not speak asks for text alone.
   speech: 'optional',
+  endToEnd: true,
   // An interpreter takes no typed text.
   textInput: () => false,
   // The server cuts each turn: on a change of speaker or 2.5 s of silence, or at a push-to-talk release.

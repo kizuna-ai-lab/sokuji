@@ -59,6 +59,7 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
 
   // Text only is the API's own: a leg that does not speak asks for text alone.
   speech: 'optional',
+  endToEnd: true,
   textInput: () => true,
   // The server's commits and responses end segments (the old offer: Auto); cutting by sentences is offered too.
   boundaries: () => 'provider',

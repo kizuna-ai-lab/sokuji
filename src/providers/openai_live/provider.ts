@@ -54,6 +54,7 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
 
   // Text only is offered (ruling 1): the API always speaks — and bills the audio — and a leg that does not speak drops it; the participant speaks on its switch.
   speech: 'optional',
+  endToEnd: true,
   // An interpreter takes no typed text (ruling 9).
   textInput: () => false,
   // Our own silence timers end segments (the old offer: pause, no auto, sizes).

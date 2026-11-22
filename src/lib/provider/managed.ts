@@ -87,6 +87,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     build: base.build,
     describe: base.describe,
     start: base.start,
+    ...(base.endToEnd ? { endToEnd: true as const } : {}),
     ...(o.units ? { units: o.units } : {}),
     // The base's `startBoth` only: its other hooks (`prepare`, `admit`, `acquire`) are the base's own business, never the twin's.
     session: { ...(base.session?.startBoth ? { startBoth: base.session.startBoth } : {}), ...o.session },

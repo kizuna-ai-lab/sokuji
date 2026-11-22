@@ -489,6 +489,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * own. Absent: one unit that is the whole provider, from `build`, `describe` and `start` (`unitsOf`).
    */
   units?: readonly UnitDefinition[];
+  /**
+   * An end-to-end service: one connection does every stage, and a line-up takes it for all three or for none. Its units
+   * may serve transcription and translation without speaking (a text-only session of it), but no other voice reads its
+   * text: it is not known, per vendor, to stop making — and charging for — audio when asked for text alone. The line-up
+   * catalog reads it (`capsOf`): its `joint` is every stage and its `takesVoice` false, whatever its units say.
+   */
+  endToEnd?: true;
 
   // across legs and time — optional
   session?: SessionHooks<S, K, C>;
