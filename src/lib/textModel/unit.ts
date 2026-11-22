@@ -45,10 +45,12 @@ export function migrateTextModelSettings(stored: Readonly<Record<string, unknown
 }
 
 /**
- * The fields the check reads: a change of model or reasoning checks again, the notes' too (the Notes card's check
- * reads them). The key and the address are credentials.
+ * The fields the run's check reads: a change of the translation's model or reasoning checks again. Not the notes':
+ * notes are not a run stage, and the Notes card keeps its own answers, keyed on the notes' choices
+ * (`components/SettingsPage/notesReadiness.ts`), so a notes edit never makes Start wait. The key and the address are
+ * credentials.
  */
-export const TEXT_MODEL_CHECK_READS = ['translationModel', 'translationReasoning', 'notesModel', 'notesReasoning'] as const;
+export const TEXT_MODEL_CHECK_READS = ['translationModel', 'translationReasoning'] as const;
 
 /** A text model translates, and does nothing else a session asks of a unit. */
 export const TEXT_MODEL_CAPABILITIES: UnitCapabilities = {

@@ -169,9 +169,9 @@ describe('the invariants every provider meets (F17)', () => {
       soniox: ['region'],
       palabraai: ['authMode'],
       // A text model's check tries the model and the reasoning chosen for the translation, and for the notes.
-      openai_text: ['translationModel', 'translationReasoning', 'notesModel', 'notesReasoning'],
-      gemini_text: ['translationModel', 'translationReasoning', 'notesModel', 'notesReasoning'],
-      openai_compatible: ['translationModel', 'translationReasoning', 'notesModel', 'notesReasoning'],
+      openai_text: ['translationModel', 'translationReasoning'],
+      gemini_text: ['translationModel', 'translationReasoning'],
+      openai_compatible: ['translationModel', 'translationReasoning'],
     });
   });
 
