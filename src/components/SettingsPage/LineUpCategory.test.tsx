@@ -232,6 +232,91 @@ describe('languages and line-up', () => {
     expect(speech).not.toContain('Bing');
   });
 
+  describe("a text model for the translation (text models, part B)", () => {
+    const textLineUp = { transcription: 'soniox', translation: 'openai_text', speech: 'soniox', summarisation: null };
+    const entry = (id: string, credentials: Record<string, string>) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair: { source: 'en', target: 'ja' } });
+    const translationCard = () => screen.getByRole('combobox', { name: 'Translation' }).closest('.lineup-stage') as HTMLElement;
+
+    it('the Translation list offers the three on the desktop, each blocked until its key is there; the compatible service may be chosen before its address', () => {
+      useLineUpStore.setState({ lineUp: soniox, stored: true });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_text: entry('openai_text', { apiKey: 'test-key-0000' }), gemini_text: entry('gemini_text', { apiKey: '' }), openai_compatible: entry('openai_compatible', { baseUrl: '', apiKey: '' }) } as never });
+      render(<LineUpCategory locked={false} />);
+      const translation = optionTexts('Translation');
+      expect(translation).toEqual(expect.arrayContaining(['OpenAI text model', 'Gemini text model (needs a key)', 'OpenAI-compatible service']));
+      // Only for translation: never offered to transcribe or to speak.
+      for (const name of ['OpenAI text model', 'Gemini text model', 'OpenAI-compatible service']) {
+        expect(optionTexts('Transcription and translation').some((t) => t.startsWith(name))).toBe(false);
+        expect(optionTexts('Speech').some((t) => t.startsWith(name))).toBe(false);
+      }
+    });
+
+    it('chosen under Soniox, it keeps Soniox transcribing and its voice; the card is its own, with its options', async () => {
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_text: entry('openai_text', { apiKey: 'test-key-0000' }) } as never });
+      render(<LineUpCategory locked={false} />);
+      fireEvent.change(screen.getByRole('combobox', { name: 'Translation' }), { target: { value: 'openai_text' } });
+      await waitFor(() => expect(tracked).toHaveLength(1));
+      expect(useLineUpStore.getState().lineUp).toMatchObject(textLineUp);
+      expect(tracked).toContainEqual(['lineup_changed', { stage: 'translation', from: 'soniox', to: 'openai_text', moved: [], during_session: false }]);
+      fireEvent.click(within(translationCard()).getByRole('button', { name: 'OpenAI text model options' }));
+      expect(translationCard().querySelector('#provider-own-settings')).toHaveAttribute('data-provider', 'openai_text');
+      expect(translationCard().querySelector('#provider-own-settings')).toHaveAttribute('data-stage', 'translation');
+    });
+
+    it("the card's state: a key missing leads to its row; a key refused, to its row; another refusal of the check is said in the check's words", () => {
+      useLineUpStore.setState({ lineUp: textLineUp, stored: true });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_text: entry('openai_text', { apiKey: '' }) } as never });
+      const first = render(<LineUpCategory locked={false} />);
+      const state = () => translationCard().querySelector('.lineup-stage__state') as HTMLElement;
+      expect(state()).toHaveTextContent('Needs a key');
+      fireEvent.click(state());
+      expect(useSettingsStore.getState().settingsNavigationTarget).toBe(providerTarget('openai_text'));
+      first.unmount();
+      useProviderStore.setState({
+        entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_text: entry('openai_text', { apiKey: 'test-key-0000' }) } as never,
+        readiness: { openai_text: { state: 'not-ready', code: 'auth', reason: 'Incorrect API key provided.', params: { provider: 'openai_text' } } },
+      });
+      const second = render(<LineUpCategory locked={false} />);
+      expect(state()).toHaveTextContent('Key not accepted');
+      second.unmount();
+      useProviderStore.setState({ readiness: { openai_text: { state: 'not-ready', code: 'refused', reason: "Unsupported value: 'reasoning_effort' does not support 'minimal' with this model." } } });
+      const third = render(<LineUpCategory locked={false} />);
+      expect(state()).toHaveTextContent('Not ready');
+      expect(within(translationCard()).getByRole('status')).toHaveTextContent("The provider rejected the request: Unsupported value: 'reasoning_effort' does not support 'minimal' with this model.");
+      third.unmount();
+      // The service out of reach: the check threw, which the store keeps with no code. The key is not verified, and
+      // leads to its row; nothing is said as the service's refusal.
+      useProviderStore.setState({ readiness: { openai_text: { state: 'not-ready', reason: 'The service could not be reached: Failed to fetch' } } });
+      render(<LineUpCategory locked={false} />);
+      expect(state()).toHaveTextContent('Key not verified');
+      expect(within(translationCard()).queryByRole('status')).toBeNull();
+    });
+
+    it('a compatible service never set up, with nothing stored for it, needs an address, not a key', () => {
+      useLineUpStore.setState({ lineUp: { ...textLineUp, translation: 'openai_compatible' }, stored: true });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }) } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(translationCard().querySelector('.lineup-stage__state')).toHaveTextContent('Needs an address');
+    });
+
+    it('a compatible service with no address says so, and leads to where it is entered; a model not chosen is said on the card', () => {
+      useLineUpStore.setState({ lineUp: { ...textLineUp, translation: 'openai_compatible' }, stored: true });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_compatible: entry('openai_compatible', { baseUrl: '', apiKey: '' }) } as never });
+      const first = render(<LineUpCategory locked={false} />);
+      const state = () => translationCard().querySelector('.lineup-stage__state') as HTMLElement;
+      expect(state()).toHaveTextContent('Needs an address');
+      fireEvent.click(state());
+      expect(useSettingsStore.getState().settingsNavigationTarget).toBe(providerTarget('openai_compatible'));
+      first.unmount();
+      useProviderStore.setState({
+        entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_compatible: entry('openai_compatible', { baseUrl: 'http://localhost:11434/v1', apiKey: '' }) } as never,
+        readiness: { openai_compatible: { state: 'not-ready', code: 'text_model_unset', reason: 'No model is chosen.' } },
+      });
+      render(<LineUpCategory locked={false} />);
+      expect(state()).toHaveTextContent('Not ready');
+      expect(within(translationCard()).getByRole('status')).toHaveTextContent('Choose a model for the translation, or type its name, in “Languages and line-up”.');
+    });
+  });
+
   it('a choice goes through the line-up store and moves no other stage', async () => {
     render(<LineUpCategory locked={false} />);
     fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'edge' } });

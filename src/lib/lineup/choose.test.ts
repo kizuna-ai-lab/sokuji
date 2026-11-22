@@ -66,6 +66,36 @@ describe('choosing a provider for a stage', () => {
   it('an end-to-end provider takes all three and leaves the notes alone', () => {
     expect(choose({ ...soniox, summarisation: 'x' }, 'speech', 'openai_live').lineUp).toEqual({ transcription: 'openai_live', translation: 'openai_live', speech: 'openai_live', summarisation: 'x' });
   });
+  it('a text model chosen for translation keeps a transcriber that stands alone, Soniox (either) or this device, and its voice', () => {
+    for (const from of [soniox, kizuna, local, { ...soniox, speech: 'edge' }, { ...local, speech: 'soniox' }, { ...kizuna, translation: 'bing' }]) {
+      for (const id of ['openai_text', 'gemini_text', 'openai_compatible']) {
+        const chosen = choose(from, 'translation', id);
+        expect(chosen, `${JSON.stringify(from)} ${id}`).toEqual({ lineUp: { ...from, translation: id }, moved: [] });
+        expect(isRefusal(compose(chosen.lineUp, input)), JSON.stringify(chosen.lineUp)).toBe(false);
+      }
+    }
+  });
+
+  it("a text model chosen for translation under an end-to-end provider moves its transcription and voice to this device's defaults: this device's recognition and Edge", () => {
+    for (const from of [gemini, { transcription: 'openai_live', translation: 'openai_live', speech: 'openai_live', summarisation: null }, { transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen', summarisation: 'x' }]) {
+      const chosen = choose(from, 'translation', 'openai_text');
+      expect(chosen).toEqual({ lineUp: { transcription: 'local_inference', translation: 'openai_text', speech: 'edge', summarisation: from.summarisation }, moved: ['transcription', 'speech'] });
+      const plan = compose(chosen.lineUp, input);
+      expect(isRefusal(plan)).toBe(false);
+      // Recognition alone on this device, the text model, and Edge on this device: three units.
+      if (!isRefusal(plan)) expect(plan.units.map((u) => [u.provider.id, u.unit.id])).toEqual([['local_inference', 'transcription'], ['openai_text', 'translation'], ['local_inference', 'speech']]);
+    }
+  });
+
+  it('a transcriber chosen over a text model keeps it, where it transcribes alone; an end-to-end provider takes the translation back', () => {
+    const textLineUp = { ...soniox, translation: 'gemini_text' };
+    expect(choose(textLineUp, 'transcription', 'local_inference')).toEqual({ lineUp: { ...textLineUp, transcription: 'local_inference' }, moved: [] });
+    expect(choose(textLineUp, 'transcription', 'kizunaai_soniox')).toEqual({ lineUp: { ...textLineUp, transcription: 'kizunaai_soniox' }, moved: [] });
+    expect(choose(textLineUp, 'transcription', 'gemini').lineUp).toMatchObject(gemini);
+    // Soniox chosen to translate takes its own transcription with it, as from any other translator.
+    expect(choose({ ...local, translation: 'openai_text' }, 'translation', 'soniox')).toEqual({ lineUp: { ...soniox, speech: 'edge' }, moved: ['transcription'] });
+  });
+
   it('on the local host a single stage changes alone', () => { expect(choose(local, 'translation', 'local_inference')).toEqual({ lineUp: { ...local, translation: 'local_inference' }, moved: [] }); });
 
   it('a voice chosen under another provider\'s text moves nothing', () => {
@@ -231,7 +261,12 @@ describe('choosing a provider for a stage', () => {
     // legs (`checkPlan`): `lineup_source_not_fixed`, `lineup_pair_not_translated`, `lineup_face_to_face_apart`
     // and `lineup_language_not_spoken`.
     expect([...refusals].sort()).toEqual(REACHABLE_REFUSALS);
-    // The line-ups whose transcription and translation are apart: Soniox, either one, under Bing or this device.
-    expect([...new Set(separate)].sort()).toEqual(['kizunaai_soniox>bing', 'kizunaai_soniox>local_inference', 'soniox>bing', 'soniox>local_inference']);
+    // The line-ups whose transcription and translation are apart: Soniox, either one, under Bing or this device; and
+    // Soniox, either one, or this device, under a text model.
+    const textModels = ['openai_text', 'gemini_text', 'openai_compatible'];
+    expect([...new Set(separate)].sort()).toEqual([
+      'kizunaai_soniox>bing', 'kizunaai_soniox>local_inference', 'soniox>bing', 'soniox>local_inference',
+      ...['kizunaai_soniox', 'soniox', 'local_inference'].flatMap((heard) => textModels.map((model) => `${heard}>${model}`)),
+    ].sort());
   });
 });

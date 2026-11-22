@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Trash2 } from 'lucide-react';
 import { addWords, normaliseEntries, useWordList, type WordEntry } from '../../lib/words/list';
 import { WORD_LIMITS } from '../../lib/words/forService';
+import { TEXT_MODEL_PROVIDERS } from '../../lib/textModel/ids';
 import FormInput from '../Settings/shared/FormInput';
 import type { CategoryBodyProps } from './SettingsPage';
 import './WordsCategory.scss';
@@ -131,7 +132,10 @@ export function WordsCategory({ locked }: CategoryBodyProps) {
         <tbody>
           {Object.entries(WORD_LIMITS).map(([id, limit]) => (
             <tr key={id}>
-              <th scope="row">{SERVICE_NAMES[id] ?? t('settingsPage.wordList.thisDevice', 'This device')}</th>
+              <th scope="row">{SERVICE_NAMES[id] ?? (id === 'text_model'
+                // One row for the three text models: each by its own name.
+                ? TEXT_MODEL_PROVIDERS.map((p) => t(`providers.${p}.name`, p)).join(', ')
+                : t('settingsPage.wordList.thisDevice', 'This device'))}</th>
               {(['terms', 'translations', 'heardAs', 'background'] as const).map((c) => (
                 <td key={c}>{!limit.columns.includes(c) ? '—' : limit.byModel?.includes(c) ? byModel : '✓'}</td>
               ))}

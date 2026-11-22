@@ -132,6 +132,13 @@ describe('noticeText', () => {
     }
   });
 
+  it("puts a text model's refusals into words: its own five, and a refused request as any other's", () => {
+    for (const code of ['model_missing', 'quota', 'address_invalid']) expect(noticeText(t, { code, message: 'the service said so' }), code).toContain('the service said so');
+    expect(noticeText(t, { code: 'text_model_unset', message: 'x' })).toContain(NOTICE_WORDS.text_model_unset);
+    expect(noticeText(t, { code: 'address_missing', message: 'x' })).toContain(NOTICE_WORDS.address_missing);
+    expect(NOTICE_ALIASES.refused).toBe('notices.client');
+  });
+
   it('has words for every code the runner, the capture and the adapters record', () => {
     for (const code of [...RUN_NOTICE_CODES, ...Object.keys(CLIENT_DIAGNOSTICS), APP_CAPTURE_LOST, APP_MONITOR_MISSING, SILENT_NO_PERMISSION, LOOPBACK_DENIED, MIC_LOST_USING_OTHER, MIC_LOST_WAITING, MIC_NOW_USING, MIC_IN_USE, MIC_UNREADABLE, MIC_BLOCKED, NO_MICROPHONE]) {
       // An adapter's code may be worded by an alias instead (never both: see below).

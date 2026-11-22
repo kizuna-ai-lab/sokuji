@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Gratis · online, layanan Microsoft"
+    },
+    "openai_text": {
+      "name": "Model teks OpenAI",
+      "description": "Menerjemahkan pasangan bahasa apa pun dengan kunci OpenAI Anda"
+    },
+    "gemini_text": {
+      "name": "Model teks Gemini",
+      "description": "Menerjemahkan pasangan bahasa apa pun dengan kunci Gemini Anda"
+    },
+    "openai_compatible": {
+      "name": "Layanan yang kompatibel dengan OpenAI",
+      "description": "OpenRouter, DeepSeek, Ollama, dan lainnya, di alamat yang Anda masukkan"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Sudah masuk. Buka tautan yang kami kirim ke email Anda untuk memverifikasi alamat Anda — kredit uji coba akan diberikan setelah itu.",
       "onFile": "Kunci sudah tersimpan — biarkan kosong untuk mempertahankannya.",
       "offlineHardware": "Sokuji berjalan lancar dengan GPU dan VRAM yang cukup; hanya dengan CPU terasa jauh lebih lambat.",
-      "openaiOneKey": "Satu kunci ini dipakai untuk OpenAI Realtime, Translate, dan Live."
+      "openaiOneKey": "Satu kunci ini dipakai untuk OpenAI Realtime, Translate, dan Live.",
+      "baseUrl": "Alamat",
+      "baseUrlPlaceholder": "Alamat, misalnya https://openrouter.ai/api/v1",
+      "apiKeyOptional": "Kunci API (opsional)"
     },
     "summary": {
       "scenario": "Skenario",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Akun {{organization}} dijeda. Hubungi pemiliknya, atau gunakan saldo pribadi Anda.",
     "org_wallet_frozen_unnamed": "Akun organisasi dijeda. Hubungi pemiliknya, atau gunakan saldo pribadi Anda.",
     "org_wallet_frozen_owner": "Akun {{organization}} dijeda. Hubungi dukungan Sokuji, atau gunakan saldo pribadi Anda.",
-    "org_wallet_frozen_owner_unnamed": "Akun organisasi dijeda. Hubungi dukungan Sokuji, atau gunakan saldo pribadi Anda."
+    "org_wallet_frozen_owner_unnamed": "Akun organisasi dijeda. Hubungi dukungan Sokuji, atau gunakan saldo pribadi Anda.",
+    "model_missing": "Layanan tidak menyediakan model ini: {{detail}}",
+    "quota": "Akun layanan sudah tidak punya saldo: {{detail}}",
+    "text_model_unset": "Pilih model untuk terjemahan, atau ketik namanya, di “Bahasa dan susunan”.",
+    "address_missing": "Masukkan alamat layanan yang kompatibel di “Akun dan kunci” sebelum memulai.",
+    "address_invalid": "Alamat layanan yang kompatibel tidak dapat digunakan: {{detail}}"
   },
   "viewer": {
     "title": "Subtitle Sokuji",
@@ -1837,7 +1857,9 @@
         "stateSaved": "Kunci tersimpan",
         "belongsTo": "Milik {{region}}",
         "switched": "Beralih ke {{region}}: kunci ini hanya berfungsi di sana."
-      }
+      },
+      "findModels": "Cari model",
+      "configure": "Atur"
     },
     "lineup": {
       "title": "Susunan",
@@ -1869,7 +1891,9 @@
         "notUsed": "Tidak dipakai kali ini",
         "languageNotSpoken": "Bahasa tidak didukung",
         "cannotCombine": "Tidak bisa digabung",
-        "notAvailable": "Tidak tersedia di sini"
+        "notAvailable": "Tidak tersedia di sini",
+        "needsAddress": "Perlu alamat",
+        "notReady": "Belum siap"
       },
       "speechModeHint": "Kapan potongan ucapan dikirim untuk diterjemahkan; tetap selama sesi",
       "hint": "Layanan mana yang mengerjakan tiap tahap",
@@ -1985,6 +2009,19 @@
       "others": "OpenAI Translate, OpenAI Live, dan Palabra tidak punya tempat untuk daftar kata; layanan ini tidak menerimanya.",
       "byModel": "Tergantung model",
       "byModelNote": "Tergantung model: OpenAI memakai latar belakang hanya dengan model transkripsi lamanya; Gemini Live memakai istilah hanya dengan gemini-3.8-live; perangkat ini membaca daftar hanya dengan penerjemah model bahasa besarnya."
+    },
+    "textModel": {
+      "automatic": "Otomatis",
+      "automaticModel": "Otomatis ({{model}})",
+      "chooseModel": "Pilih model",
+      "modelName": "Atau ketik nama model",
+      "off": "Mati",
+      "lowest": "Terendah",
+      "reasoningTooltip": "“Terendah” meminta penalaran paling sedikit yang diterima model, yang paling cepat. Pilihan lain dikirim persis apa adanya: jika model menolaknya, susunan memberi tahu sebelum Anda mulai.",
+      "reasoningValue": "Atau ketik nilai, dikirim apa adanya",
+      "listing": "Mencari model…",
+      "listEmpty": "Layanan ini tidak mencantumkan model: ketik nama modelnya.",
+      "typedOverrides": "Menggantikan pilihan di atas. Kosongkan untuk memakai daftar lagi."
     }
   },
   "history": {

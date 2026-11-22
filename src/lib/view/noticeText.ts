@@ -124,6 +124,13 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   network: 'The connection to the provider failed: {{detail}}',
   server: 'The provider had a problem: {{detail}}',
   client: 'The provider rejected the request: {{detail}}',
+  // A text model's service (spec 2026-11-22 §9): a model it does not offer, an account with no credit left, no model
+  // chosen, and a compatible service's address missing or unusable.
+  model_missing: 'The service does not offer this model: {{detail}}',
+  quota: 'The service account has no credit left: {{detail}}',
+  text_model_unset: 'Choose a model for the translation, or type its name, in “Languages and line-up”.',
+  address_missing: "Enter the compatible service's address in “Accounts and keys” before starting.",
+  address_invalid: "The compatible service's address cannot be used: {{detail}}",
   // The key is good, its account has not enabled the model in the key's region (Qwen's AccessDenied.Unpurchased, probe 2026-10-23).
   model_access_denied: "The key works, but its account can't use this model in the key's region. Enable the model for that region in the provider's console, or use a key from a region where it is enabled: {{detail}}",
   // Local engines (LocalInference).
@@ -182,6 +189,9 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // A leg's speech failed (Stage 2 Soniox, choice 9): the sentences name no vendor.
   tts_segment_lost: 'mainPanel.sonioxTtsSegmentLost',
   tts_stopped: 'mainPanel.sonioxTtsFailed',
+  // A text model's service refused the request for another reason (a reasoning value its model does not take): the
+  // sentence of any other rejected request, with the service's own words.
+  refused: 'notices.client',
   // Gemini (Stage 2 Gemini, ruling 13): a key that lists no Live model, and a start with no model to run — the old client's sentences, which name no vendor.
   no_realtime_model: 'settings.realtimeModelNotAvailable',
   models_required: 'mainPanel.modelsRequired',

@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Gratis · online, een dienst van Microsoft"
+    },
+    "openai_text": {
+      "name": "OpenAI-tekstmodel",
+      "description": "Vertaalt elk talenpaar met je OpenAI-sleutel"
+    },
+    "gemini_text": {
+      "name": "Gemini-tekstmodel",
+      "description": "Vertaalt elk talenpaar met je Gemini-sleutel"
+    },
+    "openai_compatible": {
+      "name": "OpenAI-compatibele dienst",
+      "description": "OpenRouter, DeepSeek, Ollama en andere, op het adres dat je invoert"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Ingelogd. Open de link die we u per e-mail hebben gestuurd om uw adres te verifiëren — het proeftegoed wordt bijgeschreven zodra u dat doet.",
       "onFile": "Er is al een sleutel opgeslagen — laat dit veld leeg om deze te behouden.",
       "offlineHardware": "Sokuji werkt goed met een GPU en genoeg VRAM; met alleen een CPU is het merkbaar trager.",
-      "openaiOneKey": "Deze ene sleutel geldt voor OpenAI Realtime, Translate en Live."
+      "openaiOneKey": "Deze ene sleutel geldt voor OpenAI Realtime, Translate en Live.",
+      "baseUrl": "Adres",
+      "baseUrlPlaceholder": "Adres, zoals https://openrouter.ai/api/v1",
+      "apiKeyOptional": "API-sleutel (optioneel)"
     },
     "summary": {
       "scenario": "Scenario",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Het account van {{organization}} is gepauzeerd. Neem contact op met de eigenaar of gebruik je eigen saldo.",
     "org_wallet_frozen_unnamed": "Het account van de organisatie is gepauzeerd. Neem contact op met de eigenaar of gebruik je eigen saldo.",
     "org_wallet_frozen_owner": "Het account van {{organization}} is gepauzeerd. Neem contact op met Sokuji-support of gebruik je eigen saldo.",
-    "org_wallet_frozen_owner_unnamed": "Het account van de organisatie is gepauzeerd. Neem contact op met Sokuji-support of gebruik je eigen saldo."
+    "org_wallet_frozen_owner_unnamed": "Het account van de organisatie is gepauzeerd. Neem contact op met Sokuji-support of gebruik je eigen saldo.",
+    "model_missing": "De dienst biedt dit model niet aan: {{detail}}",
+    "quota": "Het account bij de dienst heeft geen tegoed meer: {{detail}}",
+    "text_model_unset": "Kies een model voor de vertaling, of typ de naam ervan, bij ‘Talen en opstelling’.",
+    "address_missing": "Voer het adres van de compatibele dienst in bij ‘Accounts en sleutels’ voordat je begint.",
+    "address_invalid": "Het adres van de compatibele dienst is niet bruikbaar: {{detail}}"
   },
   "viewer": {
     "title": "Sokuji-ondertiteling",
@@ -1837,7 +1857,9 @@
         "stateSaved": "Sleutel opgeslagen",
         "belongsTo": "Hoort bij {{region}}",
         "switched": "Overgeschakeld naar {{region}}: deze sleutel werkt alleen daar."
-      }
+      },
+      "findModels": "Modellen zoeken",
+      "configure": "Instellen"
     },
     "lineup": {
       "title": "Opstelling",
@@ -1869,7 +1891,9 @@
         "notUsed": "Deze keer niet gebruikt",
         "languageNotSpoken": "Taal niet ondersteund",
         "cannotCombine": "Niet te combineren",
-        "notAvailable": "Hier niet beschikbaar"
+        "notAvailable": "Hier niet beschikbaar",
+        "needsAddress": "Adres nodig",
+        "notReady": "Niet klaar"
       },
       "speechModeHint": "Wanneer een stuk spraak naar de vertaling gaat; vast tijdens een sessie",
       "hint": "Welke dienst elke stap doet",
@@ -1985,6 +2009,19 @@
       "others": "OpenAI Translate, OpenAI Live en Palabra hebben geen veld voor een woordenlijst; ze krijgen er geen.",
       "byModel": "Afhankelijk van model",
       "byModelNote": "Afhankelijk van model: OpenAI neemt de achtergrond alleen bij zijn oudere transcriptiemodellen; Gemini Live neemt de termen alleen bij gemini-3.8-live; dit apparaat leest de lijst alleen bij zijn vertalers met grote taalmodellen."
+    },
+    "textModel": {
+      "automatic": "Automatisch",
+      "automaticModel": "Automatisch ({{model}})",
+      "chooseModel": "Kies een model",
+      "modelName": "Of typ een modelnaam",
+      "off": "Uit",
+      "lowest": "Laagst",
+      "reasoningTooltip": "‘Laagst’ vraagt om zo weinig redeneren als het model toestaat, wat het snelst is. Elke andere keuze wordt precies zo verstuurd: weigert het model die, dan meldt de opstelling dat voordat je begint.",
+      "reasoningValue": "Of typ een waarde, die ongewijzigd wordt verstuurd",
+      "listing": "Modellen worden gezocht…",
+      "listEmpty": "Deze dienst geeft geen modellen: typ de naam van het model.",
+      "typedOverrides": "Vervangt de keuze hierboven. Maak leeg om de lijst weer te gebruiken."
     }
   },
   "history": {

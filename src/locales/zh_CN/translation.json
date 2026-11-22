@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "免费 · 联网，微软的服务"
+    },
+    "openai_text": {
+      "name": "OpenAI 文本模型",
+      "description": "用你的 OpenAI 密钥翻译任意语言对"
+    },
+    "gemini_text": {
+      "name": "Gemini 文本模型",
+      "description": "用你的 Gemini 密钥翻译任意语言对"
+    },
+    "openai_compatible": {
+      "name": "OpenAI 兼容服务",
+      "description": "OpenRouter、DeepSeek、Ollama 等，使用你填写的地址"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "guide": "如何获取这个密钥",
       "onFile": "已保存密钥——留空即沿用。",
       "offlineHardware": "有 GPU 和足够显存时运行流畅；仅用 CPU 会明显变慢。",
-      "openaiOneKey": "这一把密钥给 OpenAI Realtime、Translate、Live 三种服务共用。"
+      "openaiOneKey": "这一把密钥给 OpenAI Realtime、Translate、Live 三种服务共用。",
+      "baseUrl": "地址",
+      "baseUrlPlaceholder": "地址，例如 https://openrouter.ai/api/v1",
+      "apiKeyOptional": "API 密钥（可选）"
     },
     "summary": {
       "scenario": "场景",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "{{organization}} 的账户已暂停。请联系其所有者，或使用您自己的余额。",
     "org_wallet_frozen_unnamed": "该组织的账户已暂停。请联系其所有者，或使用您自己的余额。",
     "org_wallet_frozen_owner": "{{organization}} 的账户已暂停。请联系 Sokuji 支持团队，或使用您自己的余额。",
-    "org_wallet_frozen_owner_unnamed": "该组织的账户已暂停。请联系 Sokuji 支持团队，或使用您自己的余额。"
+    "org_wallet_frozen_owner_unnamed": "该组织的账户已暂停。请联系 Sokuji 支持团队，或使用您自己的余额。",
+    "model_missing": "该服务不提供此模型：{{detail}}",
+    "quota": "该服务的账号已没有余额：{{detail}}",
+    "text_model_unset": "请在“语言与会话组成”中为翻译选择模型，或输入模型名称。",
+    "address_missing": "开始前请在“账号与密钥”中填写兼容服务的地址。",
+    "address_invalid": "兼容服务的地址无法使用：{{detail}}"
   },
   "viewer": {
     "title": "Sokuji 字幕",
@@ -1837,7 +1857,9 @@
         "stateSaved": "已保存密钥",
         "belongsTo": "属于 {{region}}",
         "switched": "已切到 {{region}}：这个密钥只在那里能用。"
-      }
+      },
+      "findModels": "查找模型",
+      "configure": "设置"
     },
     "lineup": {
       "title": "会话组成",
@@ -1869,7 +1891,9 @@
         "notUsed": "本次不使用",
         "languageNotSpoken": "不支持该语言",
         "cannotCombine": "无法组合",
-        "notAvailable": "此处不可用"
+        "notAvailable": "此处不可用",
+        "needsAddress": "需要地址",
+        "notReady": "未就绪"
       },
       "speechModeHint": "一段话什么时候送去翻译，会话中不能换",
       "hint": "每个阶段由哪个服务来做",
@@ -1985,6 +2009,19 @@
       "others": "OpenAI Translate、OpenAI Live 和 Palabra 没有放词表的地方，不会收到。",
       "byModel": "看型号",
       "byModelNote": "看型号：OpenAI 只有较早的转写型号收背景；Gemini Live 只有 gemini-3.8-live 收写法；本机只有大语言模型翻译会读词表。"
+    },
+    "textModel": {
+      "automatic": "自动",
+      "automaticModel": "自动（{{model}}）",
+      "chooseModel": "选择模型",
+      "modelName": "或输入模型名称",
+      "off": "关闭",
+      "lowest": "最低",
+      "reasoningTooltip": "“最低”会请求模型接受的最少推理，速度最快。其他选择会原样发送：如果模型不接受，会在开始前在会话组成中提示。",
+      "reasoningValue": "或输入一个值，原样发送",
+      "listing": "正在查找模型…",
+      "listEmpty": "此服务没有列出任何模型：请输入模型名称。",
+      "typedOverrides": "填写后使用此值；清空后恢复上面的选择。"
     }
   },
   "history": {

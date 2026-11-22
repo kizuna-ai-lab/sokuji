@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Miễn phí · trực tuyến, dịch vụ của Microsoft"
+    },
+    "openai_text": {
+      "name": "Mô hình văn bản OpenAI",
+      "description": "Dịch mọi cặp ngôn ngữ bằng khóa OpenAI của bạn"
+    },
+    "gemini_text": {
+      "name": "Mô hình văn bản Gemini",
+      "description": "Dịch mọi cặp ngôn ngữ bằng khóa Gemini của bạn"
+    },
+    "openai_compatible": {
+      "name": "Dịch vụ tương thích OpenAI",
+      "description": "OpenRouter, DeepSeek, Ollama và các dịch vụ khác, tại địa chỉ bạn nhập"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Đã đăng nhập. Hãy mở liên kết chúng tôi gửi qua email để xác minh — tín dụng dùng thử sẽ được cộng ngay sau đó.",
       "onFile": "Đã lưu một khóa — để trống nếu muốn giữ khóa cũ.",
       "offlineHardware": "Sokuji chạy tốt nếu có GPU và đủ VRAM; chỉ có CPU thì chậm hơn nhiều.",
-      "openaiOneKey": "Một khóa này dùng chung cho OpenAI Realtime, Translate và Live."
+      "openaiOneKey": "Một khóa này dùng chung cho OpenAI Realtime, Translate và Live.",
+      "baseUrl": "Địa chỉ",
+      "baseUrlPlaceholder": "Địa chỉ, ví dụ https://openrouter.ai/api/v1",
+      "apiKeyOptional": "Khóa API (tùy chọn)"
     },
     "summary": {
       "scenario": "Kịch bản",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Tài khoản của {{organization}} đã bị tạm dừng. Hãy liên hệ chủ sở hữu, hoặc dùng số dư cá nhân của bạn.",
     "org_wallet_frozen_unnamed": "Tài khoản của tổ chức đã bị tạm dừng. Hãy liên hệ chủ sở hữu, hoặc dùng số dư cá nhân của bạn.",
     "org_wallet_frozen_owner": "Tài khoản của {{organization}} đã bị tạm dừng. Hãy liên hệ bộ phận hỗ trợ Sokuji, hoặc dùng số dư cá nhân của bạn.",
-    "org_wallet_frozen_owner_unnamed": "Tài khoản của tổ chức đã bị tạm dừng. Hãy liên hệ bộ phận hỗ trợ Sokuji, hoặc dùng số dư cá nhân của bạn."
+    "org_wallet_frozen_owner_unnamed": "Tài khoản của tổ chức đã bị tạm dừng. Hãy liên hệ bộ phận hỗ trợ Sokuji, hoặc dùng số dư cá nhân của bạn.",
+    "model_missing": "Dịch vụ không cung cấp mô hình này: {{detail}}",
+    "quota": "Tài khoản dịch vụ đã hết tín dụng: {{detail}}",
+    "text_model_unset": "Chọn mô hình cho bản dịch, hoặc nhập tên mô hình, trong “Ngôn ngữ và cách phối hợp”.",
+    "address_missing": "Nhập địa chỉ của dịch vụ tương thích trong “Tài khoản và khóa” trước khi bắt đầu.",
+    "address_invalid": "Không thể dùng địa chỉ của dịch vụ tương thích: {{detail}}"
   },
   "viewer": {
     "title": "Phụ đề Sokuji",
@@ -1837,7 +1857,9 @@
         "stateSaved": "Đã lưu khóa",
         "belongsTo": "Thuộc {{region}}",
         "switched": "Đã chuyển sang {{region}}: khóa này chỉ dùng được ở đó."
-      }
+      },
+      "findModels": "Tìm mô hình",
+      "configure": "Thiết lập"
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -1869,7 +1891,9 @@
         "notUsed": "Lần này không dùng",
         "languageNotSpoken": "Ngôn ngữ không được hỗ trợ",
         "cannotCombine": "Không thể kết hợp",
-        "notAvailable": "Không có ở đây"
+        "notAvailable": "Không có ở đây",
+        "needsAddress": "Cần địa chỉ",
+        "notReady": "Chưa sẵn sàng"
       },
       "speechModeHint": "Khi nào một đoạn lời nói được gửi đi dịch; cố định trong phiên",
       "hint": "Dịch vụ nào làm từng khâu",
@@ -1985,6 +2009,19 @@
       "others": "OpenAI Translate, OpenAI Live và Palabra không có chỗ cho danh sách từ; chúng không nhận được gì.",
       "byModel": "Tùy mô hình",
       "byModelNote": "Tùy mô hình: OpenAI chỉ nhận phần bối cảnh với các mô hình chép lời cũ hơn; Gemini Live chỉ nhận thuật ngữ với gemini-3.8-live; thiết bị này chỉ đọc danh sách với các trình dịch dùng mô hình ngôn ngữ lớn."
+    },
+    "textModel": {
+      "automatic": "Tự động",
+      "automaticModel": "Tự động ({{model}})",
+      "chooseModel": "Chọn mô hình",
+      "modelName": "Hoặc nhập tên mô hình",
+      "off": "Tắt",
+      "lowest": "Thấp nhất",
+      "reasoningTooltip": "“Thấp nhất” yêu cầu mức suy luận ít nhất mà mô hình chấp nhận, nhanh nhất. Mọi lựa chọn khác được gửi đúng như vậy: nếu mô hình từ chối, phần phối hợp sẽ báo trước khi bạn bắt đầu.",
+      "reasoningValue": "Hoặc nhập một giá trị, gửi đúng như vậy",
+      "listing": "Đang tìm mô hình…",
+      "listEmpty": "Dịch vụ này không liệt kê mô hình nào: hãy nhập tên mô hình.",
+      "typedOverrides": "Thay cho lựa chọn ở trên. Xóa trống để dùng lại danh sách."
     }
   },
   "history": {

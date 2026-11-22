@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Bezpłatnie · online, usługa Microsoft"
+    },
+    "openai_text": {
+      "name": "Model tekstowy OpenAI",
+      "description": "Tłumaczy dowolną parę języków z Twoim kluczem OpenAI"
+    },
+    "gemini_text": {
+      "name": "Model tekstowy Gemini",
+      "description": "Tłumaczy dowolną parę języków z Twoim kluczem Gemini"
+    },
+    "openai_compatible": {
+      "name": "Usługa zgodna z OpenAI",
+      "description": "OpenRouter, DeepSeek, Ollama i inne, pod adresem, który podasz"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Zalogowano. Otwórz link, który wysłaliśmy Ci e-mailem, aby zweryfikować swój adres — kredyt próbny pojawi się, gdy to zrobisz.",
       "onFile": "Klucz jest już zapisany — zostaw to pole puste, aby go zachować.",
       "offlineHardware": "Sokuji działa dobrze z GPU i wystarczającą ilością VRAM; na samym CPU jest wyraźnie wolniejsze.",
-      "openaiOneKey": "Ten jeden klucz obsługuje OpenAI Realtime, Translate i Live."
+      "openaiOneKey": "Ten jeden klucz obsługuje OpenAI Realtime, Translate i Live.",
+      "baseUrl": "Adres",
+      "baseUrlPlaceholder": "Adres, np. https://openrouter.ai/api/v1",
+      "apiKeyOptional": "Klucz API (opcjonalnie)"
     },
     "summary": {
       "scenario": "Scenariusz",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Konto organizacji {{organization}} zostało wstrzymane. Skontaktuj się z jej właścicielem lub użyj własnego salda.",
     "org_wallet_frozen_unnamed": "Konto organizacji zostało wstrzymane. Skontaktuj się z jej właścicielem lub użyj własnego salda.",
     "org_wallet_frozen_owner": "Konto organizacji {{organization}} zostało wstrzymane. Skontaktuj się z pomocą techniczną Sokuji lub użyj własnego salda.",
-    "org_wallet_frozen_owner_unnamed": "Konto organizacji zostało wstrzymane. Skontaktuj się z pomocą techniczną Sokuji lub użyj własnego salda."
+    "org_wallet_frozen_owner_unnamed": "Konto organizacji zostało wstrzymane. Skontaktuj się z pomocą techniczną Sokuji lub użyj własnego salda.",
+    "model_missing": "Usługa nie oferuje tego modelu: {{detail}}",
+    "quota": "Na koncie usługi nie ma już środków: {{detail}}",
+    "text_model_unset": "Wybierz model do tłumaczenia lub wpisz jego nazwę w „Języki i zestaw”.",
+    "address_missing": "Przed rozpoczęciem wpisz adres zgodnej usługi w „Konta i klucze”.",
+    "address_invalid": "Nie można użyć adresu zgodnej usługi: {{detail}}"
   },
   "viewer": {
     "title": "Napisy Sokuji",
@@ -1837,7 +1857,9 @@
         "stateSaved": "Klucz zapisany",
         "belongsTo": "Należy do regionu {{region}}",
         "switched": "Przełączono na {{region}}: ten klucz działa tylko tam."
-      }
+      },
+      "findModels": "Znajdź modele",
+      "configure": "Skonfiguruj"
     },
     "lineup": {
       "title": "Zestaw",
@@ -1869,7 +1891,9 @@
         "notUsed": "Tym razem nieużywane",
         "languageNotSpoken": "Język nieobsługiwany",
         "cannotCombine": "Nie można połączyć",
-        "notAvailable": "Tutaj niedostępne"
+        "notAvailable": "Tutaj niedostępne",
+        "needsAddress": "Wymaga adresu",
+        "notReady": "Niegotowe"
       },
       "speechModeHint": "Kiedy fragment mowy idzie do tłumaczenia; stałe w trakcie sesji",
       "hint": "Która usługa wykonuje każdy etap",
@@ -1985,6 +2009,19 @@
       "others": "OpenAI Translate, OpenAI Live i Palabra nie mają miejsca na listę słów; nie dostają jej.",
       "byModel": "Zależy od modelu",
       "byModelNote": "Zależy od modelu: OpenAI przyjmuje tło tylko w starszych modelach transkrypcji; Gemini Live przyjmuje terminy tylko w gemini-3.8-live; to urządzenie czyta listę tylko w tłumaczach opartych na dużych modelach językowych."
+    },
+    "textModel": {
+      "automatic": "Automatycznie",
+      "automaticModel": "Automatycznie ({{model}})",
+      "chooseModel": "Wybierz model",
+      "modelName": "Lub wpisz nazwę modelu",
+      "off": "Wyłączone",
+      "lowest": "Najniższy",
+      "reasoningTooltip": "„Najniższy” prosi o najmniej rozumowania, jakie model przyjmuje, co jest najszybsze. Każdy inny wybór jest wysyłany dokładnie tak, jak jest: jeśli model go odrzuci, zestaw powie o tym przed rozpoczęciem.",
+      "reasoningValue": "Lub wpisz wartość wysyłaną bez zmian",
+      "listing": "Szukanie modeli…",
+      "listEmpty": "Ta usługa nie podaje listy modeli: wpisz nazwę modelu.",
+      "typedOverrides": "Zastępuje wybór powyżej. Wyczyść, aby wrócić do listy."
     }
   },
   "history": {

@@ -126,6 +126,25 @@ describe('a run over a plan of a unit that transcribes, a unit that translates a
     expect(h.calls.map((c) => c[0])).toEqual(expect.arrayContaining(['text.stop', 'translation.stop', 'voice.close']));
   });
 
+  it("a translation unit refused for its key (or its credit) ends the run naming the provider that translates, so the notice opens that provider's row", async () => {
+    for (const code of ['auth', 'quota']) {
+      const h = setup();
+      await h.runner.start();
+      h.translated().failed({ message: 'Incorrect API key provided.', code });
+      await vi.waitFor(() => expect(h.runner.state.getState().phase).toBe('idle'));
+      expect(h.runner.state.getState(), code).toMatchObject({ lastEnd: { reason: 'leg-failed', notice: { code, message: 'Incorrect API key provided.', params: { provider: 'stub_translation' }, leg: 'speaker' } } });
+      // The leg's own notice too.
+      expect(h.runner.conversation.get('speaker')!.snapshot().notices, code).toEqual([expect.objectContaining({ code, params: { provider: 'stub_translation' } })]);
+    }
+    // Any other code names no provider, as before.
+    const other = setup();
+    await other.runner.start();
+    other.translated().failed({ message: 'The model is gone.', code: 'model_missing' });
+    await vi.waitFor(() => expect(other.runner.state.getState().phase).toBe('idle'));
+    const end = other.runner.state.getState();
+    expect(end.phase === 'idle' ? end.lastEnd?.notice : undefined).not.toHaveProperty('params');
+  });
+
   it('a transcription that fails is filed under the provider that transcribes, as before', async () => {
     const h = setup();
     await h.runner.start();

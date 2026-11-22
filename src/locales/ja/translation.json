@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "無料 · オンライン、Microsoft のサービス"
+    },
+    "openai_text": {
+      "name": "OpenAI テキストモデル",
+      "description": "OpenAI のキーで、どの言語の組み合わせも翻訳"
+    },
+    "gemini_text": {
+      "name": "Gemini テキストモデル",
+      "description": "Gemini のキーで、どの言語の組み合わせも翻訳"
+    },
+    "openai_compatible": {
+      "name": "OpenAI 互換サービス",
+      "description": "OpenRouter、DeepSeek、Ollama など。入力したアドレスで接続"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "guide": "キーの取得方法",
       "onFile": "キーは保存済みです。空欄のままにすると、そのまま使われます。",
       "offlineHardware": "GPU と十分な VRAM があれば Sokuji は快適に動きます。CPU のみでは明らかに遅くなります。",
-      "openaiOneKey": "このキー 1 つで OpenAI Realtime・Translate・Live のすべてに使えます。"
+      "openaiOneKey": "このキー 1 つで OpenAI Realtime・Translate・Live のすべてに使えます。",
+      "baseUrl": "アドレス",
+      "baseUrlPlaceholder": "アドレス（例: https://openrouter.ai/api/v1）",
+      "apiKeyOptional": "API キー（任意）"
     },
     "summary": {
       "scenario": "シナリオ",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "{{organization}} のアカウントは一時停止されています。オーナーにお問い合わせいただくか、ご自身の残高をご利用ください。",
     "org_wallet_frozen_unnamed": "組織のアカウントは一時停止されています。オーナーにお問い合わせいただくか、ご自身の残高をご利用ください。",
     "org_wallet_frozen_owner": "{{organization}} のアカウントは一時停止されています。Sokuji サポートにお問い合わせいただくか、ご自身の残高をご利用ください。",
-    "org_wallet_frozen_owner_unnamed": "組織のアカウントは一時停止されています。Sokuji サポートにお問い合わせいただくか、ご自身の残高をご利用ください。"
+    "org_wallet_frozen_owner_unnamed": "組織のアカウントは一時停止されています。Sokuji サポートにお問い合わせいただくか、ご自身の残高をご利用ください。",
+    "model_missing": "このサービスはこのモデルを提供していません: {{detail}}",
+    "quota": "サービスのアカウントにクレジットが残っていません: {{detail}}",
+    "text_model_unset": "「言語と構成」で翻訳のモデルを選ぶか、モデル名を入力してください。",
+    "address_missing": "開始する前に「アカウントとキー」で互換サービスのアドレスを入力してください。",
+    "address_invalid": "互換サービスのアドレスは使えません: {{detail}}"
   },
   "viewer": {
     "title": "Sokuji 字幕",
@@ -1837,7 +1857,9 @@
         "stateSaved": "キー保存済み",
         "belongsTo": "{{region}}のキー",
         "switched": "{{region}}に切り替えました：このキーはそこでのみ使えます。"
-      }
+      },
+      "findModels": "モデルを探す",
+      "configure": "設定"
     },
     "lineup": {
       "title": "構成",
@@ -1869,7 +1891,9 @@
         "notUsed": "今回は使わない",
         "languageNotSpoken": "未対応の言語",
         "cannotCombine": "組み合わせ不可",
-        "notAvailable": "ここでは利用不可"
+        "notAvailable": "ここでは利用不可",
+        "needsAddress": "アドレスが必要",
+        "notReady": "準備できていません"
       },
       "speechModeHint": "ひと区切りの発話をいつ翻訳に送るか。セッション中は変えられません",
       "hint": "各段階をどのサービスが担当するか",
@@ -1985,6 +2009,19 @@
       "others": "OpenAI Translate、OpenAI Live、Palabra には単語リストを受け取る欄がないため、送られません。",
       "byModel": "モデルによる",
       "byModelNote": "モデルによる：OpenAI が背景を受け取るのは以前の文字起こしモデルだけです。Gemini Live は gemini-3.8-live でのみ書き方を受け取ります。このデバイスは大規模言語モデルの翻訳でのみリストを読みます。"
+    },
+    "textModel": {
+      "automatic": "自動",
+      "automaticModel": "自動（{{model}}）",
+      "chooseModel": "モデルを選択",
+      "modelName": "またはモデル名を入力",
+      "off": "オフ",
+      "lowest": "最低",
+      "reasoningTooltip": "「最低」はモデルが受け付ける最小の推論を求め、最も速くなります。それ以外の選択はそのまま送られます。モデルが受け付けない場合は、開始前に構成の欄でお知らせします。",
+      "reasoningValue": "または値を入力（そのまま送信）",
+      "listing": "モデルを探しています…",
+      "listEmpty": "このサービスはモデルの一覧を返しません。モデル名を入力してください。",
+      "typedOverrides": "入力するとこの値を使います。空にすると上の選択に戻ります。"
     }
   },
   "history": {

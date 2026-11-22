@@ -113,7 +113,18 @@ const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
 const TRANSLATION_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/localInference': ['translationSession.ts'],
   'src/providers/fake': ['translatorSession.ts'],
+  // The text models' sessions are their adapters (text models, part B): each starts the shared session of
+  // `src/lib/textModel/translation.ts`, which `TEXT_MODEL_SESSION` below holds to the same rules.
+  'src/providers/openai_text': ['adapter.ts'],
+  'src/providers/gemini_text': ['adapter.ts'],
+  'src/providers/openai_compatible': ['adapter.ts'],
 };
+
+/**
+ * The text models' one session, outside any provider's folder (a provider never imports another's), and the client
+ * it asks with: held to the session side's rules by name, since the walk does not follow `src/lib`.
+ */
+const TEXT_MODEL_SESSION = ['src/lib/textModel/translation.ts', 'src/lib/textModel/client.ts', 'src/lib/textModel/prompt.ts', 'src/lib/textModel/desktopTransport.ts'];
 
 /**
  * `dir/adapter.ts`, the files that run the provider's voice and its translation, and every file of `dir` they reach
@@ -285,6 +296,11 @@ describe('a provider session side', () => {
       expect(translate).not.toContain(`src/providers/openai_translate/${file}`);
     }
 
+    // The text models: the session is the adapter alone; the definition, its check and its options are the settings side.
+    for (const dir of ['src/providers/openai_text', 'src/providers/gemini_text', 'src/providers/openai_compatible']) {
+      expect(sessionSide(REPO_ROOT, dir), dir).toEqual([`${dir}/adapter.ts`]);
+    }
+
     const realtime = sessionSide(REPO_ROOT, 'src/providers/openai');
     expect(realtime).toEqual([
       'src/providers/openai/adapter.ts',
@@ -353,6 +369,14 @@ describe('a provider session side', () => {
     expect(providerDirs().flatMap((dir) => timerOffenders(REPO_ROOT, dir))).toEqual([]);
     // The walk does not follow `src/lib/**`: the one shared module two session sides cut their segments with, by name (Stage 2 translation cuts, choice 1).
     expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
+    // Nor the text models' shared session and its client: every deadline is the job translator's, on the request's clock.
+    for (const file of TEXT_MODEL_SESSION) expect(globalTimerCalls(readFileSync(join(REPO_ROOT, file), 'utf-8'), file), file).toEqual([]);
+  });
+
+  it("the text models' shared session imports no store and no reporter as a value", () => {
+    for (const file of TEXT_MODEL_SESSION) {
+      expect(valueImports(readFileSync(join(REPO_ROOT, file), 'utf-8'), file).filter((spec) => FORBIDDEN.some((re) => re.test(spec))), file).toEqual([]);
+    }
   });
 
   it('the shared reconnect policy is platform-neutral: no global timer, no wall clock, no platform import', () => {

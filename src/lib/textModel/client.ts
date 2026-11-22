@@ -86,18 +86,26 @@ export interface ChatCompletionOptions extends Where {
   temperature?: number;
   /**
    * 'lowest' (the default): the least reasoning the model takes (`lowestReasoningEffort`), so a short answer is not
-   * spent on reasoning. 'default': no `reasoning_effort`, the service's own default.
+   * spent on reasoning. 'default': no `reasoning_effort`, the service's own default. `{ exact }`: the user's choice,
+   * sent as it is; a refusal of it is the answer, never asked again with another value.
    */
-  reasoning?: 'lowest' | 'default';
+  reasoning?: ReasoningAsk;
   /** What this model was found to refuse, kept across calls. */
   memo?: TextModelMemo;
 }
+
+/**
+ * How much reasoning to ask of a model. 'lowest': the least it takes, lowered further when the service refuses a
+ * value (what is learned goes in the memo). 'default': no `reasoning_effort`. `{ exact }`: this value and no other.
+ */
+export type ReasoningAsk = 'lowest' | 'default' | { exact: string };
 
 export type ChatCompletionResult = { ok: true; text: string } | { ok: false; failure: TextModelFailure };
 export type ListModelsResult = { ok: true; ids: string[] } | { ok: false; failure: TextModelFailure };
 export type ProbeResult = { ok: true } | { ok: false; failure: TextModelFailure };
 
-const ADDRESS_WORDS: Record<AddressProblem | 'missing', string> = {
+/** Why a compatible service's address cannot be used, in words: the client's refusal, and the credentials' `read`. */
+export const ADDRESS_WORDS: Readonly<Record<AddressProblem | 'missing', string>> = {
   missing: 'No address was given for the compatible service.',
   not_a_url: 'The address is not a web address.',
   not_https: 'The address must start with https:// (http:// only for this computer).',
@@ -258,9 +266,14 @@ export async function chatCompletion(o: ChatCompletionOptions): Promise<ChatComp
   if ('ok' in route) return route;
   const { memo } = o;
   const url = `${route.base}/chat/completions`;
-  let effort: string | null = o.reasoning === 'default'
-    ? null
-    : memo?.reasoningEffort !== undefined ? memo.reasoningEffort : lowestReasoningEffort(o.service, o.model);
+  const exact = typeof o.reasoning === 'object' ? o.reasoning.exact : undefined;
+  // Learned only for the lowest: a value the user chose is sent as it is, and a default is no value at all.
+  const learns = o.reasoning === undefined || o.reasoning === 'lowest';
+  let effort: string | null = exact !== undefined
+    ? exact
+    : o.reasoning === 'default'
+      ? null
+      : memo?.reasoningEffort !== undefined ? memo.reasoningEffort : lowestReasoningEffort(o.service, o.model);
   let json = o.json === true && memo?.responseFormat !== false;
   let effortRetries = 0;
   let formatRetried = false;
@@ -277,11 +290,11 @@ export async function chatCompletion(o: ChatCompletionOptions): Promise<ChatComp
     if ('ok' in sent) return sent;
     const { status, raw } = sent;
     if (status >= 200 && status < 300) {
-      if (memo && o.reasoning !== 'default') memo.reasoningEffort = effort;
+      if (memo && learns) memo.reasoningEffort = effort;
       if (memo && o.json === true) memo.responseFormat = json;
       return answerOf(raw, o.apiKey);
     }
-    if (status === 400 && effort !== null && effortRetries < 2 && REASONING_NAMED.test(raw)) {
+    if (status === 400 && learns && effort !== null && effortRetries < 2 && REASONING_NAMED.test(raw)) {
       effort = effort === 'low' ? null : 'low';
       effortRetries += 1;
       continue;
@@ -324,11 +337,12 @@ export async function listModels(o: Where): Promise<ListModelsResult> {
 }
 
 /**
- * Whether `model` answers at all: a chat completion of one token with the lowest reasoning. A model the service
- * lists may still be refused (Gemini lists models no longer open to new keys); this is how a check finds out.
+ * Whether `model` answers at all: a chat completion of a few tokens, with the lowest reasoning or the reasoning the
+ * user chose. A model the service lists may still be refused (Gemini lists models no longer open to new keys), and a
+ * reasoning value the user typed may be one the model refuses; this is how a check finds out, in the service's words.
  */
-export async function probeModel(o: Where & { model: string; memo?: TextModelMemo }): Promise<ProbeResult> {
-  const result = await chatCompletion({ ...o, messages: [{ role: 'user', content: 'Hi' }], maxTokens: PROBE_TOKENS, reasoning: 'lowest' });
+export async function probeModel(o: Where & { model: string; memo?: TextModelMemo; reasoning?: Exclude<ReasoningAsk, 'default'> }): Promise<ProbeResult> {
+  const result = await chatCompletion({ ...o, messages: [{ role: 'user', content: 'Hi' }], maxTokens: PROBE_TOKENS, reasoning: o.reasoning ?? 'lowest' });
   if (result.ok) return { ok: true };
   // A reasoning model may spend the whole budget before its first word: OpenAI then refuses the answer as cut
   // short (measured 2026-11-22, gpt-5-mini). It was reached and it ran: that is all a probe asks.

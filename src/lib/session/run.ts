@@ -33,6 +33,8 @@ import { Turn } from './turn';
 import type { Budget, LegState, LoadingProgress, PlanAccount, Prepared, ReconnectProgress, Resources, RunEnd, RunNotice, RunShape } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
+/** A stage's failure about its provider's account: the notice names the provider (`namingItsProvider`). */
+const STAGE_ACCOUNT_CODES: ReadonlySet<string> = new Set(['auth', 'quota']);
 const API_ERROR_TYPES = ['auth', 'rate_limit', 'network', 'server', 'client'] as const;
 type ApiErrorType = AnalyticsEvents['api_error']['error_type'];
 type ReconnectChannel = AnalyticsEvents['connection_dropped']['channel'];
@@ -697,9 +699,15 @@ export class Run {
    * transcribes (the leg's connection is that provider's). Any other event as it is.
    */
   private namingItsProvider(event: AdapterEvent): AdapterEvent {
-    if (event.kind !== 'failed' || !event.payload.giveUp) return event;
-    const { giveUp } = event.payload;
-    const params = namingProvider(event.payload.code, giveUp.params, this.providerId);
+    if (event.kind !== 'failed') return event;
+    const { giveUp, runStage, code } = event.payload;
+    // A stage another unit serves failed for its account (a text model's key refused, its credit spent): the notice
+    // names that stage's provider, so that its action opens that provider's row in Accounts and keys.
+    if (runStage !== undefined && code !== undefined && STAGE_ACCOUNT_CODES.has(code)) {
+      return { ...event, payload: { ...event.payload, params: { ...event.payload.params, provider: this.providerOf(runStage) } } };
+    }
+    if (!giveUp) return event;
+    const params = namingProvider(code, giveUp.params, this.providerId);
     return params === giveUp.params ? event : { ...event, payload: { ...event.payload, giveUp: { ...giveUp, params } } };
   }
 
@@ -754,7 +762,8 @@ export class Run {
         this.failedReconnect(leg, event.payload);
         analytics.track('api_error', { provider: this.providerOf(event.payload.runStage), error_message: redact(message), error_code: code, error_type: apiErrorType(code), channel: leg });
         // L1 already recorded the failure as an error notice on this leg.
-        this.host.end({ reason: 'leg-failed', notice: { code: code ?? ('leg_failed' satisfies RunNoticeCode), message, ...(event.payload.giveUp?.params ? { params: event.payload.giveUp.params } : {}), leg } });
+        const params = event.payload.params ?? event.payload.giveUp?.params;
+        this.host.end({ reason: 'leg-failed', notice: { code: code ?? ('leg_failed' satisfies RunNoticeCode), message, ...(params ? { params } : {}), leg } });
         return;
       }
       case 'degraded': {

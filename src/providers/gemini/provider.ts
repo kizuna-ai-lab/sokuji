@@ -1,4 +1,5 @@
 import { GeminiIcon } from '../../components/Icons/ProviderIcons';
+import { GEMINI_KEY_STORED_AT } from '../geminiKey';
 import type { Provider } from '../../lib/provider/types';
 import { createGeminiAdapter } from './adapter';
 import { checkGemini } from './check';
@@ -45,7 +46,8 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
   // The server's activity-detection knobs: summarized in the Speech section under Auto, drawn on Advanced's Provider tab.
   TurnDetection: { Summary: GeminiTurnDetectionSummary, Controls: GeminiTurnDetectionControls, Help: GeminiTurnDetectionHelp },
 
-  credentials: geminiCredentials,
+  // One Gemini key for Gemini Live and Gemini's text models, kept where it always was (spec 2026-11-22 §2).
+  credentials: { ...geminiCredentials, storedAt: GEMINI_KEY_STORED_AT },
   check: checkGemini,
   // The model list reads the key alone.
   checkReads: [],

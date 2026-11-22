@@ -88,7 +88,8 @@ export class Conversation {
       case 'audio': return this.audio(event.payload.ref, event.payload.range, event.payload.pcm, event.payload.voice);
       case 'speechRanges': return this.ranges(event.payload.ref, event.payload.ranges);
       case 'failed': {
-        this.addNotice({ severity: 'error', message: event.payload.message, code: event.payload.code ?? 'leg_failed', ...(event.payload.giveUp?.params ? { params: event.payload.giveUp.params } : {}) });
+        const params = event.payload.params ?? event.payload.giveUp?.params;
+        this.addNotice({ severity: 'error', message: event.payload.message, code: event.payload.code ?? 'leg_failed', ...(params ? { params } : {}) });
         this.finalizeAll();
         return;
       }

@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "مجاني · عبر الإنترنت، خدمة من Microsoft"
+    },
+    "openai_text": {
+      "name": "نموذج نصي من OpenAI",
+      "description": "يترجم بين أي لغتين بمفتاح OpenAI الخاص بك"
+    },
+    "gemini_text": {
+      "name": "نموذج نصي من Gemini",
+      "description": "يترجم بين أي لغتين بمفتاح Gemini الخاص بك"
+    },
+    "openai_compatible": {
+      "name": "خدمة متوافقة مع OpenAI",
+      "description": "OpenRouter وDeepSeek وOllama وغيرها، على العنوان الذي تدخله"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "تم تسجيل الدخول. افتح الرابط الذي أرسلناه إلى بريدك الإلكتروني للتحقق من عنوانك — يصل الرصيد التجريبي بمجرد أن تفعل.",
       "onFile": "يوجد مفتاح محفوظ بالفعل — اترك هذا فارغاً للاحتفاظ به.",
       "offlineHardware": "يعمل Sokuji جيدًا مع GPU وذاكرة فيديو كافية؛ وعلى المعالج وحده يكون أبطأ بشكل ملحوظ.",
-      "openaiOneKey": "هذا المفتاح الواحد يخدم OpenAI Realtime وTranslate وLive."
+      "openaiOneKey": "هذا المفتاح الواحد يخدم OpenAI Realtime وTranslate وLive.",
+      "baseUrl": "العنوان",
+      "baseUrlPlaceholder": "العنوان، مثل https://openrouter.ai/api/v1",
+      "apiKeyOptional": "مفتاح API (اختياري)"
     },
     "summary": {
       "scenario": "السيناريو",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "حساب {{organization}} متوقف مؤقتًا. تواصل مع مالكه أو استخدم رصيدك الخاص.",
     "org_wallet_frozen_unnamed": "حساب المؤسسة متوقف مؤقتًا. تواصل مع مالكه أو استخدم رصيدك الخاص.",
     "org_wallet_frozen_owner": "حساب {{organization}} متوقف مؤقتًا. تواصل مع دعم Sokuji أو استخدم رصيدك الخاص.",
-    "org_wallet_frozen_owner_unnamed": "حساب المؤسسة متوقف مؤقتًا. تواصل مع دعم Sokuji أو استخدم رصيدك الخاص."
+    "org_wallet_frozen_owner_unnamed": "حساب المؤسسة متوقف مؤقتًا. تواصل مع دعم Sokuji أو استخدم رصيدك الخاص.",
+    "model_missing": "لا تقدّم الخدمة هذا النموذج: {{detail}}",
+    "quota": "لم يتبقَّ رصيد في حساب الخدمة: {{detail}}",
+    "text_model_unset": "اختر نموذجًا للترجمة، أو اكتب اسمه، في «اللغات والتشكيلة».",
+    "address_missing": "أدخل عنوان الخدمة المتوافقة في «الحسابات والمفاتيح» قبل البدء.",
+    "address_invalid": "لا يمكن استخدام عنوان الخدمة المتوافقة: {{detail}}"
   },
   "viewer": {
     "title": "ترجمة Sokuji",
@@ -1837,7 +1857,9 @@
         "stateSaved": "تم حفظ المفتاح",
         "belongsTo": "يتبع {{region}}",
         "switched": "تم التبديل إلى {{region}}: هذا المفتاح يعمل هناك فقط."
-      }
+      },
+      "findModels": "البحث عن النماذج",
+      "configure": "إعداد"
     },
     "lineup": {
       "title": "التشكيلة",
@@ -1869,7 +1891,9 @@
         "notUsed": "غير مستخدم هذه المرة",
         "languageNotSpoken": "لغة غير مدعومة",
         "cannotCombine": "لا يمكن الجمع بينها",
-        "notAvailable": "غير متاح هنا"
+        "notAvailable": "غير متاح هنا",
+        "needsAddress": "يحتاج إلى عنوان",
+        "notReady": "غير جاهز"
       },
       "speechModeHint": "متى يُرسَل مقطع من الكلام للترجمة؛ لا يتغير أثناء الجلسة",
       "hint": "أي خدمة تتولى كل مرحلة",
@@ -1985,6 +2009,19 @@
       "others": "لا مكان لقائمة الكلمات في OpenAI Translate وOpenAI Live وPalabra، فلا تُرسَل إليها.",
       "byModel": "حسب النموذج",
       "byModelNote": "حسب النموذج: لا يأخذ OpenAI الخلفية إلا مع نماذج التفريغ الأقدم؛ ولا يأخذ Gemini Live المصطلحات إلا مع gemini-3.8-live؛ ولا يقرأ هذا الجهاز القائمة إلا مع مترجميه من النماذج اللغوية الكبيرة."
+    },
+    "textModel": {
+      "automatic": "تلقائي",
+      "automaticModel": "تلقائي ({{model}})",
+      "chooseModel": "اختر نموذجًا",
+      "modelName": "أو اكتب اسم نموذج",
+      "off": "إيقاف",
+      "lowest": "الأدنى",
+      "reasoningTooltip": "«الأدنى» يطلب أقل قدر من التفكير يقبله النموذج، وهو الأسرع. أي اختيار آخر يُرسل كما هو تمامًا: إن رفضه النموذج، تخبرك التشكيلة بذلك قبل البدء.",
+      "reasoningValue": "أو اكتب قيمة تُرسل كما هي",
+      "listing": "جارٍ البحث عن النماذج…",
+      "listEmpty": "لا تعرض هذه الخدمة أي نماذج: اكتب اسم النموذج.",
+      "typedOverrides": "يحلّ محلّ الاختيار أعلاه. امسح الحقل للعودة إلى القائمة."
     }
   },
   "history": {

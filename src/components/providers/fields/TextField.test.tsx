@@ -51,4 +51,12 @@ describe('TextField', () => {
     render(<TextField id="t" label="L" value="" onChange={() => {}} disabled />);
     expect(screen.getByLabelText('L')).toBeDisabled();
   });
+
+  it('its note describes the input to a screen reader; with no note, nothing does', () => {
+    const { unmount } = render(<TextField id="t" label="L" value="" onChange={() => {}} note="Overrides the selection above." />);
+    expect(screen.getByRole('textbox', { name: 'L' })).toHaveAccessibleDescription('Overrides the selection above.');
+    unmount();
+    render(<TextField id="t" label="L" value="" onChange={() => {}} />);
+    expect(screen.getByRole('textbox', { name: 'L' })).not.toHaveAttribute('aria-describedby');
+  });
 });

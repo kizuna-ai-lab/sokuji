@@ -32,6 +32,7 @@ function service(...answers: Answer[]) {
   return { transport, sent };
 }
 
+const serviceOf = (...answers: Answer[]) => service(...answers);
 const reply = (content: unknown) => ({ status: 200, body: { choices: [{ index: 0, message: { role: 'assistant', content }, finish_reason: 'stop' }] } });
 const refusal = (status: number, error: unknown) => ({ status, body: { error } });
 const MESSAGES = [{ role: 'system' as const, content: 'Translate into Japanese.' }, { role: 'user' as const, content: 'Hello.' }];
@@ -175,6 +176,37 @@ describe('a chat completion: a member the service refuses is left out and asked 
     expect(next.sent).toHaveLength(1);
     expect(next.sent[0].body).not.toHaveProperty('reasoning_effort');
     expect(next.sent[0].body).not.toHaveProperty('response_format');
+  });
+});
+
+describe("a chat completion: the reasoning the user chose", () => {
+  it('is sent exactly, to every service, the compatible one included', async () => {
+    for (const [service, extra] of [['openai', {}], ['gemini', {}], ['compatible', { baseUrl: 'https://api.example.com/v1' }]] as const) {
+      const sent = serviceOf(reply('ok'));
+      await ask(sent.transport, { service, model: 'm', reasoning: { exact: 'medium' }, ...extra });
+      expect(sent.sent[0].body!.reasoning_effort, service).toBe('medium');
+    }
+    // A value no list holds goes as it is typed.
+    const typed = serviceOf(reply('ok'));
+    await ask(typed.transport, { model: 'gpt-5.4', reasoning: { exact: 'xhigh' } });
+    expect(typed.sent[0].body!.reasoning_effort).toBe('xhigh');
+  });
+
+  it('a refusal of it is the answer, in the service\'s words: it is never asked again with another value, nor without one', async () => {
+    const named = refusal(400, { message: "Unsupported value: 'reasoning_effort' does not support 'minimal' with this model.", param: 'reasoning_effort' });
+    const s = serviceOf(named, reply('never asked'));
+    expect(await ask(s.transport, { model: 'gpt-5.4', reasoning: { exact: 'minimal' } })).toEqual({
+      ok: false, failure: { code: 'refused', status: 400, message: "Unsupported value: 'reasoning_effort' does not support 'minimal' with this model." },
+    });
+    expect(s.sent).toHaveLength(1);
+  });
+
+  it('neither reads nor writes the memo of the lowest', async () => {
+    const memo = { reasoningEffort: 'low' };
+    const s = serviceOf(reply('ok'));
+    await ask(s.transport, { model: 'gpt-5.4', reasoning: { exact: 'none' }, memo });
+    expect(s.sent[0].body!.reasoning_effort).toBe('none');
+    expect(memo).toEqual({ reasoningEffort: 'low' });
   });
 });
 
@@ -368,6 +400,14 @@ describe('a probe of the chosen model', () => {
     const s = service({ status: 400, body: [{ error: { code: 400, message: 'Please pass a valid API key', status: 'INVALID_ARGUMENT' } }] });
     await expect(probeModel({ service: 'gemini', apiKey: KEY, model: 'gemini-3.1-flash-lite', signal: new AbortController().signal, transport: s.transport }))
       .resolves.toMatchObject({ ok: false, failure: { code: 'auth', status: 400 } });
+  });
+
+  it("asks with the reasoning the user chose, so that a value the model refuses is said before a session starts", async () => {
+    const s = service(refusal(400, { message: "Unsupported value: 'reasoning_effort' does not support 'ultra'." }));
+    await expect(probeModel({ service: 'openai', apiKey: KEY, model: 'gpt-5.4', signal: new AbortController().signal, transport: s.transport, reasoning: { exact: 'ultra' } }))
+      .resolves.toEqual({ ok: false, failure: { code: 'refused', status: 400, message: "Unsupported value: 'reasoning_effort' does not support 'ultra'." } });
+    expect(s.sent).toHaveLength(1);
+    expect(s.sent[0].body!.reasoning_effort).toBe('ultra');
   });
 
   it('says why a listed model cannot be used', async () => {

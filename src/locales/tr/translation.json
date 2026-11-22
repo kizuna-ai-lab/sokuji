@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Ücretsiz · çevrimiçi, bir Microsoft hizmeti"
+    },
+    "openai_text": {
+      "name": "OpenAI metin modeli",
+      "description": "OpenAI anahtarınızla her dil çiftini çevirir"
+    },
+    "gemini_text": {
+      "name": "Gemini metin modeli",
+      "description": "Gemini anahtarınızla her dil çiftini çevirir"
+    },
+    "openai_compatible": {
+      "name": "OpenAI uyumlu hizmet",
+      "description": "OpenRouter, DeepSeek, Ollama ve diğerleri, girdiğiniz adreste"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Giriş yapıldı. Adresinizi doğrulamak için size e-postayla gönderdiğimiz bağlantıyı açın — doğruladığınızda deneme kredisi hesabınıza geçer.",
       "onFile": "Zaten kayıtlı bir anahtar var — onu korumak için bu alanı boş bırakın.",
       "offlineHardware": "Sokuji, GPU ve yeterli VRAM ile iyi çalışır; yalnızca CPU ile belirgin şekilde yavaştır.",
-      "openaiOneKey": "Bu tek anahtar OpenAI Realtime, Translate ve Live için geçerlidir."
+      "openaiOneKey": "Bu tek anahtar OpenAI Realtime, Translate ve Live için geçerlidir.",
+      "baseUrl": "Adres",
+      "baseUrlPlaceholder": "Adres, örneğin https://openrouter.ai/api/v1",
+      "apiKeyOptional": "API anahtarı (isteğe bağlı)"
     },
     "summary": {
       "scenario": "Senaryo",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "{{organization}} hesabı duraklatıldı. Sahibiyle iletişime geçin veya kendi bakiyenizi kullanın.",
     "org_wallet_frozen_unnamed": "Kuruluşun hesabı duraklatıldı. Sahibiyle iletişime geçin veya kendi bakiyenizi kullanın.",
     "org_wallet_frozen_owner": "{{organization}} hesabı duraklatıldı. Sokuji desteğiyle iletişime geçin veya kendi bakiyenizi kullanın.",
-    "org_wallet_frozen_owner_unnamed": "Kuruluşun hesabı duraklatıldı. Sokuji desteğiyle iletişime geçin veya kendi bakiyenizi kullanın."
+    "org_wallet_frozen_owner_unnamed": "Kuruluşun hesabı duraklatıldı. Sokuji desteğiyle iletişime geçin veya kendi bakiyenizi kullanın.",
+    "model_missing": "Hizmet bu modeli sunmuyor: {{detail}}",
+    "quota": "Hizmetteki hesabın kredisi kalmadı: {{detail}}",
+    "text_model_unset": "“Diller ve düzen” bölümünde çeviri için bir model seçin veya adını yazın.",
+    "address_missing": "Başlamadan önce “Hesaplar ve anahtarlar” bölümünde uyumlu hizmetin adresini girin.",
+    "address_invalid": "Uyumlu hizmetin adresi kullanılamıyor: {{detail}}"
   },
   "viewer": {
     "title": "Sokuji altyazıları",
@@ -1837,7 +1857,9 @@
         "stateSaved": "Anahtar kaydedildi",
         "belongsTo": "{{region}} bölgesine ait",
         "switched": "{{region}} bölgesine geçildi: bu anahtar yalnızca orada çalışır."
-      }
+      },
+      "findModels": "Modelleri bul",
+      "configure": "Yapılandır"
     },
     "lineup": {
       "title": "Düzen",
@@ -1869,7 +1891,9 @@
         "notUsed": "Bu sefer kullanılmıyor",
         "languageNotSpoken": "Dil desteklenmiyor",
         "cannotCombine": "Birlikte kullanılamaz",
-        "notAvailable": "Burada kullanılamıyor"
+        "notAvailable": "Burada kullanılamıyor",
+        "needsAddress": "Adres gerekli",
+        "notReady": "Hazır değil"
       },
       "speechModeHint": "Bir konuşma parçasının ne zaman çeviriye gideceği; oturum boyunca sabit",
       "hint": "Her aşamayı hangi hizmetin yaptığı",
@@ -1985,6 +2009,19 @@
       "others": "OpenAI Translate, OpenAI Live ve Palabra’da kelime listesi için yer yok; bunlara gönderilmez.",
       "byModel": "Modele göre değişir",
       "byModelNote": "Modele göre değişir: OpenAI arka planı yalnızca eski yazıya dökme modelleriyle alır; Gemini Live terimleri yalnızca gemini-3.8-live ile alır; bu cihaz listeyi yalnızca büyük dil modeli çevirmenleriyle okur."
+    },
+    "textModel": {
+      "automatic": "Otomatik",
+      "automaticModel": "Otomatik ({{model}})",
+      "chooseModel": "Bir model seçin",
+      "modelName": "Ya da bir model adı yazın",
+      "off": "Kapalı",
+      "lowest": "En düşük",
+      "reasoningTooltip": "“En düşük”, modelin kabul ettiği en az akıl yürütmeyi ister; en hızlısı budur. Diğer her seçim olduğu gibi gönderilir: model reddederse, düzen bunu başlamadan önce söyler.",
+      "reasoningValue": "Ya da olduğu gibi gönderilecek bir değer yazın",
+      "listing": "Modeller aranıyor…",
+      "listEmpty": "Bu hizmet model listelemiyor: modelin adını yazın.",
+      "typedOverrides": "Yukarıdaki seçimin yerine geçer. Listeyi yeniden kullanmak için temizleyin."
     }
   },
   "history": {
