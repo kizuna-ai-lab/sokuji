@@ -14,6 +14,7 @@ import { describeCause, reportError } from '../../../lib/diagnostics/report';
 import { useAnalytics } from '../../../lib/analytics';
 import { useStageUnit } from '../../../lib/plan/fromStores';
 import { useAudioContext, useMode } from '../../../stores/audioStore';
+import { edgeProvider } from '../../../providers/edge/provider';
 import { presentProviders } from '../../../providers/registry';
 import { useKeepReplayAudio, useNavigateToSettings, useSetKeepReplayAudio, useSetTextOnly, useTextOnly } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
@@ -40,8 +41,9 @@ export interface SpeechOutputSectionProps {
  * event included when it leaves Simple. Nothing for a provider without one;
  * a summary that renders nothing leaves the link empty, and Settings.scss
  * hides the line. A provider whose voices sit with its engine (`voicesInEngine`)
- * opens them in the line-up's speech card instead (B-20). Usable during a run:
- * it only navigates.
+ * opens them in the line-up's speech card instead (B-20), and so does Edge, whose
+ * voices are in that card under its own settings (`edge-voices`, not the
+ * `voice-settings` anchor). Usable during a run: it only navigates.
  */
 function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
   const { t } = useTranslation();
@@ -58,8 +60,8 @@ function VoiceLine({ leg, locked }: { leg: LegName; locked: boolean }) {
   if (!speechUnit || !selection?.entry || !Summary) return null;
 
   const openVoices = () => {
-    if (selection.provider.voicesInEngine) {
-      // Its voices are in the line-up's speech card now (B-20), whichever leg asked.
+    if (selection.provider.voicesInEngine || selection.provider.id === edgeProvider.id) {
+      // Its voices are in the line-up's speech card now (B-20), whichever leg asked: this device's, or Edge's.
       openLocalVoices();
       return;
     }

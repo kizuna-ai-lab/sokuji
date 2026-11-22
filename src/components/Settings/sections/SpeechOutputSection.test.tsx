@@ -60,6 +60,8 @@ import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { SONIOX_DEFAULTS } from '../../../providers/soniox/settings';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../../providers/localInference/settings';
+import { EDGE_DEFAULTS } from '../../../providers/edge/settings';
+import { useLineUpStore } from '../../../stores/lineUpStore';
 import { useModelStore } from '../../../stores/modelStore';
 import { outletSelectValue } from '../../../lib/audio/outletOptions';
 import SpeechOutputSection from './SpeechOutputSection';
@@ -482,6 +484,28 @@ describe('SpeechOutputSection — the voice each spoken row reads in', () => {
     expect(useSettingsStore.getState().uiMode).toBe('basic');
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('local-voices');
+  });
+
+  it("with Edge speaking, the name opens Edge's voices in the line-up's speech card", () => {
+    // Soniox transcribes and translates; Edge reads it, in the voice kept for the run's direction.
+    const pair = { source: 'ja', target: 'en' };
+    useProviderStore.setState({
+      entries: {
+        soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair },
+        edge: { settings: { ...EDGE_DEFAULTS, voices: { 'ja→en': 'en-US-AvaNeural' } }, credentials: {}, pair },
+      },
+    } as never);
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true });
+    useSettingsStore.setState({ uiMode: 'basic', settingsNavigationTarget: null, engineSlotTarget: { dir: 'ja→en', stage: 'tts' } });
+    try {
+      mount();
+      fireEvent.click(within(voiceLine('Translation the other side hears') as HTMLElement).getByRole('button', { name: 'Ava' }));
+      expect(useSettingsStore.getState().uiMode).toBe('basic');
+      expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
+      expect(useSettingsStore.getState().settingsNavigationTarget).toBe('edge-voices');
+    } finally {
+      useLineUpStore.setState({ lineUp: null, stored: false });
+    }
   });
 });
 
