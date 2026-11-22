@@ -90,13 +90,23 @@ describe('the notes by Gemini and by a compatible service', () => {
     expect(s.sent[0].body).not.toHaveProperty('max_completion_tokens');
   });
 
-  it("Gemini refusing a default level: asked with 'low', then with none, and none from then on in this run", async () => {
+  it("Gemini refusing a default level: asked with 'low', then with none, and what each was lowered to kept for the run", async () => {
     const named = (v: string) => refuses(400, `Unsupported value: 'reasoning_effort' does not support '${v}'.`);
     const s = service(named('medium'), named('low'), object({ ok: 1 }), object({ ok: 2 }));
     const { chat } = port('gemini', s, { model: 'gemma-3-27b-it' });
     await expect(ask(chat, FINISH)).resolves.toEqual({ ok: 1 });
     await expect(ask(chat, PART)).resolves.toEqual({ ok: 2 });
     expect(s.sent.map((r) => r.body.reasoning_effort)).toEqual(['medium', 'low', undefined, undefined]);
+  });
+
+  // Review: a level lowered was refused again on every call; live notes call every 20 s.
+  it("a model that refuses the default's medium costs one refusal a run: later calls ask 'low' at once", async () => {
+    const s = service(refuses(400, "Unsupported value: 'reasoning_effort' does not support 'medium'."), object({ ok: 1 }), object({ ok: 2 }), object({ ok: 3 }));
+    const { chat } = port('gemini', s, { model: 'gemini-3.8-flash' });
+    await expect(ask(chat, FINISH)).resolves.toEqual({ ok: 1 });
+    await expect(ask(chat, FINISH)).resolves.toEqual({ ok: 2 });
+    await expect(ask(chat, PART)).resolves.toEqual({ ok: 3 });
+    expect(s.sent.map((r) => r.body.reasoning_effort)).toEqual(['medium', 'low', 'low', 'low']);
   });
 
   it('a service that refuses response_format is asked once without it, and its JSON is read from the text', async () => {

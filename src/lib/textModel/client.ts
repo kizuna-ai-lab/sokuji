@@ -60,8 +60,13 @@ export function textModelTimeout(message = 'The service did not answer in time.'
  * that a refusal is met once, not on every request. The client reads it and writes what it learns.
  */
 export interface TextModelMemo {
-  /** The `reasoning_effort` the model took, or null: it takes none. Absent: not learned yet. */
+  /** The `reasoning_effort` the model took for the lowest, or null: it takes none. Absent: not learned yet. */
   reasoningEffort?: string | null;
+  /**
+   * What each stage default (`{ preferred }`) was lowered to, by the value asked: a lower one, or null for none.
+   * Absent for a value: it was taken as it is, or never asked. Apart from the lowest's: neither reads the other's.
+   */
+  preferredEffort?: Record<string, string | null>;
   /** False: the service refuses `response_format`. Absent: not learned yet. */
   responseFormat?: boolean;
 }
@@ -98,7 +103,7 @@ export interface ChatCompletionOptions extends Where {
 /**
  * How much reasoning to ask of a model. 'lowest': the least it takes, lowered further when the service refuses a
  * value (what is learned goes in the memo). 'default': no `reasoning_effort`. `{ exact }`: this value and no other.
- * `{ preferred }`: this value where the model takes it, else 'low', else none (the memo keeps only that it takes none).
+ * `{ preferred }`: this value where the model takes it, else 'low', else none (the memo keeps what it was lowered to).
  */
 export type ReasoningAsk = 'lowest' | 'default' | { exact: string } | { preferred: string };
 
@@ -280,13 +285,15 @@ export async function chatCompletion(o: ChatCompletionOptions): Promise<ChatComp
   let effort: string | null = exact !== undefined
     ? exact
     : preferred !== undefined
-      // A model found to take none this session is sent none.
-      ? (memo?.reasoningEffort === null ? null : preferred)
+      // A default lowered before in this session is asked at what it was lowered to.
+      ? (memo?.preferredEffort?.[preferred] !== undefined ? memo.preferredEffort[preferred] : preferred)
       : o.reasoning === 'default'
         ? null
         : memo?.reasoningEffort !== undefined ? memo.reasoningEffort : lowestReasoningEffort(o.service, o.model);
   let json = o.json === true && memo?.responseFormat !== false;
   let effortRetries = 0;
+  /** 'low' was refused on the way down: kept for every default of the session. */
+  let lowRefused = false;
   let formatRetried = false;
   for (;;) {
     const body = JSON.stringify({
@@ -302,13 +309,19 @@ export async function chatCompletion(o: ChatCompletionOptions): Promise<ChatComp
     const { status, raw } = sent;
     if (status >= 200 && status < 300) {
       if (memo && learns) memo.reasoningEffort = effort;
-      // A default the model took says nothing of another; that it takes none at all holds for every one.
-      if (memo && preferred !== undefined && effort === null) memo.reasoningEffort = null;
+      // A default lowered is kept at what it was lowered to, and a 'low' refused on the way as refused; one taken as it
+      // is says nothing of another.
+      if (memo && preferred !== undefined && (effort !== preferred || lowRefused)) {
+        memo.preferredEffort = { ...memo.preferredEffort, ...(lowRefused ? { low: null } : {}), [preferred]: effort };
+      }
       if (memo && o.json === true) memo.responseFormat = json;
       return answerOf(raw, o.apiKey);
     }
     if (status === 400 && lowers && effort !== null && effortRetries < 2 && REASONING_NAMED.test(raw)) {
-      effort = effort === 'low' ? null : 'low';
+      // A default lowered from above 'low' goes where 'low' itself was found to go, when that is known.
+      const low = preferred !== undefined && memo?.preferredEffort?.low !== undefined ? memo.preferredEffort.low : 'low';
+      if (effort === 'low') lowRefused = true;
+      effort = effort === 'low' ? null : low;
       effortRetries += 1;
       continue;
     }
