@@ -76,7 +76,7 @@ for (const [service, row, key, variable, family] of [
     test.skip(!key, `${variable} is not set`);
     test.setTimeout(10 * 60_000);
     const userData = newUserData();
-    seedHistory(userData, [{ id: `e2e-real-notes-${service}`, startedAt: Date.now() - 3_600_000, durationMs: LINES.length * 13_000, sentences: MEETING }]);
+    seedHistory(userData, [{ id: `e2e-real-notes-${service.replace(/_/g, '-')}`, startedAt: Date.now() - 3_600_000, durationMs: LINES.length * 13_000, sentences: MEETING }]);
     const sokuji = await launchApp({
       userData,
       seed: {
