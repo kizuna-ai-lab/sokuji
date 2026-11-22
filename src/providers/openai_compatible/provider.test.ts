@@ -48,6 +48,6 @@ describe('a compatible service', () => {
     expect(p.units?.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
     expect(p.speech).toBe('never');
     await expect(p.start({} as never, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
-    expect(p.checkReads).toEqual(['translationModel', 'translationReasoning']);
+    expect(p.checkReads).toEqual(['translationModel', 'translationReasoning', 'notesModel', 'notesReasoning']);
   });
 });

@@ -45,3 +45,30 @@ describe("OpenAI's text models", () => {
     await expect(p.start({} as never, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
   });
 });
+
+// Text models, part C: the notes with the user's own OpenAI key are this provider's, and its settings read the old
+// global notes model once, while they hold no notes model of their own.
+describe("OpenAI's text models: the notes model kept from before", () => {
+  const migrate = (stored: Record<string, unknown>, legacy: Record<string, unknown>) => p.settings.migrate!({ ...TEXT_MODEL_DEFAULTS, ...stored }, { legacy, credentials: {} });
+
+  it('read the old setting, and their own notes model where they hold one', () => {
+    expect(p.settings.legacyKeys).toEqual(['settings.notes.model', 'notesModel']);
+  });
+
+  it('never stored a notes model of their own: the old one, where the user changed it', () => {
+    expect(migrate({}, { 'settings.notes.model': 'gpt-6-sol', notesModel: undefined }).notesModel).toEqual({ listed: 'gpt-6-sol', typed: '' });
+    expect(migrate({}, { 'settings.notes.model': 'o3', notesModel: undefined }).notesModel).toEqual({ listed: '', typed: 'o3' });
+    // Never changed: Automatic, whose first choice is the old default.
+    expect(migrate({}, { 'settings.notes.model': 'gpt-6-luna', notesModel: undefined }).notesModel).toEqual({ listed: '', typed: '' });
+    expect(migrate({}, { 'settings.notes.model': undefined, notesModel: undefined }).notesModel).toEqual({ listed: '', typed: '' });
+  });
+
+  it('once their own is stored, Automatic included, the old one is read no more', () => {
+    const own = { notesModel: { listed: '', typed: '' } };
+    expect(migrate(own, { 'settings.notes.model': 'gpt-6-sol', notesModel: own.notesModel }).notesModel).toEqual({ listed: '', typed: '' });
+  });
+
+  it('keep the rest as every text model does', () => {
+    expect(migrate({ translationReasoning: { level: 'high', typed: '' } }, {})).toEqual({ ...TEXT_MODEL_DEFAULTS, translationReasoning: { level: 'high', typed: '' } });
+  });
+});

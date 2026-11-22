@@ -210,6 +210,50 @@ describe("a chat completion: the reasoning the user chose", () => {
   });
 });
 
+// Text models, part C: a stage's default that is not the lowest (the notes' Medium) is sent, and lowered where the
+// model refuses it, as the lowest is; what is kept for the session is only that the model takes none.
+describe("a chat completion: a stage's default reasoning", () => {
+  const named = (value: string) => refusal(400, { message: `Unsupported value: 'reasoning_effort' does not support '${value}' with this model.`, param: 'reasoning_effort' });
+
+  it('is sent as it is', async () => {
+    const s = serviceOf(reply('ok'));
+    await ask(s.transport, { model: 'gpt-6-luna', reasoning: { preferred: 'medium' } });
+    expect(s.sent[0].body!.reasoning_effort).toBe('medium');
+  });
+
+  it("refused, is asked again with 'low', then without one, and the answer that came is the answer", async () => {
+    const s = serviceOf(named('medium'), named('low'), reply('ok'));
+    await expect(ask(s.transport, { model: 'gpt-4.1-mini', reasoning: { preferred: 'medium' } })).resolves.toEqual({ ok: true, text: 'ok' });
+    expect(s.sent.map((r) => r.body!.reasoning_effort)).toEqual(['medium', 'low', undefined]);
+  });
+
+  it('keeps for the session that the model takes none, and sends it none from then on', async () => {
+    const memo = {};
+    const s = serviceOf(named('low'), reply('ok'), reply('ok'));
+    await ask(s.transport, { model: 'gemma-3-27b-it', service: 'gemini', reasoning: { preferred: 'low' }, memo });
+    expect(memo).toEqual({ reasoningEffort: null });
+    await ask(s.transport, { model: 'gemma-3-27b-it', service: 'gemini', reasoning: { preferred: 'medium' }, memo });
+    expect(s.sent.map((r) => r.body!.reasoning_effort)).toEqual(['low', undefined, undefined]);
+  });
+
+  it('learns nothing from a value the model took: another default of the session is sent as it is', async () => {
+    const memo = {};
+    const s = serviceOf(reply('ok'), reply('ok'));
+    await ask(s.transport, { model: 'gpt-6-luna', reasoning: { preferred: 'low' }, memo });
+    await ask(s.transport, { model: 'gpt-6-luna', reasoning: { preferred: 'medium' }, memo });
+    expect(memo).toEqual({});
+    expect(s.sent.map((r) => r.body!.reasoning_effort)).toEqual(['low', 'medium']);
+  });
+});
+
+describe("a chat completion: the answer's id", () => {
+  it("is the service's own id for the completion, where it gives one", async () => {
+    const s = serviceOf({ status: 200, body: { id: 'chatcmpl-1', choices: [{ index: 0, message: { role: 'assistant', content: 'ok' } }] } }, reply('ok'));
+    await expect(ask(s.transport)).resolves.toEqual({ ok: true, text: 'ok', id: 'chatcmpl-1' });
+    await expect(ask(s.transport)).resolves.toEqual({ ok: true, text: 'ok' });
+  });
+});
+
 describe("a chat completion: the service's refusals", () => {
   const failureOf = async (answer: Answer, over: Partial<ChatCompletionOptions> = {}) => {
     const s = service(answer);

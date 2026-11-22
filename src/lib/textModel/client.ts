@@ -87,7 +87,8 @@ export interface ChatCompletionOptions extends Where {
   /**
    * 'lowest' (the default): the least reasoning the model takes (`lowestReasoningEffort`), so a short answer is not
    * spent on reasoning. 'default': no `reasoning_effort`, the service's own default. `{ exact }`: the user's choice,
-   * sent as it is; a refusal of it is the answer, never asked again with another value.
+   * sent as it is; a refusal of it is the answer, never asked again with another value. `{ preferred }`: a stage's
+   * own default (the notes'), sent as it is and lowered as the lowest is where the model refuses it.
    */
   reasoning?: ReasoningAsk;
   /** What this model was found to refuse, kept across calls. */
@@ -97,10 +98,12 @@ export interface ChatCompletionOptions extends Where {
 /**
  * How much reasoning to ask of a model. 'lowest': the least it takes, lowered further when the service refuses a
  * value (what is learned goes in the memo). 'default': no `reasoning_effort`. `{ exact }`: this value and no other.
+ * `{ preferred }`: this value where the model takes it, else 'low', else none (the memo keeps only that it takes none).
  */
-export type ReasoningAsk = 'lowest' | 'default' | { exact: string };
+export type ReasoningAsk = 'lowest' | 'default' | { exact: string } | { preferred: string };
 
-export type ChatCompletionResult = { ok: true; text: string } | { ok: false; failure: TextModelFailure };
+/** `id`: the service's own id for the completion, where its answer names one. */
+export type ChatCompletionResult = { ok: true; text: string; id?: string } | { ok: false; failure: TextModelFailure };
 export type ListModelsResult = { ok: true; ids: string[] } | { ok: false; failure: TextModelFailure };
 export type ProbeResult = { ok: true } | { ok: false; failure: TextModelFailure };
 
@@ -244,13 +247,15 @@ function answerOf(raw: string, apiKey: string | undefined): ChatCompletionResult
   }
   const message = isRecord(choices[0]) && isRecord(choices[0].message) ? choices[0].message : {};
   const { content } = message;
-  if (typeof content === 'string') return { ok: true, text: content };
+  const id = stringOf(parsed.id);
+  const answered = (text: string): ChatCompletionResult => (id === undefined ? { ok: true, text } : { ok: true, text, id });
+  if (typeof content === 'string') return answered(content);
   if (Array.isArray(content)) {
-    return { ok: true, text: content.map((part) => (isRecord(part) && typeof part.text === 'string' ? part.text : '')).join('') };
+    return answered(content.map((part) => (isRecord(part) && typeof part.text === 'string' ? part.text : '')).join(''));
   }
   const refusal = stringOf(message.refusal);
   if (refusal) return failed('refused', spoken(refusal, apiKey));
-  return { ok: true, text: '' };
+  return answered('');
 }
 
 const REASONING_NAMED = /reasoning[_.]effort/i;
@@ -266,14 +271,20 @@ export async function chatCompletion(o: ChatCompletionOptions): Promise<ChatComp
   if ('ok' in route) return route;
   const { memo } = o;
   const url = `${route.base}/chat/completions`;
-  const exact = typeof o.reasoning === 'object' ? o.reasoning.exact : undefined;
+  const exact = typeof o.reasoning === 'object' && 'exact' in o.reasoning ? o.reasoning.exact : undefined;
+  const preferred = typeof o.reasoning === 'object' && 'preferred' in o.reasoning ? o.reasoning.preferred : undefined;
   // Learned only for the lowest: a value the user chose is sent as it is, and a default is no value at all.
   const learns = o.reasoning === undefined || o.reasoning === 'lowest';
+  // Lowered where refused: the lowest, and a stage's own default.
+  const lowers = learns || preferred !== undefined;
   let effort: string | null = exact !== undefined
     ? exact
-    : o.reasoning === 'default'
-      ? null
-      : memo?.reasoningEffort !== undefined ? memo.reasoningEffort : lowestReasoningEffort(o.service, o.model);
+    : preferred !== undefined
+      // A model found to take none this session is sent none.
+      ? (memo?.reasoningEffort === null ? null : preferred)
+      : o.reasoning === 'default'
+        ? null
+        : memo?.reasoningEffort !== undefined ? memo.reasoningEffort : lowestReasoningEffort(o.service, o.model);
   let json = o.json === true && memo?.responseFormat !== false;
   let effortRetries = 0;
   let formatRetried = false;
@@ -291,10 +302,12 @@ export async function chatCompletion(o: ChatCompletionOptions): Promise<ChatComp
     const { status, raw } = sent;
     if (status >= 200 && status < 300) {
       if (memo && learns) memo.reasoningEffort = effort;
+      // A default the model took says nothing of another; that it takes none at all holds for every one.
+      if (memo && preferred !== undefined && effort === null) memo.reasoningEffort = null;
       if (memo && o.json === true) memo.responseFormat = json;
       return answerOf(raw, o.apiKey);
     }
-    if (status === 400 && learns && effort !== null && effortRetries < 2 && REASONING_NAMED.test(raw)) {
+    if (status === 400 && lowers && effort !== null && effortRetries < 2 && REASONING_NAMED.test(raw)) {
       effort = effort === 'low' ? null : 'low';
       effortRetries += 1;
       continue;

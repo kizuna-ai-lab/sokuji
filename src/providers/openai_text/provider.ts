@@ -8,7 +8,8 @@ import { textModelSettingsView } from '../../components/providers/TextModelSetti
 import { AdapterStartError } from '../../lib/contract/adapter';
 import { TL } from '../../lib/lineup/types';
 import type { UnitDefinition } from '../../lib/plan/types';
-import type { CredentialsMissing, Provider } from '../../lib/provider/types';
+import { notesModelFromOld, OLD_NOTES_MODEL_KEY } from '../../lib/notes/oldNotesModel';
+import type { CredentialsMissing, MigrationInputs, Provider } from '../../lib/provider/types';
 import { createTextModelCheck, type TextModelCheckDeps } from '../../lib/textModel/check';
 import { textModelLanguages } from '../../lib/textModel/languages';
 import type { TextModelSessionDeps } from '../../lib/textModel/translation';
@@ -26,6 +27,19 @@ export function createOpenAITextUnit(deps: TextModelSessionDeps = {}): UnitDefin
   return textModelTranslationUnit('openai', createOpenAITextTranslation(deps));
 }
 
+/** The field of its own the notes model is kept in, read with no default to tell "never stored". */
+const OWN_NOTES_MODEL = 'notesModel';
+
+/**
+ * Its settings as every text model's (`migrateTextModelSettings`), and the notes model the old global setting stood
+ * for while it holds none of its own (text models, part C): the notes with the user's own OpenAI key are its now.
+ */
+export function migrateOpenAITextSettings(stored: Readonly<Record<string, unknown>>, inputs: MigrationInputs): TextModelSettings {
+  const settings = migrateTextModelSettings(stored);
+  if (inputs.legacy[OWN_NOTES_MODEL] !== undefined) return settings;
+  return { ...settings, notesModel: notesModelFromOld(inputs.legacy[OLD_NOTES_MODEL_KEY]) };
+}
+
 /** Its readiness: the key's text models, and the chosen model asked once with the chosen reasoning. */
 export function createOpenAITextCheck(deps: TextModelCheckDeps = {}) {
   return createTextModelCheck(OPENAI_TEXT, 'openai', 'OpenAI', deps);
@@ -39,7 +53,7 @@ export const openaiTextProvider: Provider<TextModelSettings, OpenAITextCredentia
   // The OpenAI setup guide: the same key.
   guideUrl: 'https://sokuji.kizuna.ai/docs/tutorials/openai-setup',
 
-  settings: { key: 'openaiText', defaults: TEXT_MODEL_DEFAULTS, migrate: migrateTextModelSettings },
+  settings: { key: 'openaiText', defaults: TEXT_MODEL_DEFAULTS, legacyKeys: [OLD_NOTES_MODEL_KEY, OWN_NOTES_MODEL], migrate: migrateOpenAITextSettings },
   Settings: textModelSettingsView('openai'),
   optionStages: [TL],
 

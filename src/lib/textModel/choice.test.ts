@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  ANSWER_TOKENS, automaticModel, DEFAULT_MODEL_CHOICE, DEFAULT_REASONING_CHOICE, maxTokensFor, modelChoiceOf, modelToUse, reasoningAskOf, reasoningChoiceOf,
-  translationTemperature, TRANSLATION_TEMPERATURE,
+  ANSWER_TOKENS, automaticModel, DEFAULT_MODEL_CHOICE, DEFAULT_NOTES_REASONING_CHOICE, DEFAULT_REASONING_CHOICE, isDefaultNotesReasoning, maxTokensFor,
+  modelChoiceOf, modelToUse, notesProbeAsk, reasoningAskOf, reasoningChoiceOf, translationTemperature, TRANSLATION_TEMPERATURE,
 } from './choice';
 
 describe('the model a stage asks for', () => {
@@ -87,5 +87,40 @@ describe("a translation's temperature", () => {
     expect(translationTemperature('gemini', 'gemma-3-27b-it')).toBe(TRANSLATION_TEMPERATURE);
     expect(translationTemperature('gemini', 'gemini-3.1-flash-lite')).toBeUndefined();
     expect(translationTemperature('compatible', 'anything')).toBeUndefined();
+  });
+});
+
+// Text models, part C: the notes' model and reasoning, beside the translation's.
+describe("the notes' choice", () => {
+  it("Automatic is the service's notes preference it lists, else its first text model", () => {
+    expect(modelToUse('openai', DEFAULT_MODEL_CHOICE, ['gpt-5-mini', 'gpt-6-luna'], 'notes')).toBe('gpt-6-luna');
+    expect(automaticModel('openai', ['gpt-4o'], 'notes')).toBe('gpt-4o');
+    expect(automaticModel('compatible', ['deepseek-chat'], 'notes')).toBeNull();
+    // A name typed or a model chosen wins, as for the translation.
+    expect(modelToUse('openai', { listed: 'gpt-5.4', typed: '' }, ['gpt-6-luna'], 'notes')).toBe('gpt-5.4');
+  });
+
+  it('the default is Medium, and a stored level that is no level reads as it', () => {
+    expect(DEFAULT_NOTES_REASONING_CHOICE).toEqual({ level: 'medium', typed: '' });
+    expect(reasoningChoiceOf(undefined, DEFAULT_NOTES_REASONING_CHOICE)).toEqual(DEFAULT_NOTES_REASONING_CHOICE);
+    expect(reasoningChoiceOf({ level: 'ultra', typed: '' }, DEFAULT_NOTES_REASONING_CHOICE)).toEqual({ level: 'medium', typed: '' });
+  });
+
+  it('Medium with no value typed is the default; any other level, or a value typed (medium too), is not', () => {
+    expect(isDefaultNotesReasoning(DEFAULT_NOTES_REASONING_CHOICE)).toBe(true);
+    expect(isDefaultNotesReasoning({ level: 'medium', typed: '  ' })).toBe(true);
+    expect(isDefaultNotesReasoning({ level: 'medium', typed: 'medium' })).toBe(false);
+    for (const level of ['off', 'lowest', 'low', 'high'] as const) expect(isDefaultNotesReasoning({ level, typed: '' }), level).toBe(false);
+  });
+
+  it('a check asks the default with the lowest (it is lowered where refused), and anything else as it would be sent', () => {
+    expect(notesProbeAsk(DEFAULT_NOTES_REASONING_CHOICE)).toBe('lowest');
+    expect(notesProbeAsk({ level: 'high', typed: '' })).toEqual({ exact: 'high' });
+    expect(notesProbeAsk({ level: 'medium', typed: 'medium' })).toEqual({ exact: 'medium' });
+    expect(notesProbeAsk({ level: 'lowest', typed: '' })).toBe('lowest');
+  });
+
+  it("a stage's default sent as preferred gets the room of its level", () => {
+    expect(maxTokensFor('gemini', 'gemini-3.8-flash', { preferred: 'medium' })).toBe(ANSWER_TOKENS * 4);
   });
 });

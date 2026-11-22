@@ -1,18 +1,19 @@
 // src/lib/textModel/check.ts
 //
-// A text-model provider's readiness: its model list, then one short request to the model the stage would run, with
-// the reasoning the user chose, so that whatever the service refuses (the key, the model, a reasoning value) is said
-// before Start, in the service's own words. The list's text models are what the provider's options offer and what
-// the build resolves the automatic model from. Bounded: 15 seconds for the two requests, and the caller's signal.
-// A service not reached, or not answering in time, is no answer: the check throws, in the failure's words
-// (`Provider.check` answers `ok: false` only for the service's no). The settings side: no session code runs it, so it
-// may use the real clock by default.
+// A text-model provider's readiness: its model list, then one short request to the model each stage it serves would
+// run, with the reasoning the user chose, so that whatever the service refuses (the key, the model, a reasoning
+// value) is said before Start, in the service's own words. The stages: the translation, unless the plan gives the
+// provider other run stages only (`stages`); the notes, when the check is told the provider writes them (`notes`).
+// The list's text models are what the provider's options offer and what the build resolves the automatic model
+// from. Bounded: 15 seconds for all the requests, and the caller's signal. A service not reached, or not answering
+// in time, is no answer: the check throws, in the failure's words (`Provider.check` answers `ok: false` only for the
+// service's no). The settings side: no session code runs it, so it may use the real clock by default.
 
 import { realClock, type Clock } from '../contract/clock';
 import type { CheckContext, CheckResult } from '../provider/types';
-import { listModels, probeModel, textModelTimeout, type TextModelFailure, type TextModelService, type TextModelTransport } from './client';
-import { modelToUse, reasoningAskOf, type ModelChoice, type ReasoningChoice } from './choice';
-import { textModelIds } from './models';
+import { listModels, probeModel, textModelTimeout, type ReasoningAsk, type TextModelFailure, type TextModelService, type TextModelTransport } from './client';
+import { modelToUse, notesProbeAsk, reasoningAskOf, type ModelChoice, type ReasoningChoice } from './choice';
+import { textModelIds, type TextModelStage } from './models';
 import type { TextModelCredentials } from './translation';
 
 /** As long as the other checks wait. */
@@ -21,10 +22,19 @@ export const CHECK_TIMEOUT_MS = 15_000;
 /** No model is chosen, and the service has no default for one: a compatible service's model is chosen or typed. */
 export const TEXT_MODEL_UNSET = 'text_model_unset';
 
-/** The stage settings a check reads: the translation's model and reasoning. */
+/** The stage settings a check reads: the translation's model and reasoning, and the notes'. */
 export interface TextModelStageSettings {
   translationModel: ModelChoice;
   translationReasoning: ReasoningChoice;
+  notesModel: ModelChoice;
+  notesReasoning: ReasoningChoice;
+}
+
+/** The model a stage would run and the reasoning a probe asks it with. */
+function stageAsk(stage: TextModelStage, s: TextModelStageSettings): { model: ModelChoice; reasoning: Exclude<ReasoningAsk, 'default'> } {
+  return stage === 'notes'
+    ? { model: s.notesModel, reasoning: notesProbeAsk(s.notesReasoning) }
+    : { model: s.translationModel, reasoning: reasoningAskOf(s.translationReasoning) };
 }
 
 export interface TextModelCheckDeps {
@@ -97,14 +107,27 @@ export function createTextModelCheck(providerId: string, service: TextModelServi
       const listed = await listModels(where);
       if (!listed.ok) return refusedOrThrown(providerId, listed.failure);
       const ids = textModelIds(service, listed.ids);
-      const model = modelToUse(service, s.translationModel, ids);
-      if (model === null) {
-        return ids.length === 0 && service !== 'compatible'
-          ? { ok: false, code: 'model_missing', reason: `${name} lists no text model for this key.` }
-          : { ok: false, code: TEXT_MODEL_UNSET, reason: 'No model is chosen: choose one, or type its name.' };
+      // The translation unless the plan gives this provider other run stages only; the notes when it writes them.
+      const stages: TextModelStage[] = [
+        ...(ctx.stages === undefined || ctx.stages.includes('translation') ? ['translation' as const] : []),
+        ...(ctx.notes === true ? ['notes' as const] : []),
+      ];
+      /** What was asked already: the same model with the same reasoning is asked once. */
+      const asked = new Set<string>();
+      for (const stage of stages) {
+        const { model: choice, reasoning } = stageAsk(stage, s);
+        const model = modelToUse(service, choice, ids, stage);
+        if (model === null) {
+          return ids.length === 0 && service !== 'compatible'
+            ? { ok: false, code: 'model_missing', reason: `${name} lists no text model for this key.` }
+            : { ok: false, code: TEXT_MODEL_UNSET, reason: 'No model is chosen: choose one, or type its name.' };
+        }
+        const key = JSON.stringify([model, reasoning]);
+        if (asked.has(key)) continue;
+        asked.add(key);
+        const probed = await probeModel({ ...where, model, reasoning });
+        if (!probed.ok) return refusedOrThrown(providerId, probed.failure);
       }
-      const probed = await probeModel({ ...where, model, reasoning: reasoningAskOf(s.translationReasoning) });
-      if (!probed.ok) return refusedOrThrown(providerId, probed.failure);
       return { ok: true, models: ids.map((id) => ({ id })) };
     } finally {
       bound.done();

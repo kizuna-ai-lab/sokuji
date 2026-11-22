@@ -10,7 +10,10 @@ import { TL } from '../lineup/types';
 import { sameStages, type UnitCapabilities, type UnitDefinition } from '../plan/types';
 import type { ProviderRefusal, SharedSettings } from '../provider/types';
 import type { TextModelService } from './client';
-import { maxTokensFor, modelChoiceOf, modelToUse, reasoningAskOf, reasoningChoiceOf, translationTemperature, DEFAULT_MODEL_CHOICE, DEFAULT_REASONING_CHOICE } from './choice';
+import {
+  maxTokensFor, modelChoiceOf, modelToUse, reasoningAskOf, reasoningChoiceOf, translationTemperature, DEFAULT_MODEL_CHOICE, DEFAULT_NOTES_REASONING_CHOICE,
+  DEFAULT_REASONING_CHOICE,
+} from './choice';
 import type { TextModelStageSettings } from './check';
 import { TEXT_MODEL_UNSET } from './check';
 import { textModelTranslates } from './languages';
@@ -19,20 +22,33 @@ import { translationSystemPrompt } from './prompt';
 import type { TextModelCredentials, TextModelTranslationConfig } from './translation';
 
 /**
- * A text-model provider's settings: per stage, the model and the reasoning (each chosen from a list, or typed). The
- * notes add their own pair beside these.
+ * A text-model provider's settings: per stage, the model and the reasoning (each chosen from a list, or typed): the
+ * translation's, and the notes' (text models, part C), whose reasoning is Medium by default.
  */
 export type TextModelSettings = TextModelStageSettings;
 
-export const TEXT_MODEL_DEFAULTS: TextModelSettings = { translationModel: DEFAULT_MODEL_CHOICE, translationReasoning: DEFAULT_REASONING_CHOICE };
+export const TEXT_MODEL_DEFAULTS: TextModelSettings = {
+  translationModel: DEFAULT_MODEL_CHOICE,
+  translationReasoning: DEFAULT_REASONING_CHOICE,
+  notesModel: DEFAULT_MODEL_CHOICE,
+  notesReasoning: DEFAULT_NOTES_REASONING_CHOICE,
+};
 
 /** What was stored, made valid field by field. */
 export function migrateTextModelSettings(stored: Readonly<Record<string, unknown>>): TextModelSettings {
-  return { translationModel: modelChoiceOf(stored.translationModel), translationReasoning: reasoningChoiceOf(stored.translationReasoning) };
+  return {
+    translationModel: modelChoiceOf(stored.translationModel),
+    translationReasoning: reasoningChoiceOf(stored.translationReasoning),
+    notesModel: modelChoiceOf(stored.notesModel),
+    notesReasoning: reasoningChoiceOf(stored.notesReasoning, DEFAULT_NOTES_REASONING_CHOICE),
+  };
 }
 
-/** The fields the check reads: a change of model or reasoning checks again. The key and the address are credentials. */
-export const TEXT_MODEL_CHECK_READS = ['translationModel', 'translationReasoning'] as const;
+/**
+ * The fields the check reads: a change of model or reasoning checks again, the notes' too (the Notes card's check
+ * reads them). The key and the address are credentials.
+ */
+export const TEXT_MODEL_CHECK_READS = ['translationModel', 'translationReasoning', 'notesModel', 'notesReasoning'] as const;
 
 /** A text model translates, and does nothing else a session asks of a unit. */
 export const TEXT_MODEL_CAPABILITIES: UnitCapabilities = {

@@ -27,6 +27,9 @@ export function textModelIds(service: TextModelService, ids: readonly string[]):
   return [...new Set(kept)];
 }
 
+/** The stages a text model serves: the translation, a run stage; the notes, which are not one. */
+export type TextModelStage = 'translation' | 'notes';
+
 /**
  * The models chosen when the user has chosen none, in order of preference: fast, cheap, and good enough for a
  * sentence's translation (measured 2026-11-22). The first one the service lists wins.
@@ -36,8 +39,24 @@ export const TEXT_MODEL_PREFERENCES: Readonly<Record<Exclude<TextModelService, '
   gemini: ['gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'],
 };
 
-/** The first preferred model among `ids`, or null: none of them is listed, or the service is a compatible one. */
-export function defaultTextModel(service: TextModelService, ids: readonly string[]): string | null {
+/**
+ * The notes' own preferences (text models, part C): a meeting's notes are worth a stronger model than a sentence's
+ * translation, and they are not written in real time. OpenAI's first is the model the notes were written with before
+ * they could be chosen per service (the old setting's default, the one the notes were measured with on OpenAI's own
+ * endpoint), so a user who never chose another still writes with it; then the translation's. Gemini's: its stronger
+ * flash model first, then the translation's.
+ */
+export const NOTES_MODEL_PREFERENCES: Readonly<Record<Exclude<TextModelService, 'compatible'>, readonly string[]>> = {
+  openai: ['gpt-6-luna', ...TEXT_MODEL_PREFERENCES.openai],
+  gemini: ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest'],
+};
+
+/**
+ * The first preferred model among `ids` for `stage`, or null: none of them is listed, or the service is a compatible
+ * one.
+ */
+export function defaultTextModel(service: TextModelService, ids: readonly string[], stage: TextModelStage = 'translation'): string | null {
   if (service === 'compatible') return null;
-  return TEXT_MODEL_PREFERENCES[service].find((id) => ids.includes(id)) ?? null;
+  const preferences = stage === 'notes' ? NOTES_MODEL_PREFERENCES : TEXT_MODEL_PREFERENCES;
+  return preferences[service].find((id) => ids.includes(id)) ?? null;
 }

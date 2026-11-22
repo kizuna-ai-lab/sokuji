@@ -134,6 +134,13 @@ export interface CheckContext {
    * Absent: `stages` is absent, or no stored line-up is what runs.
    */
   stageIds?: Readonly<Partial<StageIds>>;
+  /**
+   * This provider writes the line-up's notes (text models, part C), which are no run stage: a check that can tell
+   * checks what they would use too. Only the Notes card asks it (with `stages: []` where the provider serves no run
+   * stage), and its answer is kept apart from the run's readiness, so what the notes lack never holds back Start.
+   * Absent: it does not.
+   */
+  notes?: boolean;
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }
