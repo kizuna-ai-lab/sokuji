@@ -192,6 +192,10 @@ describe('choosing a provider for a stage', () => {
   it('only the notes can be switched off', () => { expect(() => choose(soniox, 'speech', null)).toThrow(); expect(choose(soniox, 'summarisation', null).lineUp.summarisation).toBeNull(); });
   it('refuses an option that does not serve the stage', () => { expect(() => choose(soniox, 'transcription', 'edge')).toThrow(); });
 
+  // Every line-up of the catalog, every stage, every choice: about two seconds on a fast machine, more on a shared CI
+  // runner, where the 5-second default ran out once the text-model providers joined the catalog.
+  const EXHAUSTIVE_TIMEOUT_MS = 30_000;
+
   // Under the app's catalog, and under one in which Kizuna AI's Soniox voice is not offered alone.
   it.each([
     // Every voice that has a unit of its own is offered alone, and a text side that takes no other voice holds all
@@ -235,7 +239,7 @@ describe('choosing a provider for a stage', () => {
       expect(lineUp.summarisation, label).toBe(from.summarisation);
     }
     expect([...reasons]).toEqual(expected);
-  });
+  }, EXHAUSTIVE_TIMEOUT_MS);
   it('every line-up a user can reach by choosing, from any host\'s defaults, runs or is refused for how it is put together', () => {
     const key = (l: LineUp) => RUN_STAGES.map((s) => l[s]).join('|');
     const seen = new Map<string, LineUp>();
