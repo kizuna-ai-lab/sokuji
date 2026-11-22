@@ -281,6 +281,28 @@ describe('the line-up store', () => {
     expect(stored.get(PROVIDER_KEY)).toBe('openai_compatible');
   });
 
+  it.each(['unlock', 'superseded'] as const)('a run that locks the store while the migration writes: the line-up shown waits for the run (%s)', async (how) => {
+    stored.set(PROVIDER_KEY, 'openai_compatible');
+    let release!: () => void;
+    setSetting.mockImplementationOnce((key: string, value: unknown) => new Promise((resolve) => {
+      release = () => { stored.set(key, value); resolve({ success: true }); };
+    }));
+    const loading = useLineUpStore.getState().load();
+    await vi.waitFor(() => expect(useLineUpStore.getState().unstoredProvider).toBe(hosts[0].id));
+    const before = useLineUpStore.getState().lineUp;
+    useLineUpStore.getState().setLocked(true);
+    release();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(useLineUpStore.getState().lineUp).toBe(before);
+    expect(useLineUpStore.getState().stored).toBe(false);
+    if (how === 'superseded') useLineUpStore.setState({ unstoredProvider: 'openai' });
+    const shown = useLineUpStore.getState().lineUp;
+    useLineUpStore.getState().setLocked(false);
+    await loading;
+    if (how === 'unlock') expect(useLineUpStore.getState()).toMatchObject({ stored: true, unstoredProvider: null, lineUp: { transcription: hosts[0].id } });
+    else expect(useLineUpStore.getState().lineUp).toBe(shown);
+  });
+
   it('a stored id of a provider this build does not offer does not throw, with or without a line-up', async () => {
     stored.set(PROVIDER_KEY, 'not_a_provider');
     await expect(useLineUpStore.getState().load()).resolves.toBeUndefined();
