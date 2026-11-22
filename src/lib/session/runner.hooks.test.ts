@@ -18,14 +18,15 @@ import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';
 import type { FramePort } from './ports';
 import { createRunner } from './runner';
 import { SourceOpenError, type Source } from './source';
-import type { LeaseContext, RunEnd, RunNotice, RunShape, SessionHooks } from './types';
+import type { RunEnd, RunShape } from './types';
+import type { LeaseContext, RunNotice, SessionHooks } from '../run/types';
 
 // Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
 const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function withHooks(session: SessionHooks<unknown, unknown, unknown>, patch: Partial<WholeUnitParts> = {}): AnyProvider {
+function withHooks(session: SessionHooks<unknown, unknown, unknown, AnyProvider>, patch: Partial<WholeUnitParts> = {}): AnyProvider {
   return withWhole(fakeProvider, FAKE_WHOLE, { ...patch, session });
 }
 

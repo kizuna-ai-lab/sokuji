@@ -12,7 +12,7 @@ import type { OpenSource } from '../../lib/session/source';
 import type { SubtitleSession } from '../../lib/subtitle/session';
 import { messagePortWire, publishSubtitles } from '../../lib/subtitle/wire';
 import type { Entry } from '../../lib/projection/types';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import type { ConversationViewState, Readable } from '../../lib/view/conversationView';
 import { displayItems } from '../../lib/view/filter';
 import type { KaraokeState } from '../../lib/view/karaoke';

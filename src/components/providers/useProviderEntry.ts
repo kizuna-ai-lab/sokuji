@@ -15,7 +15,8 @@
  */
 import { useEffect } from 'react';
 import type { RunStage } from '../../lib/lineup/types';
-import type { AnyProvider, LanguagePair, ModelOption, SettingsProps } from '../../lib/provider/types';
+import type { AnyProvider, SettingsProps } from '../../lib/provider/types';
+import type { LanguagePair, ModelOption } from '../../lib/run/types';
 import type { ProviderEntry, Readiness } from '../../stores/providerStore';
 import { useStageProviderId } from '../../stores/lineUpStore';
 import { NO_MODELS, UNKNOWN, useProviderStore } from '../../stores/providerStore';

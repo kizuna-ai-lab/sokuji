@@ -12,7 +12,7 @@ import { flush } from '../../lib/contract/testing/drive';
 import type { LocalStages } from '../../lib/lineup/localStages';
 import type { StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below.
 /** What each direction resolves to, keyed `${src}>${tgt}`, as the engine resolves under a line-up's local stages. */

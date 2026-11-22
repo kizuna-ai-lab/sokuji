@@ -3,7 +3,7 @@
  * (`providers/soniox/regionChange`: a render-time `AuthContext` snapshot cannot show an account that changed
  * during a lookup). `getAppSession()` registers the reader; until then there is none.
  */
-import type { AuthContext } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 
 let read: () => AuthContext | undefined = () => undefined;
 

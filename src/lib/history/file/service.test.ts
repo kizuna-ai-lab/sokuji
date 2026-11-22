@@ -7,7 +7,7 @@ import { useLineUpStore } from '../../../stores/lineUpStore';
 import { useProviderStore } from '../../../stores/providerStore';
 import { getApiUrl } from '../../../utils/environment';
 import { setUseOwnBalance } from '../../session/payerChoice';
-import type { AccountState } from '../../session/types';
+import type { AccountState } from '../../run/types';
 import { useWordList } from '../../words/list';
 import { fileRecognitionFromStores } from './service';
 

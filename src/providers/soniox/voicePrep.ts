@@ -27,7 +27,7 @@
 import type { ManagedVoicesClient } from './managedVoicesClient';
 import { SonioxVoicesError } from './voicesClient';
 import { managedVoicePollDelayMs } from './managedVoicePolling';
-import type { Payer } from '../../lib/session/types';
+import type { Payer } from '../../lib/run/types';
 import { reportError, describeCause } from '../../lib/diagnostics/report';
 
 export type VoicePrepFailure = 'clip_required' | 'pool_exhausted' | 'voice_failed' | 'unavailable';

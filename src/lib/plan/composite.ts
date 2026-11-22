@@ -11,15 +11,12 @@ import type { AdapterEvents, AdapterSession, SessionContext, StartRequest } from
 import { RUN_STAGES } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
 import type { LegName } from '../conversation/types';
-import type { ProviderRefusal, SharedSettings } from '../provider/types';
+import type { ProviderRefusal, SharedSettings } from '../run/types';
 import type { RunShape } from '../session/types';
 import { startCompositeLeg, textAndSpeech } from './compositeLeg';
 import { separateStages, startStagedLeg } from './compositeStages';
 import { accountOf, unitFor } from './read';
-import type { PlannedUnit, RunPlan } from './types';
-
-/** One leg's configs: one per unit of the plan, keyed by `PlannedUnit` identity. */
-export type PlanConfigs = ReadonlyMap<PlannedUnit, unknown>;
+import type { PlanConfigs, PlannedUnit, RunPlan } from './types';
 
 type Models = { asrModel?: string; translationModel?: string; ttsModel?: string };
 

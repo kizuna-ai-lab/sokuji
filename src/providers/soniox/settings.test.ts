@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseCode } from '../../lib/language/code';
 import { reverseSupported } from '../../lib/provider/languages';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import {
   SONIOX_DEFAULTS,
   participantVoiceFor,

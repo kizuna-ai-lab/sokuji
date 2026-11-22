@@ -1,7 +1,7 @@
 import { CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../../Tooltip/Tooltip';
-import type { ModelOption } from '../../../lib/provider/types';
+import type { ModelOption } from '../../../lib/run/types';
 
 export interface ModelFieldProps {
   /** The model a session would run: the provider's effective model, not necessarily the saved one. */

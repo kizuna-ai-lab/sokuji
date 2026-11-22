@@ -7,7 +7,7 @@
 import { GeminiIcon } from '../../components/Icons/ProviderIcons';
 import { textModelSettingsView } from '../../components/providers/TextModelSettings';
 import { TL } from '../../lib/lineup/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { createTextModelCheck, type TextModelCheckDeps } from '../../lib/textModel/check';
 import { textModelLanguages } from '../../lib/textModel/languages';

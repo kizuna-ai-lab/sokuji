@@ -13,10 +13,11 @@ import type { LegName } from '../../lib/conversation/types';
 import type { LocalStages } from '../../lib/lineup/localStages';
 import type { StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
-import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { buildPlan, describePlan, startComposite } from '../../lib/plan/composite';
+import type { PlanConfigs } from '../../lib/plan/types';
 import { stubProvider, stubTextUnit, textAndSpeechPlan } from '../../lib/plan/testing';
 import { isSpeechUnit, type PlannedUnit } from '../../lib/plan/types';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below.
 /** What each direction resolves to, keyed `${src}>${tgt}`. */

@@ -10,7 +10,7 @@ import { recordEvents } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createSonioxAdapter } from './adapter';
 import { buildSoniox, type SonioxConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';

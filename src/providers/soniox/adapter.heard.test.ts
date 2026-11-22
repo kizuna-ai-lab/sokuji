@@ -5,7 +5,7 @@ import type { SessionContext, StartRequest } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import type { SonioxToken } from './sttStream';
 import { createSonioxAdapter } from './adapter';
 import { buildSoniox, type SonioxConfig } from './config';

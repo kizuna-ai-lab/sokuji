@@ -15,12 +15,13 @@ import { AUTO } from '../../lib/language/code';
 import type { LocalStages } from '../../lib/lineup/localStages';
 import type { StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
-import { startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { startComposite } from '../../lib/plan/composite';
+import type { PlanConfigs } from '../../lib/plan/types';
 import { startCompositeBoth } from '../../lib/plan/compositeBoth';
 import { separateStages } from '../../lib/plan/compositeStages';
 import { separatePlan, stubProvider } from '../../lib/plan/testing';
 import { isSpeechUnit, isTranslationUnit, type PlannedUnit, type RunPlan } from '../../lib/plan/types';
-import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
+import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import { JOB_TIMEOUT_MS } from '../../lib/translation/jobTranslator';
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below.

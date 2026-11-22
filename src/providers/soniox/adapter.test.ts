@@ -10,7 +10,7 @@
  * timers, no stubbed global.
  */
 import { describe, it, expect, vi } from 'vitest';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { AdapterStartError, type SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';

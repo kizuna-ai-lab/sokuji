@@ -6,7 +6,7 @@
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
 import { textModelSettingsView } from '../../components/providers/TextModelSettings';
 import { TL } from '../../lib/lineup/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import { notesModelFromOld, OLD_NOTES_MODEL_KEY } from '../../lib/notes/oldNotesModel';
 import type { CredentialsMissing, MigrationInputs, Provider } from '../../lib/provider/types';
 import { createTextModelCheck, type TextModelCheckDeps } from '../../lib/textModel/check';

@@ -5,10 +5,9 @@ import type { AdapterEvents, SessionContext, StartRequest } from '../contract/ad
 import { createVirtualClock } from '../contract/clock';
 import { checkConformance, recordConformance } from '../contract/conformance';
 import type { LegName } from '../conversation/types';
-import type { PlanConfigs } from './composite';
 import { startCompositeBoth } from './compositeBoth';
 import { stubSpeechUnit, stubStartBoth, stubTextUnit, textAndSpeechPlan, type StubCalls } from './testing';
-import type { PlannedUnit } from './types';
+import type { PlanConfigs, PlannedUnit } from './types';
 
 const LEGS: readonly LegName[] = ['speaker', 'participant'];
 /** The speaker hears English and is answered in Japanese; the participant the other way round. */

@@ -3,7 +3,7 @@
  * (1e-3 rulings 2 and 3; spec: "Persisted settings that move"). Pure: nothing
  * here reads or writes storage — plan 1e-3b applies it.
  */
-import type { TurnMode } from './types';
+import type { TurnMode } from '../run/types';
 
 /**
  * The provider id a stored `settings.common.provider` value names; null when

@@ -9,7 +9,8 @@ import { redact } from '../diagnostics/redact';
 import type { AnyProvider, Platform, Readiness } from '../provider/types';
 import type { NetworkType } from './reconnectEvents';
 import type { OpenSource } from './source';
-import type { RunNotice, RunShape } from './types';
+import type { RunShape } from './types';
+import type { RunNotice } from '../run/types';
 
 /** Where a run's audio goes; plan 1c-2's `Playback` (src/lib/audio/playback.ts) implements it. */
 export interface PlaybackPort {

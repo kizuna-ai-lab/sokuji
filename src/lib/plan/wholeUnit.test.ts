@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { RUN_STAGES, TR_TL } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
-import type { UnitCapabilities } from './types';
+import type { UnitCapabilities } from '../run/types';
 import { capabilitiesAlone, unitsOf, wholePlan, wholeUnitOf } from './wholeUnit';
 import type { WholeUnitParts } from './wholeUnit';
 

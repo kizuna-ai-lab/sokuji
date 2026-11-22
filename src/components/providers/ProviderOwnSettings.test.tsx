@@ -30,7 +30,8 @@ vi.mock('../../app/voicePreview', () => ({ appVoicePreview: { play: vi.fn(), sto
 import { fakeProvider, FAKE_WHOLE } from '../../providers/fake/provider';
 import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
-import type { AuthContext, EngineProps, SettingsProps } from '../../lib/provider/types';
+import type { EngineProps, SettingsProps } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';

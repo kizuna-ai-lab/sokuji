@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { directionKey, type DirectionResult, type Selections } from '../../lib/local-inference/selection/types';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 
 /** One direction's table entry: an id per stage, or absent/null for "does not

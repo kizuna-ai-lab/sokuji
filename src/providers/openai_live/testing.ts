@@ -11,7 +11,7 @@ import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { flush } from '../../lib/contract/testing/drive';
 import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createLiveAdapter } from './adapter';
 import { buildLive, type LiveConfig } from './config';
 import { LIVE_DEFAULTS, type LiveCredentials, type LiveSettings } from './settings';

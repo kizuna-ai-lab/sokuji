@@ -14,12 +14,13 @@ import { Conversation, DEFAULT_RETENTION, DEGRADED_DEDUPE_MS, type Retention } f
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
-import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../plan/composite';
+import { buildPlan, describePlan, startComposite } from '../plan/composite';
 import { startCompositeBoth } from '../plan/compositeBoth';
 import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
-import type { PlannedUnit } from '../plan/types';
+import type { PlanConfigs, PlannedUnit } from '../plan/types';
 import { isMissing, readCredentials } from '../provider/credentials';
-import type { AnyProvider, ModelOption, SharedSettings } from '../provider/types';
+import type { AnyProvider } from '../provider/types';
+import type { Budget, ModelOption, PlanAccount, Prepared, Resources, RunNotice, SharedSettings } from '../run/types';
 import { AgentTextFeed } from './agentText';
 import { namingProvider, type RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
@@ -30,7 +31,7 @@ import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
 import { ResourceStack } from './stack';
 import { Turn } from './turn';
-import type { Budget, LegState, LoadingProgress, PlanAccount, Prepared, ReconnectProgress, Resources, RunEnd, RunNotice, RunShape } from './types';
+import type { LegState, LoadingProgress, ReconnectProgress, RunEnd, RunShape } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 /** A stage's failure about its provider's account: the notice names the provider (`namingItsProvider`). */

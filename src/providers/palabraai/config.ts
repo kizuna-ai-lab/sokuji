@@ -5,7 +5,7 @@
  * is on; a leg that does not speak asks for text alone (ruling 7).
  */
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
+import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import { palabraLanguages, palabraOffers } from './languages';
 import { effectiveQueue, effectiveThreshold, palabraParticipantVoice, type PalabraSettings, type PalabraVoice } from './settings';
 

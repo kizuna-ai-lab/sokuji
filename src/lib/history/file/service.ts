@@ -12,7 +12,7 @@ import { useProviderStore } from '../../../stores/providerStore';
 import { getApiUrl } from '../../../utils/environment';
 import { accountPayer } from '../../session/payerChoice';
 import { useWordList } from '../../words/list';
-import type { SessionWords } from '../../provider/types';
+import type { SessionWords } from '../../run/types';
 
 /** How a hosted service is reached: its address, the sign-in's token as it is when asked, and who pays. */
 export interface HostedAccess {

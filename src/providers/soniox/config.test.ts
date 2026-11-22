@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildSoniox, buildSonioxAlone, describeSoniox, describeSonioxTts, sonioxTts } from './config';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 

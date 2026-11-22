@@ -1,5 +1,6 @@
 import { SonioxIcon } from '../../components/Icons/ProviderIcons';
-import type { FileRecognitionBase, Provider, SessionWords } from '../../lib/provider/types';
+import type { FileRecognitionBase, Provider } from '../../lib/provider/types';
+import type { SessionWords } from '../../lib/run/types';
 import { createSonioxAdapter } from './adapter';
 import { checkSoniox } from './check';
 import { sonioxContext, type SonioxConfig } from './config';

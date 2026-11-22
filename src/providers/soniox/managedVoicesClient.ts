@@ -27,7 +27,7 @@
  * than a new one for the same reason `mine`/`ensure`/`remove` do: one class
  * per Better-Auth-token-authenticated backend surface, one shared HTTP idiom.
  */
-import type { Payer } from '../../lib/session/types';
+import type { Payer } from '../../lib/run/types';
 import { DEFAULT_SONIOX_REGION, asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { getApiUrl } from '../../utils/environment';
 import { NOT_ORG_MEMBER, ORG_BALANCE_HELD, ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN } from '../../lib/session/orgNotice';

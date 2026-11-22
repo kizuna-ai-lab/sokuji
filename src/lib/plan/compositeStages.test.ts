@@ -9,11 +9,11 @@ import { runScenario, scenarioNames, type AdapterHarness } from '../contract/tes
 import type { TranslationEvents, TranslationSession } from '../contract/translation';
 import type { LegName } from '../conversation/types';
 import { createJobTranslator } from '../translation/jobTranslator';
-import { startComposite, type PlanConfigs } from './composite';
+import { startComposite } from './composite';
 import { startCompositeBoth } from './compositeBoth';
 import { separateStages } from './compositeStages';
 import { separatePlan, stubSpeechUnit, stubStartBoth, stubTextUnit, stubTranslationUnit, textAndSpeechPlan, type StubCalls } from './testing';
-import type { PlannedUnit, RunPlan } from './types';
+import type { PlanConfigs, PlannedUnit, RunPlan } from './types';
 
 const SPEAKS: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));

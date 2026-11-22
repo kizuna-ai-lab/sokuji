@@ -9,7 +9,7 @@ import type { AnyProvider } from '../../lib/provider/types';
 import { providerIdFromStored } from '../../lib/session/storedSettings';
 import { presentProviders } from '../../providers/registry';
 import { capabilitiesAlone, runsAlone } from '../../lib/plan/wholeUnit';
-import type { UnitCapabilities } from '../../lib/plan/types';
+import type { UnitCapabilities } from '../../lib/run/types';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import { getScenario, providerFitForScenario } from '../../lib/setup/scenarios';
 import type { ProviderFit, ScenarioPreset } from '../../lib/setup/scenarios';

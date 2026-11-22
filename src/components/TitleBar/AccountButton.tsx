@@ -19,7 +19,7 @@ import {
 import { payerDisplayBalance } from '../../lib/session/orgNotice';
 import { useRunState } from '../../app/useRun';
 import { useShownPayer } from '../../app/useShownPayer';
-import type { AccountState, Payer } from '../../lib/session/types';
+import type { AccountState, Payer } from '../../lib/run/types';
 import { useAccountStore } from '../../stores/accountStore';
 import { compactBalanceLabel } from './compactBalance';
 import { useBalanceShortfall } from './useBalanceShortfall';

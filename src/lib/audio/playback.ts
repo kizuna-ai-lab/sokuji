@@ -12,6 +12,7 @@ import type { AudioGraph, BusMeter, OneShot } from './graph';
 import { LiveStream } from './liveStream';
 import type { PcmTap } from './pcmTap';
 import type { OutletName } from './outlets';
+import type { PreviewClip } from './previewClip';
 import { routesFor, type Edge, type Outlet, type RoutingSettings } from './routes';
 
 /** How long playback must be quiet — no run live, nothing queued, no preview — before its context rests. */
@@ -34,12 +35,6 @@ export function parseClipKey(key: ClipKey): { leg: LegName; ref: number | undefi
 export interface RoutingSource {
   get(): RoutingSettings;
   subscribe(listener: () => void): () => void;
-}
-
-/** A voice sample or the test tone, at its own rate. */
-export interface PreviewClip {
-  audio: Float32Array;
-  sampleRate: number;
 }
 
 export interface Playback extends PlaybackPort {

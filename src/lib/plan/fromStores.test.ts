@@ -29,7 +29,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { planFromStores, usePlan, useStageUnit } from './fromStores';
 import { checkStagesOf, providersIn, transcriptionProvider } from './read';
-import type { SharedSettings } from '../provider/types';
+import type { SharedSettings } from '../run/types';
 import { planOf } from './testing';
 import { unitsOf } from './wholeUnit';
 

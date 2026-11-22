@@ -7,10 +7,9 @@
  * Soniox, choice 2): a member added to the base later is a decision here.
  */
 import type { ComponentType } from 'react';
-import type { SessionHooks } from '../session/types';
-import type { AuthContext, CredentialsMissing, FileRecognitionSpec, Provider, SessionWords, SettingsProps, VoiceSummaryProps } from './types';
+import type { AuthContext, SessionHooks, SessionWords, UnitDefinition } from '../run/types';
+import type { AnyProvider, CredentialsMissing, FileRecognitionSpec, Provider, SettingsProps, VoiceSummaryProps } from './types';
 import type { RunStage } from '../lineup/types';
-import type { UnitDefinition } from '../plan/types';
 
 /** What a managed `read` answers (the read type `R`, choice 1): the sign-in, never a key — the lease mints those. */
 export interface ManagedSignIn {
@@ -46,7 +45,7 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   /** The twin's own file recognition, through the sign-in; absent, it transcribes no file (the base's needs a key). */
   fileRecognition?: (settings: S, credentials: K, words?: SessionWords) => FileRecognitionSpec | { missing: 'no-key' };
   /** Added to the base's hooks. `acquire` is required: a twin's `R` is not its `K`. */
-  session: SessionHooks<S, K, C> & Required<Pick<SessionHooks<S, K, C>, 'acquire'>>;
+  session: SessionHooks<S, K, C, AnyProvider> & Required<Pick<SessionHooks<S, K, C, AnyProvider>, 'acquire'>>;
 }
 
 export function managed<S, K extends { missing?: never } & object, C extends { refused?: never } & object, Id extends string>(

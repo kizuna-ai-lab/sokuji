@@ -14,7 +14,7 @@ import { eventsFrom, recordEvents, type AdapterEvent } from '../../lib/contract/
 import { flush, voicedPcm } from '../../lib/contract/testing/drive';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { LegName } from '../../lib/conversation/types';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { FLAP_WINDOW_MS, MAX_RECONNECTS, type DropInfo } from '../../lib/session/reconnect';
 import { createSonioxAdapter, SONIOX_STALL_MS, sonioxDropAction } from './adapter';
 import { buildSoniox, type SonioxConfig } from './config';

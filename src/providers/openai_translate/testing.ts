@@ -10,7 +10,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createTranslateAdapter } from './adapter';
 import { buildTranslate, type TranslateConfig } from './config';
 import { TRANSLATE_DEFAULTS, type TranslateCredentials, type TranslateSettings } from './settings';

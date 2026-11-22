@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { RUN_STAGES } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
 import { isSpeechUnit, isTranslationUnit, sameStages } from './types';
-import type { UnitDefinition } from './types';
+import type { UnitDefinition } from '../run/types';
 
 describe('sameStages', () => {
   const asked = new Set<RunStage>(['transcription', 'speech']);

@@ -12,7 +12,8 @@ import type { AdapterEvents, AdapterSession, StartRequest } from '../../lib/cont
 import { AdapterStartError, LegStartError } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import { wholeUnitOf } from '../../lib/plan/wholeUnit';
-import type { CredentialsMissing, Provider, ProviderRefusal } from '../../lib/provider/types';
+import type { CredentialsMissing, Provider } from '../../lib/provider/types';
+import type { ProviderRefusal } from '../../lib/run/types';
 import type { FakeConfig } from './adapter';
 import { FakeLeasedSettingsView } from './FakeLeasedSettingsView';
 import { buildFake, checkFake, describeFake, FAKE_LANGUAGES, startFake } from './provider';

@@ -5,9 +5,10 @@
 import { RUN_STAGES, SP, TR_TL } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
 import type { Adapter, SessionContext } from '../contract/adapter';
-import type { AnyProvider, ProviderRefusal, SharedSettings } from '../provider/types';
+import type { AnyProvider } from '../provider/types';
+import type { ProviderRefusal, SharedSettings, UnitCapabilities, UnitDefinition } from '../run/types';
 import { sameStages } from './types';
-import type { PlannedUnit, RunPlan, UnitCapabilities, UnitDefinition } from './types';
+import type { PlannedUnit, RunPlan } from './types';
 
 /**
  * What a provider that is one whole session is made of: the nine members `Provider` had for it, with the same types.

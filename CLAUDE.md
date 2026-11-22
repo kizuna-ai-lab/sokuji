@@ -84,7 +84,8 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 2. **Provider Architecture** (spec: `docs/superpowers/specs/2026-09-22-client-contract-design.md`)
    - One folder per provider, `src/providers/<id>/`: `provider.ts`, the definition
      (settings, credentials, languages, `check`, `session`, its `Settings` view; typed by
-     `src/lib/provider/types.ts`), and `adapter.ts`, the L0 client of one leg: it speaks
+     `src/lib/provider/types.ts`, its units and session hooks by the run contract,
+     `src/lib/run/types.ts`), and `adapter.ts`, the L0 client of one leg: it speaks
      the provider's wire and emits segments, audio and lifecycle through `AdapterEvents`
      (`src/lib/contract/adapter.ts`); every adapter passes `src/lib/contract/conformance.ts`
    - `src/providers/registry.ts` lists them in UI order and compiles the `fake` providers
@@ -490,7 +491,8 @@ useSettingsStore.subscribe(
 What the spec's "What adding a provider then touches" lists
 (`docs/superpowers/specs/2026-09-22-client-contract-design.md`), as the Stage 2 ports landed:
 1. One folder, `src/providers/<id>/`: `provider.ts` (the definition, typed by
-   `src/lib/provider/types.ts`: settings with their defaults — and `legacyKeys`/`migrate`
+   `src/lib/provider/types.ts`, its units and session hooks by the run contract,
+   `src/lib/run/types.ts`: settings with their defaults — and `legacyKeys`/`migrate`
    when it reads keys an older build stored — credentials, languages, its `units`, `check`,
    `session`), `adapter.ts` (the L0 client, `src/lib/contract/adapter.ts`, passing the
    conformance suite `src/lib/contract/conformance.ts`), its `Settings` view, and tests.

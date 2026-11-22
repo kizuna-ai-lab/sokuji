@@ -7,14 +7,14 @@ import type { TranslationStartRequest } from '../../lib/contract/translation';
 import { checkTranslation, recordTranslation } from '../../lib/contract/translationConformance';
 import { Conversation } from '../../lib/conversation/Conversation';
 import type { LegName } from '../../lib/conversation/types';
-import { startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { startComposite } from '../../lib/plan/composite';
 import { startCompositeBoth } from '../../lib/plan/compositeBoth';
 import { separateStages } from '../../lib/plan/compositeStages';
-import type { PlannedUnit, RunPlan } from '../../lib/plan/types';
+import type { PlanConfigs, PlannedUnit, RunPlan } from '../../lib/plan/types';
 import { isTranslationUnit } from '../../lib/plan/types';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { AUTO } from '../../lib/provider/languages';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import {
   FAKE_TRANSCRIBER_DEFAULTS, fakeTranscriberProvider, fakeTranscript, migrateFakeTranscriberSettings, type FakeTranscriberSettings,
 } from './transcriber';

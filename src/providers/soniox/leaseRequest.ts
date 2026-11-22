@@ -18,7 +18,8 @@
  */
 import type { LegName } from '../../lib/conversation/types';
 import { servesSpeech, servesTranscription } from '../../lib/plan/read';
-import type { Payer, RunShape } from '../../lib/session/types';
+import type { RunShape } from '../../lib/session/types';
+import type { Payer } from '../../lib/run/types';
 import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSharedBoth, type SonioxSettings } from './settings';
 

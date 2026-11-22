@@ -7,7 +7,7 @@
  * need not wait for, or be cancelled by, a start.
  */
 import { reportWarning } from '../lib/diagnostics/report';
-import type { AuthContext } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 import { endRememberedVoiceLease, voiceLeaseMemory, type StoredVoiceLeases } from '../providers/soniox/voiceLeaseMemory';
 
 export function watchVoiceLeaseRecovery(o: {

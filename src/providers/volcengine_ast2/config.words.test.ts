@@ -1,7 +1,7 @@
 // Doubao over its limit still builds a session, with the first 1,000 items.
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildAst2, type Ast2Config } from './config';
 import { AST2_DEFAULTS } from './settings';
 

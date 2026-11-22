@@ -9,7 +9,7 @@
 import { Ear } from 'lucide-react';
 import { TR } from '../../lib/lineup/types';
 import { sameStages } from '../../lib/plan/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import type { FakeConfig } from './adapter';
 import { FAKE_LANGUAGES, startFake } from './provider';

@@ -1,7 +1,7 @@
 // Qwen's old hot words, still in storage from an older version, are not mixed into the word list's phrases.
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildQwen } from './config';
 import { QWEN_DEFAULTS } from './settings';
 

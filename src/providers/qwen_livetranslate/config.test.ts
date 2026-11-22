@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
 import { AUTO } from '../../lib/provider/languages';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildQwen, describeQwen } from './config';
 import { QWEN_DEFAULTS, QWEN_MODEL, SPEAKER_CLONE, SPEAKER_CLONE_ONCE } from './settings';
 

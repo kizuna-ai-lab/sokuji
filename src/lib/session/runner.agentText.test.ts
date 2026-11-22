@@ -3,14 +3,14 @@ import type { OutletName } from '../audio/outlets';
 import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
-import type { SharedSettings } from '../provider/types';
+import type { SharedSettings, TurnMode } from '../run/types';
 import { shapeWith, withWhole } from '../plan/testing';
 import { buildFake, FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { PlaybackPort } from './ports';
 import { createRunner } from './runner';
-import type { RunShape, TurnMode } from './types';
+import type { RunShape } from './types';
 
 const reportErrorSpy = vi.hoisted(() => vi.fn());
 vi.mock('../diagnostics/report', async (importOriginal) => {

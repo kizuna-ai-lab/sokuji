@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
 import { INSTRUCTIONS_TEMPLATE } from '../../lib/provider/instructions';
 import { AUTO } from '../../lib/provider/languages';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildRealtime, describeRealtime, type RealtimeConfig } from './config';
 import { migrateRealtimeSettings, REALTIME_DEFAULTS, type RealtimeSettings } from './settings';
 

@@ -3,7 +3,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import { AUTO } from '../../lib/provider/languages';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { FAKE_WHOLE, fakeProvider } from './provider';
 import { FAKE_SCRIPT_NAMES, fakeScript } from './scripts';
 import { FAKE_DEFAULTS, migrateFakeSettings, type FakeSettings } from './settings';

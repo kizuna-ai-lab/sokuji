@@ -14,7 +14,7 @@
  * payload is an allowlist of facts. The existing frame sink gates it on the
  * Diagnostic logs switch, so nothing here runs unless the user opted in.
  */
-import type { LeaseContext } from '../session/types';
+import type { LeaseContext } from '../run/types';
 
 /**
  * Every managed endpoint a run's Start, reconnect or end reaches, on both

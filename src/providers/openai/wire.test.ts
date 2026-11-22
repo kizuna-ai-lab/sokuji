@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import ts from 'typescript';
 import { base64ToPcm } from '../../lib/contract/pcm64';
 import { redact } from '../../lib/diagnostics/redact';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildRealtime, type RealtimeConfig } from './config';
 import { migrateRealtimeSettings, REALTIME_DEFAULTS } from './settings';
 import { AUTO_CTX, configFor, KEY, MANUAL_CTX, SERVER, SHARED } from './testing';

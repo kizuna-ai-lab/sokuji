@@ -6,7 +6,7 @@ import type { HistoryNotes, HistoryRecord, HistoryRecordRow } from './types';
 import { createFileJobState, createHistoryPageStore, LIST_PAGE, SEARCH_DELAY_MS } from './historyPageStore';
 import type { HostedFileTerms } from './file/hostedFile';
 import { EACH_SIDE } from './file/options';
-import type { AccountState } from '../session/types';
+import type { AccountState } from '../run/types';
 import { setUseOwnBalance } from '../session/payerChoice';
 
 const { settingsStored } = vi.hoisted(() => ({ settingsStored: new Map<string, unknown>() }));

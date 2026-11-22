@@ -6,7 +6,8 @@
  */
 import { currentAuth } from '../../app/currentAuth';
 import { currentRunPhase } from '../../app/runPhase';
-import type { AnyProvider, AuthContext } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_DEFAULT_VOICE, isSonioxBuiltInVoice } from '../../lib/soniox/ttsCatalog';
 import { useProviderStore } from '../../stores/providerStore';

@@ -5,13 +5,13 @@ import { checkPlan, refusalNotice } from '../plan/checks';
 import { accountOf, capabilitiesOf, providersIn, servesSpeech, transcriptionProvider, unitFor } from '../plan/read';
 import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
-import type { UnitCapabilities } from '../plan/types';
+import type { RunNotice, UnitCapabilities } from '../run/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
 import { payerBalance } from './orgNotice';
 import { ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, orgNoticeParams } from './orgNotice';
 import type { PlanRefusal, RunPlan } from '../plan/types';
-import type { RunNotice, RunShape } from './types';
+import type { RunShape } from './types';
 
 /** Why a start was refused before anything opened. */
 export interface Refusal extends RunNotice {

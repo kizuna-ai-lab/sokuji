@@ -29,7 +29,7 @@ import { askQuitWhileNotes, type QuitAnswer, type QuitRecord } from '../lib/note
 import type { NotesRunner } from '../lib/notes/runner';
 import { planFromStores } from '../lib/plan/fromStores';
 import type { RunPlan } from '../lib/plan/types';
-import type { AuthContext } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
 import { appMicMuted, appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, planRefusalFromStores, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';

@@ -4,9 +4,10 @@
  * not the same thing").
  */
 import type { LegName } from '../conversation/types';
-import type { LanguagePair, Readiness } from '../provider/types';
+import type { Readiness } from '../provider/types';
+import type { LanguagePair, RunNotice, TurnMode } from '../run/types';
 import { NO_MICROPHONE, type Refusal } from '../session/shape';
-import type { RunNotice, RunState, TurnMode } from '../session/types';
+import type { RunState } from '../session/types';
 
 /** What the subtitle body shows while no run is live. */
 export type SubtitleIdleModel =

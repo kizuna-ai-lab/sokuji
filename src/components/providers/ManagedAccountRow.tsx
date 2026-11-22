@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { useSetAccountPopoverRequested } from '../../stores/settingsStore';
 
 /**

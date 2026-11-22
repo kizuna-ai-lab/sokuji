@@ -1,7 +1,8 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { isPresent } from '../lib/provider/presence';
 import { AUTO, normalizePair } from '../lib/provider/languages';
-import type { AnyProvider, AuthContext } from '../lib/provider/types';
+import type { AnyProvider } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 import { parseCode } from '../lib/language/code';
 import en from '../locales/en/translation.json';
 import { LEGACY_SLICE_KEYS } from '../lib/session/storedSettings';

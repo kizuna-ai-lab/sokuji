@@ -137,7 +137,7 @@ vi.mock('../Settings/shared/WarningModal', () => ({
 import { configureAppSession, getAppSession } from '../../app/session';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
-import type { LanguagePair } from '../../lib/provider/types';
+import type { LanguagePair } from '../../lib/run/types';
 import type { AnalyticsPort } from '../../lib/session/ports';
 import { VIEW_INTERVAL_MS } from '../../lib/view/conversationView';
 import { TRANSIENT_NOTICE_MS } from '../../lib/view/filter';

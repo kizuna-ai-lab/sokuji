@@ -26,7 +26,8 @@
 import type { Clock } from '../lib/contract/clock';
 import { checkStagesOf, providersIn } from '../lib/plan/read';
 import type { RunPlan } from '../lib/plan/types';
-import type { AnyProvider, AuthContext } from '../lib/provider/types';
+import type { AnyProvider } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 import type { Runner } from '../lib/session/runner';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { useProviderStore } from '../stores/providerStore';

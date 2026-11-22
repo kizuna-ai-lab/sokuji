@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { isPresent } from '../../lib/provider/presence';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import type { TextModelTransport } from '../../lib/textModel/client';
 import { TEXT_MODEL_DEFAULTS } from '../../lib/textModel/unit';
 import { OPENAI_KEY_STORED_AT } from '../openaiKey';

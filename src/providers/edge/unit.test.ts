@@ -5,7 +5,7 @@ import type { Voice } from '../../lib/edge-tts/edgeTts';
 import { filterVoicesByLanguage } from '../../lib/edge-tts/voiceList';
 import { EDGE_TTS_LANGUAGES, WHISPER_LANGUAGES } from '../../lib/local-inference/languageSupport';
 import { directionKey } from '../../lib/local-inference/selection/types';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import type { EdgeSettings } from './settings';
 import { edgeSpeaks, edgeSpeechUnit } from './unit';
 

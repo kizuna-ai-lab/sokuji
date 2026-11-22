@@ -4,7 +4,7 @@
  * pairs the cloning model has ("声音复刻模式"), and every other speaking pair
  * takes a catalog voice. Pure; nothing here writes a setting.
  */
-import type { LanguagePair } from '../../lib/provider/types';
+import type { LanguagePair } from '../../lib/run/types';
 import { defaultVoice, isFixedTarget, speaks } from './catalog';
 import { CLONING_LANGUAGES, ZH_EN, type Ast2Settings } from './settings';
 

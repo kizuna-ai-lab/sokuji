@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { PreviewClip } from '../lib/audio/playback';
+import type { PreviewClip } from '../lib/audio/previewClip';
 
 // The page's playback, as session.test.ts mocks it: no Web Audio in jsdom.
 // Module-level so a test can see what the route handed it.

@@ -4,6 +4,7 @@ import { createVirtualClock } from '../contract/clock';
 import type { DropInfo } from '../contract/reconnect';
 import type { LegName } from '../conversation/types';
 import { shapeWith, withWhole } from '../plan/testing';
+import type { AnyProvider } from '../provider/types';
 import { FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -13,7 +14,8 @@ import type { NetworkType } from './reconnectEvents';
 import { apiErrorType } from './run';
 import { noticeText } from '../view/noticeText';
 import { createRunner } from './runner';
-import type { LeaseContext, RunShape, SessionHooks } from './types';
+import type { RunShape } from './types';
+import type { LeaseContext, SessionHooks } from '../run/types';
 
 // Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
 const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
@@ -61,7 +63,7 @@ function setup(o: {
     return session(leg);
   };
   let lease: LeaseContext | null = null;
-  const hooks: SessionHooks<unknown, unknown, unknown> = {
+  const hooks: SessionHooks<unknown, unknown, unknown, AnyProvider> = {
     ...(o.both ? {
       startBoth: async (_requests, events) => {
         kept.speaker = events.speaker;

@@ -3,7 +3,7 @@
  * MainPanel decodes it and sends it through the whole pipeline, the virtual
  * microphone included; here it is one preview clip.
  */
-import type { PreviewClip } from './playback';
+import type { PreviewClip } from './previewClip';
 
 /** The bundled asset; the extension serves it from its own origin. */
 export function testToneUrl(): string {
