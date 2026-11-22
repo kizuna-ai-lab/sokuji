@@ -43,7 +43,7 @@ describe("Gemini's text models", () => {
   });
 
   it('translate through their one unit', () => {
-    expect(p.units?.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
+    expect(p.units.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
     expect(p.settings.key).toBe('geminiText');
   });
 });

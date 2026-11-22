@@ -8,7 +8,7 @@ import type { AnyProvider } from '../provider/types';
 import { RUN_STAGES } from '../lineup/types';
 import type { ProviderCaps, RunStage } from '../lineup/types';
 
-/** Every non-empty subset of the run stages, in `RUN_STAGES` order. */
+/** Every non-empty subset of the run stages, each in `RUN_STAGES` order (the list itself in bitmask order). */
 const SUBSETS: readonly (readonly RunStage[])[] = Array.from({ length: (1 << RUN_STAGES.length) - 1 }, (_, i) => RUN_STAGES.filter((_stage, bit) => ((i + 1) >> bit) & 1));
 
 /** The sets of stages some unit of the provider occupies exactly, under settings `s`. */

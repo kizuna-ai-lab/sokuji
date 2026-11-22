@@ -60,7 +60,7 @@ describe('planFromStores', () => {
     expect(planFromStores()).toEqual({ state: 'loading' });
   });
 
-  it('is ready with the selected provider as one whole-provider unit, and its entry as its account', () => {
+  it("is ready with the selected provider's plan alone, and its entry as its account", () => {
     runsOn('soniox');
     useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry } });
     const found = planFromStores();

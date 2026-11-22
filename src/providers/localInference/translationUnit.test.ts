@@ -529,8 +529,8 @@ describe('a session of the local translation unit', () => {
 
 describe('a leg of three units: another provider transcribes, this device translates, a third speaks', () => {
   const SPEAKS: SessionContext = { direction: EN_JA, speech: true, turns: 'auto' };
-  const [transcriber] = fakeTranscriberProvider.units!;
-  const [voice] = fakeVoiceProvider.units!;
+  const [transcriber] = fakeTranscriberProvider.units;
+  const [voice] = fakeVoiceProvider.units;
   const local = stubProvider('local_inference');
 
   function planOver(engines: Record<string, FakeTranslation>): RunPlan {

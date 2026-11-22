@@ -85,8 +85,8 @@ interface ModelStoreState {
 
 /**
  * The one scan in flight, shared by every caller until it settles (then
- * cleared). Without this, SettingsInitializer and check.ts's
- * `raceInitialize` — both calling `initialize()` at startup, ~150ms apart —
+ * cleared). Without this, SettingsInitializer and `localModels.scanned`
+ * (`stores/localModels.ts`) — both calling `initialize()` at startup, ~150ms apart —
  * could each launch their own independent scan: the later one reads its own,
  * later metadata snapshot and can flip a model a live download has since
  * started back to `not_downloaded` in the UI (review Minor 1).

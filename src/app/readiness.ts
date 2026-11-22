@@ -129,7 +129,7 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
     for (const id of [...cancel.keys()]) if (!ids.has(id)) drop(id);
     for (const id of [...stale]) if (!ids.has(id)) stale.delete(id);
     for (const id of [...read.keys()]) if (!ids.has(id)) read.delete(id);
-    // A provider watches what its check reads besides its inputs through this device's models (LocalInference's downloads).
+    // Each provider's watch is handed this device's models; only LocalInference reads them (its downloads).
     for (const p of ps) if (!watched.has(p.id)) watched.set(p.id, p.watchReadiness?.(() => inputsChanged(p.id), localModels) ?? (() => {}));
     if (!ps.length) {
       // No plan has loaded: whichever provider comes next has just joined, even the last one.

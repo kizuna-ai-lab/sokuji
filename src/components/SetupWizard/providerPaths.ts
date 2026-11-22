@@ -26,7 +26,7 @@ export function managedProvider(): ProviderType | null {
   return p ? (p.id as ProviderType) : null;
 }
 
-/** A definition's speech as the old descriptor's `textOnlyCapability`: the word the scenario fit and the pair sentence read. */
+/** A unit's speech as the old descriptor's `textOnlyCapability`: the word the scenario fit and the pair sentence read. */
 export function textOnlyCapabilityOf(speaking: Pick<UnitCapabilities, 'speech'>): 'always' | 'optional' | 'never' {
   return speaking.speech === 'always' ? 'never' : speaking.speech === 'never' ? 'always' : 'optional';
 }

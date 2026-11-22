@@ -45,7 +45,7 @@ describe('a compatible service', () => {
   });
 
   it('translates through its one unit, and never starts a session whole', () => {
-    expect(p.units?.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
+    expect(p.units.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
     expect(p.units[0].capabilities(TEXT_MODEL_DEFAULTS).speech).toBe('never');
     expect(p).not.toHaveProperty('start');
     expect(p.checkReads).toEqual(['translationModel', 'translationReasoning']);

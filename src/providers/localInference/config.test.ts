@@ -12,7 +12,7 @@ type TableEntry = { asr?: string | null; translation?: string | null; tts?: stri
 type Table = Record<string, TableEntry>;
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below
-// (see check.test.ts for the same convention).
+// (for `mockSizes`/`mockManifest`, which the factories read).
 let mockTable: Table = {};
 const mockResolve = vi.fn((src: string, tgt: string, selections: Selections): DirectionResult => {
   const entry = mockTable[`${src}>${tgt}`];

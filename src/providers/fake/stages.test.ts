@@ -26,9 +26,9 @@ import { fakeVoiceProvider } from './voice';
 const SPEAKS: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 const SHARED: SharedSettings = { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
-const [transcriber] = fakeTranscriberProvider.units!;
-const [translator] = fakeTranslatorProvider.units!;
-const [voice] = fakeVoiceProvider.units!;
+const [transcriber] = fakeTranscriberProvider.units;
+const [translator] = fakeTranslatorProvider.units;
+const [voice] = fakeVoiceProvider.units;
 
 /** The plan of the three fakes, built by hand as the composer will build it. */
 function plan(): RunPlan {

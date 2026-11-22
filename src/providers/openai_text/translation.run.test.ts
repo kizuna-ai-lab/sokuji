@@ -98,7 +98,7 @@ function fakeEngines() {
 const CATALOG: ProviderCaps[] = [...allCaps(), { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false }];
 
 function planOver(engines: LocalEngines, transport: TextModelTransport): RunPlan {
-  const [whole, , translation, speech] = localInferenceProvider.units!;
+  const [whole, , translation, speech] = localInferenceProvider.units;
   const local = { ...localInferenceProvider, units: [whole, createLocalTranscriptionUnit({ engines }), translation, speech] } as AnyProvider;
   const openai = { ...openaiTextProvider, units: [createOpenAITextUnit({ transport })] } as AnyProvider;
   const plan = compose(LINE_UP, {

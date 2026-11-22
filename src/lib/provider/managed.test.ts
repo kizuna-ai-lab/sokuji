@@ -139,7 +139,7 @@ describe('managed', () => {
     const own: ReadOf<typeof fakeProvider> = {};
     // @ts-expect-error an own-key read answers its K, not the sign-in
     const notOwn: ReadOf<typeof fakeProvider> = { signedIn: true };
-    // `check` takes what `read` answers; `start` still takes the lease's K.
+    // `check` takes what `read` answers; A start takes the provider's K: the fake's own here, since a twin's units are erased.
     const request = {} as StartRequest<FakeConfig, FakeCredentials>;
     void FAKE_WHOLE.start(request, {} as AdapterEvents).catch(() => {});
     // @ts-expect-error a start never receives the sign-in

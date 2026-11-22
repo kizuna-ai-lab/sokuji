@@ -51,7 +51,7 @@ export interface ProviderCaps {
   /**
    * True: it translates only what it transcribes itself, on the one connection that does both. Choosing it for
    * translation chooses it for transcription; its transcription may stand alone, translated by another option. Rule:
-   * some unit transcribes without translating, some unit translates, and every unit that translates also transcribes.
+   * some occupation (the stages a unit occupies when asked for exactly those) has transcription without translation, some has translation, and every one with translation has transcription.
    * Absent otherwise.
    */
   translatesOwn?: boolean;

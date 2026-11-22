@@ -22,8 +22,8 @@ const [whole] = fakeProvider.units;
 
 describe('the fake provider', () => {
   it('runs its whole unit, made of FAKE_WHOLE', () => {
-    expect(fakeProvider.units?.map((u) => u.id)).toEqual(['whole']);
-    expect(fakeProvider.units![0].describe).toBe(FAKE_WHOLE.describe);
+    expect(fakeProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(fakeProvider.units[0].describe).toBe(FAKE_WHOLE.describe);
   });
 
   it('shows no credential field by default, and reads without one', () => {

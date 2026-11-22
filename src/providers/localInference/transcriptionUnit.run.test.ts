@@ -98,7 +98,7 @@ const CATALOG: ProviderCaps[] = [
 
 /** The local provider whose recognition alone runs over `engines`; everything else is the provider's own. */
 function localOver(engines: LocalEngines): AnyProvider {
-  const [whole, , translation, speech] = localInferenceProvider.units!;
+  const [whole, , translation, speech] = localInferenceProvider.units;
   return { ...localInferenceProvider, units: [whole, createLocalTranscriptionUnit({ engines }), translation, speech] } as AnyProvider;
 }
 

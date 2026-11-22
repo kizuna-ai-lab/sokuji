@@ -1,6 +1,7 @@
 import { guardAstCrossStage } from '../../services/providers/astGuard';
 import type { CheckContext, CheckResult } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
+import { ALL_LOCAL_STAGES } from '../../lib/lineup/localStages';
 import type { LocalStages } from '../../lib/lineup/localStages';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import type { LocalInferenceSettings } from './settings';
@@ -134,7 +135,7 @@ export async function checkLocalInference(
  */
 function effectiveStages(ctx: Pick<CheckContext, 'stages'>): LocalStages {
   const told = ctx.stages;
-  if (!told) return { translation: 'local', speech: 'local' };
+  if (!told) return ALL_LOCAL_STAGES;
   const stages: LocalStages = {
     translation: told.includes('translation') ? 'local' : null,
     speech: told.includes('speech') ? 'local' : null,

@@ -121,7 +121,7 @@ describe('localInferenceProvider', () => {
     const unitsOfPlan = (plan: RunPlan | PlanRefusal) => (isRefusal(plan) ? plan : plan.units.map((u) => [u.provider.id, u.unit.id, u.stages]));
 
     it('are the whole of it, as a provider with one unit has, its recognition alone, its translation alone, and its voice', () => {
-      const [whole, transcription, translation, voice] = localInferenceProvider.units!;
+      const [whole, transcription, translation, voice] = localInferenceProvider.units;
       expect(localInferenceProvider.units).toHaveLength(4);
       expect(transcription).toBe(localTranscriptionUnit);
       expect(translation).toBe(localTranslationUnit);
@@ -142,7 +142,7 @@ describe('localInferenceProvider', () => {
     });
 
     it('a line-up that is all on this device runs on the whole unit, as before', () => {
-      const [whole] = localInferenceProvider.units!;
+      const [whole] = localInferenceProvider.units;
       const alone = wholePlan(localInferenceProvider);
       expect(alone.units).toEqual([{ provider: localInferenceProvider, unit: whole, stages: RUN_STAGES }]);
       const lineUp = { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' };

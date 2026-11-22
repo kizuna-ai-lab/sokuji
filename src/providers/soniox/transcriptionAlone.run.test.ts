@@ -129,8 +129,8 @@ describe('the Soniox adapter over a config that transcribes alone', () => {
 function threeUnits(sockets: ReturnType<typeof fakeSockets>): RunPlan {
   const adapter = createSonioxAdapter({ openSocket: sockets.create });
   const transcription: PlannedUnit = { provider: sonioxProvider as AnyProvider, unit: sonioxTranscriptionUnitFor({ start: adapter.start }), stages: ['transcription'] };
-  const translation: PlannedUnit = { provider: fakeTranslatorProvider, unit: fakeTranslatorProvider.units![0], stages: ['translation'] };
-  const speech: PlannedUnit = { provider: fakeVoiceProvider, unit: fakeVoiceProvider.units![0], stages: ['speech'] };
+  const translation: PlannedUnit = { provider: fakeTranslatorProvider, unit: fakeTranslatorProvider.units[0], stages: ['translation'] };
+  const speech: PlannedUnit = { provider: fakeVoiceProvider, unit: fakeVoiceProvider.units[0], stages: ['speech'] };
   return { units: [transcription, translation, speech], byStage: { transcription, translation, speech } };
 }
 
@@ -363,10 +363,10 @@ function hostedRun(o: { voice: 'fake' | 'hosted'; legs?: LegName[]; textOnly?: b
     session: { ...kizunaSonioxProvider.session, acquire: createKizunaLease({ participantSpeech: true, fetch: service as unknown as typeof fetch, apiUrl: () => API }) },
   } as AnyProvider;
   const transcription: PlannedUnit = { provider: hosted, unit: units[1], stages: ['transcription'] };
-  const translation: PlannedUnit = { provider: fakeTranslatorProvider, unit: fakeTranslatorProvider.units![0], stages: ['translation'] };
+  const translation: PlannedUnit = { provider: fakeTranslatorProvider, unit: fakeTranslatorProvider.units[0], stages: ['translation'] };
   const speech: PlannedUnit = o.voice === 'hosted'
     ? { provider: hosted, unit: units[2], stages: ['speech'] }
-    : { provider: fakeVoiceProvider, unit: fakeVoiceProvider.units![0], stages: ['speech'] };
+    : { provider: fakeVoiceProvider, unit: fakeVoiceProvider.units[0], stages: ['speech'] };
   const plan: RunPlan = { units: [transcription, translation, speech], byStage: { transcription, translation, speech } };
   const lineUp = { transcription: 'kizunaai_soniox', translation: 'fake_translator', speech: o.voice === 'hosted' ? 'kizunaai_soniox' : 'fake_voice' };
   const shape: RunShape = {
