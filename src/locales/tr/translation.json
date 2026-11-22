@@ -1859,7 +1859,8 @@
         "switched": "{{region}} bölgesine geçildi: bu anahtar yalnızca orada çalışır."
       },
       "findModels": "Modelleri bul",
-      "configure": "Yapılandır"
+      "configure": "Yapılandır",
+      "manageModels": "Modelleri yönet"
     },
     "lineup": {
       "title": "Düzen",
@@ -1874,6 +1875,7 @@
       "granite": "Çeviriyle: Granite Speech konuşmayı doğrudan çeviriye dönüştürür.",
       "needsKey": "anahtar gerekli",
       "needsSignIn": "oturum açılmalı",
+      "needsAddress": "adres gerekli",
       "voiceNotAlone": "yalnızca kendi çevirisini okur",
       "voiceNotTaken": "yalnızca kendi sesini kullanır",
       "twoManaged": "aynı anda tek Kizuna AI hizmeti",

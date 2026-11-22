@@ -1859,7 +1859,8 @@
         "switched": "{{region}} पर बदला गया: यह कुंजी केवल वहीं काम करती है।"
       },
       "findModels": "मॉडल खोजें",
-      "configure": "सेट करें"
+      "configure": "सेट करें",
+      "manageModels": "मॉडल प्रबंधित करें"
     },
     "lineup": {
       "title": "लाइन-अप",
@@ -1874,6 +1875,7 @@
       "granite": "अनुवाद के साथ: Granite Speech बोली को सीधे अनुवाद में बदलता है।",
       "needsKey": "कुंजी चाहिए",
       "needsSignIn": "साइन इन चाहिए",
+      "needsAddress": "पता चाहिए",
       "voiceNotAlone": "केवल अपना अनुवाद पढ़ती है",
       "voiceNotTaken": "केवल अपनी आवाज़ इस्तेमाल करती है",
       "twoManaged": "एक समय में Kizuna AI की एक ही सेवा",

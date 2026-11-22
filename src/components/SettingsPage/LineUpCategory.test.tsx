@@ -251,12 +251,15 @@ describe('languages and line-up', () => {
     const entry = (id: string, credentials: Record<string, string>) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair: { source: 'en', target: 'ja' } });
     const translationCard = () => screen.getByRole('combobox', { name: 'Translation' }).closest('.lineup-stage') as HTMLElement;
 
-    it('the Translation list offers the three on the desktop, each blocked until its key is there; the compatible service may be chosen before its address', () => {
+    // Owner, 2026-11-22: a service not set up yet is still a choice, saying what it needs (a key, an address).
+    it('the Translation list offers the three on the desktop, each a choice before it is set up, saying what it needs', () => {
       useLineUpStore.setState({ lineUp: soniox, stored: true });
       useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_text: entry('openai_text', { apiKey: 'test-key-0000' }), gemini_text: entry('gemini_text', { apiKey: '' }), openai_compatible: entry('openai_compatible', { baseUrl: '', apiKey: '' }) } as never });
       render(<LineUpCategory locked={false} />);
       const translation = optionTexts('Translation');
-      expect(translation).toEqual(expect.arrayContaining(['OpenAI Text Model', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service']));
+      expect(translation).toEqual(expect.arrayContaining(['OpenAI Text Model', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service (needs an address)']));
+      const choice = (id: string) => (within(screen.getByRole('combobox', { name: 'Translation' })).getAllByRole('option') as HTMLOptionElement[]).find((o) => o.value === id)!;
+      for (const id of ['openai_text', 'gemini_text', 'openai_compatible']) expect([id, choice(id).disabled]).toEqual([id, false]);
       // Only for translation: never offered to transcribe or to speak.
       for (const name of ['OpenAI Text Model', 'Gemini Text Model', 'OpenAI-Compatible Service']) {
         expect(optionTexts('Transcription and translation').some((t) => t.startsWith(name))).toBe(false);
@@ -789,8 +792,9 @@ describe('languages and line-up', () => {
       useLineUpStore.setState({ lineUp: all('kizunaai_soniox'), stored: true });
       render(<LineUpCategory locked={false} />);
       for (const id of ['kizunaai_soniox', 'soniox', 'edge', 'local_inference', 'gemini', 'kizunaai_qwen']) expect([id, option('Speech', id).disabled]).toEqual([id, false]);
-      // The only options held back are the ones with no key.
-      expect(options('Speech').filter((o) => o.disabled).every((o) => /needs a key/.test(o.textContent ?? ''))).toBe(true);
+      // None is held back: one with no key yet is a choice that says so (owner, 2026-11-22).
+      expect(options('Speech').filter((o) => o.disabled)).toEqual([]);
+      expect(options('Speech').some((o) => /needs a key/.test(o.textContent ?? ''))).toBe(true);
       expect(options('Speech').some((o) => /choose another speech service/.test(o.textContent ?? ''))).toBe(false);
     });
 
@@ -801,8 +805,8 @@ describe('languages and line-up', () => {
       const text = 'Transcription and translation';
       for (const id of ['soniox', 'local_inference', 'gemini', 'kizunaai_soniox']) expect([id, option(text, id).disabled]).toEqual([id, false]);
       expect(option(text, 'soniox')).toHaveTextContent(/^Soniox$/);
-      // The only options held back are the ones with no key.
-      expect(options(text).filter((o) => o.disabled).every((o) => /needs a key/.test(o.textContent ?? ''))).toBe(true);
+      // None is held back: one with no key yet is a choice that says so (owner, 2026-11-22).
+      expect(options(text).filter((o) => o.disabled)).toEqual([]);
     });
 
     it("Soniox with an own key on every stage, signed in: Kizuna AI's Soniox can be chosen for speech alone, and choosing it moves nothing else", async () => {
@@ -811,7 +815,7 @@ describe('languages and line-up', () => {
       expect(option('Speech', 'kizunaai_soniox').disabled).toBe(false);
       expect(option('Speech', 'kizunaai_soniox').textContent).toBe('KizunaAI (Soniox)');
       // The other hosted service is still one that takes every stage with it; no option says it cannot be combined.
-      expect(options('Speech').filter((o) => o.disabled).every((o) => /needs a key/.test(o.textContent ?? ''))).toBe(true);
+      expect(options('Speech').filter((o) => o.disabled)).toEqual([]);
       fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'kizunaai_soniox' } });
       await waitFor(() => expect(tracked).toHaveLength(1));
       expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'kizunaai_soniox' });
@@ -857,13 +861,45 @@ describe('languages and line-up', () => {
       expect(option('Transcription and translation', 'kizunaai_soniox').disabled).toBe(false);
     });
 
-    it('a missing key or sign-in is said first, in its own words', () => {
+    // Owner, 2026-11-22: what a service lacks does not hold it back; what cannot be combined does.
+    it('a missing key or sign-in is said in its own words, and the service can still be chosen', async () => {
+      load();
+      authState.signedIn = false;
+      render(<LineUpCategory locked={false} />);
+      expect(option('Speech', 'kizunaai_soniox').disabled).toBe(false);
+      expect(option('Speech', 'kizunaai_soniox')).toHaveTextContent('KizunaAI (Soniox) (needs a sign-in)');
+      expect(option('Speech', 'openai').disabled).toBe(false);
+      expect(option('Speech', 'openai')).toHaveTextContent(/needs a key/);
+      // Chosen, it is stored, and its card says what it needs, leading to where that is set up.
+      fireEvent.change(screen.getByRole('combobox', { name: 'Speech' }), { target: { value: 'kizunaai_soniox' } });
+      await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'kizunaai_soniox' }));
+      const card = screen.getByRole('combobox', { name: 'Speech' }).closest('.lineup-stage') as HTMLElement;
+      fireEvent.click(within(card).getByRole('button', { name: 'Needs a sign-in' }));
+      expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider:kizunaai_soniox');
+    });
+
+    it('a service that lacks a key and cannot be combined is held back, with the reason it cannot be combined', () => {
+      voiceNotAlone.on = true;
       load();
       authState.signedIn = false;
       render(<LineUpCategory locked={false} />);
       expect(option('Speech', 'kizunaai_soniox').disabled).toBe(true);
-      expect(option('Speech', 'kizunaai_soniox')).toHaveTextContent('KizunaAI (Soniox) (needs a sign-in)');
-      expect(option('Speech', 'openai')).toHaveTextContent(/needs a key/);
+      expect(option('Speech', 'kizunaai_soniox').textContent).toBe('KizunaAI (Soniox) (reads only its own translation)');
+    });
+
+    it('where the select draws rich options, what a service needs is its muted note, the option a choice', () => {
+      baseSelect.rich = true;
+      try {
+        load();
+        authState.signedIn = false;
+        render(<LineUpCategory locked={false} />);
+        const needing = option('Speech', 'kizunaai_soniox');
+        expect(needing.disabled).toBe(false);
+        expect(needing.querySelector('.provider-needs')?.textContent).toBe('needs a sign-in');
+        expect(needing.querySelector('.provider-blocked')).toBeNull();
+      } finally {
+        baseSelect.rich = false;
+      }
     });
 
     it('a stored line-up that is refused: its reason on the card, the current choice not held back, and the voices that fix it can be chosen', () => {
@@ -1321,7 +1357,8 @@ describe('the notes card', () => {
   it('signed out with no OpenAI key: Kizuna AI by default, waiting for a sign-in, and the card says how to have notes written', () => {
     authState.signedIn = false;
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI-Compatible Service']);
+    // Each service not set up yet is a choice too, saying what it needs (owner, 2026-11-22).
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI (needs a sign-in)', 'OpenAI Text Model (needs a key)', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service (needs an address)']);
     expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai_openai');
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a sign-in')).toBeInTheDocument();
@@ -1357,8 +1394,9 @@ describe('the notes card', () => {
   it('signed in: offers Kizuna AI with its estimated prices per hour, and a choice sets the notes stage', async () => {
     notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
+    openAiKey();
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model', 'OpenAI-Compatible Service']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service (needs an address)']);
     expect(screen.queryByText(/Add an OpenAI key/)).toBeNull();
     // The owner, 2026-11-17: Kizuna AI's prices only where Kizuna AI writes the notes; not under OpenAI's own key.
     const price = 'Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.';
@@ -1389,7 +1427,7 @@ describe('the notes card', () => {
     authState.signedIn = false;
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI-Compatible Service']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI (needs a sign-in)', 'OpenAI Text Model (needs a key)', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service (needs an address)']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a sign-in')).toBeInTheDocument();
   });
@@ -1397,16 +1435,16 @@ describe('the notes card', () => {
   it('without the hosted services, OpenAI by default, needing a key, and the card says where to add one', () => {
     noHosted.value = true;
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['OpenAI Text Model', 'OpenAI-Compatible Service']);
+    expect(optionTexts('Notes')).toEqual(['OpenAI Text Model (needs a key)', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service (needs an address)']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a key')).toBeInTheDocument();
     expect(screen.getByText('Add an OpenAI key in Accounts and keys to have notes written.')).toBeInTheDocument();
   });
 
-  it('offers OpenAI once it has a key, and a choice sets the notes stage alone', async () => {
+  it('offers OpenAI with its key, and a choice sets the notes stage alone', async () => {
     openAiKey();
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model', 'OpenAI-Compatible Service']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service (needs an address)']);
     fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
     await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'openai' }));
     expect(tracked).toContainEqual(['lineup_changed', { stage: 'summarisation', from: null, to: 'openai', moved: [], during_session: false }]);
@@ -1512,9 +1550,11 @@ describe('the notes card', () => {
   it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model', 'OpenAI-Compatible Service']);
+    // The current choice says what it needs, as the others do; so does its card.
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model (needs a key)', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service (needs an address)']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a key')).toBeInTheDocument();
+    expect(screen.getByText('Add an OpenAI key in Accounts and keys to have notes written.')).toBeInTheDocument();
   });
 
   // Owner, 2026-11-17: the notes card's choice is drawn like the other stages' (icon, name, a line under it), its
@@ -1543,13 +1583,13 @@ describe('the notes card', () => {
     expect(screen.queryByRole('combobox', { name: 'Notes' })).toBeNull();
   });
   // Text models, part C: Gemini's text model and a compatible service write the notes too.
-  it("offers Gemini's text model once its key is there, with its line; a choice sets the notes stage and checks it", async () => {
+  it("offers Gemini's text model with its key and its line; a choice sets the notes stage and checks it", async () => {
     baseSelect.rich = true;
     geminiKey();
     try {
       render(<LineUpCategory locked={false} />);
       const values = within(screen.getByRole('combobox', { name: 'Notes' })).getAllByRole('option').map((o) => (o as HTMLOptionElement).value);
-      expect(values).toEqual(['kizunaai_openai', 'gemini_text', 'openai_compatible']);
+      expect(values).toEqual(['kizunaai_openai', 'openai', 'gemini_text', 'openai_compatible']);
       const gemini = within(screen.getByRole('combobox', { name: 'Notes' })).getByRole('option', { name: /^Gemini Text Model/ });
       expect(gemini.querySelector('.provider-select__description')).toHaveTextContent('Writes the notes with your own Gemini key.');
     } finally {

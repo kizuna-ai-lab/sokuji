@@ -34,6 +34,10 @@ describe('the settings categories', () => {
       expect(targetToCategory(`models-${stage}`)).toEqual({ category: 'models', anchor: `models-${stage}` });
   });
 
+  it("maps Models and storage itself, where This device's row in the accounts goes", () => {
+    expect(targetToCategory('models')).toEqual({ category: 'models', anchor: null });
+  });
+
   it("maps the local engine's voices to the line-up", () => {
     expect(targetToCategory('local-voices')).toEqual({ category: 'lineup', anchor: 'local-voices' });
   });

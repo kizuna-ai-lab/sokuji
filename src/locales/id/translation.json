@@ -1859,7 +1859,8 @@
         "switched": "Beralih ke {{region}}: kunci ini hanya berfungsi di sana."
       },
       "findModels": "Cari model",
-      "configure": "Atur"
+      "configure": "Atur",
+      "manageModels": "Kelola model"
     },
     "lineup": {
       "title": "Susunan",
@@ -1874,6 +1875,7 @@
       "granite": "Bersama terjemahan: Granite Speech mengubah ucapan langsung menjadi terjemahan.",
       "needsKey": "perlu kunci",
       "needsSignIn": "perlu masuk",
+      "needsAddress": "perlu alamat",
       "voiceNotAlone": "hanya membacakan terjemahannya sendiri",
       "voiceNotTaken": "hanya memakai suaranya sendiri",
       "twoManaged": "satu layanan Kizuna AI dalam satu waktu",

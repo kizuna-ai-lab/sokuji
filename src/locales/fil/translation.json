@@ -1859,7 +1859,8 @@
         "switched": "Lumipat sa {{region}}: dito lang gumagana ang key na ito."
       },
       "findModels": "Hanapin ang mga modelo",
-      "configure": "I-configure"
+      "configure": "I-configure",
+      "manageModels": "Pamahalaan ang mga model"
     },
     "lineup": {
       "title": "Line-up",
@@ -1874,6 +1875,7 @@
       "granite": "Kasama ang salin: ginagawang salin agad ng Granite Speech ang pagsasalita.",
       "needsKey": "kailangan ng key",
       "needsSignIn": "kailangang mag-sign in",
+      "needsAddress": "kailangan ng address",
       "voiceNotAlone": "sariling salin lang ang binabasa",
       "voiceNotTaken": "sariling boses lang ang ginagamit",
       "twoManaged": "isang serbisyo ng Kizuna AI lang sa bawat pagkakataon",

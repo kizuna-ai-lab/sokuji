@@ -21,8 +21,13 @@ export interface ProviderOptionModel {
   note?: string;
   description?: string;
   icon?: ComponentType<{ size?: string | number }>;
-  /** Shown after the name and the option cannot be chosen (no key, no sign-in). */
+  /** Shown after the name and the option cannot be chosen: it cannot be combined with the other stages as they are. */
   blocked?: string;
+  /**
+   * Shown after the name, the option still a choice: what it needs before a session can start on it (a key, a
+   * sign-in, an address), set up once it is chosen (owner, 2026-11-22). Not shown beside a `blocked` reason.
+   */
+  needs?: string;
   recommended?: boolean;
 }
 
@@ -58,7 +63,8 @@ export function useOptionModel(): (id: string, provider?: AnyProvider) => Provid
 export function optionText(m: ProviderOptionModel, recommend: (name: string) => string = (name) => name): string {
   const base = m.vendor && m.vendorInText ? `${m.name} (${m.vendor})` : m.name;
   const named = m.recommended ? recommend(base) : base;
-  return m.blocked ? `${named} (${m.blocked})` : named;
+  const note = m.blocked || m.needs;
+  return note ? `${named} (${note})` : named;
 }
 
 export function ProviderOption({ model: m, rich, recommendedLabel }: { model: ProviderOptionModel; rich: boolean; recommendedLabel?: string }) {
@@ -84,7 +90,7 @@ export function ProviderOption({ model: m, rich, recommendedLabel }: { model: Pr
             </span>
           ) : m.note ? <span className="powered-by">{m.note}</span> : null}
           {m.recommended && recommendedLabel && <em className="provider-recommended">{recommendedLabel}</em>}
-          {m.blocked && <em className="provider-blocked">{m.blocked}</em>}
+          {m.blocked ? <em className="provider-blocked">{m.blocked}</em> : m.needs && <em className="provider-needs">{m.needs}</em>}
         </span>
         {m.description && <span className="provider-select__description">{m.description}</span>}
       </span>

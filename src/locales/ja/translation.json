@@ -1859,7 +1859,8 @@
         "switched": "{{region}}に切り替えました：このキーはそこでのみ使えます。"
       },
       "findModels": "モデルを探す",
-      "configure": "設定"
+      "configure": "設定",
+      "manageModels": "モデルを管理"
     },
     "lineup": {
       "title": "構成",
@@ -1874,6 +1875,7 @@
       "granite": "翻訳と一緒に：Granite Speech が音声をそのまま訳文にします。",
       "needsKey": "キーが必要",
       "needsSignIn": "サインインが必要",
+      "needsAddress": "アドレスが必要",
       "voiceNotAlone": "自身の翻訳のみ読み上げ",
       "voiceNotTaken": "自身の音声のみ使用",
       "twoManaged": "Kizuna AI のサービスは一度に 1 つ",

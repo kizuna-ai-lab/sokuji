@@ -29,6 +29,7 @@ import { AccountsCategory } from './AccountsCategory';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { useModelStore } from '../../stores/modelStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 const row = (name: string) => screen.getByRole('group', { name });
 
@@ -89,6 +90,20 @@ describe('accounts and keys', () => {
     fireEvent.click(within(row('Soniox')).getByRole('button', { name: 'View' }));
     expect(within(row('Soniox')).getAllByText('Transcription and translation')).toHaveLength(1);
     expect(within(row('Soniox')).getByRole('button', { name: 'Hide' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  // Owner, 2026-11-22: a row opens only where there is something to fill in. Bing and Edge need nothing; This
+  // device's models are set up in Models and storage, so its button goes there.
+  it('gives Bing and Edge no button, and This device a way to its models', () => {
+    useSettingsStore.setState({ settingsNavigationTarget: null });
+    render(<AccountsCategory locked={false} />);
+    for (const name of ['Bing', 'Edge']) expect([name, within(row(name)).queryAllByRole('button')]).toEqual([name, []]);
+    const manage = within(row('This device')).getByRole('button', { name: 'Manage models' });
+    expect(manage).not.toHaveAttribute('aria-expanded');
+    fireEvent.click(manage);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models');
+    // Nothing unfolds in the row itself.
+    expect(row('This device').querySelectorAll('.accounts-row__head ~ *')).toHaveLength(0);
   });
 
   // The mock's order: the accounts that need no key first, then the ones with a key.

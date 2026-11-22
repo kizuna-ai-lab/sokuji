@@ -1859,7 +1859,8 @@
         "switched": "Cambiado a {{region}}: esta clave solo funciona allí."
       },
       "findModels": "Buscar modelos",
-      "configure": "Configurar"
+      "configure": "Configurar",
+      "manageModels": "Gestionar modelos"
     },
     "lineup": {
       "title": "Combinación",
@@ -1874,6 +1875,7 @@
       "granite": "Con la traducción: Granite Speech convierte la voz directamente en la traducción.",
       "needsKey": "necesita una clave",
       "needsSignIn": "requiere iniciar sesión",
+      "needsAddress": "necesita una dirección",
       "voiceNotAlone": "solo lee su propia traducción",
       "voiceNotTaken": "solo usa su propia voz",
       "twoManaged": "un solo servicio de Kizuna AI a la vez",

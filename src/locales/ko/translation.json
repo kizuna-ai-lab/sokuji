@@ -1859,7 +1859,8 @@
         "switched": "{{region}}(으)로 전환했습니다: 이 키는 그곳에서만 작동합니다."
       },
       "findModels": "모델 찾기",
-      "configure": "설정"
+      "configure": "설정",
+      "manageModels": "모델 관리"
     },
     "lineup": {
       "title": "구성",
@@ -1874,6 +1875,7 @@
       "granite": "번역과 함께: Granite Speech가 음성을 바로 번역문으로 바꿉니다.",
       "needsKey": "키 필요",
       "needsSignIn": "로그인 필요",
+      "needsAddress": "주소 필요",
       "voiceNotAlone": "자체 번역만 읽음",
       "voiceNotTaken": "자체 음성만 사용",
       "twoManaged": "Kizuna AI 서비스는 한 번에 하나",

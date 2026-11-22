@@ -1859,7 +1859,8 @@
         "switched": "Bytte till {{region}}: nyckeln fungerar bara där."
       },
       "findModels": "Hitta modeller",
-      "configure": "Konfigurera"
+      "configure": "Konfigurera",
+      "manageModels": "Hantera modeller"
     },
     "lineup": {
       "title": "Uppsättning",
@@ -1874,6 +1875,7 @@
       "granite": "Med översättning: Granite Speech gör tal direkt till översättningen.",
       "needsKey": "behöver nyckel",
       "needsSignIn": "kräver inloggning",
+      "needsAddress": "behöver en adress",
       "voiceNotAlone": "läser bara upp sin egen översättning",
       "voiceNotTaken": "använder bara sin egen röst",
       "twoManaged": "en tjänst från Kizuna AI åt gången",

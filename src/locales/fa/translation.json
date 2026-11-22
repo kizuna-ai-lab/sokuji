@@ -1859,7 +1859,8 @@
         "switched": "به {{region}} تغییر کرد: این کلید فقط آنجا کار می‌کند."
       },
       "findModels": "یافتن مدل‌ها",
-      "configure": "پیکربندی"
+      "configure": "پیکربندی",
+      "manageModels": "مدیریت مدل‌ها"
     },
     "lineup": {
       "title": "ترکیب",
@@ -1874,6 +1875,7 @@
       "granite": "همراه ترجمه: Granite Speech گفتار را مستقیم به ترجمه تبدیل می‌کند.",
       "needsKey": "به کلید نیاز دارد",
       "needsSignIn": "نیاز به ورود دارد",
+      "needsAddress": "به نشانی نیاز دارد",
       "voiceNotAlone": "فقط ترجمهٔ خودش را می‌خواند",
       "voiceNotTaken": "فقط از صدای خودش استفاده می‌کند",
       "twoManaged": "هر بار فقط یک سرویس Kizuna AI",

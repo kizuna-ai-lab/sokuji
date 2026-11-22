@@ -333,7 +333,9 @@
   &__refusal { color: vars.$color-warning; }
 }
 
-.provider-blocked {
+// What an option lacks: why it cannot be combined (blocked), or what it needs before a session starts on it.
+.provider-blocked,
+.provider-needs {
   font-style: normal;
   font-size: 11px;
   color: vars.$text-muted;

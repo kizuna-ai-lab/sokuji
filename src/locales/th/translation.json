@@ -1859,7 +1859,8 @@
         "switched": "เปลี่ยนเป็น {{region}} แล้ว: คีย์นี้ใช้ได้ที่นั่นเท่านั้น"
       },
       "findModels": "ค้นหาโมเดล",
-      "configure": "ตั้งค่า"
+      "configure": "ตั้งค่า",
+      "manageModels": "จัดการโมเดล"
     },
     "lineup": {
       "title": "ชุดบริการ",
@@ -1874,6 +1875,7 @@
       "granite": "พร้อมการแปล: Granite Speech แปลงเสียงพูดเป็นคำแปลโดยตรง",
       "needsKey": "ต้องใช้คีย์",
       "needsSignIn": "ต้องลงชื่อเข้าใช้",
+      "needsAddress": "ต้องใช้ที่อยู่",
       "voiceNotAlone": "อ่านเฉพาะคำแปลของตัวเอง",
       "voiceNotTaken": "ใช้เฉพาะเสียงของตัวเอง",
       "twoManaged": "ใช้ Kizuna AI ได้ครั้งละหนึ่งบริการ",
