@@ -36,6 +36,10 @@ The code inventory with file:line references is `docs/superpowers/plans/2026-11-
 1. Local + Bing + Edge (and local + Bing, local + Edge) run as composite plans of two or three units. Before, they ran as one local session.
 2. `api_error` for a Bing or Edge failure carries `provider: 'bing'` / `'edge'`, no longer `'local_inference'`.
 3. A history export of such a session gains the `stages` block, because `severalHosts` is now true for it.
+4. On local + Bing, the language offer narrows to the pairs Bing translates, and a pair Bing does not translate is refused instead of silently running on a local model (as on Soniox + Bing). (owner to confirm)
+5. In every two-unit text + speech plan, a speech error is filed under the speech unit's provider, not only for Edge. For example, Soniox with a local voice reports `local_inference`.
+6. The plain-text history export's `Provider:` line names each stage for such a session (`transcription=…, translation=…, speech=…`).
+7. A session run before a line-up is stored records the line-up that ran (`bing` / `edge` in history `services.stages` and analytics `stages`), not `local_inference` on every stage.
 
 ## Review Focus
 
