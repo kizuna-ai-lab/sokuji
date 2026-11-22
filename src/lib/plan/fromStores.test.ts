@@ -28,7 +28,8 @@ import { storedLocalStages, useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { planFromStores, usePlan, useStageUnit } from './fromStores';
-import { providersIn, transcriptionProvider } from './read';
+import { checkStagesOf, providersIn, transcriptionProvider } from './read';
+import type { SharedSettings } from '../provider/types';
 import { planOf } from './testing';
 import { unitsOf } from './wholeUnit';
 
@@ -83,16 +84,28 @@ describe('planFromStores', () => {
     expect(providersIn(found.plan)).toEqual([provider]);
   });
 
-  // Before a line-up is stored the plan is the selection's, never one composed from the line-up the settings
-  // show: while the local scan runs, they show the local host's defaults, Bing and Edge.
-  it('runs the selected local provider whole before a line-up is stored, not the line-up shown', () => {
+  // Before a line-up is stored, this device runs the line-up the settings show (the local host's defaults: this
+  // device transcribes, Bing translates, Edge speaks), not the local provider whole with Bing and Edge as cloud models.
+  it('an unstored local line-up runs the line-up the settings show', () => {
     runsOn('local_inference');
-    useProviderStore.setState({ entries: { local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair } } });
-    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: false });
+    const bingEntry = { settings: {}, credentials: {}, pair };
+    const edgeVoices = { ...edgeProvider.settings.defaults, voices: { 'en→ja': 'ja-JP-NanamiNeural' } };
+    useProviderStore.setState({ entries: {
+      local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair },
+      bing: bingEntry,
+      edge: { settings: edgeVoices, credentials: {}, pair },
+    } });
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: false, unstoredProvider: 'local_inference' });
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
-    expect(found.plan).toEqual(planOf(localInferenceProvider));
-    expect(providersIn(found.plan)).toEqual([localInferenceProvider]);
+    expect(found.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['local_inference', ['transcription']], ['bing', ['translation']], ['edge', ['speech']]]);
+    // The local provider is asked to serve transcription only: the stages the check context carries come from the plan.
+    expect(checkStagesOf(found.plan, localInferenceProvider)).toEqual(['transcription']);
+    // Edge's unit is built with the direction's migrated voice.
+    const edgeUnit = found.plan.byStage.speech;
+    const shared: SharedSettings = { pauses: { sourceSeconds: 0, translationSeconds: 0 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
+    expect(edgeUnit.unit.build({ direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' }, found.accounts.edge.settings, shared))
+      .toMatchObject({ modelId: 'edge-tts', edgeVoice: 'ja-JP-NanamiNeural' });
     expect(storedLocalStages()).toBeNull();
   });
 
