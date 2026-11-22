@@ -19,7 +19,13 @@ export type TextModelService = 'openai' | 'gemini' | 'compatible';
 export type TextModelFailureCode = 'auth' | 'model_missing' | 'rate_limit' | 'quota' | 'server' | 'network' | 'timeout' | 'refused';
 
 /** Why a request had no answer: a code, the HTTP status when the service answered, and the service's own words. */
-export interface TextModelFailure { code: TextModelFailureCode; status?: number; message: string }
+export interface TextModelFailure {
+  code: TextModelFailureCode;
+  status?: number;
+  message: string;
+  /** The model ran and spent its budget before its first word: read from the service's words before a key was taken out of them. */
+  cutShort?: true;
+}
 
 export interface ChatMessage { role: 'system' | 'user' | 'assistant'; content: string }
 
@@ -204,6 +210,8 @@ function refusedAs(status: number, raw: string, apiKey: string | undefined): { o
   if (status >= 500) return failed('server', message, status);
   if (status === 404 || refusal.code === 'model_not_found' || UNKNOWN_MODEL.some((re) => re.test(said))) return failed('model_missing', message, status);
   if (KEY_NOT_VALID.test(said) || refusal.code === 'API_KEY_INVALID') return failed('auth', message, status);
+  // Read from the service's own words: taking a short key out of them may break a word the pattern needs.
+  if (status === 400 && OUTPUT_LIMIT.test(said)) return { ok: false, failure: { code: 'refused', status, message, cutShort: true } };
   return failed('refused', message, status);
 }
 
@@ -324,7 +332,7 @@ export async function probeModel(o: Where & { model: string; memo?: TextModelMem
   if (result.ok) return { ok: true };
   // A reasoning model may spend the whole budget before its first word: OpenAI then refuses the answer as cut
   // short (measured 2026-11-22, gpt-5-mini). It was reached and it ran: that is all a probe asks.
-  if (result.failure.status === 400 && OUTPUT_LIMIT.test(result.failure.message)) return { ok: true };
+  if (result.failure.cutShort) return { ok: true };
   return result;
 }
 

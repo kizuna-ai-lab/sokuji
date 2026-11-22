@@ -411,3 +411,10 @@ describe('review points', () => {
     expect(result.ok ? '' : result.failure.message).not.toContain('abc');
   });
 });
+
+describe('a probe of a model cut short, with a short key', () => {
+  it('is read from the service\'s words, not from them with the key taken out', async () => {
+    const s = service({ status: 400, body: { error: { message: 'Could not finish the message because max_tokens or model output limit was reached.' } } });
+    await expect(probeModel({ service: 'compatible', baseUrl: 'https://api.example.com/v1', apiKey: 'a', model: 'm', signal: new AbortController().signal, transport: s.transport })).resolves.toEqual({ ok: true });
+  });
+});
