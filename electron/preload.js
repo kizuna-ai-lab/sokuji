@@ -73,6 +73,8 @@ const validReceiveChannels = [
   // Per-application audio capture: PCM chunks and helper lifecycle events
   'app-audio:pcm',
   'app-audio:event',
+  // Linux per-application capture: the tapped application quit
+  'system-audio:lost',
   // Window close / app quit: end the session before the window goes
   'app:close-requested',
   // LAN caption sharing status (main → renderer)
