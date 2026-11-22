@@ -1,8 +1,10 @@
 // The line-up's notes service: always one (owner, 2026-11-17: no "None"); whether notes are written is the switches' call.
 import { describe, it, expect } from 'vitest';
-import { notesServiceOf, KIZUNA_NOTES } from './notesService';
+import { COMPATIBLE_NOTES, GEMINI_NOTES, notesProviderOf, notesServiceOf, KIZUNA_NOTES, NOTES_SERVICES, OPENAI_NOTES } from './notesService';
 
-const d = (hostedOffered: boolean, signedIn: boolean, openAiKeyed: boolean) => ({ hostedOffered, signedIn, openAiKeyed });
+const d = (hostedOffered: boolean, signedIn: boolean, openAiKeyed: boolean, geminiKeyed = false, textModelsOffered = true) => ({
+  hostedOffered, signedIn, openAiKeyed, geminiKeyed, textModelsOffered,
+});
 
 describe('the notes service', () => {
   // Owner, 2026-11-18: named like the other hosted services (kizunaai_soniox, kizunaai_qwen): Kizuna AI, by OpenAI.
@@ -38,5 +40,31 @@ describe('the notes service', () => {
     expect(notesServiceOf({ summarisation: null }, d(true, false, false))).toBe(KIZUNA_NOTES);
     expect(notesServiceOf({ summarisation: null }, d(false, false, false))).toBe('openai');
     expect(notesServiceOf(null, d(false, false, false))).toBe('openai');
+  });
+
+  // Text models, part C: the notes can be written by OpenAI's, Gemini's or a compatible service's text model. The
+  // stored id 'openai' is kept, served by OpenAI's text model.
+  it('knows Kizuna AI, OpenAI, Gemini and a compatible service, each served by its provider', () => {
+    expect(NOTES_SERVICES).toEqual(['kizunaai_openai', 'openai', 'gemini_text', 'openai_compatible']);
+    expect([OPENAI_NOTES, GEMINI_NOTES, COMPATIBLE_NOTES].map(notesProviderOf)).toEqual(['openai_text', 'gemini_text', 'openai_compatible']);
+    expect(notesProviderOf(KIZUNA_NOTES)).toBeNull();
+    expect(notesProviderOf('gone')).toBeNull();
+  });
+
+  it('is Gemini or a compatible service where chosen, in the desktop app, which offers them', () => {
+    expect(notesServiceOf({ summarisation: 'gemini_text' }, d(true, true, true))).toBe(GEMINI_NOTES);
+    expect(notesServiceOf({ summarisation: 'openai_compatible' }, d(true, true, true))).toBe(COMPATIBLE_NOTES);
+    // Elsewhere they are no choice: the default.
+    expect(notesServiceOf({ summarisation: 'gemini_text' }, d(false, false, true, true, false))).toBe(OPENAI_NOTES);
+  });
+
+  it('with none chosen and neither Kizuna AI nor OpenAI usable, is Gemini once it has a key; never a compatible service', () => {
+    expect(notesServiceOf({ summarisation: null }, d(true, false, false, true))).toBe(GEMINI_NOTES);
+    expect(notesServiceOf({ summarisation: null }, d(false, false, false, true))).toBe(GEMINI_NOTES);
+    // OpenAI first, as before; Kizuna AI first where it can write them.
+    expect(notesServiceOf({ summarisation: null }, d(false, false, true, true))).toBe(OPENAI_NOTES);
+    expect(notesServiceOf({ summarisation: null }, d(true, true, false, true))).toBe(KIZUNA_NOTES);
+    // Not offered, Gemini's key does not make it the default.
+    expect(notesServiceOf({ summarisation: null }, d(false, false, false, true, false))).toBe(OPENAI_NOTES);
   });
 });

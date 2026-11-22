@@ -1,10 +1,12 @@
 // src/lib/notes/chat.ts
 //
 // The notes model is asked through a chat port: a system prompt, the user's part as compact JSON, and a JSON object
-// back. `openAiChat` is that port over an OpenAI-compatible chat interface, called with the user's own key. A rate
+// back. Two ports: the user's own key with a text model (`textModelChat.ts`: OpenAI, Gemini, a compatible service,
+// over the shared text-model client), and Kizuna AI's relay (`relayChat.ts`, which sends the body made here). A rate
 // limit is waited out the way the measuring scripts did (15 s, then 30, 45, 60); anything else the service refuses
 // comes back as a ChatError carrying the service's own message, for the user to read.
 
+import { realClock, type Clock } from '../contract/clock';
 import { refusesNone, takesReasoningEffort } from '../textModel/reasoning';
 
 /** Which models take a `reasoning_effort`: GPT-5.1 and later; any other model is sent none, and a refusal is not retried. */
@@ -58,23 +60,23 @@ export class ChatError extends Error {
   }
 }
 
-/** A rate limit is waited out this long times the attempt, at most this many times. */
-const RATE_LIMIT_WAIT_MS = 15_000;
+/** A rate limit is waited out at most this many times (15 s longer each time with the user's own key). */
 export const RATE_LIMIT_WAITS = 4;
 
 export const abortError = () => new DOMException('The notes request was cancelled', 'AbortError');
 
-export const wait = (ms: number, signal: AbortSignal) =>
+/** Waits `ms` on `clock` (the real one unless told), or rejects as cancelled when `signal` aborts first. */
+export const wait = (ms: number, signal: AbortSignal, clock: Pick<Clock, 'setTimeout'> = realClock) =>
   new Promise<void>((resolve, reject) => {
     if (signal.aborted) {
       reject(abortError());
       return;
     }
     const onAbort = () => {
-      clearTimeout(timer);
+      cancel();
       reject(abortError());
     };
-    const timer = setTimeout(() => {
+    const cancel = clock.setTimeout(() => {
       signal.removeEventListener('abort', onAbort);
       resolve();
     }, ms);
@@ -92,15 +94,13 @@ export const refusalOf = async (response: Response): Promise<{ message?: string;
   }
 };
 
-/** The notes models the settings offer: the newest OpenAI series, Luna (the one the passes were measured with) first. */
-export const NOTES_MODELS = ['gpt-6-luna', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6.1-sol', 'gpt-6.1-terra'] as const;
 /** The `reasoning_effort` sent to `model` for `effort`, or null for none (the rule is the text-model client's). */
 function effortFor(model: string, effort: ChatEffort): ChatEffort | null {
   if (!takesReasoningEffort(model)) return null;
   return effort === 'none' && refusesNone(model) ? 'low' : effort;
 }
 
-/** The request body for `model`: the same bytes with an own key and through Kizuna AI. */
+/** The request body for `model` through Kizuna AI's relay (an own key's notes send the same members, `textModel/notes.ts`). */
 export function chatBody(model: string, r: Pick<ChatRequest, 'system' | 'user' | 'effort' | 'maxTokens'>): string {
   const reasoning = effortFor(model, r.effort);
   return JSON.stringify({
@@ -134,38 +134,4 @@ export async function answerOf(response: Response): Promise<object> {
     throw new ChatError('The notes model answered with something other than a JSON object', { code: 'not-json' });
   }
   return parsed;
-}
-
-export function openAiChat(o: { baseUrl: string; apiKey: string; model: string; fetch?: typeof fetch }): ChatPort {
-  const send = o.fetch ?? ((input: RequestInfo | URL, init?: RequestInit) => fetch(input, init));
-  const url = `${o.baseUrl.replace(/\/+$/, '')}/chat/completions`;
-
-  return async (r) => {
-    const { signal, onAnswered } = r;
-    const body = chatBody(o.model, r);
-    for (let waited = 0; ; ) {
-      const response = await send(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${o.apiKey}` },
-        body,
-        signal,
-      });
-      const requestId = response.headers.get('x-request-id');
-      onAnswered?.(requestId ? { requestId } : {});
-      if (!response.ok) {
-        const refusal = await refusalOf(response);
-        // Out of credit also comes as 429, and no wait helps it.
-        const noCredit = refusal.code === 'insufficient_quota';
-        if (response.status === 429 && !noCredit && waited < RATE_LIMIT_WAITS) {
-          waited += 1;
-          await wait(RATE_LIMIT_WAIT_MS * waited, signal);
-          continue;
-        }
-        throw new ChatError(`The notes model refused the request (${response.status})`, {
-          status: response.status, serviceMessage: refusal.message, ...(noCredit ? { retryable: false } : {}),
-        });
-      }
-      return answerOf(response);
-    }
-  };
 }

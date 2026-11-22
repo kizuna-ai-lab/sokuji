@@ -264,7 +264,11 @@ export interface HistorySpeaker {
 }
 
 export type HistoryNotesWriter =
-  | { kind: 'sokuji'; promptVersion: number | string; model: string }
+  /**
+   * `service`: the line-up's notes service that wrote them (`kizunaai_openai`, `openai`, `gemini_text`,
+   * `openai_compatible`; text models, part C). Absent in versions written before it was kept.
+   */
+  | { kind: 'sokuji'; promptVersion: number | string; model: string; service?: string }
   | { kind: 'service'; name: string; version: string };
 
 export interface HistoryNotesBody {

@@ -98,6 +98,16 @@ describe('the notes runner', () => {
     }
   });
 
+  // Text models, part C: History says who wrote the notes, beside the model.
+  it('keeps the service that wrote the version beside its model', async () => {
+    const { port, saved } = fakePort({});
+    const runner = createNotesRunner({ port, chatFor: async () => ({ chat: (async () => ANSWER) as ChatPort, model: 'gemini-3.8-flash', service: 'gemini_text' }), language: () => JA });
+    runner.start(ID);
+    await vi.waitFor(() => expect(saved).toHaveLength(1));
+    expect(saved[0]).toMatchObject({ writtenBy: { kind: 'sokuji', promptVersion: 2, model: 'gemini-3.8-flash', service: 'gemini_text' }, state: 'complete' });
+    await settle();
+  });
+
   it('asks for the notes service for the record it writes, so a hosted service bills that meeting', async () => {
     const { port } = fakePort({});
     const chatFor = vi.fn(async () => ({ chat: (async () => ANSWER) as ChatPort, model: 'gpt-6-luna' }));

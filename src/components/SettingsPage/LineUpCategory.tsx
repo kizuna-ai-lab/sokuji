@@ -20,7 +20,7 @@ import { usePlan } from '../../lib/plan/fromStores';
 import type { PlanRefusalCode } from '../../lib/plan/types';
 import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
 import { noticeText } from '../../lib/view/noticeText';
-import { KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
+import { GEMINI_KEY_HOLDERS, KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
 import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
 import { presentProviders } from '../../providers/registry';
@@ -200,7 +200,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const openAi = providers.find((p) => p.id === 'openai');
   const openAiKeyed = Boolean(openAi) && credentialsMissing(openAi, auth.signedIn) === null;
   const kizunaOffered = isElectron() && providers.some((p) => p.kind === 'managed');
-  const notesService = notesServiceOf(lineUp, { hostedOffered: kizunaOffered, signedIn: auth.signedIn, openAiKeyed });
+  // Gemini's text model and a compatible service write notes where they are offered (text models, part C).
+  const textModelsOffered = providers.some((p) => p.id === 'gemini_text');
+  const geminiKeyed = GEMINI_KEY_HOLDERS.some((id) => {
+    const p = providers.find((x) => x.id === id);
+    return Boolean(p) && credentialsMissing(p, auth.signedIn) === null;
+  });
+  const notesService = notesServiceOf(lineUp, { hostedOffered: kizunaOffered, signedIn: auth.signedIn, openAiKeyed, geminiKeyed, textModelsOffered });
   const kizunaChosen = notesService === KIZUNA_NOTES;
   // The app checks only the session's own provider by itself: OpenAI chosen for the notes alone was never checked, and
   // its card said "Key not verified" for ever (the owner, 2026-11-17). The card checks the key it shows, once, while

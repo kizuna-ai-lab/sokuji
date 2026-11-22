@@ -1,7 +1,10 @@
 // The notes through Kizuna AI: the request an own key would send, to our relay, with the sign-in instead of the key.
 import { describe, it, expect, vi } from 'vitest';
-import { ChatError, openAiChat, type ChatRequest } from './chat';
+import { DEFAULT_NOTES_REASONING_CHOICE } from '../textModel/choice';
+import type { TextModelTransport } from '../textModel/client';
+import { ChatError, type ChatRequest } from './chat';
 import { relayChat, RELAY_NOTES_MODEL } from './relayChat';
+import { textModelNotesChat } from './textModelChat';
 
 const answer = (status: number, body: unknown, headers: Record<string, string> = {}) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...headers } });
@@ -18,13 +21,15 @@ const sent = (fetch: ReturnType<typeof vi.fn>) => fetch.mock.calls[0] as unknown
 describe('the notes through Kizuna AI', () => {
   it('sends the body an own key sends, without the prompt text (the relay puts in its own), with our address, the sign-in and our headers', async () => {
     const relay = vi.fn(async () => answer(200, content({ title: 'T' }), { 'X-Sokuji-Balance-After': '123' }));
-    const own = vi.fn(async () => answer(200, content({ title: 'T' })));
+    // The user's own OpenAI key, with the default reasoning for the notes (text models, part C).
+    const ownBodies: string[] = [];
+    const own: TextModelTransport = async (_url, init) => { ownBodies.push(init.body ?? ''); return { status: 200, text: async () => JSON.stringify(content({ title: 'T' })) }; };
     const onBalance = vi.fn();
     await expect(port(relay, { onBalance })(request())).resolves.toEqual({ title: 'T' });
-    await openAiChat({ baseUrl: 'https://api.openai.com/v1', apiKey: 'sk', model: RELAY_NOTES_MODEL, fetch: own as never })(request());
+    await textModelNotesChat({ service: 'openai', apiKey: 'sk', model: RELAY_NOTES_MODEL, reasoning: DEFAULT_NOTES_REASONING_CHOICE, transport: own })(request());
     const [url, init] = sent(relay);
     expect(url).toBe('https://kizuna.example/api/openai/chat/completions');
-    const ownBody = JSON.parse(sent(own)[1].body as string);
+    const ownBody = JSON.parse(ownBodies[0]);
     ownBody.messages[0].content = '';
     expect(JSON.parse(init.body as string)).toEqual(ownBody);
     expect(init.headers).toMatchObject({

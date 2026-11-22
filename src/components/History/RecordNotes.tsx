@@ -9,7 +9,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties
 import { Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { notesExplanation } from './notesExplain';
+import { notesExplanation, notesServiceName } from './notesExplain';
 import type { HistoryNotes, HistoryRecord } from '../../lib/history/types';
 import { englishLanguageName, languageLabel } from '../../lib/language/label';
 import type { NotesLanguage } from '../../lib/notes/runner';
@@ -59,6 +59,9 @@ const FAILURE_WORDS: Record<string, string> = {
   'not-json': 'The notes model did not answer in the expected form.',
   'no-answer': 'The notes model gave no answer.',
   network: 'The notes service could not be reached.',
+  // A text model with the user's own key (text models, part C).
+  timeout: 'The notes service did not answer in time.',
+  'no-model': 'No notes model is chosen. Choose one on the Notes card of Languages and line-up.',
   // Kizuna AI's notes service (relayChat.ts): every reason it gives a code for has words of its own.
   'sign-in': 'Sign in to Kizuna AI to write notes with it.',
   unavailable: 'Notes by Kizuna AI are not available yet.',
@@ -71,6 +74,8 @@ const FAILURE_WORDS: Record<string, string> = {
 };
 /** The reasons the account can change: the failure leads there (the Kizuna AI row of Accounts and keys). */
 const ACCOUNT_REASONS = new Set(['notes:sign-in', 'notes:no-balance', 'notes:wallet-frozen', 'notes:not-member']);
+/** The reasons the line-up's Notes card can change (the notes model): the failure leads there. */
+const LINEUP_REASONS = new Set(['notes:no-model']);
 
 type Filter = 'all' | NoteKind;
 
@@ -94,12 +99,25 @@ export function RecordNotes(p: RecordNotesProps) {
     if (!Object.prototype.hasOwnProperty.call(FAILURE_WORDS, code)) return t('history.notesFailure.other', 'The notes service refused the request.');
     return t(`history.notesFailure.${code}`, FAILURE_WORDS[code]);
   };
-  // A reason the account can change leads there, under a version that failed and under a newer attempt that did.
-  const accountLink = (failure: string | null) => (failure && ACCOUNT_REASONS.has(failure) ? (
-    <button type="button" className="history-link" onClick={() => useSettingsStore.getState().navigateToSettings('user-account')}>
-      {t('history.file.openSettings', 'Open {{place}}', { place: t('settingsPage.categories.accounts', 'Accounts and keys') })}
-    </button>
-  ) : null);
+  // A reason the account can change leads there, under a version that failed and under a newer attempt that did; one
+  // the line-up's Notes card can change, there.
+  const accountLink = (failure: string | null) => {
+    if (failure && ACCOUNT_REASONS.has(failure)) {
+      return (
+        <button type="button" className="history-link" onClick={() => useSettingsStore.getState().navigateToSettings('user-account')}>
+          {t('history.file.openSettings', 'Open {{place}}', { place: t('settingsPage.categories.accounts', 'Accounts and keys') })}
+        </button>
+      );
+    }
+    if (failure && LINEUP_REASONS.has(failure)) {
+      return (
+        <button type="button" className="history-link" onClick={() => useSettingsStore.getState().navigateToSettings('lineup')}>
+          {t('history.file.openSettings', 'Open {{place}}', { place: t('settingsPage.categories.lineup', 'Languages and line-up') })}
+        </button>
+      );
+    }
+    return null;
+  };
   const sides = { mySide: t('history.sideMine', 'Your side'), otherSide: t('history.sideOther', 'The other side') };
   const again = (language: string) => () => write({ code: language, name: englishLanguageName(language) });
 
@@ -308,6 +326,12 @@ export function RecordNotes(p: RecordNotesProps) {
             )}
             {pencil(TITLE, editWords.title)}
           </div>
+        )}
+        {/* Who wrote them (text models, part C): kept with each version since it could be told; none before. */}
+        {p.notes.writtenBy.kind === 'sokuji' && p.notes.writtenBy.service && p.notes.writtenBy.model && (
+          <p className="record-notes__by">
+            {t('history.notesWrittenBy', 'Written by {{service}} with {{model}}', { service: notesServiceName(t, p.notes.writtenBy.service), model: p.notes.writtenBy.model })}
+          </p>
         )}
         {isEditing(OVERVIEW) ? editor(OVERVIEW, fieldWords.overview, body.overview.text) : body.overview.text && (
           <p className="record-notes__overview record-notes__editable">{body.overview.text}{tail(OVERVIEW, editWords.overview)}</p>

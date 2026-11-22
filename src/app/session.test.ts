@@ -152,6 +152,13 @@ import { useScreenContextStore, type PickedSource } from '../stores/screenContex
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
+import { TEXT_MODEL_DEFAULTS } from '../lib/textModel/unit';
+
+/**
+ * OpenAI's text model holding the user's key, whose notes the live notes are written with (text models, part C), its
+ * notes model chosen: no model list is asked, so nothing here reaches a service.
+ */
+const OPENAI_TEXT_ENTRY = { settings: { ...TEXT_MODEL_DEFAULTS, notesModel: { listed: 'gpt-6-luna', typed: '' } }, credentials: { apiKey: 'sk-test' }, pair: { source: 'en', target: 'ja' } };
 import { runsOn } from '../stores/lineUpStore.testing';
 import { useSegmentationStore } from '../stores/segmentationStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -1010,7 +1017,7 @@ describe('attach', () => {
       const lineUpBefore = useLineUpStore.getState().lineUp;
       useSettingsStore.setState({ liveNotes: on } as never);
       useLineUpStore.setState({ lineUp: { transcription: 'fake', translation: 'fake', speech: 'fake', summarisation: service } } as never);
-      useProviderStore.setState({ entries: { ...useProviderStore.getState().entries, openai: { settings: {}, credentials: { apiKey: 'sk-test' }, pair: { source: 'en', target: 'ja' } } } } as never);
+      useProviderStore.setState({ entries: { ...useProviderStore.getState().entries, openai_text: OPENAI_TEXT_ENTRY } } as never);
       try { await run(); } finally {
         useSettingsStore.setState({ liveNotes: false } as never);
         useLineUpStore.setState({ lineUp: lineUpBefore });
@@ -1042,11 +1049,11 @@ describe('attach', () => {
         useProviderStore.setState({
           entries: {},
           load: async (provider: { id: string }) => {
-            // The session's own provider loads as usual; only OpenAI's, read for the notes, fails once.
-            if (provider?.id !== 'openai') return realLoad(provider as never);
+            // The session's own provider loads as usual; only OpenAI's text model's, read for the notes, fails once.
+            if (provider?.id !== 'openai_text') return realLoad(provider as never);
             loads += 1;
             if (loads === 1) throw new Error('settings could not be read');
-            useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: 'sk-test' }, pair: { source: 'en', target: 'ja' } } } } as never);
+            useProviderStore.setState({ entries: { openai_text: OPENAI_TEXT_ENTRY } } as never);
           },
         } as never);
         try {
@@ -1388,7 +1395,7 @@ describe('attach', () => {
         const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
         // The notes service's key is still being read when the session stops.
         const entries = useProviderStore.getState().entries;
-        const { openai: _openai, ...others } = entries as Record<string, unknown>;
+        const { openai_text: _openai, ...others } = entries as Record<string, unknown>;
         const loadBefore = useProviderStore.getState().load;
         let release!: () => void;
         const loaded = new Promise<void>((r) => { release = r; });
@@ -1433,7 +1440,7 @@ describe('attach', () => {
         const live = watchedLive();
         const { session, clock } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory as never });
         const entries = useProviderStore.getState().entries;
-        const { openai: _openai, ...others } = entries as Record<string, unknown>;
+        const { openai_text: _openai, ...others } = entries as Record<string, unknown>;
         const loadBefore = useProviderStore.getState().load;
         useProviderStore.setState({ entries: others, load: async () => { throw new Error('unreadable'); } } as never);
         try {
