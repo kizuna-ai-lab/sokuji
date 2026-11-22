@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Gratis · online, en tjänst från Microsoft"
+    },
+    "openai_text": {
+      "name": "OpenAI-textmodell",
+      "description": "Översätter alla språkpar med din OpenAI-nyckel"
+    },
+    "gemini_text": {
+      "name": "Gemini-textmodell",
+      "description": "Översätter alla språkpar med din Gemini-nyckel"
+    },
+    "openai_compatible": {
+      "name": "OpenAI-kompatibel tjänst",
+      "description": "OpenRouter, DeepSeek, Ollama med flera, på adressen du anger"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Inloggad. Öppna länken vi skickade via e-post för att verifiera din adress — provkrediten läggs till så snart du gör det.",
       "onFile": "En nyckel är redan sparad — lämna detta tomt för att behålla den.",
       "offlineHardware": "Sokuji fungerar bra med en GPU och tillräckligt med VRAM; med bara CPU är det märkbart långsammare.",
-      "openaiOneKey": "Den här enda nyckeln gäller för OpenAI Realtime, Translate och Live."
+      "openaiOneKey": "Den här enda nyckeln gäller för OpenAI Realtime, Translate och Live.",
+      "baseUrl": "Adress",
+      "baseUrlPlaceholder": "Adress, till exempel https://openrouter.ai/api/v1",
+      "apiKeyOptional": "API-nyckel (valfri)"
     },
     "summary": {
       "scenario": "Scenario",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Kontot för {{organization}} är pausat. Kontakta ägaren eller använd ditt eget saldo.",
     "org_wallet_frozen_unnamed": "Organisationens konto är pausat. Kontakta ägaren eller använd ditt eget saldo.",
     "org_wallet_frozen_owner": "Kontot för {{organization}} är pausat. Kontakta Sokujis support eller använd ditt eget saldo.",
-    "org_wallet_frozen_owner_unnamed": "Organisationens konto är pausat. Kontakta Sokujis support eller använd ditt eget saldo."
+    "org_wallet_frozen_owner_unnamed": "Organisationens konto är pausat. Kontakta Sokujis support eller använd ditt eget saldo.",
+    "model_missing": "Tjänsten erbjuder inte den här modellen: {{detail}}",
+    "quota": "Kontot hos tjänsten har inget saldo kvar: {{detail}}",
+    "text_model_unset": "Välj en modell för översättningen, eller skriv dess namn, under ”Språk och uppsättning”.",
+    "address_missing": "Ange den kompatibla tjänstens adress under ”Konton och nycklar” innan du startar.",
+    "address_invalid": "Den kompatibla tjänstens adress kan inte användas: {{detail}}"
   },
   "viewer": {
     "title": "Sokuji-undertexter",
@@ -1837,7 +1857,8 @@
         "stateSaved": "Nyckeln sparad",
         "belongsTo": "Hör till {{region}}",
         "switched": "Bytte till {{region}}: nyckeln fungerar bara där."
-      }
+      },
+      "findModels": "Hitta modeller"
     },
     "lineup": {
       "title": "Uppsättning",
@@ -1869,7 +1890,9 @@
         "notUsed": "Används inte den här gången",
         "languageNotSpoken": "Språket stöds inte",
         "cannotCombine": "Kan inte kombineras",
-        "notAvailable": "Inte tillgänglig här"
+        "notAvailable": "Inte tillgänglig här",
+        "needsAddress": "Behöver en adress",
+        "notReady": "Inte klar"
       },
       "speechModeHint": "När ett stycke tal skickas för översättning; fast under en session",
       "hint": "Vilken tjänst som gör varje steg",
@@ -1985,6 +2008,18 @@
       "others": "OpenAI Translate, OpenAI Live och Palabra har inget fält för en ordlista; de får ingen.",
       "byModel": "Beror på modell",
       "byModelNote": "Beror på modell: OpenAI tar bakgrunden bara med sina äldre transkriberingsmodeller; Gemini Live tar termerna bara med gemini-3.8-live; den här enheten läser listan bara med sina översättare baserade på stora språkmodeller."
+    },
+    "textModel": {
+      "automatic": "Automatisk",
+      "automaticModel": "Automatisk ({{model}})",
+      "chooseModel": "Välj en modell",
+      "modelName": "Eller skriv ett modellnamn",
+      "off": "Av",
+      "lowest": "Lägsta",
+      "reasoningTooltip": "”Lägsta” ber om så lite resonerande som modellen godtar, vilket är snabbast. Alla andra val skickas exakt som de är: om modellen avvisar valet säger uppsättningen det innan du startar.",
+      "reasoningValue": "Eller skriv ett värde som skickas som det är",
+      "listing": "Söker modeller…",
+      "listEmpty": "Den här tjänsten listar inga modeller: skriv modellens namn."
     }
   },
   "history": {

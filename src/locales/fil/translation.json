@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Libre · online, serbisyo ng Microsoft"
+    },
+    "openai_text": {
+      "name": "OpenAI text model",
+      "description": "Nagsasalin ng anumang pares ng wika gamit ang iyong OpenAI key"
+    },
+    "gemini_text": {
+      "name": "Gemini text model",
+      "description": "Nagsasalin ng anumang pares ng wika gamit ang iyong Gemini key"
+    },
+    "openai_compatible": {
+      "name": "Serbisyong compatible sa OpenAI",
+      "description": "OpenRouter, DeepSeek, Ollama at iba pa, sa address na ilalagay mo"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Naka-sign in na. Buksan ang link na ipinadala namin sa inyong email para i-verify ang inyong address — makukuha ang trial credit kapag nagawa na ninyo ito.",
       "onFile": "Mayroon nang naka-save na key — iwanan itong blangko para mapanatili ito.",
       "offlineHardware": "Maayos ang Sokuji kapag may GPU at sapat na VRAM; kapansin-pansing mas mabagal kung CPU lang.",
-      "openaiOneKey": "Itong iisang key ang gamit ng OpenAI Realtime, Translate at Live."
+      "openaiOneKey": "Itong iisang key ang gamit ng OpenAI Realtime, Translate at Live.",
+      "baseUrl": "Address",
+      "baseUrlPlaceholder": "Address, gaya ng https://openrouter.ai/api/v1",
+      "apiKeyOptional": "API key (opsyonal)"
     },
     "summary": {
       "scenario": "Scenario",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Naka-pause ang account ng {{organization}}. Makipag-ugnayan sa may-ari nito, o gamitin ang sarili mong balanse.",
     "org_wallet_frozen_unnamed": "Naka-pause ang account ng organisasyon. Makipag-ugnayan sa may-ari nito, o gamitin ang sarili mong balanse.",
     "org_wallet_frozen_owner": "Naka-pause ang account ng {{organization}}. Makipag-ugnayan sa suporta ng Sokuji, o gamitin ang sarili mong balanse.",
-    "org_wallet_frozen_owner_unnamed": "Naka-pause ang account ng organisasyon. Makipag-ugnayan sa suporta ng Sokuji, o gamitin ang sarili mong balanse."
+    "org_wallet_frozen_owner_unnamed": "Naka-pause ang account ng organisasyon. Makipag-ugnayan sa suporta ng Sokuji, o gamitin ang sarili mong balanse.",
+    "model_missing": "Hindi iniaalok ng serbisyo ang modelong ito: {{detail}}",
+    "quota": "Wala nang credit ang account sa serbisyo: {{detail}}",
+    "text_model_unset": "Pumili ng modelo para sa pagsasalin, o i-type ang pangalan nito, sa “Mga wika at line-up”.",
+    "address_missing": "Ilagay ang address ng compatible na serbisyo sa “Mga account at key” bago magsimula.",
+    "address_invalid": "Hindi magagamit ang address ng compatible na serbisyo: {{detail}}"
   },
   "viewer": {
     "title": "Mga subtitle ng Sokuji",
@@ -1837,7 +1857,8 @@
         "stateSaved": "Na-save ang key",
         "belongsTo": "Para sa {{region}}",
         "switched": "Lumipat sa {{region}}: dito lang gumagana ang key na ito."
-      }
+      },
+      "findModels": "Hanapin ang mga modelo"
     },
     "lineup": {
       "title": "Line-up",
@@ -1869,7 +1890,9 @@
         "notUsed": "Hindi gagamitin ngayon",
         "languageNotSpoken": "Hindi suportado ang wika",
         "cannotCombine": "Hindi mapagsasama",
-        "notAvailable": "Hindi available dito"
+        "notAvailable": "Hindi available dito",
+        "needsAddress": "Kailangan ng address",
+        "notReady": "Hindi pa handa"
       },
       "speechModeHint": "Kailan ipinapadala sa pagsasalin ang isang bahagi ng pananalita; hindi nababago habang may session",
       "hint": "Aling serbisyo ang gumagawa ng bawat yugto",
@@ -1985,6 +2008,18 @@
       "others": "Walang lugar para sa listahan ng salita ang OpenAI Translate, OpenAI Live at Palabra; wala silang natatanggap.",
       "byModel": "Depende sa model",
       "byModelNote": "Depende sa model: kinukuha ng OpenAI ang background sa mas lumang transcription model nito lang; kinukuha ng Gemini Live ang mga termino sa gemini-3.8-live lang; binabasa ng device na ito ang listahan sa mga tagasaling large language model lang nito."
+    },
+    "textModel": {
+      "automatic": "Awtomatiko",
+      "automaticModel": "Awtomatiko ({{model}})",
+      "chooseModel": "Pumili ng modelo",
+      "modelName": "O i-type ang pangalan ng modelo",
+      "off": "Naka-off",
+      "lowest": "Pinakamababa",
+      "reasoningTooltip": "Ang “Pinakamababa” ay humihingi ng pinakakaunting pangangatuwiran na tinatanggap ng modelo, na pinakamabilis. Ang ibang pili ay ipinapadala nang eksakto: kung tanggihan ito ng modelo, sasabihin ito ng line-up bago ka magsimula.",
+      "reasoningValue": "O mag-type ng value, ipapadala nang ganoon",
+      "listing": "Hinahanap ang mga modelo…",
+      "listEmpty": "Walang inililistang modelo ang serbisyong ito: i-type ang pangalan ng modelo."
     }
   },
   "history": {

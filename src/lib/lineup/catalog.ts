@@ -34,6 +34,13 @@ export const CAPS: readonly ProviderCaps[] = [
   endToEnd('openai_live', 'key'),
   endToEnd('qwen_livetranslate', 'key'),
   endToEnd('palabraai', 'key'),
+  // A text model translates what another option transcribed (spec 2026-11-22 §5): translation alone, on the user's
+  // own key (the compatible service's address and optional key), and any voice that stands alone may read it. Its
+  // provider is offered in the desktop app only, so elsewhere the line-up page lists it nowhere and a stored line-up
+  // that names it is not offered.
+  { id: 'openai_text', stages: ['translation'], host: 'openai_text', account: 'key', voiceAlone: false, takesVoice: true },
+  { id: 'gemini_text', stages: ['translation'], host: 'gemini_text', account: 'key', voiceAlone: false, takesVoice: true },
+  { id: 'openai_compatible', stages: ['translation'], host: 'openai_compatible', account: 'key', voiceAlone: false, takesVoice: true },
   // The E2E build (`--mode e2e`) runs its sessions on the fake providers, so there a line-up may name them.
   // Elsewhere they stay out: a development build reaches the fake through the stored provider alone.
   // The fake transcribes and translates together, never apart (it has no unit that transcribes alone, so its two
@@ -53,6 +60,16 @@ export const CAPS: readonly ProviderCaps[] = [
 
 export function caps(id: string, catalog: readonly ProviderCaps[] = CAPS): ProviderCaps | undefined {
   return catalog.find((c) => c.id === id);
+}
+
+/**
+ * Whether a provider may be the one a stored selection runs while no line-up is stored: one whose option serves every
+ * stage by itself, or one the catalog does not know (a development build's fake). A text model only translates
+ * another provider's transcription, so a stored selection of its id (the retired OpenAI Compatible's) does not run.
+ */
+export function runsByItself(id: string, catalog: readonly ProviderCaps[] = CAPS): boolean {
+  const own = caps(id, catalog);
+  return own === undefined || own.stages.length === RUN_STAGES.length;
 }
 
 /**
@@ -124,10 +141,19 @@ export function stageIdsFor(lineUp: Pick<LineUp, RunStage> | null, stored: boole
   return { transcription, translation, speech };
 }
 
-/** The line-up a host runs when nothing finer is chosen. */
-export function hostDefaults(host: string): Pick<LineUp, RunStage> {
-  if (host === 'local_inference') return { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
-  return { transcription: host, translation: host, speech: host };
+/** This device's line-up: its recognition, Bing's translation and Edge's voice, free and with no account. */
+const ON_THIS_DEVICE: Pick<LineUp, RunStage> = { transcription: 'local_inference', translation: 'bing', speech: 'edge' };
+
+/**
+ * The line-up a host runs when nothing finer is chosen. A host that serves only some stages (a text model, which only
+ * translates) has no default of its own for the others: they are this device's, which needs no key and no
+ * sign-in, so choosing such a host where another provider must give up its stages leaves a line-up that runs.
+ */
+export function hostDefaults(host: string, catalog: readonly ProviderCaps[] = CAPS): Pick<LineUp, RunStage> {
+  if (host === 'local_inference') return ON_THIS_DEVICE;
+  const own = caps(host, catalog);
+  if (!own || own.host !== host || own.stages.length === RUN_STAGES.length) return { transcription: host, translation: host, speech: host };
+  return { transcription: own.stages.includes('transcription') ? host : ON_THIS_DEVICE.transcription, translation: own.stages.includes('translation') ? host : ON_THIS_DEVICE.translation, speech: own.stages.includes('speech') ? host : ON_THIS_DEVICE.speech };
 }
 
 /** Today's default for a new user: Kizuna AI where the build offers it, otherwise the free set. */

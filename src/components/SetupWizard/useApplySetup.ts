@@ -12,8 +12,7 @@ import useAudioStore from '../../stores/audioStore';   // default export only â€
 import { useSetupStore, SetupPersistError } from '../../stores/setupStore';
 import { PAIR_FIELDS, useProviderStore } from '../../stores/providerStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
-import { presentProviders } from '../../providers/registry';
-import { providerIdFromStored } from '../../lib/session/storedSettings';
+import { wizardProvider } from './providerPaths';
 import { applySetupDraft } from './applySetup';
 import type { SetupDraft } from './setupDraft';
 
@@ -27,8 +26,8 @@ export function useApplySetup(): (draft: SetupDraft) => Promise<void> {
       setTextOnly: s.setTextOnly,
       setParticipantSpeech: useRoutingStore.getState().setParticipantSpeech,
       applyProvider: async (provider, pair, credentials, settings) => {
-        const id = providerIdFromStored(provider);
-        const p = presentProviders().find((candidate) => candidate.id === id);
+        // Only a provider that runs a session by itself: the retired OpenAI Compatible's id is now a text model's.
+        const p = wizardProvider(provider);
         if (!p) throw new Error(`This build does not offer "${provider}".`);
         const store = useProviderStore.getState();
         await store.load(p);

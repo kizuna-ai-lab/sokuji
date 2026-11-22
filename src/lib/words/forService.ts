@@ -6,6 +6,7 @@
 // no field gets nothing in this version.
 // Types only from the list: the services' builders import this module, and must not pull the settings storage in.
 import type { WordEntry } from './list';
+import { isTextModelProvider } from '../textModel/ids';
 
 /** Where several "often heard as" forms are told apart: any comma, the full-width and ideographic ones too. */
 export const HEARD_AS_SEPARATOR = /[,，、]/;
@@ -42,7 +43,11 @@ export const WORD_LIMITS: Record<string, { columns: readonly Column[]; byModel?:
   // every sentence; each token there costs time on every one.
   // Read by its large-language-model translators only.
   local_inference: { columns: ['terms', 'translations', 'background'], byModel: ['terms', 'translations', 'background'], entries: 30, backgroundChars: 300 },
+  // A text model that translates (OpenAI's, Gemini's, a compatible service's): the words, their translations and the
+  // background go into the system prompt of every sentence, so each costs a little time and money on every one.
+  text_model: { columns: ['terms', 'translations', 'background'], entries: 100, backgroundChars: 1000 },
 };
+
 
 /**
  * Where a service's models differ in taking the list at all, the ones that do (from the service's documents). Any other
@@ -58,9 +63,10 @@ export function modelTakesWords(service: string, model: string | null | undefine
   return !only || (!!model && only.includes(model));
 }
 
-/** The service a provider in the line-up sends the word list to: Kizuna AI's twins use their base's. */
+/** The service a provider in the line-up sends the word list to: Kizuna AI's twins use their base's, the text models one row. */
 export function wordServiceOf(providerId: string | null | undefined): string | null {
   if (!providerId) return null;
+  if (isTextModelProvider(providerId)) return 'text_model';
   const twin: Record<string, string> = { kizunaai_soniox: 'soniox', kizunaai_qwen: 'qwen_livetranslate' };
   return twin[providerId] ?? providerId;
 }

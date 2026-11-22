@@ -47,7 +47,14 @@ export interface CredentialChoice {
  * (`settings.<settings.key>.<key>`); `labelKey` and `placeholderKey` are i18n
  * keys.
  */
-export interface CredentialField { key: string; labelKey: string; secret: boolean; placeholderKey?: string }
+export interface CredentialField {
+  key: string;
+  labelKey: string;
+  secret: boolean;
+  placeholderKey?: string;
+  /** May be left empty (a compatible service on this computer needs no key): the field is not a credential that is missing. */
+  optional?: true;
+}
 
 /** Credential values by field key; a field with nothing saved reads as ''. */
 export type CredentialValues = Readonly<Record<string, string>>;

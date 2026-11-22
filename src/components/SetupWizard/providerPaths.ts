@@ -5,12 +5,10 @@
 // Kizuna Soniox, the own-key one with Soniox (Stage 2).
 import { Provider } from '../../types/Provider';
 import type { ProviderType } from '../../types/Provider';
-import { RUN_STAGES, TR_TL } from '../../lib/lineup/types';
-import type { RunStage } from '../../lib/lineup/types';
 import type { AnyProvider } from '../../lib/provider/types';
 import { providerIdFromStored } from '../../lib/session/storedSettings';
 import { presentProviders } from '../../providers/registry';
-import { unitsOf } from '../../lib/plan/wholeUnit';
+import { runsAlone } from '../../lib/plan/wholeUnit';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import { getScenario, providerFitForScenario } from '../../lib/setup/scenarios';
 import type { ProviderFit } from '../../lib/setup/scenarios';
@@ -32,10 +30,13 @@ export function textOnlyCapabilityOf(p: Pick<AnyProvider, 'speech'>): 'always' |
   return p.speech === 'always' ? 'never' : p.speech === 'never' ? 'always' : 'optional';
 }
 
-/** The registered provider a draft names, or undefined. */
+/**
+ * The registered provider a draft names, or undefined: one that runs a session by itself. A provider that only
+ * translates is no answer to the wizard, whatever a record of the retired OpenAI Compatible, whose id it has, says.
+ */
 export function wizardProvider(id: string | null | undefined): AnyProvider | undefined {
   const registryId = providerIdFromStored(id);
-  return registryId === null ? undefined : presentProviders().find((p) => p.id === registryId);
+  return registryId === null ? undefined : presentProviders().find((p) => p.id === registryId && runsAlone(p));
 }
 
 /** The paths the wizard offers: managed first when one is present (Kizuna Soniox), own key once an own-key provider is (Soniox), and offline. */
@@ -53,15 +54,6 @@ export function providerFits(provider: ProviderType, scenario: ScenarioId): bool
   return p !== undefined && providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true).ok;
 }
 
-const TEXT_STAGES: ReadonlySet<RunStage> = new Set(TR_TL);
-const EVERY_STAGE: ReadonlySet<RunStage> = new Set(RUN_STAGES);
-
-/**
- * Whether a provider can run a session by itself: one of its units takes audio and gives a translation, alone or
- * with speech. A provider that only speaks, only transcribes or only translates is not a path.
- */
-const runsAlone = (p: AnyProvider): boolean => unitsOf(p).some((unit) =>
-  unit.start !== undefined && (unit.occupies(p.settings.defaults, EVERY_STAGE) !== null || unit.occupies(p.settings.defaults, TEXT_STAGES) !== null));
 
 /** The registry's own-key providers that can run a session alone, in its order, each with its fit for the scenario — unfit ones greyed with the reason, never hidden. */
 export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {

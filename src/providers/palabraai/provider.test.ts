@@ -1,4 +1,5 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
+import { runsByItself } from '../../lib/lineup/catalog';
 
 const { stored, getSetting, setSetting } = vi.hoisted(() => {
   const stored = new Map<string, unknown>();
@@ -77,8 +78,8 @@ describe('the Palabra AI definition', () => {
     expect(palabraProvider.turns(PALABRA_DEFAULTS)).toEqual(['auto', 'manual']);
   });
 
-  it('sits last, after Qwen LiveTranslate (ruling 14)', () => {
-    const ids = PROVIDERS.filter((p) => !p.id.startsWith('fake')).map((p) => p.id);
+  it('sits last, after Qwen LiveTranslate (ruling 14), of the providers that run a session by themselves: the text models that only translate follow it', () => {
+    const ids = PROVIDERS.filter((p) => !p.id.startsWith('fake') && runsByItself(p.id)).map((p) => p.id);
     expect(ids[ids.length - 1]).toBe('palabraai');
     expect(ids.indexOf('palabraai')).toBe(ids.indexOf('qwen_livetranslate') + 1);
   });

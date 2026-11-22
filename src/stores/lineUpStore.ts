@@ -15,7 +15,7 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
-import { caps, hostDefaults, optionFor, soleHost } from '../lib/lineup/catalog';
+import { caps, hostDefaults, optionFor, runsByItself, soleHost } from '../lib/lineup/catalog';
 import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';
 import type { LineUp, RunStage, StageName } from '../lib/lineup/types';
@@ -99,7 +99,8 @@ async function writeProvider(lineUp: LineUp): Promise<void> {
 
 /** The provider today's values name: the stored one when it is offered here, the default managed one for a retired managed id, else the first offered; null when none is offered. */
 function providerFromToday(stored: unknown): string | null {
-  const offered = presentHosts();
+  // Only a provider that serves every stage by itself: the retired OpenAI Compatible's stored id is now a text model's.
+  const offered = presentHosts().filter((p) => runsByItself(p.id));
   return selectionFromStored(stored, offered.map((p) => p.id), offered.find((p) => p.kind === 'managed')?.id ?? null)?.id ?? null;
 }
 

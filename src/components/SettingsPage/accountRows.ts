@@ -8,12 +8,15 @@ import { caps } from '../../lib/lineup/catalog';
 // The target itself is made where a notice's action is: the page reads it here.
 export { providerOfTarget, providerTarget } from '../../lib/view/providerTarget';
 
-/** The OpenAI services share one key, so one row. */
-export const OPENAI_IDS: readonly string[] = ['openai', 'openai_translate', 'openai_live'];
+/** The OpenAI services share one key, so one row; OpenAI's text models use it too. */
+export const OPENAI_IDS: readonly string[] = ['openai', 'openai_translate', 'openai_live', 'openai_text'];
+/** Gemini Live and Gemini's text models share one key, so one row. */
+export const GEMINI_IDS: readonly string[] = ['gemini', 'gemini_text'];
 
 /** The row that holds a provider's key or sign-in: the hosted services are Kizuna AI's sign-in. */
 export function accountKeyOf(providerId: string): string {
   if (OPENAI_IDS.includes(providerId)) return 'openai';
+  if (GEMINI_IDS.includes(providerId)) return 'gemini';
   if (caps(providerId)?.account === 'kizuna') return 'kizuna';
   return providerId;
 }

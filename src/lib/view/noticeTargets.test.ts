@@ -63,6 +63,18 @@ describe('settingsTargetForCode', () => {
     expect(settingsTargetForCode('region_unsupported')).toBe('provider');
   });
 
+  it("a text model's codes (text models, part B): its address in its row, its model on the line-up, and a key refused or credit spent in its row only when the notice names it", () => {
+    expect(settingsTargetForCode('address_missing', { provider: 'openai_compatible' })).toBe('provider:openai_compatible');
+    expect(settingsTargetForCode('address_invalid', { provider: 'openai_compatible' })).toBe('provider:openai_compatible');
+    expect(settingsTargetForCode('model_missing')).toBe('lineup');
+    expect(settingsTargetForCode('text_model_unset')).toBe('lineup');
+    expect(settingsTargetForCode('auth', { provider: 'gemini_text' })).toBe('provider:gemini_text');
+    expect(settingsTargetForCode('quota', { provider: 'openai_text' })).toBe('provider:openai_text');
+    // Unnamed, as every end-to-end provider's own, they lead nowhere, as before.
+    expect(settingsTargetForCode('auth')).toBeNull();
+    expect(settingsTargetForCode('quota')).toBeNull();
+  });
+
   it('has words for every code it targets, its own or an alias — an action never sits beside an unworded notice', () => {
     for (const code of Object.keys(NOTICE_TARGETS)) {
       expect(NOTICE_WORDS[code] ?? NOTICE_ALIASES[code], code).toBeDefined();

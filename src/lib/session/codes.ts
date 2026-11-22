@@ -32,7 +32,7 @@ export type RunNoticeCode = (typeof RUN_NOTICE_CODES)[number];
  * The notices about one provider's key or sign-in. Whoever makes one names the provider it is about in
  * `params.provider`, so that its action opens that provider's account row, whichever provider transcribes.
  */
-export const ACCOUNT_CODES: ReadonlySet<string> = new Set(['credentials_missing', 'sign_in_required']);
+export const ACCOUNT_CODES: ReadonlySet<string> = new Set(['credentials_missing', 'sign_in_required', 'address_missing', 'address_invalid']);
 
 /** A notice's params with the provider an account notice is about; any other code's params as they are. */
 export function namingProvider(code: string | undefined, params: Record<string, string | number> | undefined, providerId: string): Record<string, string | number> | undefined {

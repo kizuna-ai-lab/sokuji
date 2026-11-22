@@ -18,6 +18,7 @@ vi.mock('../../services/ServiceFactory', () => ({
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
+import { runsByItself } from '../../lib/lineup/catalog';
 import { readCredentials } from '../../lib/provider/credentials';
 import { AUTO } from '../../lib/provider/languages';
 import { planOf } from '../../lib/plan/testing';
@@ -76,16 +77,21 @@ describe('the OpenAI Realtime definition', () => {
     expect(openaiProvider.turns(REALTIME_DEFAULTS)).toEqual(['auto', 'manual']);
   });
 
-  it('sits after Doubao AST 2.0 and before OpenAI Translate, and OpenAI Compatible is registered nowhere (rulings 18, 1)', () => {
+  it('sits after Doubao AST 2.0 and before OpenAI Translate, and OpenAI Compatible is registered nowhere as a provider that runs a session (rulings 18, 1)', () => {
     const ids = PROVIDERS.map((p) => p.id);
     expect(ids.indexOf('openai')).toBe(ids.indexOf('volcengine_ast2') + 1);
     expect(ids.indexOf('openai')).toBe(ids.indexOf('openai_translate') - 1);
-    expect(ids).not.toContain('openai_compatible');
+    // Its id is a text model's now (text models, part B): a unit that translates another provider's transcription,
+    // never a session of its own.
+    const compatible = PROVIDERS.find((p) => p.id === 'openai_compatible')!;
+    expect(compatible.units?.map((u) => u.start)).toEqual([undefined]);
+    expect(runsByItself('openai_compatible')).toBe(false);
   });
 
   it('a stored OpenAI Compatible selection falls to the first provider offered, through the existing rule: nothing is written (ruling 1)', () => {
     for (const platform of ['electron', 'extension', 'web'] as const) {
-      const offered = presentProviders({ platform, dev: false, enabled: new Set(), kizuna: true, switchOn: () => false }).map((p) => p.id);
+      // What a load picks from: the providers offered here that run a session by themselves.
+      const offered = presentProviders({ platform, dev: false, enabled: new Set(), kizuna: true, switchOn: () => false }).map((p) => p.id).filter((id) => runsByItself(id));
       expect(selectionFromStored('openai_compatible', offered, 'kizunaai_soniox'), platform).toEqual({ id: offered[0], fromStorage: false });
     }
   });

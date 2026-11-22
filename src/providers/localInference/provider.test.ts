@@ -202,39 +202,56 @@ describe('localInferenceProvider', () => {
       }
     });
 
-    it('no released line-up changes: every triple of the catalog runs as it did without its recognition unit, and only refusals no choice reaches are worded otherwise', () => {
+    it('no line-up that ran changes, and the ones that newly run are this device transcribing for a text model: every triple of the catalog, with and without its recognition unit', () => {
       const released = choiceInput(RELEASED, {});
       const local = released.providers.find((p) => p.id === 'local_inference')!;
       const before = { ...local, units: unitsOf(local).filter((u) => u !== localTranscriptionUnit) } as AnyProvider;
       const without: ComposeInput = { ...released, providers: released.providers.map((p) => (p === local ? before : p)) };
       const shape = (plan: RunPlan | PlanRefusal) => (isRefusal(plan) ? plan : plan.units.map((u) => [u.provider.id, u.unit.id, u.stages]));
+      const textModels = ['openai_text', 'gemini_text', 'openai_compatible'];
       const reworded: string[] = [];
+      const newlyRun: string[] = [];
       for (const t of CAPS) for (const tl of CAPS) for (const sp of CAPS) {
         const lineUp = { transcription: t.id, translation: tl.id, speech: sp.id };
         const label = JSON.stringify(lineUp);
         const now = compose(lineUp, released);
         const then = compose(lineUp, without);
-        // No line-up that ran runs otherwise, and none that was refused runs now: nothing offered translates what
-        // this device hears but this device itself.
-        expect(isRefusal(now), label).toBe(isRefusal(then));
-        if (!isRefusal(now)) {
+        if (!isRefusal(then)) {
+          // No line-up that ran runs otherwise, and none of them takes the recognition unit.
+          expect(isRefusal(now), label).toBe(false);
           expect(shape(now), label).toEqual(shape(then));
-          expect(now.units.some((u) => u.unit === localTranscriptionUnit), label).toBe(false);
+          if (!isRefusal(now)) expect(now.units.some((u) => u.unit === localTranscriptionUnit), label).toBe(false);
+        } else if (!isRefusal(now)) {
+          // What newly runs (text models, part B): this device transcribing alone for a text model, which was refused
+          // as this device having no unit for transcription alone.
+          expect(t.id, label).toBe('local_inference');
+          expect(textModels, label).toContain(tl.id);
+          expect(then, label).toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
+          expect(now.byStage.transcription.unit, label).toBe(localTranscriptionUnit);
+          newlyRun.push(`${tl.id}/${sp.id}`);
         } else if (JSON.stringify(now) !== JSON.stringify(then)) {
           reworded.push(`${tl.id}/${sp.id}`);
-          // This device transcribing and an end-to-end provider translating: the refusal is now the one any
-          // transcriber that stands alone meets there (the end-to-end provider's stages go together), where it was
-          // that this device had no unit. `choose` never makes such a line-up: it moves an end-to-end provider's
-          // stages together (the walk of every reachable line-up in `choose.test.ts`).
+          // This device transcribing, and an end-to-end provider translating or (beside a text model) speaking: the
+          // refusal is now the one any transcriber that stands alone meets there (the end-to-end provider's stages go
+          // together), where it was that this device had no unit. `choose` never makes such a line-up: it moves an
+          // end-to-end provider's stages together (the walk of every reachable line-up in `choose.test.ts`).
           expect(t.id, label).toBe('local_inference');
-          expect(tl.joint, label).toEqual(['transcription', 'translation', 'speech']);
+          expect(tl.joint ?? sp.joint, label).toEqual(['transcription', 'translation', 'speech']);
           expect(then, label).toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
           expect(now, label).toEqual({ refused: 'lineup_stage_split', stage: 'transcription' });
         }
       }
-      // Each end-to-end provider, under each option that speaks (one that does not leaves the line-up incomplete).
+      // Each end-to-end provider, under each option that speaks (one that does not leaves the line-up incomplete);
+      // and each text model, under each end-to-end provider's voice.
       const endToEnd = CAPS.filter((c) => c.joint?.includes('translation'));
-      expect(reworded).toHaveLength(endToEnd.length * CAPS.filter((c) => c.stages.includes('speech')).length);
+      const speaking = CAPS.filter((c) => c.stages.includes('speech'));
+      expect(reworded.sort()).toEqual([
+        ...endToEnd.flatMap((tl) => speaking.map((sp) => `${tl.id}/${sp.id}`)),
+        ...textModels.flatMap((tl) => endToEnd.map((sp) => `${tl}/${sp.id}`)),
+      ].sort());
+      // Each text model, under each voice that stands alone.
+      const alone = CAPS.filter((c) => c.stages.includes('speech') && c.voiceAlone).map((c) => c.id);
+      expect(newlyRun.sort()).toEqual(textModels.flatMap((model) => alone.map((voice) => `${model}/${voice}`)).sort());
     });
 
     it('its translation unit serves translation alone, and translation with speech is two units', () => {

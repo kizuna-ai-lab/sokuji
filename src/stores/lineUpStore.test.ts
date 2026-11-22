@@ -180,7 +180,8 @@ describe('the line-up store', () => {
   });
 
   it('with nothing stored and a provider this build does not offer, the first offered provider runs, and the stored id stays', async () => {
-    // OpenAI Compatible is retired: no build offers it.
+    // OpenAI Compatible is retired: no build offers it whole. Its id is now a text model's, which only translates
+    // another provider's transcription, so a stored selection of it does not run either.
     stored.set(PROVIDER_KEY, 'openai_compatible');
     let release!: () => void;
     setSetting.mockImplementationOnce((key: string, value: unknown) => new Promise((resolve) => {

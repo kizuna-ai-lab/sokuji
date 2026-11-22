@@ -38,6 +38,19 @@ export function wholeUnit(p: AnyProvider): UnitDefinition {
   };
 }
 
+const TEXT_STAGES: ReadonlySet<RunStage> = new Set(TR_TL);
+const EVERY_STAGE: ReadonlySet<RunStage> = new Set(RUN_STAGES);
+
+/**
+ * Whether a provider can run a session by itself: one of its units takes audio and gives a translation, alone or
+ * with speech. A provider that only speaks, only transcribes or only translates cannot: a stored selection of one
+ * (the retired OpenAI Compatible's id, which a text model now has) is not run alone, nor offered by the wizard.
+ */
+export function runsAlone(p: AnyProvider): boolean {
+  return unitsOf(p).some((unit) => unit.start !== undefined
+    && (unit.occupies(p.settings.defaults, EVERY_STAGE) !== null || unit.occupies(p.settings.defaults, TEXT_STAGES) !== null));
+}
+
 const cache = new WeakMap<AnyProvider, readonly UnitDefinition[]>();
 
 /** A provider's units: its own list when it declares one (step 2 on), else its whole-provider unit. Same array for the same provider. */

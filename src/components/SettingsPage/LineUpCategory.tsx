@@ -68,6 +68,7 @@ const SLOT_CARD: Readonly<Record<string, RunStage>> = { asr: 'transcription', tr
 const CANNOT_COMBINE: ReadonlySet<string> = new Set(['lineup_voice_not_alone', 'lineup_voice_not_taken', 'lineup_stage_split', 'lineup_translation_bound', 'lineup_no_unit', 'lineup_two_managed', 'lineup_face_to_face_apart']);
 
 import { stageInSentence } from '../../lib/lineup/stageWords';
+import { isTextModelProvider } from '../../lib/textModel/ids';
 export { stageInSentence };
 
 /**
@@ -80,15 +81,20 @@ function carriedWith(id: string, stage: RunStage): readonly RunStage[] | undefin
   return group && group.length > 1 && group.includes(stage) ? group : undefined;
 }
 
-/** Whether a provider's key or sign-in is in place, as far as this page can tell without a check. */
-function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key' | 'sign-in' | null {
+/**
+ * Whether a provider's key or sign-in is in place, as far as this page can tell without a check. A field that may
+ * be left empty (a compatible service's key) is not missing; a compatible service's address is said as such.
+ */
+function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key' | 'sign-in' | 'address' | null {
   if (!p) return null;
   if (p.kind === 'managed') return signedIn ? null : 'sign-in';
   if (p.kind !== 'own-key') return null;
   const entry = useProviderStore.getState().entries[p.id];
   if (!entry) return 'key';
   const fields = p.credentials.fields(entry.settings as never);
-  return fields.every((f) => String(entry.credentials[f.key] ?? '').trim() !== '') ? null : 'key';
+  const missing = fields.find((f) => !f.optional && String(entry.credentials[f.key] ?? '').trim() === '');
+  if (!missing) return null;
+  return missing.key === 'baseUrl' ? 'address' : 'key';
 }
 
 export function LineUpCategory({ locked }: CategoryBodyProps) {
@@ -174,7 +180,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         // The current choice is never held back: it is shown, and can be left.
         if (lineUp?.[stage] === id) return m;
         const missing = credentialsMissing(p, auth.signedIn);
-        if (missing) {
+        // A compatible service with no address yet stays a choice: its address is entered after it is chosen, and its
+        // card leads to where.
+        if (missing && missing !== 'address') {
           m.blocked = missing === 'key' ? t('settingsPage.lineup.needsKey', 'needs a key') : t('settingsPage.lineup.needsSignIn', 'needs a sign-in');
           return m;
         }
@@ -352,6 +360,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
     const missing = credentialsMissing(p, auth.signedIn);
     if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toAccount: true };
+    if (missing === 'address') return { ok: false, text: t('settingsPage.lineup.state.needsAddress', 'Needs an address'), toAccount: true };
     if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in'), toAccount: true };
     const r = p ? readiness[p.id] : undefined;
     if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
@@ -368,6 +377,11 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           text: region ? t('settingsPage.lineup.state.noKeyForRegion', 'No working key for {{region}}', { region })
             : t('settingsPage.lineup.state.keyRefused', 'Key not accepted'),
         };
+      }
+      // A text model's check said what else is wrong (the model, the reasoning, the service): its words are on the
+      // card (`checkWords`); an address that cannot be used is fixed where it is entered.
+      if (r?.state === 'not-ready' && isTextModelProvider(p.id) && r.code !== undefined) {
+        return { ok: false, text: t('settingsPage.lineup.state.notReady', 'Not ready'), ...(r.code.startsWith('address_') ? { toAccount: true } : {}) };
       }
       // Never checked, or the check could not reach the service.
       return { ok: false, toAccount: true, text: t('settingsPage.lineup.state.keyNotVerified', 'Key not verified') };
@@ -395,6 +409,18 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       : code && CANNOT_COMBINE.has(code) ? t('settingsPage.lineup.state.cannotCombine', "Can't be combined")
       : undefined;
     return text === undefined ? undefined : <em className="lineup-stage__state">{text}</em>;
+  };
+
+  /**
+   * What a text model's check found wrong, in its words, on the card of the stage it serves (the model the service
+   * does not offer, a reasoning value it refuses), while the line-up itself is not refused there.
+   */
+  const checkWords = (stage: RunStage) => {
+    const id = lineUp?.[stage];
+    if (!isTextModelProvider(id) || refusal?.stage === stage) return null;
+    const r = readiness[id!];
+    if (r?.state !== 'not-ready' || r.code === undefined || r.code === 'auth' || credentialsMissing(providers.find((p) => p.id === id), auth.signedIn)) return null;
+    return <p className="lineup-stage__refusal" role="status">{noticeText(t, { code: r.code, message: r.reason, ...(r.params ? { params: r.params } : {}) })}</p>;
   };
 
   // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own (stateTag), so a key that
@@ -553,6 +579,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                 );
               })()}
               {refusalLine(stage)}
+              {checkWords(stage)}
               {stageOptions(stage, id, stages)}
             </>
           ));

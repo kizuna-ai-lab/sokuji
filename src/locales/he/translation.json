@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "חינם · מקוון, שירות של Microsoft"
+    },
+    "openai_text": {
+      "name": "מודל טקסט של OpenAI",
+      "description": "מתרגם כל צמד שפות עם מפתח ה-OpenAI שלך"
+    },
+    "gemini_text": {
+      "name": "מודל טקסט של Gemini",
+      "description": "מתרגם כל צמד שפות עם מפתח ה-Gemini שלך"
+    },
+    "openai_compatible": {
+      "name": "שירות תואם OpenAI",
+      "description": "OpenRouter, DeepSeek, Ollama ואחרים, בכתובת שתזינו"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "מחובר. פתח את הקישור ששלחנו לך במייל כדי לאמת את הכתובת שלך — יתרת הניסיון תיזקף לחשבונך ברגע שתעשה זאת.",
       "onFile": "מפתח כבר שמור — השאר שדה זה ריק כדי לשמור עליו.",
       "offlineHardware": "Sokuji עובד היטב עם GPU וזיכרון וידאו מספיק; עם מעבד בלבד הוא איטי יותר באופן ניכר.",
-      "openaiOneKey": "המפתח האחד הזה משמש את OpenAI Realtime,‏ Translate ו-Live."
+      "openaiOneKey": "המפתח האחד הזה משמש את OpenAI Realtime,‏ Translate ו-Live.",
+      "baseUrl": "כתובת",
+      "baseUrlPlaceholder": "כתובת, למשל https://openrouter.ai/api/v1",
+      "apiKeyOptional": "מפתח API (אופציונלי)"
     },
     "summary": {
       "scenario": "תרחיש",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "החשבון של {{organization}} מושהה. פנה לבעלים שלו או השתמש ביתרה האישית שלך.",
     "org_wallet_frozen_unnamed": "חשבון הארגון מושהה. פנה לבעלים שלו או השתמש ביתרה האישית שלך.",
     "org_wallet_frozen_owner": "החשבון של {{organization}} מושהה. פנה לתמיכה של Sokuji או השתמש ביתרה האישית שלך.",
-    "org_wallet_frozen_owner_unnamed": "חשבון הארגון מושהה. פנה לתמיכה של Sokuji או השתמש ביתרה האישית שלך."
+    "org_wallet_frozen_owner_unnamed": "חשבון הארגון מושהה. פנה לתמיכה של Sokuji או השתמש ביתרה האישית שלך.",
+    "model_missing": "השירות לא מציע את המודל הזה: {{detail}}",
+    "quota": "לחשבון בשירות לא נשאר אשראי: {{detail}}",
+    "text_model_unset": "בחרו מודל לתרגום, או הקלידו את שמו, ב„שפות והרכב”.",
+    "address_missing": "הזינו את כתובת השירות התואם ב„חשבונות ומפתחות” לפני ההתחלה.",
+    "address_invalid": "אי אפשר להשתמש בכתובת השירות התואם: {{detail}}"
   },
   "viewer": {
     "title": "כתוביות Sokuji",
@@ -1837,7 +1857,8 @@
         "stateSaved": "המפתח נשמר",
         "belongsTo": "שייך ל־{{region}}",
         "switched": "עברנו ל־{{region}}: המפתח הזה עובד רק שם."
-      }
+      },
+      "findModels": "חיפוש מודלים"
     },
     "lineup": {
       "title": "הרכב",
@@ -1869,7 +1890,9 @@
         "notUsed": "לא בשימוש הפעם",
         "languageNotSpoken": "שפה לא נתמכת",
         "cannotCombine": "לא ניתן לשלב",
-        "notAvailable": "לא זמין כאן"
+        "notAvailable": "לא זמין כאן",
+        "needsAddress": "נדרשת כתובת",
+        "notReady": "לא מוכן"
       },
       "speechModeHint": "מתי קטע דיבור נשלח לתרגום; קבוע במהלך הסשן",
       "hint": "איזה שירות מבצע כל שלב",
@@ -1985,6 +2008,18 @@
       "others": "ל-OpenAI Translate, ל-OpenAI Live ול-Palabra אין מקום לרשימת מילים; הם לא מקבלים אותה.",
       "byModel": "תלוי בדגם",
       "byModelNote": "תלוי בדגם: OpenAI מקבל את הרקע רק עם דגמי התמלול הישנים שלו; Gemini Live מקבל את המונחים רק עם gemini-3.8-live; המכשיר הזה קורא את הרשימה רק במתרגמים מבוססי מודל שפה גדול."
+    },
+    "textModel": {
+      "automatic": "אוטומטי",
+      "automaticModel": "אוטומטי ({{model}})",
+      "chooseModel": "בחרו מודל",
+      "modelName": "או הקלידו שם של מודל",
+      "off": "כבוי",
+      "lowest": "הנמוכה ביותר",
+      "reasoningTooltip": "„הנמוכה ביותר” מבקשת את מעט החשיבה שהמודל מקבל, וזה המהיר ביותר. כל בחירה אחרת נשלחת בדיוק כפי שהיא: אם המודל דוחה אותה, ההרכב יאמר זאת לפני ההתחלה.",
+      "reasoningValue": "או הקלידו ערך שיישלח כפי שהוא",
+      "listing": "מחפש מודלים…",
+      "listEmpty": "השירות הזה לא מציג מודלים: הקלידו את שם המודל."
     }
   },
   "history": {

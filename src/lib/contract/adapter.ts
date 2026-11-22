@@ -159,8 +159,12 @@ export interface AdapterEvents {
   /** `attempt`/`drop` absent: an adapter that reconnects on its own and has nothing to report. */
   reconnecting(e?: { attempt: number; drop?: DropInfo }): void;
   reconnected(e?: ReconnectedInfo): void;
-  /** The session is broken. Nothing follows. `giveUp`: the reconnect policy's verdict, when it was a reconnect that ended. */
-  failed(e: { message: string; code?: string; cause?: unknown; drop?: DropInfo; giveUp?: Omit<GiveUp, 'code' | 'message'> } & FromStage): void;
+  /**
+   * The session is broken. Nothing follows. `giveUp`: the reconnect policy's verdict, when it was a reconnect that
+   * ended. `params`: the values the notice's words name, and the provider an account notice is about (the run names
+   * the provider of a stage whose key was refused); L1 records them on the notice, as a give-up's.
+   */
+  failed(e: { message: string; code?: string; cause?: unknown; drop?: DropInfo; giveUp?: Omit<GiveUp, 'code' | 'message'>; params?: Record<string, string | number> } & FromStage): void;
   /**
    * Running, degraded. `reason`: a short machine-readable token for
    * analytics only (`tts_408`, `tts_connect_failed`) — never user text,

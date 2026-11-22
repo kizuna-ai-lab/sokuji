@@ -32,7 +32,7 @@ export function CredentialForm({ fields, values, readiness, onChange, onCheck, d
       type="button"
       className="validate-button"
       onClick={onCheck}
-      disabled={disabled || checking || fields.some((f) => !values[f.key])}
+      disabled={disabled || checking || fields.some((f) => !f.optional && !values[f.key])}
       title={t('simpleSettings.validate')}
     >
       {checking ? <span className="spinner" /> : readiness.state === 'ready' ? <CheckCircle size={16} /> : t('simpleSettings.validate')}

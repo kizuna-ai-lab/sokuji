@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Kostenlos · online, ein Microsoft-Dienst"
+    },
+    "openai_text": {
+      "name": "OpenAI-Textmodell",
+      "description": "Übersetzt jedes Sprachpaar mit Ihrem OpenAI-Schlüssel"
+    },
+    "gemini_text": {
+      "name": "Gemini-Textmodell",
+      "description": "Übersetzt jedes Sprachpaar mit Ihrem Gemini-Schlüssel"
+    },
+    "openai_compatible": {
+      "name": "OpenAI-kompatibler Dienst",
+      "description": "OpenRouter, DeepSeek, Ollama und andere, unter der Adresse, die Sie eingeben"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Angemeldet. Öffnen Sie den Link, den wir Ihnen per E-Mail geschickt haben, um Ihre Adresse zu bestätigen — das Testguthaben wird gutgeschrieben, sobald Sie das tun.",
       "onFile": "Es ist bereits ein Schlüssel gespeichert — lassen Sie dieses Feld leer, um ihn zu behalten.",
       "offlineHardware": "Sokuji läuft gut mit einer GPU und genug VRAM; nur mit CPU ist es merklich langsamer.",
-      "openaiOneKey": "Dieser eine Schlüssel gilt für OpenAI Realtime, Translate und Live."
+      "openaiOneKey": "Dieser eine Schlüssel gilt für OpenAI Realtime, Translate und Live.",
+      "baseUrl": "Adresse",
+      "baseUrlPlaceholder": "Adresse, etwa https://openrouter.ai/api/v1",
+      "apiKeyOptional": "API-Schlüssel (optional)"
     },
     "summary": {
       "scenario": "Szenario",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Das Konto von {{organization}} ist pausiert. Wenden Sie sich an den Inhaber oder nutzen Sie Ihr eigenes Guthaben.",
     "org_wallet_frozen_unnamed": "Das Konto der Organisation ist pausiert. Wenden Sie sich an den Inhaber oder nutzen Sie Ihr eigenes Guthaben.",
     "org_wallet_frozen_owner": "Das Konto von {{organization}} ist pausiert. Wenden Sie sich an den Sokuji-Support oder nutzen Sie Ihr eigenes Guthaben.",
-    "org_wallet_frozen_owner_unnamed": "Das Konto der Organisation ist pausiert. Wenden Sie sich an den Sokuji-Support oder nutzen Sie Ihr eigenes Guthaben."
+    "org_wallet_frozen_owner_unnamed": "Das Konto der Organisation ist pausiert. Wenden Sie sich an den Sokuji-Support oder nutzen Sie Ihr eigenes Guthaben.",
+    "model_missing": "Der Dienst bietet dieses Modell nicht an: {{detail}}",
+    "quota": "Das Konto beim Dienst hat kein Guthaben mehr: {{detail}}",
+    "text_model_unset": "Wählen Sie unter „Sprachen und Aufstellung“ ein Modell für die Übersetzung oder geben Sie seinen Namen ein.",
+    "address_missing": "Geben Sie vor dem Start unter „Konten und Schlüssel“ die Adresse des kompatiblen Dienstes ein.",
+    "address_invalid": "Die Adresse des kompatiblen Dienstes kann nicht verwendet werden: {{detail}}"
   },
   "viewer": {
     "title": "Sokuji-Untertitel",
@@ -1837,7 +1857,8 @@
         "stateSaved": "Schlüssel gespeichert",
         "belongsTo": "Gehört zu {{region}}",
         "switched": "Zu {{region}} gewechselt: Dieser Schlüssel funktioniert nur dort."
-      }
+      },
+      "findModels": "Modelle suchen"
     },
     "lineup": {
       "title": "Aufstellung",
@@ -1869,7 +1890,9 @@
         "notUsed": "Diesmal nicht verwendet",
         "languageNotSpoken": "Sprache nicht unterstützt",
         "cannotCombine": "Nicht kombinierbar",
-        "notAvailable": "Hier nicht verfügbar"
+        "notAvailable": "Hier nicht verfügbar",
+        "needsAddress": "Braucht eine Adresse",
+        "notReady": "Nicht bereit"
       },
       "speechModeHint": "Wann ein Stück Rede zur Übersetzung geht; während einer Sitzung fest",
       "hint": "Welcher Dienst jede Stufe übernimmt",
@@ -1985,6 +2008,18 @@
       "others": "OpenAI Translate, OpenAI Live und Palabra haben kein Feld für eine Wortliste; sie erhalten keine.",
       "byModel": "Je nach Modell",
       "byModelNote": "Je nach Modell: OpenAI nimmt den Hintergrund nur mit seinen älteren Transkriptionsmodellen; Gemini Live nimmt die Begriffe nur mit gemini-3.8-live; dieses Gerät liest die Liste nur mit seinen Übersetzern auf Basis großer Sprachmodelle."
+    },
+    "textModel": {
+      "automatic": "Automatisch",
+      "automaticModel": "Automatisch ({{model}})",
+      "chooseModel": "Modell wählen",
+      "modelName": "Oder einen Modellnamen eingeben",
+      "off": "Aus",
+      "lowest": "Niedrigste",
+      "reasoningTooltip": "„Niedrigste“ verlangt so wenig Argumentation, wie das Modell zulässt – das ist am schnellsten. Jede andere Wahl wird genau so gesendet: Lehnt das Modell sie ab, sagt die Aufstellung das vor dem Start.",
+      "reasoningValue": "Oder einen Wert eingeben, der unverändert gesendet wird",
+      "listing": "Modelle werden gesucht…",
+      "listEmpty": "Dieser Dienst listet keine Modelle: Geben Sie den Namen des Modells ein."
     }
   },
   "history": {

@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Ilmainen · verkossa, Microsoftin palvelu"
+    },
+    "openai_text": {
+      "name": "OpenAI-tekstimalli",
+      "description": "Kääntää minkä tahansa kieliparin OpenAI-avaimellasi"
+    },
+    "gemini_text": {
+      "name": "Gemini-tekstimalli",
+      "description": "Kääntää minkä tahansa kieliparin Gemini-avaimellasi"
+    },
+    "openai_compatible": {
+      "name": "OpenAI-yhteensopiva palvelu",
+      "description": "OpenRouter, DeepSeek, Ollama ja muut, antamassasi osoitteessa"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Kirjauduttu sisään. Avaa sähköpostitse lähettämämme linkki vahvistaaksesi osoitteesi — kokeilusaldo tulee voimaan, kun teet niin.",
       "onFile": "Avain on jo tallennettu — jätä tämä tyhjäksi säilyttääksesi sen.",
       "offlineHardware": "Sokuji toimii hyvin näytönohjaimella, jossa on riittävästi muistia; pelkällä suorittimella se on selvästi hitaampi.",
-      "openaiOneKey": "Tämä yksi avain käy OpenAI Realtimelle, Translatelle ja Livelle."
+      "openaiOneKey": "Tämä yksi avain käy OpenAI Realtimelle, Translatelle ja Livelle.",
+      "baseUrl": "Osoite",
+      "baseUrlPlaceholder": "Osoite, esimerkiksi https://openrouter.ai/api/v1",
+      "apiKeyOptional": "API-avain (valinnainen)"
     },
     "summary": {
       "scenario": "Skenaario",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Organisaation {{organization}} tili on keskeytetty. Ota yhteyttä sen omistajaan tai käytä omaa saldoasi.",
     "org_wallet_frozen_unnamed": "Organisaation tili on keskeytetty. Ota yhteyttä sen omistajaan tai käytä omaa saldoasi.",
     "org_wallet_frozen_owner": "Organisaation {{organization}} tili on keskeytetty. Ota yhteyttä Sokujin tukeen tai käytä omaa saldoasi.",
-    "org_wallet_frozen_owner_unnamed": "Organisaation tili on keskeytetty. Ota yhteyttä Sokujin tukeen tai käytä omaa saldoasi."
+    "org_wallet_frozen_owner_unnamed": "Organisaation tili on keskeytetty. Ota yhteyttä Sokujin tukeen tai käytä omaa saldoasi.",
+    "model_missing": "Palvelu ei tarjoa tätä mallia: {{detail}}",
+    "quota": "Palvelun tilillä ei ole enää saldoa: {{detail}}",
+    "text_model_unset": "Valitse käännökselle malli tai kirjoita sen nimi kohdassa ”Kielet ja kokoonpano”.",
+    "address_missing": "Syötä yhteensopivan palvelun osoite kohdassa ”Tilit ja avaimet” ennen aloittamista.",
+    "address_invalid": "Yhteensopivan palvelun osoitetta ei voi käyttää: {{detail}}"
   },
   "viewer": {
     "title": "Sokuji-tekstitys",
@@ -1837,7 +1857,8 @@
         "stateSaved": "Avain tallennettu",
         "belongsTo": "Kuuluu alueeseen {{region}}",
         "switched": "Vaihdettiin alueeseen {{region}}: avain toimii vain siellä."
-      }
+      },
+      "findModels": "Hae malleja"
     },
     "lineup": {
       "title": "Kokoonpano",
@@ -1869,7 +1890,9 @@
         "notUsed": "Ei käytössä tällä kertaa",
         "languageNotSpoken": "Kieltä ei tueta",
         "cannotCombine": "Ei voi yhdistää",
-        "notAvailable": "Ei käytettävissä täällä"
+        "notAvailable": "Ei käytettävissä täällä",
+        "needsAddress": "Tarvitsee osoitteen",
+        "notReady": "Ei valmis"
       },
       "speechModeHint": "Milloin puheen pätkä lähtee käännettäväksi; kiinteä istunnon aikana",
       "hint": "Mikä palvelu hoitaa kunkin vaiheen",
@@ -1985,6 +2008,18 @@
       "others": "OpenAI Translatessa, OpenAI Livessa ja Palabrassa ei ole kenttää sanalistalle; ne eivät saa mitään.",
       "byModel": "Mallin mukaan",
       "byModelNote": "Mallin mukaan: OpenAI ottaa taustan vain vanhemmilla litterointimalleillaan; Gemini Live ottaa termit vain mallilla gemini-3.8-live; tämä laite lukee luettelon vain suurten kielimallien kääntäjillään."
+    },
+    "textModel": {
+      "automatic": "Automaattinen",
+      "automaticModel": "Automaattinen ({{model}})",
+      "chooseModel": "Valitse malli",
+      "modelName": "Tai kirjoita mallin nimi",
+      "off": "Pois",
+      "lowest": "Pienin",
+      "reasoningTooltip": "”Pienin” pyytää vähimmän päättelyn, jonka malli hyväksyy, mikä on nopeinta. Muu valinta lähetetään täsmälleen sellaisenaan: jos malli hylkää sen, kokoonpano kertoo sen ennen aloittamista.",
+      "reasoningValue": "Tai kirjoita arvo, joka lähetetään sellaisenaan",
+      "listing": "Haetaan malleja…",
+      "listEmpty": "Tämä palvelu ei luettele malleja: kirjoita mallin nimi."
     }
   },
   "history": {

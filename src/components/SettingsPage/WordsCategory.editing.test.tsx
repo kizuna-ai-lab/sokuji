@@ -141,10 +141,12 @@ describe('bulk paste and replacement translations', () => {
 describe('which columns each provider uses', () => {
   const NAMES: Record<string, string> = {
     soniox: 'Soniox', openai: 'OpenAI Realtime', qwen_livetranslate: 'Qwen LiveTranslate', volcengine_ast2: 'Doubao AST 2.0', gemini: 'Gemini Live', local_inference: 'This device',
+    // The three text models share one row, named by each of them.
+    text_model: 'OpenAI text model, Gemini text model, OpenAI-compatible service',
   };
   const cells = (name: string) => Array.from(screen.getByRole('rowheader', { name }).closest('tr')!.querySelectorAll('td')).map((td) => td.textContent);
 
-  it('lists the six word-list services, each once', () => {
+  it('lists the seven word-list services, each once', () => {
     render(<WordsCategory locked={false} />);
     expect(Object.keys(WORD_LIMITS).sort()).toEqual(Object.keys(NAMES).sort());
     for (const name of Object.values(NAMES)) expect(screen.getAllByRole('rowheader', { name })).toHaveLength(1);

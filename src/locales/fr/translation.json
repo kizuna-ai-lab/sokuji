@@ -612,6 +612,18 @@
     "edge": {
       "name": "Edge",
       "note": "Gratuit · en ligne, un service Microsoft"
+    },
+    "openai_text": {
+      "name": "Modèle de texte OpenAI",
+      "description": "Traduit toute paire de langues avec votre clé OpenAI"
+    },
+    "gemini_text": {
+      "name": "Modèle de texte Gemini",
+      "description": "Traduit toute paire de langues avec votre clé Gemini"
+    },
+    "openai_compatible": {
+      "name": "Service compatible OpenAI",
+      "description": "OpenRouter, DeepSeek, Ollama et d'autres, à l'adresse que vous saisissez"
     }
   },
   "logsPanel": {
@@ -1431,7 +1443,10 @@
       "verifyEmail": "Connecté. Ouvrez le lien que nous vous avons envoyé par e-mail pour vérifier votre adresse — le crédit d'essai est accordé dès que c'est fait.",
       "onFile": "Une clé est déjà enregistrée — laissez ce champ vide pour la conserver.",
       "offlineHardware": "Sokuji tourne bien avec un GPU et assez de VRAM ; sur CPU seul, il est nettement plus lent.",
-      "openaiOneKey": "Cette seule clé sert à OpenAI Realtime, Translate et Live."
+      "openaiOneKey": "Cette seule clé sert à OpenAI Realtime, Translate et Live.",
+      "baseUrl": "Adresse",
+      "baseUrlPlaceholder": "Adresse, par exemple https://openrouter.ai/api/v1",
+      "apiKeyOptional": "Clé API (facultative)"
     },
     "summary": {
       "scenario": "Scénario",
@@ -1590,7 +1605,12 @@
     "org_wallet_frozen": "Le compte de {{organization}} est suspendu. Contactez son propriétaire ou utilisez votre propre solde.",
     "org_wallet_frozen_unnamed": "Le compte de l'organisation est suspendu. Contactez son propriétaire ou utilisez votre propre solde.",
     "org_wallet_frozen_owner": "Le compte de {{organization}} est suspendu. Contactez l'assistance Sokuji ou utilisez votre propre solde.",
-    "org_wallet_frozen_owner_unnamed": "Le compte de l'organisation est suspendu. Contactez l'assistance Sokuji ou utilisez votre propre solde."
+    "org_wallet_frozen_owner_unnamed": "Le compte de l'organisation est suspendu. Contactez l'assistance Sokuji ou utilisez votre propre solde.",
+    "model_missing": "Le service ne propose pas ce modèle : {{detail}}",
+    "quota": "Le compte du service n'a plus de crédit : {{detail}}",
+    "text_model_unset": "Choisissez un modèle pour la traduction, ou saisissez son nom, dans « Langues et composition ».",
+    "address_missing": "Saisissez l'adresse du service compatible dans « Comptes et clés » avant de démarrer.",
+    "address_invalid": "L'adresse du service compatible est inutilisable : {{detail}}"
   },
   "viewer": {
     "title": "Sous-titres Sokuji",
@@ -1837,7 +1857,8 @@
         "stateSaved": "Clé enregistrée",
         "belongsTo": "Appartient à {{region}}",
         "switched": "Passé à {{region}} : cette clé ne fonctionne que là."
-      }
+      },
+      "findModels": "Trouver les modèles"
     },
     "lineup": {
       "title": "Composition",
@@ -1869,7 +1890,9 @@
         "notUsed": "Pas utilisé cette fois",
         "languageNotSpoken": "Langue non prise en charge",
         "cannotCombine": "Combinaison impossible",
-        "notAvailable": "Indisponible ici"
+        "notAvailable": "Indisponible ici",
+        "needsAddress": "Adresse requise",
+        "notReady": "Pas prêt"
       },
       "speechModeHint": "Quand un passage de parole part en traduction ; fixe pendant une session",
       "hint": "Quel service assure chaque étape",
@@ -1985,6 +2008,18 @@
       "others": "OpenAI Translate, OpenAI Live et Palabra n’ont pas de champ pour une liste de mots ; ils n’en reçoivent aucune.",
       "byModel": "Selon le modèle",
       "byModelNote": "Selon le modèle : OpenAI ne prend le contexte qu’avec ses anciens modèles de transcription ; Gemini Live ne prend les termes qu’avec gemini-3.8-live ; cet appareil ne lit la liste qu’avec ses traducteurs à grand modèle de langage."
+    },
+    "textModel": {
+      "automatic": "Automatique",
+      "automaticModel": "Automatique ({{model}})",
+      "chooseModel": "Choisir un modèle",
+      "modelName": "Ou saisissez le nom d'un modèle",
+      "off": "Désactivé",
+      "lowest": "Le plus bas",
+      "reasoningTooltip": "« Le plus bas » demande le moins de raisonnement que le modèle accepte, ce qui est le plus rapide. Tout autre choix est envoyé tel quel : si le modèle le refuse, la composition le signale avant le démarrage.",
+      "reasoningValue": "Ou saisissez une valeur, envoyée telle quelle",
+      "listing": "Recherche des modèles…",
+      "listEmpty": "Ce service ne liste aucun modèle : saisissez le nom du modèle."
     }
   },
   "history": {

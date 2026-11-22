@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { allStagesBy, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, severalHosts, soleHost, stageIdsFor } from './catalog';
+import { allStagesBy, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, soleHost, stageIdsFor } from './catalog';
 import { oldRunOf } from './oldRules.testing';
 import type { LineUp, RunStage } from './types';
 
@@ -16,6 +16,35 @@ describe('the line-up catalog', () => {
 
   it('covers every released provider, plus Bing and Edge', () => {
     expect(new Set(CAPS.map((c) => c.id))).toEqual(new Set([...RELEASED.map((p) => p.id), 'bing', 'edge']));
+  });
+
+  it('a text model translates alone, on a key, for any voice that stands alone: its host is itself, and nothing goes with it', () => {
+    for (const id of ['openai_text', 'gemini_text', 'openai_compatible']) {
+      expect(caps(id), id).toEqual({ id, stages: ['translation'], host: id, account: 'key', voiceAlone: false, takesVoice: true });
+      expect(goesWith(caps(id)!, 'translation'), id).toEqual(['translation']);
+      expect(carriedTogether(caps(id)!), id).toBeUndefined();
+    }
+  });
+
+  it('a host that serves only some stages runs the others as this device does by default: its recognition and Edge', () => {
+    for (const id of ['openai_text', 'gemini_text', 'openai_compatible']) expect(hostDefaults(id), id).toEqual({ transcription: 'local_inference', translation: id, speech: 'edge' });
+    // Under a catalog of one-stage hosts, each keeps its own stage and takes this device's for the rest.
+    const oneStage = [
+      ...CAPS,
+      { id: 'only_voice', stages: ['speech' as const], host: 'only_voice', account: 'none' as const, voiceAlone: true, takesVoice: false },
+      { id: 'only_ears', stages: ['transcription' as const], host: 'only_ears', account: 'none' as const, voiceAlone: false, takesVoice: true },
+    ];
+    expect(hostDefaults('only_voice', oneStage)).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'only_voice' });
+    expect(hostDefaults('only_ears', oneStage)).toEqual({ transcription: 'only_ears', translation: 'bing', speech: 'edge' });
+    // A host the catalog does not know is as before: itself on every stage.
+    expect(hostDefaults('gone')).toEqual(allStagesBy('gone'));
+  });
+
+  it('a stored selection may run only a provider that serves every stage by itself, or one the catalog does not know', () => {
+    for (const c of CAPS) if (c.host === c.id) expect(runsByItself(c.id), c.id).toBe(c.stages.length === 3);
+    expect(runsByItself('openai_compatible')).toBe(false);
+    expect(runsByItself('soniox')).toBe(true);
+    expect(runsByItself('fake')).toBe(true);
   });
 });
 
@@ -83,8 +112,12 @@ describe('the sole host of a line-up', () => {
     expect(soleHost(L('openai_live', 'openai_live', 'local_inference'))).toBeNull();
   });
 
-  it("runs every host's defaults on that host", () => {
-    for (const host of new Set(CAPS.map((c) => c.host))) expect(soleHost(hostDefaults(host))).toBe(host);
+  it("runs every host's defaults on that host, where the host serves every stage; a host of one stage runs its stage beside this device", () => {
+    for (const host of new Set(CAPS.map((c) => c.host))) {
+      const whole = CAPS.filter((c) => c.host === host).some((c) => c.stages.length === 3);
+      expect(soleHost(hostDefaults(host)), host).toBe(whole ? host : null);
+      if (!whole) expect(severalHosts(hostDefaults(host) as Record<RunStage, string>), host).toBe(true);
+    }
   });
 
   it('equals the old run rule for every triple of ids in the catalog, and an unset stage', () => {

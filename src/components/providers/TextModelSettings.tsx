@@ -1,0 +1,123 @@
+// src/components/providers/TextModelSettings.tsx
+//
+// A text-model provider's options on the line-up's Translation card (owner, 2026-11-22): the model, chosen from the
+// service's own list of text models ("Automatic" is the service's preferred one) or typed by name, which wins when
+// filled; and the reasoning, Off, Lowest, Low, Medium or High, or a value typed by hand, sent as it is. A service
+// that lists no model (a compatible one may not) shows only the name. Every one of these is the provider's own
+// setting, per stage (`translationModel`, `translationReasoning`); its readiness check tries what is chosen.
+import { useEffect, useState, type ComponentType } from 'react';
+import { CircleHelp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import Tooltip from '../Tooltip/Tooltip';
+import { TL } from '../../lib/lineup/types';
+import type { SettingsProps } from '../../lib/provider/types';
+import { automaticModel, REASONING_LEVELS, type ModelChoice, type ReasoningChoice, type ReasoningLevel } from '../../lib/textModel/choice';
+import type { TextModelService } from '../../lib/textModel/client';
+import { failureNoticeCode } from '../../lib/textModel/check';
+import { textModelList, type ModelListResult } from '../../lib/textModel/modelList';
+import type { TextModelSettings } from '../../lib/textModel/unit';
+import { noticeText } from '../../lib/view/noticeText';
+import { TextField } from './fields/TextField';
+import { StagePart } from './stageParts';
+
+/** The level's words: three the reasoning select of OpenAI Realtime already has, two of their own. */
+const LEVEL_WORDS: Readonly<Record<ReasoningLevel, { key: string; fallback: string }>> = {
+  off: { key: 'settingsPage.textModel.off', fallback: 'Off' },
+  lowest: { key: 'settingsPage.textModel.lowest', fallback: 'Lowest' },
+  low: { key: 'settings.low', fallback: 'Low' },
+  medium: { key: 'settings.medium', fallback: 'Medium' },
+  high: { key: 'settings.high', fallback: 'High' },
+};
+
+/**
+ * The service's text models, from the page's list (asked once per key and address), or from the provider's last
+ * ready check while the list is on its way. 'none': there is nothing to ask with (no key, no address); 'loading': asked.
+ */
+function useModelList(service: TextModelService, credentials: Readonly<Record<string, string>> | undefined, checked: readonly string[]): ModelListResult | 'none' | 'loading' {
+  const baseUrl = service === 'compatible' ? credentials?.baseUrl ?? '' : undefined;
+  const apiKey = credentials?.apiKey ?? '';
+  const [answer, setAnswer] = useState<{ key: string; result: ModelListResult } | undefined>(undefined);
+  const key = JSON.stringify([service, baseUrl, apiKey]);
+  // Nothing to ask with: no key for a service that needs one, or no address for a compatible one.
+  const askable = service === 'compatible' ? (baseUrl ?? '').trim() !== '' : apiKey.trim() !== '';
+  useEffect(() => {
+    if (!askable) return;
+    let live = true;
+    void textModelList({ service, ...(baseUrl === undefined ? {} : { baseUrl }), apiKey }).then((result) => {
+      if (live) setAnswer({ key, result });
+    }, () => {});
+    return () => { live = false; };
+  }, [askable, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!askable) return 'none';
+  if (answer?.key === key) return answer.result;
+  return checked.length > 0 ? { ok: true, ids: [...checked] } : 'loading';
+}
+
+export interface TextModelSettingsViewProps extends SettingsProps<TextModelSettings> {
+  service: TextModelService;
+}
+
+/** The Translation card's options of a text-model provider. */
+export function TextModelSettingsView({ service, settings, update, disabled = false, models = [], account }: TextModelSettingsViewProps) {
+  const { t } = useTranslation();
+  const list = useModelList(service, account?.credentials, models.map((m) => m.id));
+  const ids = typeof list === 'object' && list.ok ? list.ids : [];
+  const model: ModelChoice = settings.translationModel;
+  const reasoning: ReasoningChoice = settings.translationReasoning;
+  const automatic = automaticModel(service, ids);
+  const setModel = (patch: Partial<ModelChoice>) => update({ translationModel: { ...model, ...patch } });
+  const setReasoning = (patch: Partial<ReasoningChoice>) => update({ translationReasoning: { ...reasoning, ...patch } });
+  // A model chosen before that this list does not hold stays shown, chosen: the check says whether it still works.
+  const listed = model.listed !== '' && !ids.includes(model.listed) ? [model.listed, ...ids] : ids;
+  const typedModel = model.typed.trim() !== '';
+  const typedReasoning = reasoning.typed.trim() !== '';
+  // A compatible service that lists nothing has nothing to choose from: only the name.
+  const noList = typeof list === 'object' && list.ok && ids.length === 0;
+  const idPrefix = `text-model-${service}`;
+  return (
+    <StagePart stages={TL}>
+      <div className="settings-section text-model-settings">
+        {!noList && (
+          <div className="setting-item">
+            <div className="setting-label"><span>{t('settings.model', 'Model')}</span></div>
+            <select className="select-dropdown" aria-label={t('settings.model', 'Model')} value={model.listed} disabled={disabled || typedModel}
+              onChange={(e) => setModel({ listed: e.target.value })}>
+              {service === 'compatible'
+                ? <option value="">{t('settingsPage.textModel.chooseModel', 'Choose a model')}</option>
+                : <option value="">{automatic ? t('settingsPage.textModel.automaticModel', 'Automatic ({{model}})', { model: automatic }) : t('settingsPage.textModel.automatic', 'Automatic')}</option>}
+              {listed.map((id) => <option key={id} value={id}>{id}</option>)}
+            </select>
+          </div>
+        )}
+        {list === 'loading' && <div className="models-info">{t('settingsPage.textModel.listing', 'Finding models…')}</div>}
+        {typeof list === 'object' && !list.ok && (
+          <div className="models-info">{noticeText(t, { code: failureNoticeCode(list.failure.code), message: list.failure.message })}</div>
+        )}
+        {noList && <div className="models-info">{t('settingsPage.textModel.listEmpty', "This service lists no models: type the model's name.")}</div>}
+        <TextField id={`${idPrefix}-model-name`} label={t('settingsPage.textModel.modelName', 'Or type a model name')} value={model.typed}
+          onChange={(typed) => setModel({ typed })} disabled={disabled} />
+        <div className="setting-item">
+          <div className="setting-label">
+            <span>{t('settings.reasoningEffort', 'Reasoning effort')}</span>
+            <Tooltip content={t('settingsPage.textModel.reasoningTooltip', 'Lowest asks for the least reasoning the model takes, which is fastest. Any other choice is sent exactly as it is; if the model refuses it, the line-up says so before you start.')} position="top">
+              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+            </Tooltip>
+          </div>
+          <select className="select-dropdown" aria-label={t('settings.reasoningEffort', 'Reasoning effort')} value={reasoning.level} disabled={disabled || typedReasoning}
+            onChange={(e) => setReasoning({ level: e.target.value as ReasoningLevel })}>
+            {REASONING_LEVELS.map((level) => <option key={level} value={level}>{t(LEVEL_WORDS[level].key, LEVEL_WORDS[level].fallback)}</option>)}
+          </select>
+        </div>
+        <TextField id={`${idPrefix}-reasoning-value`} label={t('settingsPage.textModel.reasoningValue', 'Or type a value, sent as it is')} value={reasoning.typed}
+          onChange={(typed) => setReasoning({ typed })} disabled={disabled} />
+      </div>
+    </StagePart>
+  );
+}
+
+/** A provider's `Settings`: the view, told which service it is. */
+export function textModelSettingsView(service: TextModelService): ComponentType<SettingsProps<TextModelSettings>> {
+  const View = (props: SettingsProps<TextModelSettings>) => <TextModelSettingsView service={service} {...props} />;
+  View.displayName = `TextModelSettings(${service})`;
+  return View;
+}
