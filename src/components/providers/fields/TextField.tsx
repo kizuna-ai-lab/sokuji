@@ -12,7 +12,7 @@ export interface TextFieldProps {
   disabled?: boolean;
   /** A page to manage what the field names (Doubao's console libraries), opened outside the app. */
   link?: { href: string; label: string };
-  /** A line of small text under the input: what the value does. */
+  /** A line of small text under the input: what the value does. It is the input's description to a screen reader. */
   note?: string;
 }
 
@@ -24,6 +24,7 @@ export interface TextFieldProps {
  * `LinesField` is its multi-line sibling.
  */
 export function TextField({ id, label, tooltip, value, onChange, disabled = false, link, note }: TextFieldProps) {
+  const noteId = `${id}-note`;
   return (
     <div className="setting-item">
       <div className="setting-label">
@@ -51,8 +52,9 @@ export function TextField({ id, label, tooltip, value, onChange, disabled = fals
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
         placeholder=""
+        {...(note !== undefined ? { 'aria-describedby': noteId } : {})}
       />
-      {note !== undefined && <p className="setting-description">{note}</p>}
+      {note !== undefined && <p id={noteId} className="setting-description">{note}</p>}
     </div>
   );
 }
