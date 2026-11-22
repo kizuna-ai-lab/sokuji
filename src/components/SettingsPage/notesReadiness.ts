@@ -72,7 +72,9 @@ export const useNotesAnswers = create<NotesAnswers>()((set) => ({
 }));
 
 /** Whether an answer stands for its inputs, or is asked again: one that could not find out is asked again. */
-const settled = (r: Readiness) => r.state === 'ready' || (r.state === 'not-ready' && r.code !== undefined && r.code !== 'network');
+/** Codes that are no lasting answer: the service out of reach, or busy for now. Shown again, the card asks again. */
+const PASSING = new Set(['network', 'rate_limit', 'server']);
+const settled = (r: Readiness) => r.state === 'ready' || (r.state === 'not-ready' && r.code !== undefined && !PASSING.has(r.code));
 
 /**
  * The notes' readiness of `provider` (the line-up's notes service's, with the user's own key), asked as the card is

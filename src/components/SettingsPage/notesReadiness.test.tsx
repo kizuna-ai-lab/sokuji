@@ -68,6 +68,17 @@ describe("the Notes card's readiness", () => {
     again.unmount();
     render(<Shown p={offline.p} />);
     await waitFor(() => expect(offline.check).toHaveBeenCalledTimes(2));
+    // A service busy for now (429, 5xx) is no lasting answer either: shown again, the card asks again.
+    for (const code of ['rate_limit', 'server']) {
+      cleanup();
+      useNotesAnswers.getState().reset();
+      const busy = provider(() => ({ ok: false, code, reason: 'try later' }));
+      const once = render(<Shown p={busy.p} />);
+      await waitFor(() => expect(state()).toBe(`not-ready:${code}`));
+      once.unmount();
+      render(<Shown p={busy.p} />);
+      await waitFor(() => expect(busy.check).toHaveBeenCalledTimes(2));
+    }
   });
 
   it("asks again after a pause once the notes' model or reasoning changes", async () => {
