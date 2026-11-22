@@ -173,11 +173,12 @@ describe('readShapeFromStores', () => {
 // A stored line-up is what runs, and names the run's stages; one that is only shown names nothing about the run.
 describe('readShapeFromStores — the line-up id that serves each stage', () => {
   const localEntry = { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } };
+  const entryOf = (id: string) => ({ settings: presentProviders().find((p) => p.id === id)!.settings.defaults, credentials: {}, pair: { source: 'en', target: 'ja' } });
   const bingAndEdge = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
   afterEach(() => { useLineUpStore.setState({ lineUp: null, stored: false }); });
 
-  it("freezes the stored line-up's ids: a local run with Bing and Edge", () => {
-    useProviderStore.setState({ entries: { local_inference: localEntry } });
+  it("freezes the stored line-up's ids: this device with Bing and Edge, three providers", () => {
+    useProviderStore.setState({ entries: { local_inference: localEntry, bing: entryOf('bing'), edge: entryOf('edge') } });
     useLineUpStore.setState({ lineUp: bingAndEdge, stored: true });
     expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
     expect(readShapeFromStores(auth)!.lineUpStored).toBe(true);
@@ -194,24 +195,24 @@ describe('readShapeFromStores — the line-up id that serves each stage', () => 
 
   it('freezes the stored line-up, not the provider that ran before it was stored', () => {
     runsOn('fake');
-    useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } }, local_inference: localEntry } });
+    useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } }, local_inference: localEntry, bing: entryOf('bing'), edge: entryOf('edge') } });
     useLineUpStore.setState({ lineUp: bingAndEdge, stored: true });
     const shape = readShapeFromStores(auth)!;
     expect(shape.lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
     expect(shape.lineUpStored).toBe(true);
-    expect(providersIn(shape.plan).map((p) => p.id)).toEqual(['local_inference']);
-    expect(Object.keys(shape.accounts)).toEqual(['local_inference']);
+    expect(providersIn(shape.plan).map((p) => p.id)).toEqual(['local_inference', 'bing', 'edge']);
+    expect(Object.keys(shape.accounts)).toEqual(['local_inference', 'bing', 'edge']);
   });
 
   it("freezes a stored line-up of two providers: both units, both accounts, the line-up's ids", () => {
     const sonioxEntry = { settings: SONIOX_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } };
-    useProviderStore.setState({ entries: { soniox: sonioxEntry, local_inference: localEntry } });
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, edge: entryOf('edge') } });
     useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true, unstoredProvider: null });
     const shape = readShapeFromStores(auth)!;
-    expect(shape.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['local_inference', ['speech']]]);
+    expect(shape.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['edge', ['speech']]]);
     expect(shape.accounts).toEqual({
       soniox: { settings: SONIOX_DEFAULTS, credentials: { apiKey: 'k' } },
-      local_inference: { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {} },
+      edge: { settings: presentProviders().find((p) => p.id === 'edge')!.settings.defaults, credentials: {} },
     });
     expect(shape.lineUp).toEqual({ transcription: 'soniox', translation: 'soniox', speech: 'edge' });
     expect(shape.lineUpStored).toBe(true);
@@ -235,6 +236,8 @@ describe('readShapeFromStores — the line-up id that serves each stage', () => 
       kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair },
       gemini: { settings: presentProviders().find((p) => p.id === 'gemini')!.settings.defaults, credentials: { apiKey: 'k' }, pair },
       local_inference: localEntry,
+      bing: { settings: presentProviders().find((p) => p.id === 'bing')!.settings.defaults, credentials: {}, pair },
+      edge: { settings: presentProviders().find((p) => p.id === 'edge')!.settings.defaults, credentials: {}, pair },
     });
     const stored = (transcription: string, speech: string) =>
       useLineUpStore.setState({ lineUp: { transcription, translation: transcription, speech, summarisation: null }, stored: true, unstoredProvider: null });
@@ -584,12 +587,12 @@ describe('speechInputsFromStores and watchSpeechFromStores (Stage 2 Volcengine A
   it("in a plan of two providers, only the one that serves speech speaks: the one it reads is asked its text offer", () => {
     useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true, unstoredProvider: null });
     const pair = { source: 'ja', target: 'en' };
-    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair }, local_inference: { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {}, pair } }, speakers: {} });
+    useProviderStore.setState({ entries: { soniox: { settings: SONIOX_DEFAULTS, credentials: {}, pair }, edge: { settings: presentProviders().find((p) => p.id === 'edge')!.settings.defaults, credentials: {}, pair } }, speakers: {} });
     const unwatch = watchSpeechFromStores();
     const { speakers } = useProviderStore.getState();
-    expect(Object.keys(speakers).sort()).toEqual(['local_inference', 'soniox']);
+    expect(Object.keys(speakers).sort()).toEqual(['edge', 'soniox']);
     expect(speakers.soniox).toEqual({ speech: 'never' });
-    expect(speakers.local_inference.speech).not.toBe('never');
+    expect(speakers.edge.speech).not.toBe('never');
     unwatch();
     useLineUpStore.setState({ lineUp: null, stored: false });
   });

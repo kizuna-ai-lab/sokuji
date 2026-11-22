@@ -171,21 +171,15 @@ describe("the local provider's speech unit", () => {
 
     it('is the same again when the run hands over a line-up that is all on this device, whatever the store holds', () => {
       // The store disagrees with the frozen line-up: the frozen one is read.
-      mockStored = { translation: null, speech: 'local' };
-      const edge = shared({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
-      expect(localSpeechUnit.build(ctx(JA_EN), SETTINGS, edge)).toEqual({ modelId: 'edge-tts', speakerId: 3, speed: 1.25, edgeVoice: 'en-US-AvaNeural' });
-      expect(localSpeechUnit.build(ctx(JA_EN), SETTINGS, edge)).toEqual(whole(ctx(JA_EN), edge));
-      expect(mockStagesSeen.every((s) => s?.translation === 'bing' && s.speech === 'edge')).toBe(true);
-
       mockStored = { translation: 'bing', speech: 'edge' };
       const local = shared({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' } });
       expect(localSpeechUnit.build(ctx(JA_EN), SETTINGS, local)).toEqual({ modelId: 'tts-en', speakerId: 3, speed: 1.25, edgeVoice: 'en-US-AvaNeural' });
       expect(localSpeechUnit.build(ctx(JA_EN), SETTINGS, local)).toEqual(whole(ctx(JA_EN), local));
     });
 
-    it("reads Edge, or the direction's local voice model, from a line-up whose text is another provider's", () => {
+    it("reads the direction's local voice model from a line-up whose text is another provider's: Edge is a provider of its own, whose voice this is not", () => {
       const edge = shared({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } });
-      expect(localSpeechUnit.build(ctx(JA_EN), SETTINGS, edge)).toEqual({ modelId: 'edge-tts', speakerId: 3, speed: 1.25, edgeVoice: 'en-US-AvaNeural' });
+      expect(localSpeechUnit.build(ctx(JA_EN), SETTINGS, edge)).toEqual({ modelId: 'tts-en', speakerId: 3, speed: 1.25, edgeVoice: 'en-US-AvaNeural' });
       const local = shared({ reversed: true, lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'local_inference' } });
       mockStagesSeen = [];
       expect(localSpeechUnit.build(ctx(EN_JA), SETTINGS, local)).toEqual({ modelId: 'tts-ja', speakerId: 5, speed: 1.25, edgeVoice: 'ja-JP-NanamiNeural' });
@@ -561,7 +555,7 @@ describe("the local provider's speech unit", () => {
 
   describe("beside another provider's text unit, started as one leg", () => {
     /** A plan of a stub text unit and this unit, built and started through the composite adapter. */
-    async function composed(lineUp: StageIds) {
+    async function composed(lineUp: StageIds | undefined) {
       const tts = new FakeTts();
       tts.samplesPerSentence = 240;
       tts.chunksPerSentence = 2;
@@ -579,7 +573,9 @@ describe("the local provider's speech unit", () => {
     }
 
     it("a translation of the text unit is read by Edge in the direction's voice, and the models are each unit's own", async () => {
-      const h = await composed({ transcription: 'soniox', translation: 'soniox', speech: 'edge' });
+      // No line-up is handed over (a run with none stored): the store says Edge, the voice this unit still has for that path.
+      mockStored = { translation: null, speech: 'edge' };
+      const h = await composed(undefined);
       expect(describePlan(h.plan, h.configs)).toEqual({ ttsModel: 'edge-tts' });
       // The text unit is asked for no speech; the voice loads beside it.
       expect(h.text.request.context.speech).toBe(false);

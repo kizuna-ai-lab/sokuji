@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { allStagesBy, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, soleHost, stageIdsFor } from './catalog';
+import { allStagesBy, belongsTo, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, soleHost, stageIdsFor } from './catalog';
 import { oldRunOf } from './oldRules.testing';
 import type { LineUp, RunStage } from './types';
 
 describe('the line-up catalog', () => {
-  it('every option names a provider definition as its host', () => {
-    for (const c of CAPS) expect(c.host === c.id || (c.host === 'local_inference' && ['bing', 'edge'].includes(c.id))).toBe(true);
+  it('every option is its own host', () => {
+    for (const c of CAPS) expect([c.id, c.host]).toEqual([c.id, c.id]);
+  });
+
+  it('the free line-up belongs to this device', () => {
+    expect(belongsTo({ transcription: 'local_inference', translation: 'bing', speech: 'edge' }, 'local_inference')).toBe(true);
+    expect(belongsTo({ transcription: 'soniox', translation: 'bing', speech: 'edge' }, 'local_inference')).toBe(false);
+    expect(belongsTo({ transcription: 'soniox', translation: 'soniox', speech: 'soniox' }, 'soniox')).toBe(true);
+    expect(belongsTo({ transcription: 'local_inference', translation: 'bing', speech: 'edge' }, 'soniox')).toBe(false);
+    expect(belongsTo({ transcription: 'local_inference', translation: 'soniox', speech: 'edge' }, 'local_inference')).toBe(false);
   });
 
   it('a host runs Bing and Edge beside the local provider by default, and itself on every stage elsewhere', () => {
@@ -101,7 +109,10 @@ describe('the option a stage names', () => {
 describe('the sole host of a line-up', () => {
   it('runs a line-up whose options share one host on that host', () => {
     expect(soleHost(L('soniox', 'soniox', 'soniox'))).toBe('soniox');
-    expect(soleHost(L('local_inference', 'bing', 'edge'))).toBe('local_inference');
+  });
+
+  it('does not run local, Bing and Edge on one host any more: each is its own', () => {
+    expect(soleHost(L('local_inference', 'bing', 'edge'))).toBeNull();
   });
 
   it('refuses a line-up of several hosts, one with a stage unset, and one that splits a joint group', () => {
@@ -112,9 +123,9 @@ describe('the sole host of a line-up', () => {
     expect(soleHost(L('openai_live', 'openai_live', 'local_inference'))).toBeNull();
   });
 
-  it("runs every host's defaults on that host, where the host serves every stage; a host of one stage runs its stage beside this device", () => {
+  it("runs every host's defaults on that host, where the host serves every stage; a host of one stage, and this device with its Bing and Edge, run on several", () => {
     for (const host of new Set(CAPS.map((c) => c.host))) {
-      const whole = CAPS.filter((c) => c.host === host).some((c) => c.stages.length === 3);
+      const whole = CAPS.filter((c) => c.host === host).some((c) => c.stages.length === 3) && host !== 'local_inference';
       expect(soleHost(hostDefaults(host)), host).toBe(whole ? host : null);
       if (!whole) expect(severalHosts(hostDefaults(host) as Record<RunStage, string>), host).toBe(true);
     }
@@ -131,9 +142,9 @@ describe('the sole host of a line-up', () => {
 });
 
 describe('the ids that served a run', () => {
-  it('are on several hosts only when two services ran: Bing and Edge run on this device, an unknown id is its own host', () => {
+  it('are on several hosts only when two services ran: Bing and Edge are services of their own, an unknown id is its own host', () => {
     expect(severalHosts(allStagesBy('soniox'))).toBe(false);
-    expect(severalHosts({ transcription: 'local_inference', translation: 'bing', speech: 'edge' })).toBe(false);
+    expect(severalHosts({ transcription: 'local_inference', translation: 'bing', speech: 'edge' })).toBe(true);
     expect(severalHosts(allStagesBy('gone'))).toBe(false);
     expect(severalHosts({ transcription: 'soniox', translation: 'soniox', speech: 'edge' })).toBe(true);
     expect(severalHosts({ transcription: 'local_inference', translation: 'bing', speech: 'soniox' })).toBe(true);

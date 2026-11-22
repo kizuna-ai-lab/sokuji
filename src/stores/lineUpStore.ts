@@ -15,7 +15,7 @@
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
-import { caps, hostDefaults, optionFor, runsByItself, soleHost } from '../lib/lineup/catalog';
+import { caps, hostDefaults, optionFor, runsByItself, belongsTo } from '../lib/lineup/catalog';
 import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';
 import type { LineUp, RunStage, StageName } from '../lib/lineup/types';
@@ -185,7 +185,7 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       // user's, to be changed on the line-up page. Version 1 was written after its provider, so a save cut short by
       // a restart (or a provider changed in an older version of the app) leaves an older line-up beside a newer
       // provider: a line-up that provider does not run is worked out again from it, as on the first start.
-      if (value.version === 2 || !provider || soleHost(value.stages) === provider) {
+      if (value.version === 2 || !provider || belongsTo(value.stages, provider)) {
         set({ lineUp: value.stages, stored: true, unstoredProvider: null });
         return;
       }

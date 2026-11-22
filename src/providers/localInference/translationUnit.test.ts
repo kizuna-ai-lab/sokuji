@@ -203,16 +203,20 @@ describe('the config it builds', () => {
     expect(config.instructions).toContain('A product meeting.');
   });
 
-  it('a line-up that gives translation to Bing: Bing, told nothing, whatever model is chosen for the direction', () => {
+  // Bing is a provider of its own now: a line-up that names it never reaches this unit. What still names it is the
+  // store of a run with no line-up stored (the local session picks it as a model), so these read it from there.
+  it('a stored translation by Bing: Bing, told nothing, whatever model is chosen for the direction', () => {
     const words = { entries: [], background: 'A product meeting.' } as unknown as SharedSettings['words'];
-    expect(unit.build(ctx(EN_JA), SETTINGS, shared({ lineUp: WITH_BING, words }))).toEqual(BING);
+    mockStored = { translation: 'bing', speech: null, transcription: null };
+    expect(unit.build(ctx(EN_JA), SETTINGS, shared({ words }))).toEqual(BING);
     // Bing needs nothing resolved.
     expect(mockStagesSeen).toEqual([]);
   });
 
   it('Bing is never swapped for a model: a pair it does not take is refused', () => {
     mockTable = { 'la>en': { translation: 'qwen3-0.6b-translation' } };
-    expect(unit.build(ctx({ source: 'la', target: 'en' }), SETTINGS, shared({ lineUp: WITH_BING }))).toEqual({ refused: 'Bing Translator does not support this language pair.' });
+    mockStored = { translation: 'bing', speech: null, transcription: null };
+    expect(unit.build(ctx({ source: 'la', target: 'en' }), SETTINGS, shared())).toEqual({ refused: 'Bing Translator does not support this language pair.' });
   });
 
   it('a model is never swapped for Bing: with none for the direction, the build is refused as models that are missing', () => {
@@ -603,13 +607,13 @@ describe('a leg of three units: another provider transcribes, this device transl
     );
   }
 
-  function requestFor(p: RunPlan, context: SessionContext, clock: ReturnType<typeof createVirtualClock>, lineUp: StageIds, signal = new AbortController().signal): StartRequest<PlanConfigs, (unit: PlannedUnit) => unknown> {
+  function requestFor(p: RunPlan, context: SessionContext, clock: ReturnType<typeof createVirtualClock>, lineUp: StageIds | null, signal = new AbortController().signal): StartRequest<PlanConfigs, (unit: PlannedUnit) => unknown> {
     const settings = new Map<PlannedUnit, unknown>([[p.byStage.transcription, FAKE_TRANSCRIBER_DEFAULTS], [p.byStage.translation, SETTINGS], [p.byStage.speech, {}]]);
-    const config: PlanConfigs = new Map(p.units.map((u) => [u, u.unit.build({ ...context, speech: context.speech && u.stages.includes('speech') }, settings.get(u), shared({ lineUp }))]));
+    const config: PlanConfigs = new Map(p.units.map((u) => [u, u.unit.build({ ...context, speech: context.speech && u.stages.includes('speech') }, settings.get(u), shared({ lineUp: lineUp ?? undefined }))]));
     return { context, config, credentials: () => ({}), clock, signal };
   }
 
-  async function leg(lineUp: StageIds = { transcription: 'fake_transcriber', translation: 'local_inference', speech: 'fake_voice' }) {
+  async function leg(lineUp: StageIds | null = { transcription: 'fake_transcriber', translation: 'local_inference', speech: 'fake_voice' }) {
     const engine = new FakeTranslation();
     const p = planOver({ 'en>ja': engine });
     const clock = createVirtualClock(0);
@@ -745,9 +749,10 @@ describe('a leg of three units: another provider transcribes, this device transl
     expect(checkConformance(h.rec.log, SPEAKS)).toEqual([]);
   });
 
-  it('with Bing: the bing model is loaded for the direction, told nothing, and its tagged errors are worded', async () => {
-    const h = await leg({ transcription: 'fake_transcriber', translation: 'bing', speech: 'fake_voice' });
-    expect(h.p.byStage.translation.unit.describe(requestFor(h.p, SPEAKS, h.clock, { transcription: 'fake_transcriber', translation: 'bing', speech: 'fake_voice' }).config.get(h.p.byStage.translation))).toEqual({ translationModel: 'bing-translator' });
+  it('with Bing stored: the bing model is loaded for the direction, told nothing, and its tagged errors are worded', async () => {
+    mockStored = { translation: 'bing', speech: null, transcription: null };
+    const h = await leg(null);
+    expect(h.p.byStage.translation.unit.describe(requestFor(h.p, SPEAKS, h.clock, null).config.get(h.p.byStage.translation))).toEqual({ translationModel: 'bing-translator' });
     await flush();
     expect(h.engine.inits).toEqual([{ sourceLang: 'en', targetLang: 'ja', modelId: 'bing-translator' }]);
     h.engine.ready();
@@ -764,13 +769,13 @@ describe('a leg of three units: another provider transcribes, this device transl
     expect(checkConformance(h.rec.log, SPEAKS)).toEqual([]);
   });
 
-  it('with Bing and a pair it does not take: the build refuses, and a start handed such a config refuses too', async () => {
+  it('with Bing stored and a pair it does not take: the build refuses, and a start handed such a config refuses too', async () => {
     const engine = new FakeTranslation();
     const p = planOver({ 'la>en': engine });
     const context: SessionContext = { direction: { source: 'la', target: 'en' }, speech: true, turns: 'auto' };
-    const lineUp: StageIds = { transcription: 'fake_transcriber', translation: 'bing', speech: 'fake_voice' };
+    mockStored = { translation: 'bing', speech: null, transcription: null };
     const clock = createVirtualClock(0);
-    const request = requestFor(p, context, clock, lineUp);
+    const request = requestFor(p, context, clock, null);
     expect(request.config.get(p.byStage.translation)).toEqual({ refused: 'Bing Translator does not support this language pair.' });
     // A caller that went on regardless: the unit's own start refuses, and nothing is loaded or heard.
     (request.config as Map<PlannedUnit, unknown>).set(p.byStage.translation, BING);

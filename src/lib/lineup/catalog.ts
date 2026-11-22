@@ -24,8 +24,8 @@ export const CAPS: readonly ProviderCaps[] = [
   { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', translatesOwn: true, account: 'kizuna', voiceAlone: true, takesVoice: true },
   endToEnd('kizunaai_qwen', 'kizuna'),
   { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: true },
-  { id: 'bing', stages: ['translation'], host: 'local_inference', account: 'none', voiceAlone: false, takesVoice: true },
-  { id: 'edge', stages: ['speech'], host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: false },
+  { id: 'bing', stages: ['translation'], host: 'bing', account: 'none', voiceAlone: false, takesVoice: true },
+  { id: 'edge', stages: ['speech'], host: 'edge', account: 'none', voiceAlone: true, takesVoice: false },
   { id: 'soniox', stages: ALL, host: 'soniox', translatesOwn: true, account: 'key', voiceAlone: true, takesVoice: true },
   endToEnd('gemini', 'key'),
   endToEnd('volcengine_ast2', 'key'),
@@ -116,11 +116,24 @@ export function soleHost(lineUp: Pick<LineUp, RunStage>): string | null {
 }
 
 /**
- * Whether more than one host serves these stages: a run on two services. Bing and Edge run on this device's
- * provider, so a run on it with them is on one host; an id the catalog does not know is a host of its own.
+ * Whether more than one host serves these stages: a run on two services. Every option is a host of its own, so
+ * this device with Bing and Edge is a run on three; an id the catalog does not know is a host of its own.
  */
 export function severalHosts(stages: StageIds): boolean {
   return new Set(RUN_STAGES.map((stage) => caps(stages[stage])?.host ?? stages[stage])).size > 1;
+}
+
+/**
+ * Whether a provider's own line-up runs these stages: each names an option that serves it, and the host of every
+ * one is a host of `hostDefaults(provider)`. For this device that is itself with Bing and Edge (its free
+ * line-up); for another provider, the provider alone.
+ */
+export function belongsTo(stages: Pick<LineUp, RunStage>, provider: string): boolean {
+  const hosts = new Set<string>(provider === 'local_inference' ? RUN_STAGES.map((stage) => caps(hostDefaults(provider)[stage]!)?.host ?? provider) : [provider]);
+  return RUN_STAGES.every((stage) => {
+    const option = optionFor(stages, stage);
+    return option !== undefined && hosts.has(option.host);
+  });
 }
 
 /** One provider's id on every run stage. */

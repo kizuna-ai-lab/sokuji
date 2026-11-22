@@ -74,7 +74,7 @@ describe("a record's export", () => {
       ...record, id: 'run-1', mode: 'speaker', transcripts: [live],
       services: { provider: 'local_inference', models: { asrModel: 'a', translationModel: 't' } },
     } as unknown as HistoryRecord;
-    const named = { ...without, services: { ...without.services, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } } };
+    const named = { ...without, services: { ...without.services, stages: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' } } };
     const { createObjectURL, revokeObjectURL } = URL;
     vi.spyOn(Date, 'now').mockReturnValue(START + 120_000);
     let made: Blob | null = null;
@@ -99,6 +99,11 @@ describe("a record's export", () => {
       expect(before).toHaveLength(2);
       expect(before[0]).toContain('Provider: local_inference');
       expect(await files(named)).toEqual(before);
+      // This device with Bing and Edge is a session on three services: its file says who served each stage.
+      const free = { ...without, services: { ...without.services, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } } } as unknown as HistoryRecord;
+      const [freeText, freeJson] = await files(free);
+      expect(freeText).toContain('Provider: transcription=local_inference, translation=bing, speech=edge\n');
+      expect(JSON.parse(freeJson)).toMatchObject({ provider: 'local_inference', stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
       // A record of a session on two services: its file says who served each stage; the provider stays the one
       // that transcribed.
       const mixed = { ...without, services: { ...without.services, provider: 'soniox', stages: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } } } as unknown as HistoryRecord;

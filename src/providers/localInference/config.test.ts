@@ -54,7 +54,7 @@ vi.mock('../../lib/local-inference/modelManifest', () => ({
   },
 }));
 
-let mockStages: { translation: 'bing' | 'local'; speech: 'edge' | 'local' } | null = null;
+let mockStages: { translation: 'bing' | 'local' | null; speech: 'edge' | 'local' | null; transcription?: 'local' | null } | null = null;
 vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => mockStages }));
 import { buildLocalInference, describeLocalInference, admitLocalInference, type LocalInferenceConfig } from './config';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from './settings';
@@ -353,10 +353,11 @@ describe('the stored line-up', () => {
 
 describe("the line-up a run froze at its start", () => {
   const stagesSeen = () => mockResolve.mock.calls.map((call) => (call as unknown[])[3]);
-  const lineUps: Array<[NonNullable<SharedSettings['lineUp']>, { translation: 'bing' | 'local'; speech: 'edge' | 'local' }]> = [
-    [{ transcription: 'local_inference', translation: 'bing', speech: 'edge' }, { translation: 'bing', speech: 'edge' }],
-    [{ transcription: 'local_inference', translation: 'bing', speech: 'local_inference' }, { translation: 'bing', speech: 'local' }],
-    [{ transcription: 'local_inference', translation: 'local_inference', speech: 'edge' }, { translation: 'local', speech: 'edge' }],
+  // Bing and Edge are providers of their own: a stage the line-up gives them is not this provider's (null).
+  const lineUps: Array<[NonNullable<SharedSettings['lineUp']>, { translation: 'local' | null; speech: 'local' | null; transcription?: 'local' }]> = [
+    [{ transcription: 'local_inference', translation: 'bing', speech: 'edge' }, { translation: null, speech: null, transcription: 'local' }],
+    [{ transcription: 'local_inference', translation: 'bing', speech: 'local_inference' }, { translation: null, speech: 'local', transcription: 'local' }],
+    [{ transcription: 'local_inference', translation: 'local_inference', speech: 'edge' }, { translation: 'local', speech: null }],
     [{ transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' }, { translation: 'local', speech: 'local' }],
   ];
 
@@ -365,7 +366,7 @@ describe("the line-up a run froze at its start", () => {
 
   it.each(lineUps)('is read in place of the store: %j resolves with %j, whatever the store holds now', (lineUp, stages) => {
     // The store moved after the start: the frozen line-up decides.
-    mockStages = { translation: stages.translation === 'bing' ? 'local' : 'bing', speech: stages.speech === 'edge' ? 'local' : 'edge' };
+    mockStages = { translation: stages.translation === 'local' ? 'bing' : 'local', speech: stages.speech === 'local' ? 'edge' : 'local' };
     resolved({ 'ja>en': { asr: 'a', translation: 't', tts: 'v' } });
     buildLocalInference(ctx({ source: 'ja', target: 'en' }, { speech: true }), settings(), shared({ lineUp }));
     expect(stagesSeen()).toEqual([stages]);
@@ -395,8 +396,8 @@ describe("the line-up a run froze at its start", () => {
 
   it("a line-up whose text is another provider's answers for the stage this provider serves, and one that gives it no stage says nothing", () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
-    buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge' } }));
-    expect(stagesSeen()).toEqual([{ translation: null, speech: 'edge' }]);
+    buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'local_inference' } }));
+    expect(stagesSeen()).toEqual([{ translation: null, speech: 'local' }]);
     mockResolve.mockClear();
     buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox' } }));
     expect(stagesSeen()).toEqual([null]);

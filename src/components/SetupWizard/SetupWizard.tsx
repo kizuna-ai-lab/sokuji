@@ -22,7 +22,7 @@ import type { SetupDraft } from './setupDraft';
 import { useApplySetup } from './useApplySetup';
 import { lineUpOf, offersRecord, pathOf, providerFits } from './providerPaths';
 import { useLineUpStore } from '../../stores/lineUpStore';
-import { soleHost } from '../../lib/lineup/catalog';
+import { belongsTo, optionFor } from '../../lib/lineup/catalog';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import type { ProviderType } from '../../types/Provider';
 import StepLanguage from './steps/StepLanguage';
@@ -55,7 +55,8 @@ function stagesOf(provider: string): { transcription: string; translation: strin
 function lineUpInUse(scenario: ScenarioId | null): { provider: string; providerPath: ProviderPath } | 'not-offered' | null {
   const { lineUp, stored } = useLineUpStore.getState();
   if (!stored || !lineUp) return null;
-  const provider = soleHost(lineUp);
+  const host = optionFor(lineUp, 'transcription')?.host ?? null;
+  const provider = host !== null && belongsTo(lineUp, host) ? host : null;
   const providerPath = provider !== null ? pathOf(provider) : null;
   if (provider === null || !providerPath) return 'not-offered';
   if (scenario && !providerFits(provider as ProviderType, scenario)) return 'not-offered';

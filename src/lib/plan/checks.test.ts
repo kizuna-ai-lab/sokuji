@@ -16,7 +16,7 @@ describe('the catalog says which voices stand alone and which text sides take an
   it("a voice alone: Kizuna AI's Soniox, Soniox with an own key, Edge and this device", () => {
     expect(CAPS.filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'soniox']);
   });
-  it("another voice is taken by Kizuna AI's Soniox, Soniox and this device (Bing runs on this device)", () => {
+  it("another voice is taken by Kizuna AI's Soniox, Soniox and this device (Bing and Edge are providers of their own and take none)", () => {
     expect(CAPS.filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'local_inference', 'soniox']);
   });
 });
@@ -25,7 +25,7 @@ describe('a voice beside another host\'s text', () => {
   it.each([
     ['all on one provider', 'soniox', 'soniox', null],
     ['an end-to-end provider alone', 'gemini', 'gemini', null],
-    ['this device with Edge: one host', 'local_inference', 'edge', null],
+    ['this device with Edge: Edge stands alone, this device takes another voice', 'local_inference', 'edge', null],
     ["Edge reads Kizuna AI's Soniox", 'kizunaai_soniox', 'edge', null],
     ['a local voice reads Soniox', 'soniox', 'local_inference', null],
     ["Soniox's voice reads this device's text", 'local_inference', 'soniox', null],
@@ -70,8 +70,11 @@ describe('a voice beside a text side of two hosts', () => {
       .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'soniox' });
     expect(voiceRefusal({ ...options('soniox', 'kizunaai_soniox', 'bing'), translation: takesNone('bing') }))
       .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'bing' });
+    // Bing and Edge are hosts of their own: Edge is another host to Bing, which is asked whether it takes it.
+    expect(voiceRefusal({ ...options('soniox', 'edge', 'bing'), translation: takesNone('bing') }))
+      .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'bing' });
     // A voice of the host that translates is that host's own to feed.
-    expect(voiceRefusal({ ...options('soniox', 'edge', 'bing'), translation: takesNone('bing') })).toBeNull();
+    expect(voiceRefusal({ ...options('soniox', 'kizunaai_soniox', 'kizunaai_soniox'), translation: takesNone('kizunaai_soniox') })).toBeNull();
     // A voice of the host that transcribes: only the translator is another host to it.
     expect(voiceRefusal({ ...options('soniox', 'soniox', 'bing'), transcription: takesNone('soniox') })).toBeNull();
     expect(voiceRefusal({ ...options('soniox', 'soniox', 'bing'), translation: takesNone('bing') }))
@@ -102,9 +105,9 @@ describe('compose runs these checks after its own, the voice first', () => {
   const mix = (transcription: string, speech: string): Pick<LineUp, RunStage> => ({ transcription, translation: transcription, speech });
 
   it("Soniox's text with a voice on this device composes", () => {
-    const plan = compose(mix('soniox', 'edge'), given(twoUnits('soniox'), twoUnits('local_inference', 'local'))) as RunPlan;
+    const plan = compose(mix('soniox', 'edge'), given(twoUnits('soniox'), twoUnits('edge', 'online'))) as RunPlan;
     expect(isRefusal(plan)).toBe(false);
-    expect(plan.units.map((u) => [u.provider.id, u.unit.id])).toEqual([['soniox', 'stt'], ['local_inference', 'tts']]);
+    expect(plan.units.map((u) => [u.provider.id, u.unit.id])).toEqual([['soniox', 'stt'], ['edge', 'tts']]);
   });
   it("Kizuna AI's Soniox voice under own-key Soniox text composes: the text unit of one, the voice of the other", () => {
     const plan = compose(mix('soniox', 'kizunaai_soniox'), given(twoUnits('soniox'), twoUnits('kizunaai_soniox', 'managed'))) as RunPlan;
@@ -124,7 +127,7 @@ describe('compose runs these checks after its own, the voice first', () => {
       .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'kizunaai_qwen' });
   });
   it('an end-to-end text side with Edge is refused: it takes no other voice', () => {
-    expect(compose(mix('gemini', 'edge'), given(stubProvider('gemini'), twoUnits('local_inference', 'local'))))
+    expect(compose(mix('gemini', 'edge'), given(stubProvider('gemini'), twoUnits('edge', 'online'))))
       .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'gemini' });
   });
   it('a stage with no unit is said before the voice', () => {

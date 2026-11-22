@@ -65,7 +65,8 @@ describe('the first start of the new version, free provider, nothing downloaded'
 
     finishScan();
     await vi.waitFor(() => expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }));
-    expect(storedLocalStages()).toEqual({ translation: 'bing', speech: 'edge' });
+    // Bing and Edge are providers of their own: this device serves recognition alone of the line-up it wrote.
+    expect(storedLocalStages()).toEqual({ translation: null, speech: null, transcription: 'local' });
 
     setSetting.mockClear();
     useLineUpStore.setState({ lineUp: null, stored: false });

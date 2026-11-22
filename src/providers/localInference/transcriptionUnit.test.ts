@@ -126,7 +126,8 @@ describe('the config it builds', () => {
       translation: { kind: 'none' },
       transcribesAlone: true,
     });
-    expect(mockStagesSeen).toEqual([{ translation: null, speech: 'edge', transcription: 'local' }]);
+    // Edge is a provider of its own: this device serves no speech here.
+    expect(mockStagesSeen).toEqual([{ translation: null, speech: null, transcription: 'local' }]);
   });
 
   it('handed no line-up, or one that does not describe it, it still resolves recognition alone', () => {

@@ -357,7 +357,7 @@ describe('languages and line-up', () => {
     const pair = { source: 'en', target: 'ja' };
     const load = (target = 'ja') => {
       const entry = (id: string, credentials: Record<string, string> = {}) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair: { ...pair, target } });
-      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), gemini: entry('gemini', { apiKey: 'k' }) } as never });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), bing: entry('bing'), edge: entry('edge'), gemini: entry('gemini', { apiKey: 'k' }) } as never });
     };
     const cardOf = (name: string) => screen.getByRole('combobox', { name }).closest('.lineup-stage') as HTMLElement;
 
@@ -632,7 +632,7 @@ describe('languages and line-up', () => {
     const load = (target = 'ja', sonioxKey: Record<string, string> = { apiKey: 'k' }) => {
       const entry = (id: string, credentials: Record<string, string> = {}) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair: { ...pair, target } });
       useProviderStore.setState({
-        entries: { soniox: entry('soniox', sonioxKey), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference') } as never,
+        entries: { soniox: entry('soniox', sonioxKey), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), bing: entry('bing'), edge: entry('edge') } as never,
         readiness: { soniox: { state: 'ready' } } as never,
       });
     };
@@ -780,7 +780,7 @@ describe('languages and line-up', () => {
     const pair = { source: 'en', target: 'ja' };
     const load = () => {
       const entry = (id: string, credentials: Record<string, string> = {}) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair });
-      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), gemini: entry('gemini', { apiKey: 'k' }) } as never });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), bing: entry('bing'), edge: entry('edge'), gemini: entry('gemini', { apiKey: 'k' }) } as never });
     };
     const all = (id: string) => ({ transcription: id, translation: id, speech: id, summarisation: null });
     const options = (name: string) => within(screen.getByRole('combobox', { name })).getAllByRole('option') as HTMLOptionElement[];
@@ -955,7 +955,8 @@ describe('languages and line-up', () => {
       expect(within(cardOf('Speech')).getByText('Edge options')).toBeTruthy();
       expect(cardOf('Speech').querySelector('#edge-voices-section')).not.toBeNull();
       expect(cardOf('Speech').querySelector('#model-management-section')).toBeNull();
-      expect(own(cardOf('Speech'))).toEqual(['local_inference:speech:speech']);
+      // Edge is a provider of its own: its card's options are its own (the local provider's voices section stays until Task 7 retargets it).
+      expect(own(cardOf('Speech'))).toEqual(['edge:speech:speech']);
       const text = cardOf('Transcription and translation');
       open(text);
       expect(own(text).length).toBeGreaterThan(0);

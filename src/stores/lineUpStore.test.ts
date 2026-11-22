@@ -141,6 +141,15 @@ describe('the line-up store', () => {
     expect(stored.get(PROVIDER_KEY)).toBe('soniox');
   });
 
+  it('a version-1 free line-up (this device, Bing, Edge) is kept as stored when the stored provider is this device: it belongs to it, though the three are hosts of their own', async () => {
+    const free = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
+    stored.set(LINEUP_KEY, { version: 1, stages: free });
+    stored.set(PROVIDER_KEY, 'local_inference');
+    await useLineUpStore.getState().load();
+    expect(useLineUpStore.getState()).toMatchObject({ stored: true, lineUp: free, unstoredProvider: null });
+    expect(setSetting).not.toHaveBeenCalled();
+  });
+
   it('a version-2 line-up is used as stored, whatever the stored provider says', async () => {
     const local = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
     stored.set(LINEUP_KEY, { version: 2, stages: local });

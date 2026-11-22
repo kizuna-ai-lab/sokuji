@@ -248,7 +248,9 @@ describe('SettingsInitializer', () => {
       const store = (speech: 'edge' | 'local_inference') =>
         useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech, summarisation: null }, stored: true, unstoredProvider: null });
 
-      it('picks a voice for a direction Edge reads only because the line-up says Edge: the local selections alone pick a speech model', async () => {
+      // TODO(Task 7): Edge is a provider of its own now, so a stored line-up that gives it speech no longer has this
+      // provider speak and nothing is picked here; Task 7 moves the pick to Edge's own settings and rewrites this test.
+      it.skip('picks a voice for a direction Edge reads only because the line-up says Edge: the local selections alone pick a speech model', async () => {
         useModelStore.setState({ resolve: byLineUp('piper-ja') });
         selectLocal();
         store('edge');
@@ -258,7 +260,9 @@ describe('SettingsInitializer', () => {
         expect(updateSettings).toHaveBeenCalledWith(localInferenceProvider, { voices: { 'en→ja': { edge: 'ja-JP-NanamiNeural' } } });
       });
 
-      it('picks one for every direction Edge will read, the other side\'s too', async () => {
+      // TODO(Task 7): Edge is a provider of its own now, so a stored line-up that gives it speech no longer has this
+      // provider speak and nothing is picked here; Task 7 moves the pick to Edge's own settings and rewrites this test.
+      it.skip('picks one for every direction Edge will read, the other side\'s too', async () => {
         useModelStore.setState({ resolve: byLineUp('piper-ja') });
         selectLocal({}, { legs: ['speaker', 'participant'], participantSpeech: true });
         store('edge');
