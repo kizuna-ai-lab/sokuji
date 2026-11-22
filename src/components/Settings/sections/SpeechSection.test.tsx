@@ -56,6 +56,9 @@ import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { ProviderTurnDetectionControls } from '../../providers/ProviderOwnSettings';
 import { SpeechSection } from './SpeechSection';
+import { registerReleasedCatalog } from '../../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const entry = () => ({ settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } });
 const localEntry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });

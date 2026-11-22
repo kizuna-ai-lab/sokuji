@@ -45,6 +45,9 @@ import { localInferenceProvider } from '../localInference/provider';
 import { LOCAL_INFERENCE_DEFAULTS } from '../localInference/settings';
 import { createLocalTranscriptionUnit } from '../localInference/transcriptionUnit';
 import { createOpenAITextUnit, openaiTextProvider } from './provider';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 /** Not a key of any service. */
 const KEY = 'test-key-0000';

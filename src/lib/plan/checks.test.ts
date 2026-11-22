@@ -12,6 +12,9 @@ import { wholePlan } from './wholeUnit';
 import { bingProvider } from '../../providers/bing/provider';
 import { edgeProvider } from '../../providers/edge/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
+import { registerReleasedCatalog } from '../lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const options = (transcription: string, speech: string, translation = transcription) => ({ transcription: caps(transcription)!, translation: caps(translation)!, speech: caps(speech)! });
 

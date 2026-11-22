@@ -3,6 +3,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { applySetupDraft, type ApplySetupDeps } from './applySetup';
 import { initialDraft, type SetupDraft } from './setupDraft';
 import { Provider } from '../../types/Provider';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 function deps(overrides: Partial<ApplySetupDeps> = {}): ApplySetupDeps {
   return {

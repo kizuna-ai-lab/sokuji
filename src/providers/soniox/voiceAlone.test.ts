@@ -22,6 +22,9 @@ import { sonioxProvider } from './provider';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 import { createKizunaVoiceClaim } from './voiceClaim';
 import { VOICE_LEASE_KEY, voiceLeaseMemory } from './voiceLeaseMemory';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const LINE_UP = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
 const input = { providers: [sonioxProvider, kizunaSonioxProvider], settings: () => SONIOX_DEFAULTS };

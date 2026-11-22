@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { RELEASED } from '../../providers/registry';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { presentProviders, RELEASED } from '../../providers/registry';
 import { allStagesBy, belongsTo, allCaps, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, stageIdsFor } from './catalog';
 import type { LineUp, RunStage } from './types';
 
@@ -23,6 +23,15 @@ describe('the line-up catalog', () => {
 
   it('covers every released provider, plus Bing and Edge', () => {
     expect(new Set(allCaps().map((c) => c.id))).toEqual(new Set([...RELEASED.map((p) => p.id), 'bing', 'edge']));
+  });
+
+  // A stored line-up that names an option this platform does not offer (a text model, on the web) stays readable: the
+  // catalog is the compiled providers', not the present ones'.
+  it('lists every released provider, also one this platform does not offer', () => {
+    expect(allCaps().map((c) => c.id)).toEqual(RELEASED.map((p) => p.id));
+    const web = presentProviders({ platform: 'web', dev: false, enabled: new Set(), kizuna: true, switchOn: () => false });
+    expect(web.some((p) => p.id === 'openai_text')).toBe(false);
+    expect(caps('openai_text')).toBeDefined();
   });
 
   it('a text model translates alone, on a key, for any voice that stands alone: its host is itself, and nothing goes with it', () => {
@@ -52,6 +61,27 @@ describe('the line-up catalog', () => {
     expect(runsByItself('openai_compatible')).toBe(false);
     expect(runsByItself('soniox')).toBe(true);
     expect(runsByItself('fake')).toBe(true);
+  });
+});
+
+// A fresh module per case: what one case registers is not seen by the next.
+describe('the registered catalog', () => {
+  let catalog: typeof import('./catalog');
+  beforeEach(async () => {
+    vi.resetModules();
+    catalog = await import('./catalog');
+  });
+
+  it('throws while no catalog is registered', () => {
+    expect(() => catalog.allCaps()).toThrow(/No line-up catalog is registered/);
+    expect(() => catalog.caps('soniox')).toThrow();
+  });
+
+  it('reads the registered catalog when none is given', () => {
+    const only = [{ id: 'x', stages: ['speech'], host: 'x', account: 'none', voiceAlone: true, takesVoice: false }] as const;
+    catalog.registerCatalog(only);
+    expect(catalog.caps('x')).toBe(only[0]);
+    expect(catalog.caps('soniox')).toBeUndefined();
   });
 });
 

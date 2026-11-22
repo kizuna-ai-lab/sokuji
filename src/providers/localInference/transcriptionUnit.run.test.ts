@@ -55,6 +55,9 @@ import { FakeAsr, FakeTurn } from './fakeEngines';
 import { localInferenceProvider } from './provider';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { createLocalTranscriptionUnit } from './transcriptionUnit';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const SPEAKER: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 const PARTICIPANT: SessionContext = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' };

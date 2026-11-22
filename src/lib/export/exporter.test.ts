@@ -3,6 +3,9 @@ import type { Leg, Segment } from '../conversation/types';
 import type { Entry } from '../projection/types';
 import { conversationExporter, exportWords, rowsExporter } from './exporter';
 import { FULL_SCOPE } from './transcript';
+import { registerReleasedCatalog } from '../lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 // Local times, so the formatted clock reads the same in every timezone.
 const started = new Date(2026, 8, 24, 10, 0, 0).getTime();

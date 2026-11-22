@@ -11,6 +11,9 @@ import { planOf, stubHosts, stubProvider } from './testing';
 import { isRefusal } from './types';
 import type { PlanRefusal, PlanRefusalCode, RunPlan } from './types';
 import { wholeUnit } from './wholeUnit';
+import { registerReleasedCatalog } from '../lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const all = (id: string): Pick<LineUp, RunStage> => ({ transcription: id, translation: id, speech: id });
 

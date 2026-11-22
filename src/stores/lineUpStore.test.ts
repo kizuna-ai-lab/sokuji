@@ -67,6 +67,9 @@ import useLogStore from './logStore';
 import { settleReports } from '../lib/diagnostics/report';
 import { registerPresentProviders } from '../lib/plan/present';
 import { stubHosts, stubProvider } from '../lib/plan/testing';
+import { registerReleasedCatalog } from '../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 // The registry stays out of these tests: every host is offered, as a stub, so a choice composes as it does in the app.
 // The two Soniox providers have a text unit and a voice, as in the app, so a line-up that mixes them composes.

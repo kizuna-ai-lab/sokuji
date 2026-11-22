@@ -11,6 +11,9 @@ import type { PlannedUnit } from '../plan/types';
 import type { AnyProvider, LanguageContext } from '../provider/types';
 import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, participantSpeechInput, planLanguages, QUOTA_PENDING, QUOTA_UNKNOWN, speakFor } from './shape';
 import type { BalanceShape, RunShape } from './types';
+import { registerReleasedCatalog } from '../lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 /** A shape's fields as a test patches them: the provider it runs on alone, and that provider's settings and credentials. */
 type Patch = Partial<Omit<RunShape, 'plan' | 'accounts'>> & { provider?: AnyProvider; settings?: unknown; credentials?: Record<string, string> };

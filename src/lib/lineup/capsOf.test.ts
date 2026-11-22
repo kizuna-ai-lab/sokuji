@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { DEV_ONLY, RELEASED } from '../../providers/registry';
 import { stubProvider } from '../plan/testing';
 import { E2E_CAPS, RELEASED_CAPS } from './catalog.testing';
@@ -9,8 +9,6 @@ const byId = (list: readonly ProviderCaps[]) => Object.fromEntries(list.map((c) 
 const unit = (id: string, stages: RunStage[]) => ({ id, occupies: (_s: unknown, want: ReadonlySet<RunStage>) => (want.size === stages.length && stages.every((s) => want.has(s)) ? stages : null) });
 const provider = (o: Record<string, unknown>) => stubProvider('p', { kind: 'own-key', settings: { defaults: {} }, ...o });
 const TR = ['transcription'] as RunStage[], TL = ['translation'] as RunStage[], SP = ['speech'] as RunStage[], TR_TL = [...TR, ...TL], ALL = [...TR_TL, ...SP];
-
-afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
 
 describe('capsOf', () => {
   it('is the catalog declared by hand, entry for entry, for the released providers', () => {
@@ -23,13 +21,6 @@ describe('capsOf', () => {
   });
   it("a provider's occupations are the same with no settings as with its default settings", () => {
     for (const p of [...RELEASED, ...DEV_ONLY]) expect(occupationsOf(p, undefined), p.id).toEqual(occupationsOf(p, p.settings.defaults));
-  });
-  // Removed in Task 3, with the list it compares against.
-  it('the golden list is the catalog declared by hand; the fakes differ only in their account, which follows their kind', async () => {
-    expect(byId(RELEASED_CAPS)).toStrictEqual(byId((await import('./catalog')).allCaps()));
-    vi.stubEnv('MODE', 'e2e'); vi.resetModules();
-    const declared = (await import('./catalog')).allCaps().filter((c) => !RELEASED_CAPS.some((r) => r.id === c.id));
-    expect(byId(declared)).toStrictEqual(byId(E2E_CAPS.map((c) => ({ ...c, account: 'none' as const }))));
   });
   it('stages: what its units occupy, together', () => { expect(capsOf(provider({ units: [unit('a', TR), unit('b', SP)] })).stages).toEqual(['transcription', 'speech']); });
   it('voiceAlone: a unit occupies speech alone', () => {

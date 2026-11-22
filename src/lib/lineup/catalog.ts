@@ -2,65 +2,33 @@
 //
 // What each option can serve, who runs it and which stages go together, the
 // line-up each host runs by default, the one host a line-up runs on by this
-// data alone, and the ids that served a run's stages. Pure data and pure
-// functions; the stores read it, nothing here reads a store.
+// data alone, and the ids that served a run's stages. Pure functions over the
+// registered catalog; the stores read it, nothing here reads a store.
+//
+// Where the catalog comes from: it is read off the providers' units
+// (`catalogOf`, capsOf.ts), and the provider registry registers it as it loads,
+// from the providers a line-up may name. This module imports neither the
+// registry nor a provider: the line-up store reads it, and the registry's own
+// imports reach that store (the local provider reads it), so importing either
+// from here would close a cycle. A test that keeps the registry out registers a
+// catalog itself (`registerReleasedCatalog`, catalog.testing.ts).
 import { RUN_STAGES, TR_TL } from './types';
 import type { LineUp, ProviderCaps, RunStage, StageIds } from './types';
 
-const ALL: readonly RunStage[] = RUN_STAGES;
-const JOINT: readonly RunStage[] = TR_TL;
+let registered: readonly ProviderCaps[] | null = null;
+
+/** Called once by the registry with the catalog its providers declare; a test registers its own. */
+export function registerCatalog(entries: readonly ProviderCaps[]): void {
+  registered = entries;
+}
 
 /**
- * One provider that does every stage over one connection (an end-to-end service), run by itself. Its voice reads
- * only its own translation, and its translation is read only by its own voice: it is not known, per vendor, to stop
- * making and charging for audio when asked for text alone.
+ * The catalog every reader asks: what each option can serve, read when asked. Throws while none is registered: an
+ * empty catalog would turn every stored line-up away.
  */
-const endToEnd = (id: string, account: ProviderCaps['account']): ProviderCaps => ({ id, stages: ALL, host: id, joint: ALL, account, voiceAlone: false, takesVoice: false });
-
-const DECLARED: readonly ProviderCaps[] = [
-  // Its text may be read by another voice (a text-only session of it), and its voice may read another provider's
-  // text (a session of it that holds speech keys only). It translates only what it transcribes, and may transcribe
-  // alone for another option to translate (Soniox's connection asked for no translation); so does Soniox below.
-  { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', translatesOwn: true, account: 'kizuna', voiceAlone: true, takesVoice: true },
-  endToEnd('kizunaai_qwen', 'kizuna'),
-  { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: true },
-  { id: 'bing', stages: ['translation'], host: 'bing', account: 'none', voiceAlone: false, takesVoice: true },
-  { id: 'edge', stages: ['speech'], host: 'edge', account: 'none', voiceAlone: true, takesVoice: false },
-  { id: 'soniox', stages: ALL, host: 'soniox', translatesOwn: true, account: 'key', voiceAlone: true, takesVoice: true },
-  endToEnd('gemini', 'key'),
-  endToEnd('volcengine_ast2', 'key'),
-  endToEnd('openai', 'key'),
-  endToEnd('openai_translate', 'key'),
-  endToEnd('openai_live', 'key'),
-  endToEnd('qwen_livetranslate', 'key'),
-  endToEnd('palabraai', 'key'),
-  // A text model translates what another option transcribed (spec 2026-11-22 §5): translation alone, on the user's
-  // own key (the compatible service's address and optional key), and any voice that stands alone may read it. Its
-  // provider is offered in the desktop app only, so elsewhere the line-up page lists it nowhere and a stored line-up
-  // that names it is not offered.
-  { id: 'openai_text', stages: ['translation'], host: 'openai_text', account: 'key', voiceAlone: false, takesVoice: true },
-  { id: 'gemini_text', stages: ['translation'], host: 'gemini_text', account: 'key', voiceAlone: false, takesVoice: true },
-  { id: 'openai_compatible', stages: ['translation'], host: 'openai_compatible', account: 'key', voiceAlone: false, takesVoice: true },
-  // The E2E build (`--mode e2e`) runs its sessions on the fake providers, so there a line-up may name them.
-  // Elsewhere they stay out: a development build reaches the fake through the stored provider alone.
-  // The fake transcribes and translates together, never apart (it has no unit that transcribes alone, so its two
-  // stages stay a joint group), and may be read by another voice; the fake voice serves speech
-  // alone, beside another provider's transcription and translation. The fake transcriber and the fake translator
-  // each serve their one stage, each a host of its own, so a line-up of the three runs every stage apart.
-  ...(import.meta.env.MODE === 'e2e'
-    ? [
-        { id: 'fake', stages: ALL, host: 'fake', joint: JOINT, account: 'none', voiceAlone: false, takesVoice: true } satisfies ProviderCaps,
-        endToEnd('fake_leased', 'none'),
-        { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false } satisfies ProviderCaps,
-        { id: 'fake_transcriber', stages: ['transcription'], host: 'fake_transcriber', account: 'none', voiceAlone: false, takesVoice: true } satisfies ProviderCaps,
-        { id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'none', voiceAlone: false, takesVoice: true } satisfies ProviderCaps,
-      ]
-    : []),
-];
-
-/** The catalog every reader asks: what each option can serve. */
 export function allCaps(): readonly ProviderCaps[] {
-  return DECLARED;
+  if (!registered) throw new Error('No line-up catalog is registered: load the provider registry (or, in a test, register one) first.');
+  return registered;
 }
 
 export function caps(id: string, catalog: readonly ProviderCaps[] = allCaps()): ProviderCaps | undefined {

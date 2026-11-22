@@ -12,6 +12,9 @@ import { RUN_NOTICE_CODES } from '../session/codes';
 import { NO_MICROPHONE } from '../session/shape';
 import { languageLabel } from '../language/label';
 import { NOTICE_ALIASES, NOTICE_WORDS, noticeText } from './noticeText';
+import { registerReleasedCatalog } from '../lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 /** A stand-in for i18next: fills `{{name}}` from the options. */
 const t = ((key: string, options: Record<string, unknown>) =>

@@ -28,6 +28,9 @@ import { SONIOX_DEFAULTS } from './settings';
 import { b64, END, isStt, msg, orig, tr, type Json } from './testing';
 import { createSonioxTtsUnit } from './ttsUnit';
 import { sonioxSttUnitFor } from './units';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const API = 'https://api.test';
 const LINE_UP = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
