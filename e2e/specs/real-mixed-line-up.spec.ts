@@ -282,3 +282,56 @@ test('@real Soniox with an own key transcribes, Bing translates what it heard, a
     forgetSecrets(sokuji.userData);
   }
 });
+
+// Text models (part B): Soniox with the user's own key transcribes, a text model with the user's own key translates
+// what it heard, and Edge reads it aloud. OpenAI's with E2E_OPENAI_KEY, Gemini's with E2E_GEMINI_KEY; Soniox's key
+// is needed too.
+const OPENAI_KEY = process.env.E2E_OPENAI_KEY ?? '';
+const GEMINI_KEY = process.env.E2E_GEMINI_KEY ?? '';
+
+/** A key goes in the way a user puts it in: Settings, Accounts and keys, the service's row, then its check. */
+async function addKey(page: Page, row: string, key: string): Promise<void> {
+  await page.locator('[data-tour="settings-button"]').click();
+  await page.getByRole('navigation').getByRole('button', { name: /^Accounts and keys/ }).click();
+  const group = page.getByRole('group', { name: row, exact: true });
+  await group.getByRole('button', { name: 'Add key' }).click();
+  await group.getByLabel('API key', { exact: true }).fill(key);
+  await group.getByRole('button', { name: 'Validate' }).click();
+  await page.keyboard.press('Escape');
+}
+
+for (const [model, row, key, variable, family] of [
+  ['openai_text', 'OpenAI', OPENAI_KEY, 'E2E_OPENAI_KEY', /^(?:gpt-|o\d)/],
+  ['gemini_text', 'Google Gemini', GEMINI_KEY, 'E2E_GEMINI_KEY', /^(?:gemini-|gemma-)/],
+] as const) {
+  test(`@real Soniox with an own key transcribes, ${model} translates what it heard with an own key, and Edge reads it aloud`, async ({ launchApp }) => {
+    test.skip(!KEY, 'E2E_SONIOX_KEY is not set');
+    test.skip(!key, `${variable} is not set`);
+    test.setTimeout(10 * 60_000);
+    const sokuji = await launchApp({ seed: seed('soniox', 'edge', model) });
+    const { page } = sokuji;
+    try {
+      await addSonioxKey(page);
+      await addKey(page, row, key);
+      // Finding the Soniox key's region asks every region, and the ones the key does not belong to refuse it: expected.
+      sokuji.errors.length = 0;
+
+      const sockets = socketsOf(page);
+      const configs = sttConfigsOf(page);
+      const spoken = await runSession(sokuji);
+      await sokuji.close();
+      checkOutcome(sokuji, 'soniox', 'edge', spoken, sockets, model);
+      // Soniox transcribed alone: never asked to translate.
+      expect(configs.length, 'a configured connection to Soniox for transcription').toBeGreaterThan(0);
+      for (const members of configs) expect(members).not.toContain('translation');
+      // The record names the text model that translated: the service's automatic one.
+      const [record] = readHistory(sokuji.userData);
+      const services = JSON.parse(record.services) as { models?: Record<string, string> };
+      expect(services.models?.translationModel ?? '').toMatch(family);
+    } finally {
+      // The app keeps the keys in its settings: whatever happened, they do not stay on disk.
+      await sokuji.kill();
+      forgetSecrets(sokuji.userData);
+    }
+  });
+}

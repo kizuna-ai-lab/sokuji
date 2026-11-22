@@ -7,9 +7,11 @@ export interface OpenAiRequest {
   body: Record<string, unknown> | null;
 }
 
-/** What to answer a chat request with: a JSON object for the model's answer, or a refusal. */
+/** What to answer a chat request with: a JSON object for the model's answer, its text as it is, or a refusal. */
 export type ChatAnswer =
   | { answer: Record<string, unknown> }
+  /** The model's answer as plain text: a translation. */
+  | { text: string }
   | { status: number; message: string; code?: string }
   /** Never answers: the request stays open until the app gives up or the test ends. */
   | { hang: true };
@@ -21,6 +23,8 @@ export interface FakeOpenAi {
   answerChat(next: (request: OpenAiRequest) => ChatAnswer | Promise<ChatAnswer>): void;
   /** Whether the key check (GET /v1/models) passes. Default: it does. */
   acceptKey(accept: boolean): void;
+  /** The model ids the list answers with. Default: `gpt-5.4-mini` and `gpt-realtime`. */
+  listModels(ids: readonly string[]): void;
   /** Errors thrown by the test's own `answerChat` handler; a spec can assert this stays empty. */
   failures: string[];
 }
@@ -43,6 +47,18 @@ export function sentenceIds(request: OpenAiRequest): number[] {
   } catch {
     return [];
   }
+}
+
+/** The last message the app asked a chat request about: a translation's stretch, the notes' payload. */
+export function lastUserText(request: OpenAiRequest): string {
+  const messages = (request.body?.messages ?? []) as Array<{ role?: string; content?: unknown }>;
+  const users = messages.filter((m) => m.role === 'user');
+  return String(users[users.length - 1]?.content ?? '');
+}
+
+/** A text model's translation of the stretch it was asked: the stretch marked `訳: `, so a row shows whose it is. */
+export function translationAnswer(request: OpenAiRequest): ChatAnswer {
+  return { text: `訳: ${lastUserText(request)}` };
 }
 
 /**
@@ -71,6 +87,7 @@ export async function fakeOpenAi(sokuji: Sokuji): Promise<FakeOpenAi> {
   const requests: OpenAiRequest[] = [];
   let chat: (request: OpenAiRequest) => ChatAnswer | Promise<ChatAnswer> = notesAnswer;
   let keyAccepted = true;
+  let modelIds: readonly string[] = ['gpt-5.4-mini', 'gpt-realtime'];
   let served = 0;
   const failures: string[] = [];
 
@@ -88,7 +105,7 @@ export async function fakeOpenAi(sokuji: Sokuji): Promise<FakeOpenAi> {
 
     if (path === '/models') {
       return keyAccepted
-        ? json(200, { object: 'list', data: [{ id: 'gpt-5.4-mini', object: 'model' }, { id: 'gpt-realtime', object: 'model' }] })
+        ? json(200, { object: 'list', data: modelIds.map((id) => ({ id, object: 'model' })) })
         : json(401, { error: { message: 'Incorrect API key provided.', type: 'invalid_request_error', code: 'invalid_api_key' } });
     }
     if (path === '/chat/completions') {
@@ -102,9 +119,10 @@ export async function fakeOpenAi(sokuji: Sokuji): Promise<FakeOpenAi> {
       }
       if ('hang' in next) return; // left unanswered on purpose
       if ('status' in next) return json(next.status, { error: { message: next.message, type: 'invalid_request_error', code: next.code ?? null } });
+      const content = 'text' in next ? next.text : JSON.stringify(next.answer);
       return json(200, {
         id: 'chatcmpl-e2e', object: 'chat.completion', model: String(body?.model ?? 'fake'),
-        choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content: JSON.stringify(next.answer) } }],
+        choices: [{ index: 0, finish_reason: 'stop', message: { role: 'assistant', content } }],
         usage: { prompt_tokens: 100, completion_tokens: 50, total_tokens: 150 },
       });
     }
@@ -116,5 +134,6 @@ export async function fakeOpenAi(sokuji: Sokuji): Promise<FakeOpenAi> {
     failures,
     answerChat: (next) => { chat = next; },
     acceptKey: (accept) => { keyAccepted = accept; },
+    listModels: (ids) => { modelIds = ids; },
   };
 }
