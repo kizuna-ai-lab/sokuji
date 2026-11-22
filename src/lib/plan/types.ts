@@ -27,12 +27,12 @@ export interface UnitCapabilities {
   participantSpeech: boolean;
   /**
    * A unit that speaks: whether it has a voice for `language` (an app code). Absent: the unit speaks whatever its
-   * provider translates into (a whole-provider unit).
+   * provider translates into (a whole unit).
    */
   speaks?(language: string): boolean;
   /**
    * A unit that translates: whether it translates from `source` into `target` (app codes). Absent: the unit
-   * translates whatever its provider's language lists offer (a whole-provider unit).
+   * translates whatever its provider's language lists offer (a whole unit).
    */
   translates?(source: string, target: string): boolean;
 }

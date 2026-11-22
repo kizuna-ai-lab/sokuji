@@ -1,8 +1,8 @@
 /**
  * A Kizuna twin (spec: "Managed twins are composition"): the base's
- * languages, capabilities, builder and adapter under its own id, kind,
- * vendor, icon and storage key; credentials read from the sign-in with no
- * field; a static `check`; and the lease that mints its per-leg keys.
+ * languages and units under its own id, kind, vendor, icon and storage
+ * key; credentials read from the sign-in with no field; a static `check`;
+ * and the lease that mints its per-leg keys.
  * What it takes from the base is named member by member (Stage 2 Kizuna
  * Soniox, choice 2): a member added to the base later is a decision here.
  */
@@ -39,9 +39,7 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   VoiceSummary?: ComponentType<VoiceSummaryProps<S>>;
   /** Diagnostic English for a signed-out `read`; the user reads `sign_in_required`'s words. */
   signedOut: string;
-  /** The participant-speech flag (ruling 2); absent, the twin carries the base's own flag, if it has one. */
-  participantSpeech?: boolean;
-  /** The twin's own units, where the base declares units; absent, the twin is one whole-provider unit, whatever the base declares. */
+  /** The twin's own units; absent, its base's. */
   units?: readonly UnitDefinition[];
   /** The twin is flagged on its own; the base's flag never carries over. */
   flagged?: true;
@@ -55,8 +53,6 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
   base: Provider<S, K, C>,
   o: ManagedOverrides<S, K, C, Id>,
 ): Provider<S, K, C, ManagedSignIn> & { id: Id } {
-  // The twin's own flag when it gives one; else the base's, so a base that cannot voice the participant never yields a twin that does.
-  const participantSpeech = o.participantSpeech ?? base.participantSpeech;
   return {
     id: o.id,
     kind: 'managed',
@@ -76,19 +72,10 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     // Static: the sign-in is `read`'s to see, the balance the start gate's (spec: "Readiness is one check").
     check: async () => ({ ok: true }),
     languages: base.languages,
-    speech: base.speech,
-    textInput: base.textInput,
-    boundaries: base.boundaries,
-    turns: base.turns,
-    ...(participantSpeech === undefined ? {} : { participantSpeech }),
-    ...(base.faceToFace ? { faceToFace: base.faceToFace } : {}),
     // The twin's own, never the base's: the base's asks for the user's key, which a twin does not hold.
     ...(o.fileRecognition ? { fileRecognition: o.fileRecognition } : {}),
-    build: base.build,
-    describe: base.describe,
-    start: base.start,
     ...(base.endToEnd ? { endToEnd: true as const } : {}),
-    ...(o.units ? { units: o.units } : {}),
+    units: o.units ?? base.units,
     // The base's `startBoth` only: its other hooks (`prepare`, `admit`, `acquire`) are the base's own business, never the twin's.
     session: { ...(base.session?.startBoth ? { startBoth: base.session.startBoth } : {}), ...o.session },
   };

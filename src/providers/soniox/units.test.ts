@@ -22,7 +22,7 @@ import { legSpeaks } from '../../lib/session/shape';
 import { createSonioxAdapter } from './adapter';
 import { buildSoniox, buildSonioxAlone, describeSoniox, type SonioxConfig } from './config';
 import { createKizunaSonioxProvider, kizunaSonioxProvider } from './kizuna';
-import { sonioxProvider } from './provider';
+import { sonioxAdapter, sonioxProvider } from './provider';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { AUTO_CTX, isStt, KEY, SHARED, trackedClock, type Json } from './testing';
 import { SONIOX_TRANSCRIPTION_UNIT, sonioxSttUnitFor, sonioxTranscriptionUnitFor, sonioxUnitsFor } from './units';
@@ -46,16 +46,16 @@ describe("Soniox's text unit", () => {
     }
   });
 
-  it("says what the definition says of turns, boundaries, typed text, face-to-face and the participant's speech, and never speaks itself", () => {
-    for (const [unit, p] of [[unitsOf(sonioxProvider)[0], sonioxProvider], [unitsOf(kizunaSonioxProvider)[0], kizunaSonioxProvider]] as const) {
+  it("says the turns, boundaries, typed text, face-to-face and participant's speech the definition said, and never speaks itself", () => {
+    for (const unit of [unitsOf(sonioxProvider)[0], unitsOf(kizunaSonioxProvider)[0]]) {
       expect(unit.capabilities(SONIOX_DEFAULTS)).toEqual({
         speech: 'never',
-        turns: p.turns(SONIOX_DEFAULTS),
+        turns: ['auto', 'manual'],
         turnOwner: 'either',
-        boundaries: p.boundaries(SONIOX_DEFAULTS),
-        textInput: p.textInput(SONIOX_DEFAULTS),
-        faceToFace: p.faceToFace === true,
-        participantSpeech: p.participantSpeech !== false,
+        boundaries: 'provider',
+        textInput: false,
+        faceToFace: true,
+        participantSpeech: true,
       });
     }
     expect(sonioxSttUnitFor({ start, participantSpeech: false }).capabilities(SONIOX_DEFAULTS).participantSpeech).toBe(false);
@@ -142,7 +142,7 @@ describe("Soniox's unit that transcribes alone", () => {
     for (const p of [sonioxProvider, kizunaSonioxProvider] as AnyProvider[]) {
       const serving = unitsOf(p).filter((u) => u.occupies(SONIOX_DEFAULTS, new Set(['transcription'])) !== null);
       expect(serving.map((u) => u.id)).toEqual([SONIOX_TRANSCRIPTION_UNIT]);
-      expect(serving[0].start).toBe(sonioxProvider.start);
+      expect(serving[0].start).toBe(sonioxAdapter.start);
     }
   });
 });
@@ -153,14 +153,13 @@ describe('the Soniox definitions declare their units', () => {
       const units = unitsOf(p);
       expect(units).toBe(p.units);
       expect(units.map((u) => u.id)).toEqual(['stt', SONIOX_TRANSCRIPTION_UNIT, 'tts']);
-      expect(units[0].start).toBe(sonioxProvider.start);
-      expect(units[1].start).toBe(sonioxProvider.start);
+      expect(units[0].start).toBe(sonioxAdapter.start);
+      expect(units[1].start).toBe(sonioxAdapter.start);
       expect(isSpeechUnit(units[2])).toBe(true);
       expect(units[2].start).toBeUndefined();
-      // The definition's own members stay, for a reader not yet on units.
-      expect(p.speech).toBe('optional');
-      expect(p.build).toBe(buildSoniox);
-      expect(p.describe).toBe(describeSoniox);
+      // The text unit builds and describes as the definition did.
+      expect(units[0].build).toBe(buildSoniox);
+      expect(units[0].describe).toBe(describeSoniox);
       expect(p.session!.startBoth).toBe(sonioxProvider.session!.startBoth);
     }
     const off = createKizunaSonioxProvider({ participantSpeech: false });
@@ -184,7 +183,7 @@ describe('the Soniox definitions declare their units', () => {
     for (const textOnly of [false, true]) {
       for (const participantSpeech of [false, true]) {
         for (const leg of ['speaker', 'participant'] as const) {
-          expect(legSpeaks(capabilitiesOf(shape, 'speech'), leg, { textOnly, participantSpeech })).toBe(legSpeaks(p, leg, { textOnly, participantSpeech }));
+          expect(legSpeaks(capabilitiesOf(shape, 'speech'), leg, { textOnly, participantSpeech })).toBe(legSpeaks({ speech: 'optional' }, leg, { textOnly, participantSpeech }));
         }
       }
     }

@@ -41,7 +41,7 @@ function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeec
   const adapter = createSonioxAdapter({ openSocket: sockets.create });
   const units = () => [sonioxSttUnitFor({ start: adapter.start }), createSonioxTtsUnit({ openSocket: sockets.create })];
   // Soniox with an own key, its adapter and its units on fake sockets.
-  const own = { ...sonioxProvider, start: adapter.start, units: units(), session: { startBoth: adapter.startBoth } } as AnyProvider;
+  const own = { ...sonioxProvider, units: units(), session: { startBoth: adapter.startBoth } } as AnyProvider;
 
   /** The service: a session-key answer with a speech stream for each leg asked, and a 200 for everything else. */
   const requests: Array<{ path: string; token: string | undefined; body: Record<string, unknown> }> = [];

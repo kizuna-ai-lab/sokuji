@@ -1,7 +1,6 @@
 import { SP, TL, TR } from '../../lib/lineup/types';
 import { KizunaAIIcon } from '../../components/Icons/ProviderIcons';
-import type { UnitDefinition } from '../../lib/plan/types';
-import { wholeUnit } from '../../lib/plan/wholeUnit';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createLocalInferenceAdapter, type LocalCredentials } from './adapter';
 import { checkLocalInference, watchLocalInferenceReadiness } from './check';
@@ -17,9 +16,6 @@ import { admitLocalTranscription, areLocalTranscriptionConfigs, localTranscripti
 import { admitLocalTranslation, areLocalTranslationConfigs, localTranslationUnit } from './translationUnit';
 
 const adapter = createLocalInferenceAdapter();
-
-/** Made when first read: the whole unit is a view of the definition below. */
-let units: readonly UnitDefinition[] | undefined;
 
 /**
  * LocalInference's definition (D18): its engines run entirely on-device, so
@@ -62,26 +58,27 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
 
   languages: localInferenceLanguages,
 
-  speech: 'optional',
-  textInput: () => true,
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-
-  build: buildLocalInference,
-  describe: describeLocalInference,
-  start: adapter.start,
-
   /**
-   * Four units. The whole provider, for a line-up in which this device transcribes and translates: those stages
-   * together, as before, and the composer takes it there before any cut (fewest units first). Its recognition alone,
-   * which transcribes for another provider to translate. Its translation alone (a local model), which
-   * translates what another provider heard. And its voice alone (a local speech model), which reads another
+   * Four units. Its whole session (`wholeUnitOf`), for a line-up in which this device transcribes and translates:
+   * those stages together, as before, and the composer takes it there before any cut (fewest units first). Its
+   * recognition alone, which transcribes for another provider to translate. Its translation alone (a local model),
+   * which translates what another provider heard. And its voice alone (a local speech model), which reads another
    * provider's translations.
    */
-  get units(): readonly UnitDefinition[] {
-    units ??= [wholeUnit(localInferenceProvider), localTranscriptionUnit, localTranslationUnit, localSpeechUnit];
-    return units;
-  },
+  units: [
+    wholeUnitOf<LocalInferenceSettings, LocalCredentials, LocalInferenceConfig>({
+      speech: 'optional',
+      textInput: () => true,
+      boundaries: () => 'provider',
+      turns: () => ['auto', 'manual'],
+      build: buildLocalInference,
+      describe: describeLocalInference,
+      start: adapter.start,
+    }),
+    localTranscriptionUnit,
+    localTranslationUnit,
+    localSpeechUnit,
+  ],
 
   session: {
     // Asked once per planned unit, with that unit's configs: the voice alone counts its own models only, and so

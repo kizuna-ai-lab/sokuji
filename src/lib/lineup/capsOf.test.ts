@@ -30,10 +30,13 @@ describe('capsOf', () => {
       expect(occupationsOf(p, trap), p.id).toEqual(occupationsOf(p, p.settings.defaults));
     }
   });
-  it('a provider that declares no units is end to end, except the fakes listed here', () => {
+  it('every provider declares its units', () => {
+    expect([...RELEASED, ...DEV_ONLY].filter((p) => !Array.isArray(p.units) || p.units.length === 0).map((p) => p.id)).toEqual([]);
+  });
+  it('a provider whose only unit is a whole unit is end to end, except the fakes listed here', () => {
     // `fake`: the E2E build's stand-in, a plain transcribe/translate/speak provider that is not a vendor's end-to-end service.
     const NOT_END_TO_END = new Set(['fake']);
-    const forgotten = [...RELEASED, ...DEV_ONLY].filter((p) => !p.units && !NOT_END_TO_END.has(p.id) && p.endToEnd !== true).map((p) => p.id);
+    const forgotten = [...RELEASED, ...DEV_ONLY].filter((p) => p.units.length === 1 && p.units[0].id === 'whole' && !NOT_END_TO_END.has(p.id) && p.endToEnd !== true).map((p) => p.id);
     expect(forgotten).toEqual([]);
   });
   it('stages: what its units occupy, together', () => { expect(capsOf(provider({ units: [unit('a', TR), unit('b', SP)] })).stages).toEqual(['transcription', 'speech']); });

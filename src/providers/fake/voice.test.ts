@@ -70,9 +70,8 @@ describe('the fake voice provider', () => {
     expect(unit.describe(config)).toEqual({ ttsModel: 'fake-voice' });
   });
 
-  it('is never a text provider: its own start rejects', async () => {
-    const request = { context: { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' as const }, config: { voice: 'fake' as const }, credentials: {}, clock: createVirtualClock(0), signal: new AbortController().signal };
-    await expect(fakeVoiceProvider.start(request, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
+  it('is never a text provider: it has no start of its own', () => {
+    expect(fakeVoiceProvider).not.toHaveProperty('start');
   });
 });
 

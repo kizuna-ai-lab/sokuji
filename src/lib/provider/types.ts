@@ -5,7 +5,7 @@
 import type { WordEntry } from '../words/list';
 import type { ComponentType } from 'react';
 import type { PreviewClip } from '../audio/playback';
-import type { Adapter, SessionContext } from '../contract/adapter';
+import type { SessionContext } from '../contract/adapter';
 import type { LegName } from '../conversation/types';
 import type { RunStage, StageIds } from '../lineup/types';
 import type { UnitDefinition } from '../plan/types';
@@ -452,45 +452,20 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
     wire: WireTable;
   };
 
-  // the only capabilities generic code reads
-  speech: 'always' | 'optional' | 'never';
-  /** Whether the speaker leg takes typed text under these settings: Gemini's Live Translate ignores it where its dialogue models answer it. */
-  textInput(s: S): boolean;
-  boundaries(s: S): 'provider' | 'silence';
-  turns(s: S): ReadonlyArray<'auto' | 'manual'>;
-  /**
-   * Whether the participant leg may speak. `false`: never, whatever its
-   * switch says — Kizuna Soniox ships so until the backend mints a
-   * participant speech key (Stage 2 Kizuna Soniox, ruling 2); the switch
-   * then shows off and disabled with a "not available yet" tooltip,
-   * keeping the stored choice. Absent or `true`: the participant speaks
-   * when its switch is on.
-   */
-  participantSpeech?: boolean;
   /**
    * File recognition: History's import and "transcribe again" ask the line-up's recognition provider what a recognition
    * of a saved recording needs, from its own settings and credentials. Absent when it cannot transcribe files. The
    * main process runs the job by `service` (electron/file-recognition.js); every service answers in one word shape.
    */
   fileRecognition?: (settings: S, credentials: K, words?: SessionWords) => FileRecognitionSpec | { missing: 'no-key' };
-  /**
-   * Whether Both may run face-to-face (spec 2026-10-08, slice 3): two people
-   * at one microphone, attributed by speaker label and language on one
-   * shared socket. Absent: the Both popover never offers "beside me", and a
-   * stored choice is ignored.
-   */
-  faceToFace?: boolean;
-
-  // one leg's session; `C` has no `refused` member — the type parameter's constraint enforces it
-  build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
-  describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
-  start: Adapter<C, K>['start'];
 
   /**
-   * The provider's units, when a session may run it in pieces: each serves some of the stages, with a config of its
-   * own. Absent: one unit that is the whole provider, from `build`, `describe` and `start` (`unitsOf`).
+   * What a session runs: the provider's units, each serving some of the stages with a config of its own
+   * (`src/lib/plan/types.ts`). The composer picks among them, a run on the provider alone takes them as `wholePlan`
+   * says, and the line-up catalog is read off them (`capsOf`). An end-to-end service declares its one session as a
+   * whole unit (`wholeUnitOf`); a provider that only translates, or only speaks, declares the unit that does.
    */
-  units?: readonly UnitDefinition[];
+  units: readonly UnitDefinition[];
   /**
    * An end-to-end service: one connection does every stage, and a line-up takes it for all three or for none. Its units
    * may serve transcription and translation without speaking (a text-only session of it), but no other voice reads its

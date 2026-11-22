@@ -491,7 +491,7 @@ What the spec's "What adding a provider then touches" lists
 (`docs/superpowers/specs/2026-09-22-client-contract-design.md`), as the Stage 2 ports landed:
 1. One folder, `src/providers/<id>/`: `provider.ts` (the definition, typed by
    `src/lib/provider/types.ts`: settings with their defaults — and `legacyKeys`/`migrate`
-   when it reads keys an older build stored — credentials, languages, `check`,
+   when it reads keys an older build stored — credentials, languages, its `units`, `check`,
    `session`), `adapter.ts` (the L0 client, `src/lib/contract/adapter.ts`, passing the
    conformance suite `src/lib/contract/conformance.ts`), its `Settings` view, and tests.
    A provider that speaks in a chosen voice also gives a `VoiceSummary` (each spoken leg's
@@ -502,7 +502,8 @@ What the spec's "What adding a provider then touches" lists
    tests: `registry.test.ts` pins the whole list, and a neighbour's `provider.test.ts`
    may pin its place. `src/providers/sessionSide.consistency.test.ts` holds its adapter
    automatically (it walks every `src/providers/*` folder); pin its session side there, as
-   the ports did. An end-to-end service (no `units`) sets `endToEnd: true` on its definition.
+   the ports did. An end-to-end service declares its one session as a whole unit
+   (`units: [wholeUnitOf({...})]`, `src/lib/plan/wholeUnit.ts`) and sets `endToEnd: true`.
 3. `providers.<id>.name` and `.description` in the 30 locale catalogs — only when new.
 4. The extension manifest, when it uses a host the manifest does not list yet: MV3
    declares hosts statically (`host_permissions`, and the CSP's `connect-src`).

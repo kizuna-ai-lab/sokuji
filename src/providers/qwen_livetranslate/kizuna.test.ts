@@ -51,8 +51,8 @@ describe('kizunaQwenProvider', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("is Qwen's languages, capabilities, builder and adapter", () => {
-    for (const member of ['languages', 'speech', 'textInput', 'boundaries', 'turns', 'build', 'describe', 'start', 'TurnDetection'] as const) {
+  it("is Qwen's languages, whole unit and turn detection", () => {
+    for (const member of ['languages', 'TurnDetection', 'units'] as const) {
       expect(kizunaQwenProvider[member], member).toBe(qwenLiveTranslateProvider[member]);
     }
   });

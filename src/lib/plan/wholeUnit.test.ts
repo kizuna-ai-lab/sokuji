@@ -137,12 +137,6 @@ it('reads none of its parts when made: each is read when the unit is used', () =
   expect(() => wholeUnitOf(trap)).not.toThrow();
 });
 
-// Removed in Task 4, with the fallback.
-it('a provider with no units of its own is the whole unit of its own members', () => {
-  const p = parts() as unknown as AnyProvider;
-  expect(unitsOf(p)[0].capabilities(s)).toEqual(wholeUnitOf(parts()).capabilities(s));
-});
-
 describe('capabilitiesAlone', () => {
   const caps = (o: Partial<UnitCapabilities>): UnitCapabilities => ({ speech: 'never', turns: ['auto'], turnOwner: 'either', boundaries: 'provider', textInput: false, faceToFace: false, participantSpeech: true, ...o });
   it('is what the unit serving the stage can do in a run on the provider alone, under its default settings', () => {

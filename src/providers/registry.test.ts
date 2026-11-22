@@ -63,8 +63,8 @@ describe('the registry', () => {
     }
   });
 
-  it('offers at least one turn mode', () => {
-    for (const p of PROVIDERS) expect(p.turns(p.settings.defaults).length, p.id).toBeGreaterThan(0);
+  it('every unit of every provider offers at least one turn mode', () => {
+    for (const p of PROVIDERS) for (const u of p.units) expect(u.capabilities(p.settings.defaults).turns.length, `${p.id} ${u.id}`).toBeGreaterThan(0);
   });
 
   it('includes the fake in development builds, on every platform', () => {
@@ -175,13 +175,12 @@ describe('the invariants every provider meets (F17)', () => {
       expect(runsAlone(p), p.id).toBe(WHOLE.includes(p.id) || SONIOX.includes(p.id));
     }
   });
-  // Removed in Task 4, with the members it compares against.
-  it('is what each definition says of itself', () => {
-    for (const p of [...PROVIDERS, silentParticipant]) {
-      expect(capabilitiesAlone(p, 'speech').speech, p.id).toBe(p.speech);
-      expect(capabilitiesAlone(p, 'speech').participantSpeech, p.id).toBe(p.participantSpeech !== false);
-      if (runsAlone(p) || p.kind === 'managed') expect(capabilitiesAlone(p, 'transcription').faceToFace, p.id).toBe(p.faceToFace === true);
-    }
+  it('carries no run member of its own: a session runs its units', () => {
+    const RUN_MEMBERS = ['speech', 'textInput', 'boundaries', 'turns', 'participantSpeech', 'faceToFace', 'build', 'describe', 'start'];
+    for (const p of [...PROVIDERS, silentParticipant]) expect(RUN_MEMBERS.filter((m) => m in p), p.id).toEqual([]);
+  });
+  it('an end-to-end service declares its one session as a whole unit', () => {
+    for (const p of PROVIDERS.filter((q) => q.endToEnd)) expect(p.units.map((u) => u.id), p.id).toEqual(['whole']);
   });
 
   it('lets only LocalInference read the pair and the legs in its check, so a pick or an audio-mode switch checks no network provider again', () => {

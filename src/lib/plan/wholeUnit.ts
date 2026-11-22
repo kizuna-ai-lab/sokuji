@@ -1,8 +1,7 @@
 // src/lib/plan/wholeUnit.ts
 //
-// A provider seen as one unit: it serves every stage together, as it does
-// today, and the plan of a run on it alone. Pure functions over the provider
-// definition.
+// The whole unit an end-to-end service declares (`wholeUnitOf`), a provider's units, its plan alone, and what it
+// says alone. Pure functions over the provider definition.
 import { RUN_STAGES, SP, TR_TL } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
 import type { Adapter, SessionContext } from '../contract/adapter';
@@ -11,7 +10,7 @@ import { sameStages } from './types';
 import type { PlannedUnit, RunPlan, UnitCapabilities, UnitDefinition } from './types';
 
 /**
- * What a provider that is one whole session is made of: the nine members `Provider` has for it, with the same types.
+ * What a provider that is one whole session is made of: the nine members `Provider` had for it, with the same types.
  * `wholeUnitOf` makes its unit.
  */
 export interface WholeUnitParts<S = any, K = any, C = any> {
@@ -71,11 +70,6 @@ export function wholeUnitOf<S, K, C>(parts: WholeUnitParts<S, K, C>): UnitDefini
   };
 }
 
-/** The unit that is the whole provider. Task 4 deletes it, with the fallback. */
-export function wholeUnit(p: AnyProvider): UnitDefinition {
-  return wholeUnitOf(p);
-}
-
 const TEXT_STAGES: ReadonlySet<RunStage> = new Set(TR_TL);
 const EVERY_STAGE: ReadonlySet<RunStage> = new Set(RUN_STAGES);
 
@@ -89,16 +83,9 @@ export function runsAlone(p: AnyProvider): boolean {
     && (unit.occupies(p.settings.defaults, EVERY_STAGE) !== null || unit.occupies(p.settings.defaults, TEXT_STAGES) !== null));
 }
 
-const cache = new WeakMap<AnyProvider, readonly UnitDefinition[]>();
-
-/** A provider's units: its own list when it declares one (step 2 on), else its whole-provider unit. Same array for the same provider. */
+/** A provider's units: the list it declares. */
 export function unitsOf(p: AnyProvider): readonly UnitDefinition[] {
-  let units = cache.get(p);
-  if (!units) {
-    units = p.units ?? [wholeUnit(p)];
-    cache.set(p, units);
-  }
-  return units;
+  return p.units;
 }
 
 /** A provider's unit that occupies exactly `stages` when asked for them, under no settings: the first that does. */

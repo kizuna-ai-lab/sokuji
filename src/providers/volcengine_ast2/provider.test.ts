@@ -31,6 +31,8 @@ import { volcengineAst2Provider } from './provider';
 import { AST2_DEFAULTS, ast2Credentials, ast2Languages, migrateAst2Settings, type Ast2Settings } from './settings';
 import { APP_KEY, AUTO_CTX, configFor, SHARED } from './testing';
 
+const [whole] = volcengineAst2Provider.units;
+
 afterEach(() => {
   vi.unstubAllGlobals();
   stored.clear();
@@ -52,19 +54,20 @@ describe('the Doubao AST 2.0 definition', () => {
       Settings: Ast2SettingsView,
       credentials: ast2Credentials,
       languages: ast2Languages,
-      build: buildAst2,
-      describe: describeAst2,
     });
+    expect(volcengineAst2Provider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(whole.build(AUTO_CTX, AST2_DEFAULTS, SHARED)).toEqual(buildAst2(AUTO_CTX, AST2_DEFAULTS, SHARED));
+    expect(whole.describe).toBe(describeAst2);
     for (const absent of ['flagged', 'TurnDetection', 'session', 'participantSpeech'] as const) {
       expect(volcengineAst2Provider, absent).not.toHaveProperty(absent);
     }
   });
 
   it('speaks optionally, takes no typed text, lets the server end segments, and offers both turn modes', () => {
-    expect(volcengineAst2Provider.speech).toBe('optional');
-    expect(volcengineAst2Provider.textInput(AST2_DEFAULTS)).toBe(false);
-    expect(volcengineAst2Provider.boundaries(AST2_DEFAULTS)).toBe('provider');
-    expect(volcengineAst2Provider.turns(AST2_DEFAULTS)).toEqual(['auto', 'manual']);
+    expect(whole.capabilities(AST2_DEFAULTS).speech).toBe('optional');
+    expect(whole.capabilities(AST2_DEFAULTS).textInput).toBe(false);
+    expect(whole.capabilities(AST2_DEFAULTS).boundaries).toBe('provider');
+    expect(whole.capabilities(AST2_DEFAULTS).turns).toEqual(['auto', 'manual']);
   });
 
   it('sits after Gemini (ruling 5)', () => {
@@ -76,7 +79,7 @@ describe('the Doubao AST 2.0 definition', () => {
     const shape = { plan: planOf(volcengineAst2Provider), accounts: { [volcengineAst2Provider.id]: { settings: undefined, credentials: {} } }, pair: { source: 'zh', target: 'en' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
     const participant = contextsFor(shape).participant!;
     expect(participant).toEqual({ direction: { source: 'en', target: 'zh' }, speech: true, turns: 'auto' });
-    expect((volcengineAst2Provider.build(participant, AST2_DEFAULTS, SHARED) as Ast2Config).mode).toBe('s2s');
+    expect((whole.build(participant, AST2_DEFAULTS, SHARED) as Ast2Config).mode).toBe('s2s');
     expect(contextsFor({ ...shape, participantSpeech: false }).participant!.speech).toBe(false);
   });
 
@@ -86,7 +89,7 @@ describe('the Doubao AST 2.0 definition', () => {
     const controller = new AbortController();
     const reason = new Error('cancelled');
     controller.abort(reason);
-    await expect(volcengineAst2Provider.start(
+    await expect(whole.start!(
       { context: AUTO_CTX, config: configFor(), credentials: APP_KEY, clock: createVirtualClock(0), signal: controller.signal },
       recordEvents().events,
     )).rejects.toBe(reason);

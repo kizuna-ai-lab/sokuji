@@ -11,6 +11,7 @@ import type { AnyProvider, AuthContext } from '../../lib/provider/types';
 import { createRunner } from '../../lib/session/runner';
 import type { RunShape } from '../../lib/session/types';
 import { shapeWith } from '../../lib/plan/testing';
+import { capabilitiesAlone } from '../../lib/plan/wholeUnit';
 import { fakeProvider } from '../fake/provider';
 import { FAKE_DEFAULTS } from '../fake/settings';
 import { createFakeSource } from '../fake/source';
@@ -31,9 +32,9 @@ describe('kizunaSonioxProvider', () => {
       kind: 'managed',
       vendor: 'Soniox',
       platforms: ['electron', 'extension', 'web'],
-      participantSpeech: true,
-      faceToFace: true,
     });
+    expect(capabilitiesAlone(kizunaSonioxProvider, 'speech').participantSpeech).toBe(true);
+    expect(capabilitiesAlone(kizunaSonioxProvider, 'transcription').faceToFace).toBe(true);
     expect(kizunaSonioxProvider.guideUrl).toBe('https://sokuji.kizuna.ai/docs/kizuna-ai/quick-start');
     expect(kizunaSonioxProvider.flagged).toBeUndefined();
     expect(kizunaSonioxProvider.settings).toEqual({ key: 'kizunaSoniox', defaults: SONIOX_DEFAULTS, migrate: migrateSonioxSettings });
@@ -50,9 +51,15 @@ describe('kizunaSonioxProvider', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("is Soniox's languages, capabilities, builder, adapter and turn detection", () => {
-    for (const member of ['languages', 'speech', 'textInput', 'boundaries', 'turns', 'build', 'describe', 'start', 'TurnDetection'] as const) {
+  it("is Soniox's languages, units and turn detection", () => {
+    for (const member of ['languages', 'TurnDetection'] as const) {
       expect(kizunaSonioxProvider[member], member).toBe(sonioxProvider[member]);
+    }
+    // Soniox's text units, over its builders and its adapter. The voice is made anew, with the twin's own flag.
+    const [stt, alone] = kizunaSonioxProvider.units;
+    const [ownStt, ownAlone] = sonioxProvider.units;
+    for (const [unit, own] of [[stt, ownStt], [alone, ownAlone]]) {
+      for (const member of ['build', 'describe', 'start'] as const) expect(unit[member], `${unit.id} ${member}`).toBe(own[member]);
     }
     expect(kizunaSonioxProvider.session!.startBoth).toBe(sonioxProvider.session!.startBoth);
     // Its file recognition is its own, never the base's: Soniox's needs the user's key, which the twin does not have.

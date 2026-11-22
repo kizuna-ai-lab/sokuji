@@ -7,6 +7,7 @@ import { formatUsdFloor } from '../../utils/formatters';
 import type { LegName } from '../conversation/types';
 import type { RunStage } from '../lineup/types';
 import { planOf, shapeWith, stubProvider, withWhole } from '../plan/testing';
+import { capabilitiesAlone } from '../plan/wholeUnit';
 import type { PlannedUnit } from '../plan/types';
 import type { AnyProvider, LanguageContext } from '../provider/types';
 import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, participantSpeechInput, planLanguages, QUOTA_PENDING, QUOTA_UNKNOWN, speakFor } from './shape';
@@ -77,12 +78,12 @@ describe('languageContext (Stage 2 Volcengine AST2, choice 1)', () => {
   const off = { textOnly: false, participantSpeech: false };
 
   it("speaks when any leg it opens speaks, by contextsFor's own rule", () => {
-    expect(languageContext(fakeProvider, ['speaker'], off)).toEqual({ speech: true });
-    expect(languageContext(fakeProvider, ['speaker'], { ...off, textOnly: true })).toEqual({ speech: false });
-    expect(languageContext(fakeProvider, ['participant'], off)).toEqual({ speech: false });
-    expect(languageContext(fakeProvider, ['participant'], { ...off, participantSpeech: true })).toEqual({ speech: true });
-    expect(languageContext(fakeProvider, ['speaker', 'participant'], { textOnly: true, participantSpeech: true })).toEqual({ speech: true });
-    expect(languageContext(fakeProvider, [], off)).toEqual({ speech: false });
+    expect(languageContext(capabilitiesAlone(fakeProvider, 'speech'), ['speaker'], off)).toEqual({ speech: true });
+    expect(languageContext(capabilitiesAlone(fakeProvider, 'speech'), ['speaker'], { ...off, textOnly: true })).toEqual({ speech: false });
+    expect(languageContext(capabilitiesAlone(fakeProvider, 'speech'), ['participant'], off)).toEqual({ speech: false });
+    expect(languageContext(capabilitiesAlone(fakeProvider, 'speech'), ['participant'], { ...off, participantSpeech: true })).toEqual({ speech: true });
+    expect(languageContext(capabilitiesAlone(fakeProvider, 'speech'), ['speaker', 'participant'], { textOnly: true, participantSpeech: true })).toEqual({ speech: true });
+    expect(languageContext(capabilitiesAlone(fakeProvider, 'speech'), [], off)).toEqual({ speech: false });
   });
 
   it("follows the provider's speech and its participant flag", () => {
@@ -95,8 +96,8 @@ describe('languageContext (Stage 2 Volcengine AST2, choice 1)', () => {
     for (const textOnly of [false, true]) {
       for (const participantSpeech of [false, true]) {
         const contexts = contextsFor(shape({ legs: ['speaker', 'participant'], textOnly, participantSpeech }));
-        expect(languageContext(fakeProvider, ['speaker'], { textOnly, participantSpeech }).speech).toBe(contexts.speaker?.speech);
-        expect(languageContext(fakeProvider, ['participant'], { textOnly, participantSpeech }).speech).toBe(contexts.participant?.speech);
+        expect(languageContext(capabilitiesAlone(fakeProvider, 'speech'), ['speaker'], { textOnly, participantSpeech }).speech).toBe(contexts.speaker?.speech);
+        expect(languageContext(capabilitiesAlone(fakeProvider, 'speech'), ['participant'], { textOnly, participantSpeech }).speech).toBe(contexts.participant?.speech);
       }
     }
   });

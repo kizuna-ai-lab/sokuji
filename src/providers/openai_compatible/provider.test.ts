@@ -44,10 +44,10 @@ describe('a compatible service', () => {
     expect(p.credentials.storedAt).toBeUndefined();
   });
 
-  it('translates through its one unit, and never starts a session whole', async () => {
+  it('translates through its one unit, and never starts a session whole', () => {
     expect(p.units?.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
-    expect(p.speech).toBe('never');
-    await expect(p.start({} as never, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
+    expect(p.units[0].capabilities(TEXT_MODEL_DEFAULTS).speech).toBe('never');
+    expect(p).not.toHaveProperty('start');
     expect(p.checkReads).toEqual(['translationModel', 'translationReasoning']);
   });
 });

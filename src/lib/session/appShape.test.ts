@@ -26,6 +26,7 @@ import { QWEN_DEFAULTS } from '../../providers/qwen_livetranslate/settings';
 import { useScreenContextStore } from '../../stores/screenContextStore';
 import { providersIn } from '../plan/read';
 import { planOf } from '../plan/testing';
+import { capabilitiesAlone } from '../plan/wholeUnit';
 import { FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
@@ -459,10 +460,10 @@ describe("readShapeFromStores — participant speech follows the whole-system ru
   it('is off, live, while the application capture has widened to the whole system (slice 1 final review, Important 2)', () => {
     environment.value = 'electron';
     useAudioStore.setState({ mode: 'both', selectedParticipantSource: { deviceId: 'app:42', label: 'App' }, participantCaptureWidened: true });
-    expect(speechFromStores(fakeProvider).them).toBe(false);
+    expect(speechFromStores(capabilitiesAlone(fakeProvider, 'speech')).them).toBe(false);
     expect(speechInputsFromStores().participantSpeech).toBe(false);
     useAudioStore.setState({ participantCaptureWidened: false });
-    expect(speechFromStores(fakeProvider).them).toBe(true);
+    expect(speechFromStores(capabilitiesAlone(fakeProvider, 'speech')).them).toBe(true);
   });
 
   it('is off on Electron under a whole-system participant source', () => {

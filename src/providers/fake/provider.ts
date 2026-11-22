@@ -56,7 +56,7 @@ export function startFake<C extends FakeConfig, K>(request: StartRequest<C, K>, 
   return (adapter ??= createFakeAdapter()).start(request as unknown as StartRequest<FakeConfig, FakeCredentials>, events);
 }
 
-/** The fake's whole unit, as parts: the definition spreads them, and Task 3 makes its unit of them. */
+/** The fake's whole unit, as parts: the definition's one unit is made of them, and a test may spy on one. */
 export const FAKE_WHOLE: WholeUnitParts<FakeSettings, FakeCredentials, FakeConfig> = {
   speech: 'optional',
   textInput: () => true,
@@ -93,6 +93,5 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
 
   languages: FAKE_LANGUAGES,
 
-  ...FAKE_WHOLE,
   units: [wholeUnitOf<FakeSettings, FakeCredentials, FakeConfig>(FAKE_WHOLE)],
 };

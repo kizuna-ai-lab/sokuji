@@ -113,7 +113,6 @@ export function sonioxOnSockets(
   }
   const provider = {
     ...of,
-    start: adapter.start,
     units: [sonioxSttUnitFor({ start: adapter.start, ...flag }), voice],
     session: { ...of.session, startBoth: adapter.startBoth },
   } as AnyProvider;

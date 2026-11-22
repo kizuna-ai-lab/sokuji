@@ -38,11 +38,11 @@ describe("OpenAI's text models", () => {
     expect(urls).toEqual(['https://api.openai.com/v1/models', 'https://api.openai.com/v1/chat/completions']);
   });
 
-  it('translate through their one unit, and never start a session whole', async () => {
+  it('translate through their one unit, and never start a session whole', () => {
     expect(p.units?.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
-    expect([p.speech, p.textInput(TEXT_MODEL_DEFAULTS)]).toEqual(['never', false]);
+    expect([p.units[0].capabilities(TEXT_MODEL_DEFAULTS).speech, p.units[0].capabilities(TEXT_MODEL_DEFAULTS).textInput]).toEqual(['never', false]);
     expect(p.settingsStages).toEqual([['translation']]);
-    await expect(p.start({} as never, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
+    expect(p).not.toHaveProperty('start');
   });
 });
 
