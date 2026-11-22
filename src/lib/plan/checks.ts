@@ -17,6 +17,9 @@ import type { PlanAccount, RunNotice } from '../session/types';
 import type { PlannedUnit, PlanRefusal, RunPlan, UnitCapabilities } from './types';
 import { unitsOf } from './wholeUnit';
 
+/** The stages of text: what a unit of a transcription provider is asked to occupy for face-to-face. */
+const TEXT_STAGES: ReadonlySet<RunStage> = new Set<RunStage>(['transcription', 'translation']);
+
 /**
  * A voice that reads a translation its own host did not both hear and make: refused when the voice is not offered
  * alone, then when a host of the text side takes no other voice (the one that transcribes first, then the one
@@ -94,10 +97,9 @@ function faceToFaceRefusal(plan: RunPlan, context: PlanCheckContext): PlanRefusa
   if (!context.faceToFaceAsked || plan.byStage.transcription === plan.byStage.translation) return null;
   const hearing = capabilitiesIn(plan, 'transcription', context);
   if (!hearing || hearing.faceToFace) return null;
-  const { provider } = plan.byStage.transcription;
-  const settings = context.accounts[provider.id]?.settings;
-  const text: ReadonlySet<RunStage> = new Set(['transcription', 'translation']);
-  const couldRun = unitsOf(provider).some((unit) => unit.occupies(settings, text) !== null && unit.capabilities(settings).faceToFace);
+  const transcriber = plan.byStage.transcription.provider;
+  const settings = context.accounts[transcriber.id]?.settings;
+  const couldRun = unitsOf(transcriber).some((unit) => unit.occupies(settings, TEXT_STAGES) !== null && unit.capabilities(settings).faceToFace);
   if (!couldRun) return null;
   return { refused: 'lineup_face_to_face_apart', stage: 'translation', provider: context.lineUp?.transcription ?? plan.byStage.transcription.provider.id };
 }

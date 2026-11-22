@@ -23,7 +23,7 @@ const HOST = 'local_inference';
  * Every stage on this machine: what the local provider resolves under where no line-up gives it a stage. Never a
  * null there: a null reaches model resolution with Bing and Edge among the choices. One object, so a memo holds.
  */
-export const ALL_LOCAL_STAGES: LocalStages = Object.freeze({ translation: 'local', speech: 'local' });
+export const ALL_LOCAL_STAGES: Readonly<LocalStages> = Object.freeze({ translation: 'local', speech: 'local' });
 
 /**
  * Null when there is no line-up, or the local provider serves no stage of it: then it resolves as today.
@@ -79,7 +79,7 @@ export function localTranscriptionStagesOf(lineUp: Pick<LineUp, RunStage> | null
  * translates. None without a stored line-up. No model of this machine runs for such a stage, and none is missing
  * for it.
  */
-export function unservedStages(stages: LocalStages | null): Array<'asr' | 'translation' | 'tts'> {
+export function unservedStages(stages: Readonly<LocalStages> | null): Array<'asr' | 'translation' | 'tts'> {
   if (!stages) return [];
   const transcribes = stages.transcription === 'local' || (stages.translation !== null && stages.transcription !== null);
   return [

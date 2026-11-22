@@ -18,18 +18,17 @@ export function isGpuOutOfMemory(message: string): boolean {
   return lower.includes('out_of_device_memory') || lower.includes('out of memory') || isDeviceLost(message);
 }
 
-/**
- * The Bing worker prefixes its errors with a tag (`[bing:token]`,
- * `[bing:network]`, …; `bing-translation.worker.ts`): peel it off into a
- * sentence. Untagged errors keep their own message. Today's
- * `humanizeTranslationError` (`LocalInferenceClient.ts` ~1406-1437).
- */
+/** What each Bing error tag says, as a sentence. */
 const BING_ERROR_MESSAGES: Record<string, string> = {
   token: 'Bing Translator could not connect. Check your network and try again.',
   unsupported: 'Bing Translator does not support this language pair.',
   network: 'Bing Translator is temporarily unavailable.',
 };
 
+/**
+ * The Bing worker prefixes its errors with a tag (`[bing:token]`, `[bing:network]`, …;
+ * `bing-translation.worker.ts`): peel it off into a sentence. Untagged errors keep their own message.
+ */
 export function humanizeTranslationError(error: unknown): string {
   const raw = error instanceof Error ? error.message : String(error ?? '');
   if (!raw) return 'Translation failed.';

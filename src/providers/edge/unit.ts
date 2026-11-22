@@ -12,6 +12,9 @@ import { isOff, startLocalSpeech, type LocalSpeechConfig } from '../../lib/local
 import { sameStages, type UnitDefinition } from '../../lib/plan/types';
 import type { EdgeSettings } from './settings';
 
+/** The Edge model the shared engine runs for Edge's voice. */
+const EDGE_MODEL_ID = 'edge-tts';
+
 /** Edge has no credentials. */
 export type EdgeCredentials = Record<string, never>;
 
@@ -42,8 +45,8 @@ export const edgeSpeechUnit: UnitDefinition<EdgeSettings, EdgeCredentials, Local
     if (!context.speech) return { off: true };
     const { source, target } = context.direction;
     const edgeVoice = s.voices[directionKey(source, target)];
-    return { modelId: 'edge-tts', speakerId: 0, speed: s.speed, ...(edgeVoice ? { edgeVoice } : {}) };
+    return { modelId: EDGE_MODEL_ID, speakerId: 0, speed: s.speed, ...(edgeVoice ? { edgeVoice } : {}) };
   },
-  describe: (c) => (isOff(c) ? {} : { ttsModel: 'edge-tts' }),
+  describe: (c) => (isOff(c) ? {} : { ttsModel: EDGE_MODEL_ID }),
   startSpeech: (request, events) => startLocalSpeech(() => new TtsEngine(), request, events),
 };

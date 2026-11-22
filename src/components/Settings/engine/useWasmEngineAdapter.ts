@@ -42,7 +42,7 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
   // runs says which stages this machine serves; where none does (another provider runs alone), all of them (`null`
   // would let the resolver answer with Bing or Edge, a value the list does not offer).
   const storedStages = useStoredLocalStages();
-  const stages: LocalStages = storedStages ?? ALL_LOCAL_STAGES;
+  const stages: Readonly<LocalStages> = storedStages ?? ALL_LOCAL_STAGES;
 
   return useMemo<EngineAdapter>(() => {
     const speaker = directionKey(sourceLanguage, targetLanguage);
