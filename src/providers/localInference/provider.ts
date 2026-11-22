@@ -74,8 +74,8 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   /**
    * Four units. The whole provider, for a line-up in which this device transcribes and translates: those stages
    * together, as before, and the composer takes it there before any cut (fewest units first). Its recognition alone,
-   * which transcribes for another provider to translate. Its translation alone (a local model, or Bing), which
-   * translates what another provider heard. And its voice alone (Edge, or a local speech model), which reads another
+   * which transcribes for another provider to translate. Its translation alone (a local model), which
+   * translates what another provider heard. And its voice alone (a local speech model), which reads another
    * provider's translations.
    */
   get units(): readonly UnitDefinition[] {

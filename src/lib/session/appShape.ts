@@ -8,6 +8,7 @@ import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { stageIdsFor } from '../lineup/catalog';
+import type { LineUp } from '../lineup/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
@@ -193,6 +194,12 @@ export function runPlanFromStores(): Pick<RunShape, 'plan' | 'accounts'> & { ent
   return { plan: found.plan, accounts, entry: transcriptionAccount(found) };
 }
 
+/** The line-up that composes the plan, and whether it is the one that runs: the stored one, or the one shown where this device runs before one is stored (`planFromStores`). */
+function lineUpThatRuns(): { lineUp: LineUp | null; stored: boolean } {
+  const { lineUp, stored, unstoredProvider } = useLineUpStore.getState();
+  return { lineUp, stored: stored || (unstoredProvider === 'local_inference' && lineUp !== null) };
+}
+
 export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const found = runPlanFromStores();
   if (!found) return null;
@@ -205,8 +212,9 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const account = useAccountStore.getState().account;
   const payer = accountPayer(account);
   const frames = screenContextWanted() ? useScreenContextStore.getState().sampler?.source : undefined;
-  // A stored line-up is what runs, and names the run's stages; until one is stored, the provider that runs does.
-  const { lineUp, stored } = useLineUpStore.getState();
+  // A stored line-up is what runs, and names the run's stages; until one is stored, so is the line-up shown where this
+  // device runs, and the provider that runs names them elsewhere.
+  const { lineUp, stored } = lineUpThatRuns();
   return {
     plan,
     accounts,
@@ -246,7 +254,7 @@ function gateInputFromStores(): GateInput | null {
   const found = runPlanFromStores();
   if (!found) return null;
   const account = useAccountStore.getState().account;
-  const { lineUp, stored } = useLineUpStore.getState();
+  const { lineUp, stored } = lineUpThatRuns();
   return {
     plan: found.plan,
     accounts: found.accounts,
@@ -314,7 +322,6 @@ export function ensureReadyFromStores(provider: AnyProvider, shape: RunShape, si
   const { settings, credentials } = accountOf(shape, provider);
   // The stages it serves in the run's plan, when another provider serves the rest.
   const stages = checkStagesOf(shape.plan, provider);
-  // The ids the run's frozen line-up gives those stages, when a stored line-up is what runs.
   return useProviderStore.getState().refreshReadiness(
     provider, shape.auth,
     { settings, credentials, pair: shape.pair, legs: shape.legs, ...(stages ? { stages } : {}) },

@@ -32,7 +32,7 @@ export const LOCAL_MODELS_MISSING = 'local_models_missing';
  * Where this provider translates what another provider transcribes, no
  * recognition model is asked for at all: each leg that runs needs the
  * translation of its own direction, a model on this machine that is
- * downloaded, or Bing, which needs none.
+ * downloaded.
  *
  * Where it transcribes what another provider translates, no translation
  * model is asked for: each leg that runs needs a recognition model for its

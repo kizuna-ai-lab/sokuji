@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { unservedStages } from '../../../lib/lineup/localStages';
+import { unservedStages, type LocalStages } from '../../../lib/lineup/localStages';
 import { useStoredLocalStages } from '../../../stores/lineUpStore';
 import {
   useModelStore, useModelStatuses, useWebGPUAvailable, useDeviceFeatures,
@@ -29,6 +29,9 @@ export interface WasmEngineAdapterOverride {
   speakerSpeaks?: boolean;
 }
 
+/** Every stage on this machine: what the list resolves with while no line-up is stored. One object, so the adapter's memo holds. */
+const ALL_LOCAL: LocalStages = { translation: 'local', speech: 'local' };
+
 /** LOCAL_INFERENCE's EngineAdapter — resolve() for display, selections for writes. */
 export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEngineAdapterOverride): EngineAdapter {
   const modelStatuses = useModelStatuses();
@@ -39,8 +42,10 @@ export function useWasmEngineAdapter(isSessionActive: boolean, override: WasmEng
   const targetLanguage = override.pair.target;
   const selections = override.settings.selections;
   // Bing and Edge are providers of their own: the local list and its automatic picks never hold them. A stored line-up
-  // also says which stages this machine serves.
-  const stages = useStoredLocalStages();
+  // says which stages this machine serves; until one is stored, all of them (an unstored line-up resolves to `null`,
+  // which would let the resolver answer with Bing or Edge, a value the list does not offer).
+  const storedStages = useStoredLocalStages();
+  const stages: LocalStages = storedStages ?? ALL_LOCAL;
 
   return useMemo<EngineAdapter>(() => {
     const speaker = directionKey(sourceLanguage, targetLanguage);

@@ -185,12 +185,21 @@ describe('readShapeFromStores — the line-up id that serves each stage', () => 
   });
 
   it('freezes the running provider on every stage while no line-up is stored', () => {
-    runsOn('local_inference');
-    useProviderStore.setState({ entries: { local_inference: localEntry } });
+    runsOn('fake');
+    useProviderStore.setState({ entries: { fake: { settings: FAKE_DEFAULTS, credentials: { apiKey: 'k' }, pair: { source: 'en', target: 'ja' } } } });
     useLineUpStore.setState({ lineUp: bingAndEdge, stored: false });
-    expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' });
+    expect(readShapeFromStores(auth)!.lineUp).toEqual({ transcription: 'fake', translation: 'fake', speech: 'fake' });
     // Not the stored one: the ids say nothing of Bing or Edge, and a builder is handed none of them.
     expect(readShapeFromStores(auth)!.lineUpStored).toBe(false);
+  });
+
+  it('freezes the line-up the settings show where this device runs while no line-up is stored', () => {
+    useProviderStore.setState({ entries: { local_inference: localEntry, bing: entryOf('bing'), edge: entryOf('edge') } });
+    useLineUpStore.setState({ lineUp: bingAndEdge, stored: false, unstoredProvider: 'local_inference' });
+    const shape = readShapeFromStores(auth)!;
+    expect(shape.lineUp).toEqual({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
+    expect(shape.lineUpStored).toBe(true);
+    expect(providersIn(shape.plan).map((p) => p.id)).toEqual(['local_inference', 'bing', 'edge']);
   });
 
   it('freezes the stored line-up, not the provider that ran before it was stored', () => {

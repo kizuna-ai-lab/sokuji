@@ -184,7 +184,7 @@ export function buildLocalInference(
   shared: SharedSettings,
 ): LocalInferenceConfig | ProviderRefusal {
   const { source } = context.direction;
-  // A line-up says whether translation and speech go to Bing and Edge or to this machine's models.
+  // A line-up says whether translation and speech go to this machine's models or to another provider.
   const resolved = resolveLocal(context.direction, s, localStagesFor(shared));
 
   if (!resolved.asr) return noAsr(source);

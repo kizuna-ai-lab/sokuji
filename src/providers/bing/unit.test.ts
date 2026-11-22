@@ -32,6 +32,10 @@ describe("Bing's translation unit", () => {
     expect(build({ source: 'auto', target: 'ja' })).toMatchObject({ refused: expect.stringContaining('fixed source language') });
   });
 
+  it('refuses a pair Bing does not support', () => {
+    expect(build({ source: 'la', target: 'en' })).toMatchObject({ refused: 'Bing Translator does not support this language pair.' });
+  });
+
   it('describes its model', () => {
     expect(bingTranslationUnit.describe({ modelId: 'bing-translator', instructions: '', wrapTranscript: false })).toEqual({ translationModel: 'bing-translator' });
   });
@@ -42,5 +46,9 @@ describe("Bing's translation unit", () => {
     expect(new Set(all).size).toBe(all.length);
     expect(bingTranslates('en', 'zh')).toBe(true);
     expect(bingTranslates('en', 'la')).toBe(false);
+    expect(bingTranslates('no', 'nb')).toBe(false);
+    expect(bingTranslates('en', 'nb')).toBe(true);
+    expect(bingTranslates('zh-CN', 'zh-TW')).toBe(true);
+    expect(bingTranslates('en', 'zh-Hant')).toBe(false);
   });
 });
