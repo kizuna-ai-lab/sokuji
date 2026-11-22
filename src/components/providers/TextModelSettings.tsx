@@ -1,10 +1,12 @@
 // src/components/providers/TextModelSettings.tsx
 //
-// A text-model provider's options on the line-up's Translation card (owner, 2026-11-22): the model, chosen from the
-// service's own list of text models ("Automatic" is the service's preferred one) or typed by name, which wins when
-// filled; and the reasoning, Off, Lowest, Low, Medium or High, or a value typed by hand, sent as it is. A service
-// that lists no model (a compatible one may not) shows only the name. Every one of these is the provider's own
-// setting, per stage (`translationModel`, `translationReasoning`); its readiness check tries what is chosen.
+// A text-model provider's options on the line-up's Translation card (owner, 2026-11-22), and the same on its Notes
+// card (text models, part C, `stage: 'notes'`): the model, chosen from the service's own list of text models
+// ("Automatic" is the service's preferred one for the stage) or typed by name, which wins when filled; and the
+// reasoning, Off, Lowest, Low, Medium or High, or a value typed by hand, sent as it is. A service that lists no model
+// (a compatible one may not) shows only the name. Every one of these is the provider's own setting, per stage
+// (`translationModel`, `translationReasoning`; `notesModel`, `notesReasoning`); its readiness check tries what is
+// chosen.
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { CircleHelp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -15,6 +17,7 @@ import { automaticModel, REASONING_LEVELS, type ModelChoice, type ReasoningChoic
 import type { TextModelService } from '../../lib/textModel/client';
 import { failureNoticeCode } from '../../lib/textModel/check';
 import { fingerprint } from '../../lib/textModel/fingerprint';
+import type { TextModelStage } from '../../lib/textModel/models';
 import { textModelList, type ModelListResult } from '../../lib/textModel/modelList';
 import type { TextModelSettings } from '../../lib/textModel/unit';
 import { noticeText } from '../../lib/view/noticeText';
@@ -77,18 +80,27 @@ function useModelList(service: TextModelService, credentials: Readonly<Record<st
 
 export interface TextModelSettingsViewProps extends SettingsProps<TextModelSettings> {
   service: TextModelService;
+  /** Which stage's model and reasoning: the translation's (the Translation card's), by default, or the notes'. */
+  stage?: TextModelStage;
 }
 
-/** The Translation card's options of a text-model provider. */
-export function TextModelSettingsView({ service, settings, update, disabled = false, models = [], account }: TextModelSettingsViewProps) {
+/** The settings fields of each stage. */
+const FIELDS = {
+  translation: { model: 'translationModel', reasoning: 'translationReasoning' },
+  notes: { model: 'notesModel', reasoning: 'notesReasoning' },
+} as const;
+
+/** The Translation card's options of a text-model provider, or the Notes card's. */
+export function TextModelSettingsView({ service, settings, update, disabled = false, models = [], account, stage = 'translation' }: TextModelSettingsViewProps) {
   const { t } = useTranslation();
   const list = useModelList(service, account?.credentials, models.map((m) => m.id));
   const ids = typeof list === 'object' && list.ok ? list.ids : [];
-  const model: ModelChoice = settings.translationModel;
-  const reasoning: ReasoningChoice = settings.translationReasoning;
-  const automatic = automaticModel(service, ids);
-  const setModel = (patch: Partial<ModelChoice>) => update({ translationModel: { ...model, ...patch } });
-  const setReasoning = (patch: Partial<ReasoningChoice>) => update({ translationReasoning: { ...reasoning, ...patch } });
+  const fields = FIELDS[stage];
+  const model: ModelChoice = settings[fields.model];
+  const reasoning: ReasoningChoice = settings[fields.reasoning];
+  const automatic = automaticModel(service, ids, stage);
+  const setModel = (patch: Partial<ModelChoice>) => update({ [fields.model]: { ...model, ...patch } });
+  const setReasoning = (patch: Partial<ReasoningChoice>) => update({ [fields.reasoning]: { ...reasoning, ...patch } });
   // A model chosen before that this list does not hold stays shown, chosen: the check says whether it still works.
   const listed = model.listed !== '' && !ids.includes(model.listed) ? [model.listed, ...ids] : ids;
   const typedModel = model.typed.trim() !== '';
@@ -97,48 +109,52 @@ export function TextModelSettingsView({ service, settings, update, disabled = fa
   // before stays shown, with the way back to none.
   const listsNone = typeof list === 'object' && list.ok && ids.length === 0;
   const noList = listsNone && model.listed === '';
-  const idPrefix = `text-model-${service}`;
+  // The Notes card's fields stand beside the Translation card's for the same provider: ids of their own.
+  const idPrefix = stage === 'notes' ? `text-model-${service}-notes` : `text-model-${service}`;
   // A value typed wins over the list above it, which is disabled while it is filled.
   const overrides = t('settingsPage.textModel.typedOverrides', 'Overrides the selection above. Clear to use the list again.');
-  return (
-    <StagePart stages={TL}>
-      <div className="settings-section text-model-settings">
-        {!noList && (
-          <div className="setting-item">
-            <div className="setting-label"><span>{t('settings.model', 'Model')}</span></div>
-            <select className="select-dropdown" aria-label={t('settings.model', 'Model')} value={model.listed} disabled={disabled || typedModel}
-              onChange={(e) => setModel({ listed: e.target.value })}>
-              {service === 'compatible'
-                ? <option value="">{t('settingsPage.textModel.chooseModel', 'Choose a model')}</option>
-                : <option value="">{automatic ? t('settingsPage.textModel.automaticModel', 'Automatic ({{model}})', { model: automatic }) : t('settingsPage.textModel.automatic', 'Automatic')}</option>}
-              {listed.map((id) => <option key={id} value={id}>{id}</option>)}
-            </select>
-          </div>
-        )}
-        {list === 'loading' && <div className="models-info">{t('settingsPage.textModel.listing', 'Finding models…')}</div>}
-        {typeof list === 'object' && !list.ok && (
-          <div className="models-info">{noticeText(t, { code: failureNoticeCode(list.failure.code), message: list.failure.message })}</div>
-        )}
-        {listsNone && <div className="models-info">{t('settingsPage.textModel.listEmpty', "This service lists no models: type the model's name.")}</div>}
-        <TextField id={`${idPrefix}-model-name`} label={t('settingsPage.textModel.modelName', 'Or type a model name')} value={model.typed}
-          onChange={(typed) => setModel({ typed })} disabled={disabled} note={overrides} />
+  const tooltip = stage === 'notes'
+    ? t('settingsPage.textModel.notesReasoningTooltip', 'Medium, the default, asks each step of the notes for the reasoning it was tested with: Low for each part and for the live notes, Medium to finish them, and less where the model takes less. Any other choice, or a value typed, is sent exactly as it is with every request: if the model refuses it, the Notes card says so.')
+    : t('settingsPage.textModel.reasoningTooltip', 'Lowest asks for the least reasoning the model takes, which is fastest. Any other choice is sent exactly as it is; if the model refuses it, the line-up says so before you start.');
+  const body = (
+    <div className="settings-section text-model-settings">
+      {!noList && (
         <div className="setting-item">
-          <div className="setting-label">
-            <span>{t('settings.reasoningEffort', 'Reasoning effort')}</span>
-            <Tooltip content={t('settingsPage.textModel.reasoningTooltip', 'Lowest asks for the least reasoning the model takes, which is fastest. Any other choice is sent exactly as it is; if the model refuses it, the line-up says so before you start.')} position="top">
-              <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
-            </Tooltip>
-          </div>
-          <select className="select-dropdown" aria-label={t('settings.reasoningEffort', 'Reasoning effort')} value={reasoning.level} disabled={disabled || typedReasoning}
-            onChange={(e) => setReasoning({ level: e.target.value as ReasoningLevel })}>
-            {REASONING_LEVELS.map((level) => <option key={level} value={level}>{t(LEVEL_WORDS[level].key, LEVEL_WORDS[level].fallback)}</option>)}
+          <div className="setting-label"><span>{t('settings.model', 'Model')}</span></div>
+          <select className="select-dropdown" aria-label={t('settings.model', 'Model')} value={model.listed} disabled={disabled || typedModel}
+            onChange={(e) => setModel({ listed: e.target.value })}>
+            {service === 'compatible'
+              ? <option value="">{t('settingsPage.textModel.chooseModel', 'Choose a model')}</option>
+              : <option value="">{automatic ? t('settingsPage.textModel.automaticModel', 'Automatic ({{model}})', { model: automatic }) : t('settingsPage.textModel.automatic', 'Automatic')}</option>}
+            {listed.map((id) => <option key={id} value={id}>{id}</option>)}
           </select>
         </div>
-        <TextField id={`${idPrefix}-reasoning-value`} label={t('settingsPage.textModel.reasoningValue', 'Or type a value, sent as it is')} value={reasoning.typed}
-          onChange={(typed) => setReasoning({ typed })} disabled={disabled} note={overrides} />
+      )}
+      {list === 'loading' && <div className="models-info">{t('settingsPage.textModel.listing', 'Finding models…')}</div>}
+      {typeof list === 'object' && !list.ok && (
+        <div className="models-info">{noticeText(t, { code: failureNoticeCode(list.failure.code), message: list.failure.message })}</div>
+      )}
+      {listsNone && <div className="models-info">{t('settingsPage.textModel.listEmpty', "This service lists no models: type the model's name.")}</div>}
+      <TextField id={`${idPrefix}-model-name`} label={t('settingsPage.textModel.modelName', 'Or type a model name')} value={model.typed}
+        onChange={(typed) => setModel({ typed })} disabled={disabled} note={overrides} />
+      <div className="setting-item">
+        <div className="setting-label">
+          <span>{t('settings.reasoningEffort', 'Reasoning effort')}</span>
+          <Tooltip content={tooltip} position="top">
+            <CircleHelp className="tooltip-trigger" size={14} style={{ marginLeft: '8px' }} />
+          </Tooltip>
+        </div>
+        <select className="select-dropdown" aria-label={t('settings.reasoningEffort', 'Reasoning effort')} value={reasoning.level} disabled={disabled || typedReasoning}
+          onChange={(e) => setReasoning({ level: e.target.value as ReasoningLevel })}>
+          {REASONING_LEVELS.map((level) => <option key={level} value={level}>{t(LEVEL_WORDS[level].key, LEVEL_WORDS[level].fallback)}</option>)}
+        </select>
       </div>
-    </StagePart>
+      <TextField id={`${idPrefix}-reasoning-value`} label={t('settingsPage.textModel.reasoningValue', 'Or type a value, sent as it is')} value={reasoning.typed}
+        onChange={(typed) => setReasoning({ typed })} disabled={disabled} note={overrides} />
+    </div>
   );
+  // The notes are no run stage: their card holds these options itself.
+  return stage === 'notes' ? body : <StagePart stages={TL}>{body}</StagePart>;
 }
 
 /** A provider's `Settings`: the view, told which service it is. */

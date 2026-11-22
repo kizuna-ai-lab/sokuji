@@ -70,6 +70,17 @@ vi.mock('../../lib/plan/choice', async (importOriginal) => {
   };
   return { ...actual, choiceInput };
 });
+// The Notes card's own check (text models, part C), answered here and never sent anywhere: the providers it was asked
+// for (outside a session), and the answer a test gives. Its own rules are notesReadiness.test.tsx's.
+const notesCheck = vi.hoisted(() => ({ asked: [] as string[], answer: {} as Record<string, unknown> }));
+vi.mock('./notesReadiness', () => ({
+  useNotesReadiness: (p: { id: string } | undefined, _auth: unknown, locked: boolean) => {
+    if (p && !locked && !notesCheck.asked.includes(p.id)) notesCheck.asked.push(p.id);
+    return (p ? notesCheck.answer[p.id] : undefined) ?? { state: 'unknown' };
+  },
+}));
+// A text model's list of models, for the notes' options: answered here, never asked of a service.
+vi.mock('../../lib/textModel/modelList', () => ({ textModelList: async () => ({ ok: true, ids: ['gpt-5-mini', 'gpt-6-luna'] }) }));
 const tracked = vi.hoisted(() => [] as Array<[string, unknown]>);
 vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: (name: string, props: unknown) => tracked.push([name, props]) }) }));
 
@@ -77,6 +88,7 @@ import { LineUpCategory, stageInSentence } from './LineUpCategory';
 import type { ReceiveChoices } from '../providers/LanguagePairSection';
 import { useWordList } from '../../lib/words/list';
 import { RELEASED } from '../../providers/registry';
+import { TEXT_MODEL_DEFAULTS } from '../../lib/textModel/unit';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
@@ -91,6 +103,8 @@ const NOT_ALONE = { code: 'lineup_voice_not_alone', message: '', params: { stage
 const optionTexts = (name: string) => within(screen.getByRole('combobox', { name })).getAllByRole('option').map((o) => o.textContent ?? '');
 
 beforeEach(() => {
+  notesCheck.asked = [];
+  notesCheck.answer = {};
   languagesProps.last = null;
   env.electron = true;
   authState.signedIn = true;
@@ -1251,33 +1265,30 @@ describe('languages and line-up — as the mock draws them', () => {
   });
 });
 
-// The fourth stage (stage 3, client side): the notes after a session, written with the user's own OpenAI key.
+// The fourth stage (stage 3, client side): the notes after a session, written with the user's own key by a text model
+// (text models, part C: OpenAI's, Gemini's or a compatible service's), or by Kizuna AI.
 describe('the notes card', () => {
-  const openAiKey = () => useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: 'sk-test' } } } as never });
-  // The key checks the card asks for, answered here and never sent anywhere.
-  let checked: string[] = [];
-  beforeEach(() => {
-    checked = [];
-    useProviderStore.setState({ refreshReadiness: (async (p: { id: string }) => { checked.push(p.id); return { state: 'unknown' }; }) as never });
-  });
+  // The one OpenAI key, which OpenAI's text model writes the notes with, as the app loads it: in both entries.
+  const openAiKey = (apiKey = 'sk-test') => useProviderStore.setState((st) => ({
+    entries: {
+      ...st.entries,
+      openai: { settings: {}, credentials: { apiKey } },
+      openai_text: { settings: TEXT_MODEL_DEFAULTS, credentials: { apiKey }, pair: { source: 'ja', target: 'en' } },
+    },
+  }) as never);
+  const geminiKey = () => useProviderStore.setState((st) => ({
+    entries: { ...st.entries, gemini_text: { settings: TEXT_MODEL_DEFAULTS, credentials: { apiKey: 'gm-test' }, pair: { source: 'ja', target: 'en' } } },
+  }) as never);
+  const notesCard = () => screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
+  const settle = () => act(async () => { await new Promise((r) => setTimeout(r, 20)); });
 
   // The owner, 2026-11-17: OpenAI chosen for the notes said "Key not verified" for ever — only the session's own
-  // provider is checked by itself. The card checks the key it shows, once, when nothing has checked it yet.
-  it("checks an OpenAI key chosen for the notes, though the session runs on another service", async () => {
+  // provider is checked by itself. The card asks the notes' check of the service it shows, outside a session.
+  it("checks an OpenAI key chosen for the notes, though the session runs on another service: OpenAI's text model, about the notes", async () => {
     authState.signedIn = false;
     openAiKey();
     render(<LineUpCategory locked={false} />);
-    await waitFor(() => expect(checked).toEqual(['openai']));
-  });
-
-  const settle = () => new Promise((r) => setTimeout(r, 20));
-  it('checks no OpenAI key already checked', async () => {
-    authState.signedIn = false;
-    openAiKey();
-    useProviderStore.setState({ readiness: { openai: { state: 'ready', models: [] } } as never });
-    render(<LineUpCategory locked={false} />);
-    await settle();
-    expect(checked).toEqual([]);
+    await waitFor(() => expect(notesCheck.asked).toEqual(['openai_text']));
   });
 
   it('checks no OpenAI key when Kizuna AI writes the notes', async () => {
@@ -1285,7 +1296,7 @@ describe('the notes card', () => {
     openAiKey();
     render(<LineUpCategory locked={false} />);
     await settle();
-    expect(checked).toEqual([]);
+    expect(notesCheck.asked).toEqual([]);
   });
 
   // Andrew's review: each condition on its own, the key never checked yet.
@@ -1294,23 +1305,23 @@ describe('the notes card', () => {
     openAiKey();
     render(<LineUpCategory locked />);
     await settle();
-    expect(checked).toEqual([]);
+    expect(notesCheck.asked).toEqual([]);
   });
 
   it('checks nothing when OpenAI is chosen for the notes but has no key', async () => {
     authState.signedIn = false;
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
-    useProviderStore.setState({ entries: { openai: { settings: {}, credentials: { apiKey: '' } } } as never });
+    openAiKey('');
     render(<LineUpCategory locked={false} />);
     await settle();
-    expect(checked).toEqual([]);
+    expect(notesCheck.asked).toEqual([]);
   });
 
   // Owner, 2026-11-17: no "None"; the card always names a service, Kizuna AI by default where it is offered.
   it('signed out with no OpenAI key: Kizuna AI by default, waiting for a sign-in, and the card says how to have notes written', () => {
     authState.signedIn = false;
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI-compatible service']);
     expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai_openai');
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a sign-in')).toBeInTheDocument();
@@ -1347,7 +1358,7 @@ describe('the notes card', () => {
     notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI', 'OpenAI-compatible service']);
     expect(screen.queryByText(/Add an OpenAI key/)).toBeNull();
     // The owner, 2026-11-17: Kizuna AI's prices only where Kizuna AI writes the notes; not under OpenAI's own key.
     const price = 'Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.';
@@ -1363,7 +1374,7 @@ describe('the notes card', () => {
   // them, Kizuna AI's sign-in once Kizuna AI does, with nothing of OpenAI's key left.
   it("swaps OpenAI's key state for Kizuna AI's sign-in when the notes stage changes to Kizuna AI", async () => {
     openAiKey();
-    useProviderStore.setState({ readiness: { openai: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never });
+    notesCheck.answer.openai_text = { state: 'not-ready', code: 'auth', reason: 'HTTP 401' };
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
     const card = () => screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
@@ -1378,7 +1389,7 @@ describe('the notes card', () => {
     authState.signedIn = false;
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI-compatible service']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a sign-in')).toBeInTheDocument();
   });
@@ -1386,7 +1397,7 @@ describe('the notes card', () => {
   it('without the hosted services, OpenAI by default, needing a key, and the card says where to add one', () => {
     noHosted.value = true;
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['OpenAI']);
+    expect(optionTexts('Notes')).toEqual(['OpenAI', 'OpenAI-compatible service']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a key')).toBeInTheDocument();
     expect(screen.getByText('Add an OpenAI key in Accounts and keys to have notes written.')).toBeInTheDocument();
@@ -1395,7 +1406,7 @@ describe('the notes card', () => {
   it('offers OpenAI once it has a key, and a choice sets the notes stage alone', async () => {
     openAiKey();
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI', 'OpenAI-compatible service']);
     fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
     await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'openai' }));
     expect(tracked).toContainEqual(['lineup_changed', { stage: 'summarisation', from: null, to: 'openai', moved: [], during_session: false }]);
@@ -1457,7 +1468,7 @@ describe('the notes card', () => {
   it('signed out with an OpenAI key and nothing chosen: OpenAI by default, ready', () => {
     authState.signedIn = false;
     openAiKey();
-    useProviderStore.setState({ readiness: { openai: { state: 'ready', models: [] } } as never });
+    notesCheck.answer.openai_text = { state: 'ready', models: [] };
     render(<LineUpCategory locked={false} />);
     expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('openai');
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
@@ -1468,7 +1479,7 @@ describe('the notes card', () => {
   it('does not call an OpenAI key the service refuses Ready on the notes card, and takes you to the key', () => {
     authState.signedIn = false;
     openAiKey();
-    useProviderStore.setState({ readiness: { openai: { state: 'not-ready', code: 'auth', reason: 'HTTP 401' } } as never });
+    notesCheck.answer.openai_text = { state: 'not-ready', code: 'auth', reason: 'HTTP 401' };
     render(<LineUpCategory locked={false} />);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).queryByText('Ready')).toBeNull();
@@ -1501,7 +1512,7 @@ describe('the notes card', () => {
   it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI', 'OpenAI-compatible service']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a key')).toBeInTheDocument();
   });
@@ -1516,7 +1527,7 @@ describe('the notes card', () => {
       const select = screen.getByRole('combobox', { name: 'Notes' });
       expect(select).toHaveClass('provider-select');
       const kizuna = within(select).getByRole('option', { name: /^Kizuna AI/ });
-      const openai = within(select).getByRole('option', { name: /^OpenAI/ });
+      const openai = within(select).getByRole('option', { name: /^OpenAI(?!-compatible)/ });
       expect(kizuna.querySelector('.provider-select__icon')).not.toBeNull();
       expect(openai.querySelector('.provider-select__icon')).not.toBeNull();
       expect(kizuna.querySelector('.provider-select__description')).toHaveTextContent('OpenAI writes the notes through Kizuna AI, paid from your balance.');
@@ -1530,5 +1541,74 @@ describe('the notes card', () => {
     env.electron = false;
     render(<LineUpCategory locked={false} />);
     expect(screen.queryByRole('combobox', { name: 'Notes' })).toBeNull();
+  });
+  // Text models, part C: Gemini's text model and a compatible service write the notes too.
+  it("offers Gemini's text model once its key is there, with its line; a choice sets the notes stage and checks it", async () => {
+    baseSelect.rich = true;
+    geminiKey();
+    try {
+      render(<LineUpCategory locked={false} />);
+      const values = within(screen.getByRole('combobox', { name: 'Notes' })).getAllByRole('option').map((o) => (o as HTMLOptionElement).value);
+      expect(values).toEqual(['kizunaai_openai', 'gemini_text', 'openai_compatible']);
+      const gemini = within(screen.getByRole('combobox', { name: 'Notes' })).getByRole('option', { name: /^Gemini text model/ });
+      expect(gemini.querySelector('.provider-select__description')).toHaveTextContent('Writes the notes with your own Gemini key.');
+    } finally {
+      baseSelect.rich = false;
+    }
+    fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'gemini_text' } });
+    await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'gemini_text' }));
+    await waitFor(() => expect(notesCheck.asked).toEqual(['gemini_text']));
+  });
+
+  it("says a notes model or reasoning the service refuses on the card, in the service's words: Not ready", () => {
+    geminiKey();
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'gemini_text' }, stored: true });
+    notesCheck.answer.gemini_text = { state: 'not-ready', code: 'refused', reason: "Unsupported value: 'reasoning_effort' does not support 'high'." };
+    render(<LineUpCategory locked={false} />);
+    expect(within(notesCard()).getByText('Not ready')).toBeInTheDocument();
+    expect(within(notesCard()).getByRole('status')).toHaveTextContent("Unsupported value: 'reasoning_effort' does not support 'high'.");
+    cleanup();
+    notesCheck.answer.gemini_text = { state: 'ready', models: [] };
+    render(<LineUpCategory locked={false} />);
+    expect(within(notesCard()).getByText('Ready')).toBeInTheDocument();
+    expect(within(notesCard()).queryByRole('status')).toBeNull();
+  });
+
+  it('a compatible service chosen with no address needs one, and leads to its row', () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai_compatible' }, stored: true });
+    useProviderStore.setState({ entries: { openai_compatible: { settings: TEXT_MODEL_DEFAULTS, credentials: { baseUrl: '', apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('openai_compatible');
+    fireEvent.click(within(notesCard()).getByRole('button', { name: 'Needs an address' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider:openai_compatible');
+    expect(notesCheck.asked).toEqual([]);
+  });
+
+  it("folds the service's notes model and reasoning under the choice: Automatic and Medium by default, a choice its own", async () => {
+    openAiKey();
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    const fold = within(notesCard()).getByRole('button', { name: 'OpenAI options' });
+    expect(fold).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(fold);
+    const model = within(notesCard()).getByRole('combobox', { name: 'Model' });
+    await waitFor(() => expect(within(model).getAllByRole('option').map((o) => o.textContent)).toEqual(['Automatic (gpt-6-luna)', 'gpt-5-mini', 'gpt-6-luna']));
+    const reasoning = within(notesCard()).getByRole('combobox', { name: 'Reasoning effort' });
+    expect(reasoning).toHaveValue('medium');
+    fireEvent.change(reasoning, { target: { value: 'high' } });
+    expect((useProviderStore.getState().entries.openai_text?.settings as typeof TEXT_MODEL_DEFAULTS).notesReasoning).toEqual({ level: 'high', typed: '' });
+    expect((useProviderStore.getState().entries.openai_text?.settings as typeof TEXT_MODEL_DEFAULTS).translationReasoning).toEqual(TEXT_MODEL_DEFAULTS.translationReasoning);
+  });
+
+  it('has no options to fold for Kizuna AI, and none during a session that can be changed', () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
+    const first = render(<LineUpCategory locked={false} />);
+    expect(within(notesCard()).queryByRole('button', { name: /options$/ })).toBeNull();
+    first.unmount();
+    openAiKey();
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
+    render(<LineUpCategory locked />);
+    fireEvent.click(within(notesCard()).getByRole('button', { name: 'OpenAI options' }));
+    expect(within(notesCard()).getByRole('combobox', { name: 'Reasoning effort' })).toBeDisabled();
   });
 });

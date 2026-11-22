@@ -3,9 +3,10 @@
 // "Languages and line-up": the language pair, the speech mode, and one row per
 // stage choosing the provider that serves it (Plan 4's line-up). Which model or
 // setting a provider uses is that provider's own options, folded under the rows.
-// On the desktop a fourth card chooses who writes the notes: none, Kizuna AI
-// (signed in, paid from the balance, through our relay), or OpenAI with the
-// user's own key.
+// On the desktop a fourth card chooses who writes the notes: Kizuna AI (signed
+// in, paid from the balance, through our relay), or a text model with the user's
+// own key (text models, part C): OpenAI's, Gemini's or a compatible service's,
+// with its notes model and reasoning folded under the choice.
 import { useWordList } from '../../lib/words/list';
 import { modelTakesWords, wordServiceOf, wordsFor } from '../../lib/words/forService';
 import { effectiveGeminiModel } from '../../providers/gemini/settings';
@@ -20,7 +21,9 @@ import { usePlan } from '../../lib/plan/fromStores';
 import type { PlanRefusalCode } from '../../lib/plan/types';
 import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
 import { noticeText } from '../../lib/view/noticeText';
-import { GEMINI_KEY_HOLDERS, KIZUNA_NOTES, notesServiceOf } from '../../lib/notes/notesService';
+import {
+  COMPATIBLE_NOTES, GEMINI_KEY_HOLDERS, GEMINI_NOTES, KIZUNA_NOTES, notesProviderOf, notesServiceOf, OPENAI_KEY_HOLDERS, OPENAI_NOTES,
+} from '../../lib/notes/notesService';
 import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
 import { presentProviders } from '../../providers/registry';
@@ -69,6 +72,11 @@ const CANNOT_COMBINE: ReadonlySet<string> = new Set(['lineup_voice_not_alone', '
 
 import { stageInSentence } from '../../lib/lineup/stageWords';
 import { isTextModelProvider } from '../../lib/textModel/ids';
+import type { TextModelService } from '../../lib/textModel/client';
+import type { TextModelSettings } from '../../lib/textModel/unit';
+import type { Readiness } from '../../stores/providerStore';
+import { TextModelSettingsView } from '../providers/TextModelSettings';
+import { useNotesReadiness } from './notesReadiness';
 export { stageInSentence };
 
 /**
@@ -194,31 +202,43 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       });
   };
 
-  // The notes card: Kizuna AI wherever the hosted services are, usable signed in; OpenAI once it has a key. Either
-  // stays listed while it is chosen, to show what it lacks. It always names one (owner, 2026-11-17: no "None"): with
-  // none stored, the default; whether notes are written is the switches' call in History and notes.
+  // The notes card: Kizuna AI wherever the hosted services are, usable signed in; OpenAI once it has a key; Gemini's
+  // text model once its key is there, and a compatible service, where the desktop app offers them (text models, part
+  // C). Each stays listed while it is chosen, to show what it lacks. It always names one (owner, 2026-11-17: no
+  // "None"): with none stored, the default; whether notes are written is the switches' call in History and notes.
   const openAi = providers.find((p) => p.id === 'openai');
-  const openAiKeyed = Boolean(openAi) && credentialsMissing(openAi, auth.signedIn) === null;
-  const kizunaOffered = isElectron() && providers.some((p) => p.kind === 'managed');
-  // Gemini's text model and a compatible service write notes where they are offered (text models, part C).
-  const textModelsOffered = providers.some((p) => p.id === 'gemini_text');
-  const geminiKeyed = GEMINI_KEY_HOLDERS.some((id) => {
+  const keyedAmong = (ids: readonly string[]) => ids.some((id) => {
     const p = providers.find((x) => x.id === id);
     return Boolean(p) && credentialsMissing(p, auth.signedIn) === null;
   });
+  const openAiKeyed = keyedAmong(OPENAI_KEY_HOLDERS);
+  const kizunaOffered = isElectron() && providers.some((p) => p.kind === 'managed');
+  const textModelsOffered = providers.some((p) => p.id === notesProviderOf(GEMINI_NOTES));
+  const geminiKeyed = keyedAmong(GEMINI_KEY_HOLDERS);
   const notesService = notesServiceOf(lineUp, { hostedOffered: kizunaOffered, signedIn: auth.signedIn, openAiKeyed, geminiKeyed, textModelsOffered });
   const kizunaChosen = notesService === KIZUNA_NOTES;
-  // The app checks only the session's own provider by itself: OpenAI chosen for the notes alone was never checked, and
-  // its card said "Key not verified" for ever (the owner, 2026-11-17). The card checks the key it shows, once, while
-  // nothing has checked it yet; not during a session.
-  const openAiNotesUnchecked = notesService === 'openai' && openAiKeyed && Boolean(entries.openai)
-    && (readiness.openai?.state ?? 'unknown') === 'unknown';
-  useEffect(() => {
-    if (!openAiNotesUnchecked || locked || !openAi) return;
-    void useProviderStore.getState().refreshReadiness(openAi, auth);
-  }, [openAiNotesUnchecked, locked]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The provider that writes them with the user's own key (OpenAI's notes are its text model's), and what it lacks.
+  const notesProvider = providers.find((p) => p.id === notesProviderOf(notesService));
+  const notesMissing = credentialsMissing(notesProvider, auth.signedIn);
+  // The notes are no run stage: nothing checks their service by itself. The card asks the provider's check about the
+  // notes (the key, then the notes' model with their reasoning) while it shows a service that has what it needs; not
+  // during a session (the owner, 2026-11-17: "Key not verified" for ever otherwise).
+  const notesReadiness = useNotesReadiness(notesProvider && !notesMissing ? notesProvider : undefined, auth, locked);
   const notesPricing = useNotesPricing(kizunaOffered);
   const kizunaBlocked = kizunaOffered && !auth.signedIn && !kizunaChosen;
+  const providerName = (id: string, fallback: string) => t(`providers.${id}.name`, fallback);
+  /** The notes services with the user's own key: their names, icons and lines, and whether each is offered now. */
+  const ownKeyNotes: Array<{ id: string; name: string; line: string; offered: boolean }> = [
+    { id: OPENAI_NOTES, name: 'OpenAI', line: t('settingsPage.lineup.notesOpenAiLine', 'Writes the notes with your own OpenAI key.'), offered: openAiKeyed },
+    {
+      id: GEMINI_NOTES, name: providerName('gemini_text', 'Gemini text model'),
+      line: t('settingsPage.lineup.notesGeminiLine', 'Writes the notes with your own Gemini key.'), offered: textModelsOffered && geminiKeyed,
+    },
+    {
+      id: COMPATIBLE_NOTES, name: providerName('openai_compatible', 'OpenAI-compatible service'),
+      line: t('settingsPage.lineup.notesCompatibleLine', 'Writes the notes with the service at the address you enter.'), offered: textModelsOffered,
+    },
+  ];
   // The notes' choices, as the other stages draw theirs; their lines say how each writes the notes.
   const notesOptions: ProviderOptionModel[] = [
     ...(kizunaOffered || kizunaChosen ? [{
@@ -226,11 +246,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       description: t('settingsPage.lineup.notesKizunaLine', 'OpenAI writes the notes through Kizuna AI, paid from your balance.'),
       ...(kizunaBlocked ? { blocked: t('settingsPage.lineup.needsSignIn', 'needs a sign-in') } : {}),
     }] : []),
-    ...(openAiKeyed || notesService === 'openai' ? [{
-      id: 'openai', name: 'OpenAI', icon: openAi?.icon,
-      description: t('settingsPage.lineup.notesOpenAiLine', 'Writes the notes with your own OpenAI key.'),
-    }] : []),
+    ...ownKeyNotes.filter((o) => o.offered || notesService === o.id).map((o) => ({
+      id: o.id, name: o.name, icon: providers.find((p) => p.id === notesProviderOf(o.id))?.icon ?? (o.id === OPENAI_NOTES ? openAi?.icon : undefined),
+      description: o.line,
+    })),
   ];
+  const notesName = ownKeyNotes.find((o) => o.id === notesService)?.name ?? notesService;
+  const [notesOpen, setNotesOpen] = useState(false);
   const chooseNotes = async (id: string) => {
     choiceCount.current += 1;
     setFollowedBy(null);
@@ -359,8 +381,8 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   }
 
   /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work, or a sign-in it waits for, takes you to
-   *  that provider's row in Accounts and keys. */
-  const stateOf = (id: string): { ok: boolean; text: string; toAccount?: boolean } => {
+   *  that provider's row in Accounts and keys. `own`: a readiness of the card's own in place of the provider's (the notes'). */
+  const stateOf = (id: string, own?: Readiness): { ok: boolean; text: string; toAccount?: boolean } => {
     const p = providers.find((x) => x.id === id) ?? (caps(id)?.host === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
     // Bing and Edge are online services the local provider runs: no key and no model.
     if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
@@ -368,7 +390,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toAccount: true };
     if (missing === 'address') return { ok: false, text: t('settingsPage.lineup.state.needsAddress', 'Needs an address'), toAccount: true };
     if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in'), toAccount: true };
-    const r = p ? readiness[p.id] : undefined;
+    const r = own ?? (p ? readiness[p.id] : undefined);
     if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
     // A saved key is Ready only once its check passed (B-11; Rudolf's review: saved is not working). The store keeps a
     // passed check for the same key and region, so a key that worked before stays Ready when the service is out of reach.
@@ -394,12 +416,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     }
     return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
   };
-  /** A row's state as drawn: a key it lacks or that does not work, or a sign-in it waits for, is a way to its account row. */
-  const stateTag = (id: string) => {
-    const s = stateOf(id);
+  /**
+   * A row's state as drawn: a key it lacks or that does not work, or a sign-in it waits for, is a way to its account row.
+   * `o.readiness`: the card's own (the notes'); `o.target`: the id whose account row it leads to, when not `id`.
+   */
+  const stateTag = (id: string, o: { readiness?: Readiness; target?: string } = {}) => {
+    const s = stateOf(id, o.readiness);
     const className = `lineup-stage__state${s.ok ? ' is-ready' : ''}`;
     return s.toAccount
-      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(providerTarget(id))}>{s.text}</button>
+      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(providerTarget(o.target ?? id))}>{s.text}</button>
       : <em className={className}>{s.text}</em>;
   };
 
@@ -429,11 +454,24 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     return <p className="lineup-stage__refusal" role="status">{noticeText(t, { code: r.code, message: r.reason, ...(r.params ? { params: r.params } : {}) })}</p>;
   };
 
-  // The notes card's state: Kizuna AI's from the sign-in; OpenAI's is the OpenAI stage's own (stateTag), so a key that
-  // is missing, rejected or not yet checked reads the same here as on a stage, and takes you to the key (review).
+  // The notes card's state: Kizuna AI's from the sign-in; a service with the user's own key reads as a stage's does
+  // (stateTag), from the notes' own check, so a key that is missing, rejected or not yet checked reads the same here as
+  // on a stage, and takes you to the key (review); a model or a reasoning value the service refuses is "Not ready",
+  // in the service's words under the choice.
   const kizunaNotesState = auth.signedIn
     ? { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') }
     : { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in') };
+  /** What the notes' check found wrong, in the service's words, under the Notes card's choice. */
+  const notesCheckWords = (() => {
+    if (kizunaChosen || !notesProvider || notesMissing) return null;
+    const r = notesReadiness;
+    if (r.state !== 'not-ready' || r.code === undefined || r.code === 'auth') return null;
+    return <p className="lineup-stage__refusal" role="status">{noticeText(t, { code: r.code, message: r.reason, ...(r.params ? { params: r.params } : {}) })}</p>;
+  })();
+  /** The service each text-model provider asks. */
+  const TEXT_SERVICE: Readonly<Record<string, TextModelService>> = { openai_text: 'openai', gemini_text: 'gemini', openai_compatible: 'compatible' };
+  const notesEntry = notesProvider ? entries[notesProvider.id] : undefined;
+  const notesTextService = notesProvider ? TEXT_SERVICE[notesProvider.id] : undefined;
 
   // Granite Speech is a local model: when the local transcription and translation choices are the same Granite
   // Speech model, today's code turns speech straight into the translation (Plan 4, Task 3).
@@ -640,14 +678,14 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           );
         })}
         {isElectron() && (
-          <div className="lineup-stage">
+          <div className="lineup-stage" id="lineup-notes-section">
             <div className="lineup-stage__head">
               <span className="lineup-stage__name">{t('settingsPage.lineup.stages.summarisation', 'Notes')}</span>
               {kizunaChosen
                 ? kizunaNotesState.ok
                   ? <em className="lineup-stage__state is-ready">{kizunaNotesState.text}</em>
                   : <button type="button" className="lineup-stage__state lineup-stage__state--link" onClick={() => navigateToSettings('user-account')}>{kizunaNotesState.text}</button>
-                : stateTag('openai')}
+                : stateTag(notesProvider?.id ?? notesService, { readiness: notesReadiness, target: notesService })}
             </div>
             {/* Drawn like the other stages' choices (owner, 2026-11-17): an icon, the name, a line about writing notes. */}
             <select className="select-dropdown provider-select" value={notesService} disabled={locked} aria-label={t('settingsPage.lineup.stages.summarisation', 'Notes')}
@@ -659,14 +697,33 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
             {kizunaChosen && auth.signedIn && notesPricing && (
               <p className="lineup-stage__joint">{t('settingsPage.lineup.notesKizunaPrice', 'Kizuna AI estimates: live notes about {{live}} an hour, notes after a session about {{after}} an hour, paid from the balance that pays for your sessions.', { live: perHour(notesPricing.liveUsdPerHour), after: perHour(notesPricing.afterSessionUsdPerHour) })}</p>
             )}
-            {!openAiKeyed && !kizunaOffered && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}
+            {/* Where OpenAI would write them and has no key. */}
+            {notesService === OPENAI_NOTES && !openAiKeyed && !kizunaOffered && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}
             {/* Signed out where Kizuna AI writes the notes: chosen on purpose, adding a key does not change the choice, so
                 the line says to choose OpenAI here too (review); by default, a key is enough. */}
             {kizunaOffered && !auth.signedIn && (lineUp?.summarisation === KIZUNA_NOTES
               ? <p className="lineup-stage__joint">{openAiKeyed
                 ? t('settingsPage.lineup.notesNeedSignInOrChoose', 'Sign in, or choose OpenAI here, to have notes written.')
                 : t('settingsPage.lineup.notesNeedSignInOrKeyAndChoose', 'Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written.')}</p>
-              : !openAiKeyed && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedSignInOrKey', 'Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')}</p>)}
+              : kizunaChosen && !openAiKeyed && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedSignInOrKey', 'Sign in, or add an OpenAI key in Accounts and keys, to have notes written.')}</p>)}
+            {notesCheckWords}
+            {/* The service's notes model and reasoning (text models, part C), folded as a stage's options are. */}
+            {notesProvider && notesEntry && notesTextService && (
+              <div className="lineup-stage__options" id="lineup-options-notes">
+                <button type="button" className="lineup-options__fold" aria-expanded={notesOpen} onClick={() => setNotesOpen(!notesOpen)}>
+                  {notesOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  {t('settingsPage.lineup.options', '{{provider}} options', { provider: notesName })}
+                </button>
+                {notesOpen && (
+                  <div className="lineup-stage__options-body">
+                    <TextModelSettingsView service={notesTextService} stage="notes" settings={notesEntry.settings as TextModelSettings}
+                      update={(patch) => useProviderStore.getState().updateSettings(notesProvider, patch)} disabled={locked}
+                      models={notesReadiness.state === 'ready' ? notesReadiness.models : []}
+                      account={{ credentials: notesEntry.credentials, auth }} />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
