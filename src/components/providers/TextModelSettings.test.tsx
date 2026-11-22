@@ -55,6 +55,26 @@ describe("a text model's options", () => {
     expect(lists.again).toEqual([true, false, true]);
   });
 
+  // Review of #853: the last ready check's models are the credentials' it was made with, not another key's.
+  it("while the list is on its way, offers the last ready check's models only when they are the current key's", async () => {
+    lists.answer = new Promise(() => {});
+    const before = [{ id: 'gpt-4.1-mini' }];
+    const view = (apiKey: string, models: readonly { id: string }[]) => (
+      <TextModelSettingsView service="openai" settings={TEXT_MODEL_DEFAULTS} update={vi.fn()} models={models} account={account({ apiKey })} />
+    );
+    const options = () => [...screen.getByRole('combobox', { name: 'Model' }).querySelectorAll('option')].map((o) => o.textContent);
+    const { rerender } = render(view('test-key-0000', before));
+    expect(options()).toEqual(['Automatic (gpt-4.1-mini)', 'gpt-4.1-mini']);
+    // Another key: its list is on its way, and the models found with the key before are not its.
+    rerender(view('test-key-0001', before));
+    expect(screen.getByText('Finding models…')).toBeInTheDocument();
+    expect(options()).toEqual(['Automatic']);
+    // A check made with this key found these.
+    rerender(view('test-key-0001', [{ id: 'gpt-5-mini' }]));
+    expect(options()).toEqual(['Automatic (gpt-5-mini)', 'gpt-5-mini']);
+    expect(screen.queryByText('Finding models…')).toBeNull();
+  });
+
   it("a model's name typed wins: the list is set aside while it is filled", async () => {
     const { update } = draw({ settings: { translationModel: { listed: 'gpt-5.4', typed: 'ft:gpt-5.4:org' } } });
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Model' })).toBeDisabled());

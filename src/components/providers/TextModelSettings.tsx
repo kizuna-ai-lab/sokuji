@@ -14,6 +14,7 @@ import type { SettingsProps } from '../../lib/provider/types';
 import { automaticModel, REASONING_LEVELS, type ModelChoice, type ReasoningChoice, type ReasoningLevel } from '../../lib/textModel/choice';
 import type { TextModelService } from '../../lib/textModel/client';
 import { failureNoticeCode } from '../../lib/textModel/check';
+import { fingerprint } from '../../lib/textModel/fingerprint';
 import { textModelList, type ModelListResult } from '../../lib/textModel/modelList';
 import type { TextModelSettings } from '../../lib/textModel/unit';
 import { noticeText } from '../../lib/view/noticeText';
@@ -31,8 +32,8 @@ const LEVEL_WORDS: Readonly<Record<ReasoningLevel, { key: string; fallback: stri
 
 /**
  * The service's text models, from the page's list (asked afresh when the card opens, then once per key and address),
- * or from the provider's last ready check while the list is on its way. 'none': there is nothing to ask with (no key,
- * no address); 'loading': asked.
+ * or, while the list is on its way, from the provider's last ready check when it was made with this key and address.
+ * 'none': there is nothing to ask with (no key, no address); 'loading': asked.
  */
 /** How long the key and address must stay unchanged before the model list is asked for. */
 export const MODEL_LIST_DELAY_MS = 500;
@@ -41,7 +42,13 @@ function useModelList(service: TextModelService, credentials: Readonly<Record<st
   const baseUrl = service === 'compatible' ? credentials?.baseUrl ?? '' : undefined;
   const apiKey = credentials?.apiKey ?? '';
   const [answer, setAnswer] = useState<{ key: string; result: ModelListResult } | undefined>(undefined);
-  const key = JSON.stringify([service, baseUrl, apiKey]);
+  // Which key and address: by a digest, never the key.
+  const key = JSON.stringify([service, baseUrl ?? null, fingerprint([apiKey])]);
+  // The key and address the last ready check's models are of: those in place when they came, or when the card opened.
+  const found = JSON.stringify(checked);
+  const [checkedFor, setCheckedFor] = useState({ found, key });
+  if (checkedFor.found !== found) setCheckedFor({ found, key });
+  const checkedNow = checkedFor.found !== found || checkedFor.key === key;
   // Nothing to ask with: no key for a service that needs one, or no address for a compatible one.
   const askable = service === 'compatible' ? (baseUrl ?? '').trim() !== '' : apiKey.trim() !== '';
   // The card's first list is asked afresh: a model the service added since the page last asked is offered.
@@ -64,7 +71,8 @@ function useModelList(service: TextModelService, credentials: Readonly<Record<st
   }, [askable, key]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!askable) return 'none';
   if (answer?.key === key) return answer.result;
-  return checked.length > 0 ? { ok: true, ids: [...checked] } : 'loading';
+  // Models found with another key or address are not this one's: its own list is awaited.
+  return checkedNow && checked.length > 0 ? { ok: true, ids: [...checked] } : 'loading';
 }
 
 export interface TextModelSettingsViewProps extends SettingsProps<TextModelSettings> {
