@@ -1858,7 +1858,8 @@
         "belongsTo": "{{region}} bölgesine ait",
         "switched": "{{region}} bölgesine geçildi: bu anahtar yalnızca orada çalışır."
       },
-      "findModels": "Modelleri bul"
+      "findModels": "Modelleri bul",
+      "configure": "Yapılandır"
     },
     "lineup": {
       "title": "Düzen",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "“En düşük”, modelin kabul ettiği en az akıl yürütmeyi ister; en hızlısı budur. Diğer her seçim olduğu gibi gönderilir: model reddederse, düzen bunu başlamadan önce söyler.",
       "reasoningValue": "Ya da olduğu gibi gönderilecek bir değer yazın",
       "listing": "Modeller aranıyor…",
-      "listEmpty": "Bu hizmet model listelemiyor: modelin adını yazın."
+      "listEmpty": "Bu hizmet model listelemiyor: modelin adını yazın.",
+      "typedOverrides": "Yukarıdaki seçimin yerine geçer. Listeyi yeniden kullanmak için temizleyin."
     }
   },
   "history": {

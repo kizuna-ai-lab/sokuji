@@ -1858,7 +1858,8 @@
         "belongsTo": "属于 {{region}}",
         "switched": "已切到 {{region}}：这个密钥只在那里能用。"
       },
-      "findModels": "查找模型"
+      "findModels": "查找模型",
+      "configure": "设置"
     },
     "lineup": {
       "title": "会话组成",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "“最低”会请求模型接受的最少推理，速度最快。其他选择会原样发送：如果模型不接受，会在开始前在会话组成中提示。",
       "reasoningValue": "或输入一个值，原样发送",
       "listing": "正在查找模型…",
-      "listEmpty": "此服务没有列出任何模型：请输入模型名称。"
+      "listEmpty": "此服务没有列出任何模型：请输入模型名称。",
+      "typedOverrides": "填写后使用此值；清空后恢复上面的选择。"
     }
   },
   "history": {

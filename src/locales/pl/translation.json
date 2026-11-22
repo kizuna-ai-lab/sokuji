@@ -1858,7 +1858,8 @@
         "belongsTo": "Należy do regionu {{region}}",
         "switched": "Przełączono na {{region}}: ten klucz działa tylko tam."
       },
-      "findModels": "Znajdź modele"
+      "findModels": "Znajdź modele",
+      "configure": "Skonfiguruj"
     },
     "lineup": {
       "title": "Zestaw",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "„Najniższy” prosi o najmniej rozumowania, jakie model przyjmuje, co jest najszybsze. Każdy inny wybór jest wysyłany dokładnie tak, jak jest: jeśli model go odrzuci, zestaw powie o tym przed rozpoczęciem.",
       "reasoningValue": "Lub wpisz wartość wysyłaną bez zmian",
       "listing": "Szukanie modeli…",
-      "listEmpty": "Ta usługa nie podaje listy modeli: wpisz nazwę modelu."
+      "listEmpty": "Ta usługa nie podaje listy modeli: wpisz nazwę modelu.",
+      "typedOverrides": "Zastępuje wybór powyżej. Wyczyść, aby wrócić do listy."
     }
   },
   "history": {

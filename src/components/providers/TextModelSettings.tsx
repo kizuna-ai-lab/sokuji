@@ -83,6 +83,8 @@ export function TextModelSettingsView({ service, settings, update, disabled = fa
   // A compatible service that lists nothing has nothing to choose from: only the name.
   const noList = typeof list === 'object' && list.ok && ids.length === 0;
   const idPrefix = `text-model-${service}`;
+  // A value typed wins over the list above it, which is disabled while it is filled.
+  const overrides = t('settingsPage.textModel.typedOverrides', 'Overrides the selection above. Clear to use the list again.');
   return (
     <StagePart stages={TL}>
       <div className="settings-section text-model-settings">
@@ -104,7 +106,7 @@ export function TextModelSettingsView({ service, settings, update, disabled = fa
         )}
         {noList && <div className="models-info">{t('settingsPage.textModel.listEmpty', "This service lists no models: type the model's name.")}</div>}
         <TextField id={`${idPrefix}-model-name`} label={t('settingsPage.textModel.modelName', 'Or type a model name')} value={model.typed}
-          onChange={(typed) => setModel({ typed })} disabled={disabled} />
+          onChange={(typed) => setModel({ typed })} disabled={disabled} note={overrides} />
         <div className="setting-item">
           <div className="setting-label">
             <span>{t('settings.reasoningEffort', 'Reasoning effort')}</span>
@@ -118,7 +120,7 @@ export function TextModelSettingsView({ service, settings, update, disabled = fa
           </select>
         </div>
         <TextField id={`${idPrefix}-reasoning-value`} label={t('settingsPage.textModel.reasoningValue', 'Or type a value, sent as it is')} value={reasoning.typed}
-          onChange={(typed) => setReasoning({ typed })} disabled={disabled} />
+          onChange={(typed) => setReasoning({ typed })} disabled={disabled} note={overrides} />
       </div>
     </StagePart>
   );

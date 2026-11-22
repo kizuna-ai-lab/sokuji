@@ -217,7 +217,9 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
               </div>
               <button type="button" className="accounts-row__toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : a.key)}>
                 {isOpen ? t('settingsPage.accounts.hide', 'Hide')
-                  : a.kind === 'key' && !keySaved(p) ? t('settingsPage.accounts.addKey', 'Add key') : t('settingsPage.accounts.view', 'View')}
+                  // The compatible service is set up by its address first, and its key may be none: it is configured, not keyed.
+                  : a.kind === 'key' && !keySaved(p) ? (p?.id === 'openai_compatible' ? t('settingsPage.accounts.configure', 'Configure') : t('settingsPage.accounts.addKey', 'Add key'))
+                    : t('settingsPage.accounts.view', 'View')}
               </button>
             </div>
             {/* Signed in, the title bar's account panel (owner, 2026-11-15): the balance, the organization's too, and

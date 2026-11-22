@@ -1858,7 +1858,8 @@
         "belongsTo": "Milik {{region}}",
         "switched": "Bertukar ke {{region}}: kunci ini hanya berfungsi di sana."
       },
-      "findModels": "Cari model"
+      "findModels": "Cari model",
+      "configure": "Tetapkan"
     },
     "lineup": {
       "title": "Susunan",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "“Paling rendah” meminta penaakulan paling sedikit yang diterima model, iaitu yang paling pantas. Pilihan lain dihantar tepat seperti adanya: jika model menolaknya, susunan memberitahu sebelum anda bermula.",
       "reasoningValue": "Atau taip nilai, dihantar seperti adanya",
       "listing": "Mencari model…",
-      "listEmpty": "Perkhidmatan ini tidak menyenaraikan model: taip nama model."
+      "listEmpty": "Perkhidmatan ini tidak menyenaraikan model: taip nama model.",
+      "typedOverrides": "Menggantikan pilihan di atas. Kosongkan untuk menggunakan senarai semula."
     }
   },
   "history": {

@@ -1858,7 +1858,8 @@
         "belongsTo": "Belongs to {{region}}",
         "switched": "Switched to {{region}}: this key works there only."
       },
-      "findModels": "Find models"
+      "findModels": "Find models",
+      "configure": "Configure"
     },
     "lineup": {
       "title": "Line-up",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "Lowest asks for the least reasoning the model takes, which is fastest. Any other choice is sent exactly as it is: if the model refuses it, the line-up says so before you start.",
       "reasoningValue": "Or type a value, sent as it is",
       "listing": "Finding models…",
-      "listEmpty": "This service lists no models: type the model's name."
+      "listEmpty": "This service lists no models: type the model's name.",
+      "typedOverrides": "Overrides the selection above. Clear to use the list again."
     }
   },
   "history": {

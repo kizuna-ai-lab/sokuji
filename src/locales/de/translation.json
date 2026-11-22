@@ -1858,7 +1858,8 @@
         "belongsTo": "Gehört zu {{region}}",
         "switched": "Zu {{region}} gewechselt: Dieser Schlüssel funktioniert nur dort."
       },
-      "findModels": "Modelle suchen"
+      "findModels": "Modelle suchen",
+      "configure": "Einrichten"
     },
     "lineup": {
       "title": "Aufstellung",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "„Niedrigste“ verlangt so wenig Argumentation, wie das Modell zulässt – das ist am schnellsten. Jede andere Wahl wird genau so gesendet: Lehnt das Modell sie ab, sagt die Aufstellung das vor dem Start.",
       "reasoningValue": "Oder einen Wert eingeben, der unverändert gesendet wird",
       "listing": "Modelle werden gesucht…",
-      "listEmpty": "Dieser Dienst listet keine Modelle: Geben Sie den Namen des Modells ein."
+      "listEmpty": "Dieser Dienst listet keine Modelle: Geben Sie den Namen des Modells ein.",
+      "typedOverrides": "Ersetzt die Auswahl oben. Leeren, um wieder die Liste zu verwenden."
     }
   },
   "history": {

@@ -164,7 +164,7 @@ describe('accounts and keys', () => {
     render(<AccountsCategory locked={false} />);
     expect(row('OpenAI-compatible service')).toHaveTextContent('Needs an address');
     expect(row('OpenAI-compatible service').querySelector('.accounts-row__chips')).toHaveTextContent('Translation');
-    fireEvent.click(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Add key' }));
+    fireEvent.click(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Configure' }));
     expect(within(row('OpenAI-compatible service')).getByRole('textbox', { name: 'Address' })).toBeInTheDocument();
     expect(within(row('OpenAI-compatible service')).getByLabelText('API key (optional)')).toBeInTheDocument();
     expect(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Find models' })).toBeDisabled();

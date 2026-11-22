@@ -12,6 +12,8 @@ export interface TextFieldProps {
   disabled?: boolean;
   /** A page to manage what the field names (Doubao's console libraries), opened outside the app. */
   link?: { href: string; label: string };
+  /** A line of small text under the input: what the value does. */
+  note?: string;
 }
 
 /**
@@ -21,7 +23,7 @@ export interface TextFieldProps {
  * shared so a provider's own settings compose it rather than copy it.
  * `LinesField` is its multi-line sibling.
  */
-export function TextField({ id, label, tooltip, value, onChange, disabled = false, link }: TextFieldProps) {
+export function TextField({ id, label, tooltip, value, onChange, disabled = false, link, note }: TextFieldProps) {
   return (
     <div className="setting-item">
       <div className="setting-label">
@@ -50,6 +52,7 @@ export function TextField({ id, label, tooltip, value, onChange, disabled = fals
         disabled={disabled}
         placeholder=""
       />
+      {note !== undefined && <div className="models-info">{note}</div>}
     </div>
   );
 }

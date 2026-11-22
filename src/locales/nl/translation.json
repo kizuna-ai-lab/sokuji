@@ -1858,7 +1858,8 @@
         "belongsTo": "Hoort bij {{region}}",
         "switched": "Overgeschakeld naar {{region}}: deze sleutel werkt alleen daar."
       },
-      "findModels": "Modellen zoeken"
+      "findModels": "Modellen zoeken",
+      "configure": "Instellen"
     },
     "lineup": {
       "title": "Opstelling",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "‘Laagst’ vraagt om zo weinig redeneren als het model toestaat, wat het snelst is. Elke andere keuze wordt precies zo verstuurd: weigert het model die, dan meldt de opstelling dat voordat je begint.",
       "reasoningValue": "Of typ een waarde, die ongewijzigd wordt verstuurd",
       "listing": "Modellen worden gezocht…",
-      "listEmpty": "Deze dienst geeft geen modellen: typ de naam van het model."
+      "listEmpty": "Deze dienst geeft geen modellen: typ de naam van het model.",
+      "typedOverrides": "Vervangt de keuze hierboven. Maak leeg om de lijst weer te gebruiken."
     }
   },
   "history": {

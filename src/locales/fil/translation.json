@@ -1858,7 +1858,8 @@
         "belongsTo": "Para sa {{region}}",
         "switched": "Lumipat sa {{region}}: dito lang gumagana ang key na ito."
       },
-      "findModels": "Hanapin ang mga modelo"
+      "findModels": "Hanapin ang mga modelo",
+      "configure": "I-configure"
     },
     "lineup": {
       "title": "Line-up",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "Ang “Pinakamababa” ay humihingi ng pinakakaunting pangangatuwiran na tinatanggap ng modelo, na pinakamabilis. Ang ibang pili ay ipinapadala nang eksakto: kung tanggihan ito ng modelo, sasabihin ito ng line-up bago ka magsimula.",
       "reasoningValue": "O mag-type ng value, ipapadala nang ganoon",
       "listing": "Hinahanap ang mga modelo…",
-      "listEmpty": "Walang inililistang modelo ang serbisyong ito: i-type ang pangalan ng modelo."
+      "listEmpty": "Walang inililistang modelo ang serbisyong ito: i-type ang pangalan ng modelo.",
+      "typedOverrides": "Pinapalitan ang napili sa itaas. I-clear para magamit muli ang listahan."
     }
   },
   "history": {

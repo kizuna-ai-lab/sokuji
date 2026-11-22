@@ -1858,7 +1858,8 @@
         "belongsTo": "Kuuluu alueeseen {{region}}",
         "switched": "Vaihdettiin alueeseen {{region}}: avain toimii vain siellä."
       },
-      "findModels": "Hae malleja"
+      "findModels": "Hae malleja",
+      "configure": "Määritä"
     },
     "lineup": {
       "title": "Kokoonpano",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "”Pienin” pyytää vähimmän päättelyn, jonka malli hyväksyy, mikä on nopeinta. Muu valinta lähetetään täsmälleen sellaisenaan: jos malli hylkää sen, kokoonpano kertoo sen ennen aloittamista.",
       "reasoningValue": "Tai kirjoita arvo, joka lähetetään sellaisenaan",
       "listing": "Haetaan malleja…",
-      "listEmpty": "Tämä palvelu ei luettele malleja: kirjoita mallin nimi."
+      "listEmpty": "Tämä palvelu ei luettele malleja: kirjoita mallin nimi.",
+      "typedOverrides": "Korvaa yllä olevan valinnan. Tyhjennä kenttä käyttääksesi luetteloa uudelleen."
     }
   },
   "history": {

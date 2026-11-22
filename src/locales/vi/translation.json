@@ -1858,7 +1858,8 @@
         "belongsTo": "Thuộc {{region}}",
         "switched": "Đã chuyển sang {{region}}: khóa này chỉ dùng được ở đó."
       },
-      "findModels": "Tìm mô hình"
+      "findModels": "Tìm mô hình",
+      "configure": "Thiết lập"
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "“Thấp nhất” yêu cầu mức suy luận ít nhất mà mô hình chấp nhận, nhanh nhất. Mọi lựa chọn khác được gửi đúng như vậy: nếu mô hình từ chối, phần phối hợp sẽ báo trước khi bạn bắt đầu.",
       "reasoningValue": "Hoặc nhập một giá trị, gửi đúng như vậy",
       "listing": "Đang tìm mô hình…",
-      "listEmpty": "Dịch vụ này không liệt kê mô hình nào: hãy nhập tên mô hình."
+      "listEmpty": "Dịch vụ này không liệt kê mô hình nào: hãy nhập tên mô hình.",
+      "typedOverrides": "Thay cho lựa chọn ở trên. Xóa trống để dùng lại danh sách."
     }
   },
   "history": {

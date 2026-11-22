@@ -1858,7 +1858,8 @@
         "belongsTo": "屬於 {{region}}",
         "switched": "已切換到 {{region}}：這個金鑰只在那裡能用。"
       },
-      "findModels": "尋找模型"
+      "findModels": "尋找模型",
+      "configure": "設定"
     },
     "lineup": {
       "title": "工作階段組成",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "「最低」會要求模型接受的最少推理，速度最快。其他選擇會原樣送出：若模型不接受，會在開始前於工作階段組成中提示。",
       "reasoningValue": "或輸入一個值，原樣送出",
       "listing": "正在尋找模型…",
-      "listEmpty": "此服務沒有列出任何模型：請輸入模型名稱。"
+      "listEmpty": "此服務沒有列出任何模型：請輸入模型名稱。",
+      "typedOverrides": "填寫後使用此值；清空後恢復上面的選擇。"
     }
   },
   "history": {

@@ -1858,7 +1858,8 @@
         "belongsTo": "Pertence a {{region}}",
         "switched": "Mudou para {{region}}: esta chave só funciona aí."
       },
-      "findModels": "Procurar modelos"
+      "findModels": "Procurar modelos",
+      "configure": "Configurar"
     },
     "lineup": {
       "title": "Composição",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "«Mínimo» pede o menor raciocínio que o modelo aceita, o que é mais rápido. Qualquer outra escolha é enviada exatamente como está: se o modelo a recusar, a composição avisa antes de iniciar.",
       "reasoningValue": "Ou escreva um valor, enviado tal como está",
       "listing": "A procurar modelos…",
-      "listEmpty": "Este serviço não lista modelos: escreva o nome do modelo."
+      "listEmpty": "Este serviço não lista modelos: escreva o nome do modelo.",
+      "typedOverrides": "Substitui a seleção acima. Apague para voltar a usar a lista."
     }
   },
   "history": {

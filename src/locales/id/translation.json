@@ -1858,7 +1858,8 @@
         "belongsTo": "Milik {{region}}",
         "switched": "Beralih ke {{region}}: kunci ini hanya berfungsi di sana."
       },
-      "findModels": "Cari model"
+      "findModels": "Cari model",
+      "configure": "Atur"
     },
     "lineup": {
       "title": "Susunan",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "“Terendah” meminta penalaran paling sedikit yang diterima model, yang paling cepat. Pilihan lain dikirim persis apa adanya: jika model menolaknya, susunan memberi tahu sebelum Anda mulai.",
       "reasoningValue": "Atau ketik nilai, dikirim apa adanya",
       "listing": "Mencari model…",
-      "listEmpty": "Layanan ini tidak mencantumkan model: ketik nama modelnya."
+      "listEmpty": "Layanan ini tidak mencantumkan model: ketik nama modelnya.",
+      "typedOverrides": "Menggantikan pilihan di atas. Kosongkan untuk memakai daftar lagi."
     }
   },
   "history": {

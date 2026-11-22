@@ -1858,7 +1858,8 @@
         "belongsTo": "Pertenece a {{region}}",
         "switched": "Cambiado a {{region}}: esta clave solo funciona allí."
       },
-      "findModels": "Buscar modelos"
+      "findModels": "Buscar modelos",
+      "configure": "Configurar"
     },
     "lineup": {
       "title": "Combinación",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "«Mínimo» pide el menor razonamiento que admite el modelo, que es lo más rápido. Cualquier otra opción se envía tal cual: si el modelo la rechaza, la combinación lo indica antes de empezar.",
       "reasoningValue": "O escribe un valor, que se envía tal cual",
       "listing": "Buscando modelos…",
-      "listEmpty": "Este servicio no lista modelos: escribe el nombre del modelo."
+      "listEmpty": "Este servicio no lista modelos: escribe el nombre del modelo.",
+      "typedOverrides": "Sustituye la selección de arriba. Vacíalo para volver a usar la lista."
     }
   },
   "history": {

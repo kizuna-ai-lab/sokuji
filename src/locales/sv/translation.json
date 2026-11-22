@@ -1858,7 +1858,8 @@
         "belongsTo": "Hör till {{region}}",
         "switched": "Bytte till {{region}}: nyckeln fungerar bara där."
       },
-      "findModels": "Hitta modeller"
+      "findModels": "Hitta modeller",
+      "configure": "Konfigurera"
     },
     "lineup": {
       "title": "Uppsättning",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "”Lägsta” ber om så lite resonerande som modellen godtar, vilket är snabbast. Alla andra val skickas exakt som de är: om modellen avvisar valet säger uppsättningen det innan du startar.",
       "reasoningValue": "Eller skriv ett värde som skickas som det är",
       "listing": "Söker modeller…",
-      "listEmpty": "Den här tjänsten listar inga modeller: skriv modellens namn."
+      "listEmpty": "Den här tjänsten listar inga modeller: skriv modellens namn.",
+      "typedOverrides": "Ersätter valet ovan. Töm fältet för att använda listan igen."
     }
   },
   "history": {

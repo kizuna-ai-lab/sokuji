@@ -1858,7 +1858,8 @@
         "belongsTo": "Appartient à {{region}}",
         "switched": "Passé à {{region}} : cette clé ne fonctionne que là."
       },
-      "findModels": "Trouver les modèles"
+      "findModels": "Trouver les modèles",
+      "configure": "Configurer"
     },
     "lineup": {
       "title": "Composition",
@@ -2019,7 +2020,8 @@
       "reasoningTooltip": "« Le plus bas » demande le moins de raisonnement que le modèle accepte, ce qui est le plus rapide. Tout autre choix est envoyé tel quel : si le modèle le refuse, la composition le signale avant le démarrage.",
       "reasoningValue": "Ou saisissez une valeur, envoyée telle quelle",
       "listing": "Recherche des modèles…",
-      "listEmpty": "Ce service ne liste aucun modèle : saisissez le nom du modèle."
+      "listEmpty": "Ce service ne liste aucun modèle : saisissez le nom du modèle.",
+      "typedOverrides": "Remplace la sélection ci-dessus. Videz le champ pour revenir à la liste."
     }
   },
   "history": {
