@@ -99,11 +99,8 @@ describe('kizunaSonioxProvider', () => {
     // A stand-in adapter keeps sockets out; the lease, the claim and the floor are Kizuna Soniox's own.
     const provider = {
       ...kizunaSonioxProvider,
-      build: fakeProvider.build,
-      describe: fakeProvider.describe,
-      start: fakeProvider.start,
       // One whole unit over the stand-in, not Soniox's own two.
-      units: undefined,
+      units: fakeProvider.units,
       session: { ...kizunaSonioxProvider.session, startBoth: undefined },
     } as AnyProvider;
     const fetch = vi.fn(async (url: string) => (url.endsWith('/soniox/session-key')

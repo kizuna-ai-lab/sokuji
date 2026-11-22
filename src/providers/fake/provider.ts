@@ -3,7 +3,7 @@ import type { Adapter, AdapterEvents, AdapterSession, SessionContext, StartReque
 import { identityWire } from '../../lib/language/wire';
 import { AUTO } from '../../lib/provider/languages';
 import type { CheckResult, LanguageOption, Provider, ProviderRefusal, SharedSettings } from '../../lib/provider/types';
-import type { WholeUnitParts } from '../../lib/plan/wholeUnit';
+import { wholeUnitOf, type WholeUnitParts } from '../../lib/plan/wholeUnit';
 import { createFakeAdapter, type FakeConfig, type FakeCredentials } from './adapter';
 import { FakeSettingsView } from './FakeSettingsView';
 import { fakeScript } from './scripts';
@@ -94,4 +94,5 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
   languages: FAKE_LANGUAGES,
 
   ...FAKE_WHOLE,
+  units: [wholeUnitOf<FakeSettings, FakeCredentials, FakeConfig>(FAKE_WHOLE)],
 };

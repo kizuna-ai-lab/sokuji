@@ -6,10 +6,11 @@ import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import { accountOf } from '../plan/read';
-import { shapeWith, stubSpeechUnit, textAndSpeechPlan, type StubCalls } from '../plan/testing';
+import { shapeWith, stubSpeechUnit, withWhole, textAndSpeechPlan, type StubCalls } from '../plan/testing';
 import type { PlannedUnit } from '../plan/types';
+import type { WholeUnitParts } from '../plan/wholeUnit';
 import type { AnyProvider } from '../provider/types';
-import { fakeProvider } from '../../providers/fake/provider';
+import { FAKE_WHOLE, fakeProvider, startFake } from '../../providers/fake/provider';
 import { fakeScript } from '../../providers/fake/scripts';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
@@ -24,8 +25,8 @@ const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-function withHooks(session: SessionHooks<unknown, unknown, unknown>, patch: Partial<AnyProvider> = {}): AnyProvider {
-  return { ...fakeProvider, ...patch, session } as AnyProvider;
+function withHooks(session: SessionHooks<unknown, unknown, unknown>, patch: Partial<WholeUnitParts> = {}): AnyProvider {
+  return withWhole(fakeProvider, FAKE_WHOLE, { ...patch, session });
 }
 
 function setup(provider: AnyProvider, legs: RunShape['legs'] = ['speaker'], openSource?: (leg: LegName) => Source, track: (event: string, props?: unknown) => void = () => {}, frames?: FramePort) {
@@ -119,9 +120,9 @@ describe('runner — admit', () => {
 
   it('starts each leg admit answers for with its config in place of the one built, the other leg as built', async () => {
     const started: Array<{ source: string; script: unknown }> = [];
-    const start: AnyProvider['start'] = (request, events) => {
+    const start: WholeUnitParts['start'] = (request, events) => {
       started.push({ source: request.context.direction.source, script: (request.config as { script: unknown }).script });
-      return fakeProvider.start(request as never, events);
+      return startFake(request as never, events);
     };
     const admit = (configs: Partial<Record<LegName, unknown>>) => ({ configs: { participant: { ...(configs.participant as object), script: fakeScript('cjk') } } });
     const { runner } = setup(withHooks({ admit }, { start }), ['speaker', 'participant']);
@@ -219,7 +220,7 @@ describe('runner — acquire', () => {
         async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
           const leg = request.context.direction.source === 'en' ? 'speaker' : 'participant';
           seen[leg] = request.credentials;
-          const inner = await fakeProvider.start(request as StartRequest<never, never>, events);
+          const inner = await startFake(request as StartRequest<never, never>, events);
           return { ...inner, info: inner.info, appendAudio: () => {}, appendText: () => {}, beginTurn: () => {}, endTurn: () => {}, cancelTurn: () => {},
             stop: async () => { order.push(`${leg} closed`); await inner.stop(); } } as AdapterSession;
         },
@@ -339,8 +340,8 @@ describe('runner — acquire', () => {
 describe('runner — startBoth (D23)', () => {
   it('hands both legs to startBoth at once, each on its own source', async () => {
     const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => ({
-      speaker: await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker),
-      participant: await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant),
+      speaker: await startFake(requests.speaker as StartRequest<never, never>, events.speaker),
+      participant: await startFake(requests.participant as StartRequest<never, never>, events.participant),
     }));
     const { runner, sources, clock } = setup(withHooks({ startBoth }), ['speaker', 'participant']);
     await runner.start();
@@ -353,8 +354,8 @@ describe('runner — startBoth (D23)', () => {
 
   it('a plan of a text unit and a speech unit starts both legs through its text provider\'s startBoth, once, and each speaking leg gets its voice', async () => {
     const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => ({
-      speaker: await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker),
-      participant: await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant),
+      speaker: await startFake(requests.speaker as StartRequest<never, never>, events.speaker),
+      participant: await startFake(requests.participant as StartRequest<never, never>, events.participant),
     }));
     const provider = withHooks({ startBoth });
     const { runner, sources, clock, shape } = setup(provider, ['speaker', 'participant']);
@@ -413,8 +414,8 @@ describe('runner — startBoth (D23)', () => {
     const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => {
       requestsSeen = requests;
       return {
-        speaker: await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker),
-        participant: await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant),
+        speaker: await startFake(requests.speaker as StartRequest<never, never>, events.speaker),
+        participant: await startFake(requests.participant as StartRequest<never, never>, events.participant),
       };
     });
     const { runner } = setup(
@@ -434,10 +435,10 @@ describe('runner — startBoth (D23)', () => {
   it('a leg that reports reconnecting before startBoth settles is shown reconnecting, then live on its reconnected', async () => {
     let fast!: AdapterEvents;
     const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => {
-      const speaker = await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker);
+      const speaker = await startFake(requests.speaker as StartRequest<never, never>, events.speaker);
       fast = events.speaker;
       fast.reconnecting();
-      const participant = await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant);
+      const participant = await startFake(requests.participant as StartRequest<never, never>, events.participant);
       return { speaker, participant };
     });
     const { runner } = setup(withHooks({ startBoth }), ['speaker', 'participant']);
@@ -450,7 +451,7 @@ describe('runner — startBoth (D23)', () => {
   it("a leg that fails before startBoth settles ends the run once: its own notice and api_error, no start failure", async () => {
     const track = vi.fn();
     const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => {
-      const speaker = await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker);
+      const speaker = await startFake(requests.speaker as StartRequest<never, never>, events.speaker);
       // The fast leg's server refuses the key while the slow leg still opens.
       events.speaker.failed({ code: 'auth', message: '[Soniox 401] Invalid API key' });
       const signal = requests.participant.signal;
@@ -495,7 +496,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
       {
         async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
           order.push('start');
-          return fakeProvider.start(request as StartRequest<never, never>, events);
+          return startFake(request as StartRequest<never, never>, events);
         },
       },
     );
@@ -517,7 +518,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
 
   it('an adapter that fails to start is not a device error', async () => {
     const track = vi.fn();
-    const provider = { ...fakeProvider, start: async () => { throw new AdapterStartError('HTTP 500', 'server'); } } as AnyProvider;
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, { start: async () => { throw new AdapterStartError('HTTP 500', 'server'); } });
     const { runner } = setup(provider, ['speaker'], undefined, track);
     await runner.start();
     const apiErrors = track.mock.calls.filter(([event]) => event === 'api_error').map(([, props]) => props);
@@ -541,7 +542,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
 
   it('a refused lease fails the start with its code, starts no adapter, and leaves the last conversation on screen', async () => {
     let refuse = false;
-    const start = vi.fn((request: StartRequest<unknown, unknown>, events: AdapterEvents) => fakeProvider.start(request as StartRequest<never, never>, events));
+    const start = vi.fn((request: StartRequest<unknown, unknown>, events: AdapterEvents) => startFake(request as StartRequest<never, never>, events));
     const provider = withHooks(
       { acquire: async () => { if (refuse) throw new AdapterStartError('no balance', 'insufficient_balance'); return lease(); } },
       { start },
@@ -603,7 +604,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
       {
         async start(request: StartRequest<unknown, unknown>, e: AdapterEvents) {
           events = e;
-          return fakeProvider.start(request as StartRequest<never, never>, e);
+          return startFake(request as StartRequest<never, never>, e);
         },
       },
     );
@@ -655,7 +656,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     const provider = withHooks({}, {
       async start(request: StartRequest<unknown, unknown>, e: AdapterEvents) {
         events = e;
-        return fakeProvider.start(request as StartRequest<never, never>, e);
+        return startFake(request as StartRequest<never, never>, e);
       },
     });
     const track = vi.fn();
@@ -680,7 +681,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     const provider = withHooks({}, {
       async start(request: StartRequest<unknown, unknown>, e: AdapterEvents) {
         events[request.context.direction.source === 'en' ? 'speaker' : 'participant'] = e;
-        return fakeProvider.start(request as StartRequest<never, never>, e);
+        return startFake(request as StartRequest<never, never>, e);
       },
     });
     const track = vi.fn();
@@ -707,7 +708,7 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
     const start = async (request: StartRequest<unknown, unknown>, events: AdapterEvents): Promise<AdapterSession> => {
       const leg: LegName = request.context.direction.source === 'en' ? 'speaker' : 'participant';
       if (leg === o.failing) throw new Error(`The ${leg} adapter refused to start.`);
-      const inner = await fakeProvider.start(request as StartRequest<never, never>, events);
+      const inner = await startFake(request as StartRequest<never, never>, events);
       return {
         info: inner.info, appendAudio: () => {}, appendText: () => {}, beginTurn: () => {}, endTurn: () => {}, cancelTurn: () => {},
         stop: async () => { order.push(`${leg} session`); await inner.stop(); },
@@ -809,8 +810,8 @@ describe('runner — a lease after the sources (Stage 2 Kizuna Soniox, rulings 7
 
   it("a startBoth provider keeps the last conversation when a source fails (choice 3's stated departure)", async () => {
     const startBoth = vi.fn(async (requests: Record<'speaker' | 'participant', StartRequest<unknown, unknown>>, events: Record<'speaker' | 'participant', AdapterEvents>) => ({
-      speaker: await fakeProvider.start(requests.speaker as StartRequest<never, never>, events.speaker),
-      participant: await fakeProvider.start(requests.participant as StartRequest<never, never>, events.participant),
+      speaker: await startFake(requests.speaker as StartRequest<never, never>, events.speaker),
+      participant: await startFake(requests.participant as StartRequest<never, never>, events.participant),
     }));
     const { before, after } = await failingRestart(withHooks({ startBoth }));
     expect(after).toEqual(before);

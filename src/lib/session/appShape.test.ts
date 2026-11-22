@@ -26,7 +26,7 @@ import { QWEN_DEFAULTS } from '../../providers/qwen_livetranslate/settings';
 import { useScreenContextStore } from '../../stores/screenContextStore';
 import { providersIn } from '../plan/read';
 import { planOf } from '../plan/testing';
-import { fakeProvider } from '../../providers/fake/provider';
+import { FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
@@ -486,12 +486,12 @@ describe("readShapeFromStores — participant speech follows the whole-system ru
   it("is off while the provider's flag is off, and follows the switch once it is on", () => {
     environment.value = 'web';
     try {
-      Object.assign(fakeProvider, { participantSpeech: false });
+      Object.assign(FAKE_WHOLE, { participantSpeech: false });
       expect(readShapeFromStores(auth)?.participantSpeech).toBe(false);
-      Object.assign(fakeProvider, { participantSpeech: true });
+      Object.assign(FAKE_WHOLE, { participantSpeech: true });
       expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
     } finally {
-      delete (fakeProvider as { participantSpeech?: boolean }).participantSpeech;
+      delete (FAKE_WHOLE as { participantSpeech?: boolean }).participantSpeech;
     }
   });
 

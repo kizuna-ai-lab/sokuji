@@ -85,7 +85,6 @@ describe('ProviderLanguages — the language context (Stage 2 Volcengine AST2, c
   const moody = {
     ...fakeProvider,
     id: 'moody',
-    speech: 'optional',
     languages: {
       sources: (_s: unknown, context?: LanguageContext) => offered(context),
       targets: (source: string, _s: unknown, context?: LanguageContext) => offered(context).filter((o) => o.value !== source),

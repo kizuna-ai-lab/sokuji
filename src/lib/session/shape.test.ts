@@ -1,12 +1,12 @@
 import { beforeEach, describe, it, expect } from 'vitest';
 import { setUseOwnBalance } from './payerChoice';
 import { AUTO } from '../provider/languages';
-import { fakeProvider } from '../../providers/fake/provider';
+import { FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { LegName } from '../conversation/types';
 import type { RunStage } from '../lineup/types';
-import { planOf, shapeWith, stubProvider } from '../plan/testing';
+import { planOf, shapeWith, stubProvider, withWhole } from '../plan/testing';
 import type { PlannedUnit } from '../plan/types';
 import type { AnyProvider, LanguageContext } from '../provider/types';
 import { balanceRefusal, BALANCE_BELOW_FLOOR, contextsFor, gate, languageContext, microphoneMissing, participantSpeechInput, planLanguages, QUOTA_PENDING, QUOTA_UNKNOWN, speakFor } from './shape';
@@ -52,8 +52,8 @@ describe('contextsFor', () => {
   });
 
   it('follows a provider that always or never speaks, whatever the switches say', () => {
-    expect(contextsFor(shape({ provider: { ...fakeProvider, speech: 'always' }, textOnly: true })).speaker?.speech).toBe(true);
-    expect(contextsFor(shape({ provider: { ...fakeProvider, speech: 'never' } })).speaker?.speech).toBe(false);
+    expect(contextsFor(shape({ provider: withWhole(fakeProvider, FAKE_WHOLE, { speech: 'always' }), textOnly: true })).speaker?.speech).toBe(true);
+    expect(contextsFor(shape({ provider: withWhole(fakeProvider, FAKE_WHOLE, { speech: 'never' }) })).speaker?.speech).toBe(false);
   });
 
   it("gives the participant the provider's own reverse where it states one (Stage 2 Palabra, ruling 9)", () => {
@@ -63,12 +63,12 @@ describe('contextsFor', () => {
   });
 
   it("gives the participant no speech while its provider's flag is off, whatever the opt-in; speech again once it is on", () => {
-    const off = contextsFor(shape({ provider: { ...fakeProvider, participantSpeech: false }, legs: ['speaker', 'participant'], participantSpeech: true }));
+    const off = contextsFor(shape({ provider: withWhole(fakeProvider, FAKE_WHOLE, { participantSpeech: false }), legs: ['speaker', 'participant'], participantSpeech: true }));
     expect(off.participant?.speech).toBe(false);
     expect(off.speaker?.speech).toBe(true);
-    const on = contextsFor(shape({ provider: { ...fakeProvider, participantSpeech: true }, legs: ['speaker', 'participant'], participantSpeech: true }));
+    const on = contextsFor(shape({ provider: withWhole(fakeProvider, FAKE_WHOLE, { participantSpeech: true }), legs: ['speaker', 'participant'], participantSpeech: true }));
     expect(on.participant?.speech).toBe(true);
-    const flagOnSwitchOff = contextsFor(shape({ provider: { ...fakeProvider, participantSpeech: true }, legs: ['speaker', 'participant'], participantSpeech: false }));
+    const flagOnSwitchOff = contextsFor(shape({ provider: withWhole(fakeProvider, FAKE_WHOLE, { participantSpeech: true }), legs: ['speaker', 'participant'], participantSpeech: false }));
     expect(flagOnSwitchOff.participant?.speech).toBe(false);
   });
 });
@@ -135,7 +135,7 @@ describe('gate', () => {
   });
 
   it('refuses a turn mode the provider does not offer', () => {
-    const manualOnly = { ...fakeProvider, turns: () => ['manual' as const] };
+    const manualOnly = withWhole(fakeProvider, FAKE_WHOLE, { turns: () => ['manual' as const] });
     expect(gate(shape({ provider: manualOnly }), 'electron')).toMatchObject({ code: 'turn_mode_unsupported', leg: 'speaker' });
     expect(gate(shape({ provider: manualOnly, turnMode: 'push-to-talk', legs: ['speaker', 'participant'] }), 'electron'))
       .toMatchObject({ code: 'turn_mode_unsupported', leg: 'participant' });

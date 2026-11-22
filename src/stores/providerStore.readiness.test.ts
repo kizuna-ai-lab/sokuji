@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { stubProvider } from '../lib/plan/testing';
 import type { AnyProvider, CheckContext, CheckResult, LanguageOption } from '../lib/provider/types';
 
 const reportErrorSpy = vi.hoisted(() => vi.fn());
@@ -30,8 +31,8 @@ const signedIn = { signedIn: true, getToken: async () => 't' };
 const signedOut = noAuth;
 
 function probe(kind: 'own-key' | 'local' | 'managed', check: (k: unknown, s: unknown, ctx: CheckContext) => Promise<CheckResult>): AnyProvider {
-  return {
-    id: 'probe',
+  return stubProvider('probe', {
+    speech: 'never',
     kind,
     settings: { key: 'probe', defaults: { mode: 'a' } },
     credentials: {
@@ -41,7 +42,7 @@ function probe(kind: 'own-key' | 'local' | 'managed', check: (k: unknown, s: unk
     },
     check,
     languages: { sources: () => [opt('en')], targets: () => [opt('ja')] },
-  } as unknown as AnyProvider;
+  });
 }
 
 /** A provider whose check reads the pair and the legs (`checkReadsDirection`), as a local engine's does. */

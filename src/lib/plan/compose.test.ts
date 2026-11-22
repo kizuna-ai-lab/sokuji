@@ -10,7 +10,7 @@ import type { AnyProvider } from '../provider/types';
 import { planOf, stubHosts, stubProvider } from './testing';
 import { isRefusal } from './types';
 import type { PlanRefusal, PlanRefusalCode, RunPlan } from './types';
-import { wholeUnit } from './wholeUnit';
+import { unitsOf } from './wholeUnit';
 import { registerReleasedCatalog } from '../lineup/catalog.testing';
 
 registerReleasedCatalog();
@@ -110,7 +110,7 @@ describe('compose', () => {
       const translation = occupying('translation', 'translation');
       const local = stubProvider('local_inference');
       const transcription = occupying('transcription', 'transcription');
-      const localUnits = [wholeUnit(local), transcription, translation, speech];
+      const localUnits = [unitsOf(local)[0], transcription, translation, speech];
       // Bing and Edge are providers of their own, with one unit each.
       const bing = stubProvider('bing', { units: [occupying('translation', 'translation')] });
       const edge = stubProvider('edge', { units: [occupying('speech', 'speech')] });
