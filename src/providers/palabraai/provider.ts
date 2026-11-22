@@ -35,7 +35,7 @@ export const palabraProvider: Provider<PalabraSettings, PalabraCredentials, Pala
   settings: { key: 'palabraai', defaults: PALABRA_DEFAULTS, migrate: migratePalabraSettings },
   Settings: PalabraSettingsView,
   // Sentence splitting and partials on transcription and translation, the voice, buffers and tempo on speech (mock v19).
-  optionStages: [TR_TL, SP],
+  settingsStages: [TR_TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: PalabraVoiceSummary,
   TurnDetection: { Summary: PalabraTurnDetectionSummary, Controls: PalabraTurnDetectionControls },

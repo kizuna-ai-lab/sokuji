@@ -40,7 +40,7 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
   settings: { key: 'openaiLive', defaults: LIVE_DEFAULTS, legacyKeys: LIVE_LEGACY_KEYS, migrate: migrateLiveSettings },
   Settings: LiveSettingsView,
   // The instructions on translation, the voices on speech (mock v19).
-  optionStages: [TL, SP],
+  settingsStages: [TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: LiveVoiceSummary,
 

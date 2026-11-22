@@ -39,7 +39,7 @@ export const openaiTranslateProvider: Provider<TranslateSettings, TranslateCrede
   settings: { key: 'openaiTranslate', defaults: TRANSLATE_DEFAULTS, migrate: migrateTranslateSettings },
   Settings: TranslateSettingsView,
   // Its note and the noise reduction, with transcription (mock v19).
-  optionStages: [TR],
+  settingsStages: [TR],
 
   // One OpenAI key for the three OpenAI providers (owner, 2026-11-15).
   credentials: { ...translateCredentials, storedAt: OPENAI_KEY_STORED_AT },

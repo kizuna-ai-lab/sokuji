@@ -13,6 +13,7 @@ const TR = ['transcription'] as RunStage[], TL = ['translation'] as RunStage[], 
 describe('capsOf', () => {
   it('is the catalog declared by hand, entry for entry, for the released providers', () => {
     expect(catalogOf(RELEASED).map((c) => c.id)).toEqual(RELEASED.map((p) => p.id));
+    expect(RELEASED_CAPS.map((c) => c.id)).toEqual(RELEASED.map((p) => p.id));
     expect(byId(catalogOf(RELEASED))).toStrictEqual(byId(RELEASED_CAPS));
   });
   it("and for the E2E build's fakes, in the registry's order", () => {

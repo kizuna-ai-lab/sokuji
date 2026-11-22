@@ -20,7 +20,7 @@ describe('the Edge provider', () => {
     expect(edgeProvider.credentials.keys).toEqual([]);
     expect(edgeProvider.credentials.read({}, { signedIn: false, getToken: async () => null })).toEqual({});
     expect(edgeProvider.units!.map((u) => u.id)).toEqual(['speech']);
-    expect(edgeProvider.optionStages).toEqual([['speech']]);
+    expect(edgeProvider.settingsStages).toEqual([['speech']]);
     expect(edgeProvider.speech).toBe('optional');
     expect(await edgeProvider.check({}, EDGE_DEFAULTS, ctx)).toEqual({ ok: true });
   });

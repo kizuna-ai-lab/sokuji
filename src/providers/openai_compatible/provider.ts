@@ -49,7 +49,7 @@ export const openaiCompatibleProvider: Provider<TextModelSettings, CompatibleTex
   // should read or send to the address entered now.
   settings: { key: 'compatibleText', defaults: TEXT_MODEL_DEFAULTS, migrate: migrateTextModelSettings },
   Settings: textModelSettingsView('compatible'),
-  optionStages: [TL],
+  settingsStages: [TL],
 
   credentials: {
     keys: ['baseUrl', 'apiKey'],

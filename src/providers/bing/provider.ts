@@ -23,7 +23,7 @@ export const bingProvider: Provider<BingSettings, BingCredentials, LocalTranslat
   settings: { key: 'bing', defaults: {} },
   Settings: () => null,
   // No options: nothing of it acts on any stage, so its card in the line-up has no fold.
-  optionStages: [],
+  settingsStages: [],
 
   credentials: {
     keys: [],

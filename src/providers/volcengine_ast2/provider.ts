@@ -31,7 +31,7 @@ export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast
   settings: { key: 'volcengineAST2', defaults: AST2_DEFAULTS, migrate: migrateAst2Settings },
   Settings: Ast2SettingsView,
   // Its note with transcription, the vocabulary on transcription and translation, the voices on speech (mock v19).
-  optionStages: [TR, TR_TL, SP],
+  settingsStages: [TR, TR_TL, SP],
   // Each spoken leg's voice, under its Speech row: its own direction's slot.
   VoiceSummary: Ast2VoiceSummary,
 

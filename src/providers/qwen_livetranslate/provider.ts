@@ -30,7 +30,7 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
   settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS, migrate: migrateQwenSettings },
   Settings: QwenSettingsView,
   // Its key note and speaker labels on transcription, screen context on transcription and translation, the voices on speech (mock v19); its preferred translations are the word list's now.
-  optionStages: [TR, SP, TR_TL],
+  settingsStages: [TR, SP, TR_TL],
   // Each spoken leg's voice, or whose own voice is cloned, under its Speech row.
   VoiceSummary: QwenVoiceSummary,
   // The pause that ends a turn under automatic turns: summed up under Speech, tuned on the Provider tab.

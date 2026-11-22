@@ -42,7 +42,7 @@ export const geminiTextProvider: Provider<TextModelSettings, GeminiTextCredentia
 
   settings: { key: 'geminiText', defaults: TEXT_MODEL_DEFAULTS, migrate: migrateTextModelSettings },
   Settings: textModelSettingsView('gemini'),
-  optionStages: [TL],
+  settingsStages: [TL],
 
   credentials: {
     keys: ['apiKey'],

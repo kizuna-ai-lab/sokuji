@@ -321,11 +321,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   };
   Settings: ComponentType<SettingsProps<S>>;
   /**
-   * The stage sets its options act on (mock v19): one per kind of `StagePart` in `Settings` (and the `Engine`'s
-   * slots), from `src/lib/lineup/types.ts`. The line-up page reads it to know which stage cards have options and
-   * where a setting acting on several stages is shown. Absent: every option shows in the provider's first card.
+   * The layout of its options on the line-up page, not what it can do (its units say that): the stage sets its options
+   * act on (mock v19), one per kind of `StagePart` in `Settings` (and the `Engine`'s slots), from
+   * `src/lib/lineup/types.ts`. The page reads it to know which stage cards show options and where a setting acting on
+   * several stages is shown. A provider that does every stage may still keep its options on one card: OpenAI
+   * Translate's sit on the transcription card. Absent: every option shows in the provider's first card.
    */
-  optionStages?: readonly (readonly RunStage[])[];
+  settingsStages?: readonly (readonly RunStage[])[];
   /** Model management, the local engines only: pushed from the summary in Simple mode, inline on Advanced's Provider tab. */
   Engine?: ComponentType<EngineProps<S>>;
   /** The `Engine`'s summary under the picker: its slot chips and memory estimate — Simple mode's way in, and drawn before `Engine` on Advanced's Provider tab (ruling 15). */

@@ -44,7 +44,7 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
   settings: { key: 'openai', defaults: REALTIME_DEFAULTS, legacyKeys: REALTIME_LEGACY_KEYS, migrate: migrateRealtimeSettings },
   Settings: RealtimeSettingsView,
   // The model on every stage, the transcript and noise reduction on transcription, the instructions, tokens and reasoning on translation, the voices on speech (mock v19).
-  optionStages: [ALL_STAGES, TR, TL, SP],
+  settingsStages: [ALL_STAGES, TR, TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: RealtimeVoiceSummary,
   TurnDetection: { Summary: RealtimeTurnDetectionSummary, Controls: RealtimeTurnDetectionControls, Help: RealtimeTurnDetectionHelp },

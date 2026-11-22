@@ -13,7 +13,7 @@ export type StageIds = Readonly<Record<RunStage, string>>;
 
 /**
  * The stage sets a provider's options act on (mock v19): each `StagePart` in its `Settings` names one of these, and
- * the provider's `optionStages` lists the ones it uses, so the line-up page knows which cards have options without
+ * the provider's `settingsStages` lists the ones it uses, so the line-up page knows which cards have options without
  * drawing them.
  */
 export const TR: readonly RunStage[] = ['transcription'];

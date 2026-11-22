@@ -24,7 +24,7 @@ describe('the Bing provider', () => {
   });
 
   it('has no options: none acts on any stage, so its line-up card has no fold', () => {
-    expect(bingProvider.optionStages).toEqual([]);
+    expect(bingProvider.settingsStages).toEqual([]);
   });
 
   it('needs nothing to be ready', async () => {
