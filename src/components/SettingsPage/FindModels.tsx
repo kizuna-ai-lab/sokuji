@@ -34,7 +34,7 @@ export function FindModels({ service, credentials, disabled = false, transport }
   };
   return (
     <div className="find-models">
-      <button type="button" className="validate-button find-models__button" onClick={find} disabled={disabled || state === 'finding' || (service === 'compatible' && baseUrl.trim() === '')}>
+      <button type="button" className="find-models__button" onClick={find} disabled={disabled || state === 'finding' || (service === 'compatible' && baseUrl.trim() === '')}>
         {state === 'finding' ? <span className="spinner" /> : t('settingsPage.accounts.findModels', 'Find models')}
       </button>
       {typeof state === 'object' && state.ok && state.ids.length > 0 && (

@@ -1640,6 +1640,41 @@
   }
 }
 
+// "Find models" under a text-model service's key (`FindModels`): outside `.api-key-input-group`, so it takes the
+// validate button's size, height, corners and disabled state itself, in the secondary colours, below Validate.
+.find-models__button {
+  background: vars.$bg-control;
+  border: 1px solid vars.$border-default;
+  color: vars.$text-primary;
+  padding: 5px 14px;
+  border-radius: vars.$radius-sm;
+  font-size: vars.$font-body;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all vars.$transition-fast;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover:not(:disabled) {
+    border-color: vars.$color-primary;
+  }
+
+  &:disabled {
+    @include vars.disabled-state;
+    cursor: not-allowed;
+  }
+
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid transparent;
+    border-top-color: vars.$text-primary;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
 // A provider's credential choice (F4; `CredentialForm`).
 .credential-choice-group {
   display: flex;
