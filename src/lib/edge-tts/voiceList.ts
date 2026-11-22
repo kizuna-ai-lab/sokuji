@@ -28,6 +28,7 @@ interface LocaleRule {
 const LOCALE_RULES: Record<string, LocaleRule> = {
   zh: { excludes: ['zh-HK'], preferred: 'zh-CN' },          // Mandarin
   yue: { prefixes: ['zh-HK'], preferred: 'zh-HK' },   // Cantonese
+  no: { prefixes: ['nb-'], preferred: 'nb-NO' },      // Norwegian: Edge's voices are Bokmål's
   en: { preferred: 'en-US' },
   pt: { preferred: 'pt-BR' },
   es: { preferred: 'es-ES' },
@@ -49,21 +50,36 @@ export async function getEdgeTtsVoices(): Promise<Voice[]> {
 }
 
 /**
+ * The language whose rule an app code is matched by: the code's own when it has
+ * one, Cantonese's for Chinese of Hong Kong (`zh-HK`, `zh-Hant-HK`), else its
+ * primary subtag (`pt-BR` → `pt`).
+ */
+function ruleLanguageOf(lang: string): string {
+  const langLower = lang.toLowerCase();
+  if (LOCALE_RULES[langLower]) return langLower;
+  const [base, ...subtags] = langLower.split('-');
+  if (base === 'zh' && subtags.includes('hk')) return 'yue';
+  return base;
+}
+
+/**
  * Filter voices for a given app language code.
  *
- * Matching:
+ * Matching (by the rule of `ruleLanguageOf(lang)`):
  *   - If a rule defines `prefixes`, a voice matches when its Locale starts
  *     with any prefix (case-insensitive).
  *   - Otherwise, match by primary subtag of Locale (`zh-CN` → `zh`).
  *   - Voices whose Locale is in `excludes` are removed.
  *
- * Ordering: voices matching the rule's `preferred` Locale are placed first,
- * so callers that rely on `candidates[0]` land on the expected dialect
- * (e.g. Mandarin `zh-CN` rather than Cantonese `zh-HK` for `zh`).
+ * Ordering: voices of the code's own Locale (`pt-PT`), then those of the
+ * rule's `preferred` Locale, are placed first, so callers that rely on
+ * `candidates[0]` land on the expected dialect (e.g. Mandarin `zh-CN` rather
+ * than Cantonese `zh-HK` for `zh`).
  */
 export function filterVoicesByLanguage(voices: Voice[], lang: string): Voice[] {
   const langLower = lang.toLowerCase();
-  const rule = LOCALE_RULES[langLower];
+  const ruleLanguage = ruleLanguageOf(lang);
+  const rule = LOCALE_RULES[ruleLanguage];
   const excludes = new Set((rule?.excludes ?? []).map(l => l.toLowerCase()));
 
   const matched = voices.filter(v => {
@@ -72,16 +88,28 @@ export function filterVoicesByLanguage(voices: Voice[], lang: string): Voice[] {
     if (rule?.prefixes) {
       return rule.prefixes.some(p => localeLower.startsWith(p.toLowerCase()));
     }
-    return localeLower.split('-')[0] === langLower;
+    return localeLower.split('-')[0] === ruleLanguage;
   });
 
   const preferred = rule?.preferred?.toLowerCase();
-  if (!preferred) return matched;
-  return [...matched].sort((a, b) => {
-    const aPref = a.Locale.toLowerCase() === preferred ? 0 : 1;
-    const bPref = b.Locale.toLowerCase() === preferred ? 0 : 1;
-    return aPref - bPref;
-  });
+  const rank = (voice: Voice) => {
+    const localeLower = voice.Locale.toLowerCase();
+    return localeLower === langLower ? 0 : localeLower === preferred ? 1 : 2;
+  };
+  return [...matched].sort((a, b) => rank(a) - rank(b));
+}
+
+/**
+ * The primary subtags of the Edge Locales `filterVoicesByLanguage` matches for
+ * `lang` (`yue` → `zh`, of `zh-HK`; `no` → `nb`): what a static list of Edge's
+ * languages is asked, where the live voice list is not at hand. Every Locale a
+ * rule's `prefixes` name is in Edge's voice list, so a match by subtag is a
+ * match by Locale.
+ */
+export function edgeVoiceLanguagesFor(lang: string): string[] {
+  const ruleLanguage = ruleLanguageOf(lang);
+  const prefixes = LOCALE_RULES[ruleLanguage]?.prefixes;
+  return prefixes ? prefixes.map(p => p.toLowerCase().split('-')[0]) : [ruleLanguage];
 }
 
 /**

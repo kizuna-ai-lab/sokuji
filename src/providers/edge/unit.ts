@@ -3,7 +3,7 @@
  * unit makes them. The session is the shared engine-backed one (`startLocalSpeech`); this file is its definition:
  * what it declares, which languages it speaks, and the config it builds (the Edge model, the direction's voice).
  */
-import { canonicalTag } from '../../lib/language/code';
+import { edgeVoiceLanguagesFor } from '../../lib/edge-tts/voiceList';
 import { SP } from '../../lib/lineup/types';
 import { EDGE_TTS_LANGUAGES } from '../../lib/local-inference/languageSupport';
 import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
@@ -15,19 +15,12 @@ import type { EdgeSettings } from './settings';
 /** Edge has no credentials. */
 export type EdgeCredentials = Record<string, never>;
 
-/** A language's base, as the voice list writes it ("pt" of "pt-BR"). */
-function baseOf(language: string): string {
-  try {
-    return canonicalTag(language).split('-')[0];
-  } catch {
-    return language;
-  }
-}
-
-/** Whether Edge has voices for `language`: its base is one of Edge's. */
+/**
+ * Whether Edge has voices for `language`: exactly when its settings card offers one, by the card's own rules
+ * (Cantonese in Hong Kong's voices, Norwegian in Bokmål's), asked of Edge's static language list.
+ */
 export function edgeSpeaks(language: string): boolean {
-  const base = baseOf(language);
-  return EDGE_TTS_LANGUAGES.some((l) => baseOf(l) === base);
+  return edgeVoiceLanguagesFor(language).some((l) => EDGE_TTS_LANGUAGES.includes(l));
 }
 
 /** Speech, and only when asked for exactly that. */

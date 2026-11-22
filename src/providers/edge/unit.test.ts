@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
+import { BING_SUPPORTED_LANGUAGES } from '../../lib/bing-translator/languageMap';
 import type { SessionContext } from '../../lib/contract/adapter';
+import type { Voice } from '../../lib/edge-tts/edgeTts';
+import { filterVoicesByLanguage } from '../../lib/edge-tts/voiceList';
+import { EDGE_TTS_LANGUAGES, WHISPER_LANGUAGES } from '../../lib/local-inference/languageSupport';
 import { directionKey } from '../../lib/local-inference/selection/types';
 import type { SharedSettings } from '../../lib/provider/types';
 import type { EdgeSettings } from './settings';
@@ -42,5 +46,22 @@ describe("Edge's speech unit", () => {
     expect(edgeSpeaks('ja')).toBe(true);
     expect(edgeSpeaks('pt-BR')).toBe(true);
     expect(edgeSpeaks('xx')).toBe(false);
+  });
+
+  it("speaks Cantonese in Hong Kong's voices and Norwegian in Bokmål's, as its card offers them", () => {
+    expect(edgeSpeaks('yue')).toBe(true);
+    expect(edgeSpeaks('zh-HK')).toBe(true);
+    expect(edgeSpeaks('no')).toBe(true);
+    expect(edgeSpeaks('nb')).toBe(true);
+    expect(edgeSpeaks('lb')).toBe(false);
+  });
+
+  it('speaks a language exactly when its card would offer a voice for it', () => {
+    // One voice per language of Edge's list, plus the two locales the card's rules point at (both in the
+    // 2026-10-02 voice list: zh-HK-HiuGaaiNeural, nb-NO-PernilleNeural).
+    const locales = [...EDGE_TTS_LANGUAGES.map((l) => `${l}-XX`), 'zh-HK', 'nb-NO'];
+    const voices = locales.map((Locale) => ({ ShortName: `${Locale}-OneNeural`, Locale }) as Voice);
+    const codes = new Set([...EDGE_TTS_LANGUAGES, ...WHISPER_LANGUAGES, ...BING_SUPPORTED_LANGUAGES, 'yue', 'zh-HK', 'pt-BR', 'zh-TW', 'xx']);
+    for (const code of codes) expect(edgeSpeaks(code), code).toBe(filterVoicesByLanguage(voices, code).length > 0);
   });
 });
