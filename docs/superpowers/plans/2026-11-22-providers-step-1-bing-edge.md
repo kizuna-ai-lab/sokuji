@@ -140,12 +140,8 @@ it('needs nothing to be ready', async () => { expect(await bingProvider.check({}
   - `src/providers/edge/EdgeSettings.tsx`, moved from `src/components/SettingsPage/EdgeVoices.tsx`;
   - `src/providers/edge/EdgeVoiceSummary.tsx`;
   - tests beside each.
-- Modify:
-  - `src/providers/registry.ts`: `edgeProvider` right after `bingProvider`;
-  - `src/components/SettingsInitializer/SettingsInitializer.tsx`: the Edge voice auto-pick targets the Edge provider;
-  - `src/components/providers/openTtsSlot.ts`: `'edge-voices'` when the plan's speech provider is `edge`;
-  - `src/components/SettingsPage/categories.ts`: `'edge-voices'` stays `{ category: 'lineup', anchor: 'edge-voices' }`; the anchor is now rendered by `EdgeSettings`.
-- Delete: `src/components/SettingsPage/EdgeVoices.tsx`, after its test moves to `EdgeSettings.test.tsx`.
+- Modify: `src/providers/registry.ts`: `edgeProvider` right after `bingProvider`.
+- Keep `src/components/SettingsPage/EdgeVoices.tsx` and its use in `LineUpCategory` until Task 7. Until Task 4, Edge's card is still the local provider's. Edge's settings keep deriving from the local table while Edge stores nothing of its own, so edits made there still reach Edge. Task 7 retargets `SettingsInitializer` and `openTtsSlot` and deletes `EdgeVoices.tsx`.
 
 **Interfaces:**
 - Consumes: Task 1's `startLocalSpeech`, `isOff`, `LocalSpeechConfig`; `EDGE_TTS_LANGUAGES`; `getEdgeTtsVoices`, `filterVoicesByLanguage`; `directionKey`.
@@ -176,10 +172,6 @@ Settings UI:
 - It adds the speed control the Edge card showed through the local speech part. Reuse the local SP part's speed control component; find it in `LocalInferenceSettings.tsx:71-77`.
 - It is wrapped in `<StagePart stages={SP}>`, to satisfy `optionStages.consistency.test.ts`, with root id `edge-voices-section`.
 
-SettingsInitializer:
-- When `unitFor(plan, 'speech').provider.id === 'edge'`, for each spoken direction (the speaker's, plus the participant's when the participant leg speaks), store the first voice of `filterVoicesByLanguage(voices, tgt)` if the direction has no voice for that language.
-- Write through `updateSettings(edgeProvider, { voices })`.
-- The local branch that resolved `edge-tts` is removed.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -199,13 +191,12 @@ it("builds each leg with its own direction's voice", () => {
   expect(build(s, { source: 'en', target: 'ja' }, { speech: false })).toEqual({ off: true });
 });
 it('speaks the languages Edge has voices for', () => { expect(edgeSpeaks('ja')).toBe(true); expect(edgeSpeaks('xx')).toBe(false); });
-// EdgeSettings.test.tsx: the moved EdgeVoices tests, writing to `entries.edge`; `openTtsSlot` test: speech provider 'edge' → 'edge-voices'.
-// SettingsInitializer.test.tsx: with a plan whose speech unit is Edge's and no voice stored, the first matching voice is stored under Edge.
+// EdgeSettings.test.tsx: EdgeVoices' tests, adapted: the card reads and writes `entries.edge`, and shows the speed.
 ```
 
 - [ ] **Step 2:** Run `npx vitest run src/providers/edge`. Expected: FAIL.
-- [ ] **Step 3:** Implement the files. Move `EdgeVoices`. Retarget `SettingsInitializer` and `openTtsSlot`.
-- [ ] **Step 4:** Run `npx vitest run src/providers/edge src/components/SettingsInitializer src/components/providers src/providers/optionStages.consistency.test.ts`. Expected: PASS.
+- [ ] **Step 3:** Implement the files. `EdgeSettings` starts as a copy of `EdgeVoices` retargeted to Edge's entry, plus the speed.
+- [ ] **Step 4:** Run `npx vitest run src/providers/edge src/providers/registry.test.ts src/providers/optionStages.consistency.test.ts`. Expected: PASS.
 - [ ] **Step 5:** Commit `feat(edge): Edge is a provider of its own: its voices and speed, migrated from the local settings`.
 
 ### Task 4: Every option is its own host
@@ -310,7 +301,10 @@ Rule: when no line-up is stored and `unstoredProvider === 'local_inference'`, `p
   - `src/components/SettingsPage/AccountsCategory.tsx`;
   - `src/components/providers/ProviderOption.tsx`;
   - `src/lib/view/noticeText.ts:25`;
+  - `src/components/SettingsInitializer/SettingsInitializer.tsx`;
+  - `src/components/providers/openTtsSlot.ts`;
   - their tests.
+- Delete: `src/components/SettingsPage/EdgeVoices.tsx`.
 
 Rules:
 - `LineUpCategory`:
@@ -319,6 +313,12 @@ Rules:
 - `AccountsCategory`: the hard-coded Bing and Edge rows become one row per present provider of kind `online`, in registry order after This device, with `kind: 'online'` and the same state line.
 - `ProviderOption`: the `EXTRA` map is removed. For a provider of kind `online`, `useOptionModel` returns its `icon`, `name: t('providers.<id>.name')` and `description: t('providers.<id>.note')`, the line Bing and Edge show today.
 - `noticeText`: `OPTION_NAMES` is removed; names come from `providers.<id>.name`.
+- `SettingsInitializer`: when `unitFor(plan, 'speech').provider.id === 'edge'`, for each spoken direction (the speaker's, plus the participant's when the participant leg speaks), store the first voice of `filterVoicesByLanguage(voices, tgt)` if the direction has no voice for that language. Write through `updateSettings(edgeProvider, { voices })`. The local branch that resolved `edge-tts` is removed.
+- `openTtsSlot`: navigates to `'edge-voices'` when the plan's speech provider is `edge`, in place of `lineUp.speech === 'edge'`.
+- `EdgeVoices.tsx` is deleted. `categories.ts` keeps `'edge-voices'` → `{ category: 'lineup', anchor: 'edge-voices' }`, an anchor `EdgeSettings` renders.
+- New tests:
+  - `SettingsInitializer.test.tsx`: with a plan whose speech unit is Edge's and no voice stored, the first matching voice is stored under Edge.
+  - `openTtsSlot.test.ts`: speech provider `edge` → `'edge-voices'`.
 
 - [ ] **Step 1:** Run `npx vitest run src/components/SettingsPage src/components/providers src/lib/view` before changing code. Expected: PASS. These tests pin today's lists, rows, names and order, and the change must keep every one of them, so no expectation changes unless a test asserts the removed internals.
 - [ ] **Step 2:** Make the changes. Run `npx vitest run src/components src/lib/view`. Expected: PASS.
