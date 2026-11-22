@@ -15,6 +15,10 @@ import type { LineUp, ProviderCaps, RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { PlanAccount, RunNotice } from '../session/types';
 import type { PlannedUnit, PlanRefusal, RunPlan, UnitCapabilities } from './types';
+import { unitsOf } from './wholeUnit';
+
+/** The stages of text: what a unit of a transcription provider is asked to occupy for face-to-face. */
+const TEXT_STAGES: ReadonlySet<RunStage> = new Set<RunStage>(['transcription', 'translation']);
 
 /**
  * A voice that reads a translation its own host did not both hear and make: refused when the voice is not offered
@@ -83,15 +87,20 @@ function translationRefusal(plan: RunPlan, context: PlanCheckContext): PlanRefus
 }
 
 /**
- * Face-to-face asked of a plan whose transcription and translation are apart, and whose transcription unit
- * cannot run it: one connection has to hear both people and translate each to the other, and a unit that
- * transcribes alone has a connection per leg. Named by the option that transcribes, on the translation stage:
- * giving it the translation too is what runs face-to-face.
+ * Face-to-face asked of a plan whose transcription and translation are apart, whose transcription unit cannot run
+ * it, and whose provider has a unit that would: one connection has to hear both people and translate each to the
+ * other, and a unit that transcribes alone has a connection per leg. Named by the option that transcribes, on the
+ * translation stage: giving it the translation too is what runs face-to-face. A provider with no such unit (this
+ * device) never offered face-to-face: "beside me" stays ordinary Both there, as before.
  */
 function faceToFaceRefusal(plan: RunPlan, context: PlanCheckContext): PlanRefusal | null {
   if (!context.faceToFaceAsked || plan.byStage.transcription === plan.byStage.translation) return null;
   const hearing = capabilitiesIn(plan, 'transcription', context);
   if (!hearing || hearing.faceToFace) return null;
+  const transcriber = plan.byStage.transcription.provider;
+  const settings = context.accounts[transcriber.id]?.settings;
+  const couldRun = unitsOf(transcriber).some((unit) => unit.occupies(settings, TEXT_STAGES) !== null && unit.capabilities(settings).faceToFace);
+  if (!couldRun) return null;
   return { refused: 'lineup_face_to_face_apart', stage: 'translation', provider: context.lineUp?.transcription ?? plan.byStage.transcription.provider.id };
 }
 

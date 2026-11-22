@@ -21,13 +21,15 @@ vi.mock('../../providers/registry', async (importOriginal) => {
 
 import { presentProviders } from '../../providers/registry';
 import { geminiProvider } from '../../providers/gemini/provider';
+import { edgeProvider } from '../../providers/edge/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { sonioxProvider } from '../../providers/soniox/provider';
 import { storedLocalStages, useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { planFromStores, usePlan, useStageUnit } from './fromStores';
-import { providersIn, transcriptionProvider } from './read';
+import { checkStagesOf, providersIn, transcriptionProvider } from './read';
+import type { SharedSettings } from '../provider/types';
 import { planOf } from './testing';
 import { unitsOf } from './wholeUnit';
 
@@ -82,17 +84,30 @@ describe('planFromStores', () => {
     expect(providersIn(found.plan)).toEqual([provider]);
   });
 
-  // Before a line-up is stored the plan is the selection's, never one composed from the line-up the settings
-  // show: while the local scan runs, they show the local host's defaults, Bing and Edge.
-  it('runs the selected local provider whole before a line-up is stored, not the line-up shown', () => {
+  // Before a line-up is stored, this device runs the line-up the settings show (the local host's defaults: this
+  // device transcribes, Bing translates, Edge speaks), not the local provider whole with Bing and Edge as cloud models.
+  it('an unstored local line-up runs the line-up the settings show', () => {
     runsOn('local_inference');
-    useProviderStore.setState({ entries: { local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair } } });
-    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: false });
+    const bingEntry = { settings: {}, credentials: {}, pair };
+    const edgeVoices = { ...edgeProvider.settings.defaults, voices: { 'en→ja': 'ja-JP-NanamiNeural' } };
+    useProviderStore.setState({ entries: {
+      local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair },
+      bing: bingEntry,
+      edge: { settings: edgeVoices, credentials: {}, pair },
+    } });
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: false, unstoredProvider: 'local_inference' });
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
-    expect(found.plan).toEqual(planOf(localInferenceProvider));
-    expect(providersIn(found.plan)).toEqual([localInferenceProvider]);
-    expect(storedLocalStages()).toBeNull();
+    expect(found.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['local_inference', ['transcription']], ['bing', ['translation']], ['edge', ['speech']]]);
+    // The local provider is asked to serve transcription only: the stages the check context carries come from the plan.
+    expect(checkStagesOf(found.plan, localInferenceProvider)).toEqual(['transcription']);
+    // Edge's unit is built with the direction's migrated voice.
+    const edgeUnit = found.plan.byStage.speech;
+    const shared: SharedSettings = { pauses: { sourceSeconds: 0, translationSeconds: 0 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
+    expect(edgeUnit.unit.build({ direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' }, found.accounts.edge.settings, shared))
+      .toMatchObject({ modelId: 'edge-tts', edgeVoice: 'ja-JP-NanamiNeural' });
+    // The local surfaces resolve the stages the plan runs: recognition alone on this device.
+    expect(storedLocalStages()).toEqual({ translation: null, speech: null, transcription: 'local' });
   });
 
   it('answers a new plan for another provider object offered under the same id, with the same entry', () => {
@@ -176,17 +191,18 @@ describe('the plan before the line-up store has loaded', () => {
 
 describe('the plan of a stored line-up', () => {
   const localEntry = { settings: localInferenceProvider.settings.defaults, credentials: {}, pair };
+  const edgeEntry = { settings: edgeProvider.settings.defaults, credentials: {}, pair };
   const stored = (transcription: string | null, translation: string | null, speech: string | null) =>
     useLineUpStore.setState({ lineUp: { transcription, translation, speech, summarisation: null }, stored: true, unstoredProvider: null });
 
   it('is what the composer makes of it, with the entry of each of its providers', () => {
     stored('soniox', 'soniox', 'edge');
-    useProviderStore.setState({ entries: { soniox: sonioxEntry, local_inference: localEntry, gemini: geminiEntry } });
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, edge: edgeEntry, gemini: geminiEntry } });
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
-    expect(found.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['local_inference', ['speech']]]);
-    expect(providersIn(found.plan)).toEqual([sonioxProvider, localInferenceProvider]);
-    expect(found.accounts).toEqual({ soniox: sonioxEntry, local_inference: localEntry });
+    expect(found.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['edge', ['speech']]]);
+    expect(providersIn(found.plan)).toEqual([sonioxProvider, edgeProvider]);
+    expect(found.accounts).toEqual({ soniox: sonioxEntry, edge: edgeEntry });
     expect(planFromStores()).toBe(found);
   });
 
@@ -196,7 +212,7 @@ describe('the plan of a stored line-up', () => {
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
     expect(found.plan).toEqual(planOf(sonioxProvider));
-    stored('local_inference', 'bing', 'edge');
+    stored('local_inference', 'local_inference', 'local_inference');
     useProviderStore.setState({ entries: { local_inference: localEntry } });
     const local = planFromStores();
     if (local.state !== 'ready') throw new Error(`expected a ready plan, got ${local.state}`);
@@ -216,7 +232,7 @@ describe('the plan of a stored line-up', () => {
     expect(planFromStores()).toEqual({ state: 'loading' });
     useProviderStore.setState({ entries: { soniox: sonioxEntry } });
     expect(planFromStores()).toEqual({ state: 'loading' });
-    useProviderStore.setState({ entries: { soniox: sonioxEntry, local_inference: localEntry } });
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, edge: edgeEntry } });
     expect(planFromStores().state).toBe('ready');
   });
 
@@ -246,7 +262,7 @@ describe('the plan of a stored line-up', () => {
 
   it('usePlan follows the line-up, and keeps its identity while the line-up and its entries stand', () => {
     stored('soniox', 'soniox', 'soniox');
-    useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry, local_inference: localEntry } });
+    useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry, edge: edgeEntry } });
     const { result } = renderHook(() => usePlan());
     const first = result.current;
     expect(first.state).toBe('ready');
@@ -254,7 +270,7 @@ describe('the plan of a stored line-up', () => {
     expect(result.current).toBe(first);
     act(() => stored('soniox', 'soniox', 'edge'));
     expect(result.current).not.toBe(first);
-    expect(result.current.state === 'ready' && providersIn(result.current.plan)).toEqual([sonioxProvider, localInferenceProvider]);
+    expect(result.current.state === 'ready' && providersIn(result.current.plan)).toEqual([sonioxProvider, edgeProvider]);
     act(() => stored('soniox', 'soniox', null));
     expect(result.current.state).toBe('refused');
   });

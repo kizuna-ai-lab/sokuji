@@ -24,8 +24,8 @@ export const CAPS: readonly ProviderCaps[] = [
   { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', translatesOwn: true, account: 'kizuna', voiceAlone: true, takesVoice: true },
   endToEnd('kizunaai_qwen', 'kizuna'),
   { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: true },
-  { id: 'bing', stages: ['translation'], host: 'local_inference', account: 'none', voiceAlone: false, takesVoice: true },
-  { id: 'edge', stages: ['speech'], host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: false },
+  { id: 'bing', stages: ['translation'], host: 'bing', account: 'none', voiceAlone: false, takesVoice: true },
+  { id: 'edge', stages: ['speech'], host: 'edge', account: 'none', voiceAlone: true, takesVoice: false },
   { id: 'soniox', stages: ALL, host: 'soniox', translatesOwn: true, account: 'key', voiceAlone: true, takesVoice: true },
   endToEnd('gemini', 'key'),
   endToEnd('volcengine_ast2', 'key'),
@@ -102,25 +102,24 @@ export function carriedTogether(option: Pick<ProviderCaps, 'joint' | 'translates
 }
 
 /**
- * The host that runs this line-up by the catalog alone, for code that has no providers at hand: every run stage
- * names an option that serves it, and all three share one host. Null otherwise.
- */
-export function soleHost(lineUp: Pick<LineUp, RunStage>): string | null {
-  let host: string | null = null;
-  for (const stage of RUN_STAGES) {
-    const option = optionFor(lineUp, stage);
-    if (!option || (host !== null && option.host !== host)) return null;
-    host = option.host;
-  }
-  return host;
-}
-
-/**
- * Whether more than one host serves these stages: a run on two services. Bing and Edge run on this device's
- * provider, so a run on it with them is on one host; an id the catalog does not know is a host of its own.
+ * Whether more than one host serves these stages: a run on two services. Every option is a host of its own, so
+ * this device with Bing and Edge is a run on three; an id the catalog does not know is a host of its own.
  */
 export function severalHosts(stages: StageIds): boolean {
   return new Set(RUN_STAGES.map((stage) => caps(stages[stage])?.host ?? stages[stage])).size > 1;
+}
+
+/**
+ * Whether these stages are a provider's own line-up: each names an option that serves it, and that option's host is
+ * the provider; for `local_inference` alone it is also Bing or Edge (its free line-up: this device with Bing and
+ * Edge). For any other provider, the provider alone.
+ */
+export function belongsTo(stages: Pick<LineUp, RunStage>, provider: string): boolean {
+  const hosts = new Set<string>(provider === 'local_inference' ? RUN_STAGES.map((stage) => caps(hostDefaults(provider)[stage]!)?.host ?? provider) : [provider]);
+  return RUN_STAGES.every((stage) => {
+    const option = optionFor(stages, stage);
+    return option !== undefined && hosts.has(option.host);
+  });
 }
 
 /** One provider's id on every run stage. */
@@ -129,9 +128,10 @@ export function allStagesBy(id: string): StageIds {
 }
 
 /**
- * The ids that serve the stages of a run: the stored line-up's, which is what runs; while none is stored, the id
- * of the provider that runs meanwhile (`providerId`) on every stage: a line-up that is only shown names nothing
- * about the run.
+ * The ids that serve the stages of a run: the line-up's when it is the one that runs (`stored`, as the line-up
+ * store's `lineUpThatRuns` says: the stored one, or, before one is stored, the one shown where this device runs);
+ * otherwise the id of the provider that runs meanwhile (`providerId`) on every stage: a line-up only shown beside
+ * another provider names nothing about the run.
  */
 export function stageIdsFor(lineUp: Pick<LineUp, RunStage> | null, stored: boolean, providerId: string): StageIds {
   if (!stored || lineUp === null) return allStagesBy(providerId);

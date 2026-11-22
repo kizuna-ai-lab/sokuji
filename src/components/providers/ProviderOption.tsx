@@ -7,7 +7,6 @@
 import type { ComponentType } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import type { AnyProvider } from '../../lib/provider/types';
-import { BingIcon, EdgeIcon } from '../Icons/ProviderIcons';
 
 export interface ProviderOptionModel {
   id: string;
@@ -31,21 +30,15 @@ export interface ProviderOptionModel {
   recommended?: boolean;
 }
 
-/** The two providers that are not in the registry: they run inside the local provider (Plan 4). */
-const EXTRA: Record<string, { icon: ComponentType<{ size?: string | number }>; name: string; note: string }> = {
-  bing: { icon: BingIcon, name: 'Bing', note: 'Free · online, a Microsoft service' },
-  edge: { icon: EdgeIcon, name: 'Edge', note: 'Free · online, a Microsoft service' },
-};
-
 export function useOptionModel(): (id: string, provider?: AnyProvider) => ProviderOptionModel {
   const { t } = useTranslation();
   return (id, provider) => {
-    const extra = EXTRA[id];
-    if (extra) {
-      // Their one line is their description (owner, 2026-11-15): it says what they are, it credits no engine.
-      return { id, icon: extra.icon, name: t(`providers.${id}.name`, extra.name), description: t(`providers.${id}.note`, extra.note) };
+    if (provider?.kind === 'online') {
+      // An online service's one line (`providers.<id>.note`, Bing's and Edge's) is its description (owner,
+      // 2026-11-15): it says what it is, it credits no engine.
+      return { id, icon: provider.icon, name: t(`providers.${id}.name`, id), description: t(`providers.${id}.note`, '') || undefined };
     }
-    // Only the local provider has a note of its own (Bing and Edge above).
+    // Only the local provider has a note of its own (the online services' line is their description, above).
     const note = id === 'local_inference' ? t('providers.local_inference.note', 'Free · offline') : undefined;
     return {
       id,

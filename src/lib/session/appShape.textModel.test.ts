@@ -18,6 +18,7 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 }));
 
 import { geminiTextProvider } from '../../providers/gemini_text/provider';
+import { edgeProvider } from '../../providers/edge/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { openaiTextProvider } from '../../providers/openai_text/provider';
 import { sonioxProvider } from '../../providers/soniox/provider';
@@ -38,7 +39,7 @@ const values = (options: readonly { value: string }[]) => options.map((o) => o.v
 
 async function stored(of: ReturnType<typeof lineUp>) {
   useLineUpStore.setState({ lineUp: of, stored: true, unstoredProvider: null, locked: false });
-  for (const p of [sonioxProvider, localInferenceProvider, openaiTextProvider, geminiTextProvider]) await useProviderStore.getState().load(p);
+  for (const p of [sonioxProvider, localInferenceProvider, edgeProvider, openaiTextProvider, geminiTextProvider]) await useProviderStore.getState().load(p);
   const entries = useProviderStore.getState().entries;
   useProviderStore.setState({ entries: { ...entries, soniox: { ...entries.soniox, credentials: { apiKey: 'k' } }, openai_text: { ...entries.openai_text, credentials: { apiKey: 'test-key-0000' } } } });
 }
@@ -50,7 +51,7 @@ function ready() {
 }
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, readiness: {}, stages: {}, stageIds: {}, intent: undefined });
+  useProviderStore.setState({ entries: {}, readiness: {}, stages: {}, intent: undefined });
   useAudioStore.setState({ mode: 'speaker', otherSide: 'meeting' } as never);
   useSettingsStore.setState({ textOnly: false });
   useRoutingStore.setState({ participantSpeech: null });
@@ -103,13 +104,13 @@ describe("Soniox transcribing, OpenAI's text model translating, Soniox's voice r
 });
 
 describe("this device transcribing, Gemini's text model translating, Edge reading", () => {
-  it("composes to this device's recognition alone, the text model and this device's speech", async () => {
+  it("composes to this device's recognition alone, the text model and Edge's speech", async () => {
     await stored(lineUp('local_inference', 'gemini_text', 'edge'));
     const found = ready();
     expect(found.plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([
       ['local_inference', 'transcription', ['transcription']],
       ['gemini_text', 'translation', ['translation']],
-      ['local_inference', 'speech', ['speech']],
+      ['edge', 'speech', ['speech']],
     ]);
     const offer = planLanguages(found).languages;
     const local = localInferenceProvider.settings.defaults as never;

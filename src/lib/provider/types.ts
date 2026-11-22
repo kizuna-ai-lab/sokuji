@@ -13,7 +13,11 @@ import type { SessionHooks } from '../session/types';
 import type { WireTable } from '../language/wire';
 
 export type Platform = 'electron' | 'extension' | 'web';
-export type ProviderKind = 'own-key' | 'managed' | 'local';
+/**
+ * What a provider asks of the user: `own-key` a key of their own, `managed` a Kizuna sign-in, `local` models on this
+ * device, `online` nothing at all (a free online service: no key, no sign-in, no model).
+ */
+export type ProviderKind = 'own-key' | 'managed' | 'local' | 'online';
 
 /** A language on offer: an app code (`src/lib/language/code.ts`), named by `languageLabel` wherever it shows. */
 export interface LanguageOption { value: string }
@@ -128,12 +132,6 @@ export interface CheckContext {
    * speaks needs nothing it would need to transcribe. Absent: every stage it can serve.
    */
   stages?: readonly RunStage[];
-  /**
-   * The line-up id each of `stages` was given to, where the plan runs a stored line-up: a provider that runs a
-   * stage in more than one way reads which here (the local provider: Bing or a local model, Edge or a local voice).
-   * Absent: `stages` is absent, or no stored line-up is what runs.
-   */
-  stageIds?: Readonly<Partial<StageIds>>;
   /**
    * This provider writes the line-up's notes (text models, part C), which are no run stage: a check that can tell
    * checks what they would use too. Only the Notes card asks it (with `stages: []` where the provider serves no run

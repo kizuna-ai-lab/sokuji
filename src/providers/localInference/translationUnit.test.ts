@@ -35,15 +35,12 @@ vi.mock('../../stores/modelStore', () => ({
         const entry = mockTable[`${src}>${tgt}`];
         const stage = (id: string | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
         const noAsr = stages != null && (stages.translation === null || stages.transcription === null);
-        return { asr: stage(noAsr ? undefined : entry?.asr), translation: stage(stages?.translation === 'bing' ? 'bing-translator' : entry?.translation), tts: null, notes: [], prunes: [] };
+        return { asr: stage(noAsr ? undefined : entry?.asr), translation: stage(entry?.translation), tts: null, notes: [], prunes: [] };
       },
       deviceFeatures: [],
     }),
   },
 }));
-
-let mockStored: LocalStages | null = null;
-vi.mock('../../stores/lineUpStore', () => ({ storedLocalStages: () => mockStored }));
 
 /** Per-model memory in MB; the rest of the manifest is the real one. */
 let mockSizes: Record<string, number> = {};
@@ -54,15 +51,16 @@ vi.mock('../../lib/local-inference/modelManifest', async (original) => ({
 
 import { FAKE_TRANSCRIBER_DEFAULTS, fakeTranscriberProvider } from '../fake/transcriber';
 import { fakeVoiceProvider } from '../fake/voice';
-import { MODEL_MANIFEST } from '../../lib/local-inference/modelManifest';
+import { MODEL_MANIFEST, isTranslationModelCompatible } from '../../lib/local-inference/modelManifest';
+import { BING_TRANSLATOR } from '../../lib/local-inference/sessions/translationSession';
 import { buildLocalInference, type LocalInferenceConfig } from './config';
 import { FakeTranslation } from './fakeEngines';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from './settings';
 import { areLocalSpeechConfigs } from './speechUnit';
-import { LOCAL_MODEL_JOB_TIMEOUT_MS } from './translationSession';
+import { LOCAL_MODEL_JOB_TIMEOUT_MS } from '../../lib/local-inference/sessions/translationSession';
 import {
-  admitLocalTranslation, areLocalTranslationConfigs, BING_TRANSLATOR, createLocalTranslationUnit, localTranslates, localTranslationLanguages,
-  localTranslationSources, localTranslationTargets, localTranslationUnit, localUnitTranslates, type LocalTranslationConfig,
+  admitLocalTranslation, areLocalTranslationConfigs, createLocalTranslationUnit, localTranslates, localTranslationLanguages,
+  localTranslationSources, localTranslationTargets, localTranslationUnit, type LocalTranslationConfig,
 } from './translationUnit';
 
 const JA_EN = { source: 'ja', target: 'en' };
@@ -77,17 +75,16 @@ const shared = (over: { reversed?: boolean; lineUp?: StageIds; words?: SharedSet
   ...(over.words ? { words: over.words } : {}),
 });
 const SETTINGS: LocalInferenceSettings = LOCAL_INFERENCE_DEFAULTS;
-/** Another provider transcribes; this device translates with a model of its own, or with Bing. */
+/** Another provider transcribes; this device translates with a model of its own. */
 const WITH_MODEL: StageIds = { transcription: 'soniox', translation: 'local_inference', speech: 'soniox' };
-const WITH_BING: StageIds = { transcription: 'soniox', translation: 'bing', speech: 'soniox' };
 const MODEL: LocalTranslationConfig = { modelId: 'opus-mt-en-jap', instructions: 'Translate.', wrapTranscript: true };
+/** What Bing's unit hands the shared translation session: its tagged errors and its deadline are worded and kept there. */
 const BING: LocalTranslationConfig = { modelId: BING_TRANSLATOR, instructions: '', wrapTranscript: false };
 const unit = localTranslationUnit;
 
 beforeEach(() => {
   mockTable = { 'ja>en': { asr: 'asr-ja', translation: 'opus-mt-ja-en' }, 'en>ja': { asr: 'asr-en', translation: 'opus-mt-en-jap' } };
   mockStagesSeen = [];
-  mockStored = null;
   mockSizes = {};
   localStorage.clear();
 });
@@ -112,76 +109,50 @@ describe('what the local translation unit declares', () => {
 
   it('names the model that translates', () => {
     expect(unit.describe(MODEL)).toEqual({ translationModel: 'opus-mt-en-jap' });
-    expect(unit.describe(BING)).toEqual({ translationModel: 'bing-translator' });
   });
 });
 
 describe('the pairs it translates', () => {
-  it('Bing: the pairs of its own list, in the codes it takes', () => {
-    expect(localTranslates('bing', 'en', 'ja')).toBe(true);
-    expect(localTranslates('bing', 'ja', 'en')).toBe(true);
-    expect(localTranslates('bing', 'en', 'zh')).toBe(true);
-    expect(localTranslates('bing', 'en', 'zh-CN')).toBe(true);
-    expect(localTranslates('bing', 'zh-TW', 'en')).toBe(true);
-    // Simplified into traditional is a translation; `zh` into `zh-CN` is one language twice.
-    expect(localTranslates('bing', 'zh-CN', 'zh-TW')).toBe(true);
-    expect(localTranslates('bing', 'zh', 'zh-CN')).toBe(false);
-    expect(localTranslates('bing', 'en', 'zh-Hant')).toBe(false);
-    expect(localTranslates('bing', 'no', 'en')).toBe(true);
-    expect(localTranslates('bing', 'en', 'nb')).toBe(true);
-    expect(localTranslates('bing', 'no', 'nb')).toBe(false);
-    // Latin is recognized by this device's models and is not on Bing's list.
-    expect(localTranslates('bing', 'la', 'en')).toBe(false);
-    expect(localTranslates('bing', 'en', 'en')).toBe(false);
+  it('the local translation unit translates with local models only', () => {
+    // Bing's own pairs are Bing's unit's: this unit takes a pair exactly when some model of this machine does.
+    const translates = unit.capabilities(SETTINGS).translates!;
+    expect(translates).toBe(localTranslates);
+    for (const [source, target] of [['en', 'ja'], ['zh', 'zh-CN'], ['zh-CN', 'zh-TW'], ['no', 'nb'], ['la', 'en']]) {
+      expect(translates(source, target), `${source}>${target}`).toBe(
+        MODEL_MANIFEST.some((m) => m.type === 'translation' && !m.isCloudModel && isTranslationModelCompatible(m, source, target)),
+      );
+    }
+    // The cloud entry of the manifest is not a model of this machine.
+    const cloud = MODEL_MANIFEST.find((m) => m.type === 'translation' && m.isCloudModel)!;
+    expect(cloud.id).toBe('bing-translator');
+    expect(translates('zh', 'zh-CN')).toBe(MODEL_MANIFEST.some((m) => m.type === 'translation' && !m.isCloudModel && isTranslationModelCompatible(m, 'zh', 'zh-CN')));
   });
 
   it("this device's models: a pair some model of the catalog takes, downloaded or not", () => {
-    expect(localTranslates('local_inference', 'ja', 'en')).toBe(true);
-    expect(localTranslates('local_inference', 'en', 'zh')).toBe(true);
-    expect(localTranslates('local_inference', 'no', 'en')).toBe(true);
+    expect(localTranslates('ja', 'en')).toBe(true);
+    expect(localTranslates('en', 'zh')).toBe(true);
+    expect(localTranslates('no', 'en')).toBe(true);
     // A model that takes any language is in the catalog.
-    expect(localTranslates('local_inference', 'zh-TW', 'la')).toBe(MODEL_MANIFEST.some((m) => m.type === 'translation' && !m.isCloudModel && m.languages[0] === 'multilingual'));
-    expect(localTranslates('local_inference', 'en', 'en')).toBe(false);
+    expect(localTranslates('zh-TW', 'la')).toBe(MODEL_MANIFEST.some((m) => m.type === 'translation' && !m.isCloudModel && m.languages[0] === 'multilingual'));
+    expect(localTranslates('en', 'en')).toBe(false);
   });
 
   it('never from a source that is not known yet: every engine here has one fixed pair', () => {
-    expect(localTranslates('bing', AUTO, 'en')).toBe(false);
-    expect(localTranslates('local_inference', AUTO, 'en')).toBe(false);
-    expect(localTranslates('local_inference', 'en', AUTO)).toBe(false);
+    expect(localTranslates(AUTO, 'en')).toBe(false);
+    expect(localTranslates('en', AUTO)).toBe(false);
   });
 
-  it('the unit answers for the option the stored line-up gives translation to, and for either with none stored', () => {
-    const translates = (source: string, target: string) => unit.capabilities(SETTINGS).translates!(source, target);
-    mockStored = { translation: 'bing', speech: null, transcription: null };
-    expect(translates('la', 'en')).toBe(false);
-    expect(translates('en', 'ja')).toBe(true);
-    mockStored = { translation: 'local', speech: null, transcription: null };
-    expect(translates('la', 'en')).toBe(localTranslates('local_inference', 'la', 'en'));
-    expect(translates(AUTO, 'en')).toBe(false);
-    mockStored = null;
-    expect(translates('en', 'ja')).toBe(true);
-    expect(localUnitTranslates('zh', 'zh-CN', { translation: 'bing', speech: 'edge', transcription: null })).toBe(false);
-  });
-
-  it('lists the targets of a source and the sources of a target, per option', () => {
-    const bing = localTranslationLanguages('bing');
-    expect(bing).toEqual(expect.arrayContaining(['en', 'ja', 'zh', 'zh-CN', 'zh-TW', 'no', 'nb']));
-    expect(new Set(bing).size).toBe(bing.length);
-    expect(localTranslationTargets('bing', 'en')).not.toContain('en');
-    expect(localTranslationTargets('bing', 'en')).toEqual(expect.arrayContaining(['ja', 'zh-TW', 'nb']));
-    expect(localTranslationTargets('bing', 'zh')).not.toContain('zh-CN');
-    expect(localTranslationSources('bing', 'ja')).toEqual(expect.arrayContaining(['en', 'zh']));
-    expect(localTranslationSources('bing', 'ja')).not.toContain('ja');
+  it('lists the targets of a source and the sources of a target, among the languages asked about', () => {
     // Asked about another unit's languages, each is answered for.
-    expect(localTranslationTargets('bing', 'en', ['ja', 'la', 'en', AUTO])).toEqual(['ja']);
-    expect(localTranslationSources('bing', 'en', [AUTO, 'ja', 'la', 'en'])).toEqual(['ja']);
+    expect(localTranslationTargets('en', ['ja', 'en', AUTO])).toEqual(['ja']);
+    expect(localTranslationSources('en', [AUTO, 'ja', 'en'])).toEqual(['ja']);
 
-    const local = localTranslationLanguages('local_inference');
+    const local = localTranslationLanguages();
     expect(local).toEqual(expect.arrayContaining(['ja', 'en', 'zh', 'xh']));
     expect(local).not.toContain('multilingual');
-    expect(localTranslationTargets('local_inference', 'ja')).toContain('en');
-    expect(localTranslationTargets('local_inference', 'ja')).not.toContain('ja');
-    expect(localTranslationSources('local_inference', 'en', ['ja', AUTO, 'en'])).toEqual(['ja']);
+    expect(localTranslationTargets('ja')).toContain('en');
+    expect(localTranslationTargets('ja')).not.toContain('ja');
+    expect(localTranslationSources('en', ['ja', AUTO, 'en'])).toEqual(['ja']);
   });
 });
 
@@ -203,28 +174,14 @@ describe('the config it builds', () => {
     expect(config.instructions).toContain('A product meeting.');
   });
 
-  it('a line-up that gives translation to Bing: Bing, told nothing, whatever model is chosen for the direction', () => {
-    const words = { entries: [], background: 'A product meeting.' } as unknown as SharedSettings['words'];
-    expect(unit.build(ctx(EN_JA), SETTINGS, shared({ lineUp: WITH_BING, words }))).toEqual(BING);
-    // Bing needs nothing resolved.
-    expect(mockStagesSeen).toEqual([]);
-  });
-
-  it('Bing is never swapped for a model: a pair it does not take is refused', () => {
-    mockTable = { 'la>en': { translation: 'qwen3-0.6b-translation' } };
-    expect(unit.build(ctx({ source: 'la', target: 'en' }), SETTINGS, shared({ lineUp: WITH_BING }))).toEqual({ refused: 'Bing Translator does not support this language pair.' });
-  });
-
   it('a model is never swapped for Bing: with none for the direction, the build is refused as models that are missing', () => {
     mockTable = {};
     const refusal = unit.build(ctx(EN_JA), SETTINGS, shared({ lineUp: WITH_MODEL })) as ProviderRefusal;
     expect(refusal).toEqual({ refused: 'No translation model for en → ja.', code: 'local_models_missing' });
   });
 
-  it('a source that is not known yet is refused, for Bing and for a model alike', () => {
-    for (const lineUp of [WITH_BING, WITH_MODEL]) {
-      expect(unit.build(ctx({ source: AUTO, target: 'en' }), SETTINGS, shared({ lineUp }))).toEqual({ refused: 'A translation on this device needs a fixed source language.' });
-    }
+  it('a source that is not known yet is refused', () => {
+    expect(unit.build(ctx({ source: AUTO, target: 'en' }), SETTINGS, shared({ lineUp: WITH_MODEL }))).toEqual({ refused: 'A translation on this device needs a fixed source language.' });
   });
 
   it('a recognition model that translates speech itself is no translator of text', () => {
@@ -233,19 +190,9 @@ describe('the config it builds', () => {
     expect(unit.build(ctx(EN_JA), SETTINGS, shared({ lineUp: WITH_MODEL }))).toMatchObject({ code: 'local_models_missing' });
   });
 
-  it('handed no line-up, the stored one says; with none stored, the direction resolves as the local provider does without one', () => {
-    mockStored = { translation: 'bing', speech: 'edge', transcription: null };
-    expect(unit.build(ctx(EN_JA), SETTINGS, shared())).toEqual(BING);
-    mockStored = { translation: 'local', speech: 'edge', transcription: null };
+  it('handed no line-up, it translates on this machine: its stages are never null, so Bing is no choice to resolve', () => {
     expect(unit.build(ctx(EN_JA), SETTINGS, shared())).toMatchObject({ modelId: 'opus-mt-en-jap' });
-    expect(mockStagesSeen).toEqual([{ translation: 'local', speech: 'edge', transcription: null }]);
-    mockStored = null;
-    mockStagesSeen = [];
-    expect(unit.build(ctx(EN_JA), SETTINGS, shared())).toMatchObject({ modelId: 'opus-mt-en-jap' });
-    expect(mockStagesSeen).toEqual([null]);
-    // Without a line-up Bing is one of the local choices: resolved, it is Bing, told nothing.
-    mockTable = { 'en>ja': { translation: BING_TRANSLATOR } };
-    expect(unit.build(ctx(EN_JA), SETTINGS, shared())).toEqual(BING);
+    expect(mockStagesSeen).toEqual([{ translation: 'local', speech: null, transcription: null }]);
   });
 });
 
@@ -262,11 +209,10 @@ describe('admission', () => {
     expect(areLocalSpeechConfigs({ speaker: BING })).toBe(false);
   });
 
-  it('counts its translation models only, and nothing for Bing', () => {
+  it('counts its translation models', () => {
     localStorage.setItem('debug:device-memory', '1'); // 768 MB of budget
-    mockSizes = { 'opus-mt-en-jap': 500, 'opus-mt-ja-en': 500, [BING_TRANSLATOR]: 5000 };
+    mockSizes = { 'opus-mt-en-jap': 500, 'opus-mt-ja-en': 500 };
     expect(admitLocalTranslation({ speaker: MODEL })).toBe(true);
-    expect(admitLocalTranslation({ speaker: BING, participant: BING })).toBe(true);
     expect(admitLocalTranslation({ speaker: MODEL, participant: { ...MODEL, modelId: 'opus-mt-ja-en' } })).toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
   });
 });
@@ -603,13 +549,13 @@ describe('a leg of three units: another provider transcribes, this device transl
     );
   }
 
-  function requestFor(p: RunPlan, context: SessionContext, clock: ReturnType<typeof createVirtualClock>, lineUp: StageIds, signal = new AbortController().signal): StartRequest<PlanConfigs, (unit: PlannedUnit) => unknown> {
+  function requestFor(p: RunPlan, context: SessionContext, clock: ReturnType<typeof createVirtualClock>, lineUp: StageIds | null, signal = new AbortController().signal): StartRequest<PlanConfigs, (unit: PlannedUnit) => unknown> {
     const settings = new Map<PlannedUnit, unknown>([[p.byStage.transcription, FAKE_TRANSCRIBER_DEFAULTS], [p.byStage.translation, SETTINGS], [p.byStage.speech, {}]]);
-    const config: PlanConfigs = new Map(p.units.map((u) => [u, u.unit.build({ ...context, speech: context.speech && u.stages.includes('speech') }, settings.get(u), shared({ lineUp }))]));
+    const config: PlanConfigs = new Map(p.units.map((u) => [u, u.unit.build({ ...context, speech: context.speech && u.stages.includes('speech') }, settings.get(u), shared({ lineUp: lineUp ?? undefined }))]));
     return { context, config, credentials: () => ({}), clock, signal };
   }
 
-  async function leg(lineUp: StageIds = { transcription: 'fake_transcriber', translation: 'local_inference', speech: 'fake_voice' }) {
+  async function leg(lineUp: StageIds | null = { transcription: 'fake_transcriber', translation: 'local_inference', speech: 'fake_voice' }) {
     const engine = new FakeTranslation();
     const p = planOver({ 'en>ja': engine });
     const clock = createVirtualClock(0);
@@ -743,43 +689,6 @@ describe('a leg of three units: another provider transcribes, this device transl
     expect(h.engine.disposes).toBe(1);
     expect(h.clock.pending()).toBe(0);
     expect(checkConformance(h.rec.log, SPEAKS)).toEqual([]);
-  });
-
-  it('with Bing: the bing model is loaded for the direction, told nothing, and its tagged errors are worded', async () => {
-    const h = await leg({ transcription: 'fake_transcriber', translation: 'bing', speech: 'fake_voice' });
-    expect(h.p.byStage.translation.unit.describe(requestFor(h.p, SPEAKS, h.clock, { transcription: 'fake_transcriber', translation: 'bing', speech: 'fake_voice' }).config.get(h.p.byStage.translation))).toEqual({ translationModel: 'bing-translator' });
-    await flush();
-    expect(h.engine.inits).toEqual([{ sourceLang: 'en', targetLang: 'ja', modelId: 'bing-translator' }]);
-    h.engine.ready();
-    const session = await h.starting;
-    await h.run(700);
-    expect(h.engine.calls).toEqual([{ text: 'Hello.', systemPrompt: '', wrapTranscript: false }]);
-    h.engine.reject(new Error('[bing:network] HTTP 429'));
-    await flush();
-    await h.run(2_000);
-    await h.answer('今日はお元気ですか？');
-    expect(h.of('degraded')).toEqual([expect.objectContaining({ code: 'translation_failed', message: 'Bing Translator is temporarily unavailable.', runStage: 'translation' })]);
-    expect(h.of('segmentText').map((e) => e.text)).toContain('今日はお元気ですか？');
-    await h.stop(session);
-    expect(checkConformance(h.rec.log, SPEAKS)).toEqual([]);
-  });
-
-  it('with Bing and a pair it does not take: the build refuses, and a start handed such a config refuses too', async () => {
-    const engine = new FakeTranslation();
-    const p = planOver({ 'la>en': engine });
-    const context: SessionContext = { direction: { source: 'la', target: 'en' }, speech: true, turns: 'auto' };
-    const lineUp: StageIds = { transcription: 'fake_transcriber', translation: 'bing', speech: 'fake_voice' };
-    const clock = createVirtualClock(0);
-    const request = requestFor(p, context, clock, lineUp);
-    expect(request.config.get(p.byStage.translation)).toEqual({ refused: 'Bing Translator does not support this language pair.' });
-    // A caller that went on regardless: the unit's own start refuses, and nothing is loaded or heard.
-    (request.config as Map<PlannedUnit, unknown>).set(p.byStage.translation, BING);
-    const rec = recordConformance();
-    await expect(startComposite(p, request, rec.events)).rejects.toMatchObject({ code: 'build_refused', message: 'Bing Translator does not support this language pair.' });
-    expect(engine.inits).toEqual([]);
-    clock.advance(2_000);
-    await flush();
-    expect(rec.log.filter((e) => e.kind === 'segmentOpened')).toEqual([]);
   });
 
   it('both legs: each loads the model of its own direction and translates its own way', async () => {

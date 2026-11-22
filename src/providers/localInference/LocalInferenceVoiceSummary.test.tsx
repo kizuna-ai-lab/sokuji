@@ -27,15 +27,10 @@ const short = (id: string) => { const e = getManifestEntry(id)!; return shortenM
 beforeEach(() => { mockTts = {}; });
 
 describe('LocalInferenceVoiceSummary', () => {
-  it("names an Edge voice by its own name, from each leg's direction", () => {
+  it("names Edge by the model, a voice stored for Edge in the direction notwithstanding: that voice is Edge's own setting", () => {
     mockTts = { 'ja>en': 'edge-tts', 'en>ja': 'edge-tts' };
-    expect(named('speaker', { 'ja→en': { edge: 'en-US-AvaMultilingualNeural' } })).toBe('Ava Multilingual');
-    expect(named('participant', { 'en→ja': { edge: 'ja-JP-NanamiNeural' } })).toBe('Nanami');
-  });
-
-  it('names Edge by the model while the direction has no voice yet', () => {
-    mockTts = { 'ja>en': 'edge-tts' };
-    expect(named('speaker')).toBe(short('edge-tts'));
+    expect(named('speaker', { 'ja→en': { edge: 'en-US-AvaMultilingualNeural' } } as never)).toBe(short('edge-tts'));
+    expect(named('participant', { 'en→ja': { edge: 'ja-JP-NanamiNeural' } } as never)).toBe(short('edge-tts'));
   });
 
   it("names a Supertonic preset, the model's default when none is set, and an imported voice as a custom voice", () => {

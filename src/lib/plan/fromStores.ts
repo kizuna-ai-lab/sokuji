@@ -3,8 +3,9 @@
 // The run plan as the stores stand: the one place the app reads it, for a
 // start, the start gate and every surface. The stored line-up decides it: the
 // plan is the one the composer makes of it. Until a line-up is stored, the
-// plan is that of the provider that runs meanwhile, alone: its one
-// whole-provider unit, or the units it declares for a session on it alone.
+// plan is that of the line-up the settings show where this device runs meanwhile,
+// else that of the provider that runs meanwhile, alone: its one whole-provider
+// unit, or the units it declares for a session on it alone.
 // Nothing the provider registry imports may import this file: it imports the
 // registry (`fromStores.cycle.test.ts` checks it).
 import { useMemo, useSyncExternalStore } from 'react';
@@ -78,8 +79,9 @@ function storedPlan(lineUp: LineUp, providers: readonly AnyProvider[], entries: 
 
 /**
  * The plan as the stores stand. A stored line-up: the plan the composer makes of it, or its refusal. No line-up
- * stored yet: the plan of the provider that runs meanwhile (`unstoredProvider`; the first offered when that id is
- * not offered here), alone (`wholePlan`), never one composed from the line-up the settings show. Loading until the
+ * stored yet: where this device runs meanwhile (`unstoredProvider` is `local_inference`), the plan of the line-up
+ * the settings show; else the plan of the provider that runs meanwhile (the first offered when that id is not
+ * offered here), alone (`wholePlan`). Loading until the
  * line-up store has loaded and every provider of the plan has its entry. The same object until the line-up, a
  * provider of the plan or its entry changes.
  */
@@ -89,6 +91,9 @@ export function planFromStores(): PlanState {
   const providers = presentProviders();
   if (stored) return lineUp ? storedPlan(lineUp, providers, entries) : LOADING;
   if (unstoredProvider === null) return LOADING;
+  // This device meanwhile: the line-up the settings show (the local host's defaults until the migration writes one),
+  // composed as a stored one is: Bing and Edge are providers of their own, never cloud models of the local one.
+  if (unstoredProvider === 'local_inference' && lineUp) return storedPlan(lineUp, providers, entries);
   const provider: AnyProvider | undefined = providers.find((p) => p.id === unstoredProvider) ?? providers[0];
   const entry = provider ? entries[provider.id] : undefined;
   if (!provider || !entry) return LOADING;

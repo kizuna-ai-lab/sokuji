@@ -6,7 +6,8 @@ import type { TranslationResult } from '../../lib/local-inference/engine/Transla
 import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import type { TtsResult } from '../../lib/local-inference/engine/TtsEngine';
 import type { SegmentEnd } from '../../lib/local-inference/types';
-import type { AsrInit, AsrLike, LocalEngines, TranslationLike, TtsLike, TtsReady } from './engines';
+import type { AsrInit, AsrLike, LocalEngines } from './engines';
+import type { TranslationLike, TtsLike, TtsReady } from '../../lib/local-inference/sessions/engines';
 import type { LocalInferenceConfig } from './config';
 
 interface Deferred<T> {

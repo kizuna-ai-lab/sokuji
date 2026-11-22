@@ -11,7 +11,6 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => false }));
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: ({ disabled }: { disabled?: boolean }) => <div id="languages-section" data-disabled={String(disabled)} /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: ({ locked }: { locked?: boolean }) => <div id="turn-detection-section" data-locked={String(locked)} /> }));
-vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div /> }));
 vi.mock('./LocalVoices', () => ({ LocalVoices: () => <div /> }));
 vi.mock('../providers/ProviderOwnSettings', () => ({
   ProviderEngine: () => <div />,

@@ -4,16 +4,9 @@ import VoiceLibrarySection, { type VoiceEntry } from './VoiceLibrarySection';
 import { getManifestEntry } from '../../../lib/local-inference/modelManifest';
 import type { DirectionVoice } from '../../../providers/localInference/settings';
 
-export type EdgeVoiceStatus = 'idle' | 'loading' | 'loaded' | 'error';
-
 export interface LocalInferenceVoiceSectionProps {
   ttsModel: string;
   isSessionActive?: boolean;
-  // edge-tts
-  edgeVoices: { ShortName: string; label: string }[];
-  edgeVoiceStatus: EdgeVoiceStatus;
-  /** This direction's Edge voice ShortName, '' while none is set. */
-  edgeVoice: string;
   // supertonic
   supertonicVoices: VoiceEntry[];
   supertonicSelectedId: string;
@@ -34,11 +27,10 @@ const sidFromVoiceId = (id: string): number => Number(id.slice(id.indexOf(':') +
 /**
  * Voice control embedded in the selected local_inference TTS card. Mirrors
  * NativeVoiceSection: presentation only, switching on the selected TTS engine.
- * State (edge voice list, Supertonic library) is owned by the parent.
+ * State (the Supertonic library) is owned by the parent.
  */
 const LocalInferenceVoiceSection: React.FC<LocalInferenceVoiceSectionProps> = ({
   ttsModel, isSessionActive = false,
-  edgeVoices, edgeVoiceStatus, edgeVoice,
   supertonicVoices, supertonicSelectedId, onImportVoice, onRenameVoice, onDeleteVoice,
   speakerId, numSpeakers, onUpdate,
 }) => {
@@ -49,35 +41,6 @@ const LocalInferenceVoiceSection: React.FC<LocalInferenceVoiceSectionProps> = ({
     (id: string) => onUpdate({ speaker: sidFromVoiceId(id) }),
     [onUpdate],
   );
-
-  if (engine === 'edge-tts') {
-    let placeholder: string | null = null;
-    if (edgeVoiceStatus === 'loading' || edgeVoiceStatus === 'idle') {
-      placeholder = t('settings.loadingVoices', 'Loading voices...');
-    } else if (edgeVoiceStatus === 'error') {
-      placeholder = t('settings.edgeTtsVoiceLoadError', 'Failed to load voices — check LogsPanel');
-    } else if (edgeVoices.length === 0) {
-      placeholder = t('settings.edgeTtsNoVoicesForLanguage', 'No voices available for this language');
-    }
-    return (
-      <div className="setting-item">
-        <div className="setting-label">
-          <span>{t('settings.edgeTtsVoice', 'Voice')}</span>
-        </div>
-        <select
-          className="select-dropdown"
-          value={edgeVoice}
-          onChange={(e) => onUpdate({ edge: e.target.value })}
-          disabled={isSessionActive || edgeVoices.length === 0}
-        >
-          {placeholder && <option value="">{placeholder}</option>}
-          {edgeVoices.map((v) => (
-            <option key={v.ShortName} value={v.ShortName}>{v.label}</option>
-          ))}
-        </select>
-      </div>
-    );
-  }
 
   if (engine === 'supertonic') {
     return (

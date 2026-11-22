@@ -22,6 +22,8 @@ vi.mock('../services/ServiceFactory', () => ({
 }));
 
 import { settleReports } from '../lib/diagnostics/report';
+import { bingProvider } from '../providers/bing/provider';
+import { edgeProvider } from '../providers/edge/provider';
 import { localInferenceProvider } from '../providers/localInference/provider';
 import { kizunaSonioxProvider } from '../providers/soniox/kizuna';
 import { sonioxProvider } from '../providers/soniox/provider';
@@ -240,7 +242,7 @@ describe('a launch with a stored line-up', () => {
 
     const found = planFromStores();
     if (found.state !== 'ready') throw new Error(`expected a ready plan, got ${found.state}`);
-    expect(found.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['local_inference', ['speech']]]);
+    expect(found.plan.units.map((u) => [u.provider.id, u.stages])).toEqual([['soniox', ['transcription', 'translation']], ['edge', ['speech']]]);
     expect(useLineUpStore.getState()).toMatchObject({ stored: true, unstoredProvider: null });
     expect(setSetting).not.toHaveBeenCalled();
   });
@@ -307,17 +309,18 @@ describe('the provider a launch runs, by the order the providers are offered in'
 
 // Every provider the line-up names has its entry loaded, and so has the provider that runs while none is stored.
 describe("the entries of the line-up's providers", () => {
-  const offered = [kizunaSonioxProvider, sonioxProvider, localInferenceProvider];
+  const offered = [kizunaSonioxProvider, sonioxProvider, localInferenceProvider, bingProvider, edgeProvider];
   const lineUp = (transcription: string, translation: string, speech: string) => ({ transcription, translation, speech, summarisation: null });
 
-  it("loads every provider the line-up names: the local provider when its voice reads another provider's text", async () => {
+  it("loads every provider the line-up names: Edge, or the local provider when its voice reads another provider's text", async () => {
     await useProviderStore.getState().load(sonioxProvider);
     for (const speech of ['edge', 'local_inference']) {
       useProviderStore.setState({ entries: { soniox: useProviderStore.getState().entries.soniox } });
       useLineUpStore.setState({ lineUp: lineUp('soniox', 'soniox', speech), stored: true });
       await loadLineUpProviders(offered);
-      expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
-      expect(useProviderStore.getState().entries.local_inference.settings).toMatchObject({ voices: {}, ttsSpeed: 1 });
+      // Edge is a provider of its own: it is the one loaded when it reads, this device when its own voice does.
+      expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual([speech === 'edge' ? 'edge' : 'local_inference', 'soniox']);
+      if (speech === 'local_inference') expect(useProviderStore.getState().entries.local_inference.settings).toMatchObject({ voices: {}, ttsSpeed: 1 });
     }
   });
 
@@ -325,14 +328,14 @@ describe("the entries of the line-up's providers", () => {
     await useProviderStore.getState().load(localInferenceProvider);
     const entry = useProviderStore.getState().entries.local_inference;
     const load = vi.spyOn(useProviderStore.getState(), 'load');
-    useLineUpStore.setState({ lineUp: lineUp('local_inference', 'bing', 'edge'), stored: true });
+    useLineUpStore.setState({ lineUp: lineUp('local_inference', 'local_inference', 'local_inference'), stored: true });
     await loadLineUpProviders(offered);
     expect(load).not.toHaveBeenCalled();
     expect(useProviderStore.getState().entries).toEqual({ local_inference: entry });
   });
 
   it('loads the provider that runs while no line-up is stored, though the line-up shown does not name it', async () => {
-    useLineUpStore.setState({ lineUp: lineUp('local_inference', 'bing', 'edge'), stored: false, unstoredProvider: 'soniox' });
+    useLineUpStore.setState({ lineUp: lineUp('local_inference', 'local_inference', 'local_inference'), stored: false, unstoredProvider: 'soniox' });
     await loadLineUpProviders(offered);
     expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
   });
@@ -365,8 +368,8 @@ describe("the entries of the line-up's providers", () => {
     expect(Object.keys(useProviderStore.getState().entries)).toEqual(['soniox']);
 
     useLineUpStore.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
-    await vi.waitFor(() => expect(useProviderStore.getState().entries.local_inference).toBeDefined());
-    expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+    await vi.waitFor(() => expect(useProviderStore.getState().entries.edge).toBeDefined());
+    expect(Object.keys(useProviderStore.getState().entries).sort()).toEqual(['edge', 'soniox']);
   });
 
   describe('while the first loads are still awaited', () => {
@@ -388,15 +391,15 @@ describe("the entries of the line-up's providers", () => {
       page.segmentation.setState({ refresh: vi.fn(() => new Promise<void>((resolve) => { finish = resolve; })) });
       const launching = page.launch();
       await vi.waitFor(() => expect(page.providers.getState().entries.soniox).toBeDefined());
-      expect(page.providers.getState().entries.local_inference).toBeUndefined();
+      expect(page.providers.getState().entries.edge).toBeUndefined();
 
       // Chosen on the settings page meanwhile: Edge reads Soniox's text.
       page.lineUps.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
-      await vi.waitFor(() => expect(page.providers.getState().entries.local_inference).toBeDefined());
+      await vi.waitFor(() => expect(page.providers.getState().entries.edge).toBeDefined());
 
       finish();
       await launching;
-      expect(Object.keys(page.providers.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+      expect(Object.keys(page.providers.getState().entries).sort()).toEqual(['edge', 'soniox']);
     });
 
     it('the host the launch itself names is loaded once, by the watch and the launch between them', async () => {
@@ -419,7 +422,7 @@ describe("the entries of the line-up's providers", () => {
       page.lineUps.setState({ lineUp: lineUp('soniox', 'soniox', 'edge'), stored: true });
       vi.spyOn(page.lineUps.getState(), 'load').mockRejectedValue(new Error('disk'));
       await page.launch();
-      expect(Object.keys(page.providers.getState().entries).sort()).toEqual(['local_inference', 'soniox']);
+      expect(Object.keys(page.providers.getState().entries).sort()).toEqual(['edge', 'soniox']);
       await settle();
       const warnings = logs.getState().allLogs.filter((l) => l.message.includes('line-up'));
       expect(warnings).toHaveLength(1);

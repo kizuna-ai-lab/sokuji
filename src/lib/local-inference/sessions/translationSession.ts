@@ -10,14 +10,14 @@
  * and a model that does not load is the start's failure. One job failing
  * costs that job; a lost GPU device, or a worker that dies, ends the session.
  */
-import { AdapterStartError } from '../../lib/contract/adapter';
-import { framePayload } from '../../lib/contract/framePayload';
-import type { TranslationEvents, TranslationSession, TranslationStartRequest } from '../../lib/contract/translation';
-import { describeCause } from '../../lib/diagnostics/describeCause';
-import { isSupportedByBing } from '../../lib/bing-translator/languageMap';
-import { AUTO } from '../../lib/language/code';
-import { createJobTranslator, JOB_TIMEOUT_MS } from '../../lib/translation/jobTranslator';
-import { GPU_OUT_OF_MEMORY, humanizeTranslationError, isDeviceLost, isGpuOutOfMemory } from './adapter';
+import { AdapterStartError } from '../../contract/adapter';
+import { framePayload } from '../../contract/framePayload';
+import type { TranslationEvents, TranslationSession, TranslationStartRequest } from '../../contract/translation';
+import { describeCause } from '../../diagnostics/describeCause';
+import { isSupportedByBing } from '../../bing-translator/languageMap';
+import { AUTO } from '../../language/code';
+import { createJobTranslator, JOB_TIMEOUT_MS } from '../../translation/jobTranslator';
+import { GPU_OUT_OF_MEMORY, humanizeTranslationError, isDeviceLost, isGpuOutOfMemory } from './errors';
 import type { TranslationLike } from './engines';
 
 /** The local translation model that is Bing: online, nothing to download, its own list of languages. */

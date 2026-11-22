@@ -7,7 +7,7 @@
 // can do.
 // Pure; nothing here reads a store or the registry.
 import { RUN_STAGES } from '../lineup/types';
-import type { LineUp, RunStage, StageIds } from '../lineup/types';
+import type { RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { PlanAccount, RunShape } from '../session/types';
 import type { PlannedUnit, RunPlan, UnitCapabilities } from './types';
@@ -54,21 +54,6 @@ export function stagesOf(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): read
 export function checkStagesOf(plan: RunPlan, provider: Pick<AnyProvider, 'id'>): readonly RunStage[] | undefined {
   const stages = stagesOf(plan, provider);
   return stages.length === 0 || stages.length === RUN_STAGES.length ? undefined : stages;
-}
-
-/**
- * The line-up ids a check is told beside its stages (`CheckContext.stageIds`): the id `lineUp` gives each of
- * `stages`. Undefined when the check is told no stages, when no stored line-up is what runs (`lineUp` null), or
- * when the line-up names none of them.
- */
-export function checkStageIdsOf(stages: readonly RunStage[] | undefined, lineUp: Pick<LineUp, RunStage> | null): Readonly<Partial<StageIds>> | undefined {
-  if (!stages || !lineUp) return undefined;
-  const ids: Partial<Record<RunStage, string>> = {};
-  for (const stage of stages) {
-    const id = lineUp[stage];
-    if (id !== null) ids[stage] = id;
-  }
-  return Object.keys(ids).length > 0 ? ids : undefined;
 }
 
 /** The provider that transcribes: the run's identity where one provider id is asked for. */

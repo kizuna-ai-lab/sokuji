@@ -22,9 +22,6 @@ vi.mock('./VoiceLibrarySection', () => ({
 
 const base = {
   isSessionActive: false,
-  edgeVoices: [{ ShortName: 'en-US-A', label: 'A' }, { ShortName: 'en-US-B', label: 'B' }],
-  edgeVoiceStatus: 'loaded' as const,
-  edgeVoice: 'en-US-A',
   supertonicVoices: [{ id: 'preset:0', label: 'Sarah', group: 'builtin' as const, removable: false }],
   supertonicSelectedId: 'preset:0',
   onImportVoice: vi.fn(), onRenameVoice: vi.fn(), onDeleteVoice: vi.fn(),
@@ -35,12 +32,9 @@ const base = {
 beforeEach(() => { lastVLS = null; vi.clearAllMocks(); });
 
 describe('LocalInferenceVoiceSection', () => {
-  it('edge engine → <select> writes the edge voice', () => {
-    const onUpdate = vi.fn();
-    render(<LocalInferenceVoiceSection {...base} ttsModel="edge-model" onUpdate={onUpdate} />);
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'en-US-B' } });
-    expect(onUpdate).toHaveBeenCalledWith({ edge: 'en-US-B' });
+  it('edge engine → no voice control here: Edge\'s voices are Edge\'s own settings (a single voice has no speaker to pick)', () => {
+    const { container } = render(<LocalInferenceVoiceSection {...base} ttsModel="edge-model" numSpeakers={1} />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('supertonic engine → renders VoiceLibrarySection with dropdown/upload capability', () => {

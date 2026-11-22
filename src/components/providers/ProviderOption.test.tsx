@@ -3,13 +3,20 @@ import { describe, it, expect } from 'vitest';
 import { render, renderHook } from '@testing-library/react';
 import { resolve } from 'node:path';
 import { compile } from 'sass';
+import '../../locales';
+import { bingProvider } from '../../providers/bing/provider';
+import { edgeProvider } from '../../providers/edge/provider';
 import { optionText, ProviderOption, useOptionModel } from './ProviderOption';
 
 describe('a provider option', () => {
+  // Bing and Edge are online providers of their own: their icon, their name and their one line (`providers.<id>.*`).
   it("draws Bing's and Edge's line as their description, with nothing in the credit's place", () => {
     const { result } = renderHook(() => useOptionModel());
-    for (const id of ['bing', 'edge']) {
-      const m = result.current(id);
+    for (const [p, name] of [[bingProvider, 'Bing'], [edgeProvider, 'Edge']] as const) {
+      const m = result.current(p.id, p);
+      expect(m.name).toBe(name);
+      expect(m.icon).toBe(p.icon);
+      expect(m.vendor).toBeUndefined();
       expect(m.note).toBeUndefined();
       expect(m.description).toBe('Free · online, a Microsoft service');
     }

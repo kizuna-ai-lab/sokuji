@@ -51,6 +51,7 @@ import useAudioStore from '../../../stores/audioStore';
 import { useModelStore } from '../../../stores/modelStore';
 import { useProviderStore } from '../../../stores/providerStore';
 import { runsOn } from '../../../stores/lineUpStore.testing';
+import { useLineUpStore } from '../../../stores/lineUpStore';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
 import { ProviderTurnDetectionControls } from '../../providers/ProviderOwnSettings';
@@ -104,6 +105,33 @@ describe('SpeechSection', () => {
     // this file), which writes settings.common.turnMode straight to
     // localStorage — no ServiceFactory mock needed to observe it.
     expect(localStorage.getItem('settings.common.turnMode')).toBe('push-to-talk');
+  });
+
+  // Before a line-up is stored, the one the settings show is what runs where this device runs (`lineUpThatRuns`):
+  // the event names its services, as the run's records do; beside another provider it names that provider alone.
+  it("names the stages of the line-up that runs: the one shown where this device runs, before one is stored", () => {
+    const shown = { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null };
+    try {
+      useLineUpStore.setState({ lineUp: shown, stored: false, unstoredProvider: 'local_inference' });
+      render(<SpeechSection locked={false} />);
+      fireEvent.click(screen.getByText('Push-to-Talk'));
+      expect(trackEvent).toHaveBeenCalledWith('speech_mode_changed', {
+        provider: 'local_inference', stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' },
+        from_mode: 'Auto', to_mode: 'Push-to-Talk',
+      });
+      trackEvent.mockClear();
+      act(() => {
+        useLineUpStore.setState({ lineUp: shown, stored: false, unstoredProvider: 'fake' });
+        useProviderStore.setState({ entries: { fake: entry() } });
+      });
+      fireEvent.click(screen.getByText('Push-to-Translate'));
+      expect(trackEvent).toHaveBeenCalledWith('speech_mode_changed', {
+        provider: 'fake', stages: { transcription: 'fake', translation: 'fake', speech: 'fake' },
+        from_mode: 'Push-to-Talk', to_mode: 'Push-to-Translate',
+      });
+    } finally {
+      useLineUpStore.setState({ lineUp: null, stored: false });
+    }
   });
 
   // Ruling 8: every provider ends an utterance under Auto by its own

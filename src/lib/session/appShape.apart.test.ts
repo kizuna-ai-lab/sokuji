@@ -13,6 +13,8 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
+import { bingProvider } from '../../providers/bing/provider';
+import { edgeProvider } from '../../providers/edge/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { kizunaSonioxProvider } from '../../providers/soniox/kizuna';
 import { kizunaSonioxMinimumBalance, sonioxRolesFloorMicroUsd } from '../../providers/soniox/kizunaBudget';
@@ -26,7 +28,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { compose } from '../plan/compose';
 import { buildPlan, describePlan } from '../plan/composite';
 import { planFromStores } from '../plan/fromStores';
-import { checkStageIdsOf, checkStagesOf, transcriptionProvider } from '../plan/read';
+import { checkStagesOf, transcriptionProvider } from '../plan/read';
 import type { RunPlan } from '../plan/types';
 import type { AnyProvider, SharedSettings } from '../provider/types';
 import { ensureReadyFromStores, faceToFaceFromStores, lineUpNoticeFromStores, liveGate, readShapeFromStores } from './appShape';
@@ -40,6 +42,8 @@ async function stored(of: ReturnType<typeof lineUp>, key: Record<string, string>
   useLineUpStore.setState({ lineUp: of, stored: true, unstoredProvider: null, locked: false });
   await useProviderStore.getState().load(sonioxProvider);
   await useProviderStore.getState().load(localInferenceProvider);
+  await useProviderStore.getState().load(bingProvider);
+  await useProviderStore.getState().load(edgeProvider);
   const entries = useProviderStore.getState().entries;
   useProviderStore.setState({ entries: { ...entries, soniox: { ...entries.soniox, credentials: key } } });
 }
@@ -51,7 +55,7 @@ function ready() {
 }
 
 beforeEach(() => {
-  useProviderStore.setState({ entries: {}, readiness: {}, stages: {}, stageIds: {}, intent: undefined });
+  useProviderStore.setState({ entries: {}, readiness: {}, stages: {}, intent: undefined });
   useAudioStore.setState({ mode: 'speaker', otherSide: 'meeting' } as never);
   useSettingsStore.setState({ textOnly: false });
   useRoutingStore.setState({ participantSpeech: null });
@@ -66,12 +70,12 @@ describe('Soniox with an own key transcribing, Bing translating, Edge speaking: 
     const found = ready();
     expect(found.plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([
       ['soniox', 'transcription', ['transcription']],
-      ['local_inference', 'translation', ['translation']],
-      ['local_inference', 'speech', ['speech']],
+      ['bing', 'translation', ['translation']],
+      ['edge', 'speech', ['speech']],
     ]);
     const shape = readShapeFromStores(auth)!;
     expect(shape.plan).toBe(found.plan);
-    expect(Object.keys(shape.accounts).sort()).toEqual(['local_inference', 'soniox']);
+    expect(Object.keys(shape.accounts).sort()).toEqual(['bing', 'edge', 'soniox']);
     expect(shape.lineUp).toEqual({ transcription: 'soniox', translation: 'bing', speech: 'edge' });
     expect(shape.lineUpStored).toBe(true);
     // The pair is the transcription provider's.
@@ -189,21 +193,22 @@ describe('what a record of such a session names', () => {
 describe('what a start needs of each provider, each named in its own notice', () => {
   const check = (provider: AnyProvider) => ensureReadyFromStores(provider, readShapeFromStores(auth)!, new AbortController().signal);
 
-  it("Soniox's key is asked of Soniox, though this device needs nothing for Bing and Edge", async () => {
+  it("Soniox's key is asked of Soniox, though Bing and Edge need nothing", async () => {
     await stored(lineUp('soniox', 'bing', 'edge'), {});
     useProviderStore.getState().setPair(sonioxProvider, { source: 'en', target: 'ja' });
     expect(await check(sonioxProvider)).toMatchObject({ state: 'not-ready', code: 'credentials_missing', params: { provider: 'soniox' } });
-    expect(await check(localInferenceProvider)).toMatchObject({ state: 'ready' });
+    expect(await check(bingProvider)).toMatchObject({ state: 'ready' });
+    expect(await check(edgeProvider)).toMatchObject({ state: 'ready' });
   });
 
   it('a model of this device translating: its translation model is asked of this device, and no recognition model', async () => {
     await stored(lineUp('soniox', 'local_inference', 'edge'), {});
     useProviderStore.getState().setPair(sonioxProvider, { source: 'en', target: 'ja' });
     const plan = ready().plan;
-    // What its check is told: the two stages it serves and their ids.
+    // What its check is told: the stages it serves.
     const stages = checkStagesOf(plan, localInferenceProvider);
-    expect(stages).toEqual(['translation', 'speech']);
-    expect(checkStageIdsOf(stages, useLineUpStore.getState().lineUp)).toEqual({ translation: 'local_inference', speech: 'edge' });
+    expect(stages).toEqual(['translation']);
+    expect(checkStagesOf(plan, edgeProvider)).toEqual(['speech']);
     expect(checkStagesOf(plan, sonioxProvider)).toEqual(['transcription']);
     expect(await check(localInferenceProvider)).toMatchObject({ state: 'not-ready', code: 'local_models_missing' });
     expect(await check(sonioxProvider)).toMatchObject({ state: 'not-ready', code: 'credentials_missing', params: { provider: 'soniox' } });
@@ -211,7 +216,7 @@ describe('what a start needs of each provider, each named in its own notice', ()
 });
 
 describe("Kizuna AI's Soniox transcribing for another translator", () => {
-  const providers = [kizunaSonioxProvider, sonioxProvider, localInferenceProvider] as AnyProvider[];
+  const providers = [kizunaSonioxProvider, sonioxProvider, localInferenceProvider, bingProvider, edgeProvider] as AnyProvider[];
   const settings = (id: string) => providers.find((p) => p.id === id)!.settings.defaults;
   const planOf = (of: ReturnType<typeof lineUp>) => compose(of, { providers, settings }) as RunPlan;
   const accounts = Object.fromEntries(providers.map((p) => [p.id, { settings: p.settings.defaults, credentials: {} }]));
@@ -255,17 +260,18 @@ describe("Kizuna AI's Soniox transcribing for another translator", () => {
   it('signed out, the start is refused for the sign-in, naming Kizuna AI\'s Soniox', async () => {
     useLineUpStore.setState({ lineUp: lineUp('kizunaai_soniox', 'bing', 'edge'), stored: true, unstoredProvider: null, locked: false });
     await useProviderStore.getState().load(kizunaSonioxProvider);
-    await useProviderStore.getState().load(localInferenceProvider);
+    await useProviderStore.getState().load(bingProvider);
+    await useProviderStore.getState().load(edgeProvider);
     const plan = planOf(lineUp('kizunaai_soniox', 'bing', 'edge'));
     const entries = useProviderStore.getState().entries;
     const shape = {
-      plan, accounts: { kizunaai_soniox: entries.kizunaai_soniox, local_inference: entries.local_inference },
+      plan, accounts: { kizunaai_soniox: entries.kizunaai_soniox, bing: entries.bing, edge: entries.edge },
       lineUp: { transcription: 'kizunaai_soniox', translation: 'bing', speech: 'edge' }, lineUpStored: true,
       pair: { source: 'en', target: 'ja' }, legs: ['speaker'] as const, turnMode: 'auto' as const, textOnly: false, participantSpeech: false,
       keepReplayAudio: false, shared: {} as never, auth,
     };
     const signal = new AbortController().signal;
     expect(await ensureReadyFromStores(kizunaSonioxProvider as AnyProvider, shape as never, signal)).toMatchObject({ state: 'not-ready', code: 'sign_in_required', params: { provider: 'kizunaai_soniox' } });
-    expect(await ensureReadyFromStores(localInferenceProvider as AnyProvider, shape as never, signal)).toMatchObject({ state: 'ready' });
+    expect(await ensureReadyFromStores(edgeProvider as AnyProvider, shape as never, signal)).toMatchObject({ state: 'ready' });
   });
 });

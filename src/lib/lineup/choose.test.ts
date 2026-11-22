@@ -82,8 +82,8 @@ describe('choosing a provider for a stage', () => {
       expect(chosen).toEqual({ lineUp: { transcription: 'local_inference', translation: 'openai_text', speech: 'edge', summarisation: from.summarisation }, moved: ['transcription', 'speech'] });
       const plan = compose(chosen.lineUp, input);
       expect(isRefusal(plan)).toBe(false);
-      // Recognition alone on this device, the text model, and Edge on this device: three units.
-      if (!isRefusal(plan)) expect(plan.units.map((u) => [u.provider.id, u.unit.id])).toEqual([['local_inference', 'transcription'], ['openai_text', 'translation'], ['local_inference', 'speech']]);
+      // Recognition alone on this device, the text model, and Edge, a provider of its own: three units.
+      if (!isRefusal(plan)) expect(plan.units.map((u) => [u.provider.id, u.unit.id])).toEqual([['local_inference', 'transcription'], ['openai_text', 'translation'], ['edge', 'speech']]);
     }
   });
 
@@ -265,11 +265,11 @@ describe('choosing a provider for a stage', () => {
     // legs (`checkPlan`): `lineup_source_not_fixed`, `lineup_pair_not_translated`, `lineup_face_to_face_apart`
     // and `lineup_language_not_spoken`.
     expect([...refusals].sort()).toEqual(REACHABLE_REFUSALS);
-    // The line-ups whose transcription and translation are apart: Soniox, either one, under Bing or this device; and
+    // The line-ups whose transcription and translation are apart: Soniox, either one, under Bing or this device, and this device's under Bing; and
     // Soniox, either one, or this device, under a text model.
     const textModels = ['openai_text', 'gemini_text', 'openai_compatible'];
     expect([...new Set(separate)].sort()).toEqual([
-      'kizunaai_soniox>bing', 'kizunaai_soniox>local_inference', 'soniox>bing', 'soniox>local_inference',
+      'kizunaai_soniox>bing', 'kizunaai_soniox>local_inference', 'soniox>bing', 'soniox>local_inference', 'local_inference>bing',
       ...['kizunaai_soniox', 'soniox', 'local_inference'].flatMap((heard) => textModels.map((model) => `${heard}>${model}`)),
     ].sort());
   });

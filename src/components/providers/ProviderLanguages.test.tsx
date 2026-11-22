@@ -25,6 +25,8 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { sonioxProvider } from '../../providers/soniox/provider';
+import { bingProvider } from '../../providers/bing/provider';
+import { edgeProvider } from '../../providers/edge/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -150,6 +152,8 @@ describe("ProviderLanguages — another provider's voice", () => {
       entries: {
         soniox: { settings: sonioxProvider.settings.defaults, credentials: { apiKey: 'k' }, pair },
         local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair },
+        bing: { settings: bingProvider.settings.defaults, credentials: {}, pair },
+        edge: { settings: edgeProvider.settings.defaults, credentials: {}, pair },
       },
       intent: pair,
       legs: ['speaker'],
@@ -223,6 +227,8 @@ describe('ProviderLanguages — another service translates', () => {
       entries: {
         soniox: { settings: sonioxProvider.settings.defaults, credentials: { apiKey: 'k' }, pair },
         local_inference: { settings: localInferenceProvider.settings.defaults, credentials: {}, pair },
+        bing: { settings: bingProvider.settings.defaults, credentials: {}, pair },
+        edge: { settings: edgeProvider.settings.defaults, credentials: {}, pair },
       },
       intent: pair,
       legs: ['speaker'],

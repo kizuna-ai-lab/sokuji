@@ -10,14 +10,13 @@
  * The voice never ends the session it serves: an engine that does not load,
  * or dies later, is said once (`tts_degraded`) and nothing more is read.
  */
-import type { Ref, TextRange } from '../../lib/contract/adapter';
-import { framePayload } from '../../lib/contract/framePayload';
-import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../../lib/contract/speech';
-import type { LegName } from '../../lib/conversation/types';
-import { describeCause } from '../../lib/diagnostics/describeCause';
-import type { LocalTtsConfig, TtsUnavailableCode } from './config';
+import type { Ref, TextRange } from '../../contract/adapter';
+import { framePayload } from '../../contract/framePayload';
+import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../../contract/speech';
+import type { LegName } from '../../conversation/types';
+import { describeCause } from '../../diagnostics/describeCause';
 import type { TtsLike } from './engines';
-import { speakTranslation, ttsLoadFailed, ttsMissing, ttsStopped, voiceFallback } from './speech';
+import { speakTranslation, type LocalTtsConfig, type TtsUnavailableCode, ttsLoadFailed, ttsMissing, ttsStopped, voiceFallback } from './speech';
 
 /**
  * The config of a leg that has no voice to start, which names no speech model; with `unavailable`, the leg should

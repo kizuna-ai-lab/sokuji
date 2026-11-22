@@ -20,7 +20,6 @@ vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedI
 vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => false }));
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: () => <div /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div /> }));
-vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div /> }));
 vi.mock('./LocalVoices', () => ({ LocalVoices: () => <div /> }));
 vi.mock('../providers/ProviderOwnSettings', () => ({ ProviderEngine: () => <div />, ProviderOwnSettings: () => <div />, ProviderTurnDetectionControls: () => <div /> }));
 vi.mock('../../lib/notes/notesPricing', async (importOriginal) => ({

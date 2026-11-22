@@ -28,7 +28,7 @@ import { formatBytes } from '../../lib/local-inference/formatBytes';
 import { formatUsdFloor } from '../../utils/formatters';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
 import { CredentialForm } from '../providers/CredentialForm';
-import { BingIcon, EdgeIcon, KizunaAIIcon } from '../Icons/ProviderIcons';
+import { KizunaAIIcon } from '../Icons/ProviderIcons';
 import { SonioxKeyForm } from './SonioxKeyForm';
 import { ManagedAccountRow } from '../providers/ManagedAccountRow';
 import { UserAccountInfo } from '../Auth/UserAccountInfo';
@@ -105,12 +105,12 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     const list: Account[] = [];
     const managed = providers.filter((p) => p.kind === 'managed');
     if (managed.length) list.push({ key: 'kizuna', name: 'Kizuna AI', kind: 'kizuna', serves: managed.map((p) => p.id), guide: managed.find((p) => p.guideUrl)?.guideUrl, icon: KizunaAIIcon });
-    // The accounts that need no key come first (the mock's order), then the providers with a key.
+    // The accounts that need no key come first (the mock's order): this device, then the online services (Bing, Edge)
+    // in the registry's order; then the providers with a key.
     const local = providers.find((p) => p.id === 'local_inference');
-    if (local) {
-      list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'], guide: local.guideUrl, icon: local.icon });
-      list.push({ key: 'bing', name: t('providers.bing.name', 'Bing'), kind: 'online', serves: ['bing'], icon: BingIcon });
-      list.push({ key: 'edge', name: t('providers.edge.name', 'Edge'), kind: 'online', serves: ['edge'], icon: EdgeIcon });
+    if (local) list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'], guide: local.guideUrl, icon: local.icon });
+    for (const p of providers) {
+      if (p.kind === 'online') list.push({ key: p.id, name: t(`providers.${p.id}.name`, p.id), kind: 'online', serves: [p.id], guide: p.guideUrl, icon: p.icon });
     }
     // One row per key: the providers that share one (OpenAI's, Gemini's) are one row, edited through the first present
     // one of them, and showing what each can do.
@@ -159,6 +159,8 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         return localModels > 0
           ? t('settingsPage.accounts.localModels', 'Runs on this computer; {{count}} models downloaded, {{size}} in all', { count: localModels, size: formatBytes(storageMb * 1_048_576) })
           : t('settingsPage.accounts.localNone', 'Runs on this computer; no models downloaded yet');
+      // Every online provider today is Microsoft's (Bing, Edge): the line says so of them all. Another online
+      // provider needs a line of its own here.
       case 'online': return t('settingsPage.accounts.online', 'No key needed; online, a Microsoft service');
     }
   };

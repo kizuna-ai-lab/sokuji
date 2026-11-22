@@ -1,13 +1,12 @@
 /**
  * The local provider's translation as a unit that only translates: a
- * translation model on this machine, or Bing, translating what another
- * provider's unit heard. Its config names the model for the leg's direction
+ * translation model on this machine, translating what another provider's
+ * unit heard. Its config names the model for the leg's direction
  * and what that model is told; its session is `translationSession.ts`.
  *
  * A line-up that is all on this device does not come here: it runs the whole
  * local session, as before.
  */
-import { BING_SUPPORTED_LANGUAGES, isSupportedByBing, mapToBingCode } from '../../lib/bing-translator/languageMap';
 import type { LegName } from '../../lib/conversation/types';
 import { AUTO, canonicalTag } from '../../lib/language/code';
 import { localTranslationStagesOf, type LocalStages } from '../../lib/lineup/localStages';
@@ -15,16 +14,14 @@ import { TL } from '../../lib/lineup/types';
 import { getManifestByType, getManifestEntry, isTranslationModelCompatible, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
 import { sameStages, type UnitDefinition } from '../../lib/plan/types';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
-import { storedLocalStages } from '../../stores/lineUpStore';
 import type { LocalCredentials } from './adapter';
 import { LOCAL_MODELS_MISSING } from './check';
 import { fitsBudget, localTranslationPrompt, resolveLocal } from './config';
 import { defaultEngines, type LocalEngines } from './engines';
 import type { LocalInferenceSettings } from './settings';
-import { BING_TRANSLATOR, localTranslationRefusal, startLocalTranslation, type LocalTranslationConfig } from './translationSession';
+import { localTranslationRefusal, startLocalTranslation, type LocalTranslationConfig } from '../../lib/local-inference/sessions/translationSession';
 
-export { BING_TRANSLATOR } from './translationSession';
-export type { LocalTranslationConfig } from './translationSession';
+export type { LocalTranslationConfig } from '../../lib/local-inference/sessions/translationSession';
 
 export type LocalTranslationUnit = UnitDefinition<LocalInferenceSettings, LocalCredentials, LocalTranslationConfig>;
 
@@ -33,33 +30,19 @@ export interface LocalTranslationUnitDeps {
   engines?: Pick<LocalEngines, 'translation'>;
 }
 
-/** The line-up's two options whose translation runs here: Bing, or a translation model on this machine. */
-export type LocalTranslationOption = 'bing' | 'local_inference';
-
-/** The translation models of this machine: every one of the catalog, downloaded or not; never Bing. */
+/** The translation models of this machine: every one of the catalog, downloaded or not. */
 function localModels(): ModelManifestEntry[] {
   return getManifestByType('translation').filter((m) => !m.isCloudModel);
 }
 
-/** Two codes Bing reads as one language (`no` and `nb`, `zh` and `zh-CN`). */
-function sameForBing(a: string, b: string): boolean {
-  try {
-    return mapToBingCode(a) === mapToBingCode(b);
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Whether a translation option of this device translates from `source` into `target` (app codes). Bing: both are
- * on Bing's own list. This machine's models: some model of the catalog takes the pair, downloaded or not (one not
- * downloaded is a matter of readiness, and can be downloaded). A source that is not known yet (`auto`) is never
- * translated: every engine here is loaded for one fixed pair. A code is read as it is written: a regional code a
- * model does not name is not folded onto its base language.
+ * Whether this machine's models translate from `source` into `target` (app codes): some model of the catalog takes
+ * the pair, downloaded or not (one not downloaded is a matter of readiness, and can be downloaded). A source that
+ * is not known yet (`auto`) is never translated: every engine here is loaded for one fixed pair. A code is read as
+ * it is written: a regional code a model does not name is not folded onto its base language.
  */
-export function localTranslates(option: LocalTranslationOption, source: string, target: string): boolean {
+export function localTranslates(source: string, target: string): boolean {
   if (source === AUTO || target === AUTO || source === target) return false;
-  if (option === 'bing') return isSupportedByBing(source) && isSupportedByBing(target) && !sameForBing(source, target);
   return localModels().some((m) => isTranslationModelCompatible(m, source, target));
 }
 
@@ -77,54 +60,36 @@ function appCodes(codes: Iterable<string>): string[] {
 }
 
 /**
- * The languages a translation option names (app codes): Bing's list, or every language some model of this machine
- * names. A model that takes any language names none, so this is not all the local models translate: hand the
- * lists below the languages in question (`among`) to have each one asked about.
+ * The languages some model of this machine names (app codes). A model that takes any language names none, so this
+ * is not all the local models translate: hand the lists below the languages in question (`among`) to have each
+ * one asked about.
  */
-export function localTranslationLanguages(option: LocalTranslationOption): string[] {
-  if (option === 'bing') return appCodes(BING_SUPPORTED_LANGUAGES).filter(isSupportedByBing);
+export function localTranslationLanguages(): string[] {
   return appCodes(localModels().flatMap((m) => [...m.languages, ...(m.sourceLang ? [m.sourceLang] : []), ...(m.targetLang ? [m.targetLang] : [])]));
 }
 
-/** The targets a translation option translates `source` into, among `among` (the option's own languages by default). */
-export function localTranslationTargets(option: LocalTranslationOption, source: string, among: readonly string[] = localTranslationLanguages(option)): string[] {
-  return among.filter((target) => localTranslates(option, source, target));
+/** The targets this machine's models translate `source` into, among `among` (their own languages by default). */
+export function localTranslationTargets(source: string, among: readonly string[] = localTranslationLanguages()): string[] {
+  return among.filter((target) => localTranslates(source, target));
 }
 
-/** The sources a translation option translates into `target`, among `among` (the option's own languages by default). */
-export function localTranslationSources(option: LocalTranslationOption, target: string, among: readonly string[] = localTranslationLanguages(option)): string[] {
-  return among.filter((source) => localTranslates(option, source, target));
+/** The sources this machine's models translate into `target`, among `among` (their own languages by default). */
+export function localTranslationSources(target: string, among: readonly string[] = localTranslationLanguages()): string[] {
+  return among.filter((source) => localTranslates(source, target));
 }
 
 /**
- * Whether the unit translates a pair under a stored line-up's local stages: Bing's pairs where the line-up gives
- * translation to Bing, else this machine's models'. With no line-up stored, either.
+ * Which stages a build resolves under: from the line-up a run froze at its start when it hands one over; with none,
+ * translation on this machine alone. Never null: a null reaches model resolution with Bing and Edge among the choices.
  */
-export function localUnitTranslates(source: string, target: string, stages: LocalStages | null): boolean {
-  if (stages?.translation === 'bing') return localTranslates('bing', source, target);
-  if (stages === null) return localTranslates('bing', source, target) || localTranslates('local_inference', source, target);
-  return localTranslates('local_inference', source, target);
+function translationStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalStages {
+  return localTranslationStagesOf(shared.lineUp ?? null);
 }
 
 /**
- * Which of Bing and this machine's models translates, for a build: from the line-up a run froze at its start when
- * it hands one over, else from the stored line-up where that gives translation to this device. Null: no line-up
- * says, and the direction resolves as the local provider does without one, Bing among its choices.
- */
-function translationStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalStages | null {
-  if (shared.lineUp) return localTranslationStagesOf(shared.lineUp);
-  const stored = storedLocalStages();
-  return stored && stored.translation !== null ? { ...stored, transcription: null } : null;
-}
-
-const bingConfig = (): LocalTranslationConfig => ({ modelId: BING_TRANSLATOR, instructions: '', wrapTranscript: false });
-
-/**
- * The local provider's translation unit: translation, and only when asked for exactly that. The line-up's
- * translation option says which engine: `bing` is Bing and nothing else, `local_inference` is the model chosen
- * for the direction among this machine's models and never Bing. Neither stands in for the other: a pair the
- * chosen one does not translate is refused. A local model gets the prompt the whole local session gives it, word
- * list and all; Bing is told nothing.
+ * The local provider's translation unit: translation, and only when asked for exactly that. The engine is the
+ * model chosen for the direction among this machine's models; a pair none translates is refused. A local model
+ * gets the prompt the whole local session gives it, word list and all.
  */
 export function createLocalTranslationUnit(deps: LocalTranslationUnitDeps = {}): LocalTranslationUnit {
   const makeEngine = () => (deps.engines ?? defaultEngines).translation();
@@ -140,7 +105,7 @@ export function createLocalTranslationUnit(deps: LocalTranslationUnitDeps = {}):
       // One direction per session: a connection that carries both directions has no translator here.
       faceToFace: false,
       participantSpeech: true,
-      translates: (source, target) => localUnitTranslates(source, target, storedLocalStages()),
+      translates: localTranslates,
     }),
     build: (context, s, shared): LocalTranslationConfig | ProviderRefusal => {
       const { source, target } = context.direction;
@@ -149,7 +114,6 @@ export function createLocalTranslationUnit(deps: LocalTranslationUnitDeps = {}):
         const refusal = localTranslationRefusal(modelId, source, target);
         return refusal === null ? null : { refused: refusal };
       };
-      if (stages?.translation === 'bing') return refused(BING_TRANSLATOR) ?? bingConfig();
       const unknown = refused('');
       if (unknown) return unknown;
       // Resolved as the whole local session resolves it, with no recognition model: a model that is chosen and
@@ -158,7 +122,6 @@ export function createLocalTranslationUnit(deps: LocalTranslationUnitDeps = {}):
       if (!modelId || getManifestEntry(modelId)?.type !== 'translation') {
         return { refused: `No translation model for ${source} → ${target}.`, code: LOCAL_MODELS_MISSING };
       }
-      if (modelId === BING_TRANSLATOR) return refused(BING_TRANSLATOR) ?? bingConfig();
       return { modelId, ...localTranslationPrompt(context, s, shared) };
     },
     describe: (c) => ({ translationModel: c.modelId }),
@@ -185,10 +148,10 @@ export function areLocalTranslationConfigs(configs: Partial<Record<LegName, unkn
 
 /**
  * The memory budget of a run in which the local provider only translates: the translation models of its legs,
- * and no recognition model (Bing takes none). Over budget, the start is refused.
+ * and no recognition model. Over budget, the start is refused.
  */
 export function admitLocalTranslation(configs: Partial<Record<LegName, LocalTranslationConfig>>): true | ProviderRefusal {
-  const ids = Object.values(configs).flatMap((c) => (c && c.modelId !== BING_TRANSLATOR ? [c.modelId] : []));
+  const ids = Object.values(configs).flatMap((c) => (c ? [c.modelId] : []));
   if (fitsBudget(ids)) return true;
   return { refused: 'The models need more memory than this device has.', code: 'memory_exceeded' };
 }

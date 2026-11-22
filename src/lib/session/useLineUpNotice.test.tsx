@@ -17,7 +17,7 @@ import { useLineUpNotice } from './useLineUpNotice';
 
 const entry = (id: string, target: string) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials: { apiKey: 'k' }, pair: { source: 'en', target } });
 /** Every provider of the plan loaded, translating into `target`. */
-const into = (target: string) => useProviderStore.setState({ entries: { soniox: entry('soniox', target), local_inference: entry('local_inference', target) } as never });
+const into = (target: string) => useProviderStore.setState({ entries: { soniox: entry('soniox', target), local_inference: entry('local_inference', target), edge: entry('edge', target) } as never });
 // Soniox's text read by Edge: Edge has no Basque voice.
 const sonioxWithEdge = { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null };
 const noVoice = { code: 'lineup_language_not_spoken', stage: 'speech', params: { provider: 'edge', language: 'eu' } };

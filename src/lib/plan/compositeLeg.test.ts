@@ -9,6 +9,7 @@ import type { LegName } from '../conversation/types';
 import type { SharedSettings } from '../provider/types';
 import { buildPlan, startComposite, type PlanConfigs } from './composite';
 import { CompositeLeg } from './compositeLeg';
+import { unitFor } from './read';
 import { planOf, stubProvider, stubSpeechUnit, stubTextUnit, textAndSpeechPlan, type StubCalls } from './testing';
 import type { PlannedUnit, RunPlan } from './types';
 
@@ -240,7 +241,7 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     await h.starting;
     const frame = { direction: 'out' as const, type: 'tts.start' };
     h.voice.voices[0].events.frame(frame);
-    expect(h.rec.log).toEqual([{ kind: 'frame', payload: frame }]);
+    expect(h.rec.log).toEqual([{ kind: 'frame', payload: { ...frame, runStage: 'speech' } }]);
   });
 
   it('switches the speech session with setSpeech, and goes on feeding it while speech is off', async () => {
@@ -281,7 +282,7 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     await h.starting;
     const degraded = { code: 'tts_degraded' as const, message: 'The voice is gone.', reason: 'tts_408' };
     h.voice.voices[0].events.degraded(degraded);
-    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: degraded }]);
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { ...degraded, runStage: 'speech' } }]);
   });
 
   it('goes on without speech when the speech unit cannot start: one tts_degraded once the leg is open, and subtitles as before', async () => {
@@ -291,7 +292,7 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     expect(h.rec.log).toEqual([]);
     h.text.starts[0].open();
     const session = await h.starting;
-    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('no model'), cause } }]);
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('no model'), cause, runStage: 'speech' } }]);
     translate(h.emit(), 2, 'こんにちは。');
     session.setSpeech!(false);
     h.emit().reconnected();
@@ -305,7 +306,7 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     const h = leg({ voice: { openFails: cause } });
     const session = await h.starting;
     await flush();
-    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause } }]);
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause, runStage: 'speech' } }]);
     translate(h.emit(), 2, 'こんにちは。');
     session.setSpeech!(false);
     h.emit().reconnected();
@@ -320,6 +321,24 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     expect(h.rec.log).toEqual([]);
   });
 
+  it("a two-unit plan files a speech failure under the speech unit's provider", async () => {
+    const h = leg({ text: { provider: { id: 'fake' } }, voice: { provider: { id: 'fake_voice' } } });
+    await h.starting;
+    h.voice.voices[0].events.degraded({ code: 'tts_stopped', message: 'The voice is gone.' });
+    h.voice.voices[0].events.frame({ direction: 'in', type: 'voice.note', payload: {} });
+    const [degraded, frame] = h.rec.log;
+    // The run files an error under the unit of the stage the event names (`providerOf` in `session/run.ts`).
+    for (const e of [degraded, frame]) expect(e.payload).toMatchObject({ runStage: 'speech' });
+    expect(unitFor(h.plan, (degraded.payload as { runStage: 'speech' }).runStage).provider.id).toBe('fake_voice');
+  });
+
+  it("leaves the text unit's own events untagged", async () => {
+    const h = leg();
+    await h.starting;
+    h.emit().degraded({ code: 'tts_degraded', message: 'm' });
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { code: 'tts_degraded', message: 'm' } }]);
+  });
+
   it('holds what the speech session says of itself while the text unit opens, and says it once the leg is open', async () => {
     const h = leg({ text: { held: true } });
     await flush();
@@ -331,7 +350,7 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     expect(h.rec.log).toEqual([]);
     h.text.starts[0].open();
     await h.starting;
-    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: noKey }, { kind: 'degraded', payload: lost }]);
+    expect(h.rec.log).toEqual([{ kind: 'degraded', payload: { ...noKey, runStage: 'speech' } }, { kind: 'degraded', payload: { ...lost, runStage: 'speech' } }]);
     // Once open, a degradation passes on at once, and the held ones are not said again.
     h.voice.voices[0].events.degraded(lost);
     expect(h.said()).toEqual(['degraded', 'degraded', 'degraded']);
@@ -357,7 +376,7 @@ describe('startComposite over a text unit and a speech unit: speech', () => {
     h.text.starts[0].open();
     const session = await h.starting;
     await flush();
-    const lost = { kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause } };
+    const lost = { kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('refused'), cause, runStage: 'speech' } };
     expect(h.rec.log).toEqual([lost]);
     // Said once: nothing more of the voice follows, whatever the leg goes on to do.
     translate(h.emit(), 2, 'こんにちは。');

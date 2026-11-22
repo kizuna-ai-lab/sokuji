@@ -61,14 +61,16 @@ describe('conversationExporter', () => {
     expect(mixed.text(FULL_SCOPE, false)).toBe(exporter().text(FULL_SCOPE, false));
   });
 
-  it('a run on one service is written as before: one provider on every stage, and this device with Bing and Edge', () => {
+  it('a run on one service is written as before: one provider on every stage; this device with Bing and Edge is three, and has a stages block', () => {
     const local = (stages: { transcription: string; translation: string; speech: string }) =>
       exporter({ info: { provider: 'local_inference', stages, models: { asrModel: 'a', ttsModel: 't' }, startedAt: started } });
     const plain = local({ transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference' });
     const online = local({ transcription: 'local_inference', translation: 'bing', speech: 'edge' });
     expect(plain.text(FULL_SCOPE, true)).toContain('Provider: local_inference\n');
-    expect(online.text(FULL_SCOPE, true)).toBe(plain.text(FULL_SCOPE, true));
-    expect(online.json(FULL_SCOPE)).toBe(plain.json(FULL_SCOPE));
+    expect(plain.json(FULL_SCOPE)).not.toContain('"stages"');
+    // Bing and Edge are services of their own: a run on this device with them names its three.
+    expect(online.text(FULL_SCOPE, true)).toContain('Provider: transcription=local_inference, translation=bing, speech=edge\n');
+    expect(JSON.parse(online.json(FULL_SCOPE))).toMatchObject({ provider: 'local_inference', stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge' } });
     expect(JSON.parse(exporter().json(FULL_SCOPE))).not.toHaveProperty('stages');
     // An id the catalog does not know, on every stage, is one service too.
     const unknown = exporter({ info: { provider: 'gone', stages: { transcription: 'gone', translation: 'gone', speech: 'gone' }, models: {}, startedAt: started } });

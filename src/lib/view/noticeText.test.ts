@@ -68,7 +68,10 @@ describe('noticeText', () => {
 
   describe('a line-up that cannot run', () => {
     /** A catalog of one language: the stage and service names a locale has, the sentences as their English. */
-    const names: Record<string, string> = { 'settingsPage.lineup.stages.speech': 'Speech', 'settingsPage.lineup.stages.translation': 'Translation', 'providers.kizunaai_soniox.name': 'KizunaAI', 'providers.soniox.name': 'Soniox' };
+    const names: Record<string, string> = {
+      'settingsPage.lineup.stages.speech': 'Speech', 'settingsPage.lineup.stages.translation': 'Translation',
+      'providers.kizunaai_soniox.name': 'KizunaAI', 'providers.soniox.name': 'Soniox', 'providers.bing.name': 'Bing', 'providers.edge.name': 'Edge',
+    };
     const catalogT = ((key: string, options: Record<string, unknown>) =>
       String(names[key] ?? options.defaultValue).replace(/\{\{(\w+)\}\}/g, (_, name: string) => String(options[name]))) as unknown as TFunction;
     const words = (refusal: Parameters<typeof refusalNotice>[0], ...rest: unknown[]) => noticeText(catalogT, refusalNotice(refusal, ...(rest as [])));

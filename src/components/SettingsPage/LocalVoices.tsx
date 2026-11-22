@@ -47,8 +47,8 @@ export function LocalVoices({ disabled }: { disabled: boolean }) {
   // this device only reads another provider's translation. Each voice is still kept in this device's settings, under
   // its direction.
   const pair = useRunPair();
-  // The directions that speak, as a session opens them (EdgeVoices' rule), each with the speech model it runs — kept
-  // only where there is a voice to choose.
+  // The directions that speak, as a session opens them (as Edge's settings list them), each with the speech model it
+  // runs — kept only where there is a voice to choose.
   const rows = useMemo(() => {
     if (!pair || !settings) return [];
     const { source, target } = pair;
@@ -146,7 +146,6 @@ export function LocalVoices({ disabled }: { disabled: boolean }) {
           <div className="local-voices__row" key={dir}>
             <span className="local-voices__label">{label}</span>
             <LocalInferenceVoiceSection ttsModel={modelId} isSessionActive={disabled}
-              edgeVoices={[]} edgeVoiceStatus="loaded" edgeVoice=""
               supertonicVoices={library} supertonicSelectedId={selected}
               onImportVoice={importVoice} onRenameVoice={renameVoice} onDeleteVoice={deleteVoice}
               speakerId={speakerId} numSpeakers={model.numSpeakers ?? 1} onUpdate={(patch) => write(dir, patch)} />

@@ -11,7 +11,7 @@ import { stageIdsFor } from '../lineup/catalog';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
-import { accountOf, capabilitiesOf, checkStageIdsOf, checkStagesOf, providersIn, servesSpeech, transcriptionAccount, transcriptionProvider } from '../plan/read';
+import { accountOf, capabilitiesOf, checkStagesOf, providersIn, servesSpeech, transcriptionAccount, transcriptionProvider } from '../plan/read';
 import type { PlanRefusal, UnitCapabilities } from '../plan/types';
 import { reversedPair } from '../provider/languages';
 import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
@@ -19,7 +19,7 @@ import { accountPayer } from './payerChoice';
 import { presentProviders } from '../../providers/registry';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
-import { useLineUpStore } from '../../stores/lineUpStore';
+import { lineUpThatRuns } from '../../stores/lineUpStore';
 import { useProviderStore, type ProviderEntry } from '../../stores/providerStore';
 import { useScreenContextStore } from '../../stores/screenContextStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -205,8 +205,9 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   const account = useAccountStore.getState().account;
   const payer = accountPayer(account);
   const frames = screenContextWanted() ? useScreenContextStore.getState().sampler?.source : undefined;
-  // A stored line-up is what runs, and names the run's stages; until one is stored, the provider that runs does.
-  const { lineUp, stored } = useLineUpStore.getState();
+  // A stored line-up is what runs, and names the run's stages; until one is stored, so is the line-up shown where this
+  // device runs, and the provider that runs names them elsewhere.
+  const { lineUp, stored } = lineUpThatRuns();
   return {
     plan,
     accounts,
@@ -235,9 +236,12 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
   };
 }
 
-/** A refusal of the line-up as the stores stand, as the notice every surface words: it names the stored line-up's option. */
+/**
+ * A refusal of the line-up as the stores stand, as the notice every surface words: it names the option of the line-up
+ * that runs (`lineUpThatRuns`: the stored one, or the one shown where this device runs before one is stored).
+ */
 function planRefused(refusal: PlanRefusal): Refusal {
-  const { lineUp, stored } = useLineUpStore.getState();
+  const { lineUp, stored } = lineUpThatRuns();
   return refusalNotice(refusal, stored ? lineUp : null, presentProviders());
 }
 
@@ -246,7 +250,7 @@ function gateInputFromStores(): GateInput | null {
   const found = runPlanFromStores();
   if (!found) return null;
   const account = useAccountStore.getState().account;
-  const { lineUp, stored } = useLineUpStore.getState();
+  const { lineUp, stored } = lineUpThatRuns();
   return {
     plan: found.plan,
     accounts: found.accounts,
@@ -314,11 +318,9 @@ export function ensureReadyFromStores(provider: AnyProvider, shape: RunShape, si
   const { settings, credentials } = accountOf(shape, provider);
   // The stages it serves in the run's plan, when another provider serves the rest.
   const stages = checkStagesOf(shape.plan, provider);
-  // The ids the run's frozen line-up gives those stages, when a stored line-up is what runs.
-  const stageIds = checkStageIdsOf(stages, shape.lineUpStored ? shape.lineUp : null);
   return useProviderStore.getState().refreshReadiness(
     provider, shape.auth,
-    { settings, credentials, pair: shape.pair, legs: shape.legs, ...(stages ? { stages } : {}), ...(stageIds ? { stageIds } : {}) },
+    { settings, credentials, pair: shape.pair, legs: shape.legs, ...(stages ? { stages } : {}) },
     signal,
   );
 }

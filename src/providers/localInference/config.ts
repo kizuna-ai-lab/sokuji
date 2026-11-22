@@ -1,8 +1,7 @@
 import { wordsFor } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
-import { localStagesOf, type LocalStages } from '../../lib/lineup/localStages';
-import { storedLocalStages } from '../../stores/lineUpStore';
+import { ALL_LOCAL_STAGES, localStagesOf, type LocalStages } from '../../lib/lineup/localStages';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
@@ -13,12 +12,10 @@ import { directionKey, type DirectionResult } from '../../lib/local-inference/se
 import type { AdmittedConfigs } from '../../lib/session/types';
 import type { LocalInferenceSettings } from './settings';
 import { directionVoice, speakerIdFor } from './voices';
+import type { LocalTtsConfig, TtsUnavailableCode } from '../../lib/local-inference/sessions/speech';
 
-/** Why a leg that should speak will not (#619): the notice code its adapter emits at the start. */
-export type TtsUnavailableCode = 'speaker_tts_missing' | 'participant_tts_missing' | 'participant_tts_over_budget';
-
-/** One direction's voice: the speech model, and the speaker or the Edge voice it reads in. */
-export interface LocalTtsConfig { modelId: string; speakerId: number; speed: number; edgeVoice?: string }
+// Declared with the session code that reads them (`src/lib/local-inference/sessions/speech.ts`); re-exported here for the provider's callers.
+export type { LocalTtsConfig, TtsUnavailableCode };
 
 /**
  * LocalInference's `C` (spec: "`C`, the config `build` returns"). Ports
@@ -114,19 +111,20 @@ export function translatesSpeechDirectly(asrModelId: string | undefined, transla
 }
 
 /**
- * Whether translation and speech go to Bing and Edge or to this machine's models, for a build: from the line-up a
- * run froze at its start when it hands one over, else from the stored line-up (a caller outside a run). Null: no
- * line-up says, and a direction resolves with Bing and Edge among the local choices.
+ * Which stages of the engine this machine serves, for the whole local session's build: from the line-up a run froze
+ * at its start when it hands one over; every stage when none does (or it gives this provider no stage). Never null,
+ * so this provider never resolves an online model (Bing and Edge are providers of their own).
  */
-export function localStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalStages | null {
-  return shared.lineUp ? localStagesOf(shared.lineUp) : storedLocalStages();
+export function localStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalStages {
+  return localStagesOf(shared.lineUp ?? null) ?? ALL_LOCAL_STAGES;
 }
 
 /**
  * A direction's models as a session resolves them, with the AST cross-stage guard (see astGuard.ts), which
- * downgrades an explicit AST-mismatched translation pick back to auto before it is judged.
+ * downgrades an explicit AST-mismatched translation pick back to auto before it is judged. Always under stages:
+ * resolved with none, Bing and Edge would be among the choices.
  */
-export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages | null): DirectionResult {
+export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages): DirectionResult {
   const { source, target } = direction;
   const rawResolved = useModelStore.getState().resolve(source, target, s.selections, stages);
   return guardAstCrossStage(
@@ -137,7 +135,7 @@ export function resolveLocal(direction: SessionContext['direction'], s: LocalInf
 /** The voice a direction speaks in on `modelId`: each direction has its own (#619). */
 export function localTts(direction: SessionContext['direction'], s: LocalInferenceSettings, modelId: string): LocalTtsConfig {
   const voice = directionVoice(s.voices, directionKey(direction.source, direction.target));
-  return { modelId, speakerId: speakerIdFor(voice, modelId), speed: s.ttsSpeed, edgeVoice: voice.edge };
+  return { modelId, speakerId: speakerIdFor(voice, modelId), speed: s.ttsSpeed };
 }
 
 /** Why a leg that should speak has no speech model. Which leg this is, the runner tells outright (`shared.reversed`). */
@@ -187,7 +185,7 @@ export function buildLocalInference(
   shared: SharedSettings,
 ): LocalInferenceConfig | ProviderRefusal {
   const { source } = context.direction;
-  // A line-up says whether translation and speech go to Bing and Edge or to this machine's models.
+  // A line-up says whether translation and speech go to this machine's models or to another provider.
   const resolved = resolveLocal(context.direction, s, localStagesFor(shared));
 
   if (!resolved.asr) return noAsr(source);

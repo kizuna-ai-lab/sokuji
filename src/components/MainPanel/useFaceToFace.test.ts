@@ -4,6 +4,8 @@ import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
+import { bingProvider } from '../../providers/bing/provider';
+import { edgeProvider } from '../../providers/edge/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
 import { sonioxProvider } from '../../providers/soniox/provider';
 import { useRoutingStore } from '../../stores/routingStore';
@@ -39,7 +41,7 @@ describe('useFaceToFace', () => {
   it('is refused, not offered, where Soniox transcribes and another service translates: "beside me" stays chosen and cannot run', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     const entry = { credentials: {}, pair: { source: 'ja', target: 'en' } };
-    useProviderStore.setState({ entries: { soniox: { ...entry, settings: sonioxProvider.settings.defaults }, local_inference: { ...entry, settings: localInferenceProvider.settings.defaults } } } as never);
+    useProviderStore.setState({ entries: { soniox: { ...entry, settings: sonioxProvider.settings.defaults }, local_inference: { ...entry, settings: localInferenceProvider.settings.defaults }, bing: { ...entry, settings: bingProvider.settings.defaults }, edge: { ...entry, settings: edgeProvider.settings.defaults } } } as never);
     const { result } = renderHook(() => useFaceToFace());
     expect(result.current).toMatchObject({ offered: false, active: false, refused: true });
     // In a meeting: nothing is refused.

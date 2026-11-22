@@ -11,11 +11,21 @@ export function directionVoice(voices: LocalInferenceSettings['voices'], dir: st
   // An array is an object too, and never a table of directions.
   const entry: unknown = voices && typeof voices === 'object' && !Array.isArray(voices) ? voices[dir] : undefined;
   if (!entry || typeof entry !== 'object') return {};
-  const { edge, speaker } = entry as Record<string, unknown>;
+  const { speaker } = entry as Record<string, unknown>;
   return {
-    ...(typeof edge === 'string' && edge !== '' ? { edge } : {}),
     ...(typeof speaker === 'number' && Number.isFinite(speaker) ? { speaker } : {}),
   };
+}
+
+/**
+ * A direction's stored entry with the fields this module does not read as stored (a stored Edge voice, which
+ * Edge's own settings migrate from), and the speaker as `directionVoice` reads it: one of the wrong kind is dropped.
+ */
+function storedEntry(voices: LocalInferenceSettings['voices'], dir: string): Record<string, unknown> {
+  const entry: unknown = voices && typeof voices === 'object' && !Array.isArray(voices) ? voices[dir] : undefined;
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return {};
+  const { speaker: _unread, ...others } = entry as Record<string, unknown>;
+  return { ...others, ...directionVoice(voices, dir) };
 }
 
 /** The speaker id a run uses: the direction's own, else the model's default (`ttsConfig.defaultSid`, Supertonic's 7), else 0. */
@@ -23,10 +33,10 @@ export function speakerIdFor(voice: DirectionVoice, modelId: string): number {
   return voice.speaker ?? getManifestEntry(modelId)?.ttsConfig?.defaultSid ?? 0;
 }
 
-/** The settings patch writing `patch` into one direction's entry; its other field and every other direction's entry stay as stored. */
+/** The settings patch writing `patch` into one direction's entry; its other fields (a stored Edge voice) and every other direction's entry stay as stored. */
 export function withDirectionVoice(voices: LocalInferenceSettings['voices'], dir: string, patch: DirectionVoice): Pick<LocalInferenceSettings, 'voices'> {
   const table = voices && typeof voices === 'object' && !Array.isArray(voices) ? voices : {};
-  return { voices: { ...table, [dir]: { ...directionVoice(table, dir), ...patch } } };
+  return { voices: { ...table, [dir]: { ...storedEntry(table, dir), ...patch } } };
 }
 
 /**
@@ -48,6 +58,6 @@ export function voicesWithoutImported(
   if (users.length === 0) return null;
   return Object.fromEntries(Object.entries(table).map(([dir, v]) => [
     dir,
-    users.includes(dir) ? { ...directionVoice(table, dir), speaker: getManifestEntry(ttsModelFor(dir)!)?.ttsConfig?.defaultSid ?? 0 } : v,
+    users.includes(dir) ? { ...storedEntry(table, dir), speaker: getManifestEntry(ttsModelFor(dir)!)?.ttsConfig?.defaultSid ?? 0 } : v,
   ]));
 }

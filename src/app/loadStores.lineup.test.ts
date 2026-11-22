@@ -61,11 +61,13 @@ describe('the first start of the new version, free provider, nothing downloaded'
 
     await loadSessionStores();
     expect(stored.has(LINEUP_KEY)).toBe(false);
-    expect(storedLocalStages()).toBeNull(); // the local provider resolves with today's list until the line-up is written
+    // Until the line-up is written, the one the settings show runs: this device transcribes, Bing and Edge do the rest.
+    expect(storedLocalStages()).toEqual({ translation: null, speech: null, transcription: 'local' });
 
     finishScan();
     await vi.waitFor(() => expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null } }));
-    expect(storedLocalStages()).toEqual({ translation: 'bing', speech: 'edge' });
+    // Bing and Edge are providers of their own: this device serves recognition alone of the line-up it wrote.
+    expect(storedLocalStages()).toEqual({ translation: null, speech: null, transcription: 'local' });
 
     setSetting.mockClear();
     useLineUpStore.setState({ lineUp: null, stored: false });

@@ -14,8 +14,7 @@ import { stubProvider } from '../../lib/plan/testing';
 import { isRefusal, type RunPlan } from '../../lib/plan/types';
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
 import type { LeaseContext, RunShape } from '../../lib/session/types';
-import { localInferenceProvider } from '../localInference/provider';
-import { LOCAL_INFERENCE_DEFAULTS } from '../localInference/settings';
+import { edgeProvider } from '../edge/provider';
 import { kizunaSonioxProvider } from './kizuna';
 import { kizunaSonioxMinimumBalance, sonioxSessionCapSeconds, SONIOX_MAX_TRANSCRIPTION_SESSION_S } from './kizunaBudget';
 import { createKizunaLease } from './lease';
@@ -23,9 +22,9 @@ import { isSttRole, leaseRequest, requestBody, requestedRoles } from './leaseReq
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 import { createKizunaVoiceClaim } from './voiceClaim';
 
-const providers = [kizunaSonioxProvider, localInferenceProvider];
+const providers = [kizunaSonioxProvider, edgeProvider];
 const planOf = (speech: string): RunPlan => {
-  const plan = compose({ transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech }, { providers, settings: (id) => (id === 'kizunaai_soniox' ? SONIOX_DEFAULTS : LOCAL_INFERENCE_DEFAULTS) });
+  const plan = compose({ transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech }, { providers, settings: (id) => (id === 'kizunaai_soniox' ? SONIOX_DEFAULTS : edgeProvider.settings.defaults) });
   if (isRefusal(plan)) throw new Error(`expected a plan, got ${plan.refused}`);
   return plan;
 };
@@ -36,7 +35,7 @@ const alone = planOf('kizunaai_soniox');
 
 const shapeOn = (plan: RunPlan, legs: LegName[], o: { textOnly?: boolean; participantSpeech?: boolean; faceToFace?: boolean } = {}): RunShape => ({
   plan,
-  accounts: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {} }, local_inference: { settings: LOCAL_INFERENCE_DEFAULTS, credentials: {} } },
+  accounts: { kizunaai_soniox: { settings: SONIOX_DEFAULTS, credentials: {} }, edge: { settings: edgeProvider.settings.defaults, credentials: {} } },
   lineUp: { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: plan === withEdge ? 'edge' : 'kizunaai_soniox' },
   lineUpStored: true,
   pair: { source: 'ja', target: 'en' }, legs, turnMode: 'auto',
@@ -57,11 +56,11 @@ const LEGS: LegName[][] = [['speaker'], ['participant'], ['speaker', 'participan
 
 describe('the plans', () => {
   it("with Edge, the plan asks Kizuna AI's Soniox for no speech; alone, it does", () => {
-    expect(withEdge.units.map((u) => [u.provider.id, u.stages])).toEqual([['kizunaai_soniox', ['transcription', 'translation']], ['local_inference', ['speech']]]);
+    expect(withEdge.units.map((u) => [u.provider.id, u.stages])).toEqual([['kizunaai_soniox', ['transcription', 'translation']], ['edge', ['speech']]]);
     expect(servesSpeech(withEdge, kizunaSonioxProvider)).toBe(false);
-    expect(servesSpeech(withEdge, localInferenceProvider)).toBe(true);
+    expect(servesSpeech(withEdge, edgeProvider)).toBe(true);
     expect(servesSpeech(alone, kizunaSonioxProvider)).toBe(true);
-    expect(servesSpeech(alone, localInferenceProvider)).toBe(false);
+    expect(servesSpeech(alone, edgeProvider)).toBe(false);
   });
 });
 

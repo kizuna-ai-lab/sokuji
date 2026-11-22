@@ -1,70 +1,18 @@
 /**
- * The codes a transcriber hands the local translation unit, against Bing's
- * own list: what the pair picker offers (`localTranslates`), what the build
- * refuses and what the engine is loaded with must agree, code by code. The
- * transcriber that reaches this unit is Soniox, so its list is the one read.
+ * The codes a transcriber hands the local translation unit: Soniox's languages, each pair of which has a model in
+ * the catalog. (Bing's list against the same codes is `../bing/codes.test.ts`.)
  */
 import { describe, expect, it } from 'vitest';
-import { isSupportedByBing, mapToBingCode } from '../../lib/bing-translator/languageMap';
 import { SONIOX_LANGUAGES } from '../soniox/languages';
-import { BING_TRANSLATOR, localTranslates, localTranslationTargets } from './translationUnit';
-import { localTranslationRefusal } from './translationSession';
+import { localTranslationTargets } from './translationUnit';
 
 const soniox = SONIOX_LANGUAGES.map((o) => o.value);
-
-describe("Soniox's languages, translated by Bing", () => {
-  it("Bing's list lacks eight of them, and takes every other as it is written", () => {
-    expect(soniox.filter((code) => !isSupportedByBing(code))).toEqual(['sq', 'az', 'eu', 'be', 'gl', 'gu', 'kn', 'mk']);
-  });
-
-  it("the codes that differ are mapped where the engine sends them: Chinese as Bing's simplified, Norwegian as Bokmål, the rest unchanged", () => {
-    expect(mapToBingCode('zh')).toBe('zh-Hans');
-    expect(mapToBingCode('no')).toBe('nb');
-    expect(mapToBingCode('fil')).toBe('fil');
-    for (const code of soniox.filter(isSupportedByBing)) {
-      if (code !== 'zh' && code !== 'no') expect(mapToBingCode(code), code).toBe(code);
-    }
-  });
-
-  it('a pair is offered exactly when the engine can be loaded with it: both codes map, to two languages', () => {
-    for (const source of soniox) for (const target of soniox) {
-      const mapped = (code: string) => (isSupportedByBing(code) ? mapToBingCode(code) : null);
-      const runs = mapped(source) !== null && mapped(target) !== null && mapped(source) !== mapped(target);
-      expect(localTranslates('bing', source, target), `${source}>${target}`).toBe(runs);
-      // What is offered is never refused by the build or by the session's own start.
-      if (runs) expect(localTranslationRefusal(BING_TRANSLATOR, source, target), `${source}>${target}`).toBeNull();
-    }
-  });
-
-  it("the targets of a source are Bing's among the transcriber's own codes, never the source itself", () => {
-    const targets = localTranslationTargets('bing', 'zh', soniox);
-    expect(targets).toContain('en');
-    expect(targets).toContain('no');
-    expect(targets).not.toContain('zh');
-    expect(targets).not.toContain('eu');
-    expect(targets).toHaveLength(soniox.filter(isSupportedByBing).length - 1);
-    // A source Bing does not take has no target, and an automatic one neither.
-    expect(localTranslationTargets('bing', 'eu', soniox)).toEqual([]);
-    expect(localTranslationTargets('bing', 'auto', soniox)).toEqual([]);
-  });
-
-  it("the regional forms of Chinese are Bing's own, in the app's spelling; the script forms are not on its list", () => {
-    expect(mapToBingCode('zh-CN')).toBe('zh-Hans');
-    expect(mapToBingCode('zh-TW')).toBe('zh-Hant');
-    expect(mapToBingCode('zh-HK')).toBe('zh-Hant');
-    expect(isSupportedByBing('zh-Hant')).toBe(false);
-    expect(isSupportedByBing('zh-Hans')).toBe(false);
-    // One language to Bing: not a pair.
-    expect(localTranslates('bing', 'zh', 'zh-CN')).toBe(false);
-    expect(localTranslates('bing', 'zh', 'zh-TW')).toBe(true);
-  });
-});
 
 describe("Soniox's languages, translated by a model of this device", () => {
   it('every pair of two languages has a model in the catalog, and an automatic source has none', () => {
     for (const source of soniox) {
-      expect(localTranslationTargets('local_inference', source, soniox), source).toEqual(soniox.filter((code) => code !== source));
+      expect(localTranslationTargets(source, soniox), source).toEqual(soniox.filter((code) => code !== source));
     }
-    expect(localTranslationTargets('local_inference', 'auto', soniox)).toEqual([]);
+    expect(localTranslationTargets('auto', soniox)).toEqual([]);
   });
 });

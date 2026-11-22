@@ -11,7 +11,6 @@ vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => bas
 const languagesProps = vi.hoisted(() => ({ last: null as null | { heading?: boolean; receive?: ReceiveChoices } }));
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: (props: { heading?: boolean }) => { languagesProps.last = props; return <div id="languages-section" data-heading={String(props.heading)} />; } }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
-vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div id="edge-voices-section" /> }));
 vi.mock('./LocalVoices', () => ({ LocalVoices: () => <div id="local-voices-section" /> }));
 const engineProps = vi.hoisted(() => [] as Array<{ initialSlot?: unknown; onInitialSlotConsumed?: () => void }>);
 vi.mock('../providers/ProviderOwnSettings', async () => {
@@ -19,8 +18,13 @@ vi.mock('../providers/ProviderOwnSettings', async () => {
   const { useSettingsStage } = await import('../providers/stageParts');
   return {
     ProviderEngine: (props: { initialSlot?: unknown; onInitialSlotConsumed?: () => void; providerId?: string }) => { engineProps.push(props); return <div id="model-management-section" data-provider={props.providerId ?? ''}><div id="model-tts-section" /></div>; },
-    // Also whose settings they are, and the stages that provider serves: what its parts are cut by.
-    ProviderOwnSettings: ({ providerId }: { providerId?: string }) => <div id="provider-own-settings" data-provider={providerId ?? ''} data-stage={useSettingsStage()?.stage ?? ''} data-served={(useSettingsStage()?.served ?? []).join(',')} />,
+    // Also whose settings they are, and the stages that provider serves: what its parts are cut by. Edge's own
+    // settings hold its voices, under the anchor the `edge-voices` target scrolls to.
+    ProviderOwnSettings: ({ providerId }: { providerId?: string }) => (
+      <div id="provider-own-settings" data-provider={providerId ?? ''} data-stage={useSettingsStage()?.stage ?? ''} data-served={(useSettingsStage()?.served ?? []).join(',')}>
+        {providerId === 'edge' && <div id="edge-voices-section" />}
+      </div>
+    ),
     ProviderTurnDetectionControls: () => <div id="turn-detection-tuning-section" />,
   };
 });
@@ -244,6 +248,11 @@ describe('languages and line-up', () => {
     const speech = optionTexts('Speech');
     expect(speech).toContain('Edge');
     expect(speech).not.toContain('Bing');
+    // Bing and Edge are listed once each, right after This device, as before they were providers of their own.
+    expect(translation.filter((t) => t === 'Bing')).toHaveLength(1);
+    expect(speech.filter((t) => t === 'Edge')).toHaveLength(1);
+    expect(translation.slice(translation.indexOf('This device'), translation.indexOf('This device') + 2)).toEqual(['This device', 'Bing']);
+    expect(speech.slice(speech.indexOf('This device'), speech.indexOf('This device') + 2)).toEqual(['This device', 'Edge']);
   });
 
   describe("a text model for the translation (text models, part B)", () => {
@@ -357,7 +366,7 @@ describe('languages and line-up', () => {
     const pair = { source: 'en', target: 'ja' };
     const load = (target = 'ja') => {
       const entry = (id: string, credentials: Record<string, string> = {}) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair: { ...pair, target } });
-      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), gemini: entry('gemini', { apiKey: 'k' }) } as never });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), bing: entry('bing'), edge: entry('edge'), gemini: entry('gemini', { apiKey: 'k' }) } as never });
     };
     const cardOf = (name: string) => screen.getByRole('combobox', { name }).closest('.lineup-stage') as HTMLElement;
 
@@ -632,7 +641,7 @@ describe('languages and line-up', () => {
     const load = (target = 'ja', sonioxKey: Record<string, string> = { apiKey: 'k' }) => {
       const entry = (id: string, credentials: Record<string, string> = {}) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair: { ...pair, target } });
       useProviderStore.setState({
-        entries: { soniox: entry('soniox', sonioxKey), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference') } as never,
+        entries: { soniox: entry('soniox', sonioxKey), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), bing: entry('bing'), edge: entry('edge') } as never,
         readiness: { soniox: { state: 'ready' } } as never,
       });
     };
@@ -780,7 +789,7 @@ describe('languages and line-up', () => {
     const pair = { source: 'en', target: 'ja' };
     const load = () => {
       const entry = (id: string, credentials: Record<string, string> = {}) => ({ settings: RELEASED.find((p) => p.id === id)!.settings.defaults, credentials, pair });
-      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), gemini: entry('gemini', { apiKey: 'k' }) } as never });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), kizunaai_soniox: entry('kizunaai_soniox'), local_inference: entry('local_inference'), bing: entry('bing'), edge: entry('edge'), gemini: entry('gemini', { apiKey: 'k' }) } as never });
     };
     const all = (id: string) => ({ transcription: id, translation: id, speech: id, summarisation: null });
     const options = (name: string) => within(screen.getByRole('combobox', { name })).getAllByRole('option') as HTMLOptionElement[];
@@ -954,8 +963,10 @@ describe('languages and line-up', () => {
       open(cardOf('Speech'));
       expect(within(cardOf('Speech')).getByText('Edge options')).toBeTruthy();
       expect(cardOf('Speech').querySelector('#edge-voices-section')).not.toBeNull();
-      expect(cardOf('Speech').querySelector('#model-management-section')).toBeNull();
-      expect(own(cardOf('Speech'))).toEqual(['local_inference:speech:speech']);
+      // Edge is a provider of its own: its card's options are its own, its voices in its own settings. The engine asked
+      // for is Edge's (it has none to draw), never this device's.
+      expect([...cardOf('Speech').querySelectorAll('#model-management-section')].map((e) => e.getAttribute('data-provider'))).toEqual(['edge']);
+      expect(own(cardOf('Speech'))).toEqual(['edge:speech:speech']);
       const text = cardOf('Transcription and translation');
       open(text);
       expect(own(text).length).toBeGreaterThan(0);
@@ -1019,7 +1030,7 @@ describe('languages and line-up', () => {
     expect(document.getElementById('model-tts-section')).not.toBeNull();
   });
 
-  it("with Edge speaking, the speech card holds Edge's voices in place of the engine's speech slot", () => {
+  it("with Edge speaking, the speech card holds Edge's voices, in Edge's own settings, in place of this device's speech slot", () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     runsOn('local_inference');
     render(<LineUpCategory locked={false} />);
@@ -1027,8 +1038,9 @@ describe('languages and line-up', () => {
     act(() => { useSettingsStore.getState().navigateToSettings('edge-voices'); });
     const card = document.getElementById('edge-voices-section')!.closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByRole('combobox', { name: 'Speech' })).toHaveValue('edge');
-    expect(card.querySelector('#model-management-section')).toBeNull();
-    expect(card.querySelector('#provider-own-settings')).not.toBeNull();
+    // The engine asked for is Edge's (it has none to draw), never this device's.
+    expect([...card.querySelectorAll('#model-management-section')].map((e) => e.getAttribute('data-provider'))).toEqual(['edge']);
+    expect(document.getElementById('edge-voices-section')!.closest('#provider-own-settings')?.getAttribute('data-provider')).toBe('edge');
   });
 
   // B-20: the local engine's voices moved out of its model library into the speech card's own options.

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCallback, useMemo, useState } from 'react';
 import { useWasmEngineAdapter } from './useWasmEngineAdapter';
+import { useLineUpStore } from '../../../stores/lineUpStore';
 import { useModelStore } from '../../../stores/modelStore';
 import { getManifestByType } from '../../../lib/local-inference/modelManifest';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
@@ -31,6 +32,17 @@ describe('useWasmEngineAdapter', () => {
   it('directions are speaker-first ja→en then en→ja', () => {
     const { result } = renderHook(() => useHeldAdapter());
     expect(result.current.adapter.directions.map(d => d.dir)).toEqual(['ja→en', 'en→ja']);
+  });
+
+  it('resolves with every stage on this machine while no line-up is stored: never Bing or Edge', () => {
+    useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });
+    const { result } = renderHook(() => useHeldAdapter());
+    const { adapter } = result.current;
+    for (const stage of ['asr', 'translation', 'tts'] as const) {
+      const slot = { dir: 'ja→en', stage };
+      expect(['bing-translator', 'edge-tts']).not.toContain(adapter.resolved(slot)?.modelId);
+      expect(['bing-translator', 'edge-tts']).not.toContain(adapter.autoPick(slot));
+    }
   });
 
   it('readyCandidates lists only downloaded/usable implementations', () => {
