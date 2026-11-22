@@ -114,6 +114,18 @@ describe("a text model's options", () => {
     expect(screen.getByRole('textbox', { name: 'Or type a model name' })).toBeInTheDocument();
   });
 
+  // Review of #853: a model chosen from a list the service no longer gives stays visible, and can be set back.
+  it('a service that lists nothing now, with a model chosen from its list before: the choice stays shown and can be undone', async () => {
+    lists.answer = { ok: true, ids: [] };
+    const { update } = draw({ service: 'compatible', credentials: { baseUrl: 'http://localhost:11434/v1', apiKey: '' }, settings: { translationModel: { listed: 'deepseek-chat', typed: '' } } });
+    await screen.findByText("This service lists no models: type the model's name.");
+    const select = screen.getByRole('combobox', { name: 'Model' });
+    expect(select).toHaveValue('deepseek-chat');
+    expect([...select.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['Choose a model', 'deepseek-chat']);
+    fireEvent.change(select, { target: { value: '' } });
+    expect(update).toHaveBeenCalledWith({ translationModel: { listed: '', typed: '' } });
+  });
+
   it("a list the service refused is said in its words; nothing is asked without a key or an address", async () => {
     lists.answer = { ok: false, failure: { code: 'auth', status: 401, message: 'Incorrect API key provided.' } };
     draw();

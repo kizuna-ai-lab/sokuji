@@ -93,8 +93,10 @@ export function TextModelSettingsView({ service, settings, update, disabled = fa
   const listed = model.listed !== '' && !ids.includes(model.listed) ? [model.listed, ...ids] : ids;
   const typedModel = model.typed.trim() !== '';
   const typedReasoning = reasoning.typed.trim() !== '';
-  // A compatible service that lists nothing has nothing to choose from: only the name.
-  const noList = typeof list === 'object' && list.ok && ids.length === 0;
+  // A compatible service that lists nothing has nothing to choose from: only the name. A model chosen from its list
+  // before stays shown, with the way back to none.
+  const listsNone = typeof list === 'object' && list.ok && ids.length === 0;
+  const noList = listsNone && model.listed === '';
   const idPrefix = `text-model-${service}`;
   // A value typed wins over the list above it, which is disabled while it is filled.
   const overrides = t('settingsPage.textModel.typedOverrides', 'Overrides the selection above. Clear to use the list again.');
@@ -117,7 +119,7 @@ export function TextModelSettingsView({ service, settings, update, disabled = fa
         {typeof list === 'object' && !list.ok && (
           <div className="models-info">{noticeText(t, { code: failureNoticeCode(list.failure.code), message: list.failure.message })}</div>
         )}
-        {noList && <div className="models-info">{t('settingsPage.textModel.listEmpty', "This service lists no models: type the model's name.")}</div>}
+        {listsNone && <div className="models-info">{t('settingsPage.textModel.listEmpty', "This service lists no models: type the model's name.")}</div>}
         <TextField id={`${idPrefix}-model-name`} label={t('settingsPage.textModel.modelName', 'Or type a model name')} value={model.typed}
           onChange={(typed) => setModel({ typed })} disabled={disabled} note={overrides} />
         <div className="setting-item">
