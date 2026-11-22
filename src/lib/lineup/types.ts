@@ -31,7 +31,7 @@ export interface LineUp {
 
 /**
  * What one option can serve, who runs it, which of those stages go together, and who it bills through. Derived, never
- * declared: `capsOf` (capsOf.ts) reads it off the provider's units under its default settings, and the registry
+ * declared: `capsOf` (`src/lib/plan/capsOf.ts`) reads it off the provider's units under its default settings, and the registry
  * registers the result as the catalog. Each field names its rule.
  */
 export interface ProviderCaps {

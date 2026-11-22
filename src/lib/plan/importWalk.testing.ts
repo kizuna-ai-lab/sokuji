@@ -56,12 +56,13 @@ export function importsOf(file: string): string[] {
 
 /**
  * The import cycles among the source files (`sourceFiles`), type-only imports included: each strongly connected group
- * of more than one file (Tarjan), as a sorted list of paths relative to `src`.
+ * of more than one file (Tarjan), as a sorted list of paths relative to `src`. `graph` is the walk over the real tree
+ * by default; a test may pass a small graph (absolute paths, file to the files it imports) to show a cycle is found.
  */
-export function importCycles(): string[][] {
-  const files = sourceFiles();
+export function importCycles(graph?: ReadonlyMap<string, readonly string[]>): string[][] {
+  const files = graph ? [...graph.keys()] : sourceFiles();
   const known = new Set(files);
-  const edges = new Map(files.map((file) => [file, importsOf(file).filter((next) => known.has(next))]));
+  const edges = new Map(files.map((file) => [file, (graph ? graph.get(file)! : importsOf(file)).filter((next) => known.has(next))]));
   const index = new Map<string, number>();
   const low = new Map<string, number>();
   const stack: string[] = [];

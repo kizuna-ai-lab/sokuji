@@ -6,7 +6,7 @@
 // registered catalog; the stores read it, nothing here reads a store.
 //
 // Where the catalog comes from: it is read off the providers' units
-// (`catalogOf`, capsOf.ts), and the provider registry registers it as it loads,
+// (`catalogOf`, `src/lib/plan/capsOf.ts`), and the provider registry registers it as it loads,
 // from the providers a line-up may name. This module imports neither the
 // registry nor a provider: the line-up store reads it, and the registry's own
 // imports reach that store (the local provider reads it), so importing either

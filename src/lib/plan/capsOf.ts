@@ -1,12 +1,12 @@
-// src/lib/lineup/capsOf.ts
+// src/lib/plan/capsOf.ts
 //
 // The line-up catalog, read off the providers' units: what each provider can serve, which stages go together.
 // Pure functions over provider definitions; reaches no provider module and no store.
-import { sameStages } from '../plan/types';
-import { unitsOf } from '../plan/wholeUnit';
+import { sameStages } from './types';
+import { unitsOf } from './wholeUnit';
 import type { AnyProvider } from '../provider/types';
-import { RUN_STAGES } from './types';
-import type { ProviderCaps, RunStage } from './types';
+import { RUN_STAGES } from '../lineup/types';
+import type { ProviderCaps, RunStage } from '../lineup/types';
 
 /** Every non-empty subset of the run stages, in `RUN_STAGES` order. */
 const SUBSETS: readonly (readonly RunStage[])[] = Array.from({ length: (1 << RUN_STAGES.length) - 1 }, (_, i) => RUN_STAGES.filter((_stage, bit) => ((i + 1) >> bit) & 1));

@@ -3,7 +3,7 @@
  * picker shows, `ProviderId` is derived from it, and `isPresent` decides what
  * this build and platform offer.
  */
-import { catalogOf } from '../lib/lineup/capsOf';
+import { catalogOf } from '../lib/plan/capsOf';
 import { registerCatalog } from '../lib/lineup/catalog';
 import { registerPresentProviders } from '../lib/plan/present';
 import { isPresent, type PresenceEnv } from '../lib/provider/presence';
