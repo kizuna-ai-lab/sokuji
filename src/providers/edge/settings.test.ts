@@ -38,4 +38,10 @@ describe('migrateEdgeSettings', () => {
     expect(migrateEdgeSettings({}, inputs({ 'settings.localInference.voices': ['x'], 'settings.localInference.ttsSpeed': '1.2' })))
       .toEqual({ voices: {}, speed: 1 });
   });
+
+  it("falls back to the local table's Edge voices when Edge's own voices hold no valid entry", () => {
+    const local = { 'settings.localInference.voices': { 'a→b': { edge: 'x' } } };
+    expect(migrateEdgeSettings({}, inputs({ voices: {}, ...local })).voices).toEqual({ 'a→b': 'x' });
+    expect(migrateEdgeSettings({}, inputs({ voices: { 'a→b': 3, 'c→d': '' }, ...local })).voices).toEqual({ 'a→b': 'x' });
+  });
 });

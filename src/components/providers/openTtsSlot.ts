@@ -4,7 +4,17 @@ import { planFromStores } from '../../lib/plan/fromStores';
 import { transcriptionAccount, transcriptionProvider, unitFor } from '../../lib/plan/read';
 import { edgeProvider } from '../../providers/edge/provider';
 import { localInferenceProvider } from '../../providers/localInference/provider';
+import { useLineUpStore } from '../../stores/lineUpStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+
+/**
+ * Whether Edge speaks: the plan's speech unit when the plan is ready; when it is not (another stage lacks a key),
+ * the stored line-up's word for speech.
+ */
+function edgeSpeaks(found: ReturnType<typeof planFromStores>): boolean {
+  if (found.state === 'ready') return unitFor(found.plan, 'speech').provider.id === edgeProvider.id;
+  return useLineUpStore.getState().lineUp?.speech === edgeProvider.id;
+}
 
 /**
  * Opens the TTS slot of the direction `leg` speaks under the pair as it is
@@ -23,7 +33,7 @@ export function openTtsSlot(leg: LegName): void {
   const { setEngineSlotTarget, navigateToSettings } = useSettingsStore.getState();
   const found = planFromStores();
   const speaker = found.state === 'ready' ? unitFor(found.plan, 'speech').provider : undefined;
-  if (speaker?.id === edgeProvider.id) {
+  if (edgeSpeaks(found)) {
     setEngineSlotTarget(null);
     navigateToSettings('edge-voices');
     return;
@@ -49,7 +59,5 @@ export function openTtsSlot(leg: LegName): void {
 export function openLocalVoices(): void {
   const { setEngineSlotTarget, navigateToSettings } = useSettingsStore.getState();
   setEngineSlotTarget(null);
-  const found = planFromStores();
-  const edgeSpeaks = found.state === 'ready' && unitFor(found.plan, 'speech').provider.id === edgeProvider.id;
-  navigateToSettings(edgeSpeaks ? 'edge-voices' : 'local-voices');
+  navigateToSettings(edgeSpeaks(planFromStores()) ? 'edge-voices' : 'local-voices');
 }

@@ -40,9 +40,9 @@ function given(o: { voices?: Record<string, string>; legs?: string[]; participan
 }
 const saved = () => useProviderStore.getState().entries.edge!.settings as EdgeSettings;
 /** The card as the host draws it: Edge's entry as the settings, writing back to it. */
-function EdgeCard({ disabled = false }: { disabled?: boolean }) {
+function EdgeCard({ disabled = false, participantSpeaks }: { disabled?: boolean; participantSpeaks?: boolean }) {
   const settings = useProviderStore((s) => s.entries.edge?.settings) as EdgeSettings;
-  return <EdgeSettingsView settings={settings} update={(patch) => useProviderStore.getState().updateSettings(edgeProvider, patch)} disabled={disabled} preview={{ play: preview.play, stop: preview.stop }} />;
+  return <EdgeSettingsView settings={settings} update={(patch) => useProviderStore.getState().updateSettings(edgeProvider, patch)} disabled={disabled} participantSpeaks={participantSpeaks} preview={{ play: preview.play, stop: preview.stop }} />;
 }
 
 beforeEach(() => {
@@ -81,6 +81,35 @@ describe("Edge's settings", () => {
     render(<EdgeCard />);
     expect(await screen.findByRole('combobox', { name: 'Translation the other side hears (English)' })).toBeInTheDocument();
     expect(screen.queryByRole('combobox', { name: 'Translation I hear (Japanese)' })).toBeNull();
+  });
+
+  it("prefers the host's participantSpeaks over the store's switch", async () => {
+    given({ participantSpeech: true });
+    const { unmount } = render(<EdgeCard participantSpeaks={false} />);
+    expect(await screen.findByRole('combobox', { name: 'Translation the other side hears (English)' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Translation I hear (Japanese)' })).toBeNull();
+    unmount();
+    given({ participantSpeech: false });
+    render(<EdgeCard participantSpeaks />);
+    expect(await screen.findByRole('combobox', { name: 'Translation I hear (Japanese)' })).toBeInTheDocument();
+  });
+
+  it('a playback that rejects is no unhandled rejection', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      preview.play.mockRejectedValueOnce(new Error('no audio device'));
+      given({ voices: { 'ja→en': 'en-US-AvaNeural' } });
+      render(<EdgeCard />);
+      const key = screen.getByRole('button', { name: 'Preview Translation the other side hears (English)' });
+      await waitFor(() => expect(key).toBeEnabled());
+      fireEvent.click(key);
+      await waitFor(() => expect(preview.play).toHaveBeenCalled());
+      await new Promise((r) => setTimeout(r, 20));
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
   });
 
   it("plays a voice's sample in the language it speaks", async () => {

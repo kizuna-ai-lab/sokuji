@@ -21,10 +21,12 @@ import type { EdgeSettings as S } from './settings';
 type Status = 'loading' | 'loaded' | 'error';
 
 /** Exported as `EdgeSettingsView`: `EdgeSettings` already names the settings type this component edits (`./settings`). */
-export function EdgeSettingsView({ settings, update, disabled = false, pair: ownPair, legs: givenLegs, preview }: SettingsProps<S>) {
+export function EdgeSettingsView({ settings, update, disabled = false, pair: ownPair, legs: givenLegs, participantSpeaks, preview }: SettingsProps<S>) {
   const { t } = useTranslation();
   const storeLegs = useProviderStore((s) => s.legs);
-  const participantSpeech = useProviderStore((s) => s.speech.participantSpeech);
+  const storeParticipantSpeech = useProviderStore((s) => s.speech.participantSpeech);
+  // The host's decision also counts the provider's own allowance; the store's switch only stands in without one.
+  const participantSpeech = participantSpeaks ?? storeParticipantSpeech;
   const legs = givenLegs ?? storeLegs;
   const [all, setAll] = useState<Voice[]>([]);
   const [status, setStatus] = useState<Status>('loading');
@@ -68,7 +70,12 @@ export function EdgeSettingsView({ settings, update, disabled = false, pair: own
     const stop = new AbortController();
     playing.current = stop;
     const clip = await previewEdgeVoice(voice, language, stop.signal);
-    if (clip && !stop.signal.aborted) await preview?.play(clip);
+    if (!clip || stop.signal.aborted) return;
+    try {
+      await preview?.play(clip);
+    } catch (error) {
+      reportError('EdgeTTS', `Could not play the sample of ${voice}: ${describeCause(error)}`, { cause: error });
+    }
   };
 
   return (

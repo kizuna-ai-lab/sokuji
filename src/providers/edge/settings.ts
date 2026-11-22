@@ -18,12 +18,12 @@ export const LOCAL_SPEED_KEY = 'settings.localInference.ttsSpeed';
 
 const isTable = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** The table's entries that are a non-empty voice name; anything else is dropped. */
+/** The table's entries that are a non-empty voice name; anything else is dropped. Undefined when none is left. */
 function ownVoices(value: unknown): Record<string, string> | undefined {
   if (!isTable(value)) return undefined;
   const out: Record<string, string> = {};
   for (const [dir, voice] of Object.entries(value)) if (typeof voice === 'string' && voice !== '') out[dir] = voice;
-  return out;
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /** Each direction's `.edge` of the local provider's voice table. */

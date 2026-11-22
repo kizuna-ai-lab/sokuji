@@ -143,6 +143,25 @@ describe("openTtsSlot, with another provider's voice reading the text", () => {
   });
 });
 
+// A plan that is not ready (another stage lacks a key) still has a stored line-up whose speech is Edge.
+describe('with a plan that is not ready and Edge as the stored speech', () => {
+  beforeEach(() => {
+    plan.found = { state: 'refused', refusal: { refused: 'lineup_language_not_spoken', stage: 'speech', provider: 'edge', language: 'en' } };
+    useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'edge', summarisation: null }, stored: true });
+  });
+
+  it('openTtsSlot opens the Edge voices', () => {
+    openTtsSlot('speaker');
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('edge-voices');
+    expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
+  });
+
+  it('openLocalVoices opens the Edge voices', () => {
+    openLocalVoices();
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('edge-voices');
+  });
+});
+
 // B-20: the local engine's voices are in the speech card, Edge's or its own.
 describe('openLocalVoices', () => {
   it("opens the local engine's voices in the speech card, and leaves no slot target behind", () => {
