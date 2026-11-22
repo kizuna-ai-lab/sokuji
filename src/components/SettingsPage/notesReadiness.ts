@@ -23,11 +23,34 @@ export const NOTES_CHECK_DELAY_MS = 800;
 
 const CHECKING: Readiness = { state: 'checking' };
 
-/** What the notes' check reads: the provider, the notes' model and reasoning, and the credentials it shows. */
+/**
+ * A short digest of credential values (53 bits, base 36), enough to tell that they changed and no way back to them:
+ * what an answer is kept with holds this, never a key (a second copy of it in memory). Not for anything but change
+ * detection.
+ */
+export function fingerprint(values: readonly string[]): string {
+  const text = JSON.stringify(values);
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+/**
+ * What the notes' check reads: the provider, the notes' model and reasoning, and the credentials it shows (by their
+ * fingerprint). Not the sign-in: this hook is given only the services with the user's own key, whose credentials are
+ * read without it, and a text model's check is told none; Kizuna AI's state on the card is the sign-in itself.
+ */
 function inputsOf(p: AnyProvider, entry: ProviderEntry): string {
   const settings = entry.settings as { notesModel?: unknown; notesReasoning?: unknown };
   const values = p.credentials.fields(entry.settings as never).map((f) => entry.credentials[f.key] ?? '');
-  return JSON.stringify([p.id, settings.notesModel ?? null, settings.notesReasoning ?? null, values]);
+  return JSON.stringify([p.id, settings.notesModel ?? null, settings.notesReasoning ?? null, fingerprint(values)]);
 }
 
 /** The provider's check, asked about the notes alone. */

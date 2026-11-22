@@ -7,7 +7,7 @@ import { TEXT_MODEL_DEFAULTS } from '../../lib/textModel/unit';
 import { openaiCompatibleProvider } from '../../providers/openai_compatible/provider';
 import { openaiTextProvider } from '../../providers/openai_text/provider';
 import { useProviderStore } from '../../stores/providerStore';
-import { checkNotes, NOTES_CHECK_DELAY_MS, useNotesAnswers, useNotesReadiness } from './notesReadiness';
+import { checkNotes, fingerprint, NOTES_CHECK_DELAY_MS, useNotesAnswers, useNotesReadiness } from './notesReadiness';
 
 /** Not a key of any service. */
 const KEY = 'test-key-0000';
@@ -90,6 +90,44 @@ describe("the Notes card's readiness", () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     expect(check).not.toHaveBeenCalled();
     expect(state()).toBe('unknown');
+  });
+
+  // Review: the inputs an answer is kept with once held the key itself, a second copy of it in memory.
+  it('keeps no key in what it stores: only a fingerprint of the credentials, which still tells a new key', async () => {
+    const { p, check } = provider(() => ({ ok: true, models: [] }));
+    render(<Shown p={p} />);
+    await waitFor(() => expect(state()).toBe('ready'));
+    expect(JSON.stringify(useNotesAnswers.getState().byProvider)).not.toContain(KEY);
+    act(() => useProviderStore.setState({
+      entries: { openai_text: { settings: TEXT_MODEL_DEFAULTS, credentials: { apiKey: 'test-key-0001' }, pair: PAIR } },
+    } as never));
+    await waitFor(() => expect(check).toHaveBeenCalledTimes(2), { timeout: 3_000 });
+    expect(JSON.stringify(useNotesAnswers.getState().byProvider)).not.toContain('test-key-0001');
+  });
+
+  it('a fingerprint is short, the same for the same values, and another for others', () => {
+    expect(fingerprint([KEY])).toBe(fingerprint([KEY]));
+    expect(fingerprint([KEY])).not.toBe(fingerprint(['test-key-0001']));
+    expect(fingerprint(['a', 'bc'])).not.toBe(fingerprint(['ab', 'c']));
+    expect(fingerprint([KEY])).not.toContain(KEY);
+    expect(fingerprint([KEY]).length).toBeLessThanOrEqual(16);
+  });
+
+  // Review: the check is given the sign-in, yet a sign-in change does not ask it again. Nothing it reads changes with
+  // it: the card gives this hook only the services with the user's own key (Kizuna AI's state is the sign-in itself),
+  // whose credentials are read without the sign-in, and a text model's check is told none.
+  it('asks nothing again on a sign-in change: nothing the check of an own-key service reads changes with it', async () => {
+    const { p, check } = provider(() => ({ ok: true, models: [] }));
+    function SignedIn({ signedIn }: { signedIn: boolean }) {
+      const r = useNotesReadiness(p, { ...AUTH, signedIn }, false);
+      return <span data-testid="state">{r.state}</span>;
+    }
+    const view = render(<SignedIn signedIn={false} />);
+    await waitFor(() => expect(state()).toBe('ready'));
+    view.rerender(<SignedIn signedIn />);
+    await act(async () => { await new Promise((r) => setTimeout(r, NOTES_CHECK_DELAY_MS + 100)); });
+    expect(check).toHaveBeenCalledTimes(1);
+    expect(openaiTextProvider.credentials.read.length).toBe(1);
   });
 
   it('a compatible service with no address is not asked: the address is what it lacks', async () => {
