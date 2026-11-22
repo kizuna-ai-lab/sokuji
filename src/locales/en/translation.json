@@ -1859,7 +1859,8 @@
         "switched": "Switched to {{region}}: this key works there only."
       },
       "findModels": "Find models",
-      "configure": "Configure"
+      "configure": "Configure",
+      "manageModels": "Manage models"
     },
     "lineup": {
       "title": "Line-up",
@@ -1874,6 +1875,7 @@
       "granite": "With translation: Granite Speech turns speech straight into the translation.",
       "needsKey": "needs a key",
       "needsSignIn": "needs a sign-in",
+      "needsAddress": "needs an address",
       "voiceNotAlone": "reads only its own translation",
       "voiceNotTaken": "uses only its own voice",
       "twoManaged": "one Kizuna AI service at a time",

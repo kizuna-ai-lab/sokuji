@@ -1859,7 +1859,8 @@
         "switched": "Overgeschakeld naar {{region}}: deze sleutel werkt alleen daar."
       },
       "findModels": "Modellen zoeken",
-      "configure": "Instellen"
+      "configure": "Instellen",
+      "manageModels": "Modellen beheren"
     },
     "lineup": {
       "title": "Opstelling",
@@ -1874,6 +1875,7 @@
       "granite": "Met vertaling: Granite Speech zet spraak meteen om in de vertaling.",
       "needsKey": "sleutel nodig",
       "needsSignIn": "inloggen nodig",
+      "needsAddress": "adres nodig",
       "voiceNotAlone": "leest alleen de eigen vertaling voor",
       "voiceNotTaken": "gebruikt alleen de eigen stem",
       "twoManaged": "één dienst van Kizuna AI tegelijk",

@@ -20,6 +20,7 @@ import { stageProviderId } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useModelStore, useModelStatuses, useStorageUsedMb } from '../../stores/modelStore';
 import { useAccountStore } from '../../stores/accountStore';
+import { useNavigateToSettings } from '../../stores/settingsStore';
 import { payerDisplayBalance } from '../../lib/session/orgNotice';
 import { useOptionalUserProfile } from '../../contexts/UserProfileContext';
 import { MODEL_MANIFEST } from '../../lib/local-inference/modelManifest';
@@ -62,6 +63,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
   const entries = useProviderStore((s) => s.entries);
   const readiness = useProviderStore((s) => s.readiness);
   const [open, setOpen] = useState<string | null>(null);
+  const navigateToSettings = useNavigateToSettings();
   // The balance the title bar shows: a member's wallet the next Start spends, else the account's own.
   const quota = useOptionalUserProfile()?.quota;
   const account = useAccountStore((s) => s.account);
@@ -219,12 +221,21 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
                   )}
                 </span>
               </div>
-              <button type="button" className="accounts-row__toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : a.key)}>
-                {isOpen ? t('settingsPage.accounts.hide', 'Hide')
-                  // The compatible service is set up by its address first, and its key may be none: it is configured, not keyed.
-                  : a.kind === 'key' && !keySaved(p) ? (p?.id === 'openai_compatible' ? t('settingsPage.accounts.configure', 'Configure') : t('settingsPage.accounts.addKey', 'Add key'))
-                    : t('settingsPage.accounts.view', 'View')}
-              </button>
+              {/* A row opens only where there is something to fill in (owner, 2026-11-22): a sign-in or a key. This
+                  device's models are set up in Models and storage, so its button goes there; Bing and Edge need
+                  nothing, and their line says so. */}
+              {a.kind === 'local' ? (
+                <button type="button" className="accounts-row__toggle" onClick={() => navigateToSettings('models')}>
+                  {t('settingsPage.accounts.manageModels', 'Manage models')}
+                </button>
+              ) : a.kind !== 'online' && (
+                <button type="button" className="accounts-row__toggle" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : a.key)}>
+                  {isOpen ? t('settingsPage.accounts.hide', 'Hide')
+                    // The compatible service is set up by its address first, and its key may be none: it is configured, not keyed.
+                    : a.kind === 'key' && !keySaved(p) ? (p?.id === 'openai_compatible' ? t('settingsPage.accounts.configure', 'Configure') : t('settingsPage.accounts.addKey', 'Add key'))
+                      : t('settingsPage.accounts.view', 'View')}
+                </button>
+              )}
             </div>
             {/* Signed in, the title bar's account panel (owner, 2026-11-15): the balance, the organization's too, and
                 the dashboard, sign-out, feedback and top-up; else the sign-in. */}

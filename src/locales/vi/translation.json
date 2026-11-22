@@ -1859,7 +1859,8 @@
         "switched": "Đã chuyển sang {{region}}: khóa này chỉ dùng được ở đó."
       },
       "findModels": "Tìm mô hình",
-      "configure": "Thiết lập"
+      "configure": "Thiết lập",
+      "manageModels": "Quản lý mô hình"
     },
     "lineup": {
       "title": "Cách phối hợp",
@@ -1874,6 +1875,7 @@
       "granite": "Cùng với dịch: Granite Speech chuyển thẳng lời nói thành bản dịch.",
       "needsKey": "cần khóa",
       "needsSignIn": "cần đăng nhập",
+      "needsAddress": "cần địa chỉ",
       "voiceNotAlone": "chỉ đọc bản dịch của chính nó",
       "voiceNotTaken": "chỉ dùng giọng nói của chính nó",
       "twoManaged": "mỗi lần chỉ một dịch vụ của Kizuna AI",

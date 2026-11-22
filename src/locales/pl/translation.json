@@ -1859,7 +1859,8 @@
         "switched": "Przełączono na {{region}}: ten klucz działa tylko tam."
       },
       "findModels": "Znajdź modele",
-      "configure": "Skonfiguruj"
+      "configure": "Skonfiguruj",
+      "manageModels": "Zarządzaj modelami"
     },
     "lineup": {
       "title": "Zestaw",
@@ -1874,6 +1875,7 @@
       "granite": "Z tłumaczeniem: Granite Speech zamienia mowę od razu w tłumaczenie.",
       "needsKey": "wymaga klucza",
       "needsSignIn": "wymaga zalogowania",
+      "needsAddress": "wymaga adresu",
       "voiceNotAlone": "czyta tylko własne tłumaczenie",
       "voiceNotTaken": "używa tylko własnego głosu",
       "twoManaged": "jedna usługa Kizuna AI naraz",

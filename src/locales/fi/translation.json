@@ -1859,7 +1859,8 @@
         "switched": "Vaihdettiin alueeseen {{region}}: avain toimii vain siellä."
       },
       "findModels": "Hae malleja",
-      "configure": "Määritä"
+      "configure": "Määritä",
+      "manageModels": "Hallitse malleja"
     },
     "lineup": {
       "title": "Kokoonpano",
@@ -1874,6 +1875,7 @@
       "granite": "Käännöksen kanssa: Granite Speech muuttaa puheen suoraan käännökseksi.",
       "needsKey": "tarvitsee avaimen",
       "needsSignIn": "vaatii kirjautumisen",
+      "needsAddress": "tarvitsee osoitteen",
       "voiceNotAlone": "lukee vain omaa käännöstään",
       "voiceNotTaken": "käyttää vain omaa ääntään",
       "twoManaged": "yksi Kizuna AI:n palvelu kerrallaan",

@@ -1859,7 +1859,8 @@
         "switched": "已切到 {{region}}：这个密钥只在那里能用。"
       },
       "findModels": "查找模型",
-      "configure": "设置"
+      "configure": "设置",
+      "manageModels": "管理模型"
     },
     "lineup": {
       "title": "会话组成",
@@ -1874,6 +1875,7 @@
       "granite": "与翻译一起：Granite Speech 直接把语音变成译文。",
       "needsKey": "需要密钥",
       "needsSignIn": "需要登录",
+      "needsAddress": "需要地址",
       "voiceNotAlone": "只朗读自己的译文",
       "voiceNotTaken": "只使用自己的语音",
       "twoManaged": "一次一个 Kizuna AI 服务",

@@ -66,6 +66,8 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'models-asr': { category: 'models', anchor: 'models-asr' },
   'models-translation': { category: 'models', anchor: 'models-translation' },
   'models-tts': { category: 'models', anchor: 'models-tts' },
+  // Models and storage itself, from This device's row in Accounts and keys.
+  models: { category: 'models', anchor: null },
   // The local engine's voices, in the speech card when this device speaks (B-20).
   'local-voices': { category: 'lineup', anchor: 'local-voices' },
   // The stage rows: where a provider is chosen (a notice with no provider).

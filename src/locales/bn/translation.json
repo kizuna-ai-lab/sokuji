@@ -1859,7 +1859,8 @@
         "switched": "{{region}}-এ বদলানো হয়েছে: এই কী শুধু সেখানেই কাজ করে।"
       },
       "findModels": "মডেল খুঁজুন",
-      "configure": "সেট আপ"
+      "configure": "সেট আপ",
+      "manageModels": "মডেল পরিচালনা"
     },
     "lineup": {
       "title": "লাইন-আপ",
@@ -1874,6 +1875,7 @@
       "granite": "অনুবাদের সঙ্গে: Granite Speech কথাকে সরাসরি অনুবাদে পরিণত করে।",
       "needsKey": "কী লাগবে",
       "needsSignIn": "সাইন ইন লাগবে",
+      "needsAddress": "ঠিকানা লাগবে",
       "voiceNotAlone": "কেবল নিজের অনুবাদ পড়ে",
       "voiceNotTaken": "কেবল নিজের ভয়েস ব্যবহার করে",
       "twoManaged": "একবারে Kizuna AI-এর একটি সেবা",

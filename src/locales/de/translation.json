@@ -1859,7 +1859,8 @@
         "switched": "Zu {{region}} gewechselt: Dieser Schlüssel funktioniert nur dort."
       },
       "findModels": "Modelle suchen",
-      "configure": "Einrichten"
+      "configure": "Einrichten",
+      "manageModels": "Modelle verwalten"
     },
     "lineup": {
       "title": "Aufstellung",
@@ -1874,6 +1875,7 @@
       "granite": "Mit Übersetzung: Granite Speech macht aus Sprache direkt die Übersetzung.",
       "needsKey": "braucht einen Schlüssel",
       "needsSignIn": "Anmeldung nötig",
+      "needsAddress": "braucht eine Adresse",
       "voiceNotAlone": "liest nur die eigene Übersetzung vor",
       "voiceNotTaken": "nutzt nur die eigene Stimme",
       "twoManaged": "nur ein Dienst von Kizuna AI gleichzeitig",

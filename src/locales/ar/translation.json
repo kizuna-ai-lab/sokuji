@@ -1859,7 +1859,8 @@
         "switched": "تم التبديل إلى {{region}}: هذا المفتاح يعمل هناك فقط."
       },
       "findModels": "البحث عن النماذج",
-      "configure": "إعداد"
+      "configure": "إعداد",
+      "manageModels": "إدارة النماذج"
     },
     "lineup": {
       "title": "التشكيلة",
@@ -1874,6 +1875,7 @@
       "granite": "مع الترجمة: يحوّل Granite Speech الكلام مباشرةً إلى الترجمة.",
       "needsKey": "يحتاج إلى مفتاح",
       "needsSignIn": "يتطلب تسجيل الدخول",
+      "needsAddress": "يحتاج إلى عنوان",
       "voiceNotAlone": "يقرأ ترجمته هو فقط",
       "voiceNotTaken": "يستخدم صوته هو فقط",
       "twoManaged": "خدمة واحدة من Kizuna AI في كل مرة",
