@@ -1,7 +1,7 @@
 import { wordsFor } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
-import { localStagesOf, type LocalStages } from '../../lib/lineup/localStages';
+import { ALL_LOCAL_STAGES, localStagesOf, type LocalStages } from '../../lib/lineup/localStages';
 import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
 import { useModelStore } from '../../stores/modelStore';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
@@ -111,19 +111,20 @@ export function translatesSpeechDirectly(asrModelId: string | undefined, transla
 }
 
 /**
- * Which stages of the engine this machine serves, for a build: from the line-up a run froze at its start when it
- * hands one over. Null: none says (or it gives this provider no stage), and a direction resolves as it does
- * without a line-up. The whole local session's build only; the units of this provider never resolve with null.
+ * Which stages of the engine this machine serves, for the whole local session's build: from the line-up a run froze
+ * at its start when it hands one over; every stage when none does (or it gives this provider no stage). Never null,
+ * so this provider never resolves an online model (Bing and Edge are providers of their own).
  */
-export function localStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalStages | null {
-  return localStagesOf(shared.lineUp ?? null);
+export function localStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalStages {
+  return localStagesOf(shared.lineUp ?? null) ?? ALL_LOCAL_STAGES;
 }
 
 /**
  * A direction's models as a session resolves them, with the AST cross-stage guard (see astGuard.ts), which
- * downgrades an explicit AST-mismatched translation pick back to auto before it is judged.
+ * downgrades an explicit AST-mismatched translation pick back to auto before it is judged. Always under stages:
+ * resolved with none, Bing and Edge would be among the choices.
  */
-export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages | null): DirectionResult {
+export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages): DirectionResult {
   const { source, target } = direction;
   const rawResolved = useModelStore.getState().resolve(source, target, s.selections, stages);
   return guardAstCrossStage(

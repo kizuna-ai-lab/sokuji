@@ -20,6 +20,12 @@ export interface LocalStages { translation: 'local' | null; speech: 'local' | nu
 const HOST = 'local_inference';
 
 /**
+ * Every stage on this machine: what the local provider resolves under where no line-up gives it a stage. Never a
+ * null there: a null reaches model resolution with Bing and Edge among the choices. One object, so a memo holds.
+ */
+export const ALL_LOCAL_STAGES: LocalStages = Object.freeze({ translation: 'local', speech: 'local' });
+
+/**
  * Null when there is no line-up, or the local provider serves no stage of it: then it resolves as today.
  * Otherwise each member says what the local provider serves of that stage, and is null where another provider
  * serves it.

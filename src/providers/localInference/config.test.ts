@@ -357,18 +357,20 @@ describe("the line-up a run froze at its start", () => {
     expect(stagesSeen()).toEqual([stages]);
   });
 
-  it('with none handed over, the direction resolves as the local provider does without a line-up: the store is not asked', () => {
+  // Never null: a null reaches model resolution with Bing and Edge among the choices, and this provider runs only
+  // this machine's models.
+  it('with none handed over, every stage is on this machine: the store is not asked, and no online model can be resolved', () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
     buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared());
-    expect(stagesSeen()).toEqual([null]);
+    expect(stagesSeen()).toEqual([{ translation: 'local', speech: 'local' }]);
   });
 
-  it("a line-up whose text is another provider's answers for the stage this provider serves, and one that gives it no stage says nothing", () => {
+  it("a line-up whose text is another provider's answers for the stage this provider serves, and one that gives it no stage reads as every stage on this machine", () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
     buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'local_inference' } }));
     expect(stagesSeen()).toEqual([{ translation: null, speech: 'local' }]);
     mockResolve.mockClear();
     buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox' } }));
-    expect(stagesSeen()).toEqual([null]);
+    expect(stagesSeen()).toEqual([{ translation: 'local', speech: 'local' }]);
   });
 });
