@@ -210,6 +210,81 @@ describe("a chat completion: the reasoning the user chose", () => {
   });
 });
 
+// Text models, part C: a stage's default that is not the lowest (the notes' Medium) is sent, and lowered where the
+// model refuses it, as the lowest is; what is kept for the session is only that the model takes none.
+describe("a chat completion: a stage's default reasoning", () => {
+  const named = (value: string) => refusal(400, { message: `Unsupported value: 'reasoning_effort' does not support '${value}' with this model.`, param: 'reasoning_effort' });
+
+  it('is sent as it is', async () => {
+    const s = serviceOf(reply('ok'));
+    await ask(s.transport, { model: 'gpt-6-luna', reasoning: { preferred: 'medium' } });
+    expect(s.sent[0].body!.reasoning_effort).toBe('medium');
+  });
+
+  it("refused, is asked again with 'low', then without one, and the answer that came is the answer", async () => {
+    const s = serviceOf(named('medium'), named('low'), reply('ok'));
+    await expect(ask(s.transport, { model: 'gpt-4.1-mini', reasoning: { preferred: 'medium' } })).resolves.toEqual({ ok: true, text: 'ok' });
+    expect(s.sent.map((r) => r.body!.reasoning_effort)).toEqual(['medium', 'low', undefined]);
+  });
+
+  // Review: a level lowered was asked again and refused again on every call (live notes call every 20 s).
+  it("keeps for the session what a default was lowered to: the next call asks that at once", async () => {
+    const memo = {};
+    const s = serviceOf(named('medium'), reply('ok'), reply('ok'), reply('ok'));
+    await ask(s.transport, { model: 'gemini-3.8-flash', service: 'gemini', reasoning: { preferred: 'medium' }, memo });
+    expect(memo).toEqual({ preferredEffort: { medium: 'low' } });
+    await ask(s.transport, { model: 'gemini-3.8-flash', service: 'gemini', reasoning: { preferred: 'medium' }, memo });
+    // Another default of the session is its own: 'low' was never refused.
+    await ask(s.transport, { model: 'gemini-3.8-flash', service: 'gemini', reasoning: { preferred: 'low' }, memo });
+    expect(s.sent.map((r) => r.body!.reasoning_effort)).toEqual(['medium', 'low', 'low', 'low']);
+  });
+
+  it('keeps that the model takes none: a default lowered to none, or one higher whose lowering meets it, sends none', async () => {
+    const memo = {};
+    const s = serviceOf(named('low'), reply('ok'), named('medium'), reply('ok'), reply('ok'));
+    await ask(s.transport, { model: 'gemma-3-27b-it', service: 'gemini', reasoning: { preferred: 'low' }, memo });
+    expect(memo).toEqual({ preferredEffort: { low: null } });
+    // Medium refused, lowered: 'low' is known to be refused, so straight to none.
+    await ask(s.transport, { model: 'gemma-3-27b-it', service: 'gemini', reasoning: { preferred: 'medium' }, memo });
+    expect(memo).toEqual({ preferredEffort: { low: null, medium: null } });
+    await ask(s.transport, { model: 'gemma-3-27b-it', service: 'gemini', reasoning: { preferred: 'medium' }, memo });
+    expect(s.sent.map((r) => r.body!.reasoning_effort)).toEqual(['low', undefined, 'medium', undefined, undefined]);
+  });
+
+  it('learns nothing from a value the model took: another default of the session is sent as it is', async () => {
+    const memo = {};
+    const s = serviceOf(reply('ok'), reply('ok'));
+    await ask(s.transport, { model: 'gpt-6-luna', reasoning: { preferred: 'low' }, memo });
+    await ask(s.transport, { model: 'gpt-6-luna', reasoning: { preferred: 'medium' }, memo });
+    expect(memo).toEqual({});
+    expect(s.sent.map((r) => r.body!.reasoning_effort)).toEqual(['low', 'medium']);
+  });
+
+  it("is kept apart from the lowest's memo, both ways", async () => {
+    // The lowest found to be none (a model sent nothing, a compatible service): a default is still asked as it is.
+    const fromLowest = { reasoningEffort: null };
+    const a = serviceOf(reply('ok'));
+    await ask(a.transport, { model: 'gpt-6-luna', reasoning: { preferred: 'medium' }, memo: fromLowest });
+    expect(a.sent[0].body!.reasoning_effort).toBe('medium');
+    expect(fromLowest).toEqual({ reasoningEffort: null });
+    // A default lowered to none: the lowest is still the model's own lowest.
+    const fromDefault = {};
+    const b = serviceOf(named('low'), reply('ok'), reply('ok'));
+    await ask(b.transport, { model: 'gpt-6-luna', reasoning: { preferred: 'low' }, memo: fromDefault });
+    await ask(b.transport, { model: 'gpt-6-luna', reasoning: 'lowest', memo: fromDefault });
+    expect(b.sent[2].body!.reasoning_effort).toBe('none');
+    expect(fromDefault).toEqual({ preferredEffort: { low: null }, reasoningEffort: 'none' });
+  });
+});
+
+describe("a chat completion: the answer's id", () => {
+  it("is the service's own id for the completion, where it gives one", async () => {
+    const s = serviceOf({ status: 200, body: { id: 'chatcmpl-1', choices: [{ index: 0, message: { role: 'assistant', content: 'ok' } }] } }, reply('ok'));
+    await expect(ask(s.transport)).resolves.toEqual({ ok: true, text: 'ok', id: 'chatcmpl-1' });
+    await expect(ask(s.transport)).resolves.toEqual({ ok: true, text: 'ok' });
+  });
+});
+
 describe("a chat completion: the service's refusals", () => {
   const failureOf = async (answer: Answer, over: Partial<ChatCompletionOptions> = {}) => {
     const s = service(answer);

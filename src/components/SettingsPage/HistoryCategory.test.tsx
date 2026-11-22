@@ -8,6 +8,8 @@ vi.mock('../../services/ServiceFactory', () => ({
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isElectron: () => true,
+  // The desktop app's providers, Gemini's text model and a compatible service among them (text models, part C).
+  getEnvironment: () => 'electron',
 }));
 const history = vi.hoisted(() => ({
   status: { available: true, dir: '/home/u/History' } as { available: boolean; reason?: 'newer' | 'error'; dir: string },
@@ -30,7 +32,7 @@ const row = (name: string) => screen.getByText(name, { selector: '.general-row__
 
 beforeEach(() => {
   history.status = { available: true, dir: '/home/u/History' };
-  useSettingsStore.setState({ notesAfterSession: false, notesExplained: false, notesModel: 'gpt-6-luna', liveNotes: false, liveNotesExplained: false } as never);
+  useSettingsStore.setState({ notesAfterSession: false, notesExplained: false, liveNotes: false, liveNotesExplained: false, settingsNavigationTarget: null } as never);
   useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
 });
 afterEach(() => cleanup());
@@ -143,50 +145,32 @@ describe('notes after the session', () => {
     expect(within(explained).queryByText(/your own key/)).toBeNull();
   });
 
-  const modelSelect = () => within(row('Notes model')).getByRole('combobox', { name: 'Notes model' });
-  const choose = (label: string) => {
-    const option = within(modelSelect()).getByRole('option', { name: label }) as HTMLOptionElement;
-    fireEvent.change(modelSelect(), { target: { value: option.value } });
-  };
-
-  it('offers the newest series and Other, and keeps a listed model on choosing it', async () => {
-    render(<HistoryCategory locked={false} />);
-    await settle();
-    expect(modelSelect()).toHaveValue('gpt-6-luna');
-    expect(within(modelSelect()).getAllByRole('option').map((o) => o.textContent))
-      .toEqual(['gpt-6-luna', 'gpt-6-astra', 'gpt-6-sol', 'gpt-6.1-sol', 'gpt-6.1-terra', 'Other']);
-    expect(within(row('Notes model')).queryByRole('textbox')).toBeNull();
-    choose('gpt-6.1-terra');
-    await settle();
-    expect(useSettingsStore.getState().notesModel).toBe('gpt-6.1-terra');
+  // Text models, part C: with the user's own key the model and its reasoning are chosen per service on the line-up's
+  // Notes card; the row says so and leads there.
+  it('with the user\'s own key, says the model is chosen on the Notes card, and leads there', async () => {
+    for (const notes of ['openai', 'gemini_text']) {
+      useLineUpStore.setState({ lineUp: { ...soniox, summarisation: notes }, stored: true });
+      render(<HistoryCategory locked={false} />);
+      await settle();
+      expect(within(row('Notes model')).queryByRole('combobox')).toBeNull();
+      expect(within(row('Notes model')).getByText('Chosen with the notes service, on the Notes card of Languages and line-up.')).toBeInTheDocument();
+      fireEvent.click(within(row('Notes model')).getByRole('button', { name: 'Open Languages and line-up' }));
+      expect(useSettingsStore.getState().settingsNavigationTarget).toBe('lineup');
+      useSettingsStore.setState({ settingsNavigationTarget: null });
+      cleanup();
+    }
   });
 
-  it('takes a name typed by hand under Other, and goes back to the default when it is emptied', async () => {
+  it('names Gemini and a compatible service where they write the notes', async () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'gemini_text' }, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
-    choose('Other');
-    const field = within(row('Notes model')).getByRole('textbox', { name: 'Model name' });
-    expect(field).toHaveValue('');
-    expect(useSettingsStore.getState().notesModel).toBe('gpt-6-luna');
-    fireEvent.change(field, { target: { value: ' my-model ' } });
-    fireEvent.blur(field);
-    await settle();
-    expect(useSettingsStore.getState().notesModel).toBe('my-model');
-    expect(field).toHaveValue('my-model');
-    fireEvent.change(field, { target: { value: '' } });
-    fireEvent.blur(field);
-    await settle();
-    expect(useSettingsStore.getState().notesModel).toBe('gpt-6-luna');
-    expect(modelSelect()).toHaveValue('gpt-6-luna');
-    expect(within(row('Notes model')).queryByRole('textbox')).toBeNull();
-  });
-
-  it('shows a stored model that is not listed under Other, with its name', async () => {
-    useSettingsStore.setState({ notesModel: 'o3' } as never);
+    expect(screen.getByText('When a session ends, Gemini writes its notes from the transcript.')).toBeInTheDocument();
+    cleanup();
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai_compatible' }, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
-    expect((within(modelSelect()).getByRole('option', { name: 'Other' }) as HTMLOptionElement).selected).toBe(true);
-    expect(within(row('Notes model')).getByRole('textbox', { name: 'Model name' })).toHaveValue('o3');
+    expect(screen.getByText('When a session ends, OpenAI-Compatible Service writes its notes from the transcript.')).toBeInTheDocument();
   });
 });
 

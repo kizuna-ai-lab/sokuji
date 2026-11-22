@@ -91,7 +91,7 @@ async function translationOptions(page: Page) {
   await page.getByRole('navigation').getByRole('button', { name: /^Languages and line-up/ }).click();
   const card = page.locator('.lineup-stage').filter({ has: page.getByRole('combobox', { name: 'Translation', exact: true }) });
   await expect(page.getByRole('combobox', { name: 'Translation', exact: true })).toHaveValue('openai_text');
-  await card.getByRole('button', { name: 'OpenAI text model options' }).click();
+  await card.getByRole('button', { name: 'OpenAI Text Model options' }).click();
   return card;
 }
 

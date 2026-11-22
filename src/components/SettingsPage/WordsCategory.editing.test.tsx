@@ -142,7 +142,7 @@ describe('which columns each provider uses', () => {
   const NAMES: Record<string, string> = {
     soniox: 'Soniox', openai: 'OpenAI Realtime', qwen_livetranslate: 'Qwen LiveTranslate', volcengine_ast2: 'Doubao AST 2.0', gemini: 'Gemini Live', local_inference: 'This device',
     // The three text models share one row, named by each of them.
-    text_model: 'OpenAI text model, Gemini text model, OpenAI-compatible service',
+    text_model: 'OpenAI Text Model, Gemini Text Model, OpenAI-Compatible Service',
   };
   const cells = (name: string) => Array.from(screen.getByRole('rowheader', { name }).closest('tr')!.querySelectorAll('td')).map((td) => td.textContent);
 

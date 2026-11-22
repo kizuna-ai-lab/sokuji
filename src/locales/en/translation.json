@@ -614,15 +614,15 @@
       "note": "Free · online, a Microsoft service"
     },
     "openai_text": {
-      "name": "OpenAI text model",
+      "name": "OpenAI Text Model",
       "description": "Translates any language pair with your OpenAI key"
     },
     "gemini_text": {
-      "name": "Gemini text model",
+      "name": "Gemini Text Model",
       "description": "Translates any language pair with your Gemini key"
     },
     "openai_compatible": {
-      "name": "OpenAI-compatible service",
+      "name": "OpenAI-Compatible Service",
       "description": "OpenRouter, DeepSeek, Ollama and others, at the address you enter"
     }
   },
@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Add an OpenAI key in Accounts and keys to have notes written.",
+      "notesNeedGeminiKey": "Add a Gemini key in Accounts and keys to have notes written.",
+      "notesNeedAddress": "Add the compatible service's address in Accounts and keys to have notes written.",
       "alsoFiles": "Also transcribes imported files and records again.",
       "wordsLeftOut": "Word list: {{count}} entries over this service’s limit are left out.",
       "wordsUnused": "Word list: this model cannot use it.",
@@ -1929,6 +1931,8 @@
       "partableCard": "{{stages}} go over one connection. Another service can do the translation: choose it below.",
       "notesKizunaLine": "OpenAI writes the notes through Kizuna AI, paid from your balance.",
       "notesOpenAiLine": "Writes the notes with your own OpenAI key.",
+      "notesGeminiLine": "Writes the notes with your own Gemini key.",
+      "notesCompatibleLine": "Writes the notes with the service at the address you enter.",
       "notesNeedSignInOrChoose": "Sign in, or choose OpenAI here, to have notes written.",
       "notesNeedSignInOrKeyAndChoose": "Sign in, or add an OpenAI key in Accounts and keys and choose OpenAI here, to have notes written.",
       "speechNotUsed": "Nothing is read aloud this time: the translation shows as text only.",
@@ -2018,6 +2022,7 @@
       "off": "Off",
       "lowest": "Lowest",
       "reasoningTooltip": "Lowest asks for the least reasoning the model takes, which is fastest. Any other choice is sent exactly as it is: if the model refuses it, the line-up says so before you start.",
+      "notesReasoningTooltip": "Medium, the default, asks each step of the notes for the reasoning it was tested with: Low for each part and for the live notes, Medium to finish them, and less where the model takes less. Any other choice, or a value typed, is sent exactly as it is with every request: if the model refuses it, the Notes card says so.",
       "reasoningValue": "Or type a value, sent as it is",
       "listing": "Finding models…",
       "listEmpty": "This service lists no models: type the model's name.",
@@ -2119,7 +2124,6 @@
     "notesExplain": "For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list are sent to {{service}} with your own key. Never the audio, the translation or your account.",
     "notesTurnOn": "Turn on",
     "notesModel": "Notes model",
-    "notesModelLine": "The text model that writes the notes, by its name at the service.",
     "notes": "Notes",
     "transcript": "Transcript",
     "notesKind": {
@@ -2159,6 +2163,8 @@
       "not-json": "The notes model did not answer in the expected form.",
       "no-answer": "The notes model gave no answer.",
       "network": "The notes service could not be reached.",
+      "timeout": "The notes service did not answer in time.",
+      "no-model": "No notes model is chosen. Choose one on the Notes card of Languages and line-up.",
       "refused": "The service refused the request ({{status}}).",
       "sign-in": "Sign in to Kizuna AI to write notes with it.",
       "unavailable": "Notes by Kizuna AI are not available yet.",
@@ -2248,11 +2254,10 @@
     "notesJumpPlay": "Click a topic or point to go to its sentence and play from there.",
     "notesJump": "Click a topic or point to go to its sentence.",
     "keptHereNotes": "While notes are on, each session’s transcript text is also sent to {{service}} to write them.",
-    "notesModelOther": "Other",
-    "notesModelName": "Model name",
     "notesExplainKizuna": "For each session, the text of its sentences, their numbers, which side and speaker said them, and the spellings in your word list go through Kizuna AI’s server to OpenAI, which writes the notes. Kizuna AI keeps none of it. It is paid from the balance that pays for your sessions. Never the audio or the translation.",
     "liveExplainKizuna": "During a session, every 20 seconds the new sentences (their text, numbers, and which side and speaker said them), the notes so far and the spellings in your word list go through Kizuna AI’s server to OpenAI, which writes the notes. Kizuna AI keeps none of it. It is paid from the balance that pays for your sessions. Never the audio or the translation.",
     "notesModelKizuna": "Kizuna AI writes the notes with {{model}}.",
+    "notesModelLineUp": "Chosen with the notes service, on the Notes card of Languages and line-up.",
     "copyConversation": "Copy the conversation",
     "saveConversationTxt": "Save the conversation (.txt)",
     "saveConversationJson": "Save the conversation (.json)",
@@ -2343,6 +2348,7 @@
     "notesOwner": "Owner",
     "notesDue": "Due",
     "notesEdited": "Edited by hand",
+    "notesWrittenBy": "Written by {{service}} with {{model}}",
     "mergeSpeaker": "Merge {{name}} into…",
     "mergeInto": "Merge into…",
     "mergeMenu": "Merge into",

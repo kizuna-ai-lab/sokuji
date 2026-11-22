@@ -168,7 +168,7 @@ describe('the invariants every provider meets (F17)', () => {
       // The region picks the key field (`sonioxKeyField`).
       soniox: ['region'],
       palabraai: ['authMode'],
-      // A text model's check tries the model and the reasoning chosen for the translation.
+      // A text model's check tries the model and the reasoning chosen for the translation, and for the notes.
       openai_text: ['translationModel', 'translationReasoning'],
       gemini_text: ['translationModel', 'translationReasoning'],
       openai_compatible: ['translationModel', 'translationReasoning'],

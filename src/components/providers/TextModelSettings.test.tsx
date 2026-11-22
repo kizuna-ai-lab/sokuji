@@ -18,10 +18,10 @@ import { TextModelSettingsView } from './TextModelSettings';
 
 const account = (credentials: Record<string, string>): ProviderAccount => ({ credentials, auth: { signedIn: false, getToken: async () => null } });
 
-function draw(o: { service?: 'openai' | 'gemini' | 'compatible'; settings?: Partial<TextModelSettings>; credentials?: Record<string, string>; disabled?: boolean } = {}) {
+function draw(o: { service?: 'openai' | 'gemini' | 'compatible'; settings?: Partial<TextModelSettings>; credentials?: Record<string, string>; disabled?: boolean; stage?: 'translation' | 'notes' } = {}) {
   const update = vi.fn();
   const settings = { ...TEXT_MODEL_DEFAULTS, ...o.settings };
-  render(<TextModelSettingsView service={o.service ?? 'openai'} settings={settings} update={update} disabled={o.disabled} account={account(o.credentials ?? { apiKey: 'test-key-0000' })} />);
+  render(<TextModelSettingsView service={o.service ?? 'openai'} settings={settings} update={update} disabled={o.disabled} account={account(o.credentials ?? { apiKey: 'test-key-0000' })} {...(o.stage ? { stage: o.stage } : {})} />);
   return { update, settings };
 }
 
@@ -141,5 +141,42 @@ describe("a text model's options", () => {
     draw({ disabled: true });
     for (const box of screen.getAllByRole('combobox')) expect(box).toBeDisabled();
     for (const box of screen.getAllByRole('textbox')) expect(box).toBeDisabled();
+  });
+});
+
+// Text models, part C: the same controls on the Notes card, for the notes' own model and reasoning.
+describe("a text model's options for the notes", () => {
+  it("Automatic names the notes' own preference; a choice is stored as the notes' model", async () => {
+    lists.answer = { ok: true, ids: ['gpt-5-mini', 'gpt-6-luna'] };
+    const { update } = draw({ stage: 'notes' });
+    const select = screen.getByRole('combobox', { name: 'Model' });
+    await waitFor(() => expect([...select.querySelectorAll('option')].map((o) => o.textContent)).toEqual(['Automatic (gpt-6-luna)', 'gpt-5-mini', 'gpt-6-luna']));
+    fireEvent.change(select, { target: { value: 'gpt-5-mini' } });
+    expect(update).toHaveBeenCalledWith({ notesModel: { listed: 'gpt-5-mini', typed: '' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Or type a model name' }), { target: { value: 'gpt-6-sol' } });
+    expect(update).toHaveBeenLastCalledWith({ notesModel: { listed: '', typed: 'gpt-6-sol' } });
+  });
+
+  it("the reasoning: Medium by default, with words of its own; the translation's untouched", () => {
+    const { update } = draw({ stage: 'notes', settings: { translationReasoning: { level: 'high', typed: '' } } });
+    const select = screen.getByRole('combobox', { name: 'Reasoning effort' });
+    expect(select).toHaveValue('medium');
+    fireEvent.change(select, { target: { value: 'off' } });
+    expect(update).toHaveBeenLastCalledWith({ notesReasoning: { level: 'off', typed: '' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Or type a value, sent as it is' }), { target: { value: 'medium' } });
+    expect(update).toHaveBeenLastCalledWith({ notesReasoning: { level: 'medium', typed: 'medium' } });
+    expect(update.mock.calls.some(([patch]) => 'translationReasoning' in patch || 'translationModel' in patch)).toBe(false);
+  });
+
+  it('stands beside the translation\'s for the same provider: its fields are its own', () => {
+    const update = vi.fn();
+    render(
+      <>
+        <TextModelSettingsView service="openai" settings={TEXT_MODEL_DEFAULTS} update={update} account={account({ apiKey: 'test-key-0000' })} />
+        <TextModelSettingsView service="openai" stage="notes" settings={TEXT_MODEL_DEFAULTS} update={update} account={account({ apiKey: 'test-key-0000' })} />
+      </>,
+    );
+    const ids = [...document.querySelectorAll('input')].map((input) => input.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

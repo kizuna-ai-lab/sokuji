@@ -140,7 +140,7 @@ describe('accounts and keys', () => {
   it('one OpenAI row with one key for the three OpenAI providers, and one Kizuna AI sign-in for both hosted ones', () => {
     render(<AccountsCategory locked={false} />);
     // OpenAI's own row; the compatible service, with an address of its own, is another.
-    expect(screen.getAllByRole('group', { name: /OpenAI/ }).map((g) => g.getAttribute('aria-label'))).toEqual(['OpenAI', 'OpenAI-compatible service']);
+    expect(screen.getAllByRole('group', { name: /OpenAI/ }).map((g) => g.getAttribute('aria-label'))).toEqual(['OpenAI', 'OpenAI-Compatible Service']);
     expect(screen.getAllByRole('group', { name: /Kizuna AI/ })).toHaveLength(1);
     expect(screen.queryByRole('group', { name: /OpenAI Live/ })).toBeNull();
     expect(document.getElementById('provider-section')).not.toBeNull();
@@ -162,20 +162,20 @@ describe('accounts and keys', () => {
   it('a compatible service: its address and an optional key, Check once the address is there, and Find models', () => {
     useProviderStore.setState((st) => ({ entries: { ...st.entries, openai_compatible: { settings: {}, credentials: { baseUrl: '', apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never }));
     render(<AccountsCategory locked={false} />);
-    expect(row('OpenAI-compatible service')).toHaveTextContent('Needs an address');
-    expect(row('OpenAI-compatible service').querySelector('.accounts-row__chips')).toHaveTextContent('Translation');
-    fireEvent.click(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Configure' }));
-    expect(within(row('OpenAI-compatible service')).getByRole('textbox', { name: 'Address' })).toBeInTheDocument();
-    expect(within(row('OpenAI-compatible service')).getByLabelText('API key (optional)')).toBeInTheDocument();
-    expect(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Find models' })).toBeDisabled();
+    expect(row('OpenAI-Compatible Service')).toHaveTextContent('Needs an address');
+    expect(row('OpenAI-Compatible Service').querySelector('.accounts-row__chips')).toHaveTextContent('Translation');
+    fireEvent.click(within(row('OpenAI-Compatible Service')).getByRole('button', { name: 'Configure' }));
+    expect(within(row('OpenAI-Compatible Service')).getByRole('textbox', { name: 'Address' })).toBeInTheDocument();
+    expect(within(row('OpenAI-Compatible Service')).getByLabelText('API key (optional)')).toBeInTheDocument();
+    expect(within(row('OpenAI-Compatible Service')).getByRole('button', { name: 'Find models' })).toBeDisabled();
     cleanup();
     useProviderStore.setState((st) => ({ entries: { ...st.entries, openai_compatible: { settings: {}, credentials: { baseUrl: 'http://localhost:11434/v1', apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never }));
     render(<AccountsCategory locked={false} />);
     // The key may stay empty: the address is all a check needs.
-    expect(row('OpenAI-compatible service')).toHaveTextContent('Key not verified');
-    fireEvent.click(within(row('OpenAI-compatible service')).getByRole('button', { name: 'View' }));
-    expect(within(row('OpenAI-compatible service')).getByRole('button', { name: /check|validate/i })).toBeEnabled();
-    expect(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Find models' })).toBeEnabled();
+    expect(row('OpenAI-Compatible Service')).toHaveTextContent('Key not verified');
+    fireEvent.click(within(row('OpenAI-Compatible Service')).getByRole('button', { name: 'View' }));
+    expect(within(row('OpenAI-Compatible Service')).getByRole('button', { name: /check|validate/i })).toBeEnabled();
+    expect(within(row('OpenAI-Compatible Service')).getByRole('button', { name: 'Find models' })).toBeEnabled();
   });
 
   it('a compatible service never configured (nothing stored yet) needs an address, and is configured, not keyed', () => {
@@ -185,8 +185,8 @@ describe('accounts and keys', () => {
     try {
       render(<AccountsCategory locked={false} />);
       expect(useProviderStore.getState().entries.openai_compatible).toBeUndefined();
-      expect(row('OpenAI-compatible service').querySelector('.accounts-row__state')).toHaveTextContent('Needs an address');
-      expect(within(row('OpenAI-compatible service')).getByRole('button', { name: 'Configure' })).toBeInTheDocument();
+      expect(row('OpenAI-Compatible Service').querySelector('.accounts-row__state')).toHaveTextContent('Needs an address');
+      expect(within(row('OpenAI-Compatible Service')).getByRole('button', { name: 'Configure' })).toBeInTheDocument();
     } finally {
       useProviderStore.setState({ load } as never);
     }

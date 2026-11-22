@@ -6,13 +6,15 @@ import { describe, it, expect } from 'vitest';
 import { createVirtualClock } from '../contract/clock';
 import { flush } from '../contract/testing/drive';
 import type { CheckContext } from '../provider/types';
-import { DEFAULT_MODEL_CHOICE, DEFAULT_REASONING_CHOICE } from './choice';
+import { DEFAULT_MODEL_CHOICE, DEFAULT_NOTES_REASONING_CHOICE, DEFAULT_REASONING_CHOICE } from './choice';
 import { CHECK_TIMEOUT_MS, createTextModelCheck, failureNoticeCode, TEXT_MODEL_UNSET, type TextModelStageSettings } from './check';
 import type { TextModelRequestInit, TextModelService, TextModelTransport } from './client';
 
 const KEY = 'test-key-0000';
 const CTX: CheckContext = { pair: { source: 'en', target: 'ja' }, legs: ['speaker'], stages: ['translation'] };
-const SETTINGS: TextModelStageSettings = { translationModel: DEFAULT_MODEL_CHOICE, translationReasoning: DEFAULT_REASONING_CHOICE };
+const SETTINGS: TextModelStageSettings = {
+  translationModel: DEFAULT_MODEL_CHOICE, translationReasoning: DEFAULT_REASONING_CHOICE, notesModel: DEFAULT_MODEL_CHOICE, notesReasoning: DEFAULT_NOTES_REASONING_CHOICE,
+};
 
 type Reply = { status: number; body: unknown } | 'hang';
 
@@ -114,5 +116,58 @@ describe("a text model's readiness", () => {
     await flush();
     cancel.abort(new Error('stopped'));
     await expect(cancelled.answer).rejects.toThrow('stopped');
+  });
+});
+
+// Text models, part C: the notes are no run stage. The check is told whether the provider writes the line-up's notes
+// (`notes`), and which run stages it serves (`stages`); it asks the model of each, so the notes' model and reasoning
+// are said on the Notes card before the notes are asked.
+describe("a text model's readiness for the notes", () => {
+  const NOTES_ONLY: CheckContext = { ...CTX, stages: [], notes: true };
+
+  it("for the notes alone: the notes' model, its automatic one the notes' own preference, asked with the lowest for the default reasoning", async () => {
+    const s = service(list('gpt-5-mini', 'gpt-6-luna'), says('H'));
+    await expect(check('openai', s, {}, { apiKey: KEY }, NOTES_ONLY).answer).resolves.toEqual({ ok: true, models: [{ id: 'gpt-5-mini' }, { id: 'gpt-6-luna' }] });
+    expect(s.sent).toHaveLength(2);
+    expect(s.sent[1].body).toMatchObject({ model: 'gpt-6-luna', reasoning_effort: 'none' });
+  });
+
+  it('a reasoning the user chose for the notes is asked as it would be sent, and its refusal is the answer, in the service\'s words', async () => {
+    const words = "Unsupported value: 'reasoning_effort' does not support 'high' with this model.";
+    const s = service(list('gemini-3.8-flash'), refuses(400, words));
+    await expect(check('gemini', s, { notesReasoning: { level: 'high', typed: '' } }, { apiKey: KEY }, NOTES_ONLY).answer)
+      .resolves.toEqual({ ok: false, code: 'refused', reason: words });
+    expect(s.sent[1].body).toMatchObject({ model: 'gemini-3.8-flash', reasoning_effort: 'high' });
+  });
+
+  it('for the translation and the notes both: each model asked once, and the same model with the same reasoning once in all', async () => {
+    const both = service(list('gpt-5-mini', 'gpt-6-luna'), says('H'), says('H'));
+    await expect(check('openai', both, {}, { apiKey: KEY }, { ...CTX, notes: true }).answer).resolves.toMatchObject({ ok: true });
+    expect(both.sent.map((r) => r.body?.model)).toEqual([undefined, 'gpt-5-mini', 'gpt-6-luna']);
+    const same = service(list('gpt-5-mini'), says('H'));
+    await expect(check('openai', same, { notesModel: { listed: 'gpt-5-mini', typed: '' }, notesReasoning: { level: 'lowest', typed: '' } }, { apiKey: KEY }, { ...CTX, notes: true }).answer)
+      .resolves.toMatchObject({ ok: true });
+    expect(same.sent).toHaveLength(2);
+  });
+
+  it("the notes' model refused fails the check told about the notes, and never a run's, which is not", async () => {
+    const notesModel = { listed: 'gpt-gone', typed: '' };
+    const told = service(list('gpt-5-mini'), says('H'), refuses(404, 'The model `gpt-gone` does not exist.'));
+    await expect(check('openai', told, { notesModel }, { apiKey: KEY }, { ...CTX, notes: true }).answer)
+      .resolves.toEqual({ ok: false, code: 'model_missing', reason: 'The model `gpt-gone` does not exist.' });
+    const run = service(list('gpt-5-mini'), says('H'));
+    await expect(check('openai', run, { notesModel }).answer).resolves.toMatchObject({ ok: true });
+    expect(run.sent).toHaveLength(2);
+  });
+
+  it('a compatible service with no notes model chosen asks for one', async () => {
+    const s = service(list('deepseek-chat'));
+    await expect(check('compatible', s, {}, { baseUrl: 'https://api.example.com/v1' }, NOTES_ONLY).answer).resolves.toMatchObject({ ok: false, code: TEXT_MODEL_UNSET });
+  });
+
+  it('serving neither stage, it checks the key alone', async () => {
+    const s = service(list('gpt-5-mini'));
+    await expect(check('openai', s, {}, { apiKey: KEY }, { ...CTX, stages: [] }).answer).resolves.toEqual({ ok: true, models: [{ id: 'gpt-5-mini' }] });
+    expect(s.sent).toHaveLength(1);
   });
 });

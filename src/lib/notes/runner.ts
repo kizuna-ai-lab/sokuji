@@ -15,8 +15,11 @@ export interface NotesLanguage { code: string; name: string }
 
 export interface NotesRunnerDeps {
   port: HistoryPort;
-  /** The notes service and the model it uses, for the record written (a hosted service bills that meeting); null when none is set up. */
-  chatFor(recordId: string): Promise<{ chat: ChatPort; model: string } | null>;
+  /**
+   * The notes service and the model it uses, for the record written (a hosted service bills that meeting); null when
+   * none is set up. `service`: the line-up's notes service, kept with the version as who wrote it.
+   */
+  chatFor(recordId: string): Promise<{ chat: ChatPort; model: string; service?: string } | null>;
   /** The language notes are written in when none is asked for: the record's "my language", or the interface's. */
   language(record: HistoryRecord): NotesLanguage;
   /** The word list: spellings the notes are asked to prefer (stage 5); none when absent. */
@@ -83,7 +86,7 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
     const prompts = activePrompts().notes;
     const base = {
       recordId, transcriptId: newest.id, language: language.code,
-      writtenBy: { kind: 'sokuji' as const, promptVersion: prompts.version, model: service?.model ?? '' },
+      writtenBy: { kind: 'sokuji' as const, promptVersion: prompts.version, model: service?.model ?? '', ...(service?.service ? { service: service.service } : {}) },
     };
     const save = (rest: Pick<HistoryNotesInput, 'state' | 'failure' | 'body'>) => d.port.saveNotes({ ...base, ...rest, requestIds: [...requestIds] });
     if (!service) {

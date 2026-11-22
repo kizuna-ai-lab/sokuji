@@ -53,6 +53,22 @@ describe("a record's notes", () => {
     expect(screen.getByText('Risk')).toBeInTheDocument();
   });
 
+  // Text models, part C: History says who wrote the notes, where the version keeps it.
+  it('says which service wrote the notes, with which model; a version from before says nothing of it', () => {
+    const by = (service: string, model: string): HistoryNotes => ({ ...complete, writtenBy: { kind: 'sokuji', promptVersion: 1, model, service } });
+    render(<RecordNotes {...props({ notes: by('gemini_text', 'gemini-3.8-flash') })} />);
+    expect(screen.getByText('Written by Gemini with gemini-3.8-flash')).toBeInTheDocument();
+    cleanup();
+    render(<RecordNotes {...props({ notes: by('openai_compatible', 'qwen3:8b') })} />);
+    expect(screen.getByText('Written by OpenAI-Compatible Service with qwen3:8b')).toBeInTheDocument();
+    cleanup();
+    render(<RecordNotes {...props({ notes: by('kizunaai_openai', 'gpt-6-luna') })} />);
+    expect(screen.getByText('Written by Kizuna AI with gpt-6-luna')).toBeInTheDocument();
+    cleanup();
+    render(<RecordNotes {...props()} />);
+    expect(screen.queryByText(/^Written by /)).toBeNull();
+  });
+
   // Review: a stored body from elsewhere can leave out a point's kinds.
   it('shows a stored point with no kinds as a plain point', () => {
     const bare = { ...complete, body: { ...complete.body!, points: [{ topic: 0, text: 'Ships next Tuesday' }] } } as unknown as HistoryNotes;
@@ -352,6 +368,20 @@ describe("a record's notes", () => {
       expect(screen.getByText('The notes could not be written: The notes service refused the request.'), unknown).toBeInTheDocument();
       cleanup();
     }
+  });
+
+  // Text models, part C: the notes by a text model with the user's own key have reasons of their own.
+  it("words a text model's own reasons, and leads to the line-up for a notes model to choose", () => {
+    const failed = (failure: string): HistoryNotes => ({ ...complete, state: 'failed', failure, body: null });
+    render(<RecordNotes {...props({ notes: failed('notes:timeout') })} />);
+    expect(screen.getByText('The notes could not be written: The notes service did not answer in time.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Open / })).toBeNull();
+    cleanup();
+    useSettingsStore.setState({ settingsNavigationTarget: null });
+    render(<RecordNotes {...props({ notes: failed('notes:no-model') })} />);
+    expect(screen.getByText('The notes could not be written: No notes model is chosen. Choose one on the Notes card of Languages and line-up.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Open Languages and line-up' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('lineup');
   });
 
   it('leads to the account for a reason the user can change there, and nowhere for the others', () => {

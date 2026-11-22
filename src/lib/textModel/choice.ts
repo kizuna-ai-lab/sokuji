@@ -1,13 +1,13 @@
 // src/lib/textModel/choice.ts
 //
-// What the user chose for one stage a text model serves (the translation now, the notes later): a model and how
-// much it reasons. Each is a choice from a list plus a value typed by hand, and the typed one wins when it is filled:
-// a service may list models it refuses, list none at all (a compatible one), or take a reasoning value no list of
-// ours holds. Stored per provider and per stage (`translationModel`, `translationReasoning`), so another stage only
-// adds its own pair.
+// What the user chose for one stage a text model serves (the translation, the notes): a model and how much it
+// reasons. Each is a choice from a list plus a value typed by hand, and the typed one wins when it is filled: a
+// service may list models it refuses, list none at all (a compatible one), or take a reasoning value no list of ours
+// holds. Stored per provider and per stage (`translationModel`, `translationReasoning`; `notesModel`,
+// `notesReasoning`).
 
 import type { ReasoningAsk, TextModelService } from './client';
-import { defaultTextModel } from './models';
+import { defaultTextModel, type TextModelStage } from './models';
 import { lowestReasoningEffort } from './reasoning';
 
 /** A model chosen from the service's list (`''`: the default), and a model's name typed by hand (`''`: none). */
@@ -23,6 +23,11 @@ export interface ReasoningChoice { level: ReasoningLevel; typed: string }
 export const DEFAULT_MODEL_CHOICE: ModelChoice = { listed: '', typed: '' };
 /** The least reasoning the model takes: a sentence's translation wants none, and a reasoning model is slow otherwise. */
 export const DEFAULT_REASONING_CHOICE: ReasoningChoice = { level: 'lowest', typed: '' };
+/**
+ * The notes' default (owner, 2026-11-22): Medium. It stands for the notes' own measured levels, the most of which is
+ * medium, and is lowered where the model refuses them (`notesRequest`); any other level, or a value typed, is exact.
+ */
+export const DEFAULT_NOTES_REASONING_CHOICE: ReasoningChoice = { level: 'medium', typed: '' };
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 const text = (value: unknown): string => (typeof value === 'string' ? value : '');
@@ -33,10 +38,10 @@ export function modelChoiceOf(stored: unknown): ModelChoice {
   return { listed: text(stored.listed), typed: text(stored.typed) };
 }
 
-/** What was stored, made valid: a level the list does not hold is the default's. */
-export function reasoningChoiceOf(stored: unknown): ReasoningChoice {
-  if (!isRecord(stored)) return { ...DEFAULT_REASONING_CHOICE };
-  const level = (REASONING_LEVELS as readonly unknown[]).includes(stored.level) ? (stored.level as ReasoningLevel) : DEFAULT_REASONING_CHOICE.level;
+/** What was stored, made valid: a level the list does not hold is the default's (the stage's: `fallback`). */
+export function reasoningChoiceOf(stored: unknown, fallback: ReasoningChoice = DEFAULT_REASONING_CHOICE): ReasoningChoice {
+  if (!isRecord(stored)) return { ...fallback };
+  const level = (REASONING_LEVELS as readonly unknown[]).includes(stored.level) ? (stored.level as ReasoningLevel) : fallback.level;
   return { level, typed: text(stored.typed) };
 }
 
@@ -45,17 +50,20 @@ export function reasoningChoiceOf(stored: unknown): ReasoningChoice {
  * default among `ids` (its text models, in the service's order): the first preferred one listed, or the first listed.
  * A compatible service has no default: nothing is known of its names, so its model is chosen or typed. Null: none.
  */
-export function modelToUse(service: TextModelService, choice: ModelChoice, ids: readonly string[]): string | null {
+export function modelToUse(service: TextModelService, choice: ModelChoice, ids: readonly string[], stage: TextModelStage = 'translation'): string | null {
   const typed = choice.typed.trim();
   if (typed !== '') return typed;
   if (choice.listed !== '') return choice.listed;
-  return automaticModel(service, ids);
+  return automaticModel(service, ids, stage);
 }
 
-/** The model the list's "automatic" stands for: the service's preferred one it lists, else its first text model. Null for a compatible service. */
-export function automaticModel(service: TextModelService, ids: readonly string[]): string | null {
+/**
+ * The model the list's "automatic" stands for: the service's preferred one for the stage it lists, else its first
+ * text model. Null for a compatible service.
+ */
+export function automaticModel(service: TextModelService, ids: readonly string[], stage: TextModelStage = 'translation'): string | null {
   if (service === 'compatible') return null;
-  return defaultTextModel(service, ids) ?? ids[0] ?? null;
+  return defaultTextModel(service, ids, stage) ?? ids[0] ?? null;
 }
 
 /**
@@ -69,6 +77,19 @@ export function reasoningAskOf(choice: ReasoningChoice): Exclude<ReasoningAsk, '
   return { exact: choice.level === 'off' ? 'none' : choice.level };
 }
 
+/** Whether the notes' reasoning is their default, Medium with no value typed: their own levels, lowered where refused. */
+export function isDefaultNotesReasoning(choice: ReasoningChoice): boolean {
+  return choice.typed.trim() === '' && choice.level === DEFAULT_NOTES_REASONING_CHOICE.level;
+}
+
+/**
+ * What a check asks the notes' model with: a value the user chose, as it would be sent; for the default, which is
+ * lowered where refused and so cannot be refused itself, the lowest, which asks only whether the model answers.
+ */
+export function notesProbeAsk(choice: ReasoningChoice): Exclude<ReasoningAsk, 'default'> {
+  return isDefaultNotesReasoning(choice) ? 'lowest' : reasoningAskOf(choice);
+}
+
 /** The tokens one answer may take before any reasoning: a long sentence's translation, with room to spare. */
 export const ANSWER_TOKENS = 1024;
 
@@ -78,7 +99,7 @@ export const ANSWER_TOKENS = 1024;
  * so its model reasons as it does by default: it gets the room of a medium effort.
  */
 export function maxTokensFor(service: TextModelService, model: string, ask: Exclude<ReasoningAsk, 'default'>): number {
-  const effort = ask === 'lowest' ? (service === 'compatible' ? 'medium' : lowestReasoningEffort(service, model)) : ask.exact;
+  const effort = ask === 'lowest' ? (service === 'compatible' ? 'medium' : lowestReasoningEffort(service, model)) : 'exact' in ask ? ask.exact : ask.preferred;
   switch (effort) {
     case null:
     case 'none':

@@ -1,5 +1,6 @@
 // The OpenAI key's state, from Accounts and keys to the notes card.
-// The real provider store, its settings storage faked; OpenAI's own check (its model list) answered here, never sent.
+// The real provider store, its settings storage faked; OpenAI's own check (its model list) and its text model's (the Notes
+// card's, text models part C) answered here, never sent.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within, cleanup, act, waitFor } from '@testing-library/react';
 
@@ -40,10 +41,15 @@ import { runsOn } from '../../stores/lineUpStore.testing';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useModelStore } from '../../stores/modelStore';
 import { openaiProvider } from '../../providers/openai/provider';
-import type { CheckResult } from '../../lib/provider/types';
+import { openaiTextProvider } from '../../providers/openai_text/provider';
+import type { CheckContext, CheckResult } from '../../lib/provider/types';
+import { TEXT_MODEL_DEFAULTS } from '../../lib/textModel/unit';
+import { useNotesAnswers } from './notesReadiness';
 
 /** OpenAI's check, held until the test answers it: a key is accepted when it is in `good`. */
 let calls: string[] = [];
+/** OpenAI's text model's check, which the Notes card asks about the notes (text models, part C): what it was told. */
+let notesCalls: Array<{ apiKey: string; ctx: CheckContext }> = [];
 let pending: Array<() => void> = [];
 let good = new Set<string>();
 // The store keeps a passed check per key for the whole module: each test types its own keys.
@@ -55,6 +61,14 @@ beforeEach(() => {
   calls = [];
   pending = [];
   good = new Set();
+  notesCalls = [];
+  useNotesAnswers.getState().reset();
+  vi.spyOn(openaiTextProvider, 'check').mockImplementation(((credentials: { apiKey: string }, _s: unknown, ctx: CheckContext) => {
+    notesCalls.push({ apiKey: credentials.apiKey, ctx });
+    return new Promise<CheckResult>((resolve) => {
+      pending.push(() => resolve(good.has(credentials.apiKey) ? { ok: true, models: [] } : { ok: false, code: 'auth', reason: 'HTTP 401' }));
+    });
+  }) as never);
   vi.spyOn(openaiProvider, 'check').mockImplementation(((credentials: { apiKey: string }) => {
     calls.push(credentials.apiKey);
     return new Promise<CheckResult>((resolve) => {
@@ -110,31 +124,38 @@ describe('OpenAI key status', () => {
     expect(calls).toEqual([key('wrong'), key('right')]);
   });
 
-  it('the notes card reuses the answer Accounts and keys got: Ready, with no request of its own', async () => {
-    good.add(key('right'));
-    const accounts = render(<AccountsCategory locked={false} />);
-    fireEvent.click(within(openAiRow()).getByRole('button', { name: 'Add key' }));
-    typeKey(key('right'));
-    validate();
-    await answerAll();
-    expect(calls).toHaveLength(1);
-    accounts.unmount();
-
-    render(<LineUpCategory locked={false} />);
-    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
-    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('openai');
-    expect(within(notesCard()).getByText('Ready')).toBeInTheDocument();
-    expect(calls).toHaveLength(1);
+  // Text models, part C: the notes are written by OpenAI's text model, so the Notes card asks its check about the notes
+  // (the key, then the notes' model), apart from the Realtime check Accounts and keys asks; once per key.
+  const bothEntries = (apiKey: string) => useProviderStore.setState({
+    entries: {
+      ...useProviderStore.getState().entries,
+      openai: { settings: {}, credentials: { apiKey }, pair: { source: 'ja', target: 'en' } },
+      openai_text: { settings: TEXT_MODEL_DEFAULTS, credentials: { apiKey }, pair: { source: 'ja', target: 'en' } },
+    } as never,
   });
 
-  it('the notes card says it is checking a key nothing has checked yet, then what the check found, asking once', async () => {
-    useProviderStore.setState({ entries: { ...useProviderStore.getState().entries, openai: { settings: {}, credentials: { apiKey: key('wrong') }, pair: { source: 'ja', target: 'en' } } } as never });
+  it("the notes card asks OpenAI's text model about the notes: checking, then Ready, asking once", async () => {
+    good.add(key('right'));
+    bothEntries(key('right'));
+    render(<LineUpCategory locked={false} />);
+    await waitFor(() => expect(within(notesCard()).getByText('Checking the key…')).toBeInTheDocument());
+    await answerAll();
+    expect(within(notesCard()).getByText('Ready')).toBeInTheDocument();
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(notesCalls).toEqual([{ apiKey: key('right'), ctx: expect.objectContaining({ stages: [], notes: true }) }]);
+    // Not the Realtime check: the run's readiness is left as it was.
+    expect(calls).toEqual([]);
+    expect(useProviderStore.getState().readiness.openai).toBeUndefined();
+  });
+
+  it('the notes card says a key the check refuses is not accepted, and leads to it', async () => {
+    bothEntries(key('wrong'));
     render(<LineUpCategory locked={false} />);
     await waitFor(() => expect(within(notesCard()).getByText('Checking the key…')).toBeInTheDocument());
     await answerAll();
     expect(within(notesCard()).getByRole('button', { name: 'Key not accepted' })).toBeInTheDocument();
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
-    expect(calls).toEqual([key('wrong')]);
+    expect(notesCalls.map((c) => c.apiKey)).toEqual([key('wrong')]);
   });
 
   it('during a session the key cannot be checked from Accounts and keys', () => {

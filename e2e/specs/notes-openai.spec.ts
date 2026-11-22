@@ -23,6 +23,8 @@ async function writeNotes(page: Page) {
 test('notes are written for a record with the user’s own OpenAI key', async ({ launchApp }) => {
   const sokuji = await launchApp(withARecord());
   const openai = await fakeOpenAi(sokuji);
+  // The key's models: the notes' Automatic is the first of their preferences listed (text models, part C).
+  openai.listModels(['gpt-5-mini', 'gpt-6-luna', 'gpt-realtime']);
   await writeNotes(sokuji.page);
 
   const notes = sokuji.page.getByRole('region', { name: 'Notes' });
@@ -31,10 +33,14 @@ test('notes are written for a record with the user’s own OpenAI key', async ({
   await expect(notes.getByRole('button', { name: 'Fake point' })).toBeVisible();
   await expect(notes.getByRole('button', { name: 'Write a new version' })).toBeVisible();
 
-  // What went out: chat requests only, and the first of them carried the record's eighteen sentences.
-  expect(openai.requests.length).toBeGreaterThan(0);
-  expect(new Set(openai.requests.map((r) => r.path))).toEqual(new Set(['/chat/completions']));
-  expect(sentenceIds(openai.requests[0])).toHaveLength(18);
+  // What went out: the key's model list once (the notes model is Automatic), then chat requests, with the model the
+  // notes were written with before; the first carried the record's eighteen sentences.
+  expect(openai.requests[0].path).toBe('/models');
+  const chats = openai.requests.slice(1);
+  expect(chats.length).toBeGreaterThan(0);
+  expect(new Set(chats.map((r) => r.path))).toEqual(new Set(['/chat/completions']));
+  for (const request of chats) expect(request.body?.model).toBe('gpt-6-luna');
+  expect(sentenceIds(chats[0])).toHaveLength(18);
   expect(sokuji.errors).toEqual([]);
 });
 
@@ -47,6 +53,6 @@ test('a key OpenAI refuses leaves no notes and shows OpenAI’s own words', asyn
   const notes = sokuji.page.getByRole('region', { name: 'Notes' });
   await expect(notes.getByText('Incorrect API key provided', { exact: false })).toBeVisible({ timeout: 30_000 });
   await expect(notes.getByRole('heading', { name: 'Fake notes title' })).toHaveCount(0);
-  // A refusal another try cannot fix is asked once, not retried.
-  expect(openai.requests).toHaveLength(1);
+  // A refusal another try cannot fix is asked once, not retried (after the key's model list, for Automatic).
+  expect(openai.requests.filter((r) => r.path === '/chat/completions')).toHaveLength(1);
 });

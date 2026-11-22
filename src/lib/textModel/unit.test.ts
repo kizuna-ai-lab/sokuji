@@ -50,10 +50,19 @@ describe("a text model's translation unit", () => {
   });
 
   it('its settings: a model and a reasoning for the translation, stored as they were chosen; anything else read as the default', () => {
-    expect(TEXT_MODEL_DEFAULTS).toEqual({ translationModel: { listed: '', typed: '' }, translationReasoning: DEFAULT_REASONING_CHOICE });
-    expect(migrateTextModelSettings({ translationModel: { listed: 'gpt-5.4', typed: '' }, translationReasoning: { level: 'high', typed: '' } }))
-      .toEqual({ translationModel: { listed: 'gpt-5.4', typed: '' }, translationReasoning: { level: 'high', typed: '' } });
-    expect(migrateTextModelSettings({ translationModel: 'x', translationReasoning: 3 })).toEqual(TEXT_MODEL_DEFAULTS);
+    expect(TEXT_MODEL_DEFAULTS).toEqual({
+      translationModel: { listed: '', typed: '' }, translationReasoning: DEFAULT_REASONING_CHOICE,
+      // Text models, part C: the notes' pair, Medium by default.
+      notesModel: { listed: '', typed: '' }, notesReasoning: { level: 'medium', typed: '' },
+    });
+    expect(migrateTextModelSettings({
+      translationModel: { listed: 'gpt-5.4', typed: '' }, translationReasoning: { level: 'high', typed: '' },
+      notesModel: { listed: '', typed: 'gpt-6-sol' }, notesReasoning: { level: 'off', typed: '' },
+    })).toEqual({
+      translationModel: { listed: 'gpt-5.4', typed: '' }, translationReasoning: { level: 'high', typed: '' },
+      notesModel: { listed: '', typed: 'gpt-6-sol' }, notesReasoning: { level: 'off', typed: '' },
+    });
+    expect(migrateTextModelSettings({ translationModel: 'x', translationReasoning: 3, notesModel: null, notesReasoning: { level: 'ultra' } })).toEqual(TEXT_MODEL_DEFAULTS);
   });
 });
 
@@ -68,9 +77,9 @@ describe('the config a leg is built with', () => {
   });
 
   it('the model and reasoning chosen; a temperature only to a model that takes one', () => {
-    const config = buildTextModelTranslation('openai', EN_JA, { translationModel: { listed: 'gpt-4.1-mini', typed: '' }, translationReasoning: { level: 'off', typed: '' } }, shared(['gpt-5-mini']));
+    const config = buildTextModelTranslation('openai', EN_JA, { ...TEXT_MODEL_DEFAULTS, translationModel: { listed: 'gpt-4.1-mini', typed: '' }, translationReasoning: { level: 'off', typed: '' } }, shared(['gpt-5-mini']));
     expect(config).toMatchObject({ model: 'gpt-4.1-mini', reasoning: { exact: 'none' }, temperature: 0.2, maxTokens: 1024 });
-    const high = buildTextModelTranslation('gemini', EN_JA, { translationModel: { listed: '', typed: 'gemini-3.8-pro' }, translationReasoning: { level: 'high', typed: '' } }, shared([]));
+    const high = buildTextModelTranslation('gemini', EN_JA, { ...TEXT_MODEL_DEFAULTS, translationModel: { listed: '', typed: 'gemini-3.8-pro' }, translationReasoning: { level: 'high', typed: '' } }, shared([]));
     expect(high).toMatchObject({ model: 'gemini-3.8-pro', reasoning: { exact: 'high' }, maxTokens: 8192 });
     expect(high).not.toHaveProperty('temperature');
   });

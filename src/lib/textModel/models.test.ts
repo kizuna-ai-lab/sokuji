@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defaultTextModel, TEXT_MODEL_PREFERENCES, textModelIds } from './models';
+import { defaultTextModel, NOTES_MODEL_PREFERENCES, TEXT_MODEL_PREFERENCES, textModelIds } from './models';
 
 // The ids each list held when it was read (2026-11-22), the ones that are not chat text models among them.
 const OPENAI_LIST = [
@@ -56,5 +56,26 @@ describe('the default text model', () => {
     expect(defaultTextModel('openai', ['gpt-4o-mini'])).toBeNull();
     expect(defaultTextModel('gemini', [])).toBeNull();
     expect(defaultTextModel('compatible', ['qwen3:8b'])).toBeNull();
+  });
+});
+
+// Text models, part C: the notes have a preference list of their own. OpenAI's starts with the model the notes were
+// written with before (the old setting's default, measured on OpenAI's own endpoint), so a user who never chose one
+// writes with it as before; then the translation's.
+describe("the notes' default text model", () => {
+  it("is the first of the notes' preferences the service lists", () => {
+    expect(NOTES_MODEL_PREFERENCES).toEqual({
+      openai: ['gpt-6-luna', 'gpt-5-mini', 'gpt-5-nano', 'gpt-4.1-mini'],
+      gemini: ['gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-lite-latest'],
+    });
+    expect(defaultTextModel('openai', ['gpt-5-mini', 'gpt-6-luna'], 'notes')).toBe('gpt-6-luna');
+    expect(defaultTextModel('openai', OPENAI_LIST, 'notes')).toBe('gpt-5-mini');
+    expect(defaultTextModel('gemini', GEMINI_LIST, 'notes')).toBe('gemini-3.8-flash');
+    // The translation's stays its own.
+    expect(defaultTextModel('openai', ['gpt-5-mini', 'gpt-6-luna'])).toBe('gpt-5-mini');
+  });
+
+  it('is none for a compatible service', () => {
+    expect(defaultTextModel('compatible', ['qwen3:8b'], 'notes')).toBeNull();
   });
 });

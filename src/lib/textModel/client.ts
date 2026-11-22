@@ -60,8 +60,13 @@ export function textModelTimeout(message = 'The service did not answer in time.'
  * that a refusal is met once, not on every request. The client reads it and writes what it learns.
  */
 export interface TextModelMemo {
-  /** The `reasoning_effort` the model took, or null: it takes none. Absent: not learned yet. */
+  /** The `reasoning_effort` the model took for the lowest, or null: it takes none. Absent: not learned yet. */
   reasoningEffort?: string | null;
+  /**
+   * What each stage default (`{ preferred }`) was lowered to, by the value asked: a lower one, or null for none.
+   * Absent for a value: it was taken as it is, or never asked. Apart from the lowest's: neither reads the other's.
+   */
+  preferredEffort?: Record<string, string | null>;
   /** False: the service refuses `response_format`. Absent: not learned yet. */
   responseFormat?: boolean;
 }
@@ -87,7 +92,8 @@ export interface ChatCompletionOptions extends Where {
   /**
    * 'lowest' (the default): the least reasoning the model takes (`lowestReasoningEffort`), so a short answer is not
    * spent on reasoning. 'default': no `reasoning_effort`, the service's own default. `{ exact }`: the user's choice,
-   * sent as it is; a refusal of it is the answer, never asked again with another value.
+   * sent as it is; a refusal of it is the answer, never asked again with another value. `{ preferred }`: a stage's
+   * own default (the notes'), sent as it is and lowered as the lowest is where the model refuses it.
    */
   reasoning?: ReasoningAsk;
   /** What this model was found to refuse, kept across calls. */
@@ -97,10 +103,12 @@ export interface ChatCompletionOptions extends Where {
 /**
  * How much reasoning to ask of a model. 'lowest': the least it takes, lowered further when the service refuses a
  * value (what is learned goes in the memo). 'default': no `reasoning_effort`. `{ exact }`: this value and no other.
+ * `{ preferred }`: this value where the model takes it, else 'low', else none (the memo keeps what it was lowered to).
  */
-export type ReasoningAsk = 'lowest' | 'default' | { exact: string };
+export type ReasoningAsk = 'lowest' | 'default' | { exact: string } | { preferred: string };
 
-export type ChatCompletionResult = { ok: true; text: string } | { ok: false; failure: TextModelFailure };
+/** `id`: the service's own id for the completion, where its answer names one. */
+export type ChatCompletionResult = { ok: true; text: string; id?: string } | { ok: false; failure: TextModelFailure };
 export type ListModelsResult = { ok: true; ids: string[] } | { ok: false; failure: TextModelFailure };
 export type ProbeResult = { ok: true } | { ok: false; failure: TextModelFailure };
 
@@ -244,13 +252,15 @@ function answerOf(raw: string, apiKey: string | undefined): ChatCompletionResult
   }
   const message = isRecord(choices[0]) && isRecord(choices[0].message) ? choices[0].message : {};
   const { content } = message;
-  if (typeof content === 'string') return { ok: true, text: content };
+  const id = stringOf(parsed.id);
+  const answered = (text: string): ChatCompletionResult => (id === undefined ? { ok: true, text } : { ok: true, text, id });
+  if (typeof content === 'string') return answered(content);
   if (Array.isArray(content)) {
-    return { ok: true, text: content.map((part) => (isRecord(part) && typeof part.text === 'string' ? part.text : '')).join('') };
+    return answered(content.map((part) => (isRecord(part) && typeof part.text === 'string' ? part.text : '')).join(''));
   }
   const refusal = stringOf(message.refusal);
   if (refusal) return failed('refused', spoken(refusal, apiKey));
-  return { ok: true, text: '' };
+  return answered('');
 }
 
 const REASONING_NAMED = /reasoning[_.]effort/i;
@@ -266,16 +276,24 @@ export async function chatCompletion(o: ChatCompletionOptions): Promise<ChatComp
   if ('ok' in route) return route;
   const { memo } = o;
   const url = `${route.base}/chat/completions`;
-  const exact = typeof o.reasoning === 'object' ? o.reasoning.exact : undefined;
+  const exact = typeof o.reasoning === 'object' && 'exact' in o.reasoning ? o.reasoning.exact : undefined;
+  const preferred = typeof o.reasoning === 'object' && 'preferred' in o.reasoning ? o.reasoning.preferred : undefined;
   // Learned only for the lowest: a value the user chose is sent as it is, and a default is no value at all.
   const learns = o.reasoning === undefined || o.reasoning === 'lowest';
+  // Lowered where refused: the lowest, and a stage's own default.
+  const lowers = learns || preferred !== undefined;
   let effort: string | null = exact !== undefined
     ? exact
-    : o.reasoning === 'default'
-      ? null
-      : memo?.reasoningEffort !== undefined ? memo.reasoningEffort : lowestReasoningEffort(o.service, o.model);
+    : preferred !== undefined
+      // A default lowered before in this session is asked at what it was lowered to.
+      ? (memo?.preferredEffort?.[preferred] !== undefined ? memo.preferredEffort[preferred] : preferred)
+      : o.reasoning === 'default'
+        ? null
+        : memo?.reasoningEffort !== undefined ? memo.reasoningEffort : lowestReasoningEffort(o.service, o.model);
   let json = o.json === true && memo?.responseFormat !== false;
   let effortRetries = 0;
+  /** 'low' was refused on the way down: kept for every default of the session. */
+  let lowRefused = false;
   let formatRetried = false;
   for (;;) {
     const body = JSON.stringify({
@@ -291,11 +309,19 @@ export async function chatCompletion(o: ChatCompletionOptions): Promise<ChatComp
     const { status, raw } = sent;
     if (status >= 200 && status < 300) {
       if (memo && learns) memo.reasoningEffort = effort;
+      // A default lowered is kept at what it was lowered to, and a 'low' refused on the way as refused; one taken as it
+      // is says nothing of another.
+      if (memo && preferred !== undefined && (effort !== preferred || lowRefused)) {
+        memo.preferredEffort = { ...memo.preferredEffort, ...(lowRefused ? { low: null } : {}), [preferred]: effort };
+      }
       if (memo && o.json === true) memo.responseFormat = json;
       return answerOf(raw, o.apiKey);
     }
-    if (status === 400 && learns && effort !== null && effortRetries < 2 && REASONING_NAMED.test(raw)) {
-      effort = effort === 'low' ? null : 'low';
+    if (status === 400 && lowers && effort !== null && effortRetries < 2 && REASONING_NAMED.test(raw)) {
+      // A default lowered from above 'low' goes where 'low' itself was found to go, when that is known.
+      const low = preferred !== undefined && memo?.preferredEffort?.low !== undefined ? memo.preferredEffort.low : 'low';
+      if (effort === 'low') lowRefused = true;
+      effort = effort === 'low' ? null : low;
       effortRetries += 1;
       continue;
     }
