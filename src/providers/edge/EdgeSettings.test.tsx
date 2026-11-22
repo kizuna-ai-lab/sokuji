@@ -81,6 +81,21 @@ describe("Edge's settings", () => {
     expect(saved().voices['ja→en']).toBe('en-US-AvaNeural');
   });
 
+  it('stores the first listed voice of a direction whose voice is missing or not listed, without any user action, and leaves a valid one', async () => {
+    given({ voices: { 'ja→en': 'en-US-ZzzNeural', 'en→ja': 'ja-JP-KeitaNeural' } });
+    render(<EdgeCard />);
+    await waitFor(() => expect(saved().voices['ja→en']).toBe('en-US-AvaNeural'));
+    expect(saved().voices['en→ja']).toBe('ja-JP-KeitaNeural');
+  });
+
+  it('stores nothing while the card is disabled', async () => {
+    given({ voices: {} });
+    render(<EdgeCard disabled />);
+    await screen.findByRole('combobox', { name: 'Translation the other side hears (English)' });
+    await waitFor(() => expect(within(screen.getByRole('combobox', { name: 'Translation the other side hears (English)' })).getAllByRole('option')).toHaveLength(2));
+    expect(saved().voices).toEqual({});
+  });
+
   it("keeps a choice in that direction's voice, the other direction's untouched", async () => {
     given({ voices: { 'en→ja': 'ja-JP-NanamiNeural' } });
     render(<EdgeCard />);

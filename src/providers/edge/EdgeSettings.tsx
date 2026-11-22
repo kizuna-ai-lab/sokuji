@@ -62,6 +62,19 @@ export function EdgeSettingsView({ settings, update, disabled = false, pair: own
     return out;
   }, [pair, legs, participantSpeech, t]);
 
+  // A direction showing the fallback first voice has it stored as soon as the list is known: choosing the shown voice
+  // fires no change, and SettingsInitializer stores it only once the plan is ready. The same write it would make.
+  useEffect(() => {
+    if (disabled || status !== 'loaded') return;
+    let table = settings.voices;
+    for (const { dir, language } of rows) {
+      const voices = filterVoicesByLanguage(all, language);
+      if (voices.length === 0 || voices.some((v) => v.ShortName === table[dir])) continue;
+      table = { ...table, [dir]: voices[0].ShortName };
+    }
+    if (table !== settings.voices) update({ voices: table });
+  }, [disabled, status, all, rows, settings.voices, update]);
+
   const write = (dir: string, voice: string) => update({ voices: { ...settings.voices, [dir]: voice } });
 
   const play = async (voice: string, language: string) => {
