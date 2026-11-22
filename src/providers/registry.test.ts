@@ -374,7 +374,7 @@ describe('the invariants every provider meets (F17)', () => {
     // Kizuna Soniox first, unflagged (Stage 2 Kizuna Soniox, ruling 6): the owner's 2026-09-12
     // product order put the managed provider first; then LocalInference, Bing (online, translation only; step 1), Gemini (Stage 2 Gemini, ruling 6), Doubao AST 2.0 (Stage 2 Volcengine AST2, ruling 5), Qwen LiveTranslate (spec 2026-10-13 §8, unflagged by the owner 2026-10-14), OpenAI Realtime (Stage 2 OpenAI Realtime, ruling 18), OpenAI Translate (Stage 2 OpenAI Translate, ruling 11), OpenAI Live (Stage 2 OpenAI Live, ruling 9), Soniox with your own key, and Palabra AI last (Stage 2 Palabra, ruling 14).
     // Then the text models, which translate another provider's transcription (spec 2026-11-22 §2): OpenAI's, Gemini's and a compatible service.
-    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'kizunaai_qwen', 'local_inference', 'bing', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'qwen_livetranslate', 'palabraai', 'openai_text', 'gemini_text', 'openai_compatible']);
+    expect(releaseBuild.PROVIDERS.map((p) => p.id)).toEqual(['kizunaai_soniox', 'kizunaai_qwen', 'local_inference', 'bing', 'edge', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'soniox', 'qwen_livetranslate', 'palabraai', 'openai_text', 'gemini_text', 'openai_compatible']);
   });
 
   it('a development build adds exactly the five fakes', () => {

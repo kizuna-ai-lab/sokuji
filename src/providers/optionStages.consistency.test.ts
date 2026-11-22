@@ -16,6 +16,7 @@ import { volcengineAst2Provider as ast2Provider } from './volcengine_ast2/provid
 import { qwenLiveTranslateProvider } from './qwen_livetranslate/provider';
 import { kizunaQwenProvider } from './qwen_livetranslate/kizuna';
 import { localInferenceProvider } from './localInference/provider';
+import { edgeProvider } from './edge/provider';
 
 const SETS = { ALL_STAGES, TR, TL, SP, TR_TL } as const;
 const nameOf = (set: unknown) => Object.entries(SETS).find(([, v]) => v === set)?.[0] ?? '?';
@@ -35,6 +36,7 @@ const CASES: Array<[string, { optionStages?: readonly (readonly unknown[])[] }, 
   ['volcengine_ast2', ast2Provider, src('providers/volcengine_ast2/Ast2Settings.tsx')],
   ['qwen_livetranslate', qwenLiveTranslateProvider, qwenShared],
   ['kizunaai_qwen', kizunaQwenProvider, qwen],
+  ['edge', edgeProvider, src('providers/edge/EdgeSettings.tsx')],
   // The local engine's slots are transcription, translation and speech; its settings add to them.
   ['local_inference', localInferenceProvider, src('providers/localInference/LocalInferenceSettings.tsx') + '<StagePart stages={TR}><StagePart stages={TL}><StagePart stages={SP}>'],
 ];

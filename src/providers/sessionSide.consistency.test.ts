@@ -129,10 +129,12 @@ const SHARED_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/localInference': [`${SHARED_SESSIONS_DIR}/speechSession.ts`, `${SHARED_SESSIONS_DIR}/translationSession.ts`],
   // Bing's session is the shared translation session: it has no adapter of its own.
   'src/providers/bing': [`${SHARED_SESSIONS_DIR}/translationSession.ts`],
+  // Edge's session is the shared speech session: it has no adapter of its own either.
+  'src/providers/edge': [`${SHARED_SESSIONS_DIR}/speechSession.ts`],
 };
 
 /** Providers whose session is a shared one outside their folder, so they keep no `adapter.ts`. */
-const NO_ADAPTER: ReadonlySet<string> = new Set(['src/providers/bing']);
+const NO_ADAPTER: ReadonlySet<string> = new Set(['src/providers/bing', 'src/providers/edge']);
 
 /** Every `.ts` file of the shared sessions folder: each is held to the rules whichever provider reaches it. */
 const sharedSessionFiles = (root: string): string[] => readdirSync(join(root, SHARED_SESSIONS_DIR))
@@ -239,6 +241,9 @@ describe('a provider session side', () => {
     // Bing runs the shared translation session; its own folder is the definition (the settings side), none of it the session's.
     expect(sessionSide(REPO_ROOT, 'src/providers/bing')).toEqual(expect.arrayContaining([`${SHARED_SESSIONS_DIR}/translationSession.ts`, `${SHARED_SESSIONS_DIR}/errors.ts`]));
     expect(sessionSide(REPO_ROOT, 'src/providers/bing').filter((f) => f.startsWith('src/providers/bing/'))).toEqual([]);
+    // Edge runs the shared speech session, the same way.
+    expect(sessionSide(REPO_ROOT, 'src/providers/edge')).toEqual(expect.arrayContaining([`${SHARED_SESSIONS_DIR}/speechSession.ts`, `${SHARED_SESSIONS_DIR}/speech.ts`]));
+    expect(sessionSide(REPO_ROOT, 'src/providers/edge').filter((f) => f.startsWith('src/providers/edge/'))).toEqual([]);
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).toEqual(
       expect.arrayContaining([
         'src/providers/localInference/adapter.ts',
@@ -388,7 +393,11 @@ describe('a provider session side', () => {
   it('a session side imports no store and no reporter as a value', () => {
     expect(providerDirs().flatMap((dir) => storeOffenders(REPO_ROOT, dir))).toEqual([]);
     // Every file of the shared sessions folder, not only those a provider's value imports reach.
-    expect(sharedSessionFiles(REPO_ROOT).length).toBeGreaterThan(3);
+    expect(sharedSessionFiles(REPO_ROOT)).toEqual(expect.arrayContaining([
+      `${SHARED_SESSIONS_DIR}/translationSession.ts`,
+      `${SHARED_SESSIONS_DIR}/speechSession.ts`,
+      `${SHARED_SESSIONS_DIR}/speech.ts`,
+    ]));
     expect(sharedSessionFiles(REPO_ROOT).flatMap((file) => valueImports(readFileSync(join(REPO_ROOT, file), 'utf-8'), file)
       .filter((s) => FORBIDDEN.some((re) => re.test(s))).map((s) => `${file}: ${s}`))).toEqual([]);
   });
