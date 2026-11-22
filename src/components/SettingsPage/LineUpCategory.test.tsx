@@ -256,9 +256,9 @@ describe('languages and line-up', () => {
       useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_text: entry('openai_text', { apiKey: 'test-key-0000' }), gemini_text: entry('gemini_text', { apiKey: '' }), openai_compatible: entry('openai_compatible', { baseUrl: '', apiKey: '' }) } as never });
       render(<LineUpCategory locked={false} />);
       const translation = optionTexts('Translation');
-      expect(translation).toEqual(expect.arrayContaining(['OpenAI text model', 'Gemini text model (needs a key)', 'OpenAI-compatible service']));
+      expect(translation).toEqual(expect.arrayContaining(['OpenAI Text Model', 'Gemini Text Model (needs a key)', 'OpenAI-Compatible Service']));
       // Only for translation: never offered to transcribe or to speak.
-      for (const name of ['OpenAI text model', 'Gemini text model', 'OpenAI-compatible service']) {
+      for (const name of ['OpenAI Text Model', 'Gemini Text Model', 'OpenAI-Compatible Service']) {
         expect(optionTexts('Transcription and translation').some((t) => t.startsWith(name))).toBe(false);
         expect(optionTexts('Speech').some((t) => t.startsWith(name))).toBe(false);
       }
@@ -271,7 +271,7 @@ describe('languages and line-up', () => {
       await waitFor(() => expect(tracked).toHaveLength(1));
       expect(useLineUpStore.getState().lineUp).toMatchObject(textLineUp);
       expect(tracked).toContainEqual(['lineup_changed', { stage: 'translation', from: 'soniox', to: 'openai_text', moved: [], during_session: false }]);
-      fireEvent.click(within(translationCard()).getByRole('button', { name: 'OpenAI text model options' }));
+      fireEvent.click(within(translationCard()).getByRole('button', { name: 'OpenAI Text Model options' }));
       expect(translationCard().querySelector('#provider-own-settings')).toHaveAttribute('data-provider', 'openai_text');
       expect(translationCard().querySelector('#provider-own-settings')).toHaveAttribute('data-stage', 'translation');
     });
@@ -1321,7 +1321,7 @@ describe('the notes card', () => {
   it('signed out with no OpenAI key: Kizuna AI by default, waiting for a sign-in, and the card says how to have notes written', () => {
     authState.signedIn = false;
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI-compatible service']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI-Compatible Service']);
     expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('kizunaai_openai');
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a sign-in')).toBeInTheDocument();
@@ -1358,7 +1358,7 @@ describe('the notes card', () => {
     notesPricing.value = { liveUsdPerHour: 0.04, afterSessionUsdPerHour: 0.012 };
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI', 'OpenAI-compatible service']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model', 'OpenAI-Compatible Service']);
     expect(screen.queryByText(/Add an OpenAI key/)).toBeNull();
     // The owner, 2026-11-17: Kizuna AI's prices only where Kizuna AI writes the notes; not under OpenAI's own key.
     const price = 'Kizuna AI estimates: live notes about $0.04 an hour, notes after a session about $0.012 an hour, paid from the balance that pays for your sessions.';
@@ -1389,7 +1389,7 @@ describe('the notes card', () => {
     authState.signedIn = false;
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'kizunaai_openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI-compatible service']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI-Compatible Service']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a sign-in')).toBeInTheDocument();
   });
@@ -1397,7 +1397,7 @@ describe('the notes card', () => {
   it('without the hosted services, OpenAI by default, needing a key, and the card says where to add one', () => {
     noHosted.value = true;
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['OpenAI', 'OpenAI-compatible service']);
+    expect(optionTexts('Notes')).toEqual(['OpenAI Text Model', 'OpenAI-Compatible Service']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a key')).toBeInTheDocument();
     expect(screen.getByText('Add an OpenAI key in Accounts and keys to have notes written.')).toBeInTheDocument();
@@ -1406,7 +1406,7 @@ describe('the notes card', () => {
   it('offers OpenAI once it has a key, and a choice sets the notes stage alone', async () => {
     openAiKey();
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI', 'OpenAI-compatible service']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model', 'OpenAI-Compatible Service']);
     fireEvent.change(screen.getByRole('combobox', { name: 'Notes' }), { target: { value: 'openai' } });
     await waitFor(() => expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, summarisation: 'openai' }));
     expect(tracked).toContainEqual(['lineup_changed', { stage: 'summarisation', from: null, to: 'openai', moved: [], during_session: false }]);
@@ -1512,7 +1512,7 @@ describe('the notes card', () => {
   it('keeps showing OpenAI while it is chosen, saying it needs a key once the key is gone', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI', 'OpenAI-compatible service']);
+    expect(optionTexts('Notes')).toEqual(['Kizuna AI', 'OpenAI Text Model', 'OpenAI-Compatible Service']);
     const card = screen.getByRole('combobox', { name: 'Notes' }).closest('.lineup-stage') as HTMLElement;
     expect(within(card).getByText('Needs a key')).toBeInTheDocument();
   });
@@ -1527,7 +1527,7 @@ describe('the notes card', () => {
       const select = screen.getByRole('combobox', { name: 'Notes' });
       expect(select).toHaveClass('provider-select');
       const kizuna = within(select).getByRole('option', { name: /^Kizuna AI/ });
-      const openai = within(select).getByRole('option', { name: /^OpenAI(?!-compatible)/ });
+      const openai = within(select).getByRole('option', { name: /^OpenAI(?!-Compatible)/ });
       expect(kizuna.querySelector('.provider-select__icon')).not.toBeNull();
       expect(openai.querySelector('.provider-select__icon')).not.toBeNull();
       expect(kizuna.querySelector('.provider-select__description')).toHaveTextContent('OpenAI writes the notes through Kizuna AI, paid from your balance.');
@@ -1550,7 +1550,7 @@ describe('the notes card', () => {
       render(<LineUpCategory locked={false} />);
       const values = within(screen.getByRole('combobox', { name: 'Notes' })).getAllByRole('option').map((o) => (o as HTMLOptionElement).value);
       expect(values).toEqual(['kizunaai_openai', 'gemini_text', 'openai_compatible']);
-      const gemini = within(screen.getByRole('combobox', { name: 'Notes' })).getByRole('option', { name: /^Gemini text model/ });
+      const gemini = within(screen.getByRole('combobox', { name: 'Notes' })).getByRole('option', { name: /^Gemini Text Model/ });
       expect(gemini.querySelector('.provider-select__description')).toHaveTextContent('Writes the notes with your own Gemini key.');
     } finally {
       baseSelect.rich = false;
@@ -1608,7 +1608,7 @@ describe('the notes card', () => {
     openAiKey();
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked={false} />);
-    const fold = within(notesCard()).getByRole('button', { name: 'OpenAI options' });
+    const fold = within(notesCard()).getByRole('button', { name: 'OpenAI Text Model options' });
     expect(fold).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(fold);
     const model = within(notesCard()).getByRole('combobox', { name: 'Model' });
@@ -1628,7 +1628,7 @@ describe('the notes card', () => {
     openAiKey();
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai' }, stored: true });
     render(<LineUpCategory locked />);
-    fireEvent.click(within(notesCard()).getByRole('button', { name: 'OpenAI options' }));
+    fireEvent.click(within(notesCard()).getByRole('button', { name: 'OpenAI Text Model options' }));
     expect(within(notesCard()).getByRole('combobox', { name: 'Reasoning effort' })).toBeDisabled();
   });
 });

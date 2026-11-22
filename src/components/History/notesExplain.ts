@@ -11,7 +11,7 @@ export const NOTES_SERVICE_NAMES: Readonly<Record<string, string>> = { [KIZUNA_N
 
 /** A notes service by name: a brand as it is; a compatible service by its provider's name, in the interface's words. */
 export function notesServiceName(t: TFunction, service: string): string {
-  if (service === COMPATIBLE_NOTES) return t('providers.openai_compatible.name', 'OpenAI-compatible service');
+  if (service === COMPATIBLE_NOTES) return t('providers.openai_compatible.name', 'OpenAI-Compatible Service');
   return NOTES_SERVICE_NAMES[service] ?? service;
 }
 

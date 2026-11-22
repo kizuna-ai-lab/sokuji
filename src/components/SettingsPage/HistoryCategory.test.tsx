@@ -170,7 +170,7 @@ describe('notes after the session', () => {
     useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'openai_compatible' }, stored: true });
     render(<HistoryCategory locked={false} />);
     await settle();
-    expect(screen.getByText('When a session ends, OpenAI-compatible service writes its notes from the transcript.')).toBeInTheDocument();
+    expect(screen.getByText('When a session ends, OpenAI-Compatible Service writes its notes from the transcript.')).toBeInTheDocument();
   });
 });
 

@@ -60,7 +60,7 @@ describe("a record's notes", () => {
     expect(screen.getByText('Written by Gemini with gemini-3.8-flash')).toBeInTheDocument();
     cleanup();
     render(<RecordNotes {...props({ notes: by('openai_compatible', 'qwen3:8b') })} />);
-    expect(screen.getByText('Written by OpenAI-compatible service with qwen3:8b')).toBeInTheDocument();
+    expect(screen.getByText('Written by OpenAI-Compatible Service with qwen3:8b')).toBeInTheDocument();
     cleanup();
     render(<RecordNotes {...props({ notes: by('kizunaai_openai', 'gpt-6-luna') })} />);
     expect(screen.getByText('Written by Kizuna AI with gpt-6-luna')).toBeInTheDocument();

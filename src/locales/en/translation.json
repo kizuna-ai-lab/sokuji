@@ -614,15 +614,15 @@
       "note": "Free · online, a Microsoft service"
     },
     "openai_text": {
-      "name": "OpenAI text model",
+      "name": "OpenAI Text Model",
       "description": "Translates any language pair with your OpenAI key"
     },
     "gemini_text": {
-      "name": "Gemini text model",
+      "name": "Gemini Text Model",
       "description": "Translates any language pair with your Gemini key"
     },
     "openai_compatible": {
-      "name": "OpenAI-compatible service",
+      "name": "OpenAI-Compatible Service",
       "description": "OpenRouter, DeepSeek, Ollama and others, at the address you enter"
     }
   },

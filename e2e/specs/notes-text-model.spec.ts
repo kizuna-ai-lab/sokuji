@@ -76,7 +76,7 @@ async function notesOptions(page: Page) {
   await page.getByRole('navigation').getByRole('button', { name: /^Languages and line-up/ }).click();
   const card = page.locator('.lineup-stage').filter({ has: page.getByRole('combobox', { name: 'Notes', exact: true }) });
   await expect(page.getByRole('combobox', { name: 'Notes', exact: true })).toHaveValue('openai');
-  await card.getByRole('button', { name: 'OpenAI options' }).click();
+  await card.getByRole('button', { name: 'OpenAI Text Model options' }).click();
   return card;
 }
 

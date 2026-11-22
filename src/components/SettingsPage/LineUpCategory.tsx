@@ -229,13 +229,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const providerName = (id: string, fallback: string) => t(`providers.${id}.name`, fallback);
   /** The notes services with the user's own key: their names, icons and lines, and whether each is offered now. */
   const ownKeyNotes: Array<{ id: string; name: string; line: string; offered: boolean }> = [
-    { id: OPENAI_NOTES, name: 'OpenAI', line: t('settingsPage.lineup.notesOpenAiLine', 'Writes the notes with your own OpenAI key.'), offered: openAiKeyed },
+    { id: OPENAI_NOTES, name: providerName('openai_text', 'OpenAI Text Model'), line: t('settingsPage.lineup.notesOpenAiLine', 'Writes the notes with your own OpenAI key.'), offered: openAiKeyed },
     {
-      id: GEMINI_NOTES, name: providerName('gemini_text', 'Gemini text model'),
+      id: GEMINI_NOTES, name: providerName('gemini_text', 'Gemini Text Model'),
       line: t('settingsPage.lineup.notesGeminiLine', 'Writes the notes with your own Gemini key.'), offered: textModelsOffered && geminiKeyed,
     },
     {
-      id: COMPATIBLE_NOTES, name: providerName('openai_compatible', 'OpenAI-compatible service'),
+      id: COMPATIBLE_NOTES, name: providerName('openai_compatible', 'OpenAI-Compatible Service'),
       line: t('settingsPage.lineup.notesCompatibleLine', 'Writes the notes with the service at the address you enter.'), offered: textModelsOffered,
     },
   ];
