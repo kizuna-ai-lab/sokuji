@@ -291,6 +291,13 @@ describe('languages and line-up', () => {
       expect(within(translationCard()).queryByRole('status')).toBeNull();
     });
 
+    it('a compatible service never set up, with nothing stored for it, needs an address, not a key', () => {
+      useLineUpStore.setState({ lineUp: { ...textLineUp, translation: 'openai_compatible' }, stored: true });
+      useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }) } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(translationCard().querySelector('.lineup-stage__state')).toHaveTextContent('Needs an address');
+    });
+
     it('a compatible service with no address says so, and leads to where it is entered; a model not chosen is said on the card', () => {
       useLineUpStore.setState({ lineUp: { ...textLineUp, translation: 'openai_compatible' }, stored: true });
       useProviderStore.setState({ entries: { soniox: entry('soniox', { apiKey: 'k' }), openai_compatible: entry('openai_compatible', { baseUrl: '', apiKey: '' }) } as never });

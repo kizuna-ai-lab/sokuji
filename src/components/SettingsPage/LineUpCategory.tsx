@@ -90,9 +90,9 @@ function credentialsMissing(p: AnyProvider | undefined, signedIn: boolean): 'key
   if (p.kind === 'managed') return signedIn ? null : 'sign-in';
   if (p.kind !== 'own-key') return null;
   const entry = useProviderStore.getState().entries[p.id];
-  if (!entry) return 'key';
-  const fields = p.credentials.fields(entry.settings as never);
-  const missing = fields.find((f) => !f.optional && String(entry.credentials[f.key] ?? '').trim() === '');
+  // Nothing stored yet: the fields of the provider's defaults, so a compatible service not yet set up needs an address.
+  const fields = p.credentials.fields((entry?.settings ?? p.settings.defaults) as never);
+  const missing = fields.find((f) => !f.optional && String(entry?.credentials[f.key] ?? '').trim() === '');
   if (!missing) return null;
   return missing.key === 'baseUrl' ? 'address' : 'key';
 }
