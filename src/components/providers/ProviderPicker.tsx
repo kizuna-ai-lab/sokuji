@@ -2,6 +2,7 @@ import { Cpu, ExternalLink, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAnalytics } from '../../lib/analytics';
+import { capabilitiesAlone } from '../../lib/plan/wholeUnit';
 import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
 import { openExternalUrl } from '../../utils/openExternalUrl';
@@ -187,7 +188,7 @@ export function ProviderPicker({ providers, auth, disabled, openSlot }: Provider
           {...ownProps(selection, entry, disabled)}
           legs={legs}
           // As ProviderOwnSettings hands Settings: the switch, unless the provider never speaks the participant.
-          participantSpeaks={provider.participantSpeech !== false && speechParticipant}
+          participantSpeaks={capabilitiesAlone(provider, 'speech').participantSpeech && speechParticipant}
           openSlot={openSlot}
         />
       )}

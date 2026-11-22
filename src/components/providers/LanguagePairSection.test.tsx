@@ -4,7 +4,8 @@ import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { AUTO } from '../../lib/provider/languages';
 import { languageLabel } from '../../lib/language/label';
 import type { LanguageContext } from '../../lib/provider/types';
-import { fakeProvider } from '../../providers/fake/provider';
+import { fakeProvider, FAKE_WHOLE } from '../../providers/fake/provider';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { PIN_SEPARATOR } from '../../lib/language/order';
 import { LanguagePairSection } from './LanguagePairSection';
@@ -585,6 +586,12 @@ describe('LanguagePairSection — what the voice reads', () => {
     expect(screen.getByText('settings.langSentence.theyHear')).toBeTruthy();
     cleanup();
     draw({ source: 'en', target: 'ja' }, vi.fn(), { sentence: { mode: 'speaker', textOnly: false }, speech: 'never' });
+    expect(screen.getByText('settings.langSentence.theyRead')).toBeTruthy();
+  });
+
+  it("without a speaking unit's rule, the sentence follows the provider's own unit", () => {
+    const silent = { ...fakeProvider, units: [wholeUnitOf({ ...FAKE_WHOLE, speech: 'never' })] };
+    draw({ source: 'en', target: 'ja' }, vi.fn(), { sentence: { mode: 'speaker', textOnly: false }, provider: silent });
     expect(screen.getByText('settings.langSentence.theyRead')).toBeTruthy();
   });
 });

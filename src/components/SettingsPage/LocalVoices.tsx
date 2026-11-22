@@ -11,6 +11,7 @@ import type { VoiceEntry } from '../Settings/sections/VoiceLibrarySection';
 import * as voiceStorage from '../../lib/local-inference/voiceStorage';
 import { dbKeyFromImportedSid, importedSidFromDbKey } from '../../lib/local-inference/sidMapping';
 import { getManifestEntry, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
+import { capabilitiesAlone } from '../../lib/plan/wholeUnit';
 import { directionKey, splitDirection } from '../../lib/local-inference/selection/types';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
 import { localInferenceProvider } from '../../providers/localInference/provider';
@@ -54,7 +55,7 @@ export function LocalVoices({ disabled }: { disabled: boolean }) {
     const { source, target } = pair;
     const speaking: Array<Omit<Row, 'modelId' | 'model'>> = [];
     if (legs.includes('speaker')) speaking.push({ dir: directionKey(source, target), language: target, who: t('audioPanel.otherHears', 'Translation the other side hears') });
-    if (legs.includes('participant') && participantSpeech && localInferenceProvider.participantSpeech !== false) {
+    if (legs.includes('participant') && participantSpeech && capabilitiesAlone(localInferenceProvider, 'speech').participantSpeech) {
       speaking.push({ dir: directionKey(target, source), language: source, who: t('audioPanel.iHear', 'Translation I hear') });
     }
     const out: Row[] = [];

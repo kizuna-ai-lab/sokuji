@@ -18,6 +18,8 @@ vi.mock('../services/ServiceFactory', () => ({
 
 import { identityWire } from '../lib/language/wire';
 import { useProviderStore, PAIR_FIELDS } from './providerStore';
+import { FAKE_WHOLE } from '../providers/fake/provider';
+import { wholeUnitOf } from '../lib/plan/wholeUnit';
 
 const opt = (value: string): LanguageOption => ({ value });
 
@@ -225,7 +227,7 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
   const moody = {
     ...probe,
     id: 'moody',
-    speech: 'optional',
+    units: [wholeUnitOf(FAKE_WHOLE)],
     // Its check reads the pair, so a pair the context moves forgets its answer.
     checkReadsDirection: true,
     settings: { key: 'moody', defaults: probe.settings.defaults },

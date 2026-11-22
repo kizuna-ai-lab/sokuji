@@ -13,6 +13,7 @@ import { describeCause, reportError } from '../lib/diagnostics/report';
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
 import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption, Readiness } from '../lib/provider/types';
+import { capabilitiesAlone } from '../lib/plan/wholeUnit';
 import { languageContext, type Speaking, type SpeechInputs } from '../lib/session/shape';
 import { namingProvider } from '../lib/session/codes';
 import { persistSetting } from '../services/persistSetting';
@@ -195,7 +196,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
   const derive = (p: AnyProvider, settings: unknown): LanguagePair => {
     const intent = get().intent;
     const initial = p.languages.initial?.(settings) ?? {};
-    return normalizePair(p, settings, { source: intent?.source || initial.source, target: intent?.target || initial.target }, languageContext(get().speakers[p.id] ?? p, get().legs, get().speech));
+    return normalizePair(p, settings, { source: intent?.source || initial.source, target: intent?.target || initial.target }, languageContext(get().speakers[p.id] ?? capabilitiesAlone(p, 'speech'), get().legs, get().speech));
   };
   /**
    * The pair a provider is checked for when another provider transcribes in the plan (its stages are told, and
