@@ -11,6 +11,7 @@ import type { LegName } from '../conversation/types';
 import { AUTO } from '../language/code';
 import { caps, goesWith } from '../lineup/catalog';
 import { RUN_STAGES } from '../lineup/types';
+import { unitsOf } from './wholeUnit';
 import type { LineUp, ProviderCaps, RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { PlanAccount, RunNotice } from '../session/types';
@@ -83,15 +84,21 @@ function translationRefusal(plan: RunPlan, context: PlanCheckContext): PlanRefus
 }
 
 /**
- * Face-to-face asked of a plan whose transcription and translation are apart, and whose transcription unit
- * cannot run it: one connection has to hear both people and translate each to the other, and a unit that
- * transcribes alone has a connection per leg. Named by the option that transcribes, on the translation stage:
- * giving it the translation too is what runs face-to-face.
+ * Face-to-face asked of a plan whose transcription and translation are apart, whose transcription unit cannot run
+ * it, and whose provider has a unit that would: one connection has to hear both people and translate each to the
+ * other, and a unit that transcribes alone has a connection per leg. Named by the option that transcribes, on the
+ * translation stage: giving it the translation too is what runs face-to-face. A provider with no such unit (this
+ * device) never offered face-to-face: "beside me" stays ordinary Both there, as before.
  */
 function faceToFaceRefusal(plan: RunPlan, context: PlanCheckContext): PlanRefusal | null {
   if (!context.faceToFaceAsked || plan.byStage.transcription === plan.byStage.translation) return null;
   const hearing = capabilitiesIn(plan, 'transcription', context);
   if (!hearing || hearing.faceToFace) return null;
+  const { provider } = plan.byStage.transcription;
+  const settings = context.accounts[provider.id]?.settings;
+  const text: ReadonlySet<RunStage> = new Set(['transcription', 'translation']);
+  const couldRun = unitsOf(provider).some((unit) => unit.occupies(settings, text) !== null && unit.capabilities(settings).faceToFace);
+  if (!couldRun) return null;
   return { refused: 'lineup_face_to_face_apart', stage: 'translation', provider: context.lineUp?.transcription ?? plan.byStage.transcription.provider.id };
 }
 

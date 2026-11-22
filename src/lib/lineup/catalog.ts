@@ -102,20 +102,6 @@ export function carriedTogether(option: Pick<ProviderCaps, 'joint' | 'translates
 }
 
 /**
- * The host that runs this line-up by the catalog alone, for code that has no providers at hand: every run stage
- * names an option that serves it, and all three share one host. Null otherwise.
- */
-export function soleHost(lineUp: Pick<LineUp, RunStage>): string | null {
-  let host: string | null = null;
-  for (const stage of RUN_STAGES) {
-    const option = optionFor(lineUp, stage);
-    if (!option || (host !== null && option.host !== host)) return null;
-    host = option.host;
-  }
-  return host;
-}
-
-/**
  * Whether more than one host serves these stages: a run on two services. Every option is a host of its own, so
  * this device with Bing and Edge is a run on three; an id the catalog does not know is a host of its own.
  */
@@ -124,9 +110,9 @@ export function severalHosts(stages: StageIds): boolean {
 }
 
 /**
- * Whether a provider's own line-up runs these stages: each names an option that serves it, and the host of every
- * one is a host of `hostDefaults(provider)`. For this device that is itself with Bing and Edge (its free
- * line-up); for another provider, the provider alone.
+ * Whether these stages are a provider's own line-up: each names an option that serves it, and that option's host is
+ * the provider; for `local_inference` alone it is also Bing or Edge (its free line-up: this device with Bing and
+ * Edge). For any other provider, the provider alone.
  */
 export function belongsTo(stages: Pick<LineUp, RunStage>, provider: string): boolean {
   const hosts = new Set<string>(provider === 'local_inference' ? RUN_STAGES.map((stage) => caps(hostDefaults(provider)[stage]!)?.host ?? provider) : [provider]);

@@ -33,7 +33,7 @@ export interface LineUp {
 export interface ProviderCaps {
   id: string;
   stages: readonly RunStage[];
-  /** The provider definition that runs this option: itself, or `local_inference` for `bing` and `edge`. */
+  /** The provider definition that runs this option: itself: every option is a host of its own. */
   host: string;
   /**
    * The stages one connection of it carries together and never apart; choosing it for one of them chooses it for

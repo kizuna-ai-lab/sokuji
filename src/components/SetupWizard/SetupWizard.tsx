@@ -49,7 +49,7 @@ function stagesOf(provider: string): { transcription: string; translation: strin
 
 /**
  * The provider and path of the stored line-up; 'not-offered' when the wizard cannot offer it for the stored scenario
- * (no single provider runs it, the wizard has no card for it, or its card is greyed for that scenario); null when no
+ * (no one provider's own line-up is it, the wizard has no card for it, or its card is greyed for that scenario); null when no
  * line-up is stored.
  */
 function lineUpInUse(scenario: ScenarioId | null): { provider: string; providerPath: ProviderPath } | 'not-offered' | null {

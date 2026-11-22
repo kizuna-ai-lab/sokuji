@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { allStagesBy, belongsTo, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, soleHost, stageIdsFor } from './catalog';
-import { oldRunOf } from './oldRules.testing';
+import { allStagesBy, belongsTo, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, stageIdsFor } from './catalog';
 import type { LineUp, RunStage } from './types';
 
 describe('the line-up catalog', () => {
@@ -103,41 +102,6 @@ describe('the option a stage names', () => {
     expect(optionFor(L(null, 'bing', 'edge'), 'transcription')).toBeUndefined();
     expect(optionFor(L('nope', 'bing', 'edge'), 'transcription')).toBeUndefined();
     expect(optionFor(L('bing', 'bing', 'edge'), 'transcription')).toBeUndefined();
-  });
-});
-
-describe('the sole host of a line-up', () => {
-  it('runs a line-up whose options share one host on that host', () => {
-    expect(soleHost(L('soniox', 'soniox', 'soniox'))).toBe('soniox');
-  });
-
-  it('does not run local, Bing and Edge on one host any more: each is its own', () => {
-    expect(soleHost(L('local_inference', 'bing', 'edge'))).toBeNull();
-  });
-
-  it('refuses a line-up of several hosts, one with a stage unset, and one that splits a joint group', () => {
-    expect(soleHost(L('soniox', 'soniox', 'edge'))).toBeNull();
-    // Soniox transcribing for another translator is a run on two hosts.
-    expect(soleHost(L('soniox', 'bing', 'soniox'))).toBeNull();
-    expect(soleHost(L('local_inference', null, 'edge'))).toBeNull();
-    expect(soleHost(L('openai_live', 'openai_live', 'local_inference'))).toBeNull();
-  });
-
-  it("runs every host's defaults on that host, where the host serves every stage; a host of one stage, and this device with its Bing and Edge, run on several", () => {
-    for (const host of new Set(CAPS.map((c) => c.host))) {
-      const whole = CAPS.filter((c) => c.host === host).some((c) => c.stages.length === 3) && host !== 'local_inference';
-      expect(soleHost(hostDefaults(host)), host).toBe(whole ? host : null);
-      if (!whole) expect(severalHosts(hostDefaults(host) as Record<RunStage, string>), host).toBe(true);
-    }
-  });
-
-  it('equals the old run rule for every triple of ids in the catalog, and an unset stage', () => {
-    const ids = [...CAPS.map((c) => c.id), null];
-    for (const transcription of ids) for (const translation of ids) for (const speech of ids) {
-      const old = oldRunOf({ transcription, translation, speech, summarisation: null });
-      const l = JSON.stringify({ transcription, translation, speech });
-      expect(soleHost({ transcription, translation, speech }), l).toBe(old.ok ? old.provider : null);
-    }
   });
 });
 

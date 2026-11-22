@@ -9,6 +9,9 @@ import { stubProvider, textAndSpeechPlan } from './testing';
 import { isRefusal, PLAN_REFUSAL_CODES } from './types';
 import type { PlannedUnit, RunPlan, UnitCapabilities } from './types';
 import { wholePlan } from './wholeUnit';
+import { bingProvider } from '../../providers/bing/provider';
+import { edgeProvider } from '../../providers/edge/provider';
+import { localInferenceProvider } from '../../providers/localInference/provider';
 
 const options = (transcription: string, speech: string, translation = transcription) => ({ transcription: caps(transcription)!, translation: caps(translation)!, speech: caps(speech)! });
 
@@ -16,7 +19,7 @@ describe('the catalog says which voices stand alone and which text sides take an
   it("a voice alone: Kizuna AI's Soniox, Soniox with an own key, Edge and this device", () => {
     expect(CAPS.filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'soniox']);
   });
-  it("another voice is taken by Kizuna AI's Soniox, Soniox and this device (Bing and Edge are providers of their own and take none)", () => {
+  it("another voice is taken by Kizuna AI's Soniox, Soniox and this device (Bing only translates, so it is never asked)", () => {
     expect(CAPS.filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'local_inference', 'soniox']);
   });
 });
@@ -203,7 +206,8 @@ describe('the checks that need the run', () => {
 
 describe('the checks that need the run, where another unit translates what one heard', () => {
   const unitOf = (id: string, stages: RunStage[], capabilities: Partial<UnitCapabilities>): PlannedUnit => {
-    const [whole] = wholePlan(stubProvider(id)).units;
+    // Soniox is a provider with a unit for transcription with translation that runs face-to-face.
+    const [whole] = wholePlan(stubProvider(id, id === 'soniox' ? { faceToFace: true } : {})).units;
     return { ...whole, unit: { ...whole.unit, capabilities: (s) => ({ ...whole.unit.capabilities(s), ...capabilities }) }, stages };
   };
   const pairs = new Set(['en>ja', 'ja>en', 'en>fr']);
@@ -247,6 +251,28 @@ describe('the checks that need the run, where another unit translates what one h
 
   it("judges nothing while the translation provider's account has not loaded", () => {
     expect(checkPlan(apart(), { accounts: { soniox: { settings: undefined } }, contexts: { speaker: leg('en', 'de') } })).toBeNull();
+  });
+
+  it('face-to-face asked of this device with Bing: not refused, "beside me" stays ordinary Both as before (this device never offered it)', () => {
+    const settings = (id: string) => (id === 'local_inference' ? localInferenceProvider.settings.defaults : id === 'edge' ? edgeProvider.settings.defaults : bingProvider.settings.defaults);
+    const providers = [localInferenceProvider, bingProvider, edgeProvider] as never[];
+    const accounts = Object.fromEntries(['local_inference', 'bing', 'edge'].map((id) => [id, { settings: settings(id) }]));
+    for (const speech of ['edge', 'local_inference']) {
+      const plan = compose({ transcription: 'local_inference', translation: 'bing', speech }, { providers, settings }) as RunPlan;
+      expect(isRefusal(plan)).toBe(false);
+      expect(plan.byStage.transcription).not.toBe(plan.byStage.translation);
+      expect(checkPlan(plan, { accounts, contexts: { speaker: leg('en', 'ja'), participant: leg('ja', 'en') }, faceToFaceAsked: true })).toBeNull();
+    }
+  });
+
+  it('a pair Bing does not translate is refused on this device with Bing and Edge: the offer narrows to Bing\'s pairs, as with Soniox, and no local model runs in its place', () => {
+    const settings = (id: string) => (id === 'local_inference' ? localInferenceProvider.settings.defaults : id === 'edge' ? edgeProvider.settings.defaults : bingProvider.settings.defaults);
+    const accounts = Object.fromEntries(['local_inference', 'bing', 'edge'].map((id) => [id, { settings: settings(id) }]));
+    const plan = compose({ transcription: 'local_inference', translation: 'bing', speech: 'edge' }, { providers: [localInferenceProvider, bingProvider, edgeProvider] as never[], settings }) as RunPlan;
+    const lineUp = { translation: 'bing' };
+    expect(checkPlan(plan, { accounts, contexts: { speaker: leg('en', 'ja') }, lineUp })).toBeNull();
+    const refused = [['en', 'kn'], ['en', 'gu'], ['en', 'am'], ['en', 'ka']].map(([source, target]) => checkPlan(plan, { accounts, contexts: { speaker: leg(source, target) }, lineUp }));
+    expect(refused.map((r) => r?.refused ?? null)).toEqual(['lineup_pair_not_translated', 'lineup_pair_not_translated', 'lineup_pair_not_translated', 'lineup_pair_not_translated']);
   });
 
   it('face-to-face asked where the unit that transcribes alone cannot run it: refused, named by the option that transcribes, before the pair', () => {
