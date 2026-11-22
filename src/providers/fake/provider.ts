@@ -3,6 +3,7 @@ import type { Adapter, AdapterEvents, AdapterSession, SessionContext, StartReque
 import { identityWire } from '../../lib/language/wire';
 import { AUTO } from '../../lib/provider/languages';
 import type { CheckResult, LanguageOption, Provider, ProviderRefusal, SharedSettings } from '../../lib/provider/types';
+import type { WholeUnitParts } from '../../lib/plan/wholeUnit';
 import { createFakeAdapter, type FakeConfig, type FakeCredentials } from './adapter';
 import { FakeSettingsView } from './FakeSettingsView';
 import { fakeScript } from './scripts';
@@ -55,6 +56,17 @@ export function startFake<C extends FakeConfig, K>(request: StartRequest<C, K>, 
   return (adapter ??= createFakeAdapter()).start(request as unknown as StartRequest<FakeConfig, FakeCredentials>, events);
 }
 
+/** The fake's whole unit, as parts: the definition spreads them, and Task 3 makes its unit of them. */
+export const FAKE_WHOLE: WholeUnitParts<FakeSettings, FakeCredentials, FakeConfig> = {
+  speech: 'optional',
+  textInput: () => true,
+  boundaries: () => 'provider',
+  turns: () => ['auto', 'manual'],
+  build: buildFake,
+  describe: describeFake,
+  start: startFake,
+};
+
 /**
  * The fake provider (D24): a real definition, compiled into development builds
  * only, whose adapter plays a timed script. Its settings pick the script and
@@ -81,12 +93,5 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
 
   languages: FAKE_LANGUAGES,
 
-  speech: 'optional',
-  textInput: () => true,
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-
-  build: buildFake,
-  describe: describeFake,
-  start: startFake,
+  ...FAKE_WHOLE,
 };

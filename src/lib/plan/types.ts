@@ -12,7 +12,7 @@ import type { AnyProvider, ProviderRefusal, SharedSettings } from '../provider/t
 
 /**
  * What a unit can do under its settings, in the words generic code reads.
- * A member may be computed when read (a whole-provider unit asks its provider each time), so generic code reads
+ * A member may be computed when read (a whole unit asks its parts each time), so generic code reads
  * the member it needs and never spreads or serialises the object.
  */
 export interface UnitCapabilities {
@@ -42,7 +42,7 @@ export interface UnitCapabilities {
  * `any` by default: units of different providers are held together, so their settings, key and config types are erased, as `AnyProvider` does.
  */
 export interface UnitDefinition<S = any, K = any, C = any> {
-  /** 'whole' in step 1. */
+  /** `'whole'`: a unit that is a whole session (`wholeUnitOf`). */
   id: string;
   /**
    * The stages this unit occupies when asked for `want`, or null when it cannot serve exactly that.
