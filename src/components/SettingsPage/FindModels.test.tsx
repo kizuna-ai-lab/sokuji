@@ -3,7 +3,7 @@
  * says what it found, that it lists none, or why not, in the service's words.
  */
 import { describe, it, expect, afterEach, beforeEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import '../../locales';
 import type { TextModelRequestInit, TextModelTransport } from '../../lib/textModel/client';
 import { forgetTextModelLists } from '../../lib/textModel/modelList';
@@ -41,6 +41,43 @@ describe('finding a compatible service\'s models', () => {
     render(<FindModels service="compatible" credentials={{ baseUrl: 'https://api.example.com/v1', apiKey: 'test-key-0000' }} transport={refused.transport} />);
     fireEvent.click(screen.getByRole('button', { name: 'Find models' }));
     expect(await screen.findByRole('status')).toHaveTextContent('The provider did not accept the credentials: Invalid API key.');
+  });
+
+  // Review of #853: what was found is the address's and the key's it was asked with.
+  it('another address or key lets what was found go; asked again, it is found anew', async () => {
+    const s = service(200, { data: [{ id: 'deepseek-chat' }, { id: 'deepseek-reasoner' }] });
+    const view = (baseUrl: string, apiKey: string) => <FindModels service="compatible" credentials={{ baseUrl, apiKey }} transport={s.transport} />;
+    const { rerender } = render(view('https://api.example.com/v1', 'test-key-0000'));
+    fireEvent.click(screen.getByRole('button', { name: 'Find models' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('2 models available');
+    rerender(view('https://api.example.org/v1', 'test-key-0000'));
+    expect(screen.queryByRole('status')).toBeNull();
+    // Back to the address before: what was found then is not shown again unasked.
+    rerender(view('https://api.example.com/v1', 'test-key-0000'));
+    expect(screen.queryByRole('status')).toBeNull();
+    rerender(view('https://api.example.com/v1', 'test-key-0001'));
+    expect(screen.queryByRole('status')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Find models' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('2 models available');
+    expect(s.sent.map((r) => r.init.headers.Authorization)).toEqual(['Bearer test-key-0000', 'Bearer test-key-0001']);
+  });
+
+  it('an answer for the address before, come after the one asked since, is not shown', async () => {
+    const waiting = new Map<string, () => void>();
+    const transport: TextModelTransport = (url) => new Promise((resolve) => {
+      const ids = url.includes('example.com') ? ['old-model'] : ['new-model'];
+      waiting.set(url, () => resolve({ status: 200, text: async () => JSON.stringify({ data: ids.map((id) => ({ id })) }) }));
+    });
+    const view = (baseUrl: string) => <FindModels service="compatible" credentials={{ baseUrl, apiKey: '' }} transport={transport} />;
+    const { rerender } = render(view('https://api.example.com/v1'));
+    fireEvent.click(screen.getByRole('button', { name: 'Find models' }));
+    rerender(view('https://api.example.org/v1'));
+    // The address changed while the first was on its way: it can be asked at once.
+    fireEvent.click(screen.getByRole('button', { name: 'Find models' }));
+    await act(async () => { waiting.get('https://api.example.org/v1/models')!(); });
+    expect(await screen.findByRole('status')).toHaveTextContent('1 models available: new-model');
+    await act(async () => { waiting.get('https://api.example.com/v1/models')!(); });
+    expect(screen.getByRole('status')).toHaveTextContent('1 models available: new-model');
   });
 
   it('cannot be asked without an address, or during a session', () => {
