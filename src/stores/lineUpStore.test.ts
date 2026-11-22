@@ -242,6 +242,27 @@ describe('the line-up store', () => {
     }
   });
 
+  // A run freezes the line-up it started with: a scan that ends during the run shows nothing until the run is over.
+  it.each(['unlock', 'superseded'] as const)('a stored value this build cannot read, under this device: a scan that ends during a run waits for the run (%s)', async (how) => {
+    model.resolved = { translation: 'hy-mt15-1.8b-translation', tts: 'edge-tts' };
+    stored.set(PROVIDER_KEY, 'local_inference');
+    stored.set(LINEUP_KEY, { version: 3, stages: soniox });
+    useProviderStore.setState({ entries: { local_inference: localEntry } as never });
+    let finishScan!: () => void;
+    model.scan = new Promise<void>((resolve) => { finishScan = resolve; });
+    await useLineUpStore.getState().load();
+    const defaults = useLineUpStore.getState().lineUp;
+    useLineUpStore.getState().setLocked(true);
+    finishScan();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(useLineUpStore.getState().lineUp).toBe(defaults);
+    if (how === 'superseded') useLineUpStore.setState({ unstoredProvider: 'openai' });
+    const shown = useLineUpStore.getState().lineUp;
+    useLineUpStore.getState().setLocked(false);
+    if (how === 'unlock') expect(useLineUpStore.getState().lineUp).toEqual({ transcription: 'local_inference', translation: 'local_inference', speech: 'edge', summarisation: null });
+    else expect(useLineUpStore.getState().lineUp).toBe(shown);
+  });
+
   it('with nothing stored and a provider this build does not offer, the first offered provider runs, and the stored id stays', async () => {
     // OpenAI Compatible is retired: no build offers it whole. Its id is now a text model's, which only translates
     // another provider's transcription, so a stored selection of it does not run either.

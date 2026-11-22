@@ -226,8 +226,15 @@ export const useLineUpStore = create<LineUpStore>()((set, get) => {
       set({ lineUp: shownFor(provider), stored: false, unstoredProvider: provider });
       if (provider === 'local_inference') {
         workOutLocal(provider, (lineUp) => {
-          // What runs may have changed during the waits: as `migrate`, only for the provider this started for.
-          if (!superseded(provider)) set({ lineUp, stored: false });
+          // What runs may have changed during the waits: as `migrate`, only for the provider this started for. A run
+          // froze the line-up shown: the result waits, once, for the run to end, and is checked again then.
+          const apply = () => { if (!superseded(provider)) set({ lineUp, stored: false }); };
+          if (!get().locked) { apply(); return; }
+          const unsubscribe = useLineUpStore.subscribe((state) => {
+            if (state.locked) return;
+            unsubscribe();
+            apply();
+          });
         });
       }
       return;
