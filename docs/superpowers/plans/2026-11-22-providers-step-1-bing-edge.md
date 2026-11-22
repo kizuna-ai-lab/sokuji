@@ -40,6 +40,7 @@ The code inventory with file:line references is `docs/superpowers/plans/2026-11-
 5. In every two-unit text + speech plan, a speech error is filed under the speech unit's provider, not only for Edge. For example, Soniox with a local voice reports `local_inference`.
 6. The plain-text history export's `Provider:` line names each stage for such a session (`transcription=…, translation=…, speech=…`).
 7. A session run before a line-up is stored records the line-up that ran (`bing` / `edge` in history `services.stages` and analytics `stages`), not `local_inference` on every stage.
+8. Edge speaks Norwegian (`no`) with a Bokmål voice and offers Bokmål voices on its card. Before, local + Bing + Edge read Norwegian with Edge's default multilingual voice, and Soniox + Edge refused a Norwegian target.
 
 ## Review Focus
 
