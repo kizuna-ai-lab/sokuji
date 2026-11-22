@@ -9,7 +9,6 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
 vi.mock('../../utils/supportsBaseSelect', () => ({ supportsBaseSelect: () => false }));
 vi.mock('../providers/ProviderLanguages', () => ({ ProviderLanguages: () => <div id="languages-section" /> }));
 vi.mock('../Settings/sections/SpeechSection', () => ({ SpeechSection: () => <div id="turn-detection-section" /> }));
-vi.mock('./EdgeVoices', () => ({ EdgeVoices: () => <div id="edge-voices-section" /> }));
 vi.mock('./LocalVoices', () => ({ LocalVoices: () => <div id="local-voices-section" /> }));
 vi.mock('../providers/ProviderOwnSettings', () => ({
   ProviderEngine: () => <div id="model-management-section" />,

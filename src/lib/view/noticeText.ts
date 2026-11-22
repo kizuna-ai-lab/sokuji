@@ -21,8 +21,6 @@ const LANGUAGE_PARAMS = new Set(['source', 'target', 'language']);
 
 /** The English of a line-up stage, where a catalog lacks it. */
 const STAGE_NAMES: Readonly<Record<string, string>> = { transcription: 'Transcription', translation: 'Translation', speech: 'Speech' };
-/** The names of the two options no provider definition carries: they run on this device's provider. */
-const OPTION_NAMES: Readonly<Record<string, string>> = { bing: 'Bing', edge: 'Edge' };
 
 /**
  * A refusal of the line-up names a stage and a service the way the line-up page does: the stage as it reads
@@ -33,7 +31,7 @@ function lineUpNamed(t: TFunction, params: Record<string, string | number>): Rec
   const { stage, provider, vendor } = params;
   if (typeof stage === 'string') out.stage = stageInSentence(String(t(`settingsPage.lineup.stages.${stage}`, { defaultValue: STAGE_NAMES[stage] ?? stage })), i18next.language ?? 'en');
   if (typeof provider === 'string') {
-    const name = String(t(`providers.${provider}.name`, { defaultValue: OPTION_NAMES[provider] ?? provider }));
+    const name = String(t(`providers.${provider}.name`, { defaultValue: provider }));
     out.provider = typeof vendor === 'string' && vendor !== '' ? `${name} (${vendor})` : name;
   }
   return out;

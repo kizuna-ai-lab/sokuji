@@ -14,6 +14,9 @@ vi.mock('../../lib/edge-tts/voiceList', async (importOriginal) => ({
 }));
 const preview = vi.hoisted(() => ({ make: vi.fn(async () => ({ audio: new Float32Array(1), sampleRate: 24000 })), play: vi.fn(async () => {}), stop: vi.fn() }));
 vi.mock('../../lib/edge-tts/preview', () => ({ previewEdgeVoice: preview.make }));
+// The app's voice-preview route, as the line-up page hands it to every provider's own settings.
+const appPreview = vi.hoisted(() => ({ play: vi.fn(async () => {}), stop: vi.fn() }));
+vi.mock('../../app/voicePreview', () => ({ appVoicePreview: appPreview }));
 
 import '../../locales';
 import { EdgeSettingsView } from './EdgeSettings';
@@ -22,6 +25,7 @@ import { EDGE_DEFAULTS, type EdgeSettings } from './settings';
 import { useProviderStore } from '../../stores/providerStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
+import { ProviderOwnSettings } from '../../components/providers/ProviderOwnSettings';
 
 function given(o: { voices?: Record<string, string>; legs?: string[]; participantSpeech?: boolean } = {}) {
   runsOn('local_inference');
@@ -45,6 +49,7 @@ beforeEach(() => {
   list.fail = false;
   list.voices = [voice('en-US-AvaNeural'), voice('en-US-AndrewNeural', 'Male'), voice('ja-JP-NanamiNeural'), voice('ja-JP-KeitaNeural', 'Male')];
   preview.make.mockClear(); preview.play.mockClear(); preview.stop.mockClear();
+  appPreview.play.mockClear(); appPreview.stop.mockClear();
   given();
 });
 afterEach(() => { cleanup(); useLineUpStore.setState({ lineUp: null, stored: false }); });
@@ -132,6 +137,19 @@ describe("Edge's settings", () => {
     const theirs = await screen.findByRole('combobox', { name: 'Translation the other side hears (English)' });
     await waitFor(() => expect(theirs).toBeDisabled());
     expect(within(theirs).getByRole('option')).toHaveTextContent(/Failed to load voices/);
+  });
+
+  // The line-up's speech card draws Edge's own settings as it draws every provider's (`ProviderOwnSettings`), handing
+  // them the app's preview route: Edge cannot import it (the registry must not reach the plan's stores).
+  it("drawn as the line-up's speech card draws a provider's own settings, plays the sample through the app's preview route", async () => {
+    given({ voices: { 'ja→en': 'en-US-AvaNeural' } });
+    render(<ProviderOwnSettings providers={[edgeProvider]} providerId="edge" auth={{ signedIn: false, getToken: async () => null }} />);
+    const key = await screen.findByRole('button', { name: 'Preview Translation the other side hears (English)' });
+    await waitFor(() => expect(key).toBeEnabled());
+    fireEvent.click(key);
+    await waitFor(() => expect(appPreview.play).toHaveBeenCalled());
+    expect(preview.make).toHaveBeenCalledWith('en-US-AvaNeural', 'en', expect.anything());
+    expect(document.getElementById('edge-voices-section')).not.toBeNull();
   });
 
   it('is locked during a session', async () => {

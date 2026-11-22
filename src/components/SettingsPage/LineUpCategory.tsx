@@ -45,7 +45,6 @@ import { KizunaOpenAIIcon } from '../Icons/ProviderIcons';
 import { SettingsStage, cardOptions, useStageList } from '../providers/stageParts';
 import { useAuthContext } from '../providers/useAuthContext';
 import { SpeechSection } from '../Settings/sections/SpeechSection';
-import { EdgeVoices } from './EdgeVoices';
 import { asSonioxRegion, SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
 import { LocalVoices } from './LocalVoices';
 import { providerTarget } from './accountRows';
@@ -159,13 +158,6 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     for (const p of providers) if (p.kind === 'own-key' && !useProviderStore.getState().entries[p.id]) void useProviderStore.getState().load(p);
   }, [providers]);
 
-
-  const offered = useMemo(() => {
-    const ids = new Set(providers.map((p) => p.id));
-    if (ids.has('local_inference')) { ids.add('bing'); ids.add('edge'); }
-    return ids;
-  }, [providers]);
-
   const stageName = (s: StageName) => stageInSentence(t(`settingsPage.lineup.stages.${s}`, STAGE_TITLES[s as RunStage] ?? s), i18n?.language ?? 'en');
 
   // What the composer is asked with for a choice not made yet: what the store asks it with when the choice is made.
@@ -188,10 +180,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   };
 
   const optionsFor = (stage: RunStage): ProviderOptionModel[] => {
-    return providers.flatMap((p) => (p.id === 'local_inference' ? [p.id, 'bing', 'edge'] : [p.id]))
-      .filter((id) => offered.has(id) && caps(id)?.stages.includes(stage))
-      .map((id) => {
-        const p = providers.find((x) => x.id === id);
+    return providers.filter((p) => caps(p.id)?.stages.includes(stage))
+      .map((p) => {
+        const id = p.id;
         const m = model(id, p);
         // A service not set up yet stays a choice (owner, 2026-11-22): it says what it needs, its card leads to where
         // that is set up, and Start waits for it. Hiding it would hide what the app offers from a user with no keys yet.
@@ -298,12 +289,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     if (target) navigateToSettings(null);
   };
 
-  // Each card's options (mock v19): the host serving the card's stage (Bing and Edge run on this device's
-  // provider), and the stages that host serves; Bing has no options.
+  // Each card's options (mock v19): the host serving the card's stage, and the stages that host serves. A provider
+  // with no options (Bing) declares none (`optionStages`), and its card has no fold.
   const hostOf = (id: string) => caps(id)?.host ?? id;
   const ownerOf = (stage: RunStage): string | null => {
     const id = lineUp?.[stage];
-    return !id || id === 'bing' ? null : hostOf(id);
+    return id ? hostOf(id) : null;
   };
   const servedBy = (owner: string) => RUN_STAGES.filter((s) => ownerOf(s) === owner);
   const optionsOf = (stage: RunStage) => {
@@ -348,16 +339,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
           <div className="lineup-stage__options-body">
             {o.provider.optionStages ? (
               <SettingsStage stage={stage} served={o.served}>
-                {/* Edge speaking: its voices, not the engine's speech slot, whose models do not run. */}
-                {stage === 'speech' && id === 'edge' ? <EdgeVoices disabled={locked} /> : (
-                  <>
-                    <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
-                      initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}
-                      onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
-                    {/* This device speaking: its voices under its speech model (B-20, out of the old model library). */}
-                    {stage === 'speech' && id === 'local_inference' && <LocalVoices disabled={locked} />}
-                  </>
-                )}
+                <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
+                  initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}
+                  onInitialSlotConsumed={() => setEngineSlotTarget(null)} />
+                {/* This device speaking: its voices under its speech model (B-20, out of the old model library). */}
+                {stage === 'speech' && id === 'local_inference' && <LocalVoices disabled={locked} />}
+                {/* Edge speaking: its voices and speed are its own settings (`#edge-voices-section`, the `edge-voices` target). */}
                 <ProviderOwnSettings providers={providers} providerId={o.owner} auth={auth} disabled={locked} />
                 {stage === 'transcription' && <ProviderTurnDetectionControls providers={providers} providerId={o.owner} disabled={locked} />}
               </SettingsStage>
@@ -400,9 +387,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work, or a sign-in it waits for, takes you to
    *  that provider's row in Accounts and keys. `own`: a readiness of the card's own in place of the provider's (the notes'). */
   const stateOf = (id: string, own?: Readiness): { ok: boolean; text: string; toAccount?: boolean } => {
-    const p = providers.find((x) => x.id === id) ?? (caps(id)?.host === 'local_inference' ? providers.find((x) => x.id === 'local_inference') : undefined);
-    // Bing and Edge are online services the local provider runs: no key and no model.
-    if (id === 'bing' || id === 'edge') return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
+    const p = providers.find((x) => x.id === id);
     const missing = credentialsMissing(p, auth.signedIn);
     if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toAccount: true };
     if (missing === 'address') return { ok: false, text: t('settingsPage.lineup.state.needsAddress', 'Needs an address'), toAccount: true };
@@ -431,6 +416,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
       // Never checked, or the check could not reach the service.
       return { ok: false, toAccount: true, text: t('settingsPage.lineup.state.keyNotVerified', 'Key not verified') };
     }
+    // Signed in, its models there, or an online service (Bing, Edge), whose check needs nothing and always says ready.
     return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
   };
   /**

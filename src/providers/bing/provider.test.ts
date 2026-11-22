@@ -23,6 +23,10 @@ describe('the Bing provider', () => {
     expect(bingProvider.units!.map((u) => u.id)).toEqual(['translation']);
   });
 
+  it('has no options: none acts on any stage, so its line-up card has no fold', () => {
+    expect(bingProvider.optionStages).toEqual([]);
+  });
+
   it('needs nothing to be ready', async () => {
     expect(await bingProvider.check({}, {}, ctx)).toEqual({ ok: true });
   });
