@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Adicione uma chave da OpenAI em «Contas e chaves» para que as notas sejam escritas.",
+      "notesNeedGeminiKey": "Adicione uma chave do Gemini em «Contas e chaves» para que as notas sejam escritas.",
+      "notesNeedAddress": "Adicione o endereço do serviço compatível em «Contas e chaves» para que as notas sejam escritas.",
       "alsoFiles": "Também transcreve ficheiros importados e registos novamente.",
       "wordsLeftOut": "Lista de palavras: {{count}} entradas acima do limite deste serviço ficam de fora.",
       "wordsUnused": "Lista de palavras: este modelo não a consegue usar.",

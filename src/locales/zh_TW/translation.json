@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}}（{{language}}）"
       },
       "notesNeedKey": "在「帳號與金鑰」裡新增 OpenAI 的金鑰，才能寫紀要。",
+      "notesNeedGeminiKey": "在「帳號與金鑰」裡新增 Gemini 的金鑰，才能寫紀要。",
+      "notesNeedAddress": "在「帳號與金鑰」裡新增相容服務的位址，才能寫紀要。",
       "alsoFiles": "也用於匯入檔案和重新轉寫。",
       "wordsLeftOut": "詞表：超出這個服務上限的 {{count}} 筆沒有傳送。",
       "wordsUnused": "詞表：這個型號用不上。",

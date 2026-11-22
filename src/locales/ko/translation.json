@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "메모를 작성하려면 ‘계정과 키’에서 OpenAI 키를 추가하세요.",
+      "notesNeedGeminiKey": "메모를 작성하려면 ‘계정과 키’에서 Gemini 키를 추가하세요.",
+      "notesNeedAddress": "메모를 작성하려면 ‘계정과 키’에서 호환 서비스의 주소를 추가하세요.",
       "alsoFiles": "가져온 파일과 기록을 다시 받아 적을 때도 씁니다.",
       "wordsLeftOut": "단어 목록: 이 서비스의 한도를 넘는 {{count}}개 항목은 빠집니다.",
       "wordsUnused": "단어 목록: 이 모델은 사용할 수 없습니다.",

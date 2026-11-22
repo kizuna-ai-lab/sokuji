@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Lisää OpenAI-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
+      "notesNeedGeminiKey": "Lisää Gemini-avain kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
+      "notesNeedAddress": "Lisää yhteensopivan palvelun osoite kohdassa ”Tilit ja avaimet”, niin muistiinpanot kirjoitetaan.",
       "alsoFiles": "Litteroi myös tuodut tiedostot ja tallenteet uudelleen.",
       "wordsLeftOut": "Sanalista: {{count}} merkintää tämän palvelun rajan yli jätetään pois.",
       "wordsUnused": "Sanalista: tämä malli ei voi käyttää sitä.",

@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Lägg till en OpenAI-nyckel under ”Konton och nycklar” så skrivs anteckningar.",
+      "notesNeedGeminiKey": "Lägg till en Gemini-nyckel under ”Konton och nycklar” så skrivs anteckningar.",
+      "notesNeedAddress": "Lägg till adressen till den kompatibla tjänsten under ”Konton och nycklar” så skrivs anteckningar.",
       "alsoFiles": "Transkriberar även importerade filer och poster igen.",
       "wordsLeftOut": "Ordlista: {{count}} poster över tjänstens gräns utelämnas.",
       "wordsUnused": "Ordlista: den här modellen kan inte använda den.",

@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}}（{{language}}）"
       },
       "notesNeedKey": "在“账号与密钥”里添加 OpenAI 的 key，才能写纪要。",
+      "notesNeedGeminiKey": "在“账号与密钥”里添加 Gemini 的 key，才能写纪要。",
+      "notesNeedAddress": "在“账号与密钥”里添加兼容服务的地址，才能写纪要。",
       "alsoFiles": "也用于导入文件和重新转写。",
       "wordsLeftOut": "词表：超出这个服务上限的 {{count}} 条没有发送。",
       "wordsUnused": "词表：这个型号用不上。",

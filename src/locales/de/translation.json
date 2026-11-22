@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Fügen Sie unter „Konten und Schlüssel“ einen OpenAI-Schlüssel hinzu, damit Notizen geschrieben werden.",
+      "notesNeedGeminiKey": "Fügen Sie unter „Konten und Schlüssel“ einen Gemini-Schlüssel hinzu, damit Notizen geschrieben werden.",
+      "notesNeedAddress": "Fügen Sie unter „Konten und Schlüssel“ die Adresse des kompatiblen Dienstes hinzu, damit Notizen geschrieben werden.",
       "alsoFiles": "Transkribiert auch importierte Dateien und Einträge erneut.",
       "wordsLeftOut": "Wortliste: {{count}} Einträge über der Grenze dieses Dienstes werden ausgelassen.",
       "wordsUnused": "Wortliste: Dieses Modell kann sie nicht nutzen.",

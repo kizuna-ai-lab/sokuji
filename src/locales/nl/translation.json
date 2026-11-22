@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Voeg een OpenAI-sleutel toe bij ‘Accounts en sleutels’ om notities te laten schrijven.",
+      "notesNeedGeminiKey": "Voeg een Gemini-sleutel toe bij ‘Accounts en sleutels’ om notities te laten schrijven.",
+      "notesNeedAddress": "Voeg het adres van de compatibele dienst toe bij ‘Accounts en sleutels’ om notities te laten schrijven.",
       "alsoFiles": "Transcribeert ook geïmporteerde bestanden en verslagen opnieuw.",
       "wordsLeftOut": "Woordenlijst: {{count}} items boven de grens van deze dienst worden weggelaten.",
       "wordsUnused": "Woordenlijst: dit model kan hem niet gebruiken.",

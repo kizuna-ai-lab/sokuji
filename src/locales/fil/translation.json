@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Magdagdag ng OpenAI key sa “Mga account at key” para maisulat ang mga tala.",
+      "notesNeedGeminiKey": "Magdagdag ng Gemini key sa “Mga account at key” para maisulat ang mga tala.",
+      "notesNeedAddress": "Idagdag ang address ng compatible na serbisyo sa “Mga account at key” para maisulat ang mga tala.",
       "alsoFiles": "Nagta-transcribe din ng mga na-import na file at muli ng mga rekord.",
       "wordsLeftOut": "Listahan ng salita: {{count}} entry na lampas sa limitasyon ng serbisyong ito ang hindi isinasama.",
       "wordsUnused": "Listahan ng salita: hindi ito magagamit ng model na ito.",

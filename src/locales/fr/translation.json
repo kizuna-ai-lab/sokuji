@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Ajoutez une clé OpenAI dans « Comptes et clés » pour que les notes soient rédigées.",
+      "notesNeedGeminiKey": "Ajoutez une clé Gemini dans « Comptes et clés » pour que les notes soient rédigées.",
+      "notesNeedAddress": "Ajoutez l’adresse du service compatible dans « Comptes et clés » pour que les notes soient rédigées.",
       "alsoFiles": "Transcrit aussi les fichiers importés et à nouveau les enregistrements.",
       "wordsLeftOut": "Liste de mots : {{count}} entrées au-delà de la limite de ce service sont laissées de côté.",
       "wordsUnused": "Liste de mots : ce modèle ne peut pas l’utiliser.",

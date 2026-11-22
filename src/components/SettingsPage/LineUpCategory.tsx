@@ -699,6 +699,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
             )}
             {/* Where OpenAI would write them and has no key. */}
             {notesService === OPENAI_NOTES && !openAiKeyed && !kizunaOffered && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedKey', 'Add an OpenAI key in Accounts and keys to have notes written.')}</p>}
+            {/* Gemini's text model or a compatible service without what it needs: the notes service only by choice. */}
+            {notesService === GEMINI_NOTES && notesMissing === 'key' && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedGeminiKey', 'Add a Gemini key in Accounts and keys to have notes written.')}</p>}
+            {notesService === COMPATIBLE_NOTES && notesMissing === 'address' && <p className="lineup-stage__joint">{t('settingsPage.lineup.notesNeedAddress', "Add the compatible service's address in Accounts and keys to have notes written.")}</p>}
             {/* Signed out where Kizuna AI writes the notes: chosen on purpose, adding a key does not change the choice, so
                 the line says to choose OpenAI here too (review); by default, a key is enough. */}
             {kizunaOffered && !auth.signedIn && (lineUp?.summarisation === KIZUNA_NOTES

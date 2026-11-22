@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Dodaj klucz OpenAI w „Konta i klucze”, aby notatki były pisane.",
+      "notesNeedGeminiKey": "Dodaj klucz Gemini w „Konta i klucze”, aby notatki były pisane.",
+      "notesNeedAddress": "Dodaj adres zgodnej usługi w „Konta i klucze”, aby notatki były pisane.",
       "alsoFiles": "Transkrybuje też zaimportowane pliki i ponownie zapisy.",
       "wordsLeftOut": "Lista słów: {{count}} wpisów ponad limit tej usługi zostaje pominiętych.",
       "wordsUnused": "Lista słów: ten model nie może z niej korzystać.",

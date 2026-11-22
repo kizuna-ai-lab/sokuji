@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Añade una clave de OpenAI en «Cuentas y claves» para que se escriban las notas.",
+      "notesNeedGeminiKey": "Añade una clave de Gemini en «Cuentas y claves» para que se escriban las notas.",
+      "notesNeedAddress": "Añade la dirección del servicio compatible en «Cuentas y claves» para que se escriban las notas.",
       "alsoFiles": "También transcribe los archivos importados y vuelve a transcribir registros.",
       "wordsLeftOut": "Lista de palabras: se omiten {{count}} entradas que superan el límite de este servicio.",
       "wordsUnused": "Lista de palabras: este modelo no puede usarla.",

@@ -1579,9 +1579,29 @@ describe('the notes card', () => {
     useProviderStore.setState({ entries: { openai_compatible: { settings: TEXT_MODEL_DEFAULTS, credentials: { baseUrl: '', apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never });
     render(<LineUpCategory locked={false} />);
     expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('openai_compatible');
+    // Review: the card says how to have notes written, as it does for OpenAI with no key.
+    expect(within(notesCard()).getByText("Add the compatible service's address in Accounts and keys to have notes written.")).toBeInTheDocument();
     fireEvent.click(within(notesCard()).getByRole('button', { name: 'Needs an address' }));
     expect(useSettingsStore.getState().settingsNavigationTarget).toBe('provider:openai_compatible');
     expect(notesCheck.asked).toEqual([]);
+    cleanup();
+    useProviderStore.setState({ entries: { openai_compatible: { settings: TEXT_MODEL_DEFAULTS, credentials: { baseUrl: 'http://localhost:11434/v1', apiKey: '' }, pair: { source: 'ja', target: 'en' } } } as never });
+    render(<LineUpCategory locked={false} />);
+    expect(within(notesCard()).queryByText(/address in Accounts and keys/)).toBeNull();
+  });
+
+  // Review: Gemini's text model chosen with no key said so by its state alone.
+  it("Gemini's text model chosen with no key: needs a key, and the card says where to add one", () => {
+    useLineUpStore.setState({ lineUp: { ...soniox, summarisation: 'gemini_text' }, stored: true });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.getByRole('combobox', { name: 'Notes' })).toHaveValue('gemini_text');
+    expect(within(notesCard()).getByRole('button', { name: 'Needs a key' })).toBeInTheDocument();
+    expect(within(notesCard()).getByText('Add a Gemini key in Accounts and keys to have notes written.')).toBeInTheDocument();
+    expect(within(notesCard()).queryByText(/OpenAI key/)).toBeNull();
+    cleanup();
+    geminiKey();
+    render(<LineUpCategory locked={false} />);
+    expect(within(notesCard()).queryByText(/Gemini key in Accounts/)).toBeNull();
   });
 
   it("folds the service's notes model and reasoning under the choice: Automatic and Medium by default, a choice its own", async () => {

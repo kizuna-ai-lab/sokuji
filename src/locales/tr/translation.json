@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Notların yazılması için “Hesaplar ve anahtarlar” bölümünde bir OpenAI anahtarı ekleyin.",
+      "notesNeedGeminiKey": "Notların yazılması için “Hesaplar ve anahtarlar” bölümünde bir Gemini anahtarı ekleyin.",
+      "notesNeedAddress": "Notların yazılması için “Hesaplar ve anahtarlar” bölümünde uyumlu hizmetin adresini ekleyin.",
       "alsoFiles": "İçe aktarılan dosyaları ve kayıtları yeniden yazıya döker.",
       "wordsLeftOut": "Kelime listesi: bu hizmetin sınırını aşan {{count}} giriş dışarıda kalır.",
       "wordsUnused": "Kelime listesi: bu model kullanamaz.",

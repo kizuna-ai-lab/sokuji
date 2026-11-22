@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Add an OpenAI key in Accounts and keys to have notes written.",
+      "notesNeedGeminiKey": "Add a Gemini key in Accounts and keys to have notes written.",
+      "notesNeedAddress": "Add the compatible service's address in Accounts and keys to have notes written.",
       "alsoFiles": "Also transcribes imported files and records again.",
       "wordsLeftOut": "Word list: {{count}} entries over this service’s limit are left out.",
       "wordsUnused": "Word list: this model cannot use it.",

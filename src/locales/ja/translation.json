@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}}（{{language}}）"
       },
       "notesNeedKey": "メモを書くには「アカウントとキー」で OpenAI のキーを追加してください。",
+      "notesNeedGeminiKey": "メモを書くには「アカウントとキー」で Gemini のキーを追加してください。",
+      "notesNeedAddress": "メモを書くには「アカウントとキー」で互換サービスのアドレスを追加してください。",
       "alsoFiles": "取り込んだファイルの文字起こしと、記録の再文字起こしにも使います。",
       "wordsLeftOut": "単語リスト：このサービスの上限を超える {{count}} 件は送られません。",
       "wordsUnused": "単語リスト：このモデルでは使えません。",

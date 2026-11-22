@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Tambahkan kunci OpenAI di “Akun dan kunci” agar catatan ditulis.",
+      "notesNeedGeminiKey": "Tambahkan kunci Gemini di “Akun dan kunci” agar catatan ditulis.",
+      "notesNeedAddress": "Tambahkan alamat layanan yang kompatibel di “Akun dan kunci” agar catatan ditulis.",
       "alsoFiles": "Juga mentranskripsi file yang diimpor dan mentranskripsi ulang catatan.",
       "wordsLeftOut": "Daftar kata: {{count}} entri yang melebihi batas layanan ini tidak disertakan.",
       "wordsUnused": "Daftar kata: model ini tidak dapat memakainya.",

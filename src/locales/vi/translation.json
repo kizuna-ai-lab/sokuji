@@ -1919,6 +1919,8 @@
         "voiceFor": "{{who}} ({{language}})"
       },
       "notesNeedKey": "Thêm khóa OpenAI trong “Tài khoản và khóa” để ghi chú được viết.",
+      "notesNeedGeminiKey": "Thêm khóa Gemini trong “Tài khoản và khóa” để ghi chú được viết.",
+      "notesNeedAddress": "Thêm địa chỉ của dịch vụ tương thích trong “Tài khoản và khóa” để ghi chú được viết.",
       "alsoFiles": "Cũng chép lời tệp đã nhập và chép lời lại bản ghi.",
       "wordsLeftOut": "Danh sách từ: {{count}} mục vượt giới hạn của dịch vụ này bị bỏ qua.",
       "wordsUnused": "Danh sách từ: mô hình này không dùng được.",
