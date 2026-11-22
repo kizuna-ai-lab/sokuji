@@ -196,7 +196,16 @@ export async function openSystemAudio(
     if (connection.mode === 'device') unlisten = deps.appLost(lose);
     recorder = next;
     const options = connection.mode === 'app' ? { deviceId: sourceId } : connection.mode === 'device' ? { deviceId: connection.monitorId } : undefined;
-    if (!(await next.begin(options))) {
+    const begun = await next.begin(options);
+    // The capture was lost while this started, and the fallback has replaced
+    // it: its end() came before there was anything to end, so end it now, or
+    // it would record alongside the fallback; a failed start is the fallback's
+    // to own, not to clear.
+    if (recorder !== next) {
+      if (begun) await next.end();
+      return;
+    }
+    if (!begun) {
       recorder = null;
       // The recorder's own reason (a DOMException's kind and words, or the
       // helper's answer) is the only clue to why; without it the start

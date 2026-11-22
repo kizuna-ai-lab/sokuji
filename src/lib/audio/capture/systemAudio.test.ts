@@ -9,7 +9,7 @@ import {
 } from './systemAudio';
 
 /** A participant recorder that records its calls; `push` delivers a chunk while it records. */
-function fakeCapture(o: { begins?: boolean; stream?: MediaStream; failure?: unknown } = {}) {
+function fakeCapture(o: { begins?: boolean; started?: Promise<boolean>; stream?: MediaStream; failure?: unknown } = {}) {
   let callback: ((data: { mono: Int16Array }) => void) | null = null;
   const capture = {
     begun: [] as Array<{ deviceId?: string } | undefined>,
@@ -20,7 +20,7 @@ function fakeCapture(o: { begins?: boolean; stream?: MediaStream; failure?: unkn
     onAudioSeen: null as (() => void) | null,
     async begin(options?: { deviceId?: string }) {
       capture.begun.push(options);
-      return o.begins ?? true;
+      return o.started ?? o.begins ?? true;
     },
     async record(fn: (data: { mono: Int16Array }) => void) {
       callback = fn;
@@ -226,6 +226,31 @@ describe('openSystemAudio — running', () => {
     expect(s.widened).toHaveBeenLastCalledWith(true);
     // Heard once: the whole-system capture it fell back to follows no application.
     expect(s.appLostListeners.size).toBe(0);
+  });
+
+  it('ends a tap recorder still starting when the application quits, instead of letting it record beside the fallback', async () => {
+    let start!: (begun: boolean) => void;
+    const device = fakeCapture({ started: new Promise<boolean>((resolve) => { start = resolve; }) });
+    const s = setup({
+      sourceId: 'app:pid:7',
+      answer: { success: true, monitorLabel: 'Sokuji Capture' },
+      devices: [{ kind: 'audioinput', label: 'Sokuji Capture', deviceId: 'mon-1' }],
+      device,
+    });
+    const opening = openSystemAudio(s.settings, live(), s.deps);
+    await settle(); // the tap's recorder is starting
+    s.appQuit();
+    await settle(); // the fallback is recording the whole system
+    const endedBefore = device.ended;
+    start(true);
+    const source = await opening;
+    const heard = vi.fn();
+    source.onPcm(heard);
+    device.push();
+    expect(heard).not.toHaveBeenCalled();
+    expect(device.ended).toBe(endedBefore + 1);
+    s.loopback.push();
+    expect(heard).toHaveBeenCalledTimes(1);
   });
 
   it('stops listening for the tapped application when the source stops', async () => {
