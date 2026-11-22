@@ -601,7 +601,7 @@ describe("the local provider's speech unit", () => {
       mockTable = { 'ja>en': {} };
       const h = await composed({ transcription: 'soniox', translation: 'soniox', speech: 'local_inference' });
       await flush();
-      expect(h.of('degraded')).toEqual([{ code: 'speaker_tts_missing', message: 'Translation the other side hears is text only: no speech model speaks en.', params: { target: 'en' } }]);
+      expect(h.of('degraded')).toEqual([{ code: 'speaker_tts_missing', message: 'Translation the other side hears is text only: no speech model speaks en.', params: { target: 'en' }, runStage: 'speech' }]);
       expect(h.tts.inits).toEqual([]);
       expect(describePlan(h.plan, h.configs)).toEqual({});
     });

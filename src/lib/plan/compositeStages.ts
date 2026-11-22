@@ -116,7 +116,7 @@ class StagedLeg {
     private readonly events: AdapterEvents,
     private readonly name: LegName,
   ) {
-    this.inner = new CompositeLeg(name, units.transcription, units.speech, request, events, undefined, true);
+    this.inner = new CompositeLeg(name, units.transcription, units.speech, request, events);
     this.starting = following(request.signal);
   }
 

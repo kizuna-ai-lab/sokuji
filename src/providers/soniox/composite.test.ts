@@ -695,7 +695,7 @@ describe('Soniox over its text unit and its voice: the start and the stop', () =
     expect(run.tts().sentJson<Json>().slice(-1)).toEqual([{ stream_id: 'utt-1-1', text: '', text_end: true }]);
     expect(run.log.speaker.slice(n)).toEqual([
       { kind: 'frame', payload: { direction: 'out', type: 'stt.end' } },
-      { kind: 'frame', payload: { direction: 'out', type: 'tts.end', payload: { streamId: 'utt-1-1' } } },
+      { kind: 'frame', payload: { direction: 'out', type: 'tts.end', payload: { streamId: 'utt-1-1' }, runStage: 'speech' } },
     ]);
     run.clock.advance(60_000);
     await flush();
@@ -761,7 +761,7 @@ describe('Soniox over its text unit and its voice: a missing speech key', () => 
       'close 3 u2',
       'close 4 u2',
     ]);
-    expect(run.log.speaker.find((e) => e.kind === 'degraded')).toEqual({ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('No TTS key') } });
+    expect(run.log.speaker.find((e) => e.kind === 'degraded')).toEqual({ kind: 'degraded', payload: { code: 'tts_degraded', message: expect.stringContaining('No TTS key'), runStage: 'speech' } });
     expect(count(run, 'speaker', 'degraded')).toBe(1);
     // The two STT sockets, the reconnect's included, and none for speech.
     expect(run.sockets.all).toHaveLength(2);
