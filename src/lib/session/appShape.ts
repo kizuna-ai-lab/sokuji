@@ -8,7 +8,6 @@ import { useWordList } from '../words/list';
 import type { Speak } from '../audio/outlets';
 import type { LegName } from '../conversation/types';
 import { stageIdsFor } from '../lineup/catalog';
-import type { LineUp } from '../lineup/types';
 import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
@@ -20,7 +19,7 @@ import { accountPayer } from './payerChoice';
 import { presentProviders } from '../../providers/registry';
 import { useAccountStore } from '../../stores/accountStore';
 import useAudioStore, { type AudioMode } from '../../stores/audioStore';
-import { useLineUpStore } from '../../stores/lineUpStore';
+import { lineUpThatRuns } from '../../stores/lineUpStore';
 import { useProviderStore, type ProviderEntry } from '../../stores/providerStore';
 import { useScreenContextStore } from '../../stores/screenContextStore';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -192,12 +191,6 @@ export function runPlanFromStores(): Pick<RunShape, 'plan' | 'accounts'> & { ent
   // A run's account is a provider's settings and credentials; its pair is the shape's own.
   const accounts = Object.fromEntries(Object.entries(found.accounts).map(([id, { settings, credentials }]) => [id, { settings, credentials }]));
   return { plan: found.plan, accounts, entry: transcriptionAccount(found) };
-}
-
-/** The line-up that composes the plan, and whether it is the one that runs: the stored one, or the one shown where this device runs before one is stored (`planFromStores`). */
-function lineUpThatRuns(): { lineUp: LineUp | null; stored: boolean } {
-  const { lineUp, stored, unstoredProvider } = useLineUpStore.getState();
-  return { lineUp, stored: stored || (unstoredProvider === 'local_inference' && lineUp !== null) };
 }
 
 export function readShapeFromStores(auth: AuthContext): RunShape | null {

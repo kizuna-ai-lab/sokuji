@@ -54,10 +54,10 @@ export interface RunShape {
   lineUp: StageIds;
   /**
    * True: a line-up names the stages of this run (despite the name, not only a stored one): the stored line-up, or,
-   * before one is stored, the one the settings show where this device runs (appShape's `lineUpThatRuns`). `lineUp`
-   * is then that line-up's, and the run hands it to every builder (`SharedSettings.lineUp`). Absent or false: no
-   * line-up names them; `lineUp` names the provider that runs on every stage and says nothing of how that provider
-   * serves each, so a builder is handed none.
+   * before one is stored, the one the settings show where this device runs (the line-up store's `lineUpThatRuns`).
+   * `lineUp` is then that line-up's, and the run hands it to every builder (`SharedSettings.lineUp`). Absent or
+   * false: no line-up names them; `lineUp` names the provider that runs on every stage and says nothing of how that
+   * provider serves each, so a builder is handed none.
    */
   lineUpStored?: boolean;
   /** The speaker's pair; the participant leg runs its reverse. */

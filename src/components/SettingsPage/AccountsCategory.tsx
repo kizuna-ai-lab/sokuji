@@ -159,6 +159,8 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         return localModels > 0
           ? t('settingsPage.accounts.localModels', 'Runs on this computer; {{count}} models downloaded, {{size}} in all', { count: localModels, size: formatBytes(storageMb * 1_048_576) })
           : t('settingsPage.accounts.localNone', 'Runs on this computer; no models downloaded yet');
+      // Every online provider today is Microsoft's (Bing, Edge): the line says so of them all. Another online
+      // provider needs a line of its own here.
       case 'online': return t('settingsPage.accounts.online', 'No key needed; online, a Microsoft service');
     }
   };

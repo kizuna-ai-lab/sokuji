@@ -327,6 +327,17 @@ export function stageProviderIn(s: Pick<LineUpStore, 'lineUp' | 'stored' | 'unst
   return (s.lineUp && optionFor(s.lineUp, stage)?.host) ?? null;
 }
 
+/**
+ * The line-up that runs as the store stands, and whether it names the stages of the run (`stored`): the stored one;
+ * before one is stored, the one the settings show where this device runs, which the plan is composed from
+ * (`planFromStores`). While another provider runs alone with no line-up stored, `stored` is false: the line-up shown
+ * names nothing about the run.
+ */
+export function lineUpThatRuns(): { lineUp: LineUp | null; stored: boolean } {
+  const { lineUp, stored, unstoredProvider } = useLineUpStore.getState();
+  return { lineUp, stored: stored || (unstoredProvider === 'local_inference' && lineUp !== null) };
+}
+
 /** `stageProviderIn` over the store as it stands. */
 export function stageProviderId(stage: RunStage): string | null {
   return stageProviderIn(useLineUpStore.getState(), stage);

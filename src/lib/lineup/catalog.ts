@@ -128,10 +128,10 @@ export function allStagesBy(id: string): StageIds {
 }
 
 /**
- * The ids that serve the stages of a run: the line-up's when it is the one that runs (`stored`: the stored one, or,
- * before one is stored, the one shown where this device runs, appShape's `lineUpThatRuns`); otherwise the id of the
- * provider that runs meanwhile (`providerId`) on every stage: a line-up only shown beside another provider names
- * nothing about the run.
+ * The ids that serve the stages of a run: the line-up's when it is the one that runs (`stored`, as the line-up
+ * store's `lineUpThatRuns` says: the stored one, or, before one is stored, the one shown where this device runs);
+ * otherwise the id of the provider that runs meanwhile (`providerId`) on every stage: a line-up only shown beside
+ * another provider names nothing about the run.
  */
 export function stageIdsFor(lineUp: Pick<LineUp, RunStage> | null, stored: boolean, providerId: string): StageIds {
   if (!stored || lineUp === null) return allStagesBy(providerId);

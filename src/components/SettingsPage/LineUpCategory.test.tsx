@@ -248,6 +248,11 @@ describe('languages and line-up', () => {
     const speech = optionTexts('Speech');
     expect(speech).toContain('Edge');
     expect(speech).not.toContain('Bing');
+    // Bing and Edge are listed once each, right after This device, as before they were providers of their own.
+    expect(translation.filter((t) => t === 'Bing')).toHaveLength(1);
+    expect(speech.filter((t) => t === 'Edge')).toHaveLength(1);
+    expect(translation.slice(translation.indexOf('This device'), translation.indexOf('This device') + 2)).toEqual(['This device', 'Bing']);
+    expect(speech.slice(speech.indexOf('This device'), speech.indexOf('This device') + 2)).toEqual(['This device', 'Edge']);
   });
 
   describe("a text model for the translation (text models, part B)", () => {
