@@ -279,9 +279,16 @@ describe('languages and line-up', () => {
       expect(state()).toHaveTextContent('Key not accepted');
       second.unmount();
       useProviderStore.setState({ readiness: { openai_text: { state: 'not-ready', code: 'refused', reason: "Unsupported value: 'reasoning_effort' does not support 'minimal' with this model." } } });
-      render(<LineUpCategory locked={false} />);
+      const third = render(<LineUpCategory locked={false} />);
       expect(state()).toHaveTextContent('Not ready');
       expect(within(translationCard()).getByRole('status')).toHaveTextContent("The provider rejected the request: Unsupported value: 'reasoning_effort' does not support 'minimal' with this model.");
+      third.unmount();
+      // The service out of reach: the check threw, which the store keeps with no code. The key is not verified, and
+      // leads to its row; nothing is said as the service's refusal.
+      useProviderStore.setState({ readiness: { openai_text: { state: 'not-ready', reason: 'The service could not be reached: Failed to fetch' } } });
+      render(<LineUpCategory locked={false} />);
+      expect(state()).toHaveTextContent('Key not verified');
+      expect(within(translationCard()).queryByRole('status')).toBeNull();
     });
 
     it('a compatible service with no address says so, and leads to where it is entered; a model not chosen is said on the card', () => {

@@ -4,7 +4,9 @@
 // the reasoning the user chose, so that whatever the service refuses (the key, the model, a reasoning value) is said
 // before Start, in the service's own words. The list's text models are what the provider's options offer and what
 // the build resolves the automatic model from. Bounded: 15 seconds for the two requests, and the caller's signal.
-// The settings side: no session code runs it, so it may use the real clock by default.
+// A service not reached, or not answering in time, is no answer: the check throws, in the failure's words
+// (`Provider.check` answers `ok: false` only for the service's no). The settings side: no session code runs it, so it
+// may use the real clock by default.
 
 import { realClock, type Clock } from '../contract/clock';
 import type { CheckContext, CheckResult } from '../provider/types';
@@ -56,6 +58,15 @@ export function checkRefusal(providerId: string, failure: TextModelFailure): Che
   return { ok: false, code, reason: failure.message, ...(ACCOUNT.has(code) ? { params: { provider: providerId } } : {}) };
 }
 
+/** The failures that are no answer from the service: it was not reached, or did not answer in time. */
+const UNANSWERED: ReadonlySet<TextModelFailure['code']> = new Set(['network', 'timeout']);
+
+/** A failure as the check's answer: the service's refusal, said; no answer from it at all, thrown in its words. */
+function refusedOrThrown(providerId: string, failure: TextModelFailure): CheckResult {
+  if (UNANSWERED.has(failure.code)) throw new Error(failure.message);
+  return checkRefusal(providerId, failure);
+}
+
 /** A signal that aborts with the caller's, or as a timeout once `ms` pass; and how to let its timer go. */
 function bounded(clock: Pick<Clock, 'setTimeout'>, ms: number, caller: AbortSignal | undefined, late: string): { signal: AbortSignal; done(): void } {
   const controller = new AbortController();
@@ -84,7 +95,7 @@ export function createTextModelCheck(providerId: string, service: TextModelServi
         ...(deps.transport ? { transport: deps.transport } : {}),
       };
       const listed = await listModels(where);
-      if (!listed.ok) return checkRefusal(providerId, listed.failure);
+      if (!listed.ok) return refusedOrThrown(providerId, listed.failure);
       const ids = textModelIds(service, listed.ids);
       const model = modelToUse(service, s.translationModel, ids);
       if (model === null) {
@@ -93,7 +104,7 @@ export function createTextModelCheck(providerId: string, service: TextModelServi
           : { ok: false, code: TEXT_MODEL_UNSET, reason: 'No model is chosen: choose one, or type its name.' };
       }
       const probed = await probeModel({ ...where, model, reasoning: reasoningAskOf(s.translationReasoning) });
-      if (!probed.ok) return checkRefusal(providerId, probed.failure);
+      if (!probed.ok) return refusedOrThrown(providerId, probed.failure);
       return { ok: true, models: ids.map((id) => ({ id })) };
     } finally {
       bound.done();

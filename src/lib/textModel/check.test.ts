@@ -93,13 +93,22 @@ describe("a text model's readiness", () => {
     expect(s.sent[1].body).not.toHaveProperty('reasoning_effort');
   });
 
-  it("the service not reached, or not answering within its bound, is the network's; the caller's cancel rejects", async () => {
+  // `Provider.check`: `ok: false` is the service's no; a check that could not find out throws, in its words.
+  it("the service not reached, or not answering within its bound, throws in its words; the caller's cancel rejects", async () => {
     const unreachable: TextModelTransport = async () => { throw new TypeError('Failed to fetch'); };
-    await expect(createTextModelCheck('openai_text', 'openai', 'OpenAI', { transport: unreachable })({ apiKey: KEY }, SETTINGS, CTX)).resolves.toMatchObject({ ok: false, code: 'network' });
+    await expect(createTextModelCheck('openai_text', 'openai', 'OpenAI', { transport: unreachable })({ apiKey: KEY }, SETTINGS, CTX)).rejects.toThrow('The service could not be reached: Failed to fetch');
     const slow = check('openai', service('hang'));
     await flush();
     slow.clock.advance(CHECK_TIMEOUT_MS);
-    await expect(slow.answer).resolves.toEqual({ ok: false, code: 'network', reason: 'The service did not answer within 15 s.' });
+    await expect(slow.answer).rejects.toThrow('The service did not answer within 15 s.');
+    // The model's probe the same: the list answered, the model did not in time.
+    const slowModel = check('openai', service(list('gpt-5-mini'), 'hang'));
+    await flush();
+    slowModel.clock.advance(CHECK_TIMEOUT_MS);
+    await expect(slowModel.answer).rejects.toThrow('The service did not answer within 15 s.');
+    // A service that answered with its own trouble did answer: that is said, not thrown.
+    await expect(check('openai', service(list('gpt-5-mini'), refuses(503, 'The engine is currently overloaded.'))).answer)
+      .resolves.toEqual({ ok: false, code: 'server', reason: 'The engine is currently overloaded.' });
     const cancel = new AbortController();
     const cancelled = check('openai', service('hang'), {}, { apiKey: KEY }, { ...CTX, signal: cancel.signal });
     await flush();
