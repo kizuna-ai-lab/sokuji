@@ -198,6 +198,27 @@ async function verifyConnections(pattern) {
 // ============================================================================
 
 /**
+ * The sound server remembers the virtual devices' volume by name and restores it each time they are made (WirePlumber's
+ * restore-stream). Once anything lowered the virtual microphone, a meeting app adjusting the microphone level on its
+ * own or a slider in the sound settings, every later launch came up that low, and the meeting app heard the
+ * translation quieter than it was played (at 74%, about 8 dB). Both are set to 100% once made. A failure is logged,
+ * not fatal: the devices still work, only quieter.
+ * @param {{run?: (cmd: string, description?: string) => Promise<unknown>}} deps - `run` is injected in tests
+ */
+async function setVirtualDevicesToFullVolume({ run = execWithLog } = {}) {
+  for (const cmd of [
+    'pactl set-sink-volume sokuji_virtual_output 100%',
+    'pactl set-source-volume sokuji_virtual_mic 100%',
+  ]) {
+    try {
+      await run(cmd, 'Setting full volume:');
+    } catch (e) {
+      console.warn(`[Sokuji] [PulseAudio] Could not set full volume (${cmd}):`, e.message);
+    }
+  }
+}
+
+/**
  * Create virtual audio devices for TTS output
  * @returns {Promise<boolean>} True if successful
  */
@@ -226,6 +247,10 @@ async function createVirtualAudioDevices() {
 
     // Connect virtual speaker to virtual mic
     await connectPorts('sokuji_virtual_output', 'sokuji_virtual_mic');
+
+    // At unity gain, once both nodes are settled: what is played into the speaker reaches the meeting app as loud as
+    // it was played.
+    await setVirtualDevicesToFullVolume();
 
     // Verify
     await verifyConnections('sokuji');
@@ -380,6 +405,7 @@ module.exports = {
   // Virtual audio devices (TTS output)
   createVirtualAudioDevices,
   removeVirtualAudioDevices,
+  setVirtualDevicesToFullVolume,
   // System audio capture (stubs — actual capture uses electron-audio-loopback)
   listSystemAudioSources,
   connectSystemAudioSource,
