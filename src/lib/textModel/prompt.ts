@@ -56,5 +56,6 @@ export function translationMessages(system: string, text: string, context: JobCo
  * as a local reasoning model served by Ollama or LM Studio does).
  */
 export function translationOf(answer: string): string {
-  return answer.replace(/^\s*<think>[\s\S]*?<\/think>/i, '').trim();
+  // A reasoning model cut short inside its thinking has no translation yet: the job reads it as blank.
+  return answer.replace(/^\s*<think>[\s\S]*?(?:<\/think>|$)/i, '').trim();
 }

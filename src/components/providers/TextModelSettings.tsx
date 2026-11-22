@@ -33,6 +33,9 @@ const LEVEL_WORDS: Readonly<Record<ReasoningLevel, { key: string; fallback: stri
  * The service's text models, from the page's list (asked once per key and address), or from the provider's last
  * ready check while the list is on its way. 'none': there is nothing to ask with (no key, no address); 'loading': asked.
  */
+/** How long the key and address must stay unchanged before the model list is asked for. */
+export const MODEL_LIST_DELAY_MS = 500;
+
 function useModelList(service: TextModelService, credentials: Readonly<Record<string, string>> | undefined, checked: readonly string[]): ModelListResult | 'none' | 'loading' {
   const baseUrl = service === 'compatible' ? credentials?.baseUrl ?? '' : undefined;
   const apiKey = credentials?.apiKey ?? '';
@@ -43,10 +46,16 @@ function useModelList(service: TextModelService, credentials: Readonly<Record<st
   useEffect(() => {
     if (!askable) return;
     let live = true;
-    void textModelList({ service, ...(baseUrl === undefined ? {} : { baseUrl }), apiKey }).then((result) => {
-      if (live) setAnswer({ key, result });
-    }, () => {});
-    return () => { live = false; };
+    // After the key or address has stopped changing: a half-typed key is never sent to a half-typed address.
+    const timer = setTimeout(() => {
+      void textModelList({ service, ...(baseUrl === undefined ? {} : { baseUrl }), apiKey }).then((result) => {
+        if (live) setAnswer({ key, result });
+      }, (error: unknown) => {
+        // A list that could not be had says so, rather than "Finding models…" for ever.
+        if (live) setAnswer({ key, result: { ok: false, failure: { code: 'network', message: error instanceof Error ? error.message : String(error) } } });
+      });
+    }, MODEL_LIST_DELAY_MS);
+    return () => { live = false; clearTimeout(timer); };
   }, [askable, key]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!askable) return 'none';
   if (answer?.key === key) return answer.result;
