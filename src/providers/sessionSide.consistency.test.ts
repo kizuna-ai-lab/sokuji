@@ -103,9 +103,27 @@ const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/localInference': ['speechSession.ts'],
 };
 
-/** `dir/adapter.ts`, the files that run the provider's voice, and every file of `dir` they reach by value imports. */
+/**
+ * A provider's translation, where it is a unit of its own (a unit that only translates another unit's source), runs
+ * a session beside the adapter's too, and is held to the same rules: the file that runs it, by provider folder. The
+ * local provider's is `translationSession.ts`; its translation unit (`translationUnit.ts`) resolves the engine from
+ * the stored line-up and the model store, the settings side. The fake translator's is `translatorSession.ts`; its
+ * unit and provider (`translator.ts`) reach the fake's definition and its scripts, the settings side.
+ */
+const TRANSLATION_SESSIONS: Readonly<Record<string, readonly string[]>> = {
+  'src/providers/localInference': ['translationSession.ts'],
+  'src/providers/fake': ['translatorSession.ts'],
+};
+
+/**
+ * `dir/adapter.ts`, the files that run the provider's voice and its translation, and every file of `dir` they reach
+ * by value imports.
+ */
 function sessionSide(root: string, dir: string): string[] {
-  const seen = new Set([`${dir}/adapter.ts`, ...(VOICE_SESSIONS[dir] ?? []).map((file) => `${dir}/${file}`)]);
+  const seen = new Set([
+    `${dir}/adapter.ts`,
+    ...[...(VOICE_SESSIONS[dir] ?? []), ...(TRANSLATION_SESSIONS[dir] ?? [])].map((file) => `${dir}/${file}`),
+  ]);
   const queue = [...seen];
   while (queue.length > 0) {
     const file = queue.shift()!;
@@ -198,9 +216,13 @@ describe('a provider session side', () => {
     );
     // The local voice's unit reads the model store to build its config: the settings side, not the session's.
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/speechUnit.ts');
+    // The local translation's session is walked; its unit, which resolves the engine from the stores, is the settings side.
+    expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).toContain('src/providers/localInference/translationSession.ts');
+    expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/translationUnit.ts');
     const fake = sessionSide(REPO_ROOT, 'src/providers/fake');
-    expect(fake).toEqual(expect.arrayContaining(['src/providers/fake/adapter.ts', 'src/providers/fake/synth.ts']));
+    expect(fake).toEqual(expect.arrayContaining(['src/providers/fake/adapter.ts', 'src/providers/fake/synth.ts', 'src/providers/fake/translatorSession.ts']));
     expect(fake).not.toContain('src/providers/fake/script.ts');
+    expect(fake).not.toContain('src/providers/fake/translator.ts');
 
     // Soniox's adapter transcribes and translates; its voice is a session of its own (`speech.ts`, and the TTS stream it runs).
     const soniox = sessionSide(REPO_ROOT, 'src/providers/soniox');

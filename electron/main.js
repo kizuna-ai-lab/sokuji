@@ -8,6 +8,7 @@ const { setupCaptionContextMenu } = require('./window-caption-menu.js');
 const { setupPopoverWindowHandlers } = require('./popover-windows.js');
 const { isAppPage, guardMainWindowNavigation } = require('./main-window-navigation.js');
 const { setupHistoryHandlers, openHistoryAtLaunch } = require('./history-ipc.js');
+const { setupTextModelHandlers } = require('./text-model-request.js');
 const { HISTORY_SCHEME, registerHistoryScheme, trackResponse } = require('./history-audio.js');
 
 // The player's way to a recording: privileged before the app is ready, as Electron requires.
@@ -716,6 +717,8 @@ app.whenReady().then(async () => {
     getDownloadsDir: () => app.getPath('downloads'),
   });
   protocol.handle(HISTORY_SCHEME, (request) => (historyStore ? trackResponse(historyStore, request) : new Response(null, { status: 404 })));
+  // A compatible text-model service is asked from here: the packaged page's file:// origin meets its CORS.
+  setupTextModelHandlers({ ipcMain, isTrustedSender: isMainPageSender });
   setInterval(() => {
     try { historyStore?.purgeExpired(); } catch (error) { console.error('[Sokuji] [History] Purging the bin failed:', error); }
   }, HISTORY_PURGE_EVERY_MS).unref();
