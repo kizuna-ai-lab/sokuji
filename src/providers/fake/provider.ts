@@ -93,5 +93,6 @@ export const fakeProvider: Provider<FakeSettings, FakeCredentials, FakeConfig> &
 
   languages: FAKE_LANGUAGES,
 
-  units: [wholeUnitOf<FakeSettings, FakeCredentials, FakeConfig>(FAKE_WHOLE)],
+  // /* @__PURE__ */: a module-scope call the bundler cannot prove pure keeps this module in release builds (D24, note above).
+  units: [/* @__PURE__ */ wholeUnitOf<FakeSettings, FakeCredentials, FakeConfig>(FAKE_WHOLE)],
 };

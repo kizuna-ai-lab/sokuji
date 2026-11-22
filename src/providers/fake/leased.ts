@@ -78,7 +78,8 @@ export const fakeLeasedProvider: Provider<FakeLeasedSettings, FakeLeasedCredenti
   check: (_k, s) => checkFake(_k, s),
   languages: FAKE_LANGUAGES,
   endToEnd: true,
-  units: [wholeUnitOf<FakeLeasedSettings, FakeLeasedCredentials, FakeLeasedConfig>({
+  // /* @__PURE__ */: a module-scope call the bundler cannot prove pure keeps this module in release builds (D24, see provider.ts).
+  units: [/* @__PURE__ */ wholeUnitOf<FakeLeasedSettings, FakeLeasedCredentials, FakeLeasedConfig>({
     speech: 'optional',
     textInput: () => true,
     boundaries: () => 'provider',
