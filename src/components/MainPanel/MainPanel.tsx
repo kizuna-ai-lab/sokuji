@@ -17,6 +17,7 @@ import { useStageUnit } from '../../lib/plan/fromStores';
 import { BALANCE_BELOW_FLOOR, NO_MICROPHONE } from '../../lib/session/shape';
 import { ORG_BALANCE_HELD, ORG_INSUFFICIENT_BALANCE } from '../../lib/session/orgNotice';
 import { BILLING_PATH, openSitePage } from '../../lib/auth/openSitePage';
+import { refreshSession } from '../../lib/auth/refreshSession';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
 import { actionLabel, signedInTarget, type NoticeActionSpec } from '../../lib/view/noticeActions';
@@ -248,6 +249,8 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
           signedIn: currentAuth()?.signedIn === true,
           onSessionExpired: () => {
             trackRef.current('session_expired_detected', { source: 'one_time_token' });
+            // As the popover does: the session is re-checked, so nothing goes on claiming to be signed in.
+            refreshSession();
             setAuthOverlay('sign-in', 'session_expired');
           },
         }).catch((e: unknown) => reportWarning('MainPanel', 'Could not open the billing page.', { cause: e }));

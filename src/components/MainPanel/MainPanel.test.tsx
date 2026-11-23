@@ -119,6 +119,13 @@ vi.mock('./panel/replayGate', async (importOriginal) => {
   return { replayBlocked: gate.spy };
 });
 
+vi.mock('../../lib/auth/refreshSession', () => ({ refreshSession: vi.fn() }));
+// The real opener, made replaceable per case (the session-gone case answers a 401 without a network).
+vi.mock('../../lib/auth/openSitePage', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../lib/auth/openSitePage')>();
+  return { ...real, openSitePage: vi.fn(real.openSitePage) };
+});
+
 const env = vi.hoisted(() => ({ extension: false, electron: false }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
@@ -155,6 +162,8 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import type { Sampler, SamplerState } from '../../lib/screen/sampler';
 import { useLiveNotesLayout } from '../../lib/notes/live/livePanel';
 import MainPanel from './MainPanel';
+import { refreshSession } from '../../lib/auth/refreshSession';
+import { openSitePage } from '../../lib/auth/openSitePage';
 
 const clock = createVirtualClock(0);
 // Before any render builds the page's session: the fake source, no microphone needed.
@@ -852,6 +861,20 @@ describe('Top up (spec 2026-11-23: one click to the billing page)', () => {
     expect(String(open.mock.calls[0][0])).toMatch(/\/dashboard\/billing$/);
     expect(trackEvent).toHaveBeenCalledWith('top_up_clicked', { source: 'status_line' });
     expect(useSettingsStore.getState().accountPopoverRequested).toBe(false);
+  });
+
+  it("re-checks the session when the one-time token says it is gone, as the popover does, and opens nothing", async () => {
+    const { container } = await renderPanel();
+    // The token endpoint's 401, as openSitePage reports it (its own tests cover how it reads one).
+    vi.mocked(openSitePage).mockImplementationOnce(async (_path, deps) => { deps.onSessionExpired(); return 'session-expired'; });
+    vi.mocked(refreshSession).mockClear();
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'insufficient_balance', message: 'm' } } }, true);
+    });
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.status-line__action')!);
+    await vi.waitFor(() => expect(refreshSession).toHaveBeenCalledTimes(1));
+    expect(trackEvent).toHaveBeenCalledWith('session_expired_detected', { source: 'one_time_token' });
+    expect(open).not.toHaveBeenCalled();
   });
 
   it("opens the billing page from a row's Top up, as a notice", async () => {
