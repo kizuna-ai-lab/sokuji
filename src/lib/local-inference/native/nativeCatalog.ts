@@ -563,6 +563,9 @@ export interface NativeReadinessSelection {
   targetLanguage: string;
 }
 
+/** A stage's compute-device setting: Auto, or pinned to CPU or GPU. */
+export type NativeDevice = 'auto' | 'cpu' | 'gpu';
+
 /** The stages whose model a caller's start would load. */
 export interface NativeNeeds { asr: boolean; translation: boolean }
 
