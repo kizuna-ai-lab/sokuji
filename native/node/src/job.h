@@ -36,6 +36,9 @@ struct JobAccess;   // worker.cpp
 
 // The last-error text of a job that was cancelled before the worker started it.
 inline constexpr const char *kCancelledBeforeStart = "cancelled before it started";
+// The last-error text of a job whose callback threw after its native call had finished (the
+// library's own wording for a cancel; while the call runs, the library's text is used).
+inline constexpr const char *kCancelledByCallback = "cancelled by the callback";
 
 class Job {
 public:
@@ -71,11 +74,12 @@ protected:
     // Worker thread: queue a call of the job's JS callback; `call` runs on the JS thread with
     // the callback. Never waits. Returns false when there is no JS side to deliver to (a
     // native-only job, or the environment is going away). If the callback throws, the job
-    // is cancelled and its promise rejects with what was thrown.
+    // is cancelled and its promise rejects with a NativeError (SK_ERR_CANCELLED, unless the
+    // native call failed otherwise) whose `cause` is what was thrown.
     bool Emit(std::function<void(Napi::Env, Napi::Function)> call);
 
-    // JS thread, inside settle(). If a callback of this job threw, each rejects with what it
-    // threw instead.
+    // JS thread, inside settle(). If a callback of this job threw, each rejects instead with
+    // the job's NativeError, the thrown value as its `cause` (see Emit).
     void Resolve(Napi::Value value);
     void Reject(Napi::Value error);
     void RejectStatus(Napi::Env env);   // the NativeError for the recorded status and text

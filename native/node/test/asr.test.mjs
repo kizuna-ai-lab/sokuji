@@ -83,10 +83,13 @@ test('abort mid-run cancels at the next decode step', { skip }, async () => {
   await assert.rejects(p, (e) => e.status === -5 && /cancelled by the callback/.test(e.message));
 });
 
-test('a throwing onProgress cancels the run and rejects with what it threw', { skip }, async () => {
+test('a throwing onProgress cancels the run: NativeError -5 with the thrown value as cause', { skip }, async () => {
+  // As in the Python binding, where an exception in on_poll cancels the run (SK_ERR_CANCELLED).
   const m = await model();
   const boom = new Error('boom');
-  await assert.rejects(m.run(jfk(), 'en', { onProgress: () => { throw boom; } }), (e) => e === boom);
+  await assert.rejects(m.run(jfk(), 'en', { onProgress: () => { throw boom; } }), (e) =>
+    e.name === 'NativeError' && e.status === -5 && e.cause === boom &&
+    /^sk_asr_run: .*cancelled by the callback \(status -5\)$/.test(e.message));
   assert.match((await m.run(jfk(), 'en')).toLowerCase(), JFK);   // the model is still usable
 });
 

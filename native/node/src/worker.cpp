@@ -59,18 +59,6 @@ void CloseLink(void *arg) {
     link->cancel->store(true);
 }
 
-void SettleOnce(JobJs &js, bool ok, Napi::Value value) {
-    if (js.settled) return;
-    js.settled = true;
-    if (!js.thrown.IsEmpty()) {
-        js.deferred.Reject(js.thrown.Value());
-    } else if (ok) {
-        js.deferred.Resolve(value);
-    } else {
-        js.deferred.Reject(value);
-    }
-}
-
 void RemoveAbortListener(Napi::Env env, JobJs &js) {
     if (js.signal.IsEmpty() || js.listener.IsEmpty()) return;
     try {
@@ -88,6 +76,34 @@ void RemoveAbortListener(Napi::Env env, JobJs &js) {
 struct JobAccess {
     static void Run(Job &job) { job.Run(); }
     static std::shared_ptr<JobLink> &Link(Job &job) { return job.link_; }
+
+    // JS thread: settles the job's promise once. When a callback threw, the job was cancelled
+    // because of it, and whatever settle() chose, the promise rejects with a NativeError whose
+    // `cause` is the thrown value: the one the native call ended with (normally
+    // SK_ERR_CANCELLED with the library's "cancelled by the callback"), or, when the call had
+    // already succeeded before the flag reached it, SK_ERR_CANCELLED with kCancelledByCallback.
+    // As in the Python binding, where an exception in a callback cancels the call and surfaces
+    // as SK_ERR_CANCELLED.
+    static void SettleOnce(JobJs &js, Job &job, bool ok, Napi::Value value) {
+        if (js.settled) return;
+        js.settled = true;
+        if (js.thrown.IsEmpty()) {
+            if (ok) {
+                js.deferred.Resolve(value);
+            } else {
+                js.deferred.Reject(value);
+            }
+            return;
+        }
+        Napi::Env env = js.deferred.Env();
+        Napi::Error err = job.failed()
+                              ? MakeNativeError(env, job.status_, StatusText(job.what_, job.last_error_))
+                              : MakeNativeError(env, SK_ERR_CANCELLED, StatusText(job.what_, kCancelledByCallback));
+        // Non-enumerable, as `new Error(message, { cause })` defines it.
+        err.Value().DefineProperty(Napi::PropertyDescriptor::Value(
+            "cause", js.thrown.Value(), static_cast<napi_property_attributes>(napi_writable | napi_configurable)));
+        js.deferred.Reject(err.Value());
+    }
 
     // Worker thread (or the JS thread, for a job posted after stop): hands the finished job
     // to its JS half. When there is nobody to settle it (a native-only job, or the
@@ -115,12 +131,13 @@ struct JobAccess {
         try {
             job->settle(env);
         } catch (const Napi::Error &e) {
-            SettleOnce(js, false, e.Value());
+            SettleOnce(js, *job, false, e.Value());
         } catch (const std::exception &e) {
-            SettleOnce(js, false, Napi::Error::New(env, e.what()).Value());
+            SettleOnce(js, *job, false, Napi::Error::New(env, e.what()).Value());
         }
         if (!js.settled) {
-            SettleOnce(js, false, MakeNativeError(env, SK_ERR_INTERNAL, StatusText(job->what_, "the job did not settle")).Value());
+            SettleOnce(js, *job, false,
+                       MakeNativeError(env, SK_ERR_INTERNAL, StatusText(job->what_, "the job did not settle")).Value());
         }
         job->js_ = nullptr;
         // Drop the references now rather than when the thread-safe function is finalized.
@@ -130,7 +147,7 @@ struct JobAccess {
         js.listener.Reset();
     }
 
-    static void Settle(Job &job, bool ok, Napi::Value value) { SettleOnce(*job.js_, ok, value); }
+    static void Settle(Job &job, bool ok, Napi::Value value) { SettleOnce(*job.js_, job, ok, value); }
 };
 
 void DeliverJobEvent(Napi::Env env, Napi::Function, JobJs *js, JobEvent *raw) {
@@ -148,8 +165,8 @@ void DeliverJobEvent(Napi::Env env, Napi::Function, JobJs *js, JobEvent *raw) {
         return;
     }
     if (js->settled || js->callback.IsEmpty() || !js->thrown.IsEmpty() || !ev->call) return;
-    // As a throwing callback does in the Python binding, this one cancels the job; the
-    // promise then rejects with what it threw.
+    // A throwing callback cancels the job; its promise then rejects with a NativeError whose
+    // `cause` is what was thrown (JobAccess::SettleOnce).
     try {
         ev->call(env, js->callback.Value());
     } catch (Napi::Error &e) {
