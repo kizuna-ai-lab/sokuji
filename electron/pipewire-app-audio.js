@@ -225,8 +225,9 @@ async function followApplication(current, { exec, isAlive }) {
   if (!entry) {
     // No stream is a quiet application (its last tab closed) while it runs.
     if (current.pid !== null && isAlive(current.pid)) return;
-    stopWatch();
+    // Reported first: a report that fails leaves the watch on, and the next look tries again (#866 review).
     current.onLost?.();
+    stopWatch();
     return;
   }
   const sink = findNodeByName(dump, CAPTURE_SINK_NAME);
@@ -508,6 +509,8 @@ async function connectAppSourceUnsafe(deviceId, {
       if (current.looking) return;
       current.looking = true;
       return serialize(() => followApplication(current, { exec, isAlive }))
+        // Logged, never thrown: main.js quits the app on an unhandled rejection, mid-meeting.
+        .catch((e) => console.warn('[Sokuji] [PipeWire] Following the tapped application failed:', e?.message ?? e))
         .finally(() => { current.looking = false; });
     }, RELINK_POLL_MS);
     watch = current;

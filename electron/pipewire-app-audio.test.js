@@ -554,6 +554,35 @@ describe('a tap follows its application while it lives (#617)', () => {
     expect(t.onLost).toHaveBeenCalledTimes(1);
   });
 
+  // The main process treats an unhandled rejection as fatal and quits (main.js), so a look that fails in a way
+  // nobody foresaw is logged, never thrown: it must not end a meeting.
+  it('a look that fails is logged, not thrown, so it can never quit the app', async () => {
+    const t = await tapped({ isAlive: () => false });
+    t.onLost.mockImplementation(() => { throw new Error('the window is gone'); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    t.graph = NO_STREAM;
+    await expect(t.look()).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[PipeWire]'), 'the window is gone');
+    warn.mockRestore();
+  });
+
+  // Review on #866: the renderer must hear that the application quit, so a report that fails is tried again on the
+  // next look instead of the watch stopping without it.
+  it('keeps looking until the report that the application quit goes through', async () => {
+    const t = await tapped({ isAlive: () => false });
+    t.onLost.mockImplementationOnce(() => { throw new Error('the window is busy'); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    t.graph = NO_STREAM;
+    await t.look();
+    expect(t.cleared).toBe(0);
+    await t.look();
+    expect(t.onLost).toHaveBeenCalledTimes(2);
+    expect(t.cleared).toBe(1);
+    await t.look();
+    expect(t.onLost).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
+
   it('stops looking when the tap is disconnected', async () => {
     const t = await tapped();
     await disconnectAppSource({ exec: t.exec });
