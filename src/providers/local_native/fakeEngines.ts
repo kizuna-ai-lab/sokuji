@@ -51,7 +51,7 @@ export class FakeNativeTranslation implements NativeTranslationLike {
   onError: NativeTranslationLike['onError'] = null;
   onClosed: NativeTranslationLike['onClosed'] = null;
   inits: Array<Parameters<NativeTranslationLike['init']>[0]> = [];
-  calls: Array<{ text: string; systemPrompt: string; wrapTranscript: boolean }> = [];
+  calls: Array<{ text: string; systemPrompt: string; wrapTranscript: boolean; timeoutMs?: number }> = [];
   disposes = 0;
   private loading = deferred<NativeInitReport>();
   private pending: Array<Deferred<{ translatedText: string; inferenceTimeMs: number }>> = [];
@@ -59,8 +59,8 @@ export class FakeNativeTranslation implements NativeTranslationLike {
   init(o: Parameters<NativeTranslationLike['init']>[0]) { this.order.push('translation'); this.inits.push(o); return this.loading.promise; }
   ready(report: NativeInitReport = { ...REPORT, tokensPerSec: 40 }) { this.loading.resolve(report); }
   failInit(message: string) { this.loading.reject(new Error(message)); }
-  translate(text: string, systemPrompt: string, wrapTranscript: boolean) {
-    this.calls.push({ text, systemPrompt, wrapTranscript });
+  translate(text: string, systemPrompt: string, wrapTranscript: boolean, timeoutMs?: number) {
+    this.calls.push({ text, systemPrompt, wrapTranscript, ...(timeoutMs === undefined ? {} : { timeoutMs }) });
     const d = deferred<{ translatedText: string; inferenceTimeMs: number }>();
     this.pending.push(d);
     return d.promise;

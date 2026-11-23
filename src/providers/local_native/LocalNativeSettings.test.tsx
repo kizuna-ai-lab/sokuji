@@ -27,6 +27,13 @@ describe('LocalNativeSettingsView', () => {
     expect(screen.getByLabelText('Speech Speed')).toBeTruthy();
   });
 
+  it('on the participant side, offers the speed where the language that side speaks has a voice', () => {
+    // The participant leg runs en → ja for the pair ja → en: it speaks Japanese.
+    useNativeModelStore.setState({ catalog: { 'mt-a': M('mt-a', 'translate', ['multi']), 'tts-ja': M('tts-ja', 'tts', ['ja']) } });
+    render(<LocalNativeSettingsView settings={LOCAL_NATIVE_DEFAULTS} update={vi.fn()} pair={{ source: 'ja', target: 'en' }} legs={['participant']} />);
+    expect(screen.getByLabelText('Speech Speed')).toBeTruthy();
+  });
+
   it('shows the translation prompt control (#526 decides whether it is enabled)', () => {
     render(<LocalNativeSettingsView settings={LOCAL_NATIVE_DEFAULTS} update={vi.fn()} pair={{ source: 'ja', target: 'en' }} />);
     expect(screen.getByText('Translation Prompt')).toBeTruthy();

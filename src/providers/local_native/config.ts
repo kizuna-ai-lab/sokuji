@@ -58,9 +58,10 @@ function stage(resolved: { modelId: string; variant?: string }, device: NativeDe
 
 /**
  * Which stage claims VRAM first (#578 ruling 15; the old client's
- * `asrLoadsFirst`): a GPU-only model (catalog tiers, none `cpu`) loads first;
- * when both or neither are GPU-only, the larger download; ASR first without
- * a translation stage or catalog data.
+ * `asrLoadsFirst`, unchanged): a GPU-only model (catalog tiers, none `cpu`)
+ * loads first; when both or neither are GPU-only, the larger download, ASR on
+ * a tie or when neither size is known; ASR first without a translation stage.
+ * The sizes come with the catalog, so "no catalog" is "no sizes" in practice.
  */
 export function asrLoadsFirst(
   asrId: string,

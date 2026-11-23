@@ -1194,6 +1194,17 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
     expect(useNativeModelStore.getState().bundleStatus).toBe('installing');
   });
 
+  it('a status reply that lands after an install started leaves the install in place', async () => {
+    useNativeModelStore.setState({ bundleStatus: 'absent' });
+    let reply: (v: unknown) => void = () => {};
+    (globalThis as any).window.electron = { invoke: vi.fn(() => new Promise((resolve) => { reply = resolve; })) };
+    const refreshing = useNativeModelStore.getState().refreshBundle();
+    useNativeModelStore.setState({ bundleStatus: 'installing' });     // an install starts while the status is asked
+    reply(statusReply({ state: 'absent', installed: false, installedVersion: null, stagedBytes: 0 }));
+    await refreshing;
+    expect(useNativeModelStore.getState().bundleStatus).toBe('installing');
+  });
+
   it('installBundle streams phased progress then flips to ready', async () => {
     let progressCb: ((p: any) => void) | null = null;
     (globalThis as any).window.electron = {

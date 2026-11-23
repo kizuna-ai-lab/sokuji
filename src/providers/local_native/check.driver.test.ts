@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest';
 import { createStore, type StoreApi } from 'zustand/vanilla';
 import { driveReadiness, READINESS_DELAY_MS } from '../../app/readiness';
 import { createVirtualClock } from '../../lib/contract/clock';
@@ -120,7 +120,8 @@ describe('Local Native under the readiness driver', () => {
     const refresh = vi.fn(realRefresh);
     useProviderStore.setState({ refreshReadiness: refresh });
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner: idleRunner(), providers: () => [localNativeStub], plan: readinessPlan, auth: () => auth, clock });
+    // Detached when the test ends, passed or failed: a driver left subscribed would react to the next test's stores.
+    onTestFinished(driveReadiness({ runner: idleRunner(), providers: () => [localNativeStub], plan: readinessPlan, auth: () => auth, clock }));
 
     for (let i = 0; i < 12; i++) {
       clock.advance(READINESS_DELAY_MS);
@@ -132,8 +133,6 @@ describe('Local Native under the readiness driver', () => {
     expect(refresh.mock.calls.length).toBeLessThanOrEqual(2);
     expect(calls('sidecar-bundle:status')).toBeLessThanOrEqual(2);
     expect(calls('native-host:start')).toBeLessThanOrEqual(2);
-
-    detach();
   });
 
   it('a download started schedules no check, and keeps its status through the next window (#578)', async () => {
@@ -143,7 +142,8 @@ describe('Local Native under the readiness driver', () => {
     const refresh = vi.fn(realRefresh);
     useProviderStore.setState({ refreshReadiness: refresh });
     const clock = createVirtualClock(0);
-    const detach = driveReadiness({ runner: idleRunner(), providers: () => [localNativeStub], plan: readinessPlan, auth: () => auth, clock });
+    // Detached when the test ends, passed or failed: a driver left subscribed would react to the next test's stores.
+    onTestFinished(driveReadiness({ runner: idleRunner(), providers: () => [localNativeStub], plan: readinessPlan, auth: () => auth, clock }));
 
     // The first check, and the one asr-a's status landing asks for.
     for (let i = 0; i < 4; i++) {
@@ -159,7 +159,5 @@ describe('Local Native under the readiness driver', () => {
 
     expect(useNativeModelStore.getState().statuses['asr-a']).toBe('downloading');
     expect(refresh.mock.calls.length).toBe(checks);
-
-    detach();
   });
 });

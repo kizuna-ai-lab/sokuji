@@ -70,6 +70,14 @@ describe("Local Native's translation session", () => {
     expect(checkTranslation(h.log)).toEqual([]);
   });
 
+  it("asks the sidecar to wait as long as a job may take, so its request never gives up before the job's deadline", async () => {
+    const h = await opened();
+    h.session.source(closed('a', '一。'));
+    await flush();
+    expect(h.engine.calls.map((c) => c.timeoutMs)).toEqual([NATIVE_JOB_TIMEOUT_MS]);
+    await h.session.stop();
+  });
+
   it('a failed job says translation_failed and the next job runs', async () => {
     const h = await opened();
     h.session.source(closed('a', '一。'));

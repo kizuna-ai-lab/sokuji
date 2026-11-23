@@ -318,6 +318,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     try {
       const r = await bundleInvoke('sidecar-bundle:status');
       if (!r?.ok) return;
+      if (get().bundleStatus === 'installing') return; // an install started while this status was asked
       const base = r.sku === null ? 'unsupported' : (r.state as 'absent' | 'mismatch' | 'ready');
       // Staged bytes from an interrupted download surface as 'paused' (spec S7)
       // so the card offers Resume instead of a from-scratch Download.

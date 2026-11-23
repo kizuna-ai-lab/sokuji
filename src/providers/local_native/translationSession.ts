@@ -140,7 +140,8 @@ export function startNativeTranslation(
       const mine = engine;
       if (!mine) throw new Error('The translation model is not loaded.');
       frame('out', 'local.native.translation.start', { sourceText: text, modelId: config.modelId, systemPrompt: config.instructions, wrapTranscript: config.wrapTranscript });
-      const result = await mine.translate(text, config.instructions, config.wrapTranscript);
+      // The request waits as long as the job may take: one that gave up first would drop an answer still wanted.
+      const result = await mine.translate(text, config.instructions, config.wrapTranscript, NATIVE_JOB_TIMEOUT_MS);
       if (!job.aborted) {
         frame('in', 'local.native.translation.end', { sourceText: text, translatedText: result.translatedText, inferenceTimeMs: result.inferenceTimeMs, modelId: config.modelId });
       }

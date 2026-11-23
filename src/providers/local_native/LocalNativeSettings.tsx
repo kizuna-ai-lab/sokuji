@@ -31,7 +31,8 @@ export function LocalNativeSettingsView({ settings, update, disabled = false, pa
   const promptSupported = supportsCustomPrompt(running.translation?.modelId ?? '');
   return (
     <>
-      {hasNativeTts(target, catalog) && (
+      {/* The side that runs speaks its own target: the participant side speaks the pair's source. */}
+      {hasNativeTts(mode === 'participant' ? source : target, catalog) && (
         <StagePart stages={SP}>
           <TtsSpeedControl value={settings.ttsSpeed} onChange={(ttsSpeed) => update({ ttsSpeed })} disabled={disabled} />
         </StagePart>

@@ -45,7 +45,8 @@ export interface NativeAsrLike {
 
 export interface NativeTranslationLike {
   init(o: { sourceLang: string; targetLang: string; modelId: string; device: NativeDevice; variant?: string; asrModel?: string; ttsModel?: string }): Promise<NativeInitReport>;
-  translate(text: string, systemPrompt: string, wrapTranscript: boolean): Promise<{ translatedText: string; inferenceTimeMs: number }>;
+  /** `timeoutMs`: how long the request may wait for its answer; the connection's default when absent. */
+  translate(text: string, systemPrompt: string, wrapTranscript: boolean, timeoutMs?: number): Promise<{ translatedText: string; inferenceTimeMs: number }>;
   dispose(): void;
   /** The cleaned accumulation so far, once per token: never a delta. */
   onPartial: ((text: string) => void) | null;
@@ -112,7 +113,7 @@ export function nativeTranslation(clock: Clock, conn: ISidecarConnection = new S
     onClosed: null,
     init: ({ sourceLang, targetLang, modelId, device, variant, asrModel, ttsModel }) =>
       client.init(sourceLang, targetLang, modelId, device, asrModel ?? null, ttsModel ?? null, variant),
-    translate: (text, systemPrompt, wrapTranscript) => client.translate(text, systemPrompt, wrapTranscript),
+    translate: (text, systemPrompt, wrapTranscript, timeoutMs) => client.translate(text, systemPrompt, wrapTranscript, timeoutMs),
     dispose: () => client.dispose(),
   };
   client.onPartial = (text) => translation.onPartial?.(text);
