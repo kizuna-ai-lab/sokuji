@@ -17,7 +17,7 @@ export const RELEASED_CAPS: readonly ProviderCaps[] = [
   { id: 'kizunaai_soniox', stages: ALL, host: 'kizunaai_soniox', translatesOwn: true, account: 'kizuna', voiceAlone: true, takesVoice: true },
   endToEnd('kizunaai_qwen', 'kizuna'),
   { id: 'local_inference', stages: ALL, host: 'local_inference', account: 'none', voiceAlone: true, takesVoice: true },
-  { id: 'local_native', stages: ALL, host: 'local_native', joint: ['transcription', 'translation'], account: 'none', voiceAlone: false, takesVoice: true },
+  { id: 'local_native', stages: ALL, host: 'local_native', account: 'none', voiceAlone: true, takesVoice: true },
   { id: 'bing', stages: ['translation'], host: 'bing', account: 'none', voiceAlone: false, takesVoice: true },
   { id: 'edge', stages: ['speech'], host: 'edge', account: 'none', voiceAlone: true, takesVoice: false },
   endToEnd('gemini', 'key'),

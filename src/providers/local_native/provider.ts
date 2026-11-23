@@ -10,10 +10,16 @@ import { LocalNativeEngine } from './LocalNativeEngine';
 import { LocalNativeSettingsView } from './LocalNativeSettings';
 import { LocalNativeTurnDetectionControls, LocalNativeTurnDetectionHelp, LocalNativeTurnDetectionSummary } from './LocalNativeTurnDetection';
 import { LOCAL_NATIVE_DEFAULTS, localNativeLanguages, type LocalNativeSettings } from './settings';
+import { admitNativeSpeech, areNativeSpeechConfigs, nativeSpeechUnit } from './speechUnit';
+import { admitNativeTranscription, areNativeTranscriptionConfigs, nativeTranscriptionUnit } from './transcriptionUnit';
+import { admitNativeTranslation, areNativeTranslationConfigs, nativeTranslationUnit } from './translationUnit';
 
 const adapter = createLocalNativeAdapter();
 
-/** Local Native's definition: LocalInference's sibling on the Electron sidecar, flagged until it ships (#578 ruling 1). */
+/**
+ * Local Native's definition: LocalInference's sibling on the Electron sidecar, flagged until it ships (#578 ruling 1).
+ * A line-up all on it runs its whole session; any other stage of it combines with another provider's (#578 ruling 17).
+ */
 export const localNativeProvider: Provider<LocalNativeSettings, LocalNativeCredentials, LocalNativeConfig> & { id: 'local_native' } = {
   id: 'local_native',
   kind: 'local',
@@ -38,15 +44,28 @@ export const localNativeProvider: Provider<LocalNativeSettings, LocalNativeCrede
   watchReadiness: (onChange, _local, native) => native.watch(onChange),
   languages: localNativeLanguages,
 
-  units: [wholeUnitOf<LocalNativeSettings, LocalNativeCredentials, LocalNativeConfig>({
-    speech: 'optional',
-    textInput: () => true,
-    boundaries: () => 'provider',
-    turns: () => ['auto', 'manual'],
-    build: buildLocalNative,
-    describe: describeLocalNative,
-    start: adapter.start,
-  })],
+  units: [
+    wholeUnitOf<LocalNativeSettings, LocalNativeCredentials, LocalNativeConfig>({
+      speech: 'optional',
+      textInput: () => true,
+      boundaries: () => 'provider',
+      turns: () => ['auto', 'manual'],
+      build: buildLocalNative,
+      describe: describeLocalNative,
+      start: adapter.start,
+    }),
+    nativeTranscriptionUnit,
+    nativeTranslationUnit,
+    nativeSpeechUnit,
+  ],
 
-  session: { admit: (configs) => admitLocalNative(configs) },
+  // Each unit runs one side at a time, told by its configs' shape; nothing shared is read (#578 rulings 4, 25).
+  session: {
+    admit: (configs) => {
+      if (areNativeSpeechConfigs(configs)) return admitNativeSpeech(configs);
+      if (areNativeTranslationConfigs(configs)) return admitNativeTranslation(configs);
+      if (areNativeTranscriptionConfigs(configs)) return admitNativeTranscription(configs);
+      return admitLocalNative(configs);
+    },
+  },
 };

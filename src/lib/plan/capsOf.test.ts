@@ -36,7 +36,7 @@ describe('capsOf', () => {
   it('a provider whose only unit is a whole unit is end to end, except the fakes listed here', () => {
     // `fake`: the E2E build's stand-in, a plain transcribe/translate/speak provider that is not a vendor's end-to-end service.
     // local_native: its whole unit alone until its split units come (Part C of this port).
-    const NOT_END_TO_END = new Set(['fake', 'local_native']);
+    const NOT_END_TO_END = new Set(['fake']);
     const forgotten = [...RELEASED, ...DEV_ONLY].filter((p) => p.units.length === 1 && p.units[0].id === 'whole' && !NOT_END_TO_END.has(p.id) && p.endToEnd !== true).map((p) => p.id);
     expect(forgotten).toEqual([]);
   });

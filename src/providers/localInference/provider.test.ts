@@ -218,15 +218,16 @@ describe('localInferenceProvider', () => {
       expect(shape(compose({ transcription: 'local_inference', translation: 'bing', speech: 'fake_voice' }, input))).toEqual([['local_inference', 'transcription', ['transcription']], ['bing', 'translation', ['translation']], ['fake_voice', 'voice', ['speech']]]);
     });
 
-    it('no line-up that ran changes, and the ones that newly run are this device transcribing for a text model: every triple of the catalog, with and without its recognition unit', () => {
+    it('no line-up that ran changes, and the ones that newly run are this device transcribing for a text model, Bing or Local Native: every triple of the catalog, with and without its recognition unit', () => {
       const released = choiceInput(RELEASED, {});
       const local = released.providers.find((p) => p.id === 'local_inference')!;
       const before = { ...local, units: unitsOf(local).filter((u) => u !== localTranscriptionUnit) } as AnyProvider;
       const without: ComposeInput = { ...released, providers: released.providers.map((p) => (p === local ? before : p)) };
       const shape = (plan: RunPlan | PlanRefusal) => (isRefusal(plan) ? plan : plan.units.map((u) => [u.provider.id, u.unit.id, u.stages]));
       const textModels = ['openai_text', 'gemini_text', 'openai_compatible'];
-      // #578: Local Native's split units come in Task C4; until then its stages alone have no unit, so it sits out.
-      const catalog = allCaps().filter((c) => c.id !== 'local_native');
+      // What translates another unit's transcription: the text models, Bing, and Local Native's translation (#578).
+      const translators = [...textModels, 'bing', 'local_native'];
+      const catalog = allCaps();
       const reworded: string[] = [];
       const newlyRun: string[] = [];
       for (const t of catalog) for (const tl of catalog) for (const sp of catalog) {
@@ -240,10 +241,10 @@ describe('localInferenceProvider', () => {
           expect(shape(now), label).toEqual(shape(then));
           if (!isRefusal(now)) expect(now.units.some((u) => u.unit === localTranscriptionUnit), label).toBe(false);
         } else if (!isRefusal(now)) {
-          // What newly runs (text models, part B): this device transcribing alone for a text model, which was refused
-          // as this device having no unit for transcription alone.
+          // What newly runs (text models, part B; Local Native, #578): this device transcribing alone for another
+          // translator, which was refused as this device having no unit for transcription alone.
           expect(t.id, label).toBe('local_inference');
-          expect([...textModels, 'bing'], label).toContain(tl.id);
+          expect(translators, label).toContain(tl.id);
           expect(then, label).toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
           expect(now.byStage.transcription.unit, label).toBe(localTranscriptionUnit);
           newlyRun.push(`${tl.id}/${sp.id}`);
@@ -265,11 +266,11 @@ describe('localInferenceProvider', () => {
       const speaking = catalog.filter((c) => c.stages.includes('speech'));
       expect(reworded.sort()).toEqual([
         ...endToEnd.flatMap((tl) => speaking.map((sp) => `${tl.id}/${sp.id}`)),
-        ...[...textModels, 'bing'].flatMap((tl) => endToEnd.map((sp) => `${tl}/${sp.id}`)),
+        ...translators.flatMap((tl) => endToEnd.map((sp) => `${tl}/${sp.id}`)),
       ].sort());
-      // Each text model, under each voice that stands alone.
+      // Each translator, under each voice that stands alone.
       const alone = catalog.filter((c) => c.stages.includes('speech') && c.voiceAlone).map((c) => c.id);
-      expect(newlyRun.sort()).toEqual([...textModels, 'bing'].flatMap((model) => alone.map((voice) => `${model}/${voice}`)).sort());
+      expect(newlyRun.sort()).toEqual(translators.flatMap((model) => alone.map((voice) => `${model}/${voice}`)).sort());
     });
 
     it('its translation unit serves translation alone, and translation with speech is two units', () => {
