@@ -19,5 +19,6 @@ void RegisterCommon(Napi::Env env, Napi::Object exports);      // common.cpp
 void RegisterAsr(Napi::Env env, Napi::Object exports);         // asr.cpp
 void RegisterTranslate(Napi::Env env, Napi::Object exports);   // translate.cpp
 void RegisterTts(Napi::Env env, Napi::Object exports);         // tts.cpp
+void RegisterResample(Napi::Env env, Napi::Object exports);    // resample.cpp
 
 }  // namespace sk_node

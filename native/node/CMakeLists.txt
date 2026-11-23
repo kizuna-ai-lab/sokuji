@@ -10,7 +10,9 @@ add_library(sokuji_native_node MODULE
     src/worker.cpp
     src/asr.cpp
     src/translate.cpp
-    src/tts.cpp)
+    src/tts.cpp
+    src/resample.cpp
+    third_party/speexdsp/resample.c)
 set_target_properties(sokuji_native_node PROPERTIES
     OUTPUT_NAME sokuji_native_node
     PREFIX ""
@@ -24,6 +26,12 @@ target_compile_definitions(sokuji_native_node PRIVATE
     NAPI_VERSION=8
     NODE_ADDON_API_DISABLE_DEPRECATED
     NAPI_CPP_EXCEPTIONS)
+# speexdsp's resampler (BSD-3, third_party/speexdsp): float build, standalone (no config.h),
+# every public symbol prefixed with sokuji_ so it never meets another copy in the process.
+# (src/resample.cpp includes the same header, so it gets the same definitions.)
+set_source_files_properties(third_party/speexdsp/resample.c src/resample.cpp PROPERTIES
+    COMPILE_DEFINITIONS "FLOATING_POINT;OUTSIDE_SPEEX;RANDOM_PREFIX=sokuji")
+
 # One std::thread per loaded model (src/worker.cpp).
 find_package(Threads REQUIRED)
 target_link_libraries(sokuji_native_node PRIVATE sokuji_native Threads::Threads)
