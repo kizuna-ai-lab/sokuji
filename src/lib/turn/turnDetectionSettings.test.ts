@@ -1,5 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { clampTurnDetection, migrateTurnDetection, TURN_DETECTION_DEFAULTS, vadConfigOf } from './turnDetectionSettings';
+import {
+  clampTurnDetection,
+  LEGACY_TURN_DETECTION_FIELDS,
+  migrateTurnDetection,
+  TURN_DETECTION_DEFAULTS,
+  vadConfigOf,
+} from './turnDetectionSettings';
+
+describe('pinned values', () => {
+  it('the defaults are the spec table', () => {
+    expect(TURN_DETECTION_DEFAULTS).toEqual({
+      threshold: 0.3, negativeThreshold: 0, minSilence: 1.4, minSpeech: 0.4, prePad: 0.8, maxSpeech: 30,
+      endOfTurn: 'normal', smartTurnCheckAfter: 0.3, smartTurnThreshold: 0.5,
+    });
+  });
+  it('the legacy keys are the nine old names', () => {
+    expect(LEGACY_TURN_DETECTION_FIELDS).toEqual({
+      threshold: 'vadThreshold', negativeThreshold: 'vadNegativeThreshold', minSilence: 'vadMinSilenceDuration',
+      minSpeech: 'vadMinSpeechDuration', prePad: 'vadPreSpeechPadDuration', maxSpeech: 'vadMaxSpeechDuration',
+      endOfTurn: 'vadEndOfTurn', smartTurnCheckAfter: 'smartTurnCheckAfter', smartTurnThreshold: 'smartTurnThreshold',
+    });
+  });
+});
 
 describe('migrateTurnDetection', () => {
   it('takes each stored localInference value once, to be written under settings.turnDetection', () => {
@@ -23,10 +45,35 @@ describe('migrateTurnDetection', () => {
   });
 });
 
+describe('silence threshold above the speech threshold (I1)', () => {
+  it('legacy {thr .3, neg .4} writes neg clamped to .3 and runs as base did', () => {
+    const { settings, writes } = migrateTurnDetection({}, { threshold: 0.3, negativeThreshold: 0.4 });
+    expect(writes).toEqual({ threshold: 0.3, negativeThreshold: 0.3 });
+    expect(settings).toMatchObject({ threshold: 0.3, negativeThreshold: 0.3 });
+    const vad = vadConfigOf(settings, false);
+    expect(vad.threshold).toBe(0.3);
+    expect(vad.negativeThreshold).toBe(0.3);
+  });
+  it('judged against the stored threshold when it wins over the legacy one', () => {
+    const { settings, writes } = migrateTurnDetection({ threshold: 0.5 }, { threshold: 0.2, negativeThreshold: 0.4 });
+    expect(writes).toEqual({ negativeThreshold: 0.4 });
+    expect(settings).toMatchObject({ threshold: 0.5, negativeThreshold: 0.4 });
+  });
+  it('stored threshold .5 with legacy neg .4 and no legacy threshold keeps .4', () => {
+    expect(migrateTurnDetection({ threshold: 0.5 }, { negativeThreshold: 0.4 }).settings.negativeThreshold).toBe(0.4);
+  });
+  it('legacy neg alone is judged against the default threshold', () => {
+    expect(migrateTurnDetection({}, { negativeThreshold: 0.4 }).writes).toEqual({ negativeThreshold: 0.3 });
+  });
+  it('vadConfigOf sends min(neg, threshold); 0 stays Auto', () => {
+    expect(vadConfigOf({ ...TURN_DETECTION_DEFAULTS, threshold: 0.3, negativeThreshold: 0.4 }, false).negativeThreshold).toBe(0.3);
+    expect(vadConfigOf({ ...TURN_DETECTION_DEFAULTS, threshold: 0.5, negativeThreshold: 0.4 }, false).negativeThreshold).toBe(0.4);
+  });
+});
+
 describe('clampTurnDetection', () => {
-  it('reads a negative threshold above the threshold as 0', () => {
-    expect(clampTurnDetection({ threshold: 0.3, negativeThreshold: 0.5 })).toEqual({ threshold: 0.3, negativeThreshold: 0 });
-    expect(clampTurnDetection({ threshold: 0.5, negativeThreshold: 0.4 }).negativeThreshold).toBe(0.4);
+  it('keeps a negative threshold above the threshold (it is applied as min of the two)', () => {
+    expect(clampTurnDetection({ threshold: 0.3, negativeThreshold: 0.5 })).toEqual({ threshold: 0.3, negativeThreshold: 0.5 });
   });
   it('drops non-finite numbers and non-members', () => {
     expect(clampTurnDetection({ threshold: Infinity, minSpeech: 'x', endOfTurn: 'other' })).toEqual({});

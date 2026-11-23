@@ -30,7 +30,7 @@ export const useTurnDetectionStore = create<TurnDetectionStore>()((set, get) => 
   settings: TURN_DETECTION_DEFAULTS,
   update(patch) {
     const before = get().settings;
-    // Clamped against the whole, so a negative threshold follows the threshold it is set under.
+    // Each field is clamped to its own range; a silence threshold above the threshold stays stored (the VAD config applies the smaller).
     const next = { ...before, ...clampTurnDetection({ ...before, ...patch }) };
     const changed = FIELDS.filter((field) => next[field] !== before[field]);
     if (changed.length === 0) return;

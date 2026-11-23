@@ -159,13 +159,14 @@ export function noAsr(source: string): ProviderRefusal {
   return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source } };
 }
 
-/**
- * The recognition of a direction whose recognition model is `asrModelId`: the model, whether it streams, and the VAD
- * with Smart Turn where the settings ask for it and the model's worker takes it. One builder for the whole local
- * session and for the local recognition as a unit of its own.
- */
+/** The leg a recognition serves: its language and whether it transcribes or translates. */
 export type RecognitionLeg = { language: string; task: 'transcribe' | 'translate' };
 
+/**
+ * The recognition of a direction whose recognition model is `asrModelId`: the model, whether it streams, and the VAD
+ * from the turn detection settings `td`, with Smart Turn where they ask for it and the model's worker takes it. One
+ * builder for the whole local session and for the local recognition as a unit of its own.
+ */
 export function localRecognition(td: TurnDetectionSettings, asrModelId: string, leg: RecognitionLeg): Pick<LocalInferenceConfig, 'asr' | 'vad' | 'limit'> {
   const asrEntry = getManifestEntry(asrModelId);
   const turnDetection = turnDetectionOf(asrEntry);

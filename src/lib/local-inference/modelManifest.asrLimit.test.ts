@@ -35,6 +35,13 @@ describe('segmentLimitFor', () => {
     expect(segmentLimitFor(entry(id), transcribe('ja'))).toEqual(limit);
   });
 
+  it('a language that is a prototype key falls back to the default, never a function', () => {
+    const q = entry('qwen3-asr-0.6b-webgpu');
+    for (const language of ['constructor', 'toString', '__proto__']) {
+      const limit = segmentLimitFor(q, transcribe(language));
+      expect(typeof limit.maxSpeechSeconds).toBe('number');
+    }
+  });
   it('an unknown model has no limit', () => {
     expect(segmentLimitFor(undefined, transcribe('en'))).toEqual({});
   });

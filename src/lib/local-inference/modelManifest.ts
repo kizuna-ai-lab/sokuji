@@ -3610,7 +3610,6 @@ export function getLocalInferenceTargetLanguages(sourceLang: string): LanguageOp
 
 // ─── Query Helpers ───────────────────────────────────────────────────────────
 
-/** Get a manifest entry by model ID */
 /** The length limit an entry declares; a sherpa-onnx offline recognizer without its own has `SHERPA_OFFLINE_LIMIT`. */
 export function asrLimitOf(entry: ModelManifestEntry | undefined): AsrLengthLimit | undefined {
   if (!entry) return undefined;
@@ -3629,10 +3628,13 @@ export function segmentLimitFor(
   const limit = asrLimitOf(entry);
   if (!limit) return {};
   const primary = leg.language.toLowerCase().split(/[-_]/)[0];
-  const seconds = limit.byLanguage?.[primary] ?? (leg.task === 'translate' ? limit.byTask?.translate : undefined) ?? limit.seconds;
+  const own = <T,>(table: Record<string, T> | undefined, key: string): T | undefined =>
+    table && Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
+  const seconds = own(limit.byLanguage, primary) ?? (leg.task === 'translate' ? own(limit.byTask as Record<string, number> | undefined, 'translate') : undefined) ?? limit.seconds;
   return limit.kind === 'segment' ? { maxSegmentSamples: seconds * 16000 } : { maxSpeechSeconds: seconds };
 }
 
+/** Get a manifest entry by model ID */
 export function getManifestEntry(modelId: string): ModelManifestEntry | undefined {
   return MODEL_MANIFEST.find(m => m.id === modelId);
 }

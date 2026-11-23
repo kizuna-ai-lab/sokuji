@@ -69,7 +69,7 @@ const END_OF_TURN: readonly VadEndOfTurn[] = ['normal', 'smart'];
 
 /**
  * The valid part of raw values, clamped to range: a value that is not a finite number, or not a member of its enum,
- * is dropped. A negative threshold above the threshold (this one's, else the default) reads as 0.
+ * is dropped. A negative threshold above the threshold is kept: the VAD config applies the smaller of the two.
  */
 export function clampTurnDetection(raw: Partial<Record<keyof TurnDetectionSettings, unknown>>): Partial<TurnDetectionSettings> {
   const out: Partial<TurnDetectionSettings> = {};
@@ -82,16 +82,14 @@ export function clampTurnDetection(raw: Partial<Record<keyof TurnDetectionSettin
   if (typeof raw.endOfTurn === 'string' && (END_OF_TURN as readonly string[]).includes(raw.endOfTurn)) {
     out.endOfTurn = raw.endOfTurn as VadEndOfTurn;
   }
-  if (out.negativeThreshold !== undefined && out.negativeThreshold > (out.threshold ?? TURN_DETECTION_DEFAULTS.threshold)) {
-    out.negativeThreshold = 0;
-  }
   return out;
 }
 
 /**
  * The settings a launch reads, and what to write so the old values are taken once. Both arguments are keyed by the
  * new names. A valid stored value wins and is never written again; each other field takes its clamped legacy value
- * (written) or the default.
+ * (written) or the default. A legacy silence threshold above the threshold the launch ends up with is written clamped
+ * to it, which is what the old config ran; a stored one is left as it is.
  */
 export function migrateTurnDetection(
   stored: Partial<Record<keyof TurnDetectionSettings, unknown>>,
@@ -103,14 +101,17 @@ export function migrateTurnDetection(
   for (const field of Object.keys(old) as Array<keyof TurnDetectionSettings>) {
     if (have[field] === undefined) (writes as Record<string, unknown>)[field] = old[field];
   }
+  if (writes.negativeThreshold !== undefined) {
+    const threshold = have.threshold ?? writes.threshold ?? TURN_DETECTION_DEFAULTS.threshold;
+    writes.negativeThreshold = Math.min(writes.negativeThreshold, threshold);
+  }
   const settings = { ...TURN_DETECTION_DEFAULTS, ...writes, ...have };
-  if (settings.negativeThreshold > settings.threshold) settings.negativeThreshold = 0;
   return { settings, writes };
 }
 
 /**
  * The VAD the local recognizers are configured with. `smart`: this model's worker takes Smart Turn. The negative
- * threshold is there only when set; Smart Turn only when asked for and stored, its check capped under Max Wait.
+ * threshold is there only when set (never above the threshold); Smart Turn only when asked for and stored, its check capped under Max Wait.
  */
 export function vadConfigOf(td: TurnDetectionSettings, smart: boolean): VadWebConfig {
   const vad: VadWebConfig = {
@@ -120,7 +121,7 @@ export function vadConfigOf(td: TurnDetectionSettings, smart: boolean): VadWebCo
     maxSpeechDuration: td.maxSpeech,
     preSpeechPadDuration: td.prePad,
   };
-  if (td.negativeThreshold) vad.negativeThreshold = td.negativeThreshold;
+  if (td.negativeThreshold) vad.negativeThreshold = Math.min(td.negativeThreshold, td.threshold);
   if (smart && td.endOfTurn === 'smart') {
     const checkAfter = effectiveCheckAfter(td.smartTurnCheckAfter, td.minSilence);
     if (checkAfter !== null) vad.smartTurn = { checkAfter, threshold: td.smartTurnThreshold };

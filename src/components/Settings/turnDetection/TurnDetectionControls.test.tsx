@@ -4,6 +4,9 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 const { persistSetting } = vi.hoisted(() => ({ persistSetting: vi.fn(async () => {}) }));
 vi.mock('../../../services/persistSetting', () => ({ persistSetting }));
 
+const { reportWarning } = vi.hoisted(() => ({ reportWarning: vi.fn() }));
+vi.mock('../../../lib/diagnostics/report', async (orig) => ({ ...(await orig<typeof import('../../../lib/diagnostics/report')>()), reportWarning }));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (_k: string, fb?: string, opts?: Record<string, unknown>) =>
@@ -39,6 +42,7 @@ const button = (name: string) => screen.getByRole('button', { name }) as HTMLBut
 
 beforeEach(() => {
   persistSetting.mockClear();
+  reportWarning.mockClear();
   set({});
   mockPhase = 'ready';
   mockBytes = 0;
@@ -213,6 +217,25 @@ describe('TurnDetectionControls', () => {
       set({});
       render(<TurnDetectionControls scope={SMART_SCOPE} />);
       expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+    });
+
+    it('offers no Delete while the model downloads or is missing, even under a stored Smart', () => {
+      set({ endOfTurn: 'smart' });
+      for (const phase of ['downloading', 'missing']) {
+        mockPhase = phase;
+        const { unmount } = render(<TurnDetectionControls scope={SMART_SCOPE} />);
+        expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+        unmount();
+      }
+    });
+
+    it('reports a failed delete as a deduped warning', async () => {
+      set({ endOfTurn: 'smart' });
+      mockRemove.mockRejectedValue(new Error('disk full'));
+      render(<TurnDetectionControls scope={SMART_SCOPE} />);
+      fireEvent.click(button('Delete'));
+      await vi.waitFor(() => expect(reportWarning).toHaveBeenCalledTimes(1));
+      expect(reportWarning).toHaveBeenCalledWith('SmartTurn', expect.stringContaining('disk full'), expect.objectContaining({ dedupeKey: 'smart-turn:delete' }));
     });
   });
 
