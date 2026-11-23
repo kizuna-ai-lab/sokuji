@@ -88,7 +88,15 @@ These are the detector's interface. Each has tests in §9.
 - Local Native: the client forwards the detector's output to the sidecar's socket in the order it arrives (PCM
   chunks and `vad_mark`), so the sidecar's "cut when the mark arrives" is the cut at the position. The wire does not
   change. `start` marks the detecting frame (see Voxtral 4B above); the sidecar's 0.7 s pre-roll ring still seeds
-  the start of a segment with the audio before it, as today. End and cancel marks are exact.
+  the start of a segment with the audio before it, as today. End and cancel marks are exact. The ring is fixed:
+  the wire carries no pre-roll setting, so the `prePad` setting (§7) does not reach this leg, and Local Native's
+  pre-roll stays 0.7 s whatever `prePad` says (its limit, C4, counts those 0.7 s). Carrying `prePad` to the sidecar
+  would be a wire change, outside this design.
+- No pre-roll crosses an end or a cancel. The sidecar empties its ring at `end` and at `cancel`, and Voxtral 4B's
+  feed keeps, once a run ends or is aborted, only the audio that arrived after the mark, both as today. So the
+  pre-roll that seeds a segment holds audio from after the previous end or cancel only, and no audio of press p
+  seeds a segment of press p + 1 (C2). Under push-to-talk the runner sends no audio between presses, so a press's
+  pre-roll is empty.
 
 **C2. Push-to-talk: presses and segments.** See §5.
 - A press (`press`, from the runner's `beginTurn`) is one logical turn; the segments one press produces (`seq`) are
@@ -181,7 +189,7 @@ One namespace, `settings.turnDetection.*`, read by the detector only:
 | `negativeThreshold` | 0 (Auto: threshold − 0.15) | 0–threshold | `localInference.vadNegativeThreshold` |
 | `minSilence` ("Max Wait" under Smart) | 1.4 s | 0.05 (0.3 under Smart)–2.0 | `localInference.vadMinSilenceDuration` |
 | `minSpeech` | 0.4 s | 0.05–1.0 | `localInference.vadMinSpeechDuration` |
-| `prePad` | 0.8 s | 0–2 | `localInference.vadPreSpeechPadDuration` |
+| `prePad` | 0.8 s (not Local Native: its sidecar's fixed 0.7 s ring, C1) | 0–2 | `localInference.vadPreSpeechPadDuration` |
 | `maxSpeech` | 30 s | 10–40 | `localInference.vadMaxSpeechDuration` |
 | `endOfTurn` | `normal` | `normal` / `smart` | `localInference.vadEndOfTurn` |
 | `smartTurnCheckAfter` | 0.3 s | 0.10–min(0.5, Max Wait − 0.2) | same name |
