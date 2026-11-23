@@ -395,7 +395,13 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
   'user_profile_loaded': { has_subscription: boolean; email_verified: boolean };
   'user_profile_refresh_clicked': Record<string, never>;
   'account_management_clicked': Record<string, never>;
-  'top_up_clicked': Record<string, never>;
+  /** Where the Top up was clicked: the account popover, the status line above Start, or a notice row in the conversation. */
+  'top_up_clicked': { source: 'account_popover' | 'status_line' | 'notice' };
+  /**
+   * The status line began saying that the balance keeps Start from starting: `reason` is its code (the gate's
+   * `balance_below_floor`, the server's `insufficient_balance`, or an organization's). Once each time it appears.
+   */
+  'start_blocked': { reason: string };
   'subscription_management_clicked': Record<string, never>;
 
   // Navigation events

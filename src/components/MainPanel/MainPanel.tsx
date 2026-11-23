@@ -14,7 +14,9 @@ import { useAnalytics } from '../../lib/analytics';
 import type { LegName } from '../../lib/conversation/types';
 import { describeCause, reportError, reportWarning } from '../../lib/diagnostics/report';
 import { useStageUnit } from '../../lib/plan/fromStores';
-import { NO_MICROPHONE } from '../../lib/session/shape';
+import { BALANCE_BELOW_FLOOR, NO_MICROPHONE } from '../../lib/session/shape';
+import { ORG_BALANCE_HELD, ORG_INSUFFICIENT_BALANCE } from '../../lib/session/orgNotice';
+import { BILLING_PATH, openSitePage } from '../../lib/auth/openSitePage';
 import type { RunEnd, RunState } from '../../lib/session/types';
 import { displayItems, type DisplayItem, type NoticeEntry } from '../../lib/view/filter';
 import { actionLabel, signedInTarget, type NoticeActionSpec } from '../../lib/view/noticeActions';
@@ -37,7 +39,6 @@ import {
   useKeepReplayAudio,
   useNavigateToSettings,
   useParticipantDisplayMode,
-  useSetAccountPopoverRequested,
   useSetAuthOverlay,
   useSpeakerDisplayMode,
   useSubtitleModeActive,
@@ -73,6 +74,9 @@ import { useStatusLine } from './useStatusLine';
 import { toneOf } from '../../lib/view/tone';
 import { useLiveNotesShows } from '../../lib/notes/live/livePanel';
 import './MainPanel.scss';
+
+/** The status-line codes that say the balance keeps Start from starting (counted as `start_blocked`). */
+const BALANCE_BLOCKS: ReadonlySet<string> = new Set([BALANCE_BELOW_FLOOR, 'insufficient_balance', ORG_INSUFFICIENT_BALANCE, ORG_BALANCE_HELD]);
 
 /**
  * The page's playback and capture, once loaded (as the preview's own effect
@@ -170,7 +174,6 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
   const participantMode = useParticipantDisplayMode();
   const keepReplayAudio = useKeepReplayAudio();
   const navigateToSettings = useNavigateToSettings();
-  const setAccountPopoverRequested = useSetAccountPopoverRequested();
   const setAuthOverlay = useSetAuthOverlay();
   const notes = usePanelNotes();
   const subtitleModeActive = useSubtitleModeActive();
@@ -230,10 +233,25 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
   const permission = usePermissionWarning(run, viewState.legs);
   const openWarning = permission.open;
   // One table of actions (spec 2026-10-05 §6); the panel owns the handlers.
-  const runNoticeAction = useCallback((spec: NoticeActionSpec) => {
+  // `trackEvent` is a new function on every render: read through a ref, so that the callbacks below keep their identity
+  // (ConversationList's per-notice cache keys off `noticeAction`).
+  const trackRef = useRef(trackEvent);
+  useEffect(() => { trackRef.current = trackEvent; });
+  const runNoticeAction = useCallback((spec: NoticeActionSpec, from: 'status_line' | 'notice') => {
     switch (spec.kind) {
       case 'settings': navigateToSettings(spec.target); return;
-      case 'top-up': setAccountPopoverRequested(true); return;
+      case 'top-up':
+        // Straight to the billing page, signed in (the owner's call, 2026-11-23): it used to open the account
+        // popover, where Top up had to be clicked a second time.
+        trackRef.current('top_up_clicked', { source: from });
+        openSitePage(BILLING_PATH, {
+          signedIn: currentAuth()?.signedIn === true,
+          onSessionExpired: () => {
+            trackRef.current('session_expired_detected', { source: 'one_time_token' });
+            setAuthOverlay('sign-in', 'session_expired');
+          },
+        }).catch((e: unknown) => reportWarning('MainPanel', 'Could not open the billing page.', { cause: e }));
+        return;
       case 'sign-in': {
         // Signed out: the sign-in itself. Signed in and still refused: the account row of the provider it is about.
         const row = signedInTarget(spec, currentAuth()?.signedIn === true);
@@ -247,7 +265,7 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
       case 'windows-settings': if (isElectron()) void window.electron.invoke('open-windows-settings', spec.page); return;
       default: { const _exhaustive: never = spec; return _exhaustive; }
     }
-  }, [navigateToSettings, setAccountPopoverRequested, setAuthOverlay, openWarning]);
+  }, [navigateToSettings, setAuthOverlay, openWarning]);
   // The store actions and `open` are stable for the panel's life; `t` and the notes are not — a
   // language bundle arriving swaps `t` (`i18n`'s `bindI18nStore: 'added'`), and a note added or
   // cleared swaps `notes`. ConversationList's per-notice cache keys off this callback's identity,
@@ -259,7 +277,7 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
     const spec = noticeActionSpec(notice, notes);
     if (!spec) return null;
     const { key, fallback } = actionLabel(spec);
-    return { label: t(key, fallback), run: () => runNoticeAction(spec) };
+    return { label: t(key, fallback), run: () => runNoticeAction(spec, 'notice') };
   }, [t, notes, runNoticeAction]);
 
   // The start gate both surfaces read (the subtitle session), in words.
@@ -300,6 +318,18 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
   );
   const setEntryHint = useSetSubtitleEntryHint();
   const status = useStatusLine({ run, idle, canStart: subtitle.canStart, dismissedEnd, echo });
+  const onStatusAction = useCallback((spec: NoticeActionSpec) => runNoticeAction(spec, 'status_line'), [runNoticeAction]);
+  // The Start button is disabled while the balance blocks it, so no click says the user wanted to start: the line
+  // that tells them why is counted instead, once each time it begins.
+  const blockedBy = status?.words.kind === 'notice' && BALANCE_BLOCKS.has(status.words.code) ? status.words.code : null;
+  const blockedKey = blockedBy ? status?.key : undefined;
+  // Keyed on the line, not the code: the line going away and coming back is counted again.
+  const countedBlock = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (countedBlock.current === blockedKey) return;
+    countedBlock.current = blockedKey;
+    if (blockedBy) trackRef.current('start_blocked', { reason: blockedBy });
+  }, [blockedKey, blockedBy]);
   const onDismissStatus = useCallback((what: 'echo' | 'subtitle-entry') => {
     if (what === 'echo') dismissEcho(); else setEntryHint(null);
   }, [dismissEcho, setEntryHint]);
@@ -389,7 +419,7 @@ export default function MainPanel({ liveNotes }: MainPanelProps) {
           {liveNotes}
         </div>
         {canSendText && <TypedText onSend={(text) => runner.sendText(text)} />}
-        {status && <StatusLine entry={status} onAction={runNoticeAction} onDismiss={onDismissStatus} />}
+        {status && <StatusLine entry={status} onAction={onStatusAction} onDismiss={onDismissStatus} />}
         {/* One settings page, no Quick or Advanced layout: everyone gets the full footer (settings page plan, ruling 4). */}
         {footer('advanced')}
       </div>

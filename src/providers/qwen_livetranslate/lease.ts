@@ -18,7 +18,7 @@ import type { LegName } from '../../lib/conversation/types';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { interruptedOutcome, recordNetworkAttempt, type NetworkOutcome } from '../../lib/diagnostics/sessionNetwork';
 import type { LeaseContext, Payer, Resources, RunNotice, RunShape } from '../../lib/session/types';
-import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
+import { budgetExhaustedParams, orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { getApiUrl } from '../../utils/environment';
 import { isEndpointId, type EndpointId } from './endpoints';
 import { asQwenRegion, QWEN_REGIONS, type QwenRegion } from './regions';
@@ -409,9 +409,11 @@ export function createQwenLease(deps: QwenLeaseDeps = {}) {
     // otherwise the balance is what ran out. Stable English messages: the runner tracks a budget exhaustion as `api_error`,
     // and a message that carried the seconds could not be grouped; the seconds go to the Logs' frame instead.
     const capped = grant.maxSessionDurationSeconds >= QWEN_SESSION_CAP_SECONDS;
+    // An organization's run-out names the organization, so that only its owner is offered Top up.
+    const outParams = budgetExhaustedParams(shape.payer, shape.account);
     const grantEnd: { notice: RunNotice; expected: boolean } = capped
       ? { notice: { code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, expected: true }
-      : { notice: { code: 'budget_exhausted', message: 'Session budget exhausted' }, expected: false };
+      : { notice: { code: 'budget_exhausted', message: 'Session budget exhausted', ...(outParams ? { params: outParams } : {}) }, expected: false };
 
     let ended = false;
     let released = false;

@@ -53,8 +53,15 @@ describe('actionForCode', () => {
     expect(actionForCode('participant_tts_missing')).toEqual({ kind: 'engine-slot', leg: 'participant', stage: 'tts' });
     expect(actionForCode('participant_tts_over_budget')).toEqual({ kind: 'engine-slot', leg: 'participant', stage: 'tts' });
   });
-  it('gives the reasons a run ended no action: the status line carries the fix (spec §2)', () => {
-    for (const code of ['budget_exhausted', 'segment_ended', 'leg_closed', 'source_ended', 'connection_lost', 'leg_failed']) {
+  // The owner's call (2026-11-23): the row that says the balance ran out offers Top up there and then.
+  it('offers Top up where a run ended on its balance, but not an organization member', () => {
+    expect(actionForCode('budget_exhausted')).toEqual({ kind: 'top-up' });
+    expect(actionForCode('budget_exhausted', { payer: 'organization', organization: 'Acme', role: 'owner' })).toEqual({ kind: 'top-up' });
+    expect(actionForCode('budget_exhausted', { payer: 'organization', organization: 'Acme', role: 'member' })).toBeNull();
+    expect(actionForCode('budget_exhausted', { payer: 'organization' })).toBeNull();
+  });
+  it('gives the other reasons a run ended no action: the status line carries the fix (spec §2)', () => {
+    for (const code of ['segment_ended', 'leg_closed', 'source_ended', 'connection_lost', 'leg_failed']) {
       expect(actionForCode(code), code).toBeNull();
     }
     expect(actionForCode(undefined)).toBeNull();

@@ -29,6 +29,15 @@ export function orgNoticeParams(account: AccountState | null | undefined): Recor
 }
 
 /**
+ * A grant's run-out notice params: none for a personal wallet; for an organization's, `payer` with its name and the
+ * user's role, so that only the owner, who can add to the organization's wallet, is offered Top up.
+ */
+export function budgetExhaustedParams(payer: Payer | undefined, account: AccountState | null | undefined): Record<string, string> | undefined {
+  if (payer !== 'organization') return undefined;
+  return { payer: 'organization', ...orgNoticeParams(account) };
+}
+
+/**
  * The organization's client code for a lease refusal, or null when it is not
  * one. `payer` is what the request carried, never the live switch.
  */

@@ -1162,6 +1162,22 @@ describe('Qwen lease: refusals for organization payers', () => {
   };
   beforeEach(() => localStorage.clear());
 
+  it("names the organization when an organization-paid grant runs out, so only its owner is offered Top up", async () => {
+    const net = stubFetch();
+    const clock = createVirtualClock(0);
+    const ctx: LeaseContext = { signal: new AbortController().signal, clock, end: vi.fn(), frame: vi.fn(), waiting: vi.fn() };
+    const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
+    const pending = lease({ ...shapeFor(['speaker']), account, payer: 'organization' }, QWEN_DEFAULTS, ctx);
+    await flush();
+    net.last().respond(200, grant({ maxSessionDurationSeconds: 985 }));
+    await pending;
+    clock.advance(985_000);
+    expect(ctx.end).toHaveBeenCalledWith(
+      { code: 'budget_exhausted', message: expect.any(String), params: { payer: 'organization', organization: 'Acme', role: 'member' } },
+      { expected: false },
+    );
+  });
+
   it('words a 402 whose reason is org_balance_held', async () => {
     const e = await refused(402, { error: 'Insufficient balance', reason: 'org_balance_held', availableMicroUsd: 3 }, { payer: 'organization' });
     expect(e).toMatchObject({ code: 'org_balance_held' });

@@ -38,7 +38,7 @@ const notice = (id: string, severity: NoticeEntry['severity'], message: string, 
   ({ kind: 'notice', id, leg: 'speaker', severity, message, at: 0, ...over });
 
 export const EVENT_CASES: readonly EventCase[] = [
-  { label: 'error · budget_exhausted (the run ended; no action)', notice: notice('e1', 'error', 'The session budget is used up.', { code: 'budget_exhausted' }) },
+  { label: 'error · budget_exhausted (the run ended; Top up)', notice: notice('e1', 'error', 'The session budget is used up.', { code: 'budget_exhausted' }) },
   { label: 'error · leg_failed with the provider’s detail', notice: notice('e2', 'error', 'Invalid API key', { code: 'leg_failed' }) },
   { label: 'error · a provider’s own message, no code', notice: notice('e3', 'error', 'WebSocket closed before the session was confirmed (1006).') },
   { label: 'warning · voice_fallback → Settings (the run continues)', notice: notice('e4', 'warning', 'The chosen voice was unavailable, so another voice is used.', { code: 'voice_fallback' }) },

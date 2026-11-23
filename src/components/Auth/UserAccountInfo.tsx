@@ -30,7 +30,8 @@ import {formatUsd, formatUsdFloor} from '../../utils/formatters';
 import {useTranslation} from 'react-i18next';
 import {useAnalytics} from '../../lib/analytics';
 import {reportError} from '../../lib/diagnostics/report';
-import {isElectron, getBackendUrl, getApiUrl} from '../../utils/environment';
+import {getApiUrl} from '../../utils/environment';
+import {BILLING_PATH, openSitePage} from '../../lib/auth/openSitePage';
 import {useSetAuthOverlay} from '../../stores/settingsStore';
 import './UserAccountInfo.scss';
 
@@ -363,66 +364,17 @@ export function UserAccountInfo({
     }
   };
 
-  // Open external URL with One-Time Token for automatic authentication
-  const openExternalWithAuth = async (targetPath: string) => {
-    const siteUrl = getBackendUrl();
-    const apiUrl = getApiUrl();
-    let url = `${siteUrl}${targetPath}`;
-
-    // If signed in, generate OTT token for automatic login
-    // Use our wrapper endpoint that calls Better Auth's verify and forwards the signed cookie
-    if (isSignedIn) {
-      try {
-        const {data, error} = await authClient.oneTimeToken.generate();
-
-        // A 401 here is not a token problem, it is the session being gone.
-        // The likeliest way to get one: the user opened the dashboard from this
-        // very panel and signed out over there, dropping the cookie the app
-        // shares with it. Nothing pushes that back to the app, so without this
-        // the panel goes on showing an avatar and a balance for a session the
-        // server has forgotten, and every button here silently opens a login
-        // page instead of the thing that was asked for.
-        if ((error as {status?: number} | null)?.status === 401) {
-          trackEvent('session_expired_detected', {source: 'one_time_token'});
-          // Let the session hook establish the truth; the whole signed-out UI
-          // — this panel, the title-bar mark, the provider notice — follows
-          // from isSignedIn on its own.
-          refetchSession?.();
-          // The sign-in card says why it opened.
-          setAuthOverlay('sign-in', 'session_expired');
-          // Deliberately do NOT open the page: it would only show a login form
-          // in a browser, which is neither what was asked for nor where the
-          // user can act on it.
-          return;
-        }
-
-        if (data?.token && !error) {
-          // Use our GET wrapper endpoint that internally calls POST /api/auth/one-time-token/verify
-          // The after hook sets the signed cookie, and this endpoint forwards it with redirect
-          url = `${apiUrl}/ott/verify?token=${data.token}&redirect=${encodeURIComponent(targetPath)}`;
-        }
-        // Any other failure — the token endpoint down, a network blip — is not
-        // evidence about the session. Fall through and open the plain URL.
-      } catch (e) {
-        // Token generation failed, use original URL (user needs to sign in manually)
-        console.warn('Failed to generate OTT token:', e);
-      }
-    }
-
-    // Open in system browser (Electron) or new tab (browser)
-    if (isElectron() && (window as any).electron?.invoke) {
-      // The promise was discarded, so a rejected invoke — main process gone,
-      // handler throwing — surfaced as an unhandled rejection and nothing else.
-      // Every caller of this function was affected, not just one.
-      void (window as any).electron
-        .invoke('open-external', url)
-        .catch((e: unknown) => {
-          console.warn('[UserAccountInfo] Could not open the external page:', e);
-        });
-    } else {
-      window.open(url, '_blank');
-    }
-  };
+  // Open a page of the website, signed in (src/lib/auth/openSitePage.ts). When the session turns out to be gone, the
+  // session hook establishes the truth — this panel, the title-bar mark and the provider notice follow from
+  // isSignedIn on their own — and the sign-in card says why it opened.
+  const openExternalWithAuth = (targetPath: string) => openSitePage(targetPath, {
+    signedIn: isSignedIn === true,
+    onSessionExpired: () => {
+      trackEvent('session_expired_detected', {source: 'one_time_token'});
+      refetchSession?.();
+      setAuthOverlay('sign-in', 'session_expired');
+    },
+  });
 
   // Handle manage account click - open dashboard in system default browser
   const handleManageAccount = () => {
@@ -434,8 +386,8 @@ export function UserAccountInfo({
   // the user to find Billing themselves. /dashboard/billing is canonical —
   // /dashboard/wallet redirects to it.
   const handleTopUp = () => {
-    trackEvent('top_up_clicked', {});
-    openExternalWithAuth('/dashboard/billing');
+    trackEvent('top_up_clicked', {source: 'account_popover'});
+    openExternalWithAuth(BILLING_PATH);
   };
 
   // Handle feedback click - open feedback page in system default browser

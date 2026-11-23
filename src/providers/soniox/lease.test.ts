@@ -1424,6 +1424,22 @@ describe('Kizuna Soniox lease: refusals for organization payers', () => {
     expect(m.message).toContain('Organization wallet paused');
   });
 
+  it("names the organization when an organization-paid grant runs out, so only its owner is offered Top up", async () => {
+    const net = stubFetch();
+    const clock = createVirtualClock(0);
+    const ctx: LeaseContext = { signal: new AbortController().signal, clock, end: vi.fn(), frame: vi.fn(), waiting: vi.fn() };
+    const lease = createKizunaLease({ participantSpeech: false, fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
+    const pending = lease({ ...shapeFor(['speaker']), account, payer: 'organization' }, SONIOX_DEFAULTS, ctx);
+    await flush();
+    net.last().respond(200, grant(['spk_stt', 'spk_tts'], { maxSessionDurationSeconds: 600 }));
+    await pending;
+    clock.advance(600_000);
+    expect(ctx.end).toHaveBeenCalledWith(
+      { code: 'budget_exhausted', message: 'Session budget exhausted', params: { payer: 'organization', organization: 'Acme', role: 'member' } },
+      { expected: false },
+    );
+  });
+
   it('words a 403 not_org_member', async () => {
     const e = await refused(403, { code: 'not_org_member' }, { payer: 'organization' });
     expect(e).toMatchObject({ code: 'not_org_member', params: { organization: 'Acme' } });

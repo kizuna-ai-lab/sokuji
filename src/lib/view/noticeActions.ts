@@ -25,6 +25,9 @@ export type NoticeActionSpec =
 /** The managed provider's lease refused a start, or the gate did, on the balance: both are fixed by topping up. */
 const TOP_UP_CODES: ReadonlySet<string> = new Set([BALANCE_BELOW_FLOOR, 'insufficient_balance']);
 
+/** A lease's grant ran out on the balance (`providers/soniox/lease.ts`, `providers/qwen_livetranslate/lease.ts`). */
+const BUDGET_EXHAUSTED = 'budget_exhausted';
+
 /** Local inference's text-only warnings (#619), each naming its leg: the fix is that direction's TTS slot. */
 const TTS_SLOT_LEGS: ReadonlyMap<string, LegName> = new Map([
   ['speaker_tts_missing', 'speaker'],
@@ -40,6 +43,8 @@ const TTS_SLOT_LEGS: ReadonlyMap<string, LegName> = new Map([
 export function actionForCode(code: string | undefined, params?: Record<string, string | number>): NoticeActionSpec | null {
   if (code === undefined) return null;
   if (code === ORG_INSUFFICIENT_BALANCE) return params?.role === 'owner' ? { kind: 'top-up' } : null;
+  // A run that ended on its balance (the owner's call, 2026-11-23): Top up on the row itself; an organization's only for its owner.
+  if (code === BUDGET_EXHAUSTED) return params?.payer === 'organization' && params.role !== 'owner' ? null : { kind: 'top-up' };
   if (code === LOOPBACK_DENIED) return { kind: 'system-settings', pane: 'screen-recording' };
   if (code === MIC_BLOCKED) return { kind: 'windows-settings', page: 'microphone-privacy' };
   if (TOP_UP_CODES.has(code)) return { kind: 'top-up' };

@@ -22,7 +22,8 @@ vi.mock('../../contexts/UserProfileContext', () => ({
 vi.mock('../../lib/auth-client', () => ({
   authClient: { oneTimeToken: { generate: async () => ({ data: null, error: 'x' }) } },
 }));
-vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent: vi.fn(), resetUser: vi.fn() }) }));
+const trackEvent = vi.hoisted(() => vi.fn());
+vi.mock('../../lib/analytics', () => ({ useAnalytics: () => ({ trackEvent, resetUser: vi.fn() }) }));
 // Not decoration: the real settingsStore pulls in the audio stack, which vite
 // refuses to resolve under a worktree, and the suite fails to load at all.
 vi.mock('../../stores/settingsStore', () => ({ useSetAuthOverlay: () => vi.fn() }));
@@ -47,6 +48,7 @@ describe('UserAccountInfo top-up', () => {
     fireEvent.click(screen.getByRole('button', { name: /top up/i }));
     await waitFor(() => expect(open).toHaveBeenCalled());
     expect(String(open.mock.calls[0][0])).toContain('/dashboard/billing');
+    expect(trackEvent).toHaveBeenCalledWith('top_up_clicked', { source: 'account_popover' });
     open.mockRestore();
   });
 

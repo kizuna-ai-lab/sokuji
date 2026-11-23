@@ -834,6 +834,60 @@ describe('panel notes (spec 2026-10-05 §5)', () => {
   });
 });
 
+describe('Top up (spec 2026-11-23: one click to the billing page)', () => {
+  let open: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => { open = vi.spyOn(window, 'open').mockImplementation(() => null); });
+  afterEach(() => { open.mockRestore(); });
+
+  it("opens the billing page from the status line's Top up, not the account popover, and says where it was clicked", async () => {
+    const { container } = await renderPanel();
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'insufficient_balance', message: 'm' } } }, true);
+    });
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:insufficient_balance');
+    const action = container.querySelector<HTMLButtonElement>('.status-line__action')!;
+    expect(action.textContent).toBe('common.topUp');
+    fireEvent.click(action);
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    expect(String(open.mock.calls[0][0])).toMatch(/\/dashboard\/billing$/);
+    expect(trackEvent).toHaveBeenCalledWith('top_up_clicked', { source: 'status_line' });
+    expect(useSettingsStore.getState().accountPopoverRequested).toBe(false);
+  });
+
+  it("opens the billing page from a row's Top up, as a notice", async () => {
+    usePanelNotesStore.getState().add({ severity: 'error', code: 'budget_exhausted', message: 'used up', action: { kind: 'top-up' } });
+    const { container } = await renderPanel();
+    fireEvent.click(container.querySelector('.sys-row')!.querySelector('.sys-row__action')!);
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    expect(String(open.mock.calls[0][0])).toMatch(/\/dashboard\/billing$/);
+    expect(trackEvent).toHaveBeenCalledWith('top_up_clicked', { source: 'notice' });
+  });
+
+  it('counts a start the balance blocks, once each time the status line begins saying so', async () => {
+    const { container, rerender } = await renderPanel();
+    expect(trackEvent).not.toHaveBeenCalledWith('start_blocked', expect.anything());
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'insufficient_balance', message: 'm' } } }, true);
+    });
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:insufficient_balance');
+    rerender(<MainPanel />);
+    const blocked = () => trackEvent.mock.calls.filter(([name]) => name === 'start_blocked');
+    expect(blocked()).toEqual([['start_blocked', { reason: 'insufficient_balance' }]]);
+    // The line goes away and comes back: counted again.
+    act(() => { runner().state.setState({ phase: 'idle' }, true); });
+    expect(container.querySelector('.status-line')).toBeNull();
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'insufficient_balance', message: 'm' } } }, true);
+    });
+    expect(blocked()).toHaveLength(2);
+    // A refusal that is not about money is not counted.
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'no_microphone', message: 'm' } } }, true);
+    });
+    expect(blocked()).toHaveLength(2);
+  });
+});
+
 describe('the ears strip (face-to-face)', () => {
   // The fake offers face-to-face for these cases only, on a pair that reverses (D20).
   let pair: LanguagePair;
