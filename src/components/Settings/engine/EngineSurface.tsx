@@ -25,7 +25,9 @@ export const EngineSurface: React.FC<{
   onInitialSlotConsumed?: () => void;
   /** Effective audio mode, handed through to EnginePage (see its doc). */
   effectiveMode: AudioMode;
-}> = ({ adapter, initialSlot = null, onInitialSlotConsumed, effectiveMode }) => {
+  /** Where a slot's "Browse library…" goes. Absent: that stage's models in Models and storage (`LIBRARY_TARGET`). */
+  onBrowse?: (slot: SlotId) => void;
+}> = ({ adapter, initialSlot = null, onInitialSlotConsumed, effectiveMode, onBrowse }) => {
   const { t } = useTranslation();
   // The flash signal is a CONSUMED copy of initialSlot, not the prop itself: only a fresh deep-link object re-arms it.
   const [flashSlot, setFlashSlot] = useState<SlotId | null>(initialSlot);
@@ -73,7 +75,7 @@ export const EngineSurface: React.FC<{
         </h3>
         <EnginePage adapter={adapter}
           flashSlot={flashSlot} effectiveMode={effectiveMode}
-          onBrowse={(slot) => useSettingsStore.getState().navigateToSettings(LIBRARY_TARGET[slot.stage])} />
+          onBrowse={onBrowse ?? ((slot) => useSettingsStore.getState().navigateToSettings(LIBRARY_TARGET[slot.stage]))} />
       </div>
     </div>
   );
