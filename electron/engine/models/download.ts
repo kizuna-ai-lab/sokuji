@@ -7,7 +7,7 @@
 import { createHash, type Hash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { cachedFilePath, repoDir, writeRef, writeSnapshotLink } from './hfCache';
+import { cachedFilePath, checkRepoPath, repoDir, writeRef, writeSnapshotLink } from './hfCache';
 import { HubError, fileMetadata, listRepoTree, type FileMetadata, type HubOptions } from './hub';
 import { downloadSpecs, ignored, modelSizeAsync } from './specs';
 
@@ -18,11 +18,6 @@ export interface DownloadFileOptions extends HubOptions {
 
 const SHA256 = /^[0-9a-f]{64}$/;
 const SAFE_NAME = /^[A-Za-z0-9._-]+$/;
-
-function checkRepoPath(repo: string, file: string): void {
-  const bad = (s: string) => s === '' || s === '.' || s === '..' || s.includes('\\');
-  if (repo.split('/').some(bad) || file.split('/').some(bad)) throw new Error(`refusing an unsafe repo path: ${repo}/${file}`);
-}
 
 function abortError(signal: AbortSignal): Error {
   return signal.reason instanceof Error ? signal.reason : Object.assign(new Error('the download was cancelled'), { name: 'AbortError' });

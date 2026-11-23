@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { TTS_STAGING_DIRNAME, asrModels, splitArtifact, translateModels, ttsModels } from '../catalog';
-import { hubCacheDir, scanRepo, type CachedRepo } from './hfCache';
+import { checkRepoPath, hubCacheDir, scanRepo, type CachedRepo } from './hfCache';
 import { downloadSpecs, ttsRungFiles } from './specs';
 
 /** The cache scan, patched by tests to fail (Python's scan_cache_dir raising). */
@@ -86,8 +86,12 @@ function pruneEmptyDirs(dir: string): void {
 /** Removes `fnames` from every staged revision of `repo`, then the directories that left empty. */
 export function pruneStagedFiles(repo: string, fnames: readonly string[]): void {
   for (const entry of stagedEntries(repo)) {
-    const revDir = path.join(stagingRoot(), entry);
-    for (const rel of new Set(fnames)) fs.rmSync(path.join(revDir, ...rel.split('/')), { force: true });
+    const revDir = path.resolve(stagingRoot(), entry);
+    for (const rel of new Set(fnames)) {
+      const target = path.resolve(revDir, ...rel.split('/'));
+      if (!target.startsWith(revDir + path.sep)) continue;                  // never outside its own staged revision
+      fs.rmSync(target, { force: true });
+    }
     pruneEmptyDirs(revDir);
   }
 }
@@ -103,6 +107,8 @@ export function pruneStagedRepo(repo: string): void {
  */
 export async function deleteModel(modelId: string, repo?: string | null): Promise<number> {
   const specs = downloadSpecs(modelId, repo);
+  for (const r of specs.repos) checkRepoPath(r);
+  for (const [r, f] of specs.files ?? []) checkRepoPath(r, f);
   const wholeRepos = new Set(specs.repos);
   const filesByRepo = new Map<string, string[]>();
   const add = (r: string, f: string) => {

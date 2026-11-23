@@ -145,3 +145,24 @@ describe("a card's own repo", () => {
     expect(await deleteModel('whisper-base')).toBe(0);
   });
 });
+
+describe('an unsafe path', () => {
+  it('a variant override that climbs out of the cache deletes nothing', async () => {
+    const outside = path.join(hub(), '..', 'outside.txt');
+    fs.writeFileSync(outside, 'keep me');
+    const staged = staging('audio-cpp--audio.cpp-gguf__rev1', 'x.gguf');
+    fs.mkdirSync(path.dirname(staged), { recursive: true });
+    fs.writeFileSync(staged, 'x');
+    await expect(deleteModel('moss-tts-nano', 'audio-cpp/audio.cpp-gguf/../../../outside.txt')).rejects.toThrow(/unsafe/);
+    await expect(deleteModel('moss-tts-nano', 'audio-cpp/audio.cpp-gguf/a\\..\\..\\outside.txt')).rejects.toThrow(/unsafe/);
+    await expect(deleteModel('..')).rejects.toThrow(/unsafe/);
+    expect(fs.readFileSync(outside, 'utf8')).toBe('keep me');
+    expect(fs.existsSync(staged)).toBe(true);
+  });
+
+  it('a status asked with a climbing override is absent', () => {
+    cacheFile(SHARED, MOSS, 1);
+    expect(modelStatus('moss-tts-nano', `${SHARED}/MOSS-TTS-Nano-100M-GGUF/../${MOSS}`)).toBe('absent');
+  });
+});
+

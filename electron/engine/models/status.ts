@@ -6,7 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { splitArtifact } from '../catalog';
-import { cachedFilePath, repoDir, snapshotPath } from './hfCache';
+import { cachedFilePath, checkRepoPath, repoDir, snapshotPath } from './hfCache';
 import { downloadSpecs, extraFileSpecs, ladderArtifacts, type DownloadSpecs } from './specs';
 
 export type ModelStatus = 'ready' | 'absent';
@@ -37,6 +37,8 @@ const cached = ([repo, file]: readonly [string, string]) => cachedFilePath(repo,
 export function modelStatus(modelId: string, repo?: string | null): ModelStatus {
   try {
     const specs = downloadSpecs(modelId, repo);
+    for (const r of specs.repos) checkRepoPath(r);
+    for (const [r, f] of specs.files ?? []) checkRepoPath(r, f);
     if (!reposCached(specs)) return 'absent';
     const ladder = repo == null ? ladderArtifacts(modelId) : [];
     if (ladder.length > 0) {

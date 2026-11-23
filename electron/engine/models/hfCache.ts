@@ -21,6 +21,17 @@ export function hubCacheDir(): string {
   return path.join(home, 'hub');
 }
 
+/**
+ * Throws unless every segment of the repo id and of the file path is a plain name — not empty, `.` or `..`, and free
+ * of backslashes — so no repo id or file a message names can reach outside the cache.
+ */
+export function checkRepoPath(repo: string, file?: string | null): void {
+  const bad = (s: string) => s === '' || s === '.' || s === '..' || s.includes('\\');
+  if (repo.split('/').some(bad) || (file != null && file.split('/').some(bad))) {
+    throw new Error(`refusing an unsafe repo path: ${file != null ? `${repo}/${file}` : repo}`);
+  }
+}
+
 /** `org/name` → `models--org--name`. */
 export function repoFolder(repo: string): string {
   return `models--${repo.split('/').join('--')}`;
