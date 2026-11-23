@@ -86,9 +86,7 @@ describe.skipIf(!process.env.SOKUJI_NATIVE_DIR)('the addon resampler', () => {
     for (const c of cases.filter((x) => x.src_rate !== 24000)) {
       const got = int16(toInt16_24kMono(Float32Array.from(c.input), c.channels, c.src_rate));
       expect([c.src_rate, c.channels, Math.abs(got.length - c.output.length) <= 1]).toEqual([c.src_rate, c.channels, true]);
-      // The edges carry each resampler's own filter ramp; compare the steady middle.
-      const edge = 24;
-      expect(snrDb(got.slice(edge, -edge), c.output.slice(edge, -edge))).toBeGreaterThan(60);
+      expect(snrDb(got, c.output)).toBeGreaterThan(60);        // measured 62.0–74.0 dB over the whole clip
     }
   });
 });
