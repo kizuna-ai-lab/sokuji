@@ -49,7 +49,11 @@ export interface TurnDetectorCoreOptions {
   notify: (notice: DetectorNotice) => void;
 }
 
-type Op = { kind: 'push'; pcm: Int16Array } | { kind: 'drain' };
+type Op =
+  | { kind: 'push'; pcm: Int16Array }
+  | { kind: 'drain' }
+  | { kind: 'begin'; press: number }
+  | { kind: 'cancel'; press: number };
 
 interface Vad {
   processor: FrameProcessor;
@@ -62,6 +66,8 @@ interface Vad {
 
 interface OpenSegment {
   at: number;
+  /** Manual turns: the press this segment belongs to. */
+  press?: number;
   /** Opened at a cap's cut. */
   continuation: boolean;
   /** Continuation: a frame at or above the negative threshold since the cut. */
@@ -88,12 +94,15 @@ export class TurnDetectorCore {
   private held: number[] = [];
   /** The processor's buffer was emptied during the frame in hand. */
   private emptied = false;
+  /** Manual turns: the engine's limit in samples, computed with no pad; a press is cut here and nowhere else. */
+  private readonly pressCapSamples: number;
   /** Frames since the processor's SpeechStart, counted as the workers count them for the cap. */
   private speechFrames = 0;
 
   constructor(private readonly o: TurnDetectorCoreOptions) {
     this.resampler = new TimelineResampler(o.inputRate);
     this.vad = o.turns === 'auto' ? this.createVad() : null;
+    this.pressCapSamples = resolveMaxSpeechFrames(o.vad.maxSpeechDuration, 0, o.limit) * VAD_FRAME_SAMPLES;
   }
 
   push(pcm: Int16Array): void {
@@ -103,6 +112,19 @@ export class TurnDetectorCore {
   /** Processes what has arrived, the last partial frame included, closes the open segment (`flush`), then `drained`. */
   drain(): void {
     this.enqueue({ kind: 'drain' });
+  }
+
+  /**
+   * Manual turns: a press starts at the next sample. A press still open ends first, as a release (the
+   * partial frame, the close), so nothing of it reaches the new one.
+   */
+  begin(press: number): void {
+    this.enqueue({ kind: 'begin', press });
+  }
+
+  /** Manual turns: drops the press's open audio and says so (`cancel`); a press released earlier is voided downstream. */
+  cancel(press: number): void {
+    this.enqueue({ kind: 'cancel', press });
   }
 
   /** Drops the queue at once; the frame in hand finishes. */
@@ -179,22 +201,53 @@ export class TurnDetectorCore {
   }
 
   private async apply(op: Op, generation: number): Promise<void> {
-    this.append(op.kind === 'push' ? this.resampler.push(op.pcm) : this.resampler.flush());
+    switch (op.kind) {
+      case 'push':
+        this.append(this.resampler.push(op.pcm));
+        await this.frames(generation);
+        return;
+      case 'cancel':
+        if (this.open?.press === op.press) this.open = null;
+        this.o.trace({ kind: 'cancel', press: op.press });
+        return;
+      case 'begin':
+        if (this.open) {
+          await this.settle(generation);
+          if (generation !== this.generation) return;
+          this.releasePress();
+        }
+        this.openAt(this.position + this.pending.length, false, op.press);
+        return;
+      case 'drain':
+        await this.settle(generation);
+        if (generation !== this.generation) return;
+        if (this.open) {
+          if (this.vad) this.flushOpen(this.vad);
+          else this.releasePress();
+        }
+        this.o.trace({ kind: 'drained' });
+        return;
+    }
+  }
+
+  /** Whole frames of what has arrived. */
+  private async frames(generation: number): Promise<void> {
     while (this.pending.length >= VAD_FRAME_SAMPLES) {
       if (generation !== this.generation) return;
       const samples = this.pending.slice(0, VAD_FRAME_SAMPLES);
       this.pending = this.pending.subarray(VAD_FRAME_SAMPLES);
       await this.frame(samples);
     }
-    if (op.kind === 'push' || generation !== this.generation) return;
-    if (this.pending.length > 0) {
-      const samples = this.pending.slice();
-      this.pending = new Float32Array(0);
-      await this.frame(samples);
-      if (generation !== this.generation) return;
-    }
-    if (this.open && this.vad) this.flushOpen(this.vad);
-    this.o.trace({ kind: 'drained' });
+  }
+
+  /** Everything that has arrived, at once: the resampler flushed, the last partial frame delivered. */
+  private async settle(generation: number): Promise<void> {
+    this.append(this.resampler.flush());
+    await this.frames(generation);
+    if (generation !== this.generation || this.pending.length === 0) return;
+    const samples = this.pending.slice();
+    this.pending = new Float32Array(0);
+    await this.frame(samples);
   }
 
   private append(samples: Float32Array): void {
@@ -213,6 +266,7 @@ export class TurnDetectorCore {
     if (!vad) {
       this.o.trace({ kind: 'frame', from, to, samples });
       this.position = to;
+      this.capPress();
       return;
     }
     const { processor, smart } = vad;
@@ -296,6 +350,21 @@ export class TurnDetectorCore {
     if (kept) this.openAt(to, true);
   }
 
+  /** A press runs to the engine's limit, then goes on from the cut as the same press. No VAD, no minSpeech, no Smart. */
+  private capPress(): void {
+    for (let open = this.open; open && this.position - open.at >= this.pressCapSamples; open = this.open) {
+      const cut = open.at + this.pressCapSamples;
+      this.close(cut, 'cap');
+      this.openAt(cut, false, open.press);
+    }
+  }
+
+  /** A release: the press ends with the samples it has, if it has any. */
+  private releasePress(): void {
+    if (this.position > this.current().at) this.close(this.position, 'release');
+    else this.open = null;
+  }
+
   /** A drain: the open segment ends with what has arrived. */
   private flushOpen(vad: Vad): void {
     const to = this.position;
@@ -331,13 +400,13 @@ export class TurnDetectorCore {
     return this.open;
   }
 
-  private openAt(at: number, continuation: boolean): void {
-    this.open = { at, continuation, heard: false, quiet: 0 };
-    this.o.trace({ kind: 'open', at });
+  private openAt(at: number, continuation: boolean, press?: number): void {
+    this.open = { at, press, continuation, heard: false, quiet: 0 };
+    this.o.trace({ kind: 'open', at, ...(press !== undefined ? { press } : {}) });
   }
 
   private close(to: number, endedBy: SegmentEndedBy, smartTurnProbability?: number): void {
-    const { at } = this.current();
+    const { at, press } = this.current();
     this.open = null;
     this.lastCloseTo = to;
     this.o.trace({
@@ -345,6 +414,7 @@ export class TurnDetectorCore {
       from: at,
       to,
       endedBy,
+      ...(press !== undefined ? { press } : {}),
       ...(smartTurnProbability !== undefined ? { smartTurnProbability } : {}),
     });
   }

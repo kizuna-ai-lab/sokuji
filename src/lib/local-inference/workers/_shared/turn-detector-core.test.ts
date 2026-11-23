@@ -622,3 +622,211 @@ describe('TurnDetectorCore — automatic turns', () => {
     expect(h.outputs).toEqual([]);
   });
 });
+
+/** A core under manual turns, with its assembler. 24 kHz input: 1.5 input samples per output sample. */
+function manual(o: { limit?: SegmentLimit; maxSpeech?: number } = {}) {
+  const trace: TurnTrace[] = [];
+  const outputs: DetectorOutput[] = [];
+  let infers = 0;
+  const rand = mulberry32(7);
+  const input: Int16Array[] = [];
+  const ref: { core?: TurnDetectorCore } = {};
+  const assembler = new SegmentAssembler({
+    post: (msg) => outputs.push(msg),
+    notify: () => {},
+    earliestNeeded: () => ref.core!.earliestNeeded(),
+  });
+  const core = new TurnDetectorCore({
+    turns: 'manual',
+    vad: { ...VAD, maxSpeechDuration: o.maxSpeech ?? 30 },
+    limit: o.limit ?? {},
+    infer: async () => {
+      infers++;
+      return SPEECH;
+    },
+    trace: (e) => {
+      trace.push(e);
+      assembler.trace(e);
+    },
+    notify: () => {},
+  });
+  ref.core = core;
+  return {
+    core,
+    trace,
+    infers: () => infers,
+    segments: () => outputs.filter(isSegment),
+    outputs,
+    timeline: () => timelineOf(input),
+    /** `samples` 16 kHz samples' worth of input. */
+    async push(samples: number, amplitude = 30000) {
+      const pcm = new Int16Array(samples * 1.5);
+      for (let i = 0; i < pcm.length; i++) pcm[i] = Math.floor((rand() * 2 - 1) * amplitude);
+      input.push(pcm);
+      core.push(pcm);
+      await core.idle();
+    },
+    async settle() {
+      await core.idle();
+    },
+  };
+}
+
+describe('TurnDetectorCore — presses', () => {
+  it('under manual turns Silero is never asked', async () => {
+    const m = manual();
+    m.core.begin(1);
+    await m.push(5000);
+    m.core.drain();
+    await m.settle();
+    expect(m.infers()).toBe(0);
+    expect(m.segments()).toHaveLength(1);
+  });
+
+  it("a press is one segment of every sample from begin to release, endedBy 'release': quiet speech is not dropped", async () => {
+    const m = manual();
+    m.core.begin(1);
+    await m.push(FRAME * 40, 200); // amplitude 200/32768: under Silero's threshold, a few frames of it
+    m.core.drain();
+    await m.settle();
+    const [s, ...rest] = m.segments();
+    expect(rest).toEqual([]);
+    expect(s).toMatchObject({ press: 1, start: 0, end: FRAME * 40, endedBy: 'release' });
+    expect(difference(s.audio, m.timeline())).toBeNull();
+    expect(s.smartTurnProbability).toBeUndefined();
+  });
+
+  it('a 500 ms press: 8000 samples, one segment of 8000; the 320 after the last whole frame come at release, not later', async () => {
+    const m = manual();
+    m.core.begin(1);
+    await m.push(8000);
+    // The partial frame has not been delivered: only the whole ones are in the trace.
+    const framed = () => m.trace.filter((e) => e.kind === 'frame').reduce((n, e) => n + (e as { samples: Float32Array }).samples.length, 0);
+    expect(framed()).toBe(15 * FRAME);
+    expect(m.segments()).toEqual([]);
+    m.core.drain();
+    await m.settle();
+    expect(framed()).toBe(8000);
+    const frames = m.trace.filter((e) => e.kind === 'frame');
+    expect((frames[frames.length - 1] as { samples: Float32Array }).samples).toHaveLength(320);
+    expect(m.segments().map((s) => [s.start, s.end, s.audio.length, s.endedBy])).toEqual([[0, 8000, 8000, 'release']]);
+    expect(difference(m.segments()[0].audio, m.timeline())).toBeNull();
+    expect(m.outputs[m.outputs.length - 1]).toMatchObject({ type: 'drained' });
+  });
+
+  it('a press holding fewer than 512 samples is one segment of exactly those samples', async () => {
+    const m = manual();
+    m.core.begin(4);
+    await m.push(300);
+    m.core.drain();
+    await m.settle();
+    expect(m.segments().map((s) => [s.press, s.start, s.end, s.audio.length])).toEqual([[4, 0, 300, 300]]);
+    expect(difference(m.segments()[0].audio, m.timeline())).toBeNull();
+  });
+
+  it('a Whisper press of 463872 + 3200 samples: [0, 463872) cap and [463872, 467072) release, both of the press, the tail decoded once', async () => {
+    const m = manual({ limit: { maxSegmentSamples: 464000 }, maxSpeech: 30 });
+    m.core.begin(9);
+    await m.push(463872);
+    await m.push(3200);
+    m.core.drain();
+    await m.settle();
+    expect(m.segments().map((s) => [s.press, s.start, s.end, s.endedBy])).toEqual([
+      [9, 0, 463872, 'cap'],
+      [9, 463872, 467072, 'release'],
+    ]);
+    expect(m.segments().map((s) => s.seq)).toEqual([1, 2]);
+    const timeline = m.timeline();
+    expect(difference(m.segments()[0].audio, timeline.slice(0, 463872))).toBeNull();
+    expect(difference(m.segments()[1].audio, timeline.slice(463872))).toBeNull();
+    expect(m.trace.filter((e) => e.kind === 'open')).toEqual([
+      { kind: 'open', at: 0, press: 9 },
+      { kind: 'open', at: 463872, press: 9 },
+    ]);
+  });
+
+  it('a release right after a cap emits only drained', async () => {
+    const m = manual({ limit: { maxSegmentSamples: 464000 } });
+    m.core.begin(1);
+    await m.push(463872);
+    m.core.drain();
+    await m.settle();
+    expect(m.outputs.map((o) => [o.type, o.type === 'segment' ? o.endedBy : null])).toEqual([
+      ['segment', 'cap'],
+      ['drained', null],
+    ]);
+  });
+
+  it('cancel drops the open audio and emits cancel{press}; nothing more of that press', async () => {
+    const m = manual();
+    m.core.begin(3);
+    await m.push(2000);
+    m.core.cancel(3);
+    await m.push(1000); // outside any press
+    m.core.drain();
+    await m.settle();
+    expect(m.segments()).toEqual([]);
+    expect(m.trace.filter((e) => e.kind === 'close')).toEqual([]);
+    expect(m.outputs.map((o) => o.type)).toEqual(['cancel', 'drained']);
+    expect(m.outputs[0]).toMatchObject({ press: 3 });
+  });
+
+  it('a press cancelled after its release is still named by the cancel', async () => {
+    const m = manual();
+    m.core.begin(1);
+    await m.push(2000);
+    m.core.begin(2); // releases 1
+    await m.push(1000);
+    m.core.cancel(1);
+    m.core.drain();
+    await m.settle();
+    expect(m.outputs.map((o) => [o.type, 'press' in o ? o.press : null])).toEqual([
+      ['segment', 1],
+      ['cancel', 1],
+      ['segment', 2],
+      ['drained', null],
+    ]);
+  });
+
+  it("quick repeated presses: each segment carries its own press, and no sample of press 1 is in press 2's", async () => {
+    const m = manual();
+    m.core.begin(1);
+    await m.push(1000); // 1000 = 1 frame + 488: a partial frame in hand when press 2 begins
+    m.core.begin(2);
+    await m.push(700);
+    m.core.begin(3);
+    await m.push(2048);
+    m.core.drain();
+    await m.settle();
+    const segments = m.segments();
+    expect(segments.map((s) => [s.press, s.start, s.end, s.endedBy])).toEqual([
+      [1, 0, 1000, 'release'],
+      [2, 1000, 1700, 'release'],
+      [3, 1700, 3748, 'release'],
+    ]);
+    const timeline = m.timeline();
+    segments.forEach((s) => expect(difference(s.audio, timeline.slice(s.start, s.end))).toBeNull());
+  });
+
+  it('audio outside a press counts on the timeline and is no segment; positions keep counting through presses and cancels', async () => {
+    const m = manual();
+    await m.push(1300);
+    m.core.begin(1);
+    await m.push(600);
+    m.core.cancel(1);
+    await m.push(500);
+    m.core.begin(2);
+    await m.push(900);
+    m.core.drain();
+    await m.settle();
+    expect(m.segments().map((s) => [s.press, s.start, s.end])).toEqual([[2, 2400, 3300]]);
+    expect(difference(m.segments()[0].audio, m.timeline().slice(2400, 3300))).toBeNull();
+    expect(m.trace.filter((e) => e.kind === 'open')).toEqual([
+      { kind: 'open', at: 1300, press: 1 },
+      { kind: 'open', at: 2400, press: 2 },
+    ]);
+    // Every sample is in a frame, press or not.
+    const framed = m.trace.filter((e) => e.kind === 'frame').reduce((n, e) => n + (e as { samples: Float32Array }).samples.length, 0);
+    expect(framed).toBe(3300);
+  });
+});
