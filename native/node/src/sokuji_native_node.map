@@ -1,0 +1,11 @@
+/* Linker version script (GNU ld / lld). Only Node-API's two module entry points leave the
+ * addon. -fvisibility=hidden does not cover the C++ standard library's template
+ * instantiations and type info (std::vector<std::string> growth, std::shared_ptr control
+ * blocks), which would otherwise be exported weak and could bind to the host's copies. */
+{
+    global:
+        napi_register_module_v1;
+        node_api_module_get_api_version_v1;
+    local:
+        *;
+};

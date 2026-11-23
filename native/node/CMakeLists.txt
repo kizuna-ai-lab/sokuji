@@ -6,7 +6,9 @@
 add_library(sokuji_native_node MODULE
     src/addon.cpp
     src/errors.cpp
-    src/common.cpp)
+    src/common.cpp
+    src/worker.cpp
+    src/asr.cpp)
 set_target_properties(sokuji_native_node PROPERTIES
     OUTPUT_NAME sokuji_native_node
     PREFIX ""
@@ -20,7 +22,9 @@ target_compile_definitions(sokuji_native_node PRIVATE
     NAPI_VERSION=8
     NODE_ADDON_API_DISABLE_DEPRECATED
     NAPI_CPP_EXCEPTIONS)
-target_link_libraries(sokuji_native_node PRIVATE sokuji_native)
+# One std::thread per loaded model (src/worker.cpp).
+find_package(Threads REQUIRED)
+target_link_libraries(sokuji_native_node PRIVATE sokuji_native Threads::Threads)
 
 if(WIN32)
     # The Node-API lives in the host executable. Link an import library that names it
@@ -47,9 +51,13 @@ else()
     # Same C++ runtime floor as libsokuji_native (native/ci/check_linux_deps.py). The static
     # runtime's symbols stay local, so the addon never binds to (or overrides) the copy the
     # host process already has loaded. napi_* stay undefined: the host process exports them.
+    # The version script exports only the module entry points.
     target_link_options(sokuji_native_node PRIVATE
         -static-libstdc++ -static-libgcc
-        -Wl,--exclude-libs,ALL)
+        -Wl,--exclude-libs,ALL
+        -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native_node.map)
+    set_target_properties(sokuji_native_node PROPERTIES
+                          LINK_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/sokuji_native_node.map)
 endif()
 
 # init() and contract() read contract.json from the module directory. The stage gets it from

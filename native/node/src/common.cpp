@@ -1,6 +1,10 @@
 // Process-wide calls: abi, version, engineVersions, contract, init, devices, deviceFreeMem,
 // deviceProfiles, deviceSupportsOps, audioFamilies.
+#include "addon.h"
+#include "args.h"
 #include "errors.h"
+#include "job.h"
+#include "worker.h"
 
 #include <napi.h>
 #include <sokuji_native.h>
@@ -134,13 +138,6 @@ Napi::String FieldString(Napi::Env env, const char *field, size_t size) {
     return Napi::String::New(env, field, static_cast<size_t>(std::find(field, field + size, '\0') - field));
 }
 
-std::string StringArg(const Napi::CallbackInfo &info, size_t i, const char *what) {
-    if (info.Length() <= i || !info[i].IsString()) {
-        throw Napi::TypeError::New(info.Env(), std::string(what) + " must be a string");
-    }
-    return info[i].As<Napi::String>().Utf8Value();
-}
-
 // Reads <dir>/contract.json and refuses one whose ABI is not this binding's.
 Napi::Value ReadContract(Napi::Env env, const std::string &dir) {
     const std::filesystem::path path = std::filesystem::u8path(dir) / "contract.json";
@@ -269,15 +266,6 @@ Napi::Value Devices(const Napi::CallbackInfo &info) {
     return out;
 }
 
-// A device index argument: an integer that fits int32.
-int32_t IndexArg(const Napi::CallbackInfo &info, size_t i, const char *what) {
-    const double v = info.Length() > i && info[i].IsNumber() ? info[i].As<Napi::Number>().DoubleValue() : -1.5;
-    if (!(v >= INT32_MIN && v <= INT32_MAX) || std::floor(v) != v) {
-        throw Napi::TypeError::New(info.Env(), std::string(what) + " must be an integer");
-    }
-    return static_cast<int32_t>(v);
-}
-
 Napi::Value DeviceFreeMem(const Napi::CallbackInfo &info) {
     Napi::Env env = info.Env();
     const int32_t index = IndexArg(info, 0, "deviceFreeMem: index");
@@ -336,40 +324,26 @@ Napi::Value DeviceProfiles(const Napi::CallbackInfo &info) {
     return out;
 }
 
-// sk_device_supports_ops off the JS thread (the check builds and probes backend graphs).
-// Task 3's per-handle worker takes this over. The status and sk_last_error() are captured on
-// the worker thread right after the call; sk_op_coverage (~140 KB) lives on the heap.
-class OpsWorker : public Napi::AsyncWorker {
+// sk_device_supports_ops on the misc worker (the check builds and probes backend graphs, so
+// it stays off the JS thread). sk_op_coverage (~140 KB) lives on the heap.
+class OpsJob : public Job {
 public:
-    OpsWorker(Napi::Env env, int32_t index, std::string stage, std::string family,
-              std::vector<std::string> dtypes)
-        : Napi::AsyncWorker(env, "sokuji_native.deviceSupportsOps"),
-          deferred_(Napi::Promise::Deferred::New(env)), index_(index), stage_(std::move(stage)),
-          family_(std::move(family)), dtypes_(std::move(dtypes)), cov_(new sk_op_coverage()) {}
+    OpsJob(int32_t index, std::string stage, std::string family, std::vector<std::string> dtypes)
+        : Job("sk_device_supports_ops"), index_(index), stage_(std::move(stage)), family_(std::move(family)),
+          dtypes_(std::move(dtypes)), cov_(new sk_op_coverage()) {}
 
-    Napi::Promise Promise() { return deferred_.Promise(); }
-
-    void Execute() override {
-        try {
-            std::vector<const char *> names;
-            for (const std::string &d : dtypes_) names.push_back(d.c_str());
-            names.push_back(nullptr);   // never an empty array; n stays dtypes_.size()
-            std::memset(cov_.get(), 0, sizeof *cov_);
-            status_ = sk_device_supports_ops(index_, stage_.c_str(), family_.c_str(), names.data(),
-                                             static_cast<int32_t>(dtypes_.size()), cov_.get());
-            if (status_ != SK_OK) last_ = sk_last_error();
-        } catch (const std::exception &e) {
-            status_ = SK_ERR_INTERNAL;
-            last_ = e.what();
-        }
+    void execute() override {
+        std::vector<const char *> names;
+        for (const std::string &d : dtypes_) names.push_back(d.c_str());
+        names.push_back(nullptr);   // never an empty array; n stays dtypes_.size()
+        std::memset(cov_.get(), 0, sizeof *cov_);
+        const sk_status st = sk_device_supports_ops(index_, stage_.c_str(), family_.c_str(), names.data(),
+                                                    static_cast<int32_t>(dtypes_.size()), cov_.get());
+        if (st != SK_OK) Fail("sk_device_supports_ops", st);
     }
 
-    void OnOK() override {
-        Napi::Env env = Env();
-        if (status_ != SK_OK) {
-            deferred_.Reject(MakeNativeError(env, status_, StatusText("sk_device_supports_ops", last_)).Value());
-            return;
-        }
+    void settle(Napi::Env env) override {
+        if (failed()) return RejectStatus(env);
         Napi::Array unsupported = Napi::Array::New(env);
         Napi::Array checked = Napi::Array::New(env);
         uint32_t nu = 0;
@@ -383,17 +357,14 @@ public:
         o.Set("allSupported", Napi::Boolean::New(env, cov_->all_supported != 0));
         o.Set("unsupported", unsupported);
         o.Set("checked", checked);
-        deferred_.Resolve(o);
+        Resolve(o);
     }
 
 private:
-    Napi::Promise::Deferred deferred_;
     int32_t index_;
     std::string stage_, family_;
     std::vector<std::string> dtypes_;
     std::unique_ptr<sk_op_coverage> cov_;
-    sk_status status_ = SK_OK;
-    std::string last_;
 };
 
 Napi::Value DeviceSupportsOps(const Napi::CallbackInfo &info) {
@@ -411,10 +382,8 @@ Napi::Value DeviceSupportsOps(const Napi::CallbackInfo &info) {
         if (!v.IsString()) throw Napi::TypeError::New(env, "deviceSupportsOps: weightDtypes must be an array of strings");
         dtypes.push_back(v.As<Napi::String>().Utf8Value());
     }
-    auto *worker = new OpsWorker(env, index, std::move(stage), std::move(family), std::move(dtypes));
-    Napi::Promise p = worker->Promise();
-    worker->Queue();
-    return p;
+    return Submit(env, MiscWorker(),
+                  std::make_unique<OpsJob>(index, std::move(stage), std::move(family), std::move(dtypes)));
 }
 
 // Compile-time data, sorted by the library; usable before init.
