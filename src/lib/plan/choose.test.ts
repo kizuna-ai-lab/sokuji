@@ -256,6 +256,8 @@ describe('choosing a provider for a stage', () => {
     const refusals = new Set<string>();
     const separate: string[] = [];
     for (const lineUp of seen.values()) {
+      // #578: Local Native's split units come in Task C4; until then a line-up that gives it a stage alone has no unit.
+      if (RUN_STAGES.some((s) => lineUp[s] === 'local_native')) continue;
       const plan = compose(lineUp, input);
       if (isRefusal(plan)) refusals.add(plan.refused);
       else if (plan.byStage.transcription !== plan.byStage.translation) separate.push(`${lineUp.transcription}>${lineUp.translation}`);

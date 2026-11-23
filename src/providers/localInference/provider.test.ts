@@ -225,9 +225,11 @@ describe('localInferenceProvider', () => {
       const without: ComposeInput = { ...released, providers: released.providers.map((p) => (p === local ? before : p)) };
       const shape = (plan: RunPlan | PlanRefusal) => (isRefusal(plan) ? plan : plan.units.map((u) => [u.provider.id, u.unit.id, u.stages]));
       const textModels = ['openai_text', 'gemini_text', 'openai_compatible'];
+      // #578: Local Native's split units come in Task C4; until then its stages alone have no unit, so it sits out.
+      const catalog = allCaps().filter((c) => c.id !== 'local_native');
       const reworded: string[] = [];
       const newlyRun: string[] = [];
-      for (const t of allCaps()) for (const tl of allCaps()) for (const sp of allCaps()) {
+      for (const t of catalog) for (const tl of catalog) for (const sp of catalog) {
         const lineUp = { transcription: t.id, translation: tl.id, speech: sp.id };
         const label = JSON.stringify(lineUp);
         const now = compose(lineUp, released);
@@ -259,14 +261,14 @@ describe('localInferenceProvider', () => {
       }
       // Each end-to-end provider, under each option that speaks (one that does not leaves the line-up incomplete);
       // and each text model, under each end-to-end provider's voice.
-      const endToEnd = allCaps().filter((c) => c.joint?.includes('translation'));
-      const speaking = allCaps().filter((c) => c.stages.includes('speech'));
+      const endToEnd = catalog.filter((c) => c.joint?.includes('translation'));
+      const speaking = catalog.filter((c) => c.stages.includes('speech'));
       expect(reworded.sort()).toEqual([
         ...endToEnd.flatMap((tl) => speaking.map((sp) => `${tl.id}/${sp.id}`)),
         ...[...textModels, 'bing'].flatMap((tl) => endToEnd.map((sp) => `${tl}/${sp.id}`)),
       ].sort());
       // Each text model, under each voice that stands alone.
-      const alone = allCaps().filter((c) => c.stages.includes('speech') && c.voiceAlone).map((c) => c.id);
+      const alone = catalog.filter((c) => c.stages.includes('speech') && c.voiceAlone).map((c) => c.id);
       expect(newlyRun.sort()).toEqual([...textModels, 'bing'].flatMap((model) => alone.map((voice) => `${model}/${voice}`)).sort());
     });
 

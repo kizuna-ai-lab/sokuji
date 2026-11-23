@@ -258,6 +258,13 @@ describe('a provider session side', () => {
     );
     // The local voice's unit reads the models a run hands it to build its config: the settings side, not the session's.
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/speechUnit.ts');
+    // Local Native's whole session (#578): its adapter and what the adapter drives.
+    expect(sessionSide(REPO_ROOT, 'src/providers/local_native')).toEqual(
+      ['adapter.ts', 'engines.ts', 'speech.ts', 'voice.ts'].map((f) => `src/providers/local_native/${f}`),
+    );
+    for (const f of ['config.ts', 'check.ts', 'provider.ts']) {
+      expect(sessionSide(REPO_ROOT, 'src/providers/local_native')).not.toContain(`src/providers/local_native/${f}`);
+    }
     // The local translation's session is walked; its unit, which resolves the engine from the models a run hands it, is the settings side.
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).toContain('src/lib/local-inference/sessions/translationSession.ts');
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/translationUnit.ts');

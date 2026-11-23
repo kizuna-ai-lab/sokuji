@@ -89,7 +89,8 @@ describe('the stages that go together', () => {
   const endToEnd = ['kizunaai_qwen', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'qwen_livetranslate', 'palabraai'];
 
   it('an end-to-end provider holds all three jointly; nothing else is joint', () => {
-    expect(allCaps().filter((c) => c.joint).map((c) => c.id).sort()).toEqual([...endToEnd].sort());
+    // #578: Local Native holds transcription and translation jointly while its whole unit is its only one (until Task C4).
+    expect(allCaps().filter((c) => c.joint && c.id !== 'local_native').map((c) => c.id).sort()).toEqual([...endToEnd].sort());
     for (const id of endToEnd) expect(caps(id)!.joint).toEqual(['transcription', 'translation', 'speech']);
   });
 
