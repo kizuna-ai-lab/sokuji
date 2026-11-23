@@ -16,6 +16,8 @@ export interface FakeNativeOptions {
   opCoverage?: (index: number, stage: string, family: string, dtypes: string[]) => OpCoverage;
   abi?: number;
   version?: string;
+  /** engineVersions(): pins plus "lane". */
+  engineVersions?: Record<string, string>;
 }
 
 export type FakeNative = NativeModule & { calls: string[]; inits: Array<{ threads: number | undefined; onLog: boolean }> };
@@ -41,7 +43,7 @@ export function makeFakeNative(opts: FakeNativeOptions = {}): FakeNative {
     inits,
     abi: () => { calls.push('abi'); return abi; },
     version: () => { calls.push('version'); return version; },
-    engineVersions: () => ({}),
+    engineVersions: () => ({ ...(opts.engineVersions ?? { ggml: '0.25.3', transcribe: '0.2.4', llama: '0.5.0', audiocpp: '0.8.2', lane: 'cpu-vulkan' }) }),
     contract: (_dir: string) => { calls.push('contract'); return { abi, version, lane: 'cpu' }; },
     init: (o: { threads?: number; onLog?: unknown }) => {
       calls.push('init');

@@ -3,6 +3,7 @@
  * handlers on one shared state, and serves it. The utilityProcess glue that prints the port is the switch plan's.
  */
 import { loadNative, setNativeLog, useNative, type NativeModule } from './native';
+import { register as registerAccel } from './accel/handlers';
 import { createState, serve, type EngineState, type Log } from './server';
 
 export interface EngineOptions {
@@ -16,7 +17,9 @@ export interface EngineOptions {
 }
 
 /** Every stage's handlers, registered on `state`. Each stage's task adds its own. */
-export function registerAll(_state: EngineState): void {}
+export function registerAll(state: EngineState): void {
+  registerAccel(state);
+}
 
 export async function startEngine(opts: EngineOptions): Promise<{ port: number; close(): Promise<void> }> {
   setNativeLog(opts.log);
