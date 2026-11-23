@@ -359,10 +359,10 @@ export class TurnDetectorCore {
     }
   }
 
-  /** A release: the press ends with the samples it has, if it has any. */
+  /** A release: the press ends with the samples it has; with none, the empty segment is dropped (in the trace only, so every open ends). */
   private releasePress(): void {
     if (this.position > this.current().at) this.close(this.position, 'release');
-    else this.open = null;
+    else this.drop(this.position);
   }
 
   /** A drain: the open segment ends with what has arrived. */

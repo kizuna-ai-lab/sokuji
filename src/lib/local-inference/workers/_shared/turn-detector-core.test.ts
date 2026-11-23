@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect } from 'vitest';
 import { FrameProcessor } from '@ricky0123/vad-web/dist/frame-processor';
 import { Message } from '@ricky0123/vad-web/dist/messages';
 import type { VadWebConfig } from '../../types';
@@ -624,8 +624,33 @@ describe('TurnDetectorCore — automatic turns', () => {
 });
 
 /** A core under manual turns, with its assembler. 24 kHz input: 1.5 input samples per output sample. */
+const manualTraces: TurnTrace[][] = [];
+
+/**
+ * Press traces: every open ends in exactly one close, drop or cancel before the next open, and nothing ends without an open. No frame sizes.
+ * A cancel ends the open only when it names the open's press; any other cancel only names a press that is already over.
+ */
+function pressTraceProblems(trace: TurnTrace[]): string[] {
+  const problems: string[] = [];
+  let open: { press?: number } | null = null;
+  trace.forEach((e, i) => {
+    if (e.kind === 'open') {
+      if (open) problems.push(`#${i} open while a segment is open`);
+      open = { press: e.press };
+    } else if (e.kind === 'close' || e.kind === 'drop') {
+      if (!open) problems.push(`#${i} ${e.kind} with no open`);
+      open = null;
+    } else if (e.kind === 'cancel' && open && open.press === e.press) {
+      open = null;
+    }
+  });
+  if (open) problems.push('an open never ended');
+  return problems;
+}
+
 function manual(o: { limit?: SegmentLimit; maxSpeech?: number } = {}) {
   const trace: TurnTrace[] = [];
+  manualTraces.push(trace);
   const outputs: DetectorOutput[] = [];
   let infers = 0;
   const rand = mulberry32(7);
@@ -673,6 +698,11 @@ function manual(o: { limit?: SegmentLimit; maxSpeech?: number } = {}) {
 }
 
 describe('TurnDetectorCore — presses', () => {
+  afterEach(() => {
+    const all = manualTraces.splice(0).map(pressTraceProblems);
+    all.forEach((problems) => expect(problems).toEqual([]));
+  });
+
   it('under manual turns Silero is never asked', async () => {
     const m = manual();
     m.core.begin(1);
@@ -754,6 +784,41 @@ describe('TurnDetectorCore — presses', () => {
     expect(m.outputs.map((o) => [o.type, o.type === 'segment' ? o.endedBy : null])).toEqual([
       ['segment', 'cap'],
       ['drained', null],
+    ]);
+    expect(m.trace.filter((e) => e.kind === 'open' || e.kind === 'close' || e.kind === 'drop')).toEqual([
+      { kind: 'open', at: 0, press: 1 },
+      { kind: 'close', from: 0, to: 463872, endedBy: 'cap', press: 1 },
+      { kind: 'open', at: 463872, press: 1 },
+      { kind: 'drop', from: 463872, to: 463872 },
+    ]);
+  });
+
+  it('begin(p+1) while press p has taken no audio drops the empty segment in the trace and emits no segment', async () => {
+    const m = manual();
+    m.core.begin(1);
+    m.core.begin(2);
+    await m.push(1000);
+    m.core.drain();
+    await m.settle();
+    expect(m.segments().map((s) => [s.press, s.start, s.end])).toEqual([[2, 0, 1000]]);
+    expect(m.outputs.map((o) => o.type)).toEqual(['segment', 'drained']);
+    expect(m.trace.filter((e) => e.kind === 'open' || e.kind === 'close' || e.kind === 'drop')).toEqual([
+      { kind: 'open', at: 0, press: 1 },
+      { kind: 'drop', from: 0, to: 0 },
+      { kind: 'open', at: 0, press: 2 },
+      { kind: 'close', from: 0, to: 1000, endedBy: 'release', press: 2 },
+    ]);
+  });
+
+  it('begin then drain with no audio drops the empty segment in the trace and emits only drained', async () => {
+    const m = manual();
+    m.core.begin(1);
+    m.core.drain();
+    await m.settle();
+    expect(m.outputs.map((o) => o.type)).toEqual(['drained']);
+    expect(m.trace.filter((e) => e.kind === 'open' || e.kind === 'close' || e.kind === 'drop')).toEqual([
+      { kind: 'open', at: 0, press: 1 },
+      { kind: 'drop', from: 0, to: 0 },
     ]);
   });
 
