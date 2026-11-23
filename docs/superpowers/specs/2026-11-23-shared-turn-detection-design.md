@@ -88,9 +88,14 @@ These are the detector's interface. Each has tests in §9.
 - A press (`press`, from the runner's `beginTurn`) is one logical turn; the segments one press produces (`seq`) are
   only the engine's length limit cutting it, and none of them goes through minSpeech or Smart Turn.
 - `endTurn` closes the press (`endedBy: 'release'`); `cancelTurn` drops the press's segments not yet decoded and
-  makes every later result of that press void: results carry `press`, and the adapter publishes nothing for a
-  cancelled or older press. Results already published before the cancel stay, as they do today.
-- A late `start`, Smart Turn answer or result of press p never reaches press p + 1.
+  makes every later result of that press void: results carry `press`, and the adapter publishes nothing more for a
+  cancelled press. Results already published before the cancel stay, as they do today.
+- A released press is not cancelled by the next one: its results are published whenever they arrive, even after
+  press p + 1 has begun, and they stay press p's. What never crosses from p to p + 1 is state: a late `start`, a
+  Smart Turn answer, or audio of p inside a segment of p + 1.
+- On release (and on any drain), the last partial frame — fewer than 512 samples — is delivered at once: zero-padded
+  to a whole frame for the VAD, its real samples included in the closing segment or relayed before the closing mark.
+  It never waits for later audio to complete it.
 
 **C3. Bounded queues, drain and stop.**
 - Input: the detector processes audio in order and never drops a chunk. If its unprocessed input exceeds 2 s
@@ -216,7 +221,7 @@ which are statistics.
 | Two legs at once | Positions, state and cancels of one leg never touch the other |
 | Voxtral 4B: a second end, or the next start, while a generation is still draining | Each interval belongs to one turn, in timeline order |
 | Local Native: the detector delayed by more than 0.7 s | Output stays exact by ordering, not by the sidecar's pre-roll |
-| Push-to-talk: quiet speech, a short press, a silent press, quick repeated presses, cancel | The runner's check decides as today; inside a kept press the VAD drops nothing; after a cancel no new result of that press is published (C2) |
+| Push-to-talk: quiet speech, a short press, a silent press, quick repeated presses, cancel | The runner's check decides as today; inside a kept press the VAD drops nothing; after a cancel no new result of that press is published; a released press's late results are still published when the next press has begun; the last partial frame of a press is delivered on release (C2) |
 | A press or an automatic turn crossing the length limit with 100–300 ms left after it | The limit as C4's arithmetic; the tail is decoded once, the pre-pad never repeated |
 | Input slower than real time; stop with a backlog | Queues stay bounded and the leg fails with a notice; stop returns at once and late results are ignored (C3) |
 | Smart Turn missing, failing, or answering late | Normal turn detection goes on; a stale answer never ends a newer segment |
