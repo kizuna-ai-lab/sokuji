@@ -251,7 +251,6 @@ describe('a provider session side', () => {
       expect.arrayContaining([
         'src/providers/localInference/adapter.ts',
         'src/providers/localInference/engines.ts',
-        'src/providers/localInference/sentenceCut.ts',
         'src/lib/local-inference/sessions/errors.ts',
         'src/lib/local-inference/sessions/speech.ts',
         'src/lib/local-inference/sessions/speechSession.ts',
@@ -410,6 +409,8 @@ describe('a provider session side', () => {
     for (const file of sharedSessionFiles(REPO_ROOT)) expect(globalTimerCalls(readFileSync(join(REPO_ROOT, file), 'utf-8'), file), file).toEqual([]);
     // The walk does not follow `src/lib/**`: the one shared module two session sides cut their segments with, by name (Stage 2 translation cuts, choice 1).
     expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
+    // Nor the sentence cutter the local units cut their jobs with (#578 ruling 3).
+    expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/sentenceCut.ts'), 'utf-8'))).toEqual([]);
     // Nor the text models' shared session and its client: every deadline is the job translator's, on the request's clock.
     for (const file of TEXT_MODEL_SESSION) expect(globalTimerCalls(readFileSync(join(REPO_ROOT, file), 'utf-8'), file), file).toEqual([]);
     // Nor the sidecar clients every native unit drives, by name (#578 ruling 23).

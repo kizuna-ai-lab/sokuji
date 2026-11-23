@@ -23,7 +23,7 @@ import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import { GPU_OUT_OF_MEMORY, humanizeTranslationError, isDeviceLost, isGpuOutOfMemory } from '../../lib/local-inference/sessions/errors';
 import type { TranslationLike, TtsLike, TtsReady } from '../../lib/local-inference/sessions/engines';
 import { defaultEngines, type AsrInit, type AsrLike, type AsrResult, type LocalEngines } from './engines';
-import { SentenceCut, runtimeOver } from './sentenceCut';
+import { SentenceCut, runtimeOver } from '../../lib/segmentation/sentenceCut';
 import { speakTranslation, ttsLoadFailed, ttsMissing, ttsStopped, voiceFallback } from '../../lib/local-inference/sessions/speech';
 import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
 
