@@ -79,11 +79,16 @@ These are the detector's interface. Each has tests in §9.
   whole frames on both rates. For Local Native, which takes 24 kHz PCM, the detector relays the original 24 kHz
   frames, split at those boundaries.
 - Voxtral 4B: its feed appends what it receives; `start` starts or queues generation, `end` finishes it on the
-  audio received so far, `cancel` aborts it. With the ordered output these are exact. While a previous generation
-  is still draining, the next `start` queues, as today, and its audio is kept from its start frame on.
+  audio received so far, `cancel` aborts it. With the ordered output `end` and `cancel` are exact: the mark sits
+  between the frames it separates. `start` marks the detecting frame, the frame whose processing decided the open,
+  not the pre-padded `open.at`: the relay never delays audio by the pre-pad (that would add latency to every
+  frame). The pre-pad span is audio that already passed before the mark, and stays the consumer's own pre-roll:
+  Voxtral 4B keeps at least the pre-pad of audio while idle and starts generation from it. While a previous
+  generation is still draining, the next `start` queues, as today, and its audio is kept from that pre-roll on.
 - Local Native: the client forwards the detector's output to the sidecar's socket in the order it arrives (PCM
   chunks and `vad_mark`), so the sidecar's "cut when the mark arrives" is the cut at the position. The wire does not
-  change. The sidecar's 0.7 s pre-roll still seeds the start of a segment; it is not relied on to absorb delay.
+  change. `start` marks the detecting frame (see Voxtral 4B above); the sidecar's 0.7 s pre-roll ring still seeds
+  the start of a segment with the audio before it, as today. End and cancel marks are exact.
 
 **C2. Push-to-talk: presses and segments.** See §5.
 - A press (`press`, from the runner's `beginTurn`) is one logical turn; the segments one press produces (`seq`) are

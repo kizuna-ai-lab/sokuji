@@ -696,17 +696,20 @@ it('Max speech 10 s over the sentences played without pauses: the same cuts, plu
 - Produces `type RelayOutput = { type: 'audio'; pcm: Int16Array } | { type: 'mark'; event: 'start' | 'end' | 'cancel' }` and `class MarksRelay { constructor(post: (o: RelayOutput) => void); trace(e: TurnTrace): void }`.
 - Mapping:
   - `frame`: its `raw`;
-  - `open`: `start`;
+  - `open`: `start`, placed at the detecting frame (the frame whose processing decided the open), not at the pre-padded `open.at`;
   - `close`: `end`;
   - `drop` and `cancel`: `cancel`;
   - `drained`: nothing.
-- A mark is posted after the frame whose processing decided it.
+- `end` and `cancel` marks are exact: each sits between the frames it separates, after the frame that decided it.
+- The `start` mark is posted right before the detecting frame's audio. The pre-pad span (0.8 s by default) is audio that precedes it; it is the consumer's own pre-roll, and the relay never delays audio by the pre-pad.
 
 - [ ] **Step 1: Write the failing tests**
 
 ```ts
 it('relays every input sample once, in order, in 768-sample spans on the 512-frame grid', () => { /* … */ });
-it('a mark sits between the frames it separates: no sample past the boundary precedes it', () => { /* … */ });
+it('an end or cancel mark sits between the frames it separates: no sample past the boundary precedes it', () => { /* … */ });
+it('the start mark is placed right before the detecting frame, not at the pre-padded open.at', () => { /* … */ });
+it('the audio of the pre-pad span precedes the start mark: it is the consumer\'s own pre-roll, never held back by the relay', () => { /* … */ });
 it('a boundary inside a chunk: audio before the mark and the mark before the rest of the chunk', () => { /* … */ });
 it("on release the partial frame's real samples are relayed before the closing mark", () => { /* … */ });
 it('irregular chunk sizes never drift the 24 kHz spans from the 16 kHz frames', () => { /* … */ });
