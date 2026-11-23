@@ -7,12 +7,12 @@
 #include "args.h"
 #include "errors.h"
 #include "job.h"
+#include "model.h"
 #include "worker.h"
 
 #include <napi.h>
 #include <sokuji_native.h>
 
-#include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -24,29 +24,8 @@
 namespace sk_node {
 namespace {
 
-// The translator handle, shared by the Translator object and the jobs queued for it.
-// Unload() frees it once, whoever gets there first; the last owner frees it if nobody did.
-class TranslateHandle {
-public:
-    TranslateHandle() = default;
-    ~TranslateHandle() { Unload(); }
-    TranslateHandle(const TranslateHandle &) = delete;
-    TranslateHandle &operator=(const TranslateHandle &) = delete;
-
-    void Adopt(sk_translate *t) noexcept { t_.store(t); }
-    sk_translate *get() const noexcept { return t_.load(); }
-    void Unload() noexcept {
-        if (sk_translate *t = t_.exchange(nullptr)) sk_translate_unload(t);
-    }
-
-private:
-    std::atomic<sk_translate *> t_{nullptr};
-};
-
-// Unloaded (or unloading): the Python binding's text and status.
-Napi::Promise RejectedUnloaded(Napi::Env env, const char *what) {
-    return Rejected(env, MakeNativeError(env, SK_ERR_NOT_INITIALISED, StatusText(what, "model is unloaded")).Value());
-}
+// The translator handle, shared by the Translator object and the jobs queued for it (model.h).
+using TranslateHandle = NativeHandle<sk_translate, sk_translate_unload>;
 
 // ---- Translator ---------------------------------------------------------------------------------
 
@@ -56,19 +35,15 @@ public:
     explicit Translator(const Napi::CallbackInfo &info);
     ~Translator() override;
 
-    // JS thread, from the unload job's settle: the worker ends right after that job.
-    void Stopped();
-
 private:
     Napi::Value Chat(const Napi::CallbackInfo &info);
     Napi::Value Complete(const Napi::CallbackInfo &info);
     Napi::Value Unload(const Napi::CallbackInfo &info);
 
-    bool Unloading() const { return !unloading_.IsEmpty(); }
+    bool Unloading() const { return life_.Unloading(); }
 
     std::shared_ptr<TranslateHandle> handle_;
-    std::unique_ptr<HandleWorker> worker_;     // null once unloaded
-    Napi::Reference<Napi::Promise> unloading_; // what every unload() returns; set by the first
+    ModelLifecycle life_;   // the translator's worker thread and unload (model.h)
 };
 
 // sk_translate_chat / sk_translate_complete. Everything the call reads (messages, prefill,
@@ -156,25 +131,6 @@ private:
     std::string prompt_;
 };
 
-// sk_translate_unload on the translator's own thread, behind every job queued before it.
-class UnloadJob : public Job {
-public:
-    UnloadJob(std::shared_ptr<TranslateHandle> handle, Translator *translator)
-        : Job("sk_translate_unload"), handle_(std::move(handle)), translator_(translator) {}
-
-    void execute() override { handle_->Unload(); }
-
-    void settle(Napi::Env env) override {
-        translator_->Stopped();   // alive: the job holds the object until it settles
-        if (failed()) return RejectStatus(env);
-        Resolve(env.Undefined());
-    }
-
-private:
-    std::shared_ptr<TranslateHandle> handle_;
-    Translator *translator_;
-};
-
 // sk_translate_load on the misc worker. Until settle hands the handle to a Translator, the job
 // owns it: a load nobody settles (the environment went away) is freed with the job.
 class LoadJob : public Job {
@@ -217,23 +173,13 @@ Napi::Function Translator::Define(Napi::Env env) {
 Translator::Translator(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Translator>(info) {
     Napi::Env env = info.Env();
     if (info.Length() != 1 || !info[0].IsExternal()) throw Napi::TypeError::New(env, "Translator: use translateLoad()");
-    worker_ = std::make_unique<HandleWorker>(env);
+    life_.Start(env);
     handle_ = *info[0].As<Napi::External<std::shared_ptr<TranslateHandle>>>().Data();
 }
 
-// Collected without unload(), or the environment is going away. Every job holds this object
-// until it settles, so outside teardown nothing is queued here and the join is short.
+// Collected without unload(), or the environment is going away (ModelLifecycle::Teardown).
 Translator::~Translator() {
-    if (worker_) {
-        worker_->cancelAll();
-        worker_->stopAndJoin();
-    }
-    if (handle_) handle_->Unload();
-}
-
-void Translator::Stopped() {
-    if (worker_) worker_->stopAndJoin();
-    worker_.reset();
+    life_.Teardown(handle_);
 }
 
 // messages: [{ role, content }, ...], copied.
@@ -265,7 +211,7 @@ Napi::Value Translator::Chat(const Napi::CallbackInfo &info) {
     CallOptions opts = CallOptionsArg(info, 2, "chat", "onToken", true);
     if (Unloading()) return RejectedUnloaded(env, "sk_translate_chat");
     auto job = std::make_unique<ChatJob>(handle_, std::move(messages), max_tokens, std::move(prefill));
-    return Submit(env, *worker_, std::move(job), Value(), opts.callback, opts.signal);
+    return Submit(env, life_.worker(), std::move(job), Value(), opts.callback, opts.signal);
 }
 
 // complete(prompt, { maxTokens? }, { onToken, signal? }) → Promise<void>
@@ -277,18 +223,14 @@ Napi::Value Translator::Complete(const Napi::CallbackInfo &info) {
     CallOptions opts = CallOptionsArg(info, 2, "complete", "onToken", true);
     if (Unloading()) return RejectedUnloaded(env, "sk_translate_complete");
     auto job = std::make_unique<CompleteJob>(handle_, std::move(prompt), max_tokens);
-    return Submit(env, *worker_, std::move(job), Value(), opts.callback, opts.signal);
+    return Submit(env, life_.worker(), std::move(job), Value(), opts.callback, opts.signal);
 }
 
 // unload() → Promise<void>. Idempotent: every call returns the first call's promise. Jobs
 // queued before it still run; then, on the translator's own thread, the model is freed and
 // the thread ends. Later calls reject: model is unloaded.
 Napi::Value Translator::Unload(const Napi::CallbackInfo &info) {
-    if (Unloading()) return unloading_.Value();
-    Napi::Promise p = Submit(info.Env(), *worker_, std::make_unique<UnloadJob>(handle_, this), Value());
-    worker_->requestStop();
-    unloading_ = Napi::Persistent(p);
-    return p;
+    return life_.Unload(info.Env(), Value(), "sk_translate_unload", handle_);
 }
 
 // translateLoad(path, deviceIndex | null, { nCtx?, flashAttn? }) → Promise<Translator>.

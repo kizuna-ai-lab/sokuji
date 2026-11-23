@@ -5,6 +5,7 @@
 #include "args.h"
 #include "errors.h"
 #include "job.h"
+#include "model.h"
 #include "worker.h"
 
 #include <napi.h>
@@ -81,11 +82,6 @@ struct LoadedAsr {
     AsrCapsData caps;
 };
 
-// Unloaded (or unloading): the Python binding's text and status.
-Napi::Promise RejectedUnloaded(Napi::Env env, const char *what) {
-    return Rejected(env, MakeNativeError(env, SK_ERR_NOT_INITIALISED, StatusText(what, "model is unloaded")).Value());
-}
-
 // A call on a stream after close() or finalize(): the Python binding's text and status.
 Napi::Promise RejectedClosed(Napi::Env env, const char *what) {
     return Rejected(env, MakeNativeError(env, SK_ERR_INVALID_ARGUMENT, StatusText(what, "stream is closed")).Value());
@@ -119,9 +115,6 @@ public:
     explicit AsrModel(const Napi::CallbackInfo &info);
     ~AsrModel() override;
 
-    // JS thread, from the unload job's settle: the worker ends right after that job.
-    void Stopped();
-
 private:
     friend class AsrStream;
 
@@ -130,12 +123,11 @@ private:
     Napi::Value OpenStream(const Napi::CallbackInfo &info);
     Napi::Value Unload(const Napi::CallbackInfo &info);
 
-    bool Unloading() const { return !unloading_.IsEmpty(); }
+    bool Unloading() const { return life_.Unloading(); }
 
     std::shared_ptr<AsrHandle> handle_;
-    std::unique_ptr<HandleWorker> worker_;     // null once unloaded
+    ModelLifecycle life_;                      // the model's worker thread and unload (model.h)
     Napi::ObjectReference caps_;
-    Napi::Reference<Napi::Promise> unloading_; // what every unload() returns; set by the first
     bool streams_ = false;                     // capabilities.supportsStreaming
     AsrStream *open_stream_ = nullptr;         // the one open stream; it holds this object
 };
@@ -215,25 +207,6 @@ private:
     std::optional<std::string> language_;
     bool progress_;
     std::string text_;
-};
-
-// sk_asr_unload on the model's own thread, behind every job queued before it.
-class UnloadJob : public Job {
-public:
-    UnloadJob(std::shared_ptr<AsrHandle> handle, AsrModel *model)
-        : Job("sk_asr_unload"), handle_(std::move(handle)), model_(model) {}
-
-    void execute() override { handle_->Unload(); }
-
-    void settle(Napi::Env env) override {
-        model_->Stopped();   // alive: the job holds the object until it settles
-        if (failed()) return RejectStatus(env);
-        Resolve(env.Undefined());
-    }
-
-private:
-    std::shared_ptr<AsrHandle> handle_;
-    AsrModel *model_;
 };
 
 // The stream jobs. One stream's jobs are queued between its open and its close, and a model's
@@ -406,25 +379,15 @@ AsrModel::AsrModel(const Napi::CallbackInfo &info) : Napi::ObjectWrap<AsrModel>(
     LoadedAsr *loaded = info[0].As<Napi::External<LoadedAsr>>().Data();
     caps_ = Napi::Persistent(CapsObject(env, loaded->caps));
     streams_ = loaded->caps.supports_streaming;
-    worker_ = std::make_unique<HandleWorker>(env);
+    life_.Start(env);
     handle_ = loaded->handle;
 }
 
-// Collected without unload(), or the environment is going away. Every job holds this object
-// until it settles, so outside teardown nothing is queued here and the join is short. The
-// handle's Unload closes an open native stream first.
+// Collected without unload(), or the environment is going away (ModelLifecycle::Teardown).
+// The handle's Unload closes an open native stream first.
 AsrModel::~AsrModel() {
     if (open_stream_) open_stream_->Detach();
-    if (worker_) {
-        worker_->cancelAll();
-        worker_->stopAndJoin();
-    }
-    if (handle_) handle_->Unload();
-}
-
-void AsrModel::Stopped() {
-    if (worker_) worker_->stopAndJoin();
-    worker_.reset();
+    life_.Teardown(handle_);
 }
 
 Napi::Value AsrModel::Capabilities(const Napi::CallbackInfo &) {
@@ -437,11 +400,11 @@ Napi::Value AsrModel::Run(const Napi::CallbackInfo &info) {
     std::vector<float> pcm = Float32Arg(info, 0, "run: pcm");
     std::optional<std::string> language = NullableStringArg(info, 1, "run: language");
     CallOptions opts = CallOptionsArg(info, 2, "run", "onProgress");
-    if (!unloading_.IsEmpty()) return RejectedUnloaded(env, "sk_asr_run");
+    if (Unloading()) return RejectedUnloaded(env, "sk_asr_run");
     if (Aborted(opts.signal)) return RejectedCancelled(env, "sk_asr_run");
     if (pcm.empty()) return Resolved(env, Napi::String::New(env, ""));   // sk_asr_run's own n == 0 answer
     auto job = std::make_unique<RunJob>(handle_, std::move(pcm), std::move(language), !opts.callback.IsEmpty());
-    return Submit(env, *worker_, std::move(job), Value(), opts.callback, opts.signal);
+    return Submit(env, life_.worker(), std::move(job), Value(), opts.callback, opts.signal);
 }
 
 // openStream(language | null) → AsrStream. Throws (it returns no promise) when the model is
@@ -461,7 +424,7 @@ Napi::Value AsrModel::OpenStream(const Napi::CallbackInfo &info) {
     }
     Napi::Object object = Data(env).asr_stream.New({Napi::External<AsrModel>::New(env, this)});
     AsrStream *stream = AsrStream::Unwrap(object);
-    worker_->post(std::make_unique<OpenStreamJob>(handle_, stream->open(), std::move(language)));
+    life_.worker().post(std::make_unique<OpenStreamJob>(handle_, stream->open(), std::move(language)));
     open_stream_ = stream;   // last: only a stream whose open is queued holds the slot
     return object;
 }
@@ -470,11 +433,7 @@ Napi::Value AsrModel::OpenStream(const Napi::CallbackInfo &info) {
 // queued before it still run; then, on the model's own thread, an open stream is closed and
 // the model freed, and the thread ends. The stream's later calls reject: model is unloaded.
 Napi::Value AsrModel::Unload(const Napi::CallbackInfo &info) {
-    if (!unloading_.IsEmpty()) return unloading_.Value();
-    Napi::Promise p = Submit(info.Env(), *worker_, std::make_unique<UnloadJob>(handle_, this), Value());
-    worker_->requestStop();
-    unloading_ = Napi::Persistent(p);
-    return p;
+    return life_.Unload(info.Env(), Value(), "sk_asr_unload", handle_);
 }
 
 Napi::Function AsrStream::Define(Napi::Env env) {
@@ -512,7 +471,7 @@ void AsrStream::Leave() {
     AsrModel *model = std::exchange(model_, nullptr);
     if (model == nullptr || model->open_stream_ != this) return;   // detached, or never opened
     model->open_stream_ = nullptr;
-    if (!model->Unloading()) model->worker_->post(std::make_unique<CloseStreamJob>(model->handle_));
+    if (!model->Unloading()) model->life_.worker().post(std::make_unique<CloseStreamJob>(model->handle_));
 }
 
 // feed(pcm) → Promise<{ committed, tentative }>
@@ -522,7 +481,7 @@ Napi::Value AsrStream::Feed(const Napi::CallbackInfo &info) {
     if (closed_) return RejectedClosed(env, "sk_asr_stream_feed");
     if (model_ == nullptr || model_->Unloading()) return RejectedUnloaded(env, "sk_asr_stream_feed");
     auto job = std::make_unique<FeedJob>(model_->handle_, open_, std::move(pcm));
-    return Submit(env, *model_->worker_, std::move(job), Value());
+    return Submit(env, model_->life_.worker(), std::move(job), Value());
 }
 
 // finalize({ signal? }) → Promise<string>, the final full text. Closes the stream whatever the
@@ -533,7 +492,7 @@ Napi::Value AsrStream::Finalize(const Napi::CallbackInfo &info) {
     if (closed_) return RejectedClosed(env, "sk_asr_stream_finalize");
     if (model_ == nullptr || model_->Unloading()) return RejectedUnloaded(env, "sk_asr_stream_finalize");
     auto job = std::make_unique<FinalizeJob>(model_->handle_, open_);
-    Napi::Promise p = Submit(env, *model_->worker_, std::move(job), Value(), Napi::Function(), opts.signal);
+    Napi::Promise p = Submit(env, model_->life_.worker(), std::move(job), Value(), Napi::Function(), opts.signal);
     Leave();   // the close is queued behind the finalize
     return p;
 }
