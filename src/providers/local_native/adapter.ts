@@ -308,11 +308,14 @@ class NativeSession implements AdapterSession {
     }, () => { /* diagnostics only */ });
   }
 
-  /** The notices the start found, and transcription-only's own, once the start has resolved. */
+  /**
+   * The notices the start found, and transcription-only's own, once the start has resolved. A session that
+   * transcribes alone is not transcription-only: another unit translates what it hears.
+   */
   announce(): void {
     for (const notice of this.notices) this.emit('degraded', notice);
     this.notices = [];
-    if (!this.config.translation) this.announceTranslationUnavailable();
+    if (!this.config.translation && !this.config.transcribesAlone) this.announceTranslationUnavailable();
   }
 
   private announceTranslationUnavailable(): void {
@@ -338,7 +341,7 @@ class NativeSession implements AdapterSession {
     this.emit('segmentText', { ref, text });
     this.emit('segmentClosed', { ref, origin });
     if (this.config.translation) this.enqueue({ text: text.trim(), origin, fill: this.config.jobSentences !== undefined });
-    else this.announceTranslationUnavailable();
+    else if (!this.config.transcribesAlone) this.announceTranslationUnavailable();
   }
 
   beginTurn(): void {}
@@ -443,7 +446,10 @@ class NativeSession implements AdapterSession {
     this.utterance = null;
     const segment = current ?? { ref: this.nextRef++, origin: this.nextOrigin(), text: '' };
     if (!current) this.emit('segmentOpened', { ref: segment.ref, side: 'source', origin: segment.origin });
-    if (text !== segment.text) this.emit('segmentText', { ref: segment.ref, text });
+    // Transcribing alone, a final always says that all of it is stable: the unit that translates reads how much of a
+    // source is stable from it.
+    const heard = this.config.transcribesAlone ? { pieces: [], stableLen: text.length } : undefined;
+    if (text !== segment.text || heard) this.emit('segmentText', { ref: segment.ref, text, ...(heard ? { heard } : {}) });
     this.emit('segmentClosed', { ref: segment.ref, origin: segment.origin });
     if (this.config.translation) this.enqueue({ text, origin: segment.origin, fill: this.config.jobSentences !== undefined });
   }

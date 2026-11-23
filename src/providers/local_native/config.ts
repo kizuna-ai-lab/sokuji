@@ -36,6 +36,8 @@ export interface LocalNativeConfig {
   jobSentences?: number;
   /** Voices, clip stores, the machine, and where each stage's plan is shown. `describe` and `admit` ignore it. */
   host: NativeHost;
+  /** The transcription unit's config: only source segments are said, each final stating all of it stable. */
+  transcribesAlone?: true;
 }
 
 /** LocalInference's prompt rule (its `config.ts`), the same here: template mode uses the default; else the speaker's prompt, or, for the reverse direction, its own. */
@@ -73,6 +75,11 @@ export function asrLoadsFirst(
   return (sizes[asrId] ?? 0) >= (sizes[translationId] ?? 0);
 }
 
+/** A direction with no recognition model, as the whole session and the transcription unit refuse it. */
+export function noAsr(source: string): ProviderRefusal {
+  return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source } };
+}
+
 /**
  * This device's native facts as a run hands them to a builder or to `admit` (`shared.nativeModels`). A run always
  * hands them; a caller that is not a run never builds Local Native.
@@ -91,9 +98,7 @@ export function buildLocalNative(
   const { source, target } = context.direction;
   const facts = nativeModelsOf(shared);
   const resolved = facts.resolve(source, target, s.selections);
-  if (!resolved.asr) {
-    return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source } };
-  }
+  if (!resolved.asr) return noAsr(source);
 
   let translation: LocalNativeConfig['translation'] = null;
   if (resolved.translation) {
