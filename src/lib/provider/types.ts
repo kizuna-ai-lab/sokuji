@@ -7,6 +7,7 @@ import type { PreviewClip } from '../audio/previewClip';
 import type { LegName } from '../conversation/types';
 import type { RunStage } from '../lineup/types';
 import type { LocalModels } from '../local-inference/selection/types';
+import type { NativeModels } from '../local-inference/native/nativeModels';
 import type { AuthContext, LanguagePair, ModelOption, SessionHooks, SessionWords, UnitDefinition } from '../run/types';
 import type { WireTable } from '../language/wire';
 
@@ -120,6 +121,8 @@ export interface CheckContext {
    * them to a `local` provider's check, and to no other.
    */
   localModels?: LocalModels;
+  /** This device's native facts, for a `local` provider's check, as `localModels` (#578 ruling 18). */
+  nativeModels?: NativeModels;
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }
@@ -362,11 +365,11 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   /**
    * Calls back when something `check` reads besides the settings,
    * credentials, pair and legs has changed — a local engine's models
-   * downloading, which it watches through `localModels` (the readiness
-   * driver hands them). The app re-checks a local provider then (plan 1e-3a
-   * ruling 6). Returns the unsubscribe.
+   * downloading, which it watches through `localModels` or `nativeModels`
+   * (the readiness driver hands both). The app re-checks a local provider
+   * then (plan 1e-3a ruling 6). Returns the unsubscribe.
    */
-  watchReadiness?(onChange: () => void, localModels: LocalModels): () => void;
+  watchReadiness?(onChange: () => void, localModels: LocalModels, nativeModels: NativeModels): () => void;
 
   languages: {
     /** Includes `AUTO` when the provider detects the language. Without a `context`: the widest offer. */

@@ -37,6 +37,7 @@ import { localSpeechUnit } from './speechUnit';
 import { localTranscriptionUnit } from './transcriptionUnit';
 import { localTranslationUnit } from './translationUnit';
 import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
+import { fakeNativeModels } from '../../lib/local-inference/native/nativeModels.testing';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { describeLocalInference } from './config';
 import { PROVIDERS, RELEASED } from '../registry';
@@ -355,7 +356,7 @@ describe('localInferenceProvider', () => {
     const off = vi.fn();
     const watch = vi.fn(() => off);
     const onChange = vi.fn();
-    expect(localInferenceProvider.watchReadiness?.(onChange, fakeLocalModels({ watch }))).toBe(off);
+    expect(localInferenceProvider.watchReadiness?.(onChange, fakeLocalModels({ watch }), fakeNativeModels())).toBe(off);
     expect(watch).toHaveBeenCalledWith(onChange);
   });
 
