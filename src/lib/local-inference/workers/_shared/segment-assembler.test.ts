@@ -47,7 +47,7 @@ describe('SegmentAssembler', () => {
     const notices: DetectorNotice[] = [];
     const a = new SegmentAssembler({ post: (msg, transfer) => posted.push({ msg, transfer }), notify: (n) => notices.push(n), earliestNeeded });
     const frames = (from: number, count: number) => {
-      for (let i = 0; i < count; i++) a.trace({ kind: 'frame', from: from + i * 512, to: from + (i + 1) * 512, samples: ramp(from + i * 512, 512) });
+      for (let i = 0; i < count; i++) a.trace({ kind: 'frame', from: from + i * 512, to: from + (i + 1) * 512, samples: ramp(from + i * 512, 512), raw: new Int16Array(0) });
     };
     return { a, posted, notices, frames };
   }
@@ -59,7 +59,7 @@ describe('SegmentAssembler', () => {
     a.trace({ kind: 'close', from: 512, to: 2048, endedBy: 'smart', smartTurnProbability: 0.8 });
     a.trace({ kind: 'open', at: 2048, press: 3 });
     a.trace({ kind: 'close', from: 2048, to: 2560, endedBy: 'cap', press: 3 });
-    a.trace({ kind: 'frame', from: 3072, to: 3200, samples: ramp(3072, 128) });
+    a.trace({ kind: 'frame', from: 3072, to: 3200, samples: ramp(3072, 128), raw: new Int16Array(0) });
 
     expect(posted.map((p) => p.msg)).toEqual([
       { type: 'segment', epoch: 1, seq: 1, audio: ramp(512, 1536), start: 512, end: 2048, endedBy: 'smart', smartTurnProbability: 0.8 },
@@ -81,11 +81,11 @@ describe('SegmentAssembler', () => {
       order.push(e);
       a.trace(e);
     };
-    trace({ kind: 'frame', from: 0, to: 512, samples: ramp(0, 512) });
+    trace({ kind: 'frame', from: 0, to: 512, samples: ramp(0, 512), raw: new Int16Array(0) });
     trace({ kind: 'open', at: 0 });
     trace({ kind: 'drop', from: 0, to: 512 });
     trace({ kind: 'cancel', press: 2 });
-    trace({ kind: 'frame', from: 512, to: 1024, samples: ramp(512, 512) });
+    trace({ kind: 'frame', from: 512, to: 1024, samples: ramp(512, 512), raw: new Int16Array(0) });
     trace({ kind: 'open', at: 512 });
     trace({ kind: 'close', from: 512, to: 1024, endedBy: 'flush' });
     trace({ kind: 'drained' });
@@ -118,7 +118,7 @@ describe('SegmentAssembler', () => {
   const segments = (a: SegmentAssembler, count: number, samples: number, from = 0) => {
     for (let i = 0; i < count; i++) {
       const at = from + i * samples;
-      a.trace({ kind: 'frame', from: at, to: at + samples, samples: ramp(at, samples) });
+      a.trace({ kind: 'frame', from: at, to: at + samples, samples: ramp(at, samples), raw: new Int16Array(0) });
       a.trace({ kind: 'close', from: at, to: at + samples, endedBy: 'silence' });
     }
   };

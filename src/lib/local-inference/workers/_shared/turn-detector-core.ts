@@ -91,6 +91,10 @@ export class TurnDetectorCore {
   private pending = new Float32Array(0);
   /** Samples processed; the next frame starts here. */
   private position = 0;
+  /** Input samples received and not yet handed to a frame's `raw`. */
+  private rawBuf = new Int16Array(0);
+  /** The input-grid index of rawBuf[0]: round(position · inputRate / 16000), or the flush's end. */
+  private rawBase = 0;
   private open: OpenSegment | null = null;
   private lastCloseTo = 0;
   /** Where the frames the processor holds as pre-speech pad start, oldest first (TurnGate.push's count, as positions). */
@@ -150,6 +154,7 @@ export class TurnDetectorCore {
   stop(): void {
     this.queue = [];
     this.pending = new Float32Array(0);
+    this.dropRaw();
     this.generation++;
     if (this.inFlight === 0) this.resetTurn();
   }
@@ -212,6 +217,7 @@ export class TurnDetectorCore {
     this.failed = true;
     this.queue = [];
     this.pending = new Float32Array(0);
+    this.dropRaw();
     this.generation++;
     if (this.inFlight === 0) this.resetTurn();
     this.o.notify(notice);
@@ -250,6 +256,7 @@ export class TurnDetectorCore {
   private async apply(op: Op, generation: number): Promise<void> {
     switch (op.kind) {
       case 'push':
+        this.appendRaw(op.pcm);
         this.append(this.resampler.push(op.pcm));
         await this.frames(generation);
         return;
@@ -297,6 +304,31 @@ export class TurnDetectorCore {
     await this.runFrame(samples, generation);
   }
 
+  private appendRaw(pcm: Int16Array): void {
+    const joined = new Int16Array(this.rawBuf.length + pcm.length);
+    joined.set(this.rawBuf);
+    joined.set(pcm, this.rawBuf.length);
+    this.rawBuf = joined;
+  }
+
+  /** Input that never enters the timeline leaves no raw behind: the next frame's raw starts at the grid of the samples processed. */
+  private dropRaw(): void {
+    this.rawBuf = new Int16Array(0);
+    this.rawBase = Math.round((this.position * this.inputRate) / VAD_SAMPLE_RATE);
+  }
+
+  /**
+   * The input samples that produced the frame ending at `to`: split on the input grid at round(to · rate / 16000),
+   * so 512 frames at 16 kHz are 768 samples at 24 kHz; a partial frame (a flush) takes everything received.
+   */
+  private takeRaw(to: number, partial: boolean): Int16Array {
+    const end = partial ? this.rawBuf.length : Math.min(this.rawBuf.length, Math.max(0, Math.round((to * this.inputRate) / VAD_SAMPLE_RATE) - this.rawBase));
+    const raw = this.rawBuf.slice(0, end);
+    this.rawBuf = this.rawBuf.subarray(end);
+    this.rawBase += end;
+    return raw;
+  }
+
   private append(samples: Float32Array): void {
     if (samples.length === 0) return;
     const joined = new Float32Array(this.pending.length + samples.length);
@@ -320,7 +352,7 @@ export class TurnDetectorCore {
     const to = from + samples.length;
     const vad = this.vad;
     if (!vad) {
-      this.o.trace({ kind: 'frame', from, to, samples });
+      this.o.trace({ kind: 'frame', from, to, samples, raw: this.takeRaw(to, samples.length < VAD_FRAME_SAMPLES) });
       this.position = to;
       this.capPress();
       return;
@@ -340,7 +372,7 @@ export class TurnDetectorCore {
       this.resetTurn();
       return;
     }
-    this.o.trace({ kind: 'frame', from, to, samples });
+    this.o.trace({ kind: 'frame', from, to, samples, raw: this.takeRaw(to, samples.length < VAD_FRAME_SAMPLES) });
 
     let probability = 0;
     for (const ev of events) if (ev.msg === Message.FrameProcessed) probability = ev.probs.isSpeech;

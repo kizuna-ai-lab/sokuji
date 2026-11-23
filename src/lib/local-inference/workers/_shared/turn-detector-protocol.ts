@@ -12,8 +12,12 @@ export type SegmentEndedBy = SegmentEnd['endedBy'];
 
 /** What the core decided, in the order it decided it. Both outputs (segments, audio and marks) are built from it. */
 export type TurnTrace =
-  /** Real 16 kHz samples processed; a drained partial frame is shorter than 512. */
-  | { kind: 'frame'; from: number; to: number; samples: Float32Array }
+  /**
+   * Real 16 kHz samples processed; a drained partial frame is shorter than 512. `raw` is the input samples that
+   * produced them, split at round(to · inputRate / 16000) (768 per full frame at 24 kHz); a partial frame takes
+   * everything received.
+   */
+  | { kind: 'frame'; from: number; to: number; samples: Float32Array; raw: Int16Array }
   /** A segment will start at `at` (automatic turns: pre-pad included, never before the last close). */
   | { kind: 'open'; at: number; press?: number }
   | { kind: 'close'; from: number; to: number; endedBy: SegmentEndedBy; press?: number; smartTurnProbability?: number }
