@@ -13,7 +13,8 @@ import { providerTarget } from './providerTarget';
 
 export type NoticeActionSpec =
   | { kind: 'settings'; target: string }
-  | { kind: 'top-up' }
+  /** `subject: 'organization'`: the billing page opens on the organization's wallet (its owner's Top up). */
+  | { kind: 'top-up'; subject?: 'organization' }
   /** `provider`: the managed provider the notice is about; signed in already, its account row is where to look. */
   | { kind: 'sign-in'; provider?: string }
   | { kind: 'system-settings'; pane: 'screen-recording' | 'audio-capture' }
@@ -24,6 +25,9 @@ export type NoticeActionSpec =
 
 /** The managed provider's lease refused a start, or the gate did, on the balance: both are fixed by topping up. */
 const TOP_UP_CODES: ReadonlySet<string> = new Set([BALANCE_BELOW_FLOOR, 'insufficient_balance']);
+
+/** An organization's owner tops up the organization: the billing page opens on its wallet. */
+const ORG_TOP_UP: NoticeActionSpec = { kind: 'top-up', subject: 'organization' };
 
 /** A lease's grant ran out on the balance (`providers/soniox/lease.ts`, `providers/qwen_livetranslate/lease.ts`). */
 const BUDGET_EXHAUSTED = 'budget_exhausted';
@@ -42,9 +46,12 @@ const TTS_SLOT_LEGS: ReadonlyMap<string, LegName> = new Map([
  */
 export function actionForCode(code: string | undefined, params?: Record<string, string | number>): NoticeActionSpec | null {
   if (code === undefined) return null;
-  if (code === ORG_INSUFFICIENT_BALANCE) return params?.role === 'owner' ? { kind: 'top-up' } : null;
+  if (code === ORG_INSUFFICIENT_BALANCE) return params?.role === 'owner' ? ORG_TOP_UP : null;
   // A run that ended on its balance (the owner's call, 2026-11-23): Top up on the row itself; an organization's only for its owner.
-  if (code === BUDGET_EXHAUSTED) return params?.payer === 'organization' && params.role !== 'owner' ? null : { kind: 'top-up' };
+  if (code === BUDGET_EXHAUSTED) {
+    if (params?.payer !== 'organization') return { kind: 'top-up' };
+    return params.role === 'owner' ? ORG_TOP_UP : null;
+  }
   if (code === LOOPBACK_DENIED) return { kind: 'system-settings', pane: 'screen-recording' };
   if (code === MIC_BLOCKED) return { kind: 'windows-settings', page: 'microphone-privacy' };
   if (TOP_UP_CODES.has(code)) return { kind: 'top-up' };

@@ -8,6 +8,8 @@ import { reportWarning } from '../diagnostics/report';
 
 /** The website's billing page, where a top-up is paid (`/dashboard/wallet` redirects to it). */
 export const BILLING_PATH = '/dashboard/billing';
+/** The billing page on the organization's wallet: for its owner (the site ignores `subject` for anyone else). */
+export const BILLING_ORG_PATH = `${BILLING_PATH}?subject=organization`;
 
 export interface OpenSitePageDeps {
   /** Whether the app holds a session: only then is a one-time token worth asking for. */

@@ -26,7 +26,8 @@ describe('actionForCode', () => {
     expect(actionForCode('insufficient_balance')).toEqual({ kind: 'top-up' });
   });
   it('offers Top up for an organization balance only to its owner', () => {
-    expect(actionForCode('org_insufficient_balance', { role: 'owner' })).toEqual({ kind: 'top-up' });
+    // The owner's Top up opens the billing page on the organization's wallet, where the money is wanted.
+    expect(actionForCode('org_insufficient_balance', { role: 'owner' })).toEqual({ kind: 'top-up', subject: 'organization' });
     expect(actionForCode('org_insufficient_balance', { role: 'member' })).toBeNull();
     expect(actionForCode('org_insufficient_balance')).toBeNull();
     for (const code of ['org_balance_held', 'not_org_member', 'org_wallet_frozen']) expect(actionForCode(code, { role: 'owner' })).toBeNull();
@@ -56,7 +57,7 @@ describe('actionForCode', () => {
   // The owner's call (2026-11-23): the row that says the balance ran out offers Top up there and then.
   it('offers Top up where a run ended on its balance, but not an organization member', () => {
     expect(actionForCode('budget_exhausted')).toEqual({ kind: 'top-up' });
-    expect(actionForCode('budget_exhausted', { payer: 'organization', organization: 'Acme', role: 'owner' })).toEqual({ kind: 'top-up' });
+    expect(actionForCode('budget_exhausted', { payer: 'organization', organization: 'Acme', role: 'owner' })).toEqual({ kind: 'top-up', subject: 'organization' });
     expect(actionForCode('budget_exhausted', { payer: 'organization', organization: 'Acme', role: 'member' })).toBeNull();
     expect(actionForCode('budget_exhausted', { payer: 'organization' })).toBeNull();
   });

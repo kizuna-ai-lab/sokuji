@@ -877,6 +877,16 @@ describe('Top up (spec 2026-11-23: one click to the billing page)', () => {
     expect(open).not.toHaveBeenCalled();
   });
 
+  it("opens the organization's wallet on the billing page when an organization's owner tops up", async () => {
+    const { container } = await renderPanel();
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'org_insufficient_balance', message: 'm', params: { organization: 'Acme', role: 'owner' } } } }, true);
+    });
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.status-line__action')!);
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    expect(String(open.mock.calls[0][0])).toMatch(/\/dashboard\/billing\?subject=organization$/);
+  });
+
   it("opens the billing page from a row's Top up, as a notice", async () => {
     usePanelNotesStore.getState().add({ severity: 'error', code: 'budget_exhausted', message: 'used up', action: { kind: 'top-up' } });
     const { container } = await renderPanel();
