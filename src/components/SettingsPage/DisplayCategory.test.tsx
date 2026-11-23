@@ -24,6 +24,9 @@ import { runsOn } from '../../stores/lineUpStore.testing';
 beforeEach(() => {
   useConversationDisplayStore.setState({ fontSize: 14, compactMode: false });
   useSubtitleStore.setState({ fontSize: 24, compactMode: false });
+  // Both sides show both, for every suite: a case that sets 'none' must not blank the preview of the next.
+  useSettingsStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both' } as never);
+  useSubtitleStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both', newItemHighlightEnabled: true } as never);
 });
 afterEach(() => cleanup());
 
@@ -98,11 +101,6 @@ describe('display — the preview colours', () => {
 
 // The mock's display page (v18): compact segmented choices, a switch, the colour rows inline, and a preview drawn as the conversation draws.
 describe('display — the rows as the mock draws them', () => {
-  beforeEach(() => {
-    useSettingsStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both' } as never);
-    useSubtitleStore.setState({ speakerDisplayMode: 'both', participantDisplayMode: 'both', newItemHighlightEnabled: true } as never);
-  });
-
   it("offers each side's four choices side by side, in the mock's order", () => {
     render(<DisplayCategory locked={false} />);
     const mine = screen.getByRole('group', { name: 'What my side shows' });
