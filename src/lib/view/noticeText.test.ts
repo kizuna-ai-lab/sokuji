@@ -362,9 +362,9 @@ describe('organization refusal notices', () => {
       .toBe("Ask the organization's owner to top up, or use your own balance.");
   });
   // The owner's call (2026-11-23): an organization-paid run that ran out says whose balance it was, and what to do.
-  it("words an organization-paid run that ran out by role, saying the rest may only be held: a member asks the owner, the owner tops up", () => {
+  it("words an organization-paid run that ran out by role, saying the rest may only be held, so try again: a member asks the owner, the owner tops up", () => {
     const out = (params: Record<string, string>) => noticeText(plainT, { code: 'budget_exhausted', message: 'Session budget exhausted', params: { payer: 'organization', ...params } });
-    const held = 'The rest may be held by other sessions in progress; you can start again when they end.';
+    const held = 'The rest may be held by other sessions in progress; try again when they end.';
     expect(out({ ...org, role: 'member' }))
       .toBe(`The organization balance this session could use is used up. ${held} You can also ask the organization's owner to top up, or use your own balance.`);
     expect(out({ role: 'member' })).toBe(out({ ...org, role: 'member' }));

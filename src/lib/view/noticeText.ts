@@ -89,10 +89,10 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   // An organization-paid run that ran out (a lease's `budget_exhausted` with `payer: 'organization'`), by role; the
   // member's sentence names no organization, so it needs no `_unnamed`. The run's budget was what the organization had
   // free at Start (its balance less what its members' running sessions hold), so the rest may only be held: the
-  // sentence says both (the owner's call, 2026-11-23).
-  org_budget_exhausted: "The organization balance this session could use is used up. The rest may be held by other sessions in progress; you can start again when they end. You can also ask the organization's owner to top up, or use your own balance.",
-  org_budget_exhausted_owner: "The {{organization}} balance this session could use is used up. The rest may be held by other sessions in progress; you can start again when they end. You can also top up {{organization}}, or use your own balance.",
-  org_budget_exhausted_owner_unnamed: "The organization balance this session could use is used up. The rest may be held by other sessions in progress; you can start again when they end. You can also top up your organization, or use your own balance.",
+  // sentence says both, and offers a retry, not a promise (those sessions may spend what they hold) (the owner's call, 2026-11-23).
+  org_budget_exhausted: "The organization balance this session could use is used up. The rest may be held by other sessions in progress; try again when they end. You can also ask the organization's owner to top up, or use your own balance.",
+  org_budget_exhausted_owner: "The {{organization}} balance this session could use is used up. The rest may be held by other sessions in progress; try again when they end. You can also top up {{organization}}, or use your own balance.",
+  org_budget_exhausted_owner_unnamed: "The organization balance this session could use is used up. The rest may be held by other sessions in progress; try again when they end. You can also top up your organization, or use your own balance.",
   not_org_member: "You're no longer in {{organization}}.",
   not_org_member_unnamed: "You're no longer in your organization.",
   org_wallet_frozen: "{{organization}}'s account is paused. Contact its owner, or use your own balance.",
