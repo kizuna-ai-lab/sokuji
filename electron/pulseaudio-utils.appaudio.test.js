@@ -33,10 +33,11 @@ describe('listSystemAudioSources (Linux)', () => {
 });
 
 describe('connectSystemAudioSource (Linux)', () => {
-  it('delegates app: ids to the PipeWire tap and forwards monitorLabel', async () => {
+  it('delegates app: ids to the PipeWire tap, with who hears the application quit, and forwards monitorLabel', async () => {
     const h = host();
-    const r = await connectSystemAudioSource('app:205', { host: h });
-    expect(h.connectAppSource).toHaveBeenCalledWith('app:205');
+    const onLost = () => {};
+    const r = await connectSystemAudioSource('app:205', { host: h, onLost });
+    expect(h.connectAppSource).toHaveBeenCalledWith('app:205', { onLost });
     expect(r).toEqual({ success: true, monitorLabel: 'Sokuji App Capture' });
   });
 

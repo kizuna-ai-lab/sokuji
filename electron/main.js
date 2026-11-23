@@ -1124,7 +1124,11 @@ ipcMain.handle('list-system-audio-sources', async () => {
 
 ipcMain.handle('connect-system-audio-source', async (event, sinkName) => {
   if (connectSystemAudioSource) {
-    return await connectSystemAudioSource(sinkName);
+    const wc = event.sender;
+    // Only the Linux tap reports this (the application it follows quit, #617);
+    // the Windows and macOS helpers report a loss on app-audio:event.
+    const onLost = () => { if (!wc.isDestroyed()) wc.send('system-audio:lost'); };
+    return await connectSystemAudioSource(sinkName, { onLost });
   }
   return { success: false, error: 'System audio capture not supported on this platform' };
 });
