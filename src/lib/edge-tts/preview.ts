@@ -4,7 +4,7 @@
  * same connection a session uses and decoded for the page's preview route.
  * A failure is reported here, once; a preview the user stopped is no failure.
  */
-import type { PreviewClip } from '../audio/playback';
+import type { PreviewClip } from '../audio/previewClip';
 import { describeCause, reportError } from '../diagnostics/report';
 import { previewSampleFor } from '../tts/previewSample';
 import { EdgeTtsConnection } from './EdgeTtsConnection';

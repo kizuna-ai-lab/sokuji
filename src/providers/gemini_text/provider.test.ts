@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { isPresent } from '../../lib/provider/presence';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import type { TextModelTransport } from '../../lib/textModel/client';
 import { TEXT_MODEL_DEFAULTS } from '../../lib/textModel/unit';
 import { GEMINI_KEY_STORED_AT } from '../geminiKey';
@@ -43,7 +43,7 @@ describe("Gemini's text models", () => {
   });
 
   it('translate through their one unit', () => {
-    expect(p.units?.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
+    expect(p.units.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
     expect(p.settings.key).toBe('geminiText');
   });
 });

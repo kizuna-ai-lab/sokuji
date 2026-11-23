@@ -4,7 +4,7 @@ import type { AppAudio } from '../../lib/audio/appAudio';
 import type { Playback } from '../../lib/audio/playback';
 import { describeCause, reportError } from '../../lib/diagnostics/report';
 import type { Runner } from '../../lib/session/runner';
-import type { TurnMode } from '../../lib/session/types';
+import type { TurnMode } from '../../lib/run/types';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { useSettingsStore } from '../../stores/settingsStore';

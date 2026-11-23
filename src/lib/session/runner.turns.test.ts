@@ -9,7 +9,8 @@ import type { FakeConfig, FakeCredentials } from '../../providers/fake/adapter';
 import { createRunner } from './runner';
 import { shapeWith, withWhole } from '../plan/testing';
 import type { WholeUnitParts } from '../plan/wholeUnit';
-import type { RunShape, TurnMode } from './types';
+import type { RunShape } from './types';
+import type { TurnMode } from '../run/types';
 import type { PlaybackPort } from './ports';
 
 // Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.

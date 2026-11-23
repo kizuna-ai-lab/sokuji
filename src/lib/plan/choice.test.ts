@@ -1,7 +1,7 @@
 // src/lib/plan/choice.test.ts
 import { describe, expect, it } from 'vitest';
 import { allCaps } from '../lineup/catalog';
-import { choose as chooseWith } from '../lineup/choose';
+import { choose as chooseWith } from './choose';
 import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, RunStage } from '../lineup/types';
 import { RELEASED } from '../../providers/registry';

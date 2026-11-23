@@ -10,7 +10,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { fakeSockets, type FakeSocket } from '../../lib/contract/testing/fakeSocket';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createAst2Adapter } from './adapter';
 import { buildAst2, type Ast2Config } from './config';
 import { data as proto } from './proto/ast2-proto.js';

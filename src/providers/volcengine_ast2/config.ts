@@ -5,7 +5,7 @@
  */
 import { wordsFor, type ServiceWords } from '../../lib/words/forService';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
+import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import { resourceOf } from './catalog';
 import { ast2Languages, ast2Offers, type Ast2Settings } from './settings';
 import { CLONE, effectiveVoice } from './voice';

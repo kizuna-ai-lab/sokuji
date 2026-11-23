@@ -1,7 +1,7 @@
 // Soniox's old vocabulary and background, still in storage from an older version, are neither read nor sent.
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildSoniox } from './config';
 import { migrateSonioxSettings, SONIOX_DEFAULTS } from './settings';
 

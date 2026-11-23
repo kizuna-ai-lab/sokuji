@@ -8,9 +8,8 @@ import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from
 import type { SpeechEvents, SpeechSession } from '../contract/speech';
 import type { LegName } from '../conversation/types';
 import { describeCause } from '../diagnostics/describeCause';
-import type { PlanConfigs } from './composite';
 import { createSpeechFeed, type SpeechFeed } from './speechFeed';
-import type { PlannedUnit, RunPlan } from './types';
+import type { PlanConfigs, PlannedUnit, RunPlan } from './types';
 
 /** One leg's request over a plan: its configs by unit, and each unit's own credentials. */
 export type PlanRequest = StartRequest<PlanConfigs, (unit: PlannedUnit) => unknown>;

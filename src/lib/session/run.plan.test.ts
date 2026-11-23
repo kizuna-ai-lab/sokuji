@@ -3,11 +3,12 @@ import type { AdapterEvents } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
 import { stubSpeechUnit, stubTextUnit, textAndSpeechPlan, type StubCalls, type StubTextStart } from '../plan/testing';
-import type { AnyProvider, SharedSettings } from '../provider/types';
+import type { AnyProvider } from '../provider/types';
+import type { LeaseContext, SessionHooks, SharedSettings } from '../run/types';
 import { FAKE_LANGUAGES } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { createRunner } from './runner';
-import type { LeaseContext, RunShape, SessionHooks } from './types';
+import type { RunShape } from './types';
 
 /** The calls of a list, by name. */
 const named = (calls: StubCalls) => calls.map((c) => c[0]);
@@ -18,7 +19,7 @@ const named = (calls: StubCalls) => calls.map((c) => c[0]);
  * models; every build is listed with the models it was handed. `hooks`: the text provider's session hooks;
  * `voiceHooks`: the voice provider's.
  */
-function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; hooks?: SessionHooks<unknown, unknown, unknown>; voiceHooks?: SessionHooks<unknown, unknown, unknown>; lineUpStored?: boolean } = {}) {
+function setup(o: { legs?: RunShape['legs']; participantSpeech?: boolean; hooks?: SessionHooks<unknown, unknown, unknown, AnyProvider>; voiceHooks?: SessionHooks<unknown, unknown, unknown, AnyProvider>; lineUpStored?: boolean } = {}) {
   const clock = createVirtualClock(0);
   const calls: StubCalls = [];
   const builds: Array<{ provider: string; shared: SharedSettings }> = [];

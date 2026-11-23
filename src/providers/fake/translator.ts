@@ -12,7 +12,7 @@
 import { Languages } from 'lucide-react';
 import { TL } from '../../lib/lineup/types';
 import { sameStages } from '../../lib/plan/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { FAKE_LANGUAGES } from './provider';
 import { startFakeTranslator, type FakeTranslatorConfig, type FakeTranslatorCredentials, type FakeTranslatorSettings } from './translatorSession';

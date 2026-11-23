@@ -87,7 +87,7 @@ describe('the OpenAI Realtime definition', () => {
     // Its id is a text model's now (text models, part B): a unit that translates another provider's transcription,
     // never a session of its own.
     const compatible = PROVIDERS.find((p) => p.id === 'openai_compatible')!;
-    expect(compatible.units?.map((u) => u.start)).toEqual([undefined]);
+    expect(compatible.units.map((u) => u.start)).toEqual([undefined]);
     expect(runsByItself('openai_compatible')).toBe(false);
   });
 

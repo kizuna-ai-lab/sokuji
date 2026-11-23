@@ -7,7 +7,8 @@
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
-import type { AnyProvider, AuthContext } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { createRunner } from '../../lib/session/runner';
 import type { RunShape } from '../../lib/session/types';
 import { shapeWith } from '../../lib/plan/testing';

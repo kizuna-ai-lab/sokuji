@@ -9,7 +9,8 @@
  * and leaves the stored choice alone. The routine's sleeps run on the real
  * clock, injectable for tests (ruling 10).
  */
-import type { Prepared, RunShape } from '../../lib/session/types';
+import type { RunShape } from '../../lib/session/types';
+import type { Prepared } from '../../lib/run/types';
 import { asSonioxRegion, type SonioxRegion } from '../../lib/soniox/regions';
 import { SONIOX_DEFAULT_VOICE, isSonioxBuiltInVoice } from '../../lib/soniox/ttsCatalog';
 import { reportWarning } from '../../lib/diagnostics/report';

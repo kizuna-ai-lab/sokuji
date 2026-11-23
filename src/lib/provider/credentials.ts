@@ -1,5 +1,6 @@
 import { describeCause } from '../diagnostics/describeCause';
-import type { AuthContext, CredentialsMissing, CredentialValues, Provider } from './types';
+import type { CredentialsMissing, CredentialValues, Provider } from './types';
+import type { AuthContext } from '../run/types';
 
 /**
  * A provider's credentials for these settings: `read` sees the values of

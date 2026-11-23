@@ -6,8 +6,8 @@
 import { TL } from '../../lib/lineup/types';
 import { BING_TRANSLATOR, localTranslationRefusal, startLocalTranslation, type LocalTranslationConfig } from '../../lib/local-inference/sessions/translationSession';
 import { TranslationEngine } from '../../lib/local-inference/engine/TranslationEngine';
-import { sameStages, type UnitDefinition } from '../../lib/plan/types';
-import type { ProviderRefusal } from '../../lib/provider/types';
+import { sameStages } from '../../lib/plan/types';
+import type { ProviderRefusal, UnitDefinition } from '../../lib/run/types';
 import { bingTranslates } from './languages';
 
 /** Bing has no settings of its own. */

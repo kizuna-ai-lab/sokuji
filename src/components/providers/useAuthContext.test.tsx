@@ -12,7 +12,7 @@ vi.mock('../../lib/auth/hooks', () => ({
   useAuth: () => auth,
 }));
 
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { AuthStandIn, useAuthContext } from './useAuthContext';
 
 describe('useAuthContext', () => {

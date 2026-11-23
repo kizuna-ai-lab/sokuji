@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readCredentials } from '../../lib/provider/credentials';
 import { normalizePair, reverseSupported, swapped } from '../../lib/provider/languages';
-import type { AuthContext, LanguageContext } from '../../lib/provider/types';
+import type { LanguageContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { parseCode } from '../../lib/language/code';
 import { AST2_DEFAULTS, ast2Credentials, ast2Languages, ast2Offers, migrateAst2Settings, ZH_EN, type Ast2Settings } from './settings';
 

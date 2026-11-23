@@ -10,7 +10,7 @@ import type { TextRange } from '../../lib/contract/adapter';
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../../lib/contract/speech';
 import { SP } from '../../lib/lineup/types';
 import { sameStages } from '../../lib/plan/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { FAKE_LANGUAGES } from './provider';
 

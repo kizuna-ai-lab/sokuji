@@ -6,7 +6,8 @@
  * under one, the offer for it; without, the provider's widest offer.
  */
 import { AUTO } from '../language/code';
-import type { LanguageContext, LanguageOption, LanguagePair, Provider } from './types';
+import type { LanguageContext, LanguageOption, Provider } from './types';
+import type { LanguagePair } from '../run/types';
 
 /** The source value that asks the provider to detect the language. Never a target. Defined with the app code. */
 export { AUTO };

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { DEV_ONLY, RELEASED } from '../../providers/registry';
-import { stubProvider } from '../plan/testing';
-import { E2E_CAPS, RELEASED_CAPS } from './catalog.testing';
+import { stubProvider } from './testing';
+import { E2E_CAPS, RELEASED_CAPS } from '../lineup/catalog.testing';
 import { capsOf, catalogOf, occupationsOf } from './capsOf';
-import type { ProviderCaps, RunStage } from './types';
+import type { ProviderCaps, RunStage } from '../lineup/types';
 
 const byId = (list: readonly ProviderCaps[]) => Object.fromEntries(list.map((c) => [c.id, c]));
 const unit = (id: string, stages: RunStage[]) => ({ id, occupies: (_s: unknown, want: ReadonlySet<RunStage>) => (want.size === stages.length && stages.every((s) => want.has(s)) ? stages : null) });

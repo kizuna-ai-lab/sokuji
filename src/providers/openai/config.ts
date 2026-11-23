@@ -9,7 +9,7 @@
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import { resolveInstructions } from '../../lib/provider/instructions';
-import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
+import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import {
   effectiveRealtimeModel, realtimeLanguageName, realtimeParticipantVoice, realtimeSpeakerVoice, REALTIME_DEFAULTS, REALTIME_MAX_TOKENS_RANGE, REALTIME_PREFIX_RANGE,
   REALTIME_SILENCE_RANGE, REALTIME_THRESHOLD_RANGE, takesReasoning, type NoiseReduction, type ReasoningEffort, type RealtimeSettings,

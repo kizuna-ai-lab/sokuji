@@ -13,8 +13,8 @@ import { caps, goesWith } from '../lineup/catalog';
 import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, ProviderCaps, RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
-import type { PlanAccount, RunNotice } from '../session/types';
-import type { PlannedUnit, PlanRefusal, RunPlan, UnitCapabilities } from './types';
+import type { PlanAccount, RunNotice, UnitCapabilities } from '../run/types';
+import type { PlannedUnit, PlanRefusal, RunPlan } from './types';
 import { unitsOf } from './wholeUnit';
 
 /** The stages of text: what a unit of a transcription provider is asked to occupy for face-to-face. */

@@ -1,4 +1,4 @@
-// src/lib/lineup/choose.ts
+// src/lib/plan/choose.ts
 //
 // Choosing a provider for one stage: the provider takes the stages that go
 // with it (its joint group; its transcription, when it translates only what
@@ -12,12 +12,12 @@
 // voice that reads only its own translation. Nothing else moves. Any other
 // choice the composer refuses is kept as chosen: the line-up page shows the
 // refusal, and the user changes what they want (design section 8).
-import { compose } from '../plan/compose';
-import type { ComposeInput } from '../plan/compose';
-import { isRefusal } from '../plan/types';
-import { caps, goesWith, hostDefaults } from './catalog';
-import { RUN_STAGES } from './types';
-import type { LineUp, StageName } from './types';
+import { compose } from './compose';
+import type { ComposeInput } from './compose';
+import { isRefusal } from './types';
+import { caps, goesWith, hostDefaults } from '../lineup/catalog';
+import { RUN_STAGES } from '../lineup/types';
+import type { LineUp, StageName } from '../lineup/types';
 
 export interface Choice {
   lineUp: LineUp;

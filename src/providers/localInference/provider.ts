@@ -3,8 +3,8 @@ import { KizunaAIIcon } from '../../components/Icons/ProviderIcons';
 import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createLocalInferenceAdapter, type LocalCredentials } from './adapter';
-import { checkLocalInference, watchLocalInferenceReadiness } from './check';
-import { admitLocalInference, buildLocalInference, describeLocalInference, type LocalInferenceConfig } from './config';
+import { checkLocalInference } from './check';
+import { admitLocalInference, buildLocalInference, describeLocalInference, localModelsOf, type LocalInferenceConfig } from './config';
 import { LocalInferenceEngine } from './LocalInferenceEngine';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
 import { LocalInferenceVoiceSummary } from './LocalInferenceVoiceSummary';
@@ -54,7 +54,8 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   check: (_k, s, ctx) => checkLocalInference(s, ctx),
   // Its models are per direction, and both legs need the participant's too: a pick or an audio-mode switch is a new answer.
   checkReadsDirection: true,
-  watchReadiness: watchLocalInferenceReadiness,
+  // Its check reads this device's models: a download, a delete or their first scan can change its answer.
+  watchReadiness: (onChange, models) => models.watch(onChange),
 
   languages: localInferenceLanguages,
 
@@ -83,11 +84,13 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   session: {
     // Asked once per planned unit, with that unit's configs: the voice alone counts its own models only, and so
     // do the translation alone and the recognition alone.
-    admit: (configs) => {
-      if (areLocalSpeechConfigs(configs)) return admitLocalSpeech(configs);
-      if (areLocalTranslationConfigs(configs)) return admitLocalTranslation(configs);
-      if (areLocalTranscriptionConfigs(configs)) return admitLocalTranscription(configs);
-      return admitLocalInference(configs);
+    // Each budgets by this device's GPU features, read from the models the run hands it (`shared.localModels`).
+    admit: (configs, shared) => {
+      const features = localModelsOf(shared).deviceFeatures();
+      if (areLocalSpeechConfigs(configs)) return admitLocalSpeech(configs, features);
+      if (areLocalTranslationConfigs(configs)) return admitLocalTranslation(configs, features);
+      if (areLocalTranscriptionConfigs(configs)) return admitLocalTranscription(configs, features);
+      return admitLocalInference(configs, features);
     },
   },
 };

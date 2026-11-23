@@ -8,7 +8,7 @@
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import { resolveInstructions } from '../../lib/provider/instructions';
-import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
+import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import { clampSegmentPauseMs, segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import { LIVE_LANGUAGES, LIVE_MODEL, liveLanguageName, liveParticipantVoice, liveSpeakerVoice, type LiveSettings } from './settings';
 

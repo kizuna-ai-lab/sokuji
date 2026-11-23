@@ -6,7 +6,7 @@
  * with no wallet known; else the wallet as last fetched.
  */
 import { create } from 'zustand';
-import type { AccountState } from '../lib/session/types';
+import type { AccountState } from '../lib/run/types';
 
 interface AccountStore {
   account: AccountState | null;

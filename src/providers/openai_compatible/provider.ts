@@ -9,7 +9,7 @@
 import { Plug } from 'lucide-react';
 import { textModelSettingsView } from '../../components/providers/TextModelSettings';
 import { TL } from '../../lib/lineup/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { compatibleAddressProblem } from '../../lib/textModel/address';
 import { createTextModelCheck, type TextModelCheckDeps } from '../../lib/textModel/check';

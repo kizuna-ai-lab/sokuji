@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
+import type { AnyProvider, EngineSlot } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { useProviderStore } from '../../stores/providerStore';
 import { useTextOnly } from '../../stores/settingsStore';
 import { capabilitiesAlone } from '../../lib/plan/wholeUnit';

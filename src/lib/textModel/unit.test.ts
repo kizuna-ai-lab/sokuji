@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../contract/adapter';
 import { isSpeechUnit, isTranslationUnit } from '../plan/types';
-import type { SharedSettings } from '../provider/types';
+import type { SharedSettings } from '../run/types';
 import { DEFAULT_REASONING_CHOICE } from './choice';
 import { TEXT_MODEL_UNSET } from './check';
 import { textModelTranslates } from './languages';

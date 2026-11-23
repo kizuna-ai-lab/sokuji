@@ -2,14 +2,12 @@
  * The provider definition: one object per provider, and the only thing
  * generic code knows about it (spec: "The provider definition"). Types only.
  */
-import type { WordEntry } from '../words/list';
 import type { ComponentType } from 'react';
-import type { PreviewClip } from '../audio/playback';
-import type { SessionContext } from '../contract/adapter';
+import type { PreviewClip } from '../audio/previewClip';
 import type { LegName } from '../conversation/types';
-import type { RunStage, StageIds } from '../lineup/types';
-import type { UnitDefinition } from '../plan/types';
-import type { SessionHooks } from '../session/types';
+import type { RunStage } from '../lineup/types';
+import type { LocalModels } from '../local-inference/selection/types';
+import type { AuthContext, LanguagePair, ModelOption, SessionHooks, SessionWords, UnitDefinition } from '../run/types';
 import type { WireTable } from '../language/wire';
 
 export type Platform = 'electron' | 'extension' | 'web';
@@ -21,7 +19,6 @@ export type ProviderKind = 'own-key' | 'managed' | 'local' | 'online';
 
 /** A language on offer: an app code (`src/lib/language/code.ts`), named by `languageLabel` wherever it shows. */
 export interface LanguageOption { value: string }
-export interface LanguagePair { source: string; target: string }
 
 /**
  * What the languages on offer may depend on besides the settings (Stage 2
@@ -81,32 +78,11 @@ export interface MigrationInputs {
 }
 
 /**
- * The sign-in session: what `credentials.read` may consult besides the
- * typed values (a managed provider), and the account a provider's
- * `prepare` or `Settings` acts for (F3).
- */
-export interface AuthContext {
-  signedIn: boolean;
-  getToken(): Promise<string | null>;
-  /** The signed-in user's id; null signed out. Absent where no sign-in is wired: tests, the root's default. */
-  userId?: string | null;
-  /**
-   * False while the sign-in is still loading at launch: a managed
-   * provider's `read` then answers `sign_in_pending`, not "sign in" (Stage 2
-   * Kizuna Soniox, choice 10). Absent where no sign-in is wired — tests, the
-   * root's default — and read as loaded.
-   */
-  loaded?: boolean;
-}
-
-/**
  * Why `credentials.read` found no credentials. `code` (and `params`) put
  * it into the user's words — `sign_in_required` for a managed provider
  * signed out; absent, the runner's `credentials_missing`.
  */
 export interface CredentialsMissing { missing: string; code?: string; params?: Record<string, string | number> }
-
-export interface ModelOption { id: string }
 
 /**
  * What a provider's `Settings` may reach besides its settings (F3): the
@@ -139,6 +115,11 @@ export interface CheckContext {
    * Absent: it does not.
    */
   notes?: boolean;
+  /**
+   * This device's local models, for the check of a provider whose models are on this device: the provider store hands
+   * them to a `local` provider's check, and to no other.
+   */
+  localModels?: LocalModels;
   /** Aborted when the start that asked is cancelled. */
   signal?: AbortSignal;
 }
@@ -150,42 +131,6 @@ export type Readiness =
   | { state: 'ready'; models: readonly ModelOption[] }
   /** `code` / `params` as a refusal's: the provider's own code puts `reason` into the user's words. */
   | { state: 'not-ready'; reason: string; code?: string; params?: Record<string, string | number> };
-
-/** What a builder may read beyond its own settings; a builder never reaches into a store. The system instructions are each provider's own setting (`instructions.ts`; Stage 2 Gemini, ruling 4). */
-export interface SharedSettings {
-  /** The segmentation pauses, in seconds, as stored. */
-  pauses: { sourceSeconds: number; translationSeconds: number };
-  /** This is the participant's direction: the pair's reverse. A run answers it by leg, so a same-language pair (en → en), one direction for both legs, still tells them apart. */
-  reversed(direction: SessionContext['direction']): boolean;
-  /** The display segmentation as stored: a provider that cuts its own jobs follows it (LocalInference). */
-  segmentation: { mode: 'off' | 'pause' | 'sentences'; sentencesPerRow: number };
-  /** Face-to-face: a builder that can run it forces its shared socket. Absent: false. */
-  faceToFace?: boolean;
-  /** Some leg of this run produces translated speech (its context's `speech`), fixed at start: a builder may ready a socket for it (Soniox asks for agent text when its own setting is on, spec 2026-11-05 §4.3). Whether the speech plays locally is not asked: speech that is not local makes no echo. Set by the run; absent: false. */
-  speaks?: boolean;
-  /**
-   * The run has both legs, each built with its own direction. A builder whose unit is started one leg at a time
-   * reads it here, where a start of both legs at once would have told its adapter (Soniox transcribing alone asks
-   * for no agent text then, as its split Both does not). Set by the run; absent: false.
-   */
-  bothLegs?: boolean;
-  /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
-  models: readonly ModelOption[];
-  /** The app's word list and session background, read at start (spec §9): each builder sends what `wordsFor` gives its service. Absent: none. */
-  words?: SessionWords;
-  /**
-   * The stored line-up as the run froze it at its start: the id each stage was given to. A builder whose provider
-   * runs a stage in more than one way reads it here (the local provider: Bing or a local model, Edge or a local
-   * voice). Absent: no stored line-up is what runs, or the caller is not a run.
-   */
-  lineUp?: StageIds;
-}
-
-/** The word list as a run reads it at start. */
-export interface SessionWords {
-  entries: readonly WordEntry[];
-  background: string;
-}
 
 /** The voice-preview route (spec, "Playback — Routing": voice preview, the real device, a fixed route): one clip at its own rate; `play` resolves when it ends or is stopped. */
 export interface PreviewPort {
@@ -242,14 +187,6 @@ export interface EngineProps<S> extends SettingsProps<S> {
 export interface EngineSummaryProps<S> extends SettingsProps<S> {
   legs: readonly LegName[];
   openSlot(slot: EngineSlot): void;
-}
-
-/** A refusal to build or admit: diagnostic English, and a code a surface can put into words. */
-export interface ProviderRefusal {
-  refused: string;
-  /** Default: the runner's `build_refused` / `admit_refused`. */
-  code?: string;
-  params?: Record<string, string | number>;
 }
 
 /**
@@ -425,10 +362,11 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   /**
    * Calls back when something `check` reads besides the settings,
    * credentials, pair and legs has changed — a local engine's models
-   * downloading. The app re-checks a local provider then (plan 1e-3a
+   * downloading, which it watches through `localModels` (the readiness
+   * driver hands them). The app re-checks a local provider then (plan 1e-3a
    * ruling 6). Returns the unsubscribe.
    */
-  watchReadiness?(onChange: () => void): () => void;
+  watchReadiness?(onChange: () => void, localModels: LocalModels): () => void;
 
   languages: {
     /** Includes `AUTO` when the provider detects the language. Without a `context`: the widest offer. */
@@ -461,7 +399,7 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
 
   /**
    * What a session runs: the provider's units, each serving some of the stages with a config of its own
-   * (`src/lib/plan/types.ts`). The composer picks among them, a run on the provider alone takes them as `wholePlan`
+   * (`src/lib/run/types.ts`). The composer picks among them, a run on the provider alone takes them as `wholePlan`
    * says, and the line-up catalog is read off them (`capsOf`). An end-to-end service declares its one session as a
    * whole unit (`wholeUnitOf`); a provider that only translates, or only speaks, declares the unit that does.
    */
@@ -475,7 +413,7 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   endToEnd?: true;
 
   // across legs and time — optional
-  session?: SessionHooks<S, K, C>;
+  session?: SessionHooks<S, K, C, AnyProvider>;
 }
 
 /**

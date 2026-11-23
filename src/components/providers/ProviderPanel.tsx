@@ -1,4 +1,5 @@
-import type { AnyProvider, AuthContext } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { ProviderEngine, ProviderOwnSettings } from './ProviderOwnSettings';
 import { ProviderLanguages } from './ProviderLanguages';
 import { ProviderPicker } from './ProviderPicker';

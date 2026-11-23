@@ -3,7 +3,8 @@ import { accountPayer, setUseOwnBalance } from '../../lib/session/payerChoice';
 import { AdapterStartError } from '../../lib/contract/adapter';
 import { createVirtualClock, type VirtualClock } from '../../lib/contract/clock';
 import type { LegName } from '../../lib/conversation/types';
-import type { LeaseContext, RunShape } from '../../lib/session/types';
+import type { RunShape } from '../../lib/session/types';
+import type { LeaseContext } from '../../lib/run/types';
 import { shapeWith, stubProvider } from '../../lib/plan/testing';
 import {
   CONFLICT_WAIT_LIMIT_MS, createQwenLease, ENDING_POLL_MS, RELEASED_RETRY_MS, SESSION_KEY_TIMEOUT_MS, SESSION_STARTED_RETRY_DELAYS_MS, SESSION_STARTED_RETRY_MAX_MS,

@@ -12,12 +12,14 @@ import type { RunStage } from '../lib/lineup/types';
 import { describeCause, reportError } from '../lib/diagnostics/report';
 import { isMissing, readCredentials } from '../lib/provider/credentials';
 import { normalizePair } from '../lib/provider/languages';
-import type { AnyProvider, AuthContext, CredentialValues, LanguagePair, ModelOption, Readiness } from '../lib/provider/types';
+import type { AnyProvider, CredentialValues, Readiness } from '../lib/provider/types';
+import type { AuthContext, LanguagePair, ModelOption } from '../lib/run/types';
 import { capabilitiesAlone } from '../lib/plan/wholeUnit';
 import { languageContext, type Speaking, type SpeechInputs } from '../lib/session/shape';
 import { namingProvider } from '../lib/session/codes';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
+import { localModels } from './localModels';
 
 /** One provider's saved state. */
 export interface ProviderEntry {
@@ -454,7 +456,10 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       let answer: Readiness;
       let threw = false;
       try {
-        const result = await p.check(credentials, inputs.settings, { pair: inputs.pair, legs: inputs.legs, ...(inputs.stages ? { stages: inputs.stages } : {}), signal });
+        // This device's models go to a local provider's check alone: another kind's context is as it was.
+        const result = await p.check(credentials, inputs.settings, {
+          pair: inputs.pair, legs: inputs.legs, ...(inputs.stages ? { stages: inputs.stages } : {}), ...(p.kind === 'local' ? { localModels } : {}), signal,
+        });
         if (signal?.aborted) return cancelled();
         answer = result.ok
           // No models found: the one shared empty list, so a component's `models` keeps its identity across answers.

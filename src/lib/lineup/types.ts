@@ -31,7 +31,7 @@ export interface LineUp {
 
 /**
  * What one option can serve, who runs it, which of those stages go together, and who it bills through. Derived, never
- * declared: `capsOf` (capsOf.ts) reads it off the provider's units under its default settings, and the registry
+ * declared: `capsOf` (`src/lib/plan/capsOf.ts`) reads it off the provider's units under its default settings, and the registry
  * registers the result as the catalog. Each field names its rule.
  */
 export interface ProviderCaps {
@@ -51,7 +51,7 @@ export interface ProviderCaps {
   /**
    * True: it translates only what it transcribes itself, on the one connection that does both. Choosing it for
    * translation chooses it for transcription; its transcription may stand alone, translated by another option. Rule:
-   * some unit transcribes without translating, some unit translates, and every unit that translates also transcribes.
+   * some occupation (the stages a unit occupies when asked for exactly those) has transcription without translation, some has translation, and every one with translation has transcription.
    * Absent otherwise.
    */
   translatesOwn?: boolean;

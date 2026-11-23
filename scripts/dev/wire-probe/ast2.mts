@@ -14,7 +14,7 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import WebSocket from 'ws';
-import type { SharedSettings } from '../../../src/lib/provider/types';
+import type { SharedSettings } from '../../../src/lib/run/types';
 import { buildAst2 } from '../../../src/providers/volcengine_ast2/config';
 import { AST2_DEFAULTS, type Ast2Credentials } from '../../../src/providers/volcengine_ast2/settings';
 import {

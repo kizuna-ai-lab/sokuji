@@ -4,10 +4,10 @@ import { AdapterStartError } from '../contract/adapter';
 import type { AdapterEvents, AdapterSession, SessionContext, StartRequest } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
 import { recordEvents } from '../contract/events';
-import type { SharedSettings } from '../provider/types';
-import { buildPlan, describePlan, startComposite, type PlanConfigs } from './composite';
+import type { SharedSettings } from '../run/types';
+import { buildPlan, describePlan, startComposite } from './composite';
 import { planOf, stubProvider } from './testing';
-import type { PlannedUnit, RunPlan } from './types';
+import type { PlanConfigs, PlannedUnit, RunPlan } from './types';
 
 const context: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 const shared = { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 } } as unknown as SharedSettings;

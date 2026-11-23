@@ -6,12 +6,12 @@ import { createVirtualClock } from '../contract/clock';
 import { recordEvents } from '../contract/events';
 import { runScenario, scenarioNames, type AdapterHarness } from '../contract/testing/scenarios';
 import type { LegName } from '../conversation/types';
-import type { SharedSettings } from '../provider/types';
-import { buildPlan, startComposite, type PlanConfigs } from './composite';
+import type { SharedSettings } from '../run/types';
+import { buildPlan, startComposite } from './composite';
 import { CompositeLeg } from './compositeLeg';
 import { unitFor } from './read';
 import { planOf, stubProvider, stubSpeechUnit, stubTextUnit, textAndSpeechPlan, type StubCalls } from './testing';
-import type { PlannedUnit, RunPlan } from './types';
+import type { PlanConfigs, PlannedUnit, RunPlan } from './types';
 
 const SPEAKS: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));

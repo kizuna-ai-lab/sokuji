@@ -152,6 +152,7 @@ import { useScreenContextStore, type PickedSource } from '../stores/screenContex
 import useAudioStore from '../stores/audioStore';
 import useLogStore from '../stores/logStore';
 import { useProviderStore } from '../stores/providerStore';
+import { localModels as appLocalModels } from '../stores/localModels';
 import { TEXT_MODEL_DEFAULTS } from '../lib/textModel/unit';
 
 /**
@@ -481,6 +482,21 @@ describe('start', () => {
     expect(track).toHaveBeenCalledWith('session_control_clicked', { action: 'start', method: 'button' });
 
     await session.runner.stop();
+  });
+
+  it("hands the units' build the app's local models (shared.localModels)", async () => {
+    const build = vi.spyOn(FAKE_WHOLE, 'build');
+    try {
+      const { session } = await setup();
+      await session.start('button');
+
+      expect(build).toHaveBeenCalled();
+      expect(build.mock.calls[0][2].localModels).toBe(appLocalModels);
+
+      await session.runner.stop();
+    } finally {
+      build.mockRestore();
+    }
   });
 });
 

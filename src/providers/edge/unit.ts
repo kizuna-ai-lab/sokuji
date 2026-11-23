@@ -9,7 +9,8 @@ import { EDGE_TTS_LANGUAGES } from '../../lib/local-inference/languageSupport';
 import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
 import { directionKey } from '../../lib/local-inference/selection/types';
 import { isOff, startLocalSpeech, type LocalSpeechConfig } from '../../lib/local-inference/sessions/speechSession';
-import { sameStages, type UnitDefinition } from '../../lib/plan/types';
+import { sameStages } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { EdgeSettings } from './settings';
 
 /** The Edge model the shared engine runs for Edge's voice. */

@@ -14,7 +14,7 @@
  */
 import { createContext, useContext, useMemo } from 'react';
 import { useAuth } from '../../lib/auth/hooks';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 
 /** The development preview's stand-in sign-in (`&signedin=1`) for the Settings blocks it draws (choice 15); null in the app. */
 export const AuthStandIn = createContext<AuthContext | null>(null);

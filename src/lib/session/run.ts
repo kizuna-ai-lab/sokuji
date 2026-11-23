@@ -14,12 +14,13 @@ import { Conversation, DEFAULT_RETENTION, DEGRADED_DEDUPE_MS, type Retention } f
 import type { Leg, LegName } from '../conversation/types';
 import { describeCause, reportError, reportWarning } from '../diagnostics/report';
 import { redact } from '../diagnostics/redact';
-import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../plan/composite';
+import { buildPlan, describePlan, startComposite } from '../plan/composite';
 import { startCompositeBoth } from '../plan/compositeBoth';
 import { accountOf, capabilitiesOf, providersIn, transcriptionProvider, unitFor } from '../plan/read';
-import type { PlannedUnit } from '../plan/types';
+import type { PlanConfigs, PlannedUnit } from '../plan/types';
 import { isMissing, readCredentials } from '../provider/credentials';
-import type { AnyProvider, ModelOption, SharedSettings } from '../provider/types';
+import type { AnyProvider } from '../provider/types';
+import type { Budget, ModelOption, PlanAccount, Prepared, Resources, RunNotice, SharedSettings } from '../run/types';
 import { AgentTextFeed } from './agentText';
 import { namingProvider, type RunNoticeCode } from './codes';
 import type { ConversationInfo } from './conversationSet';
@@ -30,7 +31,7 @@ import { contextsFor, gate, type Refusal } from './shape';
 import type { Source } from './source';
 import { ResourceStack } from './stack';
 import { Turn } from './turn';
-import type { Budget, LegState, LoadingProgress, PlanAccount, Prepared, ReconnectProgress, Resources, RunEnd, RunNotice, RunShape } from './types';
+import type { LegState, LoadingProgress, ReconnectProgress, RunEnd, RunShape } from './types';
 
 const DEFAULT_TIMEOUT_MS = 5_000;
 /** A stage's failure about its provider's account: the notice names the provider (`namingItsProvider`). */
@@ -272,20 +273,26 @@ export class Run {
     const contexts = contextsFor(shape);
     // Whether any leg speaks, told to every builder: Soniox asks for agent text on it when its own setting is on (spec 2026-11-05 §4.3).
     const speaks = shape.legs.some((leg) => contexts[leg]!.speech);
+    // What a unit's builders are handed, less which leg each builds: the run answers that by leg, below.
+    // Each unit reads its own provider's models; the rest is the same for every unit.
+    // The line-up is the one frozen at start, handed over only when a line-up names the stages of this run
+    // (`lineUpStored`: the stored one, or the one shown where this device runs before one is stored): a builder
+    // never reads the line-up store. This device's local models are the live port, read when a unit builds.
+    const { reversed: _byDirection, ...common } = shape.shared;
+    const sharedOf = (unit: PlannedUnit): Omit<SharedSettings, 'reversed'> => ({
+      ...common,
+      models: models.get(unit.provider.id)!,
+      speaks,
+      ...(shape.legs.length === 2 ? { bothLegs: true } : {}),
+      ...(shape.lineUpStored ? { lineUp: shape.lineUp } : {}),
+      ...(deps.localModels ? { localModels: deps.localModels } : {}),
+    });
     const configs: Partial<Record<LegName, PlanConfigs>> = {};
     for (const leg of shape.legs) {
-      // Each unit reads its own provider's models; the rest is the same for every unit of the leg.
       // Which leg this is, told outright: a same-language pair (en → en) gives both legs one direction, which no direction test can tell apart.
-      // The line-up is the one frozen at start, handed over only when a line-up names the stages of this run
-      // (`lineUpStored`: the stored one, or the one shown where this device runs before one is stored): a builder
-      // never reads the line-up store.
       const built = buildPlan(plan, contexts[leg]!, { accounts }, (unit): SharedSettings => ({
-        ...shape.shared,
-        models: models.get(unit.provider.id)!,
-        speaks,
-        ...(shape.legs.length === 2 ? { bothLegs: true } : {}),
+        ...sharedOf(unit),
         reversed: () => leg === 'participant',
-        ...(shape.lineUpStored ? { lineUp: shape.lineUp } : {}),
       }));
       if ('refused' in built) {
         throw new RefusedError({
@@ -297,11 +304,12 @@ export class Run {
       }
       configs[leg] = built;
     }
-    // Each provider's cross-leg checks, over its own unit's configs.
+    // Each provider's cross-leg checks, over its own unit's configs. `admit` is handed what that unit's builders were
+    // (`sharedOf`), less which leg each built: this device's local models among it, which the local provider budgets by.
     for (const planned of plan.units) {
       const session = planned.provider.session;
       if (!session?.admit) continue;
-      const admitted = session.admit(Object.fromEntries(shape.legs.map((leg) => [leg, configs[leg]!.get(planned)])));
+      const admitted = session.admit(Object.fromEntries(shape.legs.map((leg) => [leg, configs[leg]!.get(planned)])), sharedOf(planned));
       if (admitted !== true && 'refused' in admitted) {
         throw new RefusedError({
           code: admitted.code ?? ('admit_refused' satisfies RunNoticeCode),

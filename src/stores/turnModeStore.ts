@@ -4,7 +4,7 @@
  * `turnDetectionMode` values into it.
  */
 import { create } from 'zustand';
-import type { TurnMode } from '../lib/session/types';
+import type { TurnMode } from '../lib/run/types';
 import { DEFAULT_PUSH_KEY, pushKeyAllowed } from '../lib/turn/pushKey';
 import { persistSetting } from '../services/persistSetting';
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS } from '../../lib/provider/instructions';
 import { AUTO, reverseSupported } from '../../lib/provider/languages';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { parseCode } from '../../lib/language/code';
 import { englishLanguageName } from '../../lib/language/label';
 import {

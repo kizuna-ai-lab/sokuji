@@ -9,10 +9,10 @@ import { canonicalTag } from '../../lib/language/code';
 import { localSpeechStagesOf } from '../../lib/lineup/localStages';
 import { getTtsModelsForLanguage } from '../../lib/local-inference/modelManifest';
 import { SP } from '../../lib/lineup/types';
-import { sameStages, type UnitDefinition } from '../../lib/plan/types';
-import type { ProviderRefusal } from '../../lib/provider/types';
+import { sameStages } from '../../lib/plan/types';
+import type { ProviderRefusal, UnitDefinition } from '../../lib/run/types';
 import type { LocalCredentials } from './adapter';
-import { fitsBudget, localTts, resolveLocal, ttsMissingCode } from './config';
+import { fitsBudget, localModelsOf, localTts, resolveLocal, ttsMissingCode } from './config';
 import { defaultEngines, type LocalEngines } from './engines';
 import type { LocalInferenceSettings } from './settings';
 import { isOff, startLocalSpeech, type LocalSpeechConfig } from '../../lib/local-inference/sessions/speechSession';
@@ -67,7 +67,7 @@ export function createLocalSpeechUnit(deps: LocalSpeechUnitDeps = {}): LocalSpee
     }),
     build: (context, s, shared) => {
       if (!context.speech) return { off: true };
-      const { tts } = resolveLocal(context.direction, s, localSpeechStagesOf(shared.lineUp ?? null));
+      const { tts } = resolveLocal(context.direction, s, localSpeechStagesOf(shared.lineUp ?? null), localModelsOf(shared));
       if (!tts) return { off: true, unavailable: ttsMissingCode(context.direction, shared) };
       return localTts(context.direction, s, tts.modelId);
     },
@@ -104,8 +104,8 @@ export function areLocalSpeechConfigs(configs: Partial<Record<LegName, unknown>>
  * The memory budget of a run in which the local provider only speaks: the voice models of the legs that speak,
  * and nothing else. Over budget, the start is refused.
  */
-export function admitLocalSpeech(configs: Partial<Record<LegName, LocalSpeechConfig>>): true | ProviderRefusal {
+export function admitLocalSpeech(configs: Partial<Record<LegName, LocalSpeechConfig>>, deviceFeatures: readonly string[]): true | ProviderRefusal {
   const ids = Object.values(configs).flatMap((c) => (c && !isOff(c) ? [c.modelId] : []));
-  if (fitsBudget(ids)) return true;
+  if (fitsBudget(ids, deviceFeatures)) return true;
   return { refused: 'The models need more memory than this device has.', code: 'memory_exceeded' };
 }

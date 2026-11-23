@@ -14,7 +14,7 @@ import { FakeSocket, fakeSockets, type FakeSockets } from '../../lib/contract/te
 import { fakeHeaderSockets } from '../../lib/contract/testing/headerSocket';
 import type { AdapterHarness } from '../../lib/contract/testing/scenarios';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createQwenAdapter } from './adapter';
 import type { DetectEndpoint } from './check';
 import { buildQwen, type QwenConfig } from './config';

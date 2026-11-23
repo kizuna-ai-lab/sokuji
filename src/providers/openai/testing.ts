@@ -12,7 +12,7 @@ import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { base64ToPcm } from '../../lib/contract/pcm64';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createRealtimeAdapter } from './adapter';
 import { buildRealtime, type RealtimeConfig } from './config';
 import { REALTIME_DEFAULTS, type RealtimeCredentials, type RealtimeSettings } from './settings';

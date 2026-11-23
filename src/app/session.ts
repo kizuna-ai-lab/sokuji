@@ -29,7 +29,7 @@ import { askQuitWhileNotes, type QuitAnswer, type QuitRecord } from '../lib/note
 import type { NotesRunner } from '../lib/notes/runner';
 import { planFromStores } from '../lib/plan/fromStores';
 import type { RunPlan } from '../lib/plan/types';
-import type { AuthContext } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
 import { appMicMuted, appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, planRefusalFromStores, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
@@ -47,6 +47,7 @@ import { createConversationView, type ConversationViewState, type Readable } fro
 import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
 import { useLineUpStore } from '../stores/lineUpStore';
+import { localModels } from '../stores/localModels';
 import useSettingsStore from '../stores/settingsStore';
 import { getApiUrl, getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
@@ -213,6 +214,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     frames: teeFrames(frames.port, options.observeFrames),
     punctuate: punctuation.punctuate,
     punctuationReady: () => punctuation.ready(),
+    localModels,
     newSessionId: options.newSessionId ?? (() => crypto.randomUUID()),
     onRunEnded: async (legs) => {
       // The results of the auto-save are panel notes (spec 2026-10-05 §5): drawn

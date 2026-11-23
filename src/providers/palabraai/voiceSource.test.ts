@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import type { AuthContext, ProviderAccount } from '../../lib/provider/types';
+import type { ProviderAccount } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { clearPreviewCache, getCachedPreview, previewCacheKey } from '../../lib/tts/previewCache';
 import { PALABRA_DEFAULTS, type PalabraSettings } from './settings';
 import { PalabraVoicesClient } from './voicesClient';

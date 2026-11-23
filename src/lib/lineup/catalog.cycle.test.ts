@@ -9,10 +9,10 @@ import { reached, SRC } from '../plan/importWalk.testing';
 
 describe('the import rule of the line-up catalog', () => {
   it('the catalog reaches no provider module and no store: the registry registers it', () => {
-    for (const entry of ['lib/lineup/catalog.ts', 'lib/lineup/capsOf.ts']) {
+    for (const entry of ['lib/lineup/catalog.ts', 'lib/plan/capsOf.ts']) {
       const files = [...reached(entry)].map((f) => relative(SRC, f));
       expect(files.filter((f) => f.startsWith('providers/') || f.startsWith('stores/')), entry).toEqual([]);
     }
-    expect(reached('providers/registry.ts').has(resolve(SRC, 'lib/lineup/capsOf.ts'))).toBe(true);
+    expect(reached('providers/registry.ts').has(resolve(SRC, 'lib/plan/capsOf.ts'))).toBe(true);
   });
 });

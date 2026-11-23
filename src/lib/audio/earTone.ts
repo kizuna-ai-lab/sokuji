@@ -3,7 +3,7 @@
  * fetched or decoded (the bundled test tone is a development clip).
  */
 import { SAMPLE_RATE } from '../contract/adapter';
-import type { PreviewClip } from './playback';
+import type { PreviewClip } from './previewClip';
 
 const NOTES: ReadonlyArray<{ hz: number; seconds: number }> = [{ hz: 660, seconds: 0.12 }, { hz: 880, seconds: 0.18 }];
 const GAP_SECONDS = 0.05;

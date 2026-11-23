@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { orgHeldMicroUsd, orgNoticeParams } from './orgNotice';
-import type { AccountState } from './types';
+import type { AccountState } from '../run/types';
 
 const account = (organization: { name: string; role?: 'owner' | 'member' } | undefined): AccountState => ({
   status: 'known', balanceMicroUsd: 0, frozen: false,

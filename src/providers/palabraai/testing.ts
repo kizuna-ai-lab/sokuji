@@ -13,7 +13,7 @@ import { base64ToPcm } from '../../lib/contract/pcm64';
 import { flush } from '../../lib/contract/testing/drive';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createPalabraAdapter, POLL_MS } from './adapter';
 import { buildPalabra, type PalabraConfig } from './config';
 import { PALABRA_DEFAULTS, type PalabraCredentials, type PalabraSettings } from './settings';

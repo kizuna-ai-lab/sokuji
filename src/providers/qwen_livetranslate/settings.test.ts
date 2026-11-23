@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { canonicalTag, parseCode } from '../../lib/language/code';
 import { AUTO } from '../../lib/provider/languages';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import {
   migrateQwenSettings,
   QWEN_DEFAULTS, QWEN_LANGUAGES, QWEN_MODEL, QWEN_PAUSE, QWEN_SPOKEN, QWEN_VOICES, qwenCredentials, qwenLanguages, qwenParticipantVoice, qwenSpeakerVoice,

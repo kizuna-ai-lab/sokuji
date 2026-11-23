@@ -1,3 +1,5 @@
+import type { LocalStages } from '../../lineup/localStages';
+
 /** The three pipeline stages a direction needs filled. */
 export type Stage = 'asr' | 'translation' | 'tts';
 
@@ -106,4 +108,22 @@ export interface DirectionResult {
   tts: Resolved | null;
   notes: ResolutionNote[];
   prunes: Array<{ direction: string; stage: Stage }>;
+}
+
+/**
+ * This device's local models, as the local provider reads them: what a direction resolves to among the models on this
+ * device, the GPU's features its memory budget reads, when its models have been scanned, and when one changes. The app
+ * gives it (`src/stores/localModels.ts`): a run to every builder (`SharedSettings.localModels`) and to `admit`, the
+ * provider store to a local provider's check (`CheckContext.localModels`), the readiness driver to `watchReadiness`.
+ * A provider's units, check and admit read it, never the store.
+ */
+export interface LocalModels {
+  /** Settles once this device's models have been scanned (the first scan at launch); rejects with the abort reason when `signal` fires first. */
+  scanned(signal?: AbortSignal): Promise<void>;
+  /** A direction's models among those on this device; a stage `stages` gives another provider resolves to none. */
+  resolve(source: string, target: string, selections: Selections, stages: LocalStages): DirectionResult;
+  /** The GPU's features (e.g. `shader-f16`): which variant of a model loads, and so its memory. */
+  deviceFeatures(): readonly string[];
+  /** Calls back when a model's status changes (a download, a delete, the first scan); returns the unsubscribe. */
+  watch(onChange: () => void): () => void;
 }

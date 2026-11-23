@@ -8,7 +8,7 @@
 
 import type { SessionContext } from '../contract/adapter';
 import { englishLanguageName } from '../language/label';
-import type { SessionWords } from '../provider/types';
+import type { SessionWords } from '../run/types';
 import type { JobContext } from '../translation/jobTranslator';
 import { wordsFor } from '../words/forService';
 import type { ChatMessage } from './client';

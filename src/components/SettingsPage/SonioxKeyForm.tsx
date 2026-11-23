@@ -7,7 +7,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { currentRunPhase } from '../../app/runPhase';
-import type { AnyProvider, AuthContext } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { requestRegionChange } from '../../lib/region/regionChange';
 import { asSonioxRegion, SONIOX_REGION_LABELS, SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { noticeText } from '../../lib/view/noticeText';

@@ -14,7 +14,7 @@
 // own values and leaves the stored line-up alone.
 import { useMemo } from 'react';
 import { create } from 'zustand';
-import { choose as chooseIn, type Choice } from '../lib/lineup/choose';
+import { choose as chooseIn, type Choice } from '../lib/plan/choose';
 import { caps, hostDefaults, optionFor, runsByItself, belongsTo } from '../lib/lineup/catalog';
 import { localStagesOf, type LocalStages } from '../lib/lineup/localStages';
 import { lineUpFromToday } from '../lib/lineup/migrate';

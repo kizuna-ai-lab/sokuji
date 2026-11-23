@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { RELEASED } from '../../providers/registry';
-import { choiceInput } from '../plan/choice';
-import { compose } from '../plan/compose';
-import { isRefusal } from '../plan/types';
-import { allCaps, caps, goesWith, hostDefaults } from './catalog';
+import { choiceInput } from './choice';
+import { compose } from './compose';
+import { isRefusal } from './types';
+import { allCaps, caps, goesWith, hostDefaults } from '../lineup/catalog';
 import { choose as chooseWith } from './choose';
-import { RUN_STAGES } from './types';
-import type { LineUp, RunStage } from './types';
+import { RUN_STAGES } from '../lineup/types';
+import type { LineUp, RunStage } from '../lineup/types';
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null };
 const kizuna = { transcription: 'kizunaai_soniox', translation: 'kizunaai_soniox', speech: 'kizunaai_soniox', summarisation: null };

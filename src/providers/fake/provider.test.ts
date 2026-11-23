@@ -3,7 +3,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import { AUTO } from '../../lib/provider/languages';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { FAKE_WHOLE, fakeProvider } from './provider';
 import { FAKE_SCRIPT_NAMES, fakeScript } from './scripts';
 import { FAKE_DEFAULTS, migrateFakeSettings, type FakeSettings } from './settings';
@@ -22,8 +22,8 @@ const [whole] = fakeProvider.units;
 
 describe('the fake provider', () => {
   it('runs its whole unit, made of FAKE_WHOLE', () => {
-    expect(fakeProvider.units?.map((u) => u.id)).toEqual(['whole']);
-    expect(fakeProvider.units![0].describe).toBe(FAKE_WHOLE.describe);
+    expect(fakeProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(fakeProvider.units[0].describe).toBe(FAKE_WHOLE.describe);
   });
 
   it('shows no credential field by default, and reads without one', () => {

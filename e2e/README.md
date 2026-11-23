@@ -68,8 +68,7 @@ folds to `false`:
 | Where | What changes |
 |---|---|
 | `electron/main.js` | Loads `build/index.html` although the app is not packaged (no dev server, no DevTools, web security on). Does not create or clean the system's virtual audio devices. Does not check for updates. |
-| `src/providers/registry.ts` | Keeps the fake providers (`src/providers/fake`). |
-| `src/lib/lineup/catalog.ts` | A line-up may name the fake providers: the fake service, the leased fake, and the fake voice (speech only). |
+| `src/providers/registry.ts` | Keeps the five fake providers (`src/providers/fake`), and lets a line-up name them (`CATALOGUED`). |
 | `src/config/analytics.ts` | Never reports. |
 | `vite.react-grab.ts` | The development toolbar stays out. |
 

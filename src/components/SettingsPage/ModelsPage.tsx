@@ -34,7 +34,7 @@ import { computeDeleteNotes } from '../Settings/engine/deleteNotes';
 import { ModelImportModal } from '../Settings/sections/ModelImportModal';
 import { ModelCard } from '../Settings/shared/ModelCard';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
-import type { LanguagePair } from '../../lib/provider/types';
+import type { LanguagePair } from '../../lib/run/types';
 
 const MB = 1_048_576;
 const STAGES: Stage[] = ['asr', 'translation', 'tts'];

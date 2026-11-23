@@ -1,7 +1,7 @@
 // OpenAI's old transcription keywords, still in storage from an older version, are neither read nor sent.
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildRealtime, type RealtimeConfig } from './config';
 import { migrateRealtimeSettings, REALTIME_DEFAULTS, type RealtimeSettings } from './settings';
 

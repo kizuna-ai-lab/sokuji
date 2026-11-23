@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { sonioxFileRecognitionBase, sonioxProvider } from './provider';
 import { buildSoniox } from './config';
 import { SONIOX_LANGUAGES } from './languages';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 
 describe('Soniox file recognition', () => {
   it('names the service, the region and that region’s key', () => {

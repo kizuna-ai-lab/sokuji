@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
 import SessionCountdown from './SessionCountdown';
 import { formatRemainingTime } from '../../utils/formatters';
-import type { Budget } from '../../lib/session/types';
+import type { Budget } from '../../lib/run/types';
 
 /**
  * A leased session's countdown (Stage 2 Kizuna Soniox, choice 18): what is

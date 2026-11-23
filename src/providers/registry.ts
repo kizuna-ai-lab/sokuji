@@ -3,7 +3,7 @@
  * picker shows, `ProviderId` is derived from it, and `isPresent` decides what
  * this build and platform offer.
  */
-import { catalogOf } from '../lib/lineup/capsOf';
+import { catalogOf } from '../lib/plan/capsOf';
 import { registerCatalog } from '../lib/lineup/catalog';
 import { registerPresentProviders } from '../lib/plan/present';
 import { isPresent, type PresenceEnv } from '../lib/provider/presence';
@@ -64,8 +64,7 @@ registerPresentProviders(presentProviders);
 
 // The line-up catalog is read off the compiled providers, not the present ones: a stored line-up that names an option
 // this platform does not offer stays readable. Its readers cannot import this module either (the same cycle), so it is
-// registered here. The condition is written out, not taken from `PROVIDERS`: development builds compile the fakes but
-// list none in the catalog, and only a literal `MODE` lets a release build drop them.
-/** The providers a line-up may name: the released ones, and the fakes in the E2E build only (a development build reaches the fake through the stored provider alone). A literal, so a release build drops the fakes. */
+// registered here.
+/** The providers a line-up may name: the released ones, and the fakes in the E2E build only (a development build reaches the fake through the stored provider alone). The condition is a literal `MODE`, not `PROVIDERS`: development builds compile the fakes but catalogue none, and only a literal lets a release build drop them. */
 const CATALOGUED: readonly AnyProvider[] = import.meta.env.MODE === 'e2e' ? [...RELEASED, ...DEV_ONLY] : [...RELEASED];
 registerCatalog(catalogOf(CATALOGUED));

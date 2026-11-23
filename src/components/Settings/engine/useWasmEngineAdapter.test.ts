@@ -7,7 +7,7 @@ import { useModelStore } from '../../../stores/modelStore';
 import { getManifestByType } from '../../../lib/local-inference/modelManifest';
 import { wasmCandidates } from '../../../lib/local-inference/selection/candidates.wasm';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings } from '../../../providers/localInference/settings';
-import type { LanguagePair } from '../../../lib/provider/types';
+import type { LanguagePair } from '../../../lib/run/types';
 
 const jaAsr = () => getManifestByType('asr').filter(m => m.multilingual || m.languages.includes('ja'));
 

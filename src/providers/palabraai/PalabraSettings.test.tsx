@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
-import type { AuthContext, PreviewPort } from '../../lib/provider/types';
+import type { PreviewPort } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 
 vi.mock('react-i18next', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-i18next')>()),

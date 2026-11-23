@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, type AdapterEvents, type StartRequest } from '../contract/adapter';
 import type { Leg } from '../conversation/types';
 import type { Punctuator } from '../conversation/fillIn';
-import type { AnyProvider, Readiness, SharedSettings } from '../provider/types';
+import type { AnyProvider, Readiness } from '../provider/types';
+import type { LeaseContext, RunNotice, SharedSettings } from '../run/types';
 import { createVirtualClock } from '../contract/clock';
 import { fakeFrameSource } from '../contract/testing/fakeFrames';
 import { transcriptionProvider } from '../plan/read';
@@ -16,7 +17,7 @@ import { SourceOpenError, type OpenSource, type Source } from './source';
 import type { FramePort, PlaybackPort, RunnerDeps } from './ports';
 import { createRunner } from './runner';
 import { buildSharedSettings } from './shared';
-import type { LeaseContext, RunEnd, RunNotice, RunShape } from './types';
+import type { RunEnd, RunShape } from './types';
 
 // Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
 const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };

@@ -12,15 +12,15 @@ import { useMemo, useSyncExternalStore } from 'react';
 import { optionFor } from '../lineup/catalog';
 import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, RunStage } from '../lineup/types';
-import type { AnyProvider, LanguagePair } from '../provider/types';
-import type { PlanAccount } from '../session/types';
+import type { AnyProvider } from '../provider/types';
+import type { LanguagePair, PlanAccount, UnitCapabilities, UnitDefinition } from '../run/types';
 import { presentProviders } from '../../providers/registry';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore, type ProviderEntry } from '../../stores/providerStore';
 import { compose } from './compose';
 import { providersIn, unitFor } from './read';
 import { isRefusal } from './types';
-import type { PlanRefusal, RunPlan, UnitCapabilities, UnitDefinition } from './types';
+import type { PlanRefusal, RunPlan } from './types';
 import { wholePlan } from './wholeUnit';
 
 /** The plan a start would run now, or why there is none yet. */

@@ -3,7 +3,8 @@
  * belong to the previous account: reconcile it once per new user.
  */
 import { reportWarning } from '../lib/diagnostics/report';
-import type { AnyProvider, AuthContext } from '../lib/provider/types';
+import type { AnyProvider } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 import { asSonioxRegion } from '../lib/soniox/regions';
 import { reconcileSonioxVoiceField } from '../providers/soniox/voiceFieldReconcile';
 import { useProviderStore } from '../stores/providerStore';

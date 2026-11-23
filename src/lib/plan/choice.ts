@@ -5,7 +5,7 @@
 // that line-up for a reason no key, sign-in or setting can change. The
 // line-up page reads it to show such an option as one that cannot be chosen.
 // Pure; nothing here reads a store.
-import { choose } from '../lineup/choose';
+import { choose } from './choose';
 import type { LineUp, RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import { compose, type ComposeInput } from './compose';

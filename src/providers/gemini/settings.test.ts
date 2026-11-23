@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS } from '../../lib/provider/instructions';
 import { AUTO, reverseSupported } from '../../lib/provider/languages';
 import { englishLanguageName } from '../../lib/language';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import {
   compareGeminiModels, defaultGeminiModel, effectiveGeminiModel, geminiActivityHandling, GEMINI_DEFAULTS, GEMINI_DIALOGUE_LANGUAGES, GEMINI_LEGACY_KEYS,
   GEMINI_TRANSLATE_SOURCES, GEMINI_TRANSLATE_TARGETS, GEMINI_VOICES, geminiCredentials, geminiLanguageName, geminiLanguages, isGeminiLiveModel,

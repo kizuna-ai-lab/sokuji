@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildTranslate, describeTranslate, type TranslateConfig } from './config';
 import { migrateTranslateSettings, TRANSLATE_DEFAULTS, type TranslateSettings } from './settings';
 

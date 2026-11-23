@@ -13,28 +13,24 @@ import type { LegName } from '../../lib/conversation/types';
 import type { LocalStages } from '../../lib/lineup/localStages';
 import type { StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
-import { buildPlan, describePlan, startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
+import { buildPlan, describePlan, startComposite } from '../../lib/plan/composite';
+import type { PlanConfigs } from '../../lib/plan/types';
 import { stubProvider, stubTextUnit, textAndSpeechPlan } from '../../lib/plan/testing';
 import { isSpeechUnit, type PlannedUnit } from '../../lib/plan/types';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below.
 /** What each direction resolves to, keyed `${src}>${tgt}`. */
 let mockTable: Record<string, { asr?: string; translation?: string; tts?: string }> = {};
 let mockStagesSeen: Array<LocalStages | null | undefined> = [];
-vi.mock('../../stores/modelStore', () => ({
-  useModelStore: {
-    getState: () => ({
-      resolve: (src: string, tgt: string, _selections: unknown, stages?: LocalStages | null): DirectionResult => {
-        mockStagesSeen.push(stages);
-        const entry = mockTable[`${src}>${tgt}`];
-        const stage = (id: string | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
-        return { asr: stage(entry?.asr), translation: stage(entry?.translation), tts: stage(entry?.tts), notes: [], prunes: [] };
-      },
-      deviceFeatures: [],
-    }),
-  },
-}));
+/** How this device's models resolve a direction: from `mockTable`, recording the stages each resolution is under. */
+const resolve = (src: string, tgt: string, _selections: unknown, stages?: LocalStages | null): DirectionResult => {
+  mockStagesSeen.push(stages);
+  const entry = mockTable[`${src}>${tgt}`];
+  const stage = (id: string | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
+  return { asr: stage(entry?.asr), translation: stage(entry?.translation), tts: stage(entry?.tts), notes: [], prunes: [] };
+};
 
 /** Per-model memory in MB; the rest of the manifest is the real one. */
 let mockSizes: Record<string, number> = {};
@@ -53,11 +49,14 @@ import { admitLocalSpeech, areLocalSpeechConfigs, createLocalSpeechUnit, localSp
 const JA_EN = { source: 'ja', target: 'en' };
 const EN_JA = { source: 'en', target: 'ja' };
 const ctx = (direction: SessionContext['direction'], speech = true): SessionContext => ({ direction, speech, turns: 'auto' });
+/** This device's models as a run hands them: resolved by `resolve`, with no GPU feature. */
+const models = fakeLocalModels({ resolve, deviceFeatures: () => [] });
 const shared = (over: { reversed?: boolean; lineUp?: StageIds } = {}): SharedSettings => ({
   pauses: { sourceSeconds: 0, translationSeconds: 0 },
   reversed: () => over.reversed ?? false,
   segmentation: { mode: 'off', sentencesPerRow: 0 },
   models: [],
+  localModels: models,
   ...(over.lineUp ? { lineUp: over.lineUp } : {}),
 });
 const SETTINGS: LocalInferenceSettings = {
@@ -646,15 +645,15 @@ describe("the local provider's speech unit", () => {
       mockSizes = { 'tts-en': 300, 'tts-ja': 300, 'asr-ja': 5000 };
       const voice = (modelId: string): LocalTtsConfig => ({ modelId, speakerId: 0, speed: 1 });
       budget(600);
-      expect(admitLocalSpeech({ speaker: voice('tts-en'), participant: voice('tts-ja') })).toBe(true);
-      expect(admitLocalSpeech({ speaker: voice('tts-en'), participant: { off: true } })).toBe(true);
+      expect(admitLocalSpeech({ speaker: voice('tts-en'), participant: voice('tts-ja') }, [])).toBe(true);
+      expect(admitLocalSpeech({ speaker: voice('tts-en'), participant: { off: true } }, [])).toBe(true);
       budget(599);
-      expect(admitLocalSpeech({ speaker: voice('tts-en'), participant: voice('tts-ja') })).toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
-      expect(admitLocalSpeech({ speaker: voice('tts-en'), participant: { off: true, unavailable: 'participant_tts_missing' } })).toBe(true);
+      expect(admitLocalSpeech({ speaker: voice('tts-en'), participant: voice('tts-ja') }, [])).toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
+      expect(admitLocalSpeech({ speaker: voice('tts-en'), participant: { off: true, unavailable: 'participant_tts_missing' } }, [])).toBe(true);
       // Edge takes no memory.
       budget(0);
-      expect(admitLocalSpeech({ speaker: EDGE_VOICE, participant: EDGE_VOICE })).toBe(true);
-      expect(admitLocalSpeech({ speaker: { off: true } })).toBe(true);
+      expect(admitLocalSpeech({ speaker: EDGE_VOICE, participant: EDGE_VOICE }, [])).toBe(true);
+      expect(admitLocalSpeech({ speaker: { off: true } }, [])).toBe(true);
     });
   });
 });

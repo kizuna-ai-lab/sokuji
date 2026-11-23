@@ -7,15 +7,15 @@ import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings'
 import type { FakeConfig, FakeCredentials } from '../../providers/fake/adapter';
 import { withWhole } from '../plan/testing';
 import { capabilitiesAlone, unitsOf } from '../plan/wholeUnit';
-import type { SessionHooks } from '../session/types';
+import type { AuthContext, SessionHooks } from '../run/types';
 import { managed, readSignIn, type ManagedOverrides } from './managed';
-import type { AnyProvider, AuthContext, CredentialsMissing, Provider, SettingsProps } from './types';
+import type { AnyProvider, CredentialsMissing, Provider, SettingsProps } from './types';
 
 /** What a provider's `read` answers, `missing` aside. */
 type ReadOf<P extends AnyProvider> = Exclude<ReturnType<P['credentials']['read']>, CredentialsMissing>;
 
 const TwinSettings: ComponentType<SettingsProps<FakeSettings>> = () => null;
-const acquire: NonNullable<SessionHooks<FakeSettings, FakeCredentials, FakeConfig>['acquire']> = async () => ({ credentials: () => ({}), release: async () => {} });
+const acquire: NonNullable<SessionHooks<FakeSettings, FakeCredentials, FakeConfig, AnyProvider>['acquire']> = async () => ({ credentials: () => ({}), release: async () => {} });
 const OVERRIDES: ManagedOverrides<FakeSettings, FakeCredentials, FakeConfig, 'twin'> = {
   id: 'twin', vendor: 'Vendor', icon: FlaskConical, settingsKey: 'twinSlice', Settings: TwinSettings,
   signedOut: 'Sign in to use the twin.', session: { acquire },
@@ -139,7 +139,7 @@ describe('managed', () => {
     const own: ReadOf<typeof fakeProvider> = {};
     // @ts-expect-error an own-key read answers its K, not the sign-in
     const notOwn: ReadOf<typeof fakeProvider> = { signedIn: true };
-    // `check` takes what `read` answers; `start` still takes the lease's K.
+    // `check` takes what `read` answers; A start takes the provider's K: the fake's own here, since a twin's units are erased.
     const request = {} as StartRequest<FakeConfig, FakeCredentials>;
     void FAKE_WHOLE.start(request, {} as AdapterEvents).catch(() => {});
     // @ts-expect-error a start never receives the sign-in
