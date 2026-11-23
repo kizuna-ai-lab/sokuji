@@ -1,6 +1,7 @@
 # Shared turn detection for local recognizers — design
 
-Date: 2026-11-23. Status: draft for the owner's review; revised after an independent review (§3.1).
+Date: 2026-11-23. Status: approved (owner, 2026-11-23: the two decisions of §10), after an independent review that
+added the contracts of §3.1.
 
 ## 1. Goal and policy
 
@@ -233,13 +234,12 @@ build, before and after each step, with the same models, settings and clips, fiv
 translated, segment boundaries, and the time from the end of speech to the final text. A step ships only if the
 medians are no worse than before by more than the run-to-run spread measured on the before side.
 
-## 10. Decisions for the owner
+## 10. Decisions (owner, 2026-11-23)
 
-1. **Push-to-talk:** the press is the turn and the VAD is not asked during it (recommended; the runner's
-   near-silence check stays, and a press past the model's limit is cut into segments of the same press), or the
-   VAD keeps cutting inside a press as today.
-2. **Order:** WebGPU first, then SenseVoice and the others, then Voxtral 4B, then Local Native after #578
-   (recommended); or SenseVoice first, since it is the default.
+1. **Push-to-talk:** the press is the turn, and the VAD is not asked during it. The runner's near-silence check
+   stays, and a press past the model's limit is cut into segments of the same press (§5, C2).
+2. **Order:** the WebGPU workers first, then sherpa-onnx offline (SenseVoice and the rest), then Voxtral 4B, then
+   Local Native after #578 (§8).
 
 ## 11. Rejected
 
