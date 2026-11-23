@@ -171,4 +171,28 @@ describe('SegmentAssembler', () => {
     segments(a, 1, 100, 1000);
     expect(notices).toHaveLength(1); // the stale ack freed nothing: a sixth of epoch 2 fails
   });
+
+  it('the decode bound counts audio the post has already detached, as a real postMessage does', () => {
+    const detaching = () => {
+      const notices: DetectorNotice[] = [];
+      const a = new SegmentAssembler({
+        post: (msg, transfer) => {
+          structuredClone(msg, { transfer });
+        },
+        notify: (n) => notices.push(n),
+        earliestNeeded: () => 0,
+      });
+      return { a, notices };
+    };
+    const s = 16000;
+    const lone = detaching();
+    segments(lone.a, 1, 40 * s);
+    expect(lone.notices).toEqual([]);
+
+    const over = detaching();
+    segments(over.a, 1, 30 * s + 1);
+    segments(over.a, 1, 5 * s, 30 * s + 1);
+    expect(over.notices).toHaveLength(1);
+    expect(over.notices[0]).toMatchObject({ code: 'turn_detection_overloaded' });
+  });
 });

@@ -68,9 +68,11 @@ export class SegmentAssembler {
           endedBy: event.endedBy,
           ...(event.smartTurnProbability !== undefined ? { smartTurnProbability: event.smartTurnProbability } : {}),
         };
+        // Counted before the post: a transfer detaches the buffer, and its length reads 0 afterwards.
+        const samples = audio.length;
         this.o.post(segment, [audio.buffer]);
-        this.waiting.set(segment.seq, audio.length);
-        this.checkDecodeQueue(audio.length);
+        this.waiting.set(segment.seq, samples);
+        this.checkDecodeQueue(samples);
         break;
       }
       case 'cancel':
