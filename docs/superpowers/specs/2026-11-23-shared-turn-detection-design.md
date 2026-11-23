@@ -90,7 +90,8 @@ These are the detector's interface. Each has tests in §9.
   change. `start` marks the detecting frame (see Voxtral 4B above); the sidecar's 0.7 s pre-roll ring still seeds
   the start of a segment with the audio before it, as today. End and cancel marks are exact. The ring is fixed:
   the wire carries no pre-roll setting, so the `prePad` setting (§7) does not reach this leg, and Local Native's
-  pre-roll stays 0.7 s whatever `prePad` says (its limit, C4, counts those 0.7 s). Carrying `prePad` to the sidecar
+  pre-roll stays the ring's whatever `prePad` says: 0.7 s, and up to one fed chunk more, since the ring drops whole
+  chunks (its limit, C4, counts that bound). Carrying `prePad` to the sidecar
   would be a wire change, outside this design.
 - No pre-roll crosses an end or a cancel. The sidecar empties its ring at `end` and at `cancel`, and Voxtral 4B's
   feed keeps, once a run ends or is aborted, only the audio that arrived after the mark, both as today. So the
@@ -134,7 +135,7 @@ Qwen3-ASR's (40 s; Hindi 15 s, Thai 20 s) variants resolve from the leg's task a
 reuses `resolveMaxSpeechFrames` (`workers/_shared/max-speech-frames.ts`), which deducts the pre-pad and rounds to
 512-sample frames: for Whisper with a 0.8 s pre-pad and a 30 s setting that is 881 frames, 28.992 s with the pad.
 Local Native's limit is set below the sidecar's backstops (20 s streaming, 30 s offline), counting the sidecar's
-0.7 s pre-roll.
+pre-roll at its bound: 0.7 s and one fed chunk (C1).
 
 **C5. Which legs use the detector: decided per leg, from the resolved model.** One `local_inference`
 transcription unit hosts both streaming and segmented models, so the choice is not a property of the unit. Once a
