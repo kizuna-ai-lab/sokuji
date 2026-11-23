@@ -3,12 +3,12 @@
  * for the same reason: so a test can stand one in). `seams.x()` is the only way accel reaches them; a test sets
  * `seams.x = ...` and `restoreSeams()` puts the defaults back.
  *
- * The model-cache facts (`cachedFilePath`, `snapshotPath`, `modelSize`) are the HF cache's; Task 7's models/ modules
- * supply the real ones. Until then they answer "not cached" and the catalog's own size.
+ * The model-cache facts (`cachedFilePath`, `snapshotPath`, `modelSize`) are the HF cache's (models/).
  */
 import os from 'node:os';
-import { asrModel, translateModel, ttsModel } from '../catalog';
 import { makeBackend } from '../backends';
+import { cachedFilePath, snapshotPath } from '../models/hfCache';
+import { modelSize } from '../models/specs';
 import * as native from '../native';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -48,14 +48,11 @@ const defaults = {
   ramFreeBytes: (): number | null => os.freemem(),
   makeBackend: (name: string): unknown => makeBackend(name),
   /** The local path of `file` in `repo`'s cached snapshot, or null. */
-  cachedFilePath: (_repo: string, _file: string): string | null => null,
+  cachedFilePath: (repo: string, file: string): string | null => cachedFilePath(repo, file),
   /** The local snapshot directory of a whole repo, or null. */
-  snapshotPath: (_repo: string): string | null => null,
-  /** A card's (or an artifact's) download size: the catalog row's, else unknown. */
-  modelSize: (id: string): number | null => {
-    const card = asrModel(id) ?? translateModel(id) ?? ttsModel(id);
-    return card && card.sizeBytes ? card.sizeBytes : null;
-  },
+  snapshotPath: (repo: string): string | null => snapshotPath(repo),
+  /** A card's (or an artifact's) download size: the catalog row's, or one looked up before; else unknown. */
+  modelSize: (id: string): number | null => modelSize(id),
   now: (): number => performance.now(),
   log: (_level: LogLevel, _message: string): void => {},
 };

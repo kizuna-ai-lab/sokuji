@@ -4,6 +4,7 @@
  */
 import { loadNative, setNativeLog, useNative, type NativeModule } from './native';
 import { register as registerAccel } from './accel/handlers';
+import { register as registerModels } from './models/handlers';
 import { createState, serve, type EngineState, type Log } from './server';
 
 export interface EngineOptions {
@@ -19,6 +20,7 @@ export interface EngineOptions {
 /** Every stage's handlers, registered on `state`. Each stage's task adds its own. */
 export function registerAll(state: EngineState): void {
   registerAccel(state);
+  registerModels(state);
 }
 
 export async function startEngine(opts: EngineOptions): Promise<{ port: number; close(): Promise<void> }> {
