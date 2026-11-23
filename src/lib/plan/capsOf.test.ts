@@ -33,9 +33,11 @@ describe('capsOf', () => {
   it('every provider declares its units', () => {
     expect([...RELEASED, ...DEV_ONLY].filter((p) => !Array.isArray(p.units) || p.units.length === 0).map((p) => p.id)).toEqual([]);
   });
-  it('a provider whose only unit is a whole unit is end to end, except the fakes listed here', () => {
+  it('a provider whose only unit is a whole unit is end to end, except those listed here', () => {
     // `fake`: the E2E build's stand-in, a plain transcribe/translate/speak provider that is not a vendor's end-to-end service.
-    const NOT_END_TO_END = new Set(['fake']);
+    // The others: a text-only session asks the vendor for text alone and makes no audio (owner, 2026-11-23), so another
+    // provider's voice may read their translation. Hosted Qwen is Qwen's session under Kizuna AI's lease.
+    const NOT_END_TO_END = new Set(['fake', 'openai', 'volcengine_ast2', 'qwen_livetranslate', 'kizunaai_qwen']);
     const forgotten = [...RELEASED, ...DEV_ONLY].filter((p) => p.units.length === 1 && p.units[0].id === 'whole' && !NOT_END_TO_END.has(p.id) && p.endToEnd !== true).map((p) => p.id);
     expect(forgotten).toEqual([]);
   });

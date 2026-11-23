@@ -58,7 +58,8 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
 
   languages: realtimeLanguages,
 
-  endToEnd: true,
+  // Not end to end (owner, 2026-11-23): its text-only session asks the API for text alone (`output_modalities:
+  // ['text']`, billed per token), so another provider's voice may read its translation.
   units: [wholeUnitOf<RealtimeSettings, RealtimeCredentials, RealtimeConfig>({
     // Text only is the API's own: a leg that does not speak asks for text alone.
     speech: 'optional',

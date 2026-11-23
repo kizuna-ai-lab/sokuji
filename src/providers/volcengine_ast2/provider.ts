@@ -45,7 +45,8 @@ export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast
   // The offer follows whether the run speaks (ruling 3; choice 1).
   languages: ast2Languages,
 
-  endToEnd: true,
+  // Not end to end (owner, 2026-11-23): its text-only session is the API's own `s2t` mode, which makes no audio, so
+  // another provider's voice may read its translation.
   units: [wholeUnitOf<Ast2Settings, Ast2Credentials, Ast2Config>({
     speech: 'optional',
     // Doubao's session takes audio only.

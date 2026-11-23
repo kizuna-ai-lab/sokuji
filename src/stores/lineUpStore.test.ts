@@ -50,12 +50,16 @@ vi.mock('../services/providers/astGuard', () => ({
 // A catalog in which Kizuna AI's Soniox voice is not offered alone, when a test asks for it: no released option
 // makes speech follow a choice any more, and the rule is kept for a voice that reads only its own translation.
 const voiceNotAlone = vi.hoisted(() => ({ on: false }));
+// A catalog in which own-key Soniox's text takes no other voice: a choice the composer refuses, kept as chosen.
+const voiceNotTaken = vi.hoisted(() => ({ on: false }));
 vi.mock('../lib/plan/choice', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/plan/choice')>();
   const { allCaps } = await import('../lib/lineup/catalog');
   const choiceInput: typeof actual.choiceInput = (providers, entries) => {
     const input = actual.choiceInput(providers, entries);
-    return voiceNotAlone.on ? { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) } : input;
+    const tweak = (c: ReturnType<typeof allCaps>[number]) => (voiceNotAlone.on && c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false }
+      : voiceNotTaken.on && c.id === 'soniox' ? { ...c, takesVoice: false } : c);
+    return voiceNotAlone.on || voiceNotTaken.on ? { ...input, catalog: allCaps().map(tweak) } : input;
   };
   return { ...actual, choiceInput };
 });
@@ -85,6 +89,7 @@ const localEntry = { settings: { selections: {} }, credentials: {}, pair: { sour
 
 beforeEach(() => {
   voiceNotAlone.on = false;
+  voiceNotTaken.on = false;
   stored.clear();
   getSetting.mockClear();
   setSetting.mockClear();
@@ -530,12 +535,12 @@ describe('the line-up store', () => {
   });
 
   it('a choice the composer refuses is stored as chosen', async () => {
-    voiceNotAlone.on = true;
+    voiceNotTaken.on = true;
     useLineUpStore.setState({ lineUp: soniox, stored: true });
-    // A voice that is not offered alone, under own-key Soniox text: refused, and still what the user chose.
-    expect(await useLineUpStore.getState().choose('speech', 'kizunaai_soniox')).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: [] });
-    expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { ...soniox, speech: 'kizunaai_soniox' } });
-    expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'kizunaai_soniox' });
+    // Edge under own-key Soniox text that takes no other voice: refused, and still what the user chose.
+    expect(await useLineUpStore.getState().choose('speech', 'edge')).toEqual({ lineUp: { ...soniox, speech: 'edge' }, moved: [] });
+    expect(stored.get(LINEUP_KEY)).toEqual({ version: 2, stages: { ...soniox, speech: 'edge' } });
+    expect(useLineUpStore.getState().lineUp).toEqual({ ...soniox, speech: 'edge' });
   });
 
   it('the provider written is the host of what transcribes, also when the choice was of another stage', async () => {

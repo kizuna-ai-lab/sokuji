@@ -88,6 +88,14 @@ export function compose(lineUp: Pick<LineUp, RunStage>, input: ComposeInput): Ru
     return { refused: 'lineup_translation_bound', stage: 'transcription', provider: options.translation.id };
   }
 
+  // A voice that is not offered alone, beside another host's text, and held jointly with none of its host's stages
+  // (a whole-unit service whose text takes another voice: Qwen, OpenAI Realtime, Doubao AST 2.0): said before any
+  // unit is looked for, so that the refusal names the voice, not the unit its host lacks for speech alone.
+  if (!options.speech.voiceAlone && !options.speech.joint?.includes('speech')) {
+    const voice = voiceRefusal(options);
+    if (voice) return voice;
+  }
+
   // Each host's stages, hosts in the order of their first stage.
   const groups = new Map<string, RunStage[]>();
   for (const stage of RUN_STAGES) {

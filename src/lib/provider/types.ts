@@ -410,8 +410,11 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   /**
    * An end-to-end service: one connection does every stage, and a line-up takes it for all three or for none. Its units
    * may serve transcription and translation without speaking (a text-only session of it), but no other voice reads its
-   * text: it is not known, per vendor, to stop making — and charging for — audio when asked for text alone. The line-up
-   * catalog reads it (`capsOf`): its `joint` is every stage and its `takesVoice` false, whatever its units say.
+   * text: it is not known to stop making — and charging for — audio when asked for text alone (Gemini's Live models
+   * answer in audio only; OpenAI Translate and OpenAI Live bill by session time). The line-up catalog reads it
+   * (`capsOf`): its `joint` is every stage and its `takesVoice` false, whatever its units say. A whole-unit service whose
+   * text-only session asks for text alone (OpenAI Realtime, Doubao AST 2.0, Qwen) leaves it off: its transcription and
+   * translation go together, and another voice may read them.
    */
   endToEnd?: true;
 

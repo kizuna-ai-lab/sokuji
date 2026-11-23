@@ -514,7 +514,11 @@ What the spec's "What adding a provider then touches" lists
    may pin its place. `src/providers/sessionSide.consistency.test.ts` holds its adapter
    automatically (it walks every `src/providers/*` folder); pin its session side there, as
    the ports did. An end-to-end service declares its one session as a whole unit
-   (`units: [wholeUnitOf({...})]`, `src/lib/plan/wholeUnit.ts`) and sets `endToEnd: true`.
+   (`units: [wholeUnitOf({...})]`, `src/lib/plan/wholeUnit.ts`) and sets `endToEnd: true`,
+   unless its text-only session asks the vendor for text alone and makes no audio (OpenAI
+   Realtime, Doubao AST 2.0, Qwen LiveTranslate): then it leaves `endToEnd` off, its
+   transcription and translation go together and another provider's voice may read them,
+   and `capsOf.test.ts` lists it among the whole-unit providers that are not end to end.
 3. `providers.<id>.name` and `.description` in the 30 locale catalogs — only when new.
 4. The extension manifest, when it uses a host the manifest does not list yet: MV3
    declares hosts statically (`host_permissions`, and the CSP's `connect-src`).

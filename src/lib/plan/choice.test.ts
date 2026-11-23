@@ -19,15 +19,35 @@ const optionsFor = (stage: RunStage) => allCaps().filter((c) => c.stages.include
 // The same, under a catalog in which Kizuna AI's Soniox voice is not offered alone: what an option whose voice
 // reads only its own translation is shown as. No released option is one any more.
 const notAlone: ComposeInput = { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) };
-const END_TO_END = ['kizunaai_qwen', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'qwen_livetranslate', 'palabraai'];
+const END_TO_END = ['gemini', 'openai_translate', 'openai_live', 'palabraai'];
+// Whole-unit services whose voice reads only their own translation, while their text takes another voice (owner, 2026-11-23).
+const TEXT_OPEN = ['volcengine_ast2', 'openai', 'qwen_livetranslate'];
+
+describe("a whole-unit service whose text takes another voice (owner, 2026-11-23)", () => {
+  it('runs its whole unit for the text alone beside any voice offered alone, on two units, and the voice is not its own', () => {
+    const alone = allCaps().filter((c) => c.voiceAlone).map((c) => c.id);
+    expect(alone.sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'local_native', 'soniox']);
+    for (const id of [...TEXT_OPEN, 'kizunaai_qwen']) for (const voice of alone) {
+      const plan = compose(lineUp(id, id, voice), input);
+      // Kizuna AI's two services never run together.
+      if (id === 'kizunaai_qwen' && voice === 'kizunaai_soniox') { expect(plan, voice).toMatchObject({ refused: 'lineup_two_managed' }); continue; }
+      expect(isRefusal(plan), `${id}/${voice}`).toBe(false);
+      if (isRefusal(plan)) continue;
+      expect(plan.units.map((u) => [u.provider.id, u.unit.id, u.stages]), `${id}/${voice}`).toEqual([[id, 'whole', ['transcription', 'translation']], [voice, plan.byStage.speech.unit.id, ['speech']]]);
+    }
+  });
+  it('an end-to-end service still takes no other voice', () => {
+    for (const id of END_TO_END) expect(compose(lineUp(id, id, 'edge'), input), id).toMatchObject({ refused: 'lineup_voice_not_taken', provider: id });
+  });
+});
 
 describe('a choice the composer would refuse', () => {
   it("under Kizuna AI's Soniox on every stage, no voice is refused: an end-to-end service takes all three stages with it", () => {
     const from = all('kizunaai_soniox');
     for (const id of optionsFor('speech')) expect([id, refusedChoice(from, 'speech', id, input)]).toEqual([id, null]);
-    // The voices that read Kizuna AI's text leave it where it is; an end-to-end service moves every stage to itself.
+    // The voices that read Kizuna AI's text leave it where it is; a voice that reads only its own text moves every stage to itself.
     for (const id of ['soniox', 'edge', 'local_inference']) expect(choose(from, 'speech', id).lineUp).toEqual(lineUp('kizunaai_soniox', 'kizunaai_soniox', id));
-    for (const id of END_TO_END) expect(choose(from, 'speech', id).lineUp).toEqual(all(id));
+    for (const id of [...END_TO_END, ...TEXT_OPEN, 'kizunaai_qwen']) expect(choose(from, 'speech', id).lineUp).toEqual(all(id));
   });
 
   it('under an end-to-end service, Edge for speech takes the other stages to this device, and that runs', () => {
@@ -65,6 +85,9 @@ describe('a choice the composer would refuse', () => {
     expect(choose(from, 'transcription', 'soniox').lineUp).toEqual(lineUp('soniox', 'soniox', 'kizunaai_soniox'));
     expect(choose(from, 'transcription', 'local_inference').lineUp).toEqual(lineUp('local_inference', 'bing', 'kizunaai_soniox'));
     for (const id of END_TO_END) expect(choose(from, 'transcription', id).lineUp).toEqual(all(id));
+    // The text sides that take another voice keep Kizuna AI's; Kizuna AI's Qwen never runs beside it, and takes the voice.
+    for (const id of TEXT_OPEN) expect(choose(from, 'transcription', id).lineUp).toEqual(lineUp(id, id, 'kizunaai_soniox'));
+    expect(choose(from, 'transcription', 'kizunaai_qwen').lineUp).toEqual(all('kizunaai_qwen'));
   });
 
   it('from any line-up that runs on one provider, no option is kept out', () => {
@@ -79,13 +102,11 @@ describe('a choice the composer would refuse', () => {
   });
 
   describe('a voice that is not offered alone (none is released so; the page still words it)', () => {
-    it('under Soniox with an own key, it is refused for speech alone: its voice only reads its own translation', () => {
+    it('under Soniox with an own key, it is not kept out for speech: it brings its own text side, the only one it reads', () => {
       const from = all('soniox');
-      expect(refusedChoice(from, 'speech', 'kizunaai_soniox', notAlone)).toEqual({
-        refusal: { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' },
-        lineUp: lineUp('soniox', 'soniox', 'kizunaai_soniox'),
-      });
-      for (const id of optionsFor('speech').filter((o) => o !== 'kizunaai_soniox')) expect([id, refusedChoice(from, 'speech', id, notAlone)]).toEqual([id, null]);
+      expect(refusedChoice(from, 'speech', 'kizunaai_soniox', notAlone)).toBeNull();
+      expect(chooseWith(from, 'speech', 'kizunaai_soniox', notAlone).lineUp).toEqual(all('kizunaai_soniox'));
+      for (const id of optionsFor('speech')) expect([id, refusedChoice(from, 'speech', id, notAlone)]).toEqual([id, null]);
     });
 
     it('a stored line-up that is refused: the voices that fix it are not refused, nor is its own text side, nor another: the voice follows it', () => {
@@ -97,7 +118,7 @@ describe('a choice the composer would refuse', () => {
       expect(chooseWith(from, 'transcription', 'local_inference', notAlone).lineUp).toEqual(lineUp('local_inference', 'bing', 'edge'));
     });
 
-    it('from any line-up that runs on one provider, only a refusal for a lone voice ever keeps an option out', () => {
+    it('from any line-up that runs on one provider, no option is kept out', () => {
       const seen = new Set<string>();
       for (const host of ['kizunaai_soniox', 'kizunaai_qwen', 'soniox', 'gemini', 'local_inference']) {
         for (const stage of RUN_STAGES) for (const id of optionsFor(stage)) {
@@ -105,7 +126,7 @@ describe('a choice the composer would refuse', () => {
           if (refused) seen.add(refused.refusal.refused);
         }
       }
-      expect([...seen]).toEqual(['lineup_voice_not_alone']);
+      expect([...seen]).toEqual([]);
     });
   });
 
