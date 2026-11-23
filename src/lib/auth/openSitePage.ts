@@ -45,7 +45,7 @@ export async function openSitePage(targetPath: string, deps: OpenSitePageDeps): 
       if (data?.token && !error) {
         // The GET wrapper calls Better Auth's POST verify; its after hook sets the signed cookie, which the wrapper
         // forwards with the redirect.
-        url = `${getApiUrl()}/ott/verify?token=${data.token}&redirect=${encodeURIComponent(targetPath)}`;
+        url = `${getApiUrl()}/ott/verify?token=${encodeURIComponent(data.token)}&redirect=${encodeURIComponent(targetPath)}`;
       }
       // Any other failure — the token endpoint down, a network blip — is not evidence about the session: the plain URL.
     } catch (e) {

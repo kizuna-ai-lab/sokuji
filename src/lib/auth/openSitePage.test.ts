@@ -31,6 +31,12 @@ describe('openSitePage', () => {
     expect(onSessionExpired).not.toHaveBeenCalled();
   });
 
+  it('encodes the token, whatever characters it holds', async () => {
+    generate.mockResolvedValue({ data: { token: 'a+b/c=' }, error: null });
+    await openSitePage('/dashboard/billing', { signedIn: true, onSessionExpired: vi.fn() });
+    expect(String(open.mock.calls[0][0])).toContain('?token=a%2Bb%2Fc%3D&redirect=');
+  });
+
   it('opens nothing when the session is gone, and says so', async () => {
     generate.mockResolvedValue({ data: null, error: { status: 401 } });
     const onSessionExpired = vi.fn();
