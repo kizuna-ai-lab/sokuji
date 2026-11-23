@@ -56,7 +56,6 @@ export const TEXT_MODEL_CHECK_READS = ['translationModel', 'translationReasoning
 export const TEXT_MODEL_CAPABILITIES: UnitCapabilities = {
   speech: 'never',
   turns: ['auto', 'manual'],
-  turnOwner: 'either',
   boundaries: 'provider',
   textInput: false,
   // One direction per session: a connection that hears both people has no translator here.

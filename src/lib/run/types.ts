@@ -103,8 +103,6 @@ export interface ProviderRefusal {
 export interface UnitCapabilities {
   speech: 'always' | 'optional' | 'never';
   turns: ReadonlyArray<'auto' | 'manual'>;
-  /** Who may decide the end of a turn (spec §9). Every unit answers 'either' in step 1. */
-  turnOwner: 'unit' | 'external' | 'either';
   boundaries: 'provider' | 'silence';
   textInput: boolean;
   faceToFace: boolean;

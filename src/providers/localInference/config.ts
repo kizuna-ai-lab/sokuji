@@ -6,7 +6,7 @@ import type { AdmittedConfigs, ProviderRefusal, SharedSettings } from '../../lib
 import { guardAstCrossStage } from '../../services/providers/astGuard';
 import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { supportsSmartTurn } from '../../lib/turn/smartTurn';
+import { turnDetectionOf, type TurnDetection } from '../../lib/turn/turnDetection';
 import { TURN_DETECTION_DEFAULTS, vadConfigOf, type TurnDetectionSettings } from '../../lib/turn/turnDetectionSettings';
 import { directionKey, type DirectionResult, type LocalModels } from '../../lib/local-inference/selection/types';
 import type { LocalInferenceSettings } from './settings';
@@ -24,7 +24,7 @@ export type { LocalTtsConfig, TtsUnavailableCode };
  * `keepReplayAudio` (L1), `turnDetectionMode` (the global turn mode + `context.turns`).
  */
 export interface LocalInferenceConfig {
-  asr: { modelId: string; streaming: boolean };
+  asr: { modelId: string; streaming: boolean; turnDetection: TurnDetection };
   vad: { threshold: number; negativeThreshold?: number; minSilenceDuration: number; minSpeechDuration: number; maxSpeechDuration: number; preSpeechPadDuration: number; smartTurn?: { checkAfter: number; threshold: number } };
   translation:
     | { kind: 'engine'; modelId: string; instructions: string; wrapTranscript: boolean }
@@ -163,8 +163,9 @@ export function noAsr(source: string): ProviderRefusal {
  */
 export function localRecognition(td: TurnDetectionSettings, asrModelId: string): Pick<LocalInferenceConfig, 'asr' | 'vad'> {
   const asrEntry = getManifestEntry(asrModelId);
-  const asr = { modelId: asrModelId, streaming: asrEntry?.type === 'asr-stream' };
-  return { asr, vad: vadConfigOf(td, supportsSmartTurn(asrEntry)) as LocalInferenceConfig['vad'] };
+  const turnDetection = turnDetectionOf(asrEntry);
+  const asr = { modelId: asrModelId, streaming: asrEntry?.type === 'asr-stream', turnDetection };
+  return { asr, vad: vadConfigOf(td, turnDetection === 'shared') as LocalInferenceConfig['vad'] };
 }
 
 /**

@@ -88,7 +88,7 @@ function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['
  *  `describe`/`admit` tests, which only care about the ids each config carries. */
 function cfg(ids: { asr: string; translation?: string; tts?: string }): LocalInferenceConfig {
   return {
-    asr: { modelId: ids.asr, streaming: false },
+    asr: { modelId: ids.asr, streaming: false, turnDetection: 'own' },
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
     translation: ids.translation ? { kind: 'engine', modelId: ids.translation, instructions: '', wrapTranscript: false } : { kind: 'none' },
     ...(ids.tts ? { tts: { modelId: ids.tts, speakerId: 0, speed: 1 } } : {}),
@@ -216,8 +216,8 @@ describe('buildLocalInference', () => {
   it('marks an asr-stream model streaming, and any other ASR model not', () => {
     mockManifest = { 'stream-asr': { type: 'asr-stream' } };
     resolved({ 'ja>en': { asr: 'stream-asr', translation: 't' }, 'en>ja': { asr: 'offline-asr', translation: 't' } });
-    expect((buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'stream-asr', streaming: true });
-    expect((buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'offline-asr', streaming: false });
+    expect((buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'stream-asr', streaming: true, turnDetection: 'own' });
+    expect((buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'offline-asr', streaming: false, turnDetection: 'own' });
   });
 
   it('carries a set VAD negative threshold into vad.negativeThreshold, and leaves it out when unset', () => {
@@ -302,6 +302,33 @@ describe('buildLocalInference', () => {
     it.each(['sherpa-onnx', 'voxtral-webgpu', undefined])('leaves it out for an ASR whose worker is %s', (asrWorkerType) => {
       mockManifest = { a: { type: 'asr', asrWorkerType } };
       expect(build({ endOfTurn: 'smart' }).vad).not.toHaveProperty('smartTurn');
+    });
+
+    it('a Whisper leg is shared and gets Smart when stored; a SenseVoice leg is own and never does', () => {
+      const shared1 = build({ endOfTurn: 'smart' });
+      expect(shared1.asr.turnDetection).toBe('shared');
+      expect(shared1.vad).toHaveProperty('smartTurn');
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
+      const own = build({ endOfTurn: 'smart' });
+      expect(own.asr.turnDetection).toBe('own');
+      expect(own.vad).not.toHaveProperty('smartTurn');
+    });
+
+    it('two legs on different models decide apart', () => {
+      mockManifest = { w: { type: 'asr', asrWorkerType: 'whisper-webgpu' }, s: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
+      resolved({ 'ja>en': { asr: 'w', translation: 't' }, 'en>ja': { asr: 's', translation: 't' } });
+      const sh = shared({ turnDetection: { endOfTurn: 'smart' } });
+      const speaker = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), sh) as LocalInferenceConfig;
+      const participant = buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), sh) as LocalInferenceConfig;
+      expect([speaker.asr.turnDetection, participant.asr.turnDetection]).toEqual(['shared', 'own']);
+      expect(speaker.vad).toHaveProperty('smartTurn');
+      expect(participant.vad).not.toHaveProperty('smartTurn');
+    });
+
+    it('the same direction built twice with the model changed between the builds changes the decision', () => {
+      expect(build({ endOfTurn: 'smart' }).asr.turnDetection).toBe('shared');
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
+      expect(build({ endOfTurn: 'smart' }).asr.turnDetection).toBe('own');
     });
 
     it('holds Turn Check After 0.2 s under Max Wait', () => {

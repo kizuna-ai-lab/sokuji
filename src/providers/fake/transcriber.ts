@@ -74,7 +74,6 @@ const transcriberUnit: UnitDefinition<FakeTranscriberSettings, FakeTranscriberCr
   capabilities: () => ({
     speech: 'never',
     turns: ['auto', 'manual'],
-    turnOwner: 'either',
     boundaries: 'provider',
     // Typed text is the transcription's: it is shown as a source, and whoever translates answers it.
     textInput: true,

@@ -76,7 +76,7 @@ const APART: StageIds = { transcription: 'local_inference', translation: 'soniox
 /** A config of this unit, as `buildLocalTranscription` makes one, over a recognition model the test names. */
 function aloneConfig(over: Partial<LocalInferenceConfig> = {}): LocalInferenceConfig {
   return {
-    asr: { modelId: 'asr-model', streaming: true },
+    asr: { modelId: 'asr-model', streaming: true, turnDetection: 'own' },
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
     translation: { kind: 'none' },
     transcribesAlone: true,
@@ -107,7 +107,7 @@ describe('what the local transcription unit declares', () => {
 
   it('never speaks, takes typed text, keeps both turn modes and its own boundaries, and has no face-to-face', () => {
     expect(localTranscriptionUnit.capabilities(SETTINGS)).toEqual({
-      speech: 'never', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
+      speech: 'never', turns: ['auto', 'manual'], boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
     });
   });
 
@@ -121,7 +121,7 @@ describe('the config it builds', () => {
     mockTable = { 'en>ja': { asr: 'sensevoice-int8', translation: 'opus-mt-en-jap', tts: 'tts-ja' } };
     const built = buildLocalTranscription(ctx(EN_JA, { speech: true }), SETTINGS, shared({ lineUp: APART }));
     expect(built).toEqual({
-      asr: { modelId: 'sensevoice-int8', streaming: false },
+      asr: { modelId: 'sensevoice-int8', streaming: false, turnDetection: 'own' },
       vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
       translation: { kind: 'none' },
       transcribesAlone: true,
@@ -155,6 +155,16 @@ describe('the config it builds', () => {
     expect((buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
     mockTable = { 'en>ja': { asr: 'stream-en-kroko' } };
     expect((buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig).asr.streaming).toBe(true);
+  });
+
+  it('the transcription-only unit decides per leg the same way', () => {
+    const turnDetection: TurnDetectionSettings = { ...TURN_DETECTION_DEFAULTS, endOfTurn: 'smart' };
+    mockTable = { 'en>ja': { asr: 'whisper-base-webgpu' }, 'ja>en': { asr: 'sensevoice-int8' } };
+    const speaker = buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig;
+    const participant = buildLocalTranscription(ctx(JA_EN), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig;
+    expect([speaker.asr.turnDetection, participant.asr.turnDetection]).toEqual(['shared', 'own']);
+    expect(speaker.vad).toHaveProperty('smartTurn');
+    expect(participant.vad).not.toHaveProperty('smartTurn');
   });
 
   it('no job cut and no voice, whatever the display and the leg ask for', () => {
@@ -200,7 +210,7 @@ describe('admission', () => {
 
   it('counts its recognition models only, one per leg', () => {
     mockSizes = { 'asr-en': 1000, 'asr-ja': 1000 };
-    const legs = { speaker: aloneConfig({ asr: { modelId: 'asr-en', streaming: false } }), participant: aloneConfig({ asr: { modelId: 'asr-ja', streaming: false } }) };
+    const legs = { speaker: aloneConfig({ asr: { modelId: 'asr-en', streaming: false, turnDetection: 'own' } }), participant: aloneConfig({ asr: { modelId: 'asr-ja', streaming: false, turnDetection: 'own' } }) };
     vi.stubGlobal('navigator', { deviceMemory: 4 });
     try {
       expect(admitLocalTranscription(legs, [])).toBe(true);
@@ -278,7 +288,7 @@ describe('a session of the local transcription unit', () => {
     expect(t.of('segmentText').map((e) => e.heard)).toEqual([undefined, { pieces: [], stableLen: 11 }]);
     await t.session.stop();
     // An offline recognizer that says where the utterance began: its pieces, and all of it stable.
-    const o = await open(aloneConfig({ asr: { modelId: 'asr-model', streaming: false } }));
+    const o = await open(aloneConfig({ asr: { modelId: 'asr-model', streaming: false, turnDetection: 'own' } }));
     o.session.appendAudio(new Int16Array(24000));
     o.asr.onResult?.({ text: 'Hi.', durationMs: 500, recognitionTimeMs: 10, startSample: 0 });
     const heard = o.of('segmentText')[0].heard!;

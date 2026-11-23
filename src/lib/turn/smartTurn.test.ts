@@ -2,29 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   SMART_TURN_CHECK_AFTER_RANGE,
   SMART_TURN_MAX_WAIT_MIN,
-  SMART_TURN_WORKER_TYPES,
   effectiveCheckAfter,
-  supportsSmartTurn,
 } from './smartTurn';
-import type { ModelManifestEntry } from '../local-inference/modelManifest';
-
-/** Compile-time: every Smart Turn worker type is a worker type the manifest has. */
-const _typesExist: readonly NonNullable<ModelManifestEntry['asrWorkerType']>[] = SMART_TURN_WORKER_TYPES;
-void _typesExist;
-
-describe('supportsSmartTurn', () => {
-  it.each(SMART_TURN_WORKER_TYPES)('runs the gate in %s', (asrWorkerType) => {
-    expect(supportsSmartTurn({ asrWorkerType })).toBe(true);
-  });
-
-  it.each(['sherpa-onnx', 'voxtral-webgpu', undefined])('leaves %s alone', (asrWorkerType) => {
-    expect(supportsSmartTurn({ asrWorkerType })).toBe(false);
-  });
-
-  it('leaves a missing entry alone', () => {
-    expect(supportsSmartTurn(undefined)).toBe(false);
-  });
-});
 
 describe('effectiveCheckAfter', () => {
   it('keeps a value well under Max Wait', () => {

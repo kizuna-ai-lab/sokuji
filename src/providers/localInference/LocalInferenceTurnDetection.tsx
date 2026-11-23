@@ -6,7 +6,8 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { SMART_TURN_TOTAL_BYTES, useSmartTurnPhase, useSmartTurnStore } from '../../stores/smartTurnStore';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
-import { SMART_TURN_MAX_WAIT_MIN, supportsSmartTurn, effectiveCheckAfter, type VadEndOfTurn } from '../../lib/turn/smartTurn';
+import { turnDetectionOf } from '../../lib/turn/turnDetection';
+import { SMART_TURN_MAX_WAIT_MIN, effectiveCheckAfter, type VadEndOfTurn } from '../../lib/turn/smartTurn';
 import { EndOfTurnControl, VadControl, type VadValues } from '../../components/Settings/sections/LocalSettingsControls';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
@@ -70,8 +71,8 @@ function useVadKnobs(settings: S, pair: LanguagePair | undefined) {
   // Smart runs on a leg that takes automatic turns (shape.ts `contextsFor`):
   // the speaker under Auto, the participant always.
   const smartTurnOffered =
-    (legs.includes('speaker') && turnMode === 'auto' && supportsSmartTurn(entry))
-    || (legs.includes('participant') && supportsSmartTurn(getManifestEntry(reverseAsrModelId ?? '')));
+    (legs.includes('speaker') && turnMode === 'auto' && turnDetectionOf(entry) === 'shared')
+    || (legs.includes('participant') && turnDetectionOf(getManifestEntry(reverseAsrModelId ?? '')) === 'shared');
   useEffect(() => {
     if (smartTurnOffered && phase === 'unknown') void useSmartTurnStore.getState().refresh();
   }, [smartTurnOffered, phase]);

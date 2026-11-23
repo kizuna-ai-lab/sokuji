@@ -71,7 +71,6 @@ export function createLocalTranscriptionUnit(deps: LocalTranscriptionUnitDeps = 
     capabilities: () => ({
       speech: 'never',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'provider',
       textInput: true,
       // The whole local session has none either: one connection per leg, and each leg's translation is its own.
