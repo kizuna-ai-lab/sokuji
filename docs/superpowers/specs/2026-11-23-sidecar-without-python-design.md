@@ -151,7 +151,7 @@ keeps working across Electron upgrades, which the spike confirmed across two Nod
 
 ```
 Electron main ──utilityProcess.fork('engine.js')──▶ engine process (Node, no window)
-     │  IPC: native-host:start → {port}                 │  require('sokuji_native.node')
+     │  IPC: native-host:start → {port}                 │  require('sokuji_native_node.node')
      │                                                  │  ws server on 127.0.0.1:0
 renderer ──────────── ws://127.0.0.1:<port> ───────────▶│  catalog · planner · downloads
   (unchanged clients, one socket per stage)             │  ASR / translate / TTS engines
@@ -171,7 +171,7 @@ renderer ──────────── ws://127.0.0.1:<port> ────
 ### 6.2 The addon (`native/node/`)
 
 A C++ addon over Node-API (C API, `NAPI_VERSION` 8), linked against `libsokuji_native`
-and shipped next to it as `sokuji_native.node`. It mirrors the Python package's object
+and shipped next to it as `sokuji_native_node.node` (a base name no Windows DLL shares). It mirrors the Python package's object
 model so the port of the backends is mechanical:
 
 ```ts
@@ -404,7 +404,7 @@ for macOS/Linux, a Forge hook for Windows).
 
 ### 8.4 Windows
 
-- The DLLs and `sokuji_native.node` are signed through SignPath **when the native release
+- The DLLs and `sokuji_native_node.node` are signed through SignPath **when the native release
   is built** (`native-build.yml`), not in every app build. The archive and its committed
   checksum then cover signed files, and app builds change nothing. This needs a SignPath
   artifact configuration for the native files, and SignPath Foundation's policy has to
