@@ -225,8 +225,9 @@ async function followApplication(current, { exec, isAlive }) {
   if (!entry) {
     // No stream is a quiet application (its last tab closed) while it runs.
     if (current.pid !== null && isAlive(current.pid)) return;
-    stopWatch();
+    // Reported first: a report that fails leaves the watch on, and the next look tries again (#866 review).
     current.onLost?.();
+    stopWatch();
     return;
   }
   const sink = findNodeByName(dump, CAPTURE_SINK_NAME);
