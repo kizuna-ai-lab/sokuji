@@ -1,0 +1,27 @@
+/**
+ * The engine's entry (port of sidecar/sokuji_sidecar/__main__.py's _run): loads the addon, registers every stage's
+ * handlers on one shared state, and serves it. The utilityProcess glue that prints the port is the switch plan's.
+ */
+import { loadNative, setNativeLog, useNative, type NativeModule } from './native';
+import { createState, serve, type EngineState, type Log } from './server';
+
+export interface EngineOptions {
+  /** The directory holding sokuji_native_node.node and its contract.json. */
+  nativeDir: string;
+  /** Origins a browser may connect from; a connection with no Origin header is always taken. */
+  allowedOrigins: string[];
+  log: Log;
+  /** An addon to use instead of loading one (tests). */
+  native?: NativeModule;
+}
+
+/** Every stage's handlers, registered on `state`. Each stage's task adds its own. */
+export function registerAll(_state: EngineState): void {}
+
+export async function startEngine(opts: EngineOptions): Promise<{ port: number; close(): Promise<void> }> {
+  setNativeLog(opts.log);
+  useNative(opts.native ?? loadNative(opts.nativeDir), opts.nativeDir);
+  const state = createState();
+  registerAll(state);
+  return serve(state, { allowedOrigins: opts.allowedOrigins, log: opts.log });
+}
