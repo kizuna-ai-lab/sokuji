@@ -1,5 +1,6 @@
 import { GeminiIcon } from '../../components/Icons/ProviderIcons';
 import { GEMINI_KEY_STORED_AT } from '../geminiKey';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createGeminiAdapter } from './adapter';
 import { checkGemini } from './check';
@@ -54,16 +55,18 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
 
   languages: geminiLanguages,
 
-  speech: 'optional',
   endToEnd: true,
-  // The dialogue models answer typed text; Live Translate ignores it (the owner's live test, 2026-09-30), so it offers
-  // none, the box hidden as on every other continuous interpreter. No model chosen reads as Live Translate, as the offer does.
-  textInput: (s) => !offersTranslate(s),
-  // Parity with the old offer (pause, not Auto): a dialogue turn ends at turnComplete, Live Translate on our own timers.
-  boundaries: () => 'silence',
-  turns: () => ['auto', 'manual'],
+  units: [wholeUnitOf<GeminiSettings, GeminiCredentials, GeminiConfig>({
+    speech: 'optional',
+    // The dialogue models answer typed text; Live Translate ignores it (the owner's live test, 2026-09-30), so it offers
+    // none, the box hidden as on every other continuous interpreter. No model chosen reads as Live Translate, as the offer does.
+    textInput: (s) => !offersTranslate(s),
+    // Parity with the old offer (pause, not Auto): a dialogue turn ends at turnComplete, Live Translate on our own timers.
+    boundaries: () => 'silence',
+    turns: () => ['auto', 'manual'],
 
-  build: buildGemini,
-  describe: describeGemini,
-  start: adapter.start,
+    build: buildGemini,
+    describe: describeGemini,
+    start: adapter.start,
+  })],
 };

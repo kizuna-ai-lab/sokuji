@@ -424,9 +424,8 @@ describe('the fakes of one stage in the catalog and the registry', () => {
     expect(separateStages(composed)).not.toBeNull();
   });
 
-  it('neither starts as a provider on its own', async () => {
-    const request = { context: SPEAKS, config: {} as never, credentials: {}, clock: createVirtualClock(0), signal: new AbortController().signal };
-    await expect(fakeTranslatorProvider.start(request, recordEvents().events)).rejects.toMatchObject({ code: 'plan_unsupported' });
-    await expect(fakeTranscriberProvider.start(request, recordEvents().events)).rejects.toMatchObject({ code: 'plan_unsupported' });
+  it('neither starts as a provider on its own', () => {
+    expect(fakeTranslatorProvider).not.toHaveProperty('start');
+    expect(fakeTranscriberProvider).not.toHaveProperty('start');
   });
 });

@@ -1,5 +1,6 @@
 import { OPENAI_KEY_STORED_AT } from '../openaiKey';
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createTranslateAdapter } from './adapter';
 import { checkTranslate } from './check';
@@ -49,16 +50,18 @@ export const openaiTranslateProvider: Provider<TranslateSettings, TranslateCrede
 
   languages: translateLanguages,
 
-  // Text only is offered (ruling 4): the API still speaks, and a leg that does not speak drops the audio.
-  speech: 'optional',
   endToEnd: true,
-  // The endpoint takes audio only.
-  textInput: () => false,
-  // Our own silence timers end segments (the old offer: pause, no auto, sizes).
-  boundaries: () => 'silence',
-  turns: () => ['auto', 'manual'],
+  units: [wholeUnitOf<TranslateSettings, TranslateCredentials, TranslateConfig>({
+    // Text only is offered (ruling 4): the API still speaks, and a leg that does not speak drops the audio.
+    speech: 'optional',
+    // The endpoint takes audio only.
+    textInput: () => false,
+    // Our own silence timers end segments (the old offer: pause, no auto, sizes).
+    boundaries: () => 'silence',
+    turns: () => ['auto', 'manual'],
 
-  build: buildTranslate,
-  describe: describeTranslate,
-  start: adapter.start,
+    build: buildTranslate,
+    describe: describeTranslate,
+    start: adapter.start,
+  })],
 };

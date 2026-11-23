@@ -12,6 +12,9 @@ import { fakeTranscriberProvider } from './fake/transcriber';
 import { fakeTranslatorProvider } from './fake/translator';
 import { fakeVoiceProvider } from './fake/voice';
 import { FAKE_DEFAULTS } from './fake/settings';
+import { RUN_STAGES, SP, TR_TL } from '../lib/lineup/types';
+import { capabilitiesAlone, runsAlone, unitsOf, wholePlan } from '../lib/plan/wholeUnit';
+import { createKizunaSonioxProvider } from './soniox/kizuna';
 import { PROVIDERS, currentPresenceEnv, getProvider, presentProviders } from './registry';
 
 /** The keys the language pair persists under, beside every provider's settings. */
@@ -60,8 +63,8 @@ describe('the registry', () => {
     }
   });
 
-  it('offers at least one turn mode', () => {
-    for (const p of PROVIDERS) expect(p.turns(p.settings.defaults).length, p.id).toBeGreaterThan(0);
+  it('every unit of every provider offers at least one turn mode', () => {
+    for (const p of PROVIDERS) for (const u of p.units) expect(u.capabilities(p.settings.defaults).turns.length, `${p.id} ${u.id}`).toBeGreaterThan(0);
   });
 
   it('includes the fake in development builds, on every platform', () => {
@@ -151,6 +154,34 @@ describe('the invariants every provider meets (F17)', () => {
   const at = (tree: unknown, path: string) => path.split('.').reduce<unknown>((node, key) => (node as Record<string, unknown> | undefined)?.[key], tree);
   const signedOut: AuthContext = { signedIn: false, getToken: async () => null };
   const signedIn: AuthContext = { signedIn: true, getToken: async () => 'token' };
+
+  const NEVER_SPEAKS = ['bing', 'openai_text', 'gemini_text', 'openai_compatible', 'fake_transcriber', 'fake_translator'];
+  const WHOLE = ['kizunaai_qwen', 'local_inference', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'qwen_livetranslate', 'palabraai', 'fake', 'fake_leased'];
+  const SONIOX = ['kizunaai_soniox', 'soniox'];
+  const silentParticipant = createKizunaSonioxProvider({ participantSpeech: false });
+
+  it('says alone whether it speaks, and lets its participant speak, as it always did', () => {
+    for (const p of PROVIDERS) expect(capabilitiesAlone(p, 'speech'), p.id).toMatchObject({ speech: NEVER_SPEAKS.includes(p.id) ? 'never' : 'optional', participantSpeech: true });
+    expect(capabilitiesAlone(silentParticipant, 'speech').participantSpeech).toBe(false);
+  });
+  it('of the providers the wizard offers, the two Soniox ones alone run face-to-face', () => {
+    const offered = PROVIDERS.filter((p) => runsAlone(p) || p.kind === 'managed');
+    expect(offered.filter((p) => capabilitiesAlone(p, 'transcription').faceToFace).map((p) => p.id)).toEqual(SONIOX);
+  });
+  it('runs alone, and plans a run on itself alone, as it always did', () => {
+    for (const p of PROVIDERS) {
+      const expected = WHOLE.includes(p.id) ? [['whole', RUN_STAGES]] : SONIOX.includes(p.id) ? [['stt', TR_TL], ['tts', SP]] : [[unitsOf(p)[0].id, RUN_STAGES]];
+      expect(wholePlan(p).units.map((u) => [u.unit.id, u.stages]), p.id).toEqual(expected);
+      expect(runsAlone(p), p.id).toBe(WHOLE.includes(p.id) || SONIOX.includes(p.id));
+    }
+  });
+  it('carries no run member of its own: a session runs its units', () => {
+    const RUN_MEMBERS = ['speech', 'textInput', 'boundaries', 'turns', 'participantSpeech', 'faceToFace', 'build', 'describe', 'start'];
+    for (const p of [...PROVIDERS, silentParticipant]) expect(RUN_MEMBERS.filter((m) => m in p), p.id).toEqual([]);
+  });
+  it('an end-to-end service declares its one session as a whole unit', () => {
+    for (const p of PROVIDERS.filter((q) => q.endToEnd)) expect(p.units.map((u) => u.id), p.id).toEqual(['whole']);
+  });
 
   it('lets only LocalInference read the pair and the legs in its check, so a pick or an audio-mode switch checks no network provider again', () => {
     expect(PROVIDERS.filter((p) => p.checkReadsDirection).map((p) => p.id)).toEqual(['local_inference']);

@@ -18,6 +18,9 @@ vi.mock('../services/ServiceFactory', () => ({
 
 import { identityWire } from '../lib/language/wire';
 import { useProviderStore, PAIR_FIELDS } from './providerStore';
+import { FAKE_WHOLE } from '../providers/fake/provider';
+import { wholeUnitOf } from '../lib/plan/wholeUnit';
+import { stubProvider } from '../lib/plan/testing';
 
 const opt = (value: string): LanguageOption => ({ value });
 
@@ -25,8 +28,8 @@ interface ProbeSettings { region: 'us' | 'eu'; count: number; on: boolean }
 /** Turning `on` stops offering fr, as a model choice can narrow a provider's languages. */
 const langs = (s: ProbeSettings) => [opt('en'), opt('ja'), ...(s.on ? [] : [opt('fr')])];
 
-const probe = {
-  id: 'probe',
+const probe = stubProvider('probe', {
+  speech: 'never',
   kind: 'own-key',
   settings: { key: 'probe', defaults: { region: 'us', count: 1, on: false } satisfies ProbeSettings },
   credentials: {
@@ -39,7 +42,7 @@ const probe = {
     targets: (source: string, s: ProbeSettings) => langs(s).filter((o) => o.value !== source),
     wire: identityWire(),
   },
-} as unknown as AnyProvider;
+});
 
 /** Offers en and de only: a pair the probe keeps, it cannot. */
 const narrow = {
@@ -225,7 +228,7 @@ describe('the language context (Stage 2 Volcengine AST2, choice 1)', () => {
   const moody = {
     ...probe,
     id: 'moody',
-    speech: 'optional',
+    units: [wholeUnitOf(FAKE_WHOLE)],
     // Its check reads the pair, so a pair the context moves forgets its answer.
     checkReadsDirection: true,
     settings: { key: 'moody', defaults: probe.settings.defaults },

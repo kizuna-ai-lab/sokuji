@@ -141,7 +141,7 @@ import { autoSaveConversation } from '../lib/export/appAutoSave';
 import { DEFAULT_CLOSE_TIMEOUT_MS } from '../lib/session/runner';
 import { usePanelNotesStore } from '../stores/panelNotesStore';
 import { fakeLeasedProvider } from '../providers/fake/leased';
-import { fakeProvider } from '../providers/fake/provider';
+import { FAKE_WHOLE, fakeProvider } from '../providers/fake/provider';
 import { FAKE_LEASED_DEFAULTS } from '../providers/fake/settings';
 import { createFakeSource, type FakeSource } from '../providers/fake/source';
 import { localInferenceProvider } from '../providers/localInference/provider';
@@ -1679,11 +1679,11 @@ describe('attach', () => {
     const { session } = await setup();
     const refetchQuota = vi.fn(async () => {});
     session.setBridges({ refetchQuota });
-    let events!: Parameters<typeof fakeProvider.start>[1];
-    const start = vi.spyOn(fakeProvider, 'start').mockImplementationOnce(async (request, e) => {
+    let events!: Parameters<typeof FAKE_WHOLE.start>[1];
+    const start = vi.spyOn(FAKE_WHOLE, 'start').mockImplementationOnce(async (request, e) => {
       events = e;
       start.mockRestore();
-      return fakeProvider.start(request, e);
+      return FAKE_WHOLE.start(request, e);
     });
     const detach = session.attach();
     await session.runner.start();

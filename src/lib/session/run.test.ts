@@ -3,9 +3,8 @@ import type { AdapterEvents, AdapterSession, StartRequest } from '../contract/ad
 import { createVirtualClock } from '../contract/clock';
 import type { DropInfo } from '../contract/reconnect';
 import type { LegName } from '../conversation/types';
-import { shapeWith } from '../plan/testing';
-import type { AnyProvider } from '../provider/types';
-import { fakeProvider } from '../../providers/fake/provider';
+import { shapeWith, withWhole } from '../plan/testing';
+import { FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { NetworkPort } from './ports';
@@ -88,7 +87,7 @@ function setup(o: {
     },
   } : undefined;
   const tracked: Array<[string, unknown]> = [];
-  const shape: RunShape = shapeWith({ ...fakeProvider, start, session: hooks } as unknown as AnyProvider, {
+  const shape: RunShape = shapeWith(withWhole(fakeProvider, FAKE_WHOLE, { start, session: hooks }), {
     settings: FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },

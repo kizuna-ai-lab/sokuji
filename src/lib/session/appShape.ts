@@ -117,7 +117,7 @@ function speechUnitFromStores(): UnitCapabilities | undefined {
  * and play the same legs. Before the plan is ready it answers as an
  * optional-speech provider would.
  */
-export function speechFromStores(speaking: Pick<AnyProvider, 'speech' | 'participantSpeech'> | undefined = speechUnitFromStores()): Speak {
+export function speechFromStores(speaking: Speaking | undefined = speechUnitFromStores()): Speak {
   const audio = useAudioStore.getState();
   const faceToFace = faceToFaceFromStores();
   return speakFor(speaking ?? { speech: 'optional' }, {

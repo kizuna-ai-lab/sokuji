@@ -32,6 +32,8 @@ import { geminiProvider } from './provider';
 import { GEMINI_DEFAULTS, GEMINI_LEGACY_KEYS, geminiCredentials, geminiLanguages, migrateGeminiSettings, type GeminiSettings } from './settings';
 import { AUTO_CTX, configFor, DIALOGUE, KEY, SHARED, TRANSLATE } from './testing';
 
+const [whole] = geminiProvider.units;
+
 afterEach(() => {
   vi.unstubAllGlobals();
   stored.clear();
@@ -55,23 +57,24 @@ describe('the Gemini definition', () => {
       credentials: geminiCredentials,
       check: checkGemini,
       languages: geminiLanguages,
-      build: buildGemini,
-      describe: describeGemini,
     });
+    expect(geminiProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(whole.build(AUTO_CTX, GEMINI_DEFAULTS, SHARED)).toEqual(buildGemini(AUTO_CTX, GEMINI_DEFAULTS, SHARED));
+    expect(whole.describe).toBe(describeGemini);
     expect(geminiProvider).not.toHaveProperty('flagged');
   });
 
   it('speaks optionally, cuts on silence (parity), offers both turn modes, and needs no session hook', () => {
-    expect(geminiProvider.speech).toBe('optional');
-    expect(geminiProvider.boundaries(GEMINI_DEFAULTS)).toBe('silence');
-    expect(geminiProvider.turns(GEMINI_DEFAULTS)).toEqual(['auto', 'manual']);
+    expect(whole.capabilities(GEMINI_DEFAULTS).speech).toBe('optional');
+    expect(whole.capabilities(GEMINI_DEFAULTS).boundaries).toBe('silence');
+    expect(whole.capabilities(GEMINI_DEFAULTS).turns).toEqual(['auto', 'manual']);
     expect(geminiProvider.session).toBeUndefined();
   });
 
   it('takes typed text on a dialogue model, and none on Live Translate, which ignores it — no model chosen reads as Live Translate', () => {
-    expect(geminiProvider.textInput({ ...GEMINI_DEFAULTS, model: DIALOGUE })).toBe(true);
-    expect(geminiProvider.textInput({ ...GEMINI_DEFAULTS, model: TRANSLATE })).toBe(false);
-    expect(geminiProvider.textInput({ ...GEMINI_DEFAULTS, model: '' })).toBe(false);
+    expect(whole.capabilities({ ...GEMINI_DEFAULTS, model: DIALOGUE }).textInput).toBe(true);
+    expect(whole.capabilities({ ...GEMINI_DEFAULTS, model: TRANSLATE }).textInput).toBe(false);
+    expect(whole.capabilities({ ...GEMINI_DEFAULTS, model: '' }).textInput).toBe(false);
   });
 
   it('sits after LocalInference (ruling 6)', () => {
@@ -80,13 +83,13 @@ describe('the Gemini definition', () => {
   });
 
   it("lets the participant speak when its switch is on, voiced in its own voice (ruling 5; the participant voice, 2026-10-12)", () => {
-    expect(geminiProvider.participantSpeech).toBeUndefined();
+    expect(whole.capabilities(GEMINI_DEFAULTS).participantSpeech).toBe(true);
     const shape = { plan: planOf(geminiProvider), accounts: { [geminiProvider.id]: { settings: undefined, credentials: {} } }, pair: { source: 'en', target: 'ja' }, legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, turnMode: 'auto' } as unknown as RunShape;
     const participant = contextsFor(shape).participant!;
     expect(participant).toEqual({ direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' });
     expect(contextsFor({ ...shape, participantSpeech: false }).participant!.speech).toBe(false);
     // A dialogue model's voice, the participant's default: Live Translate, the default when listed, speaks in the speaker's own (Gemini/AST2 follow-up, ruling 3).
-    expect((geminiProvider.build(participant, { ...GEMINI_DEFAULTS, model: DIALOGUE }, SHARED) as GeminiConfig).voice).toBe('Puck');
+    expect((whole.build(participant, { ...GEMINI_DEFAULTS, model: DIALOGUE }, SHARED) as GeminiConfig).voice).toBe('Puck');
   });
 
   it('a start whose signal already aborted opens no socket', async () => {
@@ -95,7 +98,7 @@ describe('the Gemini definition', () => {
     const controller = new AbortController();
     const reason = new Error('cancelled');
     controller.abort(reason);
-    await expect(geminiProvider.start(
+    await expect(whole.start!(
       { context: AUTO_CTX, config: configFor(DIALOGUE), credentials: KEY, clock: createVirtualClock(0), signal: controller.signal },
       recordEvents().events,
     )).rejects.toBe(reason);

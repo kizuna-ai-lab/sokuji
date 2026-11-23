@@ -1,8 +1,9 @@
 // src/lib/lineup/catalog.testing.ts
 //
 // The line-up catalog as it was declared by hand before step 2. The derived catalog must equal it entry for entry.
-// Adding a provider adds its entry here. An end-to-end service (no `units`) sets `endToEnd: true` on its definition,
-// or it is catalogued as joint with its text open to another voice. Imported by tests only; a test that keeps the registry out registers it.
+// Adding a provider adds its entry here. An end-to-end service declares its one session as a whole unit
+// (`units: [wholeUnitOf({...})]`, `src/lib/plan/wholeUnit.ts`) and sets `endToEnd: true`, or it is catalogued as joint
+// with its text open to another voice. Imported by tests only; a test that keeps the registry out registers it.
 import { registerCatalog } from './catalog';
 import { RUN_STAGES } from './types';
 import type { ProviderCaps } from './types';

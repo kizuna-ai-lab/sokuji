@@ -2,7 +2,7 @@ import { SonioxIcon } from '../../components/Icons/ProviderIcons';
 import type { FileRecognitionBase, Provider, SessionWords } from '../../lib/provider/types';
 import { createSonioxAdapter } from './adapter';
 import { checkSoniox } from './check';
-import { buildSoniox, describeSoniox, sonioxContext, type SonioxConfig } from './config';
+import { sonioxContext, type SonioxConfig } from './config';
 import { SonioxSettingsView } from './SonioxSettings';
 import { SonioxVoiceSummary } from './SonioxVoiceSummary';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
@@ -13,7 +13,8 @@ import { AUTO } from '../../lib/provider/languages';
 import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 import { sonioxUnitsFor } from './units';
 
-const adapter = createSonioxAdapter();
+/** Soniox's adapter: the text units of both definitions, the user's own key and Kizuna AI's, start through it. */
+export const sonioxAdapter = createSonioxAdapter();
 
 /** An app language code as Soniox writes it, or null when Soniox has none. */
 function sonioxLanguageHint(code: string): string | null {
@@ -76,21 +77,8 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
 
   languages: sonioxLanguages,
 
-  speech: 'optional',
-  faceToFace: true,
-  // Soniox's STT socket takes no typed text.
-  textInput: () => false,
-  // The server's endpoint model ends a segment (`<end>`, `<fin>`).
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-
-  // The text side's: the `stt` unit is built from these. The voice is built and started by the `tts` unit.
-  build: buildSoniox,
-  describe: describeSoniox,
-  start: adapter.start,
-
   // What a session runs: the STT connection for transcription and translation, the voice for speech.
-  units: sonioxUnitsFor({ start: adapter.start }),
+  units: sonioxUnitsFor({ start: sonioxAdapter.start }),
 
-  session: { startBoth: adapter.startBoth },
+  session: { startBoth: sonioxAdapter.startBoth },
 };

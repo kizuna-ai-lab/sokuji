@@ -8,6 +8,9 @@ import { qwenLiveTranslateProvider } from './provider';
 import { QwenSettingsView, QwenVoiceSummary } from './QwenSettings';
 import { QwenTurnDetectionControls, QwenTurnDetectionSummary } from './QwenTurnDetection';
 import { migrateQwenSettings, QWEN_DEFAULTS, qwenCredentials, qwenLanguages } from './settings';
+import { AUTO_CTX, SHARED } from './testing';
+
+const [whole] = qwenLiveTranslateProvider.units;
 
 const release = (platform: PresenceEnv['platform'], patch: Partial<PresenceEnv> = {}): PresenceEnv =>
   ({ platform, dev: false, enabled: new Set<string>(), kizuna: true, switchOn: () => false, ...patch });
@@ -28,9 +31,10 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
       check: checkQwen,
       checkReads: [],
       languages: qwenLanguages,
-      build: buildQwen,
-      describe: describeQwen,
     });
+    expect(qwenLiveTranslateProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(whole.build(AUTO_CTX, QWEN_DEFAULTS, SHARED)).toEqual(buildQwen(AUTO_CTX, QWEN_DEFAULTS, SHARED));
+    expect(whole.describe).toBe(describeQwen);
     expect(qwenLiveTranslateProvider.settings).not.toHaveProperty('legacyKeys');
     // Only the region is narrowed on load; the managed twin inherits the same migrate.
     expect(qwenLiveTranslateProvider.settings.migrate).toBe(migrateQwenSettings);
@@ -41,10 +45,10 @@ describe('the Qwen LiveTranslate definition (spec §1)', () => {
   });
 
   it("speaks when asked, takes no typed text, keeps the server's turns, and offers both turn modes", () => {
-    expect(qwenLiveTranslateProvider.speech).toBe('optional');
-    expect(qwenLiveTranslateProvider.textInput(QWEN_DEFAULTS)).toBe(false);
-    expect(qwenLiveTranslateProvider.boundaries(QWEN_DEFAULTS)).toBe('provider');
-    expect(qwenLiveTranslateProvider.turns(QWEN_DEFAULTS)).toEqual(['auto', 'manual']);
+    expect(whole.capabilities(QWEN_DEFAULTS).speech).toBe('optional');
+    expect(whole.capabilities(QWEN_DEFAULTS).textInput).toBe(false);
+    expect(whole.capabilities(QWEN_DEFAULTS).boundaries).toBe('provider');
+    expect(whole.capabilities(QWEN_DEFAULTS).turns).toEqual(['auto', 'manual']);
   });
 
   it('a release offers it on the desktop app and the extension, with no switch and no listing; the web never does', () => {

@@ -10,10 +10,11 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import type { SessionContext } from '../../lib/contract/adapter';
 import { recordEvents } from '../../lib/contract/events';
 import { planOf } from '../../lib/plan/testing';
+import { capabilitiesAlone } from '../../lib/plan/wholeUnit';
 import { gate } from '../../lib/session/shape';
 import { buildSoniox, describeSoniox } from './config';
 import { leaseRequest } from './leaseRequest';
-import { sonioxProvider } from './provider';
+import { sonioxAdapter, sonioxProvider } from './provider';
 import { migrateSonioxSettings, SONIOX_DEFAULTS, sonioxCredentials, sonioxLanguages, sonioxSharedBoth } from './settings';
 import { SonioxSettingsView } from './SonioxSettings';
 import { SonioxTurnDetectionControls, SonioxTurnDetectionSummary } from './SonioxTurnDetection';
@@ -27,9 +28,12 @@ vi.mock('./check', async (importOriginal) => ({
   checkSoniox: checkSpy,
 }));
 
+const stt = sonioxProvider.units.find((u) => u.id === 'stt')!;
+const tts = sonioxProvider.units.find((u) => u.id === 'tts')!;
+
 describe('sonioxProvider', () => {
   it('offers face-to-face (a shared two_way socket with diarization)', () => {
-    expect(sonioxProvider.faceToFace).toBe(true);
+    expect(capabilitiesAlone(sonioxProvider, 'transcription').faceToFace).toBe(true);
   });
 
   it("is Soniox with the user's own key, on every platform, not flagged, under the old enum's id and slice", () => {
@@ -67,10 +71,10 @@ describe('sonioxProvider', () => {
   });
 
   it('speaks optionally, takes no typed text, keeps the provider\'s boundaries, and offers both turn modes', () => {
-    expect(sonioxProvider.speech).toBe('optional');
-    expect(sonioxProvider.textInput(SONIOX_DEFAULTS)).toBe(false);
-    expect(sonioxProvider.boundaries(SONIOX_DEFAULTS)).toBe('provider');
-    expect(sonioxProvider.turns(SONIOX_DEFAULTS)).toEqual(['auto', 'manual']);
+    expect(tts.capabilities(SONIOX_DEFAULTS).speech).toBe('optional');
+    expect(stt.capabilities(SONIOX_DEFAULTS).textInput).toBe(false);
+    expect(stt.capabilities(SONIOX_DEFAULTS).boundaries).toBe('provider');
+    expect(stt.capabilities(SONIOX_DEFAULTS).turns).toEqual(['auto', 'manual']);
   });
 
   it("its components, check, builder and adapter are Soniox's own", async () => {
@@ -85,9 +89,9 @@ describe('sonioxProvider', () => {
     expect(sonioxProvider.TurnDetection).not.toHaveProperty('Help');
     expect(sonioxProvider.credentials).toBe(sonioxCredentials);
     expect(sonioxProvider.languages).toBe(sonioxLanguages);
-    expect(sonioxProvider.build).toBe(buildSoniox);
-    expect(sonioxProvider.describe).toBe(describeSoniox);
-    expect(sonioxProvider.start).toEqual(expect.any(Function));
+    expect(stt.build).toBe(buildSoniox);
+    expect(stt.describe).toBe(describeSoniox);
+    expect(stt.start).toBe(sonioxAdapter.start);
     expect(sonioxProvider.session?.startBoth).toEqual(expect.any(Function));
     expect(sonioxProvider.session).not.toHaveProperty('prepare');
     expect(sonioxProvider.session).not.toHaveProperty('admit');
@@ -108,7 +112,7 @@ describe('sonioxProvider', () => {
     vi.stubGlobal('WebSocket', WebSocket);
     try {
       const context: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
-      const starting = sonioxProvider.start(
+      const starting = stt.start!(
         { context, config: buildSoniox(context, SONIOX_DEFAULTS, SHARED), credentials: KEY, clock: createVirtualClock(0), signal: AbortSignal.abort(new Error('cancelled')) },
         recordEvents().events,
       );

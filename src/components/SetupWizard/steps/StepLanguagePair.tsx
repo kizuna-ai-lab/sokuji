@@ -5,6 +5,7 @@ import { normalizePair } from '../../../lib/provider/languages';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../../lib/language/order';
 import { legsFor } from '../../../lib/session/appShape';
+import { capabilitiesAlone } from '../../../lib/plan/wholeUnit';
 import { languageContext, legSpeaks } from '../../../lib/session/shape';
 import { getScenario } from '../../../lib/setup/scenarios';
 import { pairSentence } from '../languageSentence';
@@ -24,11 +25,12 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   const uiLanguage = i18n.language;
   const label = useLanguageLabel();
   const p = wizardProvider(draft.provider)!;
+  const speaking = capabilitiesAlone(p, 'speech');
   const s = useProviderStore((st) => st.entries[p.id]?.settings) ?? p.settings.defaults;
   // The scenario's legs and text-only answer whether the run would speak, so the lists are the offer for it (Stage 2 Volcengine AST2, choice 1); the participant's own switch is the stores'.
   const preset = getScenario(draft.scenario!);
   const inputs = scenarioSpeechInputs(preset);
-  const speech = languageContext(p, legsFor(preset.mode), inputs).speech;
+  const speech = languageContext(speaking, legsFor(preset.mode), inputs).speech;
   const sources = useMemo(() => [...p.languages.sources(s, { speech })], [p, s, speech]);
   const targetsFor = (src: string) => [...p.languages.targets(src, s, { speech })];
 
@@ -69,8 +71,8 @@ const StepLanguagePair: React.FC<Props> = ({ draft, dispatch }) => {
   const sentence = pairSentence({
     mode: preset.mode,
     textOnly: preset.textOnly,
-    capability: textOnlyCapabilityOf(p),
-    participantSpeaks: legSpeaks(p, 'participant', inputs),
+    capability: textOnlyCapabilityOf(speaking),
+    participantSpeaks: legSpeaks(speaking, 'participant', inputs),
     source, target: draft.targetLanguage,
   });
   const myLabel = t(sentence.my.key, sentence.my.fallback);

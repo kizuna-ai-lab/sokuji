@@ -40,7 +40,7 @@ describe('the Bing provider', () => {
     expect(targets).not.toContain('en');
   });
 
-  it('never starts whole', async () => {
-    await expect(bingProvider.start({} as never, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
+  it('never starts whole', () => {
+    expect(bingProvider).not.toHaveProperty('start');
   });
 });

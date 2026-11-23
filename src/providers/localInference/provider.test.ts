@@ -42,6 +42,7 @@ import { localSpeechUnit } from './speechUnit';
 import { localTranscriptionUnit } from './transcriptionUnit';
 import { localTranslationUnit } from './translationUnit';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
+import { describeLocalInference } from './config';
 import { PROVIDERS, RELEASED } from '../registry';
 import { LocalInferenceEngineSummary } from './LocalInferenceEngineSummary';
 import { LocalInferenceVoiceSummary } from './LocalInferenceVoiceSummary';
@@ -75,10 +76,11 @@ describe('localInferenceProvider', () => {
   });
 
   it('offers optional speech, text input, provider-cut boundaries, and both turn modes', () => {
-    expect(localInferenceProvider.speech).toBe('optional');
-    expect(localInferenceProvider.textInput(LOCAL_INFERENCE_DEFAULTS)).toBe(true);
-    expect(localInferenceProvider.boundaries(LOCAL_INFERENCE_DEFAULTS)).toBe('provider');
-    expect(localInferenceProvider.turns(LOCAL_INFERENCE_DEFAULTS)).toEqual(['auto', 'manual']);
+    const whole = localInferenceProvider.units.find((u) => u.id === 'whole')!;
+    expect(whole.capabilities(LOCAL_INFERENCE_DEFAULTS).speech).toBe('optional');
+    expect(whole.capabilities(LOCAL_INFERENCE_DEFAULTS).textInput).toBe(true);
+    expect(whole.capabilities(LOCAL_INFERENCE_DEFAULTS).boundaries).toBe('provider');
+    expect(whole.capabilities(LOCAL_INFERENCE_DEFAULTS).turns).toEqual(['auto', 'manual']);
   });
 
   it('has an admit hook, the memory budget', () => {
@@ -128,8 +130,8 @@ describe('localInferenceProvider', () => {
       expect(unitsOf(localInferenceProvider)).toBe(localInferenceProvider.units);
       expect(voice).toBe(localSpeechUnit);
       expect(whole.id).toBe('whole');
-      expect(whole.start).toBe(localInferenceProvider.start);
-      expect(whole.describe).toBe(localInferenceProvider.describe);
+      expect(whole.start).toEqual(expect.any(Function));
+      expect(whole.describe).toBe(describeLocalInference);
       expect(whole.startSpeech).toBeUndefined();
       expect(whole.capabilities(LOCAL_INFERENCE_DEFAULTS)).toEqual({
         speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
@@ -313,7 +315,7 @@ describe('localInferenceProvider', () => {
     const context = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' } as any;
     const shared = {} as any;
     mockBuild.mockReturnValue({ refused: 'no' });
-    const result = localInferenceProvider.build(context, LOCAL_INFERENCE_DEFAULTS, shared);
+    const result = localInferenceProvider.units.find((u) => u.id === 'whole')!.build(context, LOCAL_INFERENCE_DEFAULTS, shared);
     expect(mockBuild).toHaveBeenCalledWith(context, LOCAL_INFERENCE_DEFAULTS, shared);
     expect(result).toEqual({ refused: 'no' });
   });
@@ -321,7 +323,7 @@ describe('localInferenceProvider', () => {
   it('delegates describe() to describeLocalInference', () => {
     const config = { asr: { modelId: 'x', streaming: false } } as any;
     mockDescribe.mockReturnValue({ asrModel: 'x' });
-    const result = localInferenceProvider.describe(config);
+    const result = localInferenceProvider.units.find((u) => u.id === 'whole')!.describe(config);
     expect(mockDescribe).toHaveBeenCalledWith(config);
     expect(result).toEqual({ asrModel: 'x' });
   });

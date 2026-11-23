@@ -1,4 +1,5 @@
 import { PalabraAIIcon } from '../../components/Icons/ProviderIcons';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createPalabraAdapter } from './adapter';
 import { checkPalabra } from './check';
@@ -48,16 +49,18 @@ export const palabraProvider: Provider<PalabraSettings, PalabraCredentials, Pala
   // Its documented tables, and its documented reverse (rulings 8, 9).
   languages: palabraLanguages,
 
-  // A leg that does not speak asks for text alone (ruling 7): Text only is offered.
-  speech: 'optional',
   endToEnd: true,
-  // It takes audio only (parity).
-  textInput: () => false,
-  // A validated transcription ends a segment (the old offer: pause off, auto and sizes on).
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
+  units: [wholeUnitOf<PalabraSettings, PalabraCredentials, PalabraConfig>({
+    // A leg that does not speak asks for text alone (ruling 7): Text only is offered.
+    speech: 'optional',
+    // It takes audio only (parity).
+    textInput: () => false,
+    // A validated transcription ends a segment (the old offer: pause off, auto and sizes on).
+    boundaries: () => 'provider',
+    turns: () => ['auto', 'manual'],
 
-  build: buildPalabra,
-  describe: describePalabra,
-  start: adapter.start,
+    build: buildPalabra,
+    describe: describePalabra,
+    start: adapter.start,
+  })],
 };

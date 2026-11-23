@@ -169,7 +169,7 @@ describe('useStageUnit', () => {
 
     act(() => useProviderStore.setState({ entries: { soniox: sonioxEntry } }));
     expect(result.current).toMatchObject({ provider: sonioxProvider, unit: unitsOf(sonioxProvider).find((u) => u.id === 'tts'), settings: sonioxEntry.settings });
-    expect(result.current!.capabilities.speech).toBe(sonioxProvider.speech);
+    expect(result.current!.capabilities.speech).toBe('optional');
   });
 });
 

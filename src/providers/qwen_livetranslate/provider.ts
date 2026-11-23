@@ -1,5 +1,6 @@
 import { QwenIcon } from '../../components/Icons/ProviderIcons';
 import { platformHeaderSocket } from '../../lib/contract/headerSocket';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createQwenAdapter } from './adapter';
 import { checkQwen, detectEndpoint } from './check';
@@ -43,16 +44,18 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
 
   languages: qwenLanguages,
 
-  // Text only is offered: a leg that does not speak asks for text alone.
-  speech: 'optional',
   endToEnd: true,
-  // An interpreter takes no typed text.
-  textInput: () => false,
-  // The server cuts each turn: on a change of speaker or 2.5 s of silence, or at a push-to-talk release.
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
+  units: [wholeUnitOf<QwenSettings, QwenCredentials, QwenConfig>({
+    // Text only is offered: a leg that does not speak asks for text alone.
+    speech: 'optional',
+    // An interpreter takes no typed text.
+    textInput: () => false,
+    // The server cuts each turn: on a change of speaker or 2.5 s of silence, or at a push-to-talk release.
+    boundaries: () => 'provider',
+    turns: () => ['auto', 'manual'],
 
-  build: buildQwen,
-  describe: describeQwen,
-  start: adapter.start,
+    build: buildQwen,
+    describe: describeQwen,
+    start: adapter.start,
+  })],
 };
