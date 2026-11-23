@@ -15,32 +15,28 @@ import { AUTO } from '../../lib/language/code';
 import type { LocalStages } from '../../lib/lineup/localStages';
 import type { StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
-import { startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
+import { startComposite } from '../../lib/plan/composite';
+import type { PlanConfigs } from '../../lib/plan/types';
 import { startCompositeBoth } from '../../lib/plan/compositeBoth';
 import { separateStages } from '../../lib/plan/compositeStages';
 import { separatePlan, stubProvider } from '../../lib/plan/testing';
 import { isSpeechUnit, isTranslationUnit, type PlannedUnit, type RunPlan } from '../../lib/plan/types';
-import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
+import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import { JOB_TIMEOUT_MS } from '../../lib/translation/jobTranslator';
 
 // Prefixed "mock" so Vitest hoists these alongside the vi.mock factories below.
 /** What each direction resolves to, keyed `${src}>${tgt}`, as the engine resolves under a line-up's local stages. */
 let mockTable: Record<string, { asr?: string; translation?: string }> = {};
 let mockStagesSeen: Array<LocalStages | null | undefined> = [];
-vi.mock('../../stores/modelStore', () => ({
-  useModelStore: {
-    getState: () => ({
-      resolve: (src: string, tgt: string, _selections: unknown, stages?: LocalStages | null): DirectionResult => {
-        mockStagesSeen.push(stages);
-        const entry = mockTable[`${src}>${tgt}`];
-        const stage = (id: string | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
-        const noAsr = stages != null && (stages.translation === null || stages.transcription === null);
-        return { asr: stage(noAsr ? undefined : entry?.asr), translation: stage(entry?.translation), tts: null, notes: [], prunes: [] };
-      },
-      deviceFeatures: [],
-    }),
-  },
-}));
+/** How this device's models resolve a direction: from `mockTable`, recording the stages each resolution is under. */
+const resolve = (src: string, tgt: string, _selections: unknown, stages?: LocalStages | null): DirectionResult => {
+  mockStagesSeen.push(stages);
+  const entry = mockTable[`${src}>${tgt}`];
+  const stage = (id: string | undefined) => (id ? { modelId: id, source: 'explicit' as const } : null);
+  const noAsr = stages != null && (stages.translation === null || stages.transcription === null);
+  return { asr: stage(noAsr ? undefined : entry?.asr), translation: stage(entry?.translation), tts: null, notes: [], prunes: [] };
+};
 
 /** Per-model memory in MB; the rest of the manifest is the real one. */
 let mockSizes: Record<string, number> = {};
@@ -66,11 +62,14 @@ import {
 const JA_EN = { source: 'ja', target: 'en' };
 const EN_JA = { source: 'en', target: 'ja' };
 const ctx = (direction: SessionContext['direction'], speech = false): SessionContext => ({ direction, speech, turns: 'auto' });
+/** This device's models as a run hands them: resolved by `resolve`, with no GPU feature. */
+const models = fakeLocalModels({ resolve, deviceFeatures: () => [] });
 const shared = (over: { reversed?: boolean; lineUp?: StageIds; words?: SharedSettings['words'] } = {}): SharedSettings => ({
   pauses: { sourceSeconds: 0, translationSeconds: 0 },
   reversed: () => over.reversed ?? false,
   segmentation: { mode: 'off', sentencesPerRow: 0 },
   models: [],
+  localModels: models,
   ...(over.lineUp ? { lineUp: over.lineUp } : {}),
   ...(over.words ? { words: over.words } : {}),
 });
@@ -212,8 +211,8 @@ describe('admission', () => {
   it('counts its translation models', () => {
     localStorage.setItem('debug:device-memory', '1'); // 768 MB of budget
     mockSizes = { 'opus-mt-en-jap': 500, 'opus-mt-ja-en': 500 };
-    expect(admitLocalTranslation({ speaker: MODEL })).toBe(true);
-    expect(admitLocalTranslation({ speaker: MODEL, participant: { ...MODEL, modelId: 'opus-mt-ja-en' } })).toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
+    expect(admitLocalTranslation({ speaker: MODEL }, [])).toBe(true);
+    expect(admitLocalTranslation({ speaker: MODEL, participant: { ...MODEL, modelId: 'opus-mt-ja-en' } }, [])).toEqual({ refused: 'The models need more memory than this device has.', code: 'memory_exceeded' });
   });
 });
 
@@ -530,8 +529,8 @@ describe('a session of the local translation unit', () => {
 
 describe('a leg of three units: another provider transcribes, this device translates, a third speaks', () => {
   const SPEAKS: SessionContext = { direction: EN_JA, speech: true, turns: 'auto' };
-  const [transcriber] = fakeTranscriberProvider.units!;
-  const [voice] = fakeVoiceProvider.units!;
+  const [transcriber] = fakeTranscriberProvider.units;
+  const [voice] = fakeVoiceProvider.units;
   const local = stubProvider('local_inference');
 
   function planOver(engines: Record<string, FakeTranslation>): RunPlan {

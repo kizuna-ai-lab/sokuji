@@ -11,7 +11,9 @@ import { KeyRound } from 'lucide-react';
 import type { AdapterEvents, AdapterSession, StartRequest } from '../../lib/contract/adapter';
 import { AdapterStartError, LegStartError } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
-import type { CredentialsMissing, Provider, ProviderRefusal } from '../../lib/provider/types';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
+import type { CredentialsMissing, Provider } from '../../lib/provider/types';
+import type { ProviderRefusal } from '../../lib/run/types';
 import type { FakeConfig } from './adapter';
 import { FakeLeasedSettingsView } from './FakeLeasedSettingsView';
 import { buildFake, checkFake, describeFake, FAKE_LANGUAGES, startFake } from './provider';
@@ -76,16 +78,20 @@ export const fakeLeasedProvider: Provider<FakeLeasedSettings, FakeLeasedCredenti
   },
   check: (_k, s) => checkFake(_k, s),
   languages: FAKE_LANGUAGES,
-  speech: 'optional',
-  textInput: () => true,
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-  build: (context, s, shared) => {
-    const built = buildFake(context, s, shared);
-    return isRefusal(built) ? built : { ...built, tieBoth: s.sharedBoth };
-  },
-  describe: describeFake,
-  start: startFake,
+  endToEnd: true,
+  // /* @__PURE__ */: a module-scope call the bundler cannot prove pure keeps this module in release builds (D24, see provider.ts).
+  units: [/* @__PURE__ */ wholeUnitOf<FakeLeasedSettings, FakeLeasedCredentials, FakeLeasedConfig>({
+    speech: 'optional',
+    textInput: () => true,
+    boundaries: () => 'provider',
+    turns: () => ['auto', 'manual'],
+    build: (context, s, shared) => {
+      const built = buildFake(context, s, shared);
+      return isRefusal(built) ? built : { ...built, tieBoth: s.sharedBoth };
+    },
+    describe: describeFake,
+    start: startFake,
+  })],
   session: {
     async prepare(_shape, s, signal) {
       if (signal.aborted) throw signal.reason ?? new Error('aborted');

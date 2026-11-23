@@ -136,8 +136,8 @@ describe('initialize resilience', () => {
   });
 });
 
-// Review Minor 1 (Task 5 Minor 1): SettingsInitializer and check.ts's
-// raceInitialize both call initialize() at startup, ~150ms apart. Without an
+// Review Minor 1 (Task 5 Minor 1): SettingsInitializer and `localModels.scanned` (`stores/localModels.ts`)
+// both call initialize() at startup, ~150ms apart. Without an
 // in-flight guard, a second call while the first is still scanning launches
 // its OWN independent scan — which can finish later, read a metadata
 // snapshot a live download has since changed, and flip it back to
@@ -177,7 +177,7 @@ describe('initialize concurrency', () => {
 
     const first = useModelStore.getState().initialize();
     // A download starting in the window between the two calls — exactly the
-    // race SettingsInitializer and check.ts's raceInitialize hit at startup.
+    // race SettingsInitializer and `localModels.scanned` hit at startup.
     useModelStore.setState((s) => ({ modelStatuses: { ...s.modelStatuses, 'voxtral-mini-4b-webgpu': 'downloading' } }));
     const second = useModelStore.getState().initialize();
 

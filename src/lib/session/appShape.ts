@@ -12,9 +12,10 @@ import { participantSpeechHeard } from '../modern-audio/participantSource';
 import { refusalNotice } from '../plan/checks';
 import { planFromStores, subscribePlan } from '../plan/fromStores';
 import { accountOf, capabilitiesOf, checkStagesOf, providersIn, servesSpeech, transcriptionAccount, transcriptionProvider } from '../plan/read';
-import type { PlanRefusal, UnitCapabilities } from '../plan/types';
+import type { PlanRefusal } from '../plan/types';
+import type { AuthContext, UnitCapabilities } from '../run/types';
 import { reversedPair } from '../provider/languages';
-import type { AnyProvider, AuthContext, Platform, Readiness } from '../provider/types';
+import type { AnyProvider, Platform, Readiness } from '../provider/types';
 import { accountPayer } from './payerChoice';
 import { presentProviders } from '../../providers/registry';
 import { useAccountStore } from '../../stores/accountStore';
@@ -117,7 +118,7 @@ function speechUnitFromStores(): UnitCapabilities | undefined {
  * and play the same legs. Before the plan is ready it answers as an
  * optional-speech provider would.
  */
-export function speechFromStores(speaking: Pick<AnyProvider, 'speech' | 'participantSpeech'> | undefined = speechUnitFromStores()): Speak {
+export function speechFromStores(speaking: Speaking | undefined = speechUnitFromStores()): Speak {
   const audio = useAudioStore.getState();
   const faceToFace = faceToFaceFromStores();
   return speakFor(speaking ?? { speech: 'optional' }, {

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import type { LanguageContext } from '../../../lib/provider/types';
+import { stubProvider } from '../../../lib/plan/testing';
 
 vi.mock('react-i18next', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-i18next')>()),
@@ -10,15 +11,14 @@ vi.mock('react-i18next', async (importOriginal) => ({
 const opt = (value: string) => ({ value, name: value, englishName: value });
 /** Speaking offers en and ja; text also ko — Doubao AST 2.0's shape. */
 const offered = (context?: LanguageContext) => [opt('en'), opt('ja'), ...(context?.speech ? [] : [opt('ko')])];
-const moody = {
-  id: 'moody',
+const moody = stubProvider('moody', {
   speech: 'optional',
   settings: { key: 'moody', defaults: {} },
   languages: {
     sources: (_s: unknown, context?: LanguageContext) => offered(context),
     targets: (source: string, _s: unknown, context?: LanguageContext) => offered(context).filter((o) => o.value !== source),
   },
-};
+});
 vi.mock('../providerPaths', () => ({ wizardProvider: () => moody, textOnlyCapabilityOf: () => 'optional' }));
 // The registry's import graph stays out: the step reads only these two from the app shape.
 vi.mock('../../../lib/session/appShape', () => ({

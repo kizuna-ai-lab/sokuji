@@ -1,7 +1,9 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import type { AnyProvider, AuthContext, EngineSlot } from '../../lib/provider/types';
+import type { AnyProvider, EngineSlot } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { useProviderStore } from '../../stores/providerStore';
 import { useTextOnly } from '../../stores/settingsStore';
+import { capabilitiesAlone } from '../../lib/plan/wholeUnit';
 import { legSpeaks } from '../../lib/session/shape';
 import { appVoicePreview } from '../../app/voicePreview';
 import { useFaceToFace } from '../MainPanel/useFaceToFace';
@@ -50,7 +52,7 @@ export function ProviderOwnSettings({ providers, auth, disabled, providerId }: P
   );
   if (!selection?.entry) return null;
   const Settings = selection.provider.Settings;
-  const participantSpeaks = selection.provider.participantSpeech !== false && speechParticipant;
+  const participantSpeaks = capabilitiesAlone(selection.provider, 'speech').participantSpeech && speechParticipant;
   return <Settings {...ownProps(selection, selection.entry, disabled, runPair)} account={account} legs={legs} participantSpeaks={participantSpeaks} faceToFace={faceToFace} preview={appVoicePreview} />;
 }
 
@@ -99,9 +101,9 @@ export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlot
   const Engine = selection.provider.Engine;
   if (!Engine) return null;
   // As for Settings above: the switch, unless the provider never speaks the participant.
-  const participantSpeaks = selection.provider.participantSpeech !== false && speechParticipant;
+  const participantSpeaks = capabilitiesAlone(selection.provider, 'speech').participantSpeech && speechParticipant;
   // My side: the provider's own rule, else Translation the other side hears (the text-only switch, owner 2026-11-18).
-  const speakerSpeaks = legSpeaks(selection.provider, 'speaker', { textOnly, participantSpeech: false });
+  const speakerSpeaks = legSpeaks(capabilitiesAlone(selection.provider, 'speech'), 'speaker', { textOnly, participantSpeech: false });
   return (
     <Engine
       {...ownProps(selection, selection.entry, disabled, runPair)}

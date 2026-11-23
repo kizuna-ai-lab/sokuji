@@ -10,7 +10,8 @@ import { SMART_TURN_MAX_WAIT_MIN, supportsSmartTurn, effectiveCheckAfter, type V
 import { EndOfTurnControl, VadControl, type VadValues } from '../../components/Settings/sections/LocalSettingsControls';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import { describeCause, reportWarning } from '../../lib/diagnostics/report';
-import type { LanguagePair, SettingsProps } from '../../lib/provider/types';
+import type { SettingsProps } from '../../lib/provider/types';
+import type { LanguagePair } from '../../lib/run/types';
 import { LOCAL_INFERENCE_DEFAULTS, type LocalInferenceSettings as S } from './settings';
 
 /** Every slider the VAD block can show. Restore defaults puts all of them back; Normal / Smart is a choice, not a slider. */

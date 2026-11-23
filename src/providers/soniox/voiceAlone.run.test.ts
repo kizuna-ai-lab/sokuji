@@ -13,7 +13,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
-import { CAPS } from '../../lib/lineup/catalog';
+import { allCaps } from '../../lib/lineup/catalog';
 import { compose } from '../../lib/plan/compose';
 import { isRefusal } from '../../lib/plan/types';
 import type { AnyProvider } from '../../lib/provider/types';
@@ -28,6 +28,9 @@ import { SONIOX_DEFAULTS } from './settings';
 import { b64, END, isStt, msg, orig, tr, type Json } from './testing';
 import { createSonioxTtsUnit } from './ttsUnit';
 import { sonioxSttUnitFor } from './units';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const API = 'https://api.test';
 const LINE_UP = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
@@ -38,7 +41,7 @@ function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeec
   const adapter = createSonioxAdapter({ openSocket: sockets.create });
   const units = () => [sonioxSttUnitFor({ start: adapter.start }), createSonioxTtsUnit({ openSocket: sockets.create })];
   // Soniox with an own key, its adapter and its units on fake sockets.
-  const own = { ...sonioxProvider, start: adapter.start, units: units(), session: { startBoth: adapter.startBoth } } as AnyProvider;
+  const own = { ...sonioxProvider, units: units(), session: { startBoth: adapter.startBoth } } as AnyProvider;
 
   /** The service: a session-key answer with a speech stream for each leg asked, and a 200 for everything else. */
   const requests: Array<{ path: string; token: string | undefined; body: Record<string, unknown> }> = [];
@@ -69,7 +72,7 @@ function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeec
 
   const input = { providers: [own, hosted], settings: () => SONIOX_DEFAULTS };
   // The app's catalog offers this voice alone: the line-up composes there, and is refused under one that does not.
-  const refused = compose(LINE_UP, { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) });
+  const refused = compose(LINE_UP, { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) });
   const plan = compose(LINE_UP, input);
   if (isRefusal(plan)) throw new Error(`expected a plan, got ${plan.refused}`);
 

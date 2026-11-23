@@ -8,7 +8,7 @@
 import { useMemo } from 'react';
 import { useAnalytics } from '../lib/analytics';
 import { useAuth } from '../lib/auth/hooks';
-import type { AuthContext } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 import type { AnalyticsPort } from '../lib/session/ports';
 import { getAppSession } from './session';
 

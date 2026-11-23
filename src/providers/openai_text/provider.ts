@@ -5,16 +5,15 @@
 // the translation's model and reasoning, on the line-up's Translation card. The desktop app only (spec §1).
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
 import { textModelSettingsView } from '../../components/providers/TextModelSettings';
-import { AdapterStartError } from '../../lib/contract/adapter';
 import { TL } from '../../lib/lineup/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import { notesModelFromOld, OLD_NOTES_MODEL_KEY } from '../../lib/notes/oldNotesModel';
 import type { CredentialsMissing, MigrationInputs, Provider } from '../../lib/provider/types';
 import { createTextModelCheck, type TextModelCheckDeps } from '../../lib/textModel/check';
 import { textModelLanguages } from '../../lib/textModel/languages';
 import type { TextModelSessionDeps } from '../../lib/textModel/translation';
 import {
-  buildTextModelTranslation, describeTextModelTranslation, migrateTextModelSettings, textModelTranslationUnit, TEXT_MODEL_CHECK_READS, TEXT_MODEL_DEFAULTS,
+  migrateTextModelSettings, textModelTranslationUnit, TEXT_MODEL_CHECK_READS, TEXT_MODEL_DEFAULTS,
   type TextModelSettings,
 } from '../../lib/textModel/unit';
 import { OPENAI_KEY_STORED_AT } from '../openaiKey';
@@ -55,7 +54,7 @@ export const openaiTextProvider: Provider<TextModelSettings, OpenAITextCredentia
 
   settings: { key: 'openaiText', defaults: TEXT_MODEL_DEFAULTS, legacyKeys: [OLD_NOTES_MODEL_KEY, OWN_NOTES_MODEL], migrate: migrateOpenAITextSettings },
   Settings: textModelSettingsView('openai'),
-  optionStages: [TL],
+  settingsStages: [TL],
 
   credentials: {
     keys: ['apiKey'],
@@ -72,16 +71,6 @@ export const openaiTextProvider: Provider<TextModelSettings, OpenAITextCredentia
   checkReads: TEXT_MODEL_CHECK_READS,
 
   languages: textModelLanguages,
-
-  speech: 'never',
-  textInput: () => false,
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-
-  build: (context, s, shared) => buildTextModelTranslation('openai', context, s, shared),
-  describe: describeTextModelTranslation,
-  // It never runs a session whole: it translates another provider's transcription, through its unit.
-  start: () => Promise.reject(new AdapterStartError("OpenAI's text models only translate: they start through their translation unit.", 'plan_unsupported')),
 
   units: [createOpenAITextUnit()],
 };

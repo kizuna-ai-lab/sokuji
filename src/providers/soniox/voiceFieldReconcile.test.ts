@@ -9,7 +9,8 @@ vi.mock('../../services/ServiceFactory', () => ({
   },
 }));
 
-import type { AnyProvider, AuthContext } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import * as report from '../../lib/diagnostics/report';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';

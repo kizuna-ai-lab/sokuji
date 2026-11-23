@@ -14,12 +14,11 @@ import type { AdapterEvents, StartRequest } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { flush } from '../../lib/contract/testing/drive';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
-import type { AnyProvider } from '../../lib/provider/types';
 import type { FramePort } from '../../lib/session/ports';
 import { createRunner } from '../../lib/session/runner';
 import type { RunShape } from '../../lib/session/types';
-import { shapeWith } from '../../lib/plan/testing';
-import { fakeProvider } from '../fake/provider';
+import { shapeWith, withWhole } from '../../lib/plan/testing';
+import { FAKE_WHOLE, fakeProvider } from '../fake/provider';
 import { FAKE_DEFAULTS } from '../fake/settings';
 import { createFakeSource } from '../fake/source';
 import { createPalabraAdapter, POLL_MS, RELEASE_TIMEOUT_MS } from './adapter';
@@ -39,11 +38,10 @@ function setup() {
   const sockets = fakeSockets();
   const rest = fakeRest({ remove: 'hang' });
   const adapter = createPalabraAdapter({ openSocket: (url) => sockets.create(url), fetch: rest.fetch, newId: () => 'test-hash', online: () => true });
-  const provider = {
-    ...fakeProvider,
+  const provider = withWhole(fakeProvider, FAKE_WHOLE, {
     start: (request: StartRequest<unknown, unknown>, events: AdapterEvents) =>
       adapter.start({ ...request, config: configFor(request.context), credentials: APP }, events),
-  } as unknown as AnyProvider;
+  });
   const seen: string[] = [];
   const frames: FramePort = { frame: (_leg, f) => { if (ENDING.has(f.type)) seen.push(f.type); } };
   const shape: RunShape = shapeWith(provider, {

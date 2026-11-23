@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AuthContext } from '../lib/provider/types';
+import type { AuthContext } from '../lib/run/types';
 import { kizunaSonioxProvider } from '../providers/soniox/kizuna';
 import { fakeProvider } from '../providers/fake/provider';
 import { watchSonioxVoiceAccount } from './sonioxVoiceAccount';

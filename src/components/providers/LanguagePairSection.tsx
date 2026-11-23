@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import Tooltip from '../Tooltip/Tooltip';
 import { pairSentence } from '../SetupWizard/languageSentence';
 import { AUTO, normalizePair, reverseSupported, reversedPair, swapped } from '../../lib/provider/languages';
-import type { AnyProvider, LanguageContext, LanguageOption, LanguagePair } from '../../lib/provider/types';
+import { capabilitiesAlone } from '../../lib/plan/wholeUnit';
+import type { LanguagePair, UnitCapabilities } from '../../lib/run/types';
+import type { AnyProvider, LanguageContext, LanguageOption } from '../../lib/provider/types';
 import type { AudioMode } from '../../stores/audioStore';
 import { useLanguageLabel } from '../../lib/language/useLanguageLabel';
 import { orderLanguages, pinnedLanguages, PIN_SEPARATOR, type OrderContext } from '../../lib/language/order';
@@ -107,8 +109,8 @@ interface LanguagePairSectionProps {
    * `onOpenAudio` is the way to the audio settings a blocked choice offers. Absent: the words are plain labels.
    */
   receive?: ReceiveChoices;
-  /** How the unit that speaks leaves speaking to the switch, for the sentence. Absent: the provider's own `speech`. */
-  speech?: AnyProvider['speech'];
+  /** How the unit that speaks leaves speaking to the switch, for the sentence. Absent: what the provider's unit that speaks says in a run on it alone. */
+  speech?: UnitCapabilities['speech'];
   /**
    * Per leg that is read aloud by a voice that says what it reads: whether it reads a language. Such a leg is
    * offered only the languages its voice reads; the pair as it stands is never changed for it, and a language it
@@ -131,7 +133,7 @@ export interface SpokenBy {
  * allowed whenever the provider supports the reversed pair. Markup is
  * LanguageSection's translation-languages block.
  */
-export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context, reverseContext = context, heading = true, receive, speech = provider.speech, spoken }: LanguagePairSectionProps) {
+export function LanguagePairSection({ provider, settings, pair, onChange, disabled, sentence, context, reverseContext = context, heading = true, receive, speech = capabilitiesAlone(provider, 'speech').speech, spoken }: LanguagePairSectionProps) {
   const { t, i18n } = useTranslation();
   const id = useId();
   const label = useLanguageLabel();

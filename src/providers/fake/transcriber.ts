@@ -7,10 +7,9 @@
  * scope.
  */
 import { Ear } from 'lucide-react';
-import { AdapterStartError } from '../../lib/contract/adapter';
 import { TR } from '../../lib/lineup/types';
 import { sameStages } from '../../lib/plan/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import type { FakeConfig } from './adapter';
 import { FAKE_LANGUAGES, startFake } from './provider';
@@ -88,8 +87,8 @@ const transcriberUnit: UnitDefinition<FakeTranscriberSettings, FakeTranscriberCr
 };
 
 /**
- * The fake transcriber provider: no key, always ready, the fake's languages. It never runs a session whole:
- * generic code reads its `units`, and its own `start` rejects.
+ * The fake transcriber provider: no key, always ready, the fake's languages. It never runs a session whole: it
+ * starts through its unit.
  */
 export const fakeTranscriberProvider: Provider<FakeTranscriberSettings, FakeTranscriberCredentials, FakeConfig> & { id: 'fake_transcriber' } = {
   id: 'fake_transcriber',
@@ -110,15 +109,6 @@ export const fakeTranscriberProvider: Provider<FakeTranscriberSettings, FakeTran
   check: async () => ({ ok: true }),
 
   languages: FAKE_LANGUAGES,
-
-  speech: 'never',
-  textInput: () => true,
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-
-  build: buildFakeTranscriber,
-  describe: describeFakeTranscriber,
-  start: () => Promise.reject(new AdapterStartError('The fake transcriber only transcribes: it starts through its unit, beside a unit that translates.', 'plan_unsupported')),
 
   units: [transcriberUnit],
 };

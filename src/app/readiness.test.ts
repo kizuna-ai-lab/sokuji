@@ -9,6 +9,7 @@ import { fakeProvider } from '../providers/fake/provider';
 import { FAKE_DEFAULTS } from '../providers/fake/settings';
 import { useProviderStore } from '../stores/providerStore';
 import { useLineUpStore } from '../stores/lineUpStore';
+import { localModels } from '../stores/localModels';
 import { runsOn } from '../stores/lineUpStore.testing';
 import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS } from './readiness';
 import { readinessPlan } from './session';
@@ -40,15 +41,16 @@ function makeProbe(id = 'probe', kind: 'local' | 'own-key' | 'managed' = 'local'
   const check = vi.fn(async () => ({ ok: true as const }));
   const off = vi.fn();
   let changed: (() => void) | undefined;
+  const watch = vi.fn((fn: () => void) => { changed = fn; return off; });
   const provider = {
     ...fakeProvider,
     id,
     kind,
     credentials: { keys: [], fields: () => [], read: () => ({}) },
     check,
-    watchReadiness: (fn: () => void) => { changed = fn; return off; },
+    watchReadiness: watch,
   };
-  return { provider, check, off, fire: () => changed?.() };
+  return { provider, check, off, watch, fire: () => changed?.() };
 }
 
 function setupStore(...providers: Array<{ id: string }>) {
@@ -110,6 +112,15 @@ describe('driveReadiness', () => {
     expect(check).toHaveBeenCalledTimes(1);
     expect(useProviderStore.getState().readiness.probe).toEqual({ state: 'ready', models: [] });
 
+    detach();
+  });
+
+  it("watches each provider of the plan through this device's models", async () => {
+    const { provider, watch } = makeProbe();
+    setupStore(provider);
+    const detach = driveReadiness({ runner: idleRunner(), providers: () => [provider], plan: readinessPlan, auth: () => auth, clock: createVirtualClock(0) });
+    await flush();
+    expect(watch).toHaveBeenCalledWith(expect.any(Function), localModels);
     detach();
   });
 

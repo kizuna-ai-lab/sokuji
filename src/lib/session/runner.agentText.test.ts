@@ -3,14 +3,14 @@ import type { OutletName } from '../audio/outlets';
 import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
 import type { LegName } from '../conversation/types';
-import type { AnyProvider, SharedSettings } from '../provider/types';
-import { shapeWith } from '../plan/testing';
-import { fakeProvider } from '../../providers/fake/provider';
+import type { SharedSettings, TurnMode } from '../run/types';
+import { shapeWith, withWhole } from '../plan/testing';
+import { buildFake, FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { PlaybackPort } from './ports';
 import { createRunner } from './runner';
-import type { RunShape, TurnMode } from './types';
+import type { RunShape } from './types';
 
 const reportErrorSpy = vi.hoisted(() => vi.fn());
 vi.mock('../diagnostics/report', async (importOriginal) => {
@@ -72,7 +72,7 @@ function setup(o: { legs?: RunShape['legs']; turnMode?: TurnMode; mutePort?: boo
   };
   // Translation I hear, live (#595).
   const hear = { value: true, listeners: new Set<() => void>() };
-  const shape: RunShape = shapeWith({ ...fakeProvider, start, build: (c: never, st: never, shared: SharedSettings) => { asked.push(shared.speaks); return fakeProvider.build(c, st, shared); } } as unknown as AnyProvider, {
+  const shape: RunShape = shapeWith(withWhole(fakeProvider, FAKE_WHOLE, { start, build: (c: never, st: never, shared: SharedSettings) => { asked.push(shared.speaks); return buildFake(c, st, shared); } }), {
     settings: FAKE_DEFAULTS,
     credentials: { apiKey: '' },
     pair: { source: 'en', target: 'ja' },

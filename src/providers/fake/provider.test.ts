@@ -3,8 +3,8 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import { AUTO } from '../../lib/provider/languages';
-import type { SharedSettings } from '../../lib/provider/types';
-import { fakeProvider } from './provider';
+import type { SharedSettings } from '../../lib/run/types';
+import { FAKE_WHOLE, fakeProvider } from './provider';
 import { FAKE_SCRIPT_NAMES, fakeScript } from './scripts';
 import { FAKE_DEFAULTS, migrateFakeSettings, type FakeSettings } from './settings';
 
@@ -18,8 +18,14 @@ const shared: SharedSettings = {
 const noAuth = { signedIn: false, getToken: async () => null };
 const settings = (patch: Partial<FakeSettings> = {}): FakeSettings => ({ ...FAKE_DEFAULTS, ...patch });
 const checkCtx = { pair: { source: 'en', target: 'ja' }, legs: ['speaker'] as const };
+const [whole] = fakeProvider.units;
 
 describe('the fake provider', () => {
+  it('runs its whole unit, made of FAKE_WHOLE', () => {
+    expect(fakeProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(fakeProvider.units[0].describe).toBe(FAKE_WHOLE.describe);
+  });
+
   it('shows no credential field by default, and reads without one', () => {
     expect(fakeProvider.credentials.fields(settings())).toEqual([]);
     expect(fakeProvider.credentials.read({}, noAuth)).not.toHaveProperty('missing');
@@ -44,7 +50,7 @@ describe('the fake provider', () => {
   });
 
   it('refuses to build when buildRefused is on, with a code of its own', () => {
-    expect(fakeProvider.build(context, settings({ buildRefused: true }), shared)).toEqual({
+    expect(whole.build(context, settings({ buildRefused: true }), shared)).toEqual({
       refused: 'The fake refuses to build (fault knob).',
       code: 'fake_build_refused',
       params: { knob: 'buildRefused' },
@@ -52,7 +58,7 @@ describe('the fake provider', () => {
   });
 
   it('builds the chosen script and passes the fault knobs, leaving zero-valued ones unset', () => {
-    expect(fakeProvider.build(context, settings({ script: 'cjk', startThrows: true, failAfterMs: 2000 }), shared)).toEqual({
+    expect(whole.build(context, settings({ script: 'cjk', startThrows: true, failAfterMs: 2000 }), shared)).toEqual({
       script: fakeScript('cjk'),
       faults: { startThrows: expect.any(String), startDelayMs: undefined, failAfterMs: 2000 },
     });
@@ -66,16 +72,16 @@ describe('the fake provider', () => {
   });
 
   it('offers both turn modes and cuts at its own boundaries', () => {
-    expect(fakeProvider.turns(settings())).toEqual(['auto', 'manual']);
-    expect(fakeProvider.boundaries(settings())).toBe('provider');
+    expect(whole.capabilities(settings()).turns).toEqual(['auto', 'manual']);
+    expect(whole.capabilities(settings()).boundaries).toBe('provider');
   });
 
   it('plays what it built: the first source segment opens on the clock', async () => {
-    const built = fakeProvider.build(context, settings(), shared);
+    const built = whole.build(context, settings(), shared);
     if ('refused' in built) throw new Error(built.refused);
     const clock = createVirtualClock();
     const { events, log } = recordEvents();
-    await fakeProvider.start({ context, config: built, credentials: {}, clock, signal: new AbortController().signal }, events);
+    await whole.start!({ context, config: built, credentials: {}, clock, signal: new AbortController().signal }, events);
     expect(log).toEqual([]);
     clock.advance(500);
     expect(log[0]).toEqual({ kind: 'segmentOpened', payload: { ref: 1, side: 'source', origin: 'x1' } });
@@ -92,9 +98,9 @@ describe('the fake provider', () => {
 
   it("plays the participant's own script on the reversed direction", () => {
     const s = settings({ participantScript: 'cjk' });
-    expect(fakeProvider.build(context, s, { ...shared, reversed: () => true })).toMatchObject({ script: fakeScript('cjk') });
-    expect(fakeProvider.build(context, s, { ...shared, reversed: () => false })).toMatchObject({ script: fakeScript('exchange') });
-    expect(fakeProvider.build(context, settings({ participantScript: 'same' }), { ...shared, reversed: () => true }))
+    expect(whole.build(context, s, { ...shared, reversed: () => true })).toMatchObject({ script: fakeScript('cjk') });
+    expect(whole.build(context, s, { ...shared, reversed: () => false })).toMatchObject({ script: fakeScript('exchange') });
+    expect(whole.build(context, settings({ participantScript: 'same' }), { ...shared, reversed: () => true }))
       .toMatchObject({ script: fakeScript('exchange') });
   });
 });

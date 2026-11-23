@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { Budget } from '../../lib/session/types';
+import type { Budget } from '../../lib/run/types';
 import { formatRemainingTime } from '../../utils/formatters';
 import './SessionCountdown.scss';
 

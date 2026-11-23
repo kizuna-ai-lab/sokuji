@@ -3,7 +3,6 @@
  * speaks what another provider's unit translated; it never runs a session whole.
  */
 import { EdgeIcon } from '../../components/Icons/ProviderIcons';
-import { AdapterStartError } from '../../lib/contract/adapter';
 import { identityWire } from '../../lib/language/wire';
 import { SP } from '../../lib/lineup/types';
 import { EDGE_TTS_LANGUAGES } from '../../lib/local-inference/languageSupport';
@@ -32,7 +31,7 @@ export const edgeProvider: Provider<EdgeSettings, EdgeCredentials, LocalSpeechCo
     migrate: migrateEdgeSettings,
   },
   Settings: EdgeSettingsView,
-  optionStages: [SP],
+  settingsStages: [SP],
   VoiceSummary: EdgeVoiceSummary,
 
   credentials: {
@@ -48,15 +47,6 @@ export const edgeProvider: Provider<EdgeSettings, EdgeCredentials, LocalSpeechCo
     targets: (source) => options.filter((o) => o.value !== source),
     wire: identityWire(),
   },
-
-  speech: 'optional',
-  textInput: () => false,
-  boundaries: () => 'silence',
-  turns: () => ['auto', 'manual'],
-
-  build: edgeSpeechUnit.build,
-  describe: edgeSpeechUnit.describe,
-  start: () => Promise.reject(new AdapterStartError('Edge only speaks: it starts through its speech unit.', 'plan_unsupported')),
 
   units: [edgeSpeechUnit],
 };

@@ -10,7 +10,7 @@ import type { Leg } from '../conversation/types';
 import type { NotesLanguage, NotesRunner } from '../notes/runner';
 import { payerBalance } from '../session/orgNotice';
 import { accountPayer } from '../session/payerChoice';
-import type { AccountState } from '../session/types';
+import type { AccountState } from '../run/types';
 import { fitsHosted, hostedEstimateMicroUsd, hostedEstimateUsd, type HostedFileTerms, type TrackSize } from './file/hostedFile';
 import type { ImportPhase, ImportResult } from './file/importFile';
 import type { FileRecognitionMissing, FileRecognitionService } from './file/service';

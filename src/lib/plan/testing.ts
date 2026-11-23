@@ -7,30 +7,52 @@ import type { AdapterEvents, AdapterSession, Ref, StartRequest, TextRange } from
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../contract/speech';
 import type { SourceSnapshot, TranslationEvents, TranslationSession, TranslationStartRequest } from '../contract/translation';
 import type { LegName } from '../conversation/types';
-import { allStagesBy, CAPS } from '../lineup/catalog';
+import { allStagesBy, allCaps } from '../lineup/catalog';
 import type { StageIds } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
 import type { RunShape } from '../session/types';
 import type { ComposeInput } from './compose';
 import type { PlannedUnit, RunPlan } from './types';
-import { wholePlan } from './wholeUnit';
+import { wholePlan, wholeUnitOf } from './wholeUnit';
+import type { WholeUnitParts } from './wholeUnit';
 
-/** A provider definition with only what its whole-provider unit reads, so the real registry stays out of the tests. */
-export const stubProvider = (id: string, over: Record<string, unknown> = {}): AnyProvider => ({
-  id,
+/** What a stub's whole unit is made of, unless a test says otherwise. */
+const STUB_WHOLE: WholeUnitParts = {
   speech: 'optional',
   turns: () => ['auto'],
   boundaries: () => 'silence',
   textInput: () => false,
   build: () => ({}),
   describe: () => ({}),
-  start: () => undefined,
-  ...over,
-}) as unknown as AnyProvider;
+  start: (() => undefined) as unknown as WholeUnitParts['start'],
+};
+
+const PARTS: ReadonlySet<string> = new Set(['speech', 'textInput', 'boundaries', 'turns', 'participantSpeech', 'faceToFace', 'build', 'describe', 'start']);
+
+/**
+ * `p` with its run changed: the members of `over` that are parts of a whole unit go to one whole unit, made of
+ * `whole` and those parts, which is the result's only unit; every other member of `over` replaces `p`'s. When
+ * `over.units` is given it is the result's units instead, and a part beside it is an error, since it would be lost.
+ */
+export function withWhole(p: AnyProvider, whole: WholeUnitParts, over: Record<string, unknown> = {}): AnyProvider {
+  const parts: Record<string, unknown> = {};
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(over)) (PARTS.has(key) ? parts : rest)[key] = value;
+  const named = Object.keys(parts);
+  if ('units' in over && named.length > 0) throw new Error(`withWhole: ${named[0]} would be lost beside units`);
+  return { ...p, ...rest, ...('units' in over ? {} : { units: [wholeUnitOf({ ...whole, ...parts } as WholeUnitParts)] }) } as AnyProvider;
+}
+
+/**
+ * A provider definition with only what its whole unit reads, so the real registry stays out of the tests. The
+ * members of `over` that a whole unit is made of go to its unit; a stub has no run member of its own.
+ */
+export const stubProvider = (id: string, over: Record<string, unknown> = {}): AnyProvider =>
+  withWhole({ id } as unknown as AnyProvider, STUB_WHOLE, over);
 
 /** A composer input that offers a stub provider for every host in the catalog, so every option is offered; `over` goes to each stub. */
 export function stubHosts(over: Record<string, unknown> = {}): ComposeInput {
-  return { providers: [...new Set(CAPS.map((c) => c.host))].map((id) => stubProvider(id, over)), settings: () => undefined };
+  return { providers: [...new Set(allCaps().map((c) => c.host))].map((id) => stubProvider(id, over)), settings: () => undefined };
 }
 
 /** The plan of a line-up that names `p` on every stage, built without the catalog (a test's stub provider is not in it). */

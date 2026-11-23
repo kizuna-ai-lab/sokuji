@@ -144,11 +144,11 @@ vi.mock('../Settings/shared/WarningModal', () => ({
 import { configureAppSession, getAppSession } from '../../app/session';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { PunctuationRuntime } from '../../lib/segmentation/PunctuationRuntime';
-import type { LanguagePair } from '../../lib/provider/types';
+import type { LanguagePair } from '../../lib/run/types';
 import type { AnalyticsPort } from '../../lib/session/ports';
 import { VIEW_INTERVAL_MS } from '../../lib/view/conversationView';
 import { TRANSIENT_NOTICE_MS } from '../../lib/view/filter';
-import { fakeProvider } from '../../providers/fake/provider';
+import { FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { createFakeSource } from '../../providers/fake/source';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
@@ -405,7 +405,7 @@ describe('MainPanel', () => {
 
   // Settings are locked while a run is live, so the stored ones are the run's.
   it("offers typed text only when the provider takes it with the stored settings (Live Translate takes none)", async () => {
-    const textInput = vi.spyOn(fakeProvider, 'textInput').mockReturnValue(false);
+    const textInput = vi.spyOn(FAKE_WHOLE, 'textInput').mockReturnValue(false);
     try {
       const { container } = await renderPanel();
       act(() => { runner().state.setState({ phase: 'running', participantSpeech: false, since: 0, legs: { speaker: 'live' } }, true); });
@@ -925,14 +925,14 @@ describe('the ears strip (face-to-face)', () => {
   // The fake offers face-to-face for these cases only, on a pair that reverses (D20).
   let pair: LanguagePair;
   beforeEach(() => {
-    Object.assign(fakeProvider, { faceToFace: true });
+    Object.assign(FAKE_WHOLE, { faceToFace: true });
     useAudioStore.setState({ mode: 'both', otherSide: 'beside' });
     pair = useProviderStore.getState().entries.fake!.pair;
     useProviderStore.getState().setPair(fakeProvider, { source: 'en', target: 'ja' });
   });
   afterEach(() => {
-    delete (fakeProvider as { faceToFace?: boolean }).faceToFace;
-    delete (fakeProvider as { participantSpeech?: boolean }).participantSpeech;
+    delete (FAKE_WHOLE as { faceToFace?: boolean }).faceToFace;
+    delete (FAKE_WHOLE as { participantSpeech?: boolean }).participantSpeech;
     // The panel is still mounted here: its cleanup runs after this hook.
     act(() => {
       useProviderStore.getState().setPair(fakeProvider, pair);
@@ -1015,7 +1015,7 @@ describe('the ears strip (face-to-face)', () => {
     });
 
     it('does nothing of the kind when face-to-face is not offered', async () => {
-      delete (fakeProvider as { faceToFace?: boolean }).faceToFace;
+      delete (FAKE_WHOLE as { faceToFace?: boolean }).faceToFace;
       const { container } = await renderPanel();
       fireEvent.click(bothSegment(container));
       expect(useAudioStore.getState().mode).toBe('both');
@@ -1051,7 +1051,7 @@ describe('the ears strip (face-to-face)', () => {
 
   // Kizuna Soniox today: the provider's flag keeps the participant's leg silent.
   it("shows no slot, no ear and no not-played mark on a silent participant leg, and only the speaker's ear in the strip", async () => {
-    Object.assign(fakeProvider, { participantSpeech: false });
+    Object.assign(FAKE_WHOLE, { participantSpeech: false });
     useSettingsStore.setState({ keepReplayAudio: true });
     const { container } = await renderPanel();
     await start(container);

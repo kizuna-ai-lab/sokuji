@@ -7,8 +7,8 @@
 
 import type { SessionContext } from '../contract/adapter';
 import { TL } from '../lineup/types';
-import { sameStages, type UnitCapabilities, type UnitDefinition } from '../plan/types';
-import type { ProviderRefusal, SharedSettings } from '../provider/types';
+import { sameStages } from '../plan/types';
+import type { ProviderRefusal, SharedSettings, UnitCapabilities, UnitDefinition } from '../run/types';
 import type { TextModelService } from './client';
 import {
   maxTokensFor, modelChoiceOf, modelToUse, reasoningAskOf, reasoningChoiceOf, translationTemperature, DEFAULT_MODEL_CHOICE, DEFAULT_NOTES_REASONING_CHOICE,

@@ -1,5 +1,6 @@
 import { OPENAI_KEY_STORED_AT } from '../openaiKey';
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createRealtimeAdapter } from './adapter';
 import { checkRealtime } from './check';
@@ -44,7 +45,7 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
   settings: { key: 'openai', defaults: REALTIME_DEFAULTS, legacyKeys: REALTIME_LEGACY_KEYS, migrate: migrateRealtimeSettings },
   Settings: RealtimeSettingsView,
   // The model on every stage, the transcript and noise reduction on transcription, the instructions, tokens and reasoning on translation, the voices on speech (mock v19).
-  optionStages: [ALL_STAGES, TR, TL, SP],
+  settingsStages: [ALL_STAGES, TR, TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: RealtimeVoiceSummary,
   TurnDetection: { Summary: RealtimeTurnDetectionSummary, Controls: RealtimeTurnDetectionControls, Help: RealtimeTurnDetectionHelp },
@@ -57,15 +58,18 @@ export const openaiProvider: Provider<RealtimeSettings, RealtimeCredentials, Rea
 
   languages: realtimeLanguages,
 
-  // Text only is the API's own: a leg that does not speak asks for text alone.
-  speech: 'optional',
-  textInput: () => true,
-  // The server's commits and responses end segments (the old offer: Auto); cutting by sentences is offered too.
-  boundaries: () => 'provider',
-  // WebSocket only, so both turn modes on every leg.
-  turns: () => ['auto', 'manual'],
+  endToEnd: true,
+  units: [wholeUnitOf<RealtimeSettings, RealtimeCredentials, RealtimeConfig>({
+    // Text only is the API's own: a leg that does not speak asks for text alone.
+    speech: 'optional',
+    textInput: () => true,
+    // The server's commits and responses end segments (the old offer: Auto); cutting by sentences is offered too.
+    boundaries: () => 'provider',
+    // WebSocket only, so both turn modes on every leg.
+    turns: () => ['auto', 'manual'],
 
-  build: buildRealtime,
-  describe: describeRealtime,
-  start: adapter.start,
+    build: buildRealtime,
+    describe: describeRealtime,
+    start: adapter.start,
+  })],
 };

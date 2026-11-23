@@ -11,7 +11,8 @@
  * Not the session hooks (`prepare`, `admit`, `acquire`, `startBoth`), by
  * the spec (Stage 2 foundation, choice 11):
  * - they may read the provider's own stores ("A provider's own stores are
- *   its own business"; LocalInference's shipped `admit` reads `modelStore`);
+ *   its own business"; LocalInference's `admit` no longer does: it
+ *   budgets by the device's models the run hands it);
  * - they run on the runner's side of a run, not inside one leg's session,
  *   so a failure becomes the run's refusal, `end(notice)` or a release the
  *   runner reports;
@@ -96,7 +97,8 @@ function resolveFile(root: string, from: string, spec: string): string | null {
  * A provider's voice, where it is a unit of its own, runs a session beside the adapter's and is held to the same
  * rules: the file that runs it, by provider folder. Soniox's is `speech.ts` (`LegSpeech`); its speech unit
  * (`ttsUnit.ts`) wraps it and also builds the voice's config, which is the settings side. The local provider's is
- * `speechSession.ts`; its speech unit (`speechUnit.ts`) resolves the voice from the model store, the settings side.
+ * `speechSession.ts`; its speech unit (`speechUnit.ts`) resolves the voice through this device's models, which the
+ * run hands it (`shared.localModels`), the settings side.
  */
 const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/soniox': ['speech.ts'],
@@ -106,8 +108,9 @@ const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
  * A provider's translation, where it is a unit of its own (a unit that only translates another unit's source), runs
  * a session beside the adapter's too, and is held to the same rules: the file that runs it, by provider folder. The
  * local provider's is `translationSession.ts`; its translation unit (`translationUnit.ts`) resolves the engine from
- * the stored line-up and the model store, the settings side. The fake translator's is `translatorSession.ts`; its
- * unit and provider (`translator.ts`) reach the fake's definition and its scripts, the settings side.
+ * the line-up the run froze and this device's models (`shared.lineUp`, `shared.localModels`), the settings side. The
+ * fake translator's is `translatorSession.ts`; its unit and provider (`translator.ts`) reach the fake's definition
+ * and its scripts, the settings side.
  */
 const TRANSLATION_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/fake': ['translatorSession.ts'],
@@ -254,9 +257,9 @@ describe('a provider session side', () => {
         'src/lib/local-inference/sessions/speechSession.ts',
       ]),
     );
-    // The local voice's unit reads the model store to build its config: the settings side, not the session's.
+    // The local voice's unit reads the models a run hands it to build its config: the settings side, not the session's.
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/speechUnit.ts');
-    // The local translation's session is walked; its unit, which resolves the engine from the stores, is the settings side.
+    // The local translation's session is walked; its unit, which resolves the engine from the models a run hands it, is the settings side.
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).toContain('src/lib/local-inference/sessions/translationSession.ts');
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/translationUnit.ts');
     const fake = sessionSide(REPO_ROOT, 'src/providers/fake');

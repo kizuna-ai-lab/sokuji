@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLanguageLabel } from '../../../lib/language/useLanguageLabel';
 import { getScenario } from '../../../lib/setup/scenarios';
+import { capabilitiesAlone } from '../../../lib/plan/wholeUnit';
 import { legSpeaks } from '../../../lib/session/shape';
 import { pairSentence } from '../languageSentence';
 import { scenarioSpeechInputs } from '../scenarioSpeech';
@@ -17,6 +18,7 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const label = useLanguageLabel();
   const preset = getScenario(draft.scenario!);
   const p = wizardProvider(draft.provider)!;
+  const speaking = capabilitiesAlone(p, 'speech');
   const sourceName = draft.sourceLanguage ? label(draft.sourceLanguage) : '';
   const targetName = draft.targetLanguage ? label(draft.targetLanguage) : '';
   // The pair reads as the sentence the pair step and Settings both print,
@@ -24,8 +26,8 @@ const StepFinish: React.FC<Props> = ({ draft, isSignedIn, error }) => {
   const sentence = pairSentence({
     mode: preset.mode,
     textOnly: preset.textOnly,
-    capability: textOnlyCapabilityOf(p),
-    participantSpeaks: legSpeaks(p, 'participant', scenarioSpeechInputs(preset)),
+    capability: textOnlyCapabilityOf(speaking),
+    participantSpeaks: legSpeaks(speaking, 'participant', scenarioSpeechInputs(preset)),
     source: draft.sourceLanguage, target: draft.targetLanguage,
   });
   // One sentence, shaped like the mirror line below it — a label, its language,

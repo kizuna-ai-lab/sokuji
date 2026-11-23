@@ -8,7 +8,7 @@
 import type { SessionContext } from '../../lib/contract/adapter';
 import { reportWarning } from '../../lib/diagnostics/report';
 import { wordsFor } from '../../lib/words/forService';
-import type { SessionWords, SharedSettings } from '../../lib/provider/types';
+import type { SessionWords, SharedSettings } from '../../lib/run/types';
 import { SONIOX_TTS_MODEL } from '../../lib/soniox/ttsCatalog';
 import { participantVoiceFor, sonioxSharedBoth, sonioxSpeakerVoice, type SonioxSettings } from './settings';
 import { SONIOX_STT_MODEL } from './sttStream';

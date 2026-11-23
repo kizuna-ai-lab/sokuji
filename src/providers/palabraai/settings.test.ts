@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { parseCode } from '../../lib/language/code';
 import { AUTO, normalizePair, reversedPair, reverseSupported, swapped } from '../../lib/provider/languages';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import {
   DESIRED_QUEUE_RANGE, effectiveQueue, effectiveThreshold, MAX_QUEUE_RANGE, maxQueueFloor, migratePalabraSettings, PALABRA_DEFAULTS, PALABRA_VOICES,
   palabraCredentials, palabraLanguages, palabraOffers, SILENCE_THRESHOLD_RANGE,

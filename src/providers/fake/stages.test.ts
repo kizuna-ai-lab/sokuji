@@ -7,14 +7,14 @@ import type { TranslationStartRequest } from '../../lib/contract/translation';
 import { checkTranslation, recordTranslation } from '../../lib/contract/translationConformance';
 import { Conversation } from '../../lib/conversation/Conversation';
 import type { LegName } from '../../lib/conversation/types';
-import { startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { startComposite } from '../../lib/plan/composite';
 import { startCompositeBoth } from '../../lib/plan/compositeBoth';
 import { separateStages } from '../../lib/plan/compositeStages';
-import type { PlannedUnit, RunPlan } from '../../lib/plan/types';
+import type { PlanConfigs, PlannedUnit, RunPlan } from '../../lib/plan/types';
 import { isTranslationUnit } from '../../lib/plan/types';
 import { createProjector, DEFAULT_PROJECTION } from '../../lib/projection/project';
 import { AUTO } from '../../lib/provider/languages';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import {
   FAKE_TRANSCRIBER_DEFAULTS, fakeTranscriberProvider, fakeTranscript, migrateFakeTranscriberSettings, type FakeTranscriberSettings,
 } from './transcriber';
@@ -26,9 +26,9 @@ import { fakeVoiceProvider } from './voice';
 const SPEAKS: SessionContext = { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' };
 const SHARED: SharedSettings = { pauses: { sourceSeconds: 1, translationSeconds: 1 }, reversed: () => false, segmentation: { mode: 'off', sentencesPerRow: 0 }, models: [] };
 const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
-const [transcriber] = fakeTranscriberProvider.units!;
-const [translator] = fakeTranslatorProvider.units!;
-const [voice] = fakeVoiceProvider.units!;
+const [transcriber] = fakeTranscriberProvider.units;
+const [translator] = fakeTranslatorProvider.units;
+const [voice] = fakeVoiceProvider.units;
 
 /** The plan of the three fakes, built by hand as the composer will build it. */
 function plan(): RunPlan {
@@ -392,8 +392,8 @@ describe('the fakes of one stage in the catalog and the registry', () => {
 
   it('each serves its one stage and hosts itself, in the build whose line-up may name the fakes', async () => {
     const { catalog } = await build('e2e', false);
-    expect(catalog.caps('fake_transcriber')).toEqual({ id: 'fake_transcriber', stages: ['transcription'], host: 'fake_transcriber', account: 'none', voiceAlone: false, takesVoice: true });
-    expect(catalog.caps('fake_translator')).toEqual({ id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'none', voiceAlone: false, takesVoice: true });
+    expect(catalog.caps('fake_transcriber')).toEqual({ id: 'fake_transcriber', stages: ['transcription'], host: 'fake_transcriber', account: 'key', voiceAlone: false, takesVoice: true });
+    expect(catalog.caps('fake_translator')).toEqual({ id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'key', voiceAlone: false, takesVoice: true });
   });
 
   it('are in no other catalog, and in no release build', async () => {
@@ -424,9 +424,8 @@ describe('the fakes of one stage in the catalog and the registry', () => {
     expect(separateStages(composed)).not.toBeNull();
   });
 
-  it('neither starts as a provider on its own', async () => {
-    const request = { context: SPEAKS, config: {} as never, credentials: {}, clock: createVirtualClock(0), signal: new AbortController().signal };
-    await expect(fakeTranslatorProvider.start(request, recordEvents().events)).rejects.toMatchObject({ code: 'plan_unsupported' });
-    await expect(fakeTranscriberProvider.start(request, recordEvents().events)).rejects.toMatchObject({ code: 'plan_unsupported' });
+  it('neither starts as a provider on its own', () => {
+    expect(fakeTranslatorProvider).not.toHaveProperty('start');
+    expect(fakeTranscriberProvider).not.toHaveProperty('start');
   });
 });

@@ -10,10 +10,9 @@
  * provider.
  */
 import { Languages } from 'lucide-react';
-import { AdapterStartError } from '../../lib/contract/adapter';
 import { TL } from '../../lib/lineup/types';
 import { sameStages } from '../../lib/plan/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { FAKE_LANGUAGES } from './provider';
 import { startFakeTranslator, type FakeTranslatorConfig, type FakeTranslatorCredentials, type FakeTranslatorSettings } from './translatorSession';
@@ -59,8 +58,8 @@ const translatorUnit: UnitDefinition<FakeTranslatorSettings, FakeTranslatorCrede
 };
 
 /**
- * The fake translator provider: no key, always ready, the fake's languages. It never runs a session whole: generic
- * code reads its `units`, and its own `start` rejects.
+ * The fake translator provider: no key, always ready, the fake's languages. It never runs a session whole: it
+ * starts through its unit.
  */
 export const fakeTranslatorProvider: Provider<FakeTranslatorSettings, FakeTranslatorCredentials, FakeTranslatorConfig> & { id: 'fake_translator' } = {
   id: 'fake_translator',
@@ -81,15 +80,6 @@ export const fakeTranslatorProvider: Provider<FakeTranslatorSettings, FakeTransl
   check: async () => ({ ok: true }),
 
   languages: FAKE_LANGUAGES,
-
-  speech: 'never',
-  textInput: () => false,
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-
-  build: (_context, s) => ({ ...s }),
-  describe: describeFakeTranslator,
-  start: () => Promise.reject(new AdapterStartError('The fake translator only translates: it starts through its translation unit.', 'plan_unsupported')),
 
   units: [translatorUnit],
 };

@@ -32,6 +32,8 @@ import { openaiLiveProvider } from './provider';
 import { LIVE_DEFAULTS, LIVE_LEGACY_KEYS, liveCredentials, liveLanguages, migrateLiveSettings, type LiveSettings } from './settings';
 import { AUTO_CTX, configFor, KEY, SHARED } from './testing';
 
+const [whole] = openaiLiveProvider.units;
+
 afterEach(() => {
   vi.unstubAllGlobals();
   stored.clear();
@@ -59,19 +61,20 @@ describe('the OpenAI Live definition', () => {
       credentials: liveCredentials,
       checkReads: [],
       languages: liveLanguages,
-      build: buildLive,
-      describe: describeLive,
     });
+    expect(openaiLiveProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(whole.build(AUTO_CTX, LIVE_DEFAULTS, SHARED)).toEqual(buildLive(AUTO_CTX, LIVE_DEFAULTS, SHARED));
+    expect(whole.describe).toBe(describeLive);
     for (const absent of ['flagged', 'TurnDetection', 'session', 'participantSpeech'] as const) {
       expect(openaiLiveProvider, absent).not.toHaveProperty(absent);
     }
   });
 
   it('offers Text only (ruling 1), takes no typed text (ruling 9), ends segments on our own timers, and offers both turn modes (ruling 5)', () => {
-    expect(openaiLiveProvider.speech).toBe('optional');
-    expect(openaiLiveProvider.textInput(LIVE_DEFAULTS)).toBe(false);
-    expect(openaiLiveProvider.boundaries(LIVE_DEFAULTS)).toBe('silence');
-    expect(openaiLiveProvider.turns(LIVE_DEFAULTS)).toEqual(['auto', 'manual']);
+    expect(whole.capabilities(LIVE_DEFAULTS).speech).toBe('optional');
+    expect(whole.capabilities(LIVE_DEFAULTS).textInput).toBe(false);
+    expect(whole.capabilities(LIVE_DEFAULTS).boundaries).toBe('silence');
+    expect(whole.capabilities(LIVE_DEFAULTS).turns).toEqual(['auto', 'manual']);
   });
 
   it('sits after OpenAI Translate, before Soniox (ruling 9), and is offered on the desktop app and the extension, never on the web', () => {
@@ -87,7 +90,7 @@ describe('the OpenAI Live definition', () => {
     const participant = contextsFor(both({ source: 'en', target: 'zh-CN' }, { participantSpeech: true })).participant!;
     expect(participant).toEqual({ direction: { source: 'zh-CN', target: 'en' }, speech: true, turns: 'auto' });
     const s: LiveSettings = { ...LIVE_DEFAULTS, useTemplateMode: false, systemInstructions: 'Mine.', participantSystemInstructions: "Other's." };
-    expect(openaiLiveProvider.build(participant, s, { ...SHARED, reversed: (d) => d.source === 'zh-CN' && d.target === 'en' })).toMatchObject({ instructions: "Other's." });
+    expect(whole.build(participant, s, { ...SHARED, reversed: (d) => d.source === 'zh-CN' && d.target === 'en' })).toMatchObject({ instructions: "Other's." });
     expect(contextsFor(both({ source: 'en', target: 'zh-CN' })).participant!.speech).toBe(false);
     expect(gate(both({ source: AUTO, target: 'en' }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
     expect(gate(both({ source: 'en', target: 'zh-CN' }), 'electron')).toBeNull();
@@ -102,7 +105,7 @@ describe('the OpenAI Live definition', () => {
     const controller = new AbortController();
     const reason = new Error('cancelled');
     controller.abort(reason);
-    await expect(openaiLiveProvider.start(
+    await expect(whole.start!(
       { context: AUTO_CTX, config: configFor(), credentials: KEY, clock: createVirtualClock(0), signal: controller.signal },
       recordEvents().events,
     )).rejects.toBe(reason);
@@ -123,7 +126,7 @@ describe('the OpenAI Live definition', () => {
     expect(entry.settings as LiveSettings).toEqual({ useTemplateMode: false, systemInstructions: 'Interpret faithfully.', participantSystemInstructions: '', voice: 'cedar', participantVoice: 'cedar' });
     expect(readCredentials(openaiLiveProvider, entry.settings, entry.credentials, noAuth)).toEqual({ apiKey: 'sk-proj-oldLiveKey0123' });
     expect(entry.pair).toEqual({ source: 'ja', target: 'en' });
-    const config = openaiLiveProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as LiveSettings, SHARED) as LiveConfig;
+    const config = whole.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as LiveSettings, SHARED) as LiveConfig;
     expect(config).toMatchObject({ model: 'gpt-live-1', voice: 'cedar', instructions: 'Interpret faithfully.', transport: 'websocket' });
     expect(setSetting).not.toHaveBeenCalled();
   });

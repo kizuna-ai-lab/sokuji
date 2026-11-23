@@ -10,15 +10,27 @@
  * each has its own gate precisely so it can be released alone. The managed
  * card now reads the registry, so this file builds its own always-speaking
  * twin rather than steering the old factory to one.
+ *
+ * The wizard reads the twin's kind and its unit: what it says about speaking
+ * is declared in the unit, not on the provider.
  */
 import { describe, it, expect, vi } from 'vitest';
 
 // A build whose managed twin always speaks: its card must answer for the
 // scenario like every own-key card does (raised by Codex on #444). Only
-// the three members the wizard reads are real.
-vi.mock('../../providers/registry', () => ({
-  presentProviders: () => [{ id: 'kizunaai_soniox', kind: 'managed', speech: 'always' }],
-}));
+// what the wizard reads is real: its kind and its unit.
+vi.mock('../../providers/registry', async () => {
+  const { wholeUnitOf } = await import('../../lib/plan/wholeUnit');
+  const { FAKE_WHOLE } = await import('../../providers/fake/provider');
+  return {
+    presentProviders: () => [{
+      id: 'kizunaai_soniox',
+      kind: 'managed',
+      settings: { key: 'kizunaSoniox', defaults: {} },
+      units: [wholeUnitOf({ ...FAKE_WHOLE, speech: 'always', faceToFace: true })],
+    }],
+  };
+});
 
 const { Provider } = await import('../../types/Provider');
 const { managedProvider, managedOption, availablePaths } = await import('./providerPaths');
@@ -37,6 +49,11 @@ describe('the managed path answers for the scenario, like every other card', () 
       fit: { ok: false, reason: 'cannot-be-text-only' },
     });
     expect(managedOption('two-way-text')?.fit.ok).toBe(false);
+  });
+
+  it('runs face-to-face where its unit says it does', () => {
+    expect(managedOption('face-to-face-voice')?.fit).toEqual({ ok: true });
+    expect(managedOption('face-to-face-text')?.fit).toEqual({ ok: false, reason: 'cannot-be-text-only' });
   });
 
   it('fit for the scenarios it can serve', () => {

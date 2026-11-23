@@ -26,6 +26,9 @@ vi.mock('../../utils/conversationExport', async (orig) => ({
 }));
 
 import { autoSaveConversation } from './appAutoSave';
+import { registerReleasedCatalog } from '../lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const seg = (over: Partial<Segment>): Segment => ({ id: 'x', ref: 1, side: 'source', text: '', final: true, openedAt: 1_700_000_000_000, marks: [], speech: [], ...over });
 const legs: Leg[] = [{

@@ -26,13 +26,15 @@ import { QWEN_DEFAULTS } from '../../providers/qwen_livetranslate/settings';
 import { useScreenContextStore } from '../../stores/screenContextStore';
 import { providersIn } from '../plan/read';
 import { planOf } from '../plan/testing';
-import { fakeProvider } from '../../providers/fake/provider';
+import { capabilitiesAlone } from '../plan/wholeUnit';
+import { FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, FAKE_LEASED_DEFAULTS } from '../../providers/fake/settings';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { PALABRA_DEFAULTS } from '../../providers/palabraai/settings';
 import { SONIOX_DEFAULTS } from '../../providers/soniox/settings';
 import { useAccountStore } from '../../stores/accountStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
+import { localModels } from '../../stores/localModels';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
@@ -459,10 +461,10 @@ describe("readShapeFromStores — participant speech follows the whole-system ru
   it('is off, live, while the application capture has widened to the whole system (slice 1 final review, Important 2)', () => {
     environment.value = 'electron';
     useAudioStore.setState({ mode: 'both', selectedParticipantSource: { deviceId: 'app:42', label: 'App' }, participantCaptureWidened: true });
-    expect(speechFromStores(fakeProvider).them).toBe(false);
+    expect(speechFromStores(capabilitiesAlone(fakeProvider, 'speech')).them).toBe(false);
     expect(speechInputsFromStores().participantSpeech).toBe(false);
     useAudioStore.setState({ participantCaptureWidened: false });
-    expect(speechFromStores(fakeProvider).them).toBe(true);
+    expect(speechFromStores(capabilitiesAlone(fakeProvider, 'speech')).them).toBe(true);
   });
 
   it('is off on Electron under a whole-system participant source', () => {
@@ -486,12 +488,12 @@ describe("readShapeFromStores — participant speech follows the whole-system ru
   it("is off while the provider's flag is off, and follows the switch once it is on", () => {
     environment.value = 'web';
     try {
-      Object.assign(fakeProvider, { participantSpeech: false });
+      Object.assign(FAKE_WHOLE, { participantSpeech: false });
       expect(readShapeFromStores(auth)?.participantSpeech).toBe(false);
-      Object.assign(fakeProvider, { participantSpeech: true });
+      Object.assign(FAKE_WHOLE, { participantSpeech: true });
       expect(readShapeFromStores(auth)?.participantSpeech).toBe(true);
     } finally {
-      delete (fakeProvider as { participantSpeech?: boolean }).participantSpeech;
+      delete (FAKE_WHOLE as { participantSpeech?: boolean }).participantSpeech;
     }
   });
 
@@ -514,7 +516,7 @@ describe('ensureReadyFromStores', () => {
     } as unknown as RunShape;
     const signal = new AbortController().signal;
     await expect(ensureReadyFromStores(provider, shape, signal)).resolves.toEqual({ state: 'ready', models: [] });
-    expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], signal });
+    expect(check).toHaveBeenCalledWith(expect.anything(), settings, { pair: { source: 'ja', target: 'en' }, legs: ['speaker', 'participant'], localModels, signal });
   });
 
   it('tells each provider the stages it serves in the plan, when they are not all it can serve', async () => {

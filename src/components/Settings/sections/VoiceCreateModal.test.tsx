@@ -412,6 +412,24 @@ describe('VoiceCreateModal — a recording that cannot start', () => {
     expect(alert).toHaveClass('voice-capture-error', 'voice-create-modal__error');
   });
 
+  // The microphone was open by then: leaving its track running kept the OS
+  // showing the microphone in use after the dialog said the recording failed.
+  it('releases the microphone when the audio graph cannot be built', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const stop = vi.fn();
+    Object.defineProperty(navigator, 'mediaDevices', {
+      configurable: true,
+      value: { getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop }] }) },
+    });
+    vi.stubGlobal('AudioContext', vi.fn(() => { throw new DOMException('No audio hardware', 'NotSupportedError'); }));
+    render(<VoiceCreateModal {...base} capability={{ importModes: ['record'] }} onRecord={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /record voice/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not start recording/i);
+    expect(stop).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+    warn.mockRestore();
+  });
+
   // The dialog stays mounted while closed, so a refusal that lands after
   // Cancel would otherwise be the first thing shown on the next open.
   it('says nothing for an attempt the dialog was closed on', async () => {

@@ -4,7 +4,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { isPresent } from '../../lib/provider/presence';
-import type { AuthContext } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { chatCompletion } from '../../lib/textModel/client';
 import { TEXT_MODEL_DEFAULTS } from '../../lib/textModel/unit';
 import { ADDRESS_INVALID, ADDRESS_MISSING, openaiCompatibleProvider as p } from './provider';
@@ -44,10 +44,10 @@ describe('a compatible service', () => {
     expect(p.credentials.storedAt).toBeUndefined();
   });
 
-  it('translates through its one unit, and never starts a session whole', async () => {
-    expect(p.units?.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
-    expect(p.speech).toBe('never');
-    await expect(p.start({} as never, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
+  it('translates through its one unit, and never starts a session whole', () => {
+    expect(p.units.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
+    expect(p.units[0].capabilities(TEXT_MODEL_DEFAULTS).speech).toBe('never');
+    expect(p).not.toHaveProperty('start');
     expect(p.checkReads).toEqual(['translationModel', 'translationReasoning']);
   });
 });

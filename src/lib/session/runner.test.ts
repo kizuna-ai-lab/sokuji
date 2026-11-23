@@ -2,12 +2,14 @@ import { describe, it, expect, vi } from 'vitest';
 import { AdapterStartError, type AdapterEvents, type StartRequest } from '../contract/adapter';
 import type { Leg } from '../conversation/types';
 import type { Punctuator } from '../conversation/fillIn';
-import type { AnyProvider, Readiness, SharedSettings } from '../provider/types';
+import type { AnyProvider, Readiness } from '../provider/types';
+import type { LeaseContext, RunNotice, SharedSettings } from '../run/types';
 import { createVirtualClock } from '../contract/clock';
 import { fakeFrameSource } from '../contract/testing/fakeFrames';
 import { transcriptionProvider } from '../plan/read';
-import { shapeWith } from '../plan/testing';
-import { fakeProvider } from '../../providers/fake/provider';
+import { shapeWith, withWhole } from '../plan/testing';
+import { unitsOf } from '../plan/wholeUnit';
+import { buildFake, FAKE_WHOLE, fakeProvider, startFake } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
 import { RUN_NOTICE_CODES } from './codes';
@@ -15,7 +17,7 @@ import { SourceOpenError, type OpenSource, type Source } from './source';
 import type { FramePort, PlaybackPort, RunnerDeps } from './ports';
 import { createRunner } from './runner';
 import { buildSharedSettings } from './shared';
-import type { LeaseContext, RunEnd, RunNotice, RunShape } from './types';
+import type { RunEnd, RunShape } from './types';
 
 // Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
 const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
@@ -34,10 +36,9 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 /** The fake, but its sessions' `stop()` hangs until `finishStop()`: an ending that can outlive its bound. */
 function hangingStop() {
   let finish: () => void = () => {};
-  const provider = {
-    ...fakeProvider,
+  const provider = withWhole(fakeProvider, FAKE_WHOLE, {
     start: async (request: unknown, events: unknown) => {
-      const session = await fakeProvider.start(request as never, events as never);
+      const session = await startFake(request as never, events as never);
       // Spreading a `FakeSession` instance would drop its prototype methods;
       // delegate explicitly, only `stop` hangs.
       return {
@@ -50,7 +51,7 @@ function hangingStop() {
         stop: () => new Promise<void>((resolve) => { finish = () => { void session.stop(); resolve(); }; }),
       };
     },
-  } as unknown as AnyProvider;
+  });
   return { provider, finishStop: () => finish() };
 }
 
@@ -87,12 +88,16 @@ function setup(o: Options = {}) {
   const startRequests: StartRequest<unknown, unknown>[] = [];
   const { provider: given, ...patch } = o.shape ?? {};
   const provider = (given ?? fakeProvider) as AnyProvider;
+  const [whole] = unitsOf(provider);
   const shape: RunShape = shapeWith({
     ...provider,
-    start: (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
-      startRequests.push(request);
-      return provider.start(request as never, events);
-    },
+    units: [{
+      ...whole,
+      start: (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
+        startRequests.push(request);
+        return whole.start!(request as never, events);
+      },
+    }],
   } as AnyProvider, {
     settings: { ...FAKE_DEFAULTS, ...o.settings },
     credentials: { apiKey: '' },
@@ -162,7 +167,7 @@ describe('runner — starting', () => {
     ] as const;
     for (const [textOnly, participantSpeech, legs, expected] of cases) {
       const seen: Array<boolean | undefined> = [];
-      const provider = { ...fakeProvider, build: (c: never, s: never, shared: SharedSettings) => { seen.push(shared.speaks); return fakeProvider.build(c, s, shared); } } as AnyProvider;
+      const provider = withWhole(fakeProvider, FAKE_WHOLE, { build: (c: never, s: never, shared: SharedSettings) => { seen.push(shared.speaks); return buildFake(c, s, shared); } });
       const { runner } = setup({ shape: { provider, textOnly, participantSpeech, legs: [...legs] } });
       await runner.start();
       expect(seen).toEqual(legs.map(() => expected));
@@ -223,14 +228,14 @@ describe('runner — starting', () => {
   });
 
   it('hands build the models its own readiness check found (F2)', async () => {
-    const build = vi.fn(fakeProvider.build);
-    const { runner } = setup({ shape: { provider: { ...fakeProvider, build } as AnyProvider }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
+    const build = vi.fn(buildFake);
+    const { runner } = setup({ shape: { provider: withWhole(fakeProvider, FAKE_WHOLE, { build }) }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
     await runner.start();
     expect(build.mock.calls[0][2].models).toEqual([{ id: 'm2' }, { id: 'm1' }]);
 
     // Both legs build from the one answer.
-    const both = vi.fn(fakeProvider.build);
-    const two = setup({ shape: { provider: { ...fakeProvider, build: both } as AnyProvider, legs: ['speaker', 'participant'] }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
+    const both = vi.fn(buildFake);
+    const two = setup({ shape: { provider: withWhole(fakeProvider, FAKE_WHOLE, { build: both }), legs: ['speaker', 'participant'] }, ready: { state: 'ready', models: [{ id: 'm2' }, { id: 'm1' }] } });
     await two.runner.start();
     expect(both).toHaveBeenCalledTimes(2);
     expect(both.mock.calls[0][2].models).toEqual([{ id: 'm2' }, { id: 'm1' }]);
@@ -238,13 +243,13 @@ describe('runner — starting', () => {
   });
 
   it("tells each leg's build whether it is the participant's, even when a same-language pair gives both legs one direction", async () => {
-    const build = vi.fn(fakeProvider.build);
+    const build = vi.fn(buildFake);
     const pair = { source: 'en', target: 'en' };
     // As appShape builds it: by direction, which en → en cannot tell apart.
     const byDirection = buildSharedSettings(pair, { sourceSeconds: 1, translationSeconds: 1 }, { mode: 'off', sentencesPerRow: 0 });
     // A source as its own target, as OpenAI Realtime, OpenAI Live, Gemini and Palabra offer.
     const languages = { ...fakeProvider.languages, targets: () => [{ value: 'en' }, { value: 'ja' }] };
-    const { runner } = setup({ shape: { provider: { ...fakeProvider, build, languages } as AnyProvider, legs: ['speaker', 'participant'], pair, shared: byDirection } });
+    const { runner } = setup({ shape: { provider: withWhole(fakeProvider, FAKE_WHOLE, { build, languages }), legs: ['speaker', 'participant'], pair, shared: byDirection } });
     await runner.start();
     const answer = (n: number) => build.mock.calls[n][2].reversed(build.mock.calls[n][0].direction);
     expect(build.mock.calls.map((c, n) => [c[0].direction, answer(n)])).toEqual([[pair, false], [pair, true]]);
@@ -348,14 +353,13 @@ describe('runner — starting', () => {
 
   it("hands every frame an adapter reports to the frames port, with its leg", async () => {
     const frames: Array<[string, unknown]> = [];
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
-        const session = await fakeProvider.start(request as never, events);
+        const session = await startFake(request as never, events);
         events.frame({ direction: 'in', type: 'fake.hello', payload: { n: 1 } });
         return session;
       },
-    } as unknown as AnyProvider;
+    });
     const { runner } = setup({ shape: { provider }, frames: { frame: (leg, frame) => frames.push([leg, frame]) } });
     await runner.start();
     expect(frames).toEqual([['speaker', { direction: 'in', type: 'fake.hello', payload: { n: 1 } }]]);
@@ -363,15 +367,14 @@ describe('runner — starting', () => {
 
   it('keeps a throwing frames port away from the adapter', async () => {
     reportErrorSpy.mockClear();
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
-        const session = await fakeProvider.start(request as never, events);
+        const session = await startFake(request as never, events);
         events.frame({ direction: 'out', type: 'fake.one' });
         events.frame({ direction: 'out', type: 'fake.two' });
         return session;
       },
-    } as unknown as AnyProvider;
+    });
     const { runner } = setup({ shape: { provider }, frames: { frame: () => { throw new Error('sink gone'); } } });
     await runner.start();
     expect(runner.state.getState().phase).toBe('running');
@@ -414,14 +417,14 @@ describe('runner — starting', () => {
   it("hands the adapter the runner's punctuator", async () => {
     const punctuate = vi.fn(async () => null);
     let seen: unknown;
-    const provider = { ...fakeProvider, start: async (request: { punctuate?: unknown }, events: unknown) => { seen = request.punctuate; return fakeProvider.start(request as never, events as never); } } as unknown as AnyProvider;
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, { start: async (request: { punctuate?: unknown }, events: unknown) => { seen = request.punctuate; return startFake(request as never, events as never); } });
     const { runner } = setup({ punctuate, shape: { provider } });
     await runner.start();
     expect(seen).toBe(punctuate);
   });
 
   it("fails a start with the adapter's own code when it gives one", async () => {
-    const provider = { ...fakeProvider, start: async () => { throw new AdapterStartError('out of GPU memory', 'gpu_out_of_memory'); } } as unknown as AnyProvider;
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, { start: async () => { throw new AdapterStartError('out of GPU memory', 'gpu_out_of_memory'); } });
     const { runner } = setup({ shape: { provider } });
     await runner.start();
     expect(runner.state.getState()).toMatchObject({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'gpu_out_of_memory', message: 'out of GPU memory', leg: 'speaker' } } });
@@ -480,14 +483,13 @@ describe('runner — starting', () => {
 
   it('shows a leg loading its models while it opens', async () => {
     let open!: () => void;
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       start: async (request: unknown, events: AdapterEvents) => {
         events.loading({ stage: 'asr', done: 1, total: 3 });
         await new Promise<void>((resolve) => { open = resolve; });
-        return fakeProvider.start(request as never, events);
+        return startFake(request as never, events);
       },
-    } as unknown as AnyProvider;
+    });
     const { runner } = setup({ shape: { provider } });
     const started = runner.start();
     await flush();
@@ -527,10 +529,9 @@ describe('runner — screen context (spec 2026-10-22 §3.2, §3.6)', () => {
 
   it('a leg degraded with screen_context_lost tracks screen_context_lost instead of api_error: a closed window is no server error', async () => {
     let ev!: AdapterEvents;
-    const provider = {
-      ...fakeProvider,
-      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return fakeProvider.start(request, events); },
-    } as unknown as AnyProvider;
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
+      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return startFake(request, events); },
+    });
     const { runner, events } = setup({ shape: { provider, frames: fakeFrameSource() } });
     await runner.start();
     ev.degraded({ code: 'screen_context_lost', message: 'gone' });
@@ -540,10 +541,9 @@ describe('runner — screen context (spec 2026-10-22 §3.2, §3.6)', () => {
 
   it('another degradation tracks no screen_context_lost', async () => {
     let ev!: AdapterEvents;
-    const provider = {
-      ...fakeProvider,
-      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return fakeProvider.start(request, events); },
-    } as unknown as AnyProvider;
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
+      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return startFake(request, events); },
+    });
     const { runner, events } = setup({ shape: { provider, frames: fakeFrameSource() } });
     await runner.start();
     ev.degraded({ code: 'tts_degraded', message: 'No TTS key was issued for this leg: it runs text-only.' });
@@ -557,14 +557,13 @@ describe('runner — punctuation readiness (ruling 2)', () => {
   function capturingProvider() {
     let seenPunctuate: unknown;
     let captured: AdapterEvents | undefined;
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       start: async (request: StartRequest<unknown, unknown> & { punctuate?: unknown }, events: AdapterEvents) => {
         seenPunctuate = request.punctuate;
         captured = events;
         return { appendAudio() {}, appendText() {}, beginTurn() {}, endTurn() {}, cancelTurn() {}, async stop() {}, info: {} };
       },
-    } as unknown as AnyProvider;
+    });
     return { provider, seenPunctuate: () => seenPunctuate, events: () => captured! };
   }
 
@@ -681,10 +680,9 @@ describe("runner — the run's payer", () => {
 /** The fake, its sessions recording each `setSpeech` by leg: the participant runs the reversed pair, so its source is 'ja'. */
 function speechSwitchRecorder() {
   const calls: Array<[string, boolean]> = [];
-  const provider = {
-    ...fakeProvider,
+  const provider = withWhole(fakeProvider, FAKE_WHOLE, {
     start: async (request: StartRequest<unknown, unknown>, events: AdapterEvents) => {
-      const session = await fakeProvider.start(request as never, events);
+      const session = await startFake(request as never, events);
       const leg = request.context.direction.source === 'ja' ? 'participant' : 'speaker';
       return {
         info: session.info,
@@ -697,7 +695,7 @@ function speechSwitchRecorder() {
         stop: () => session.stop(),
       };
     },
-  } as unknown as AnyProvider;
+  });
   let on = true;
   const listeners = new Set<() => void>();
   const participantSpeech = { get: () => on, subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; } };
@@ -856,10 +854,9 @@ describe('runner — stopping', () => {
   });
 
   it('stop clears playback before the legs finish closing', async () => {
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       start: async (request: any, events: any) => {
-        const session = await fakeProvider.start(request, events);
+        const session = await startFake(request, events);
         // Spreading a `FakeSession` instance would drop its prototype
         // methods (only `info` is an own property); delegate explicitly so
         // every call still reaches the real session, only `stop` hangs.
@@ -873,7 +870,7 @@ describe('runner — stopping', () => {
           stop: () => new Promise<void>(() => {}),
         };
       },
-    } as unknown as AnyProvider;
+    });
     const { runner, clock, playback } = setup({ shape: { provider } });
     await runner.start();
     const stopping = runner.stop();
@@ -948,7 +945,7 @@ describe('runner — stopping', () => {
       if (leg === 'participant') await new Promise<void>((resolve) => { openParticipant = resolve; });
       return quietSource(leg);
     };
-    const provider = { ...fakeProvider, start: async () => { throw new Error('the speaker leg failed'); } } as unknown as AnyProvider;
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, { start: async () => { throw new Error('the speaker leg failed'); } });
     const { runner } = setup({ openSource, shape: { provider, legs: ['speaker', 'participant'] } });
     runner.state.subscribe((s) => { if (s.phase === 'idle') order.push('idle'); });
     const started = runner.start();
@@ -1195,10 +1192,9 @@ describe('runner — the Logs line each leg ends with (Stage 2 session end, ruli
     return { seen, port, stopped: () => seen.filter(([, type]) => type === 'session.stopped') };
   }
   /** The fake, but each session frames a goodbye as it stops: what an adapter says of its own ending. */
-  const sayingGoodbye = {
-    ...fakeProvider,
+  const sayingGoodbye = withWhole(fakeProvider, FAKE_WHOLE, {
     async start(request: StartRequest<unknown, unknown>, events: AdapterEvents) {
-      const session = await fakeProvider.start(request as never, events);
+      const session = await startFake(request as never, events);
       // Spreading a `FakeSession` instance would drop its prototype methods; delegate explicitly.
       return {
         info: session.info,
@@ -1213,7 +1209,7 @@ describe('runner — the Logs line each leg ends with (Stage 2 session end, ruli
         },
       };
     },
-  } as unknown as AnyProvider;
+  });
 
   it("a stop frames session.stopped once per leg, speaker first, after what each leg's adapter framed of its own ending: why, the leg's last state and the time since Start", async () => {
     const frames = framesSeen();
@@ -1335,13 +1331,12 @@ describe('runner — the Logs line each leg ends with (Stage 2 session end, ruli
 describe('runner — capture carry-over', () => {
   it('hands the adapter a request of the context, config, credentials, clock, signal and punctuator alone — no track, even from a source that has one (Stage 2 Palabra, ruling 16)', async () => {
     const requests: Array<StartRequest<never, never>> = [];
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       async start(request: StartRequest<never, never>, events: AdapterEvents) {
         requests.push(request);
-        return fakeProvider.start(request, events);
+        return startFake(request, events);
       },
-    } as unknown as AnyProvider;
+    });
     const { runner } = setup({
       shape: { provider },
       // A capture that still carries its device track: nothing reads it.
@@ -1354,10 +1349,9 @@ describe('runner — capture carry-over', () => {
 
   it('keeps capturing when the adapter throws on audio, and reports it once per failing streak', async () => {
     let appended = 0;
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       async start(request: StartRequest<never, never>, events: AdapterEvents) {
-        const session = await fakeProvider.start(request, events);
+        const session = await startFake(request, events);
         // Spreading a `FakeSession` instance would drop its prototype
         // methods; delegate explicitly, only `appendAudio` throws.
         return {
@@ -1370,7 +1364,7 @@ describe('runner — capture carry-over', () => {
           stop: () => session.stop(),
         };
       },
-    } as unknown as AnyProvider;
+    });
     const { runner, clock } = setup({ shape: { provider } });
     reportErrorSpy.mockClear();
     await runner.start();
@@ -1433,13 +1427,12 @@ describe('runner — the conversation', () => {
 
   it('discards events from a run that has ended', async () => {
     let late: ((e: { ref: number; side: 'source' }) => void) | undefined;
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       start: async (_request: unknown, events: { segmentOpened(e: { ref: number; side: 'source' }): void }) => {
         late = (e) => events.segmentOpened(e);
         return { appendAudio() {}, appendText() {}, beginTurn() {}, endTurn() {}, cancelTurn() {}, async stop() {}, info: {} };
       },
-    } as unknown as AnyProvider;
+    });
     const { runner } = setup({ shape: { provider } });
     await runner.start();
     await runner.stop();
@@ -1449,8 +1442,7 @@ describe('runner — the conversation', () => {
 
   it('an event arriving while fill-in settles is discarded', async () => {
     let captured: AdapterEvents | undefined;
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       start: async (_request: unknown, events: AdapterEvents) => {
         captured = events;
         events.segmentOpened({ ref: 1, side: 'source' });
@@ -1458,7 +1450,7 @@ describe('runner — the conversation', () => {
         events.segmentClosed({ ref: 1 });
         return { appendAudio() {}, appendText() {}, beginTurn() {}, endTurn() {}, cancelTurn() {}, async stop() {}, info: {} };
       },
-    } as unknown as AnyProvider;
+    });
     const { runner, clock } = setup({ shape: { provider }, punctuate: () => new Promise<string | null>(() => {}) });
     await runner.start();
     const stopping = runner.stop();
@@ -1575,21 +1567,20 @@ describe('runner — subscriber isolation (F2)', () => {
 describe('runner — a leg still opening waits for the lease (F3)', () => {
   it('a leg still opening when Stop lands is closed before the lease is released, and before stop() resolves', async () => {
     const order: string[] = [];
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       session: {
         acquire: async () => ({ credentials: () => ({}), release: async () => { order.push('lease released'); } }),
       },
       // Ignores the signal: the delay is on the run's clock, unrelated to the abort.
       async start(request: StartRequest<never, never>, events: AdapterEvents) {
         await new Promise<void>((resolve) => { request.clock.setTimeout(resolve, 500); });
-        const inner = await fakeProvider.start({ ...request, signal: new AbortController().signal }, events);
+        const inner = await startFake({ ...request, signal: new AbortController().signal }, events);
         return {
           ...inner, info: inner.info, appendAudio: () => {}, appendText: () => {}, beginTurn: () => {}, endTurn: () => {}, cancelTurn: () => {},
           stop: async () => { order.push('leg closed'); },
         };
       },
-    } as unknown as AnyProvider;
+    });
     const { runner, clock } = setup({ shape: { provider } });
     const starting = runner.start();
     await flush();
@@ -1730,11 +1721,10 @@ describe('runner — cancel at each starting step (F5)', () => {
 
   it('a leg failing while the other leg is still opening ends the start and closes both (D22)', async () => {
     let failSpeaker!: () => void;
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       async start(request: StartRequest<never, never>, ev: AdapterEvents) {
         if (request.context.direction.source === 'en') {
-          const inner = await fakeProvider.start(request, ev);
+          const inner = await startFake(request, ev);
           failSpeaker = () => ev.failed({ message: 'boom', code: 'network' });
           return inner;
         }
@@ -1742,7 +1732,7 @@ describe('runner — cancel at each starting step (F5)', () => {
           request.signal.addEventListener('abort', () => reject(request.signal.reason));
         });
       },
-    } as unknown as AnyProvider;
+    });
     const { runner, sources, events } = setup({ shape: { legs: ['speaker', 'participant'], provider } });
     const starting = runner.start();
     await flush();
@@ -1760,10 +1750,9 @@ describe('runner — cancel at each starting step (F5)', () => {
 
 describe('runner — small corrections (F6)', () => {
   it('captures the session duration when the stop lands, not after teardown finishes', async () => {
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       start: async (request: any, events: any) => {
-        const session = await fakeProvider.start(request, events);
+        const session = await startFake(request, events);
         return {
           info: session.info,
           appendAudio: (pcm: Int16Array) => session.appendAudio(pcm),
@@ -1775,7 +1764,7 @@ describe('runner — small corrections (F6)', () => {
           stop: () => new Promise<void>(() => {}),
         };
       },
-    } as unknown as AnyProvider;
+    });
     const { runner, clock, events } = setup({ shape: { provider } });
     await runner.start();
     clock.advance(600);
@@ -1788,10 +1777,9 @@ describe('runner — small corrections (F6)', () => {
 
   it('redacts the adapter failure message before tracking api_error', async () => {
     let ev!: AdapterEvents;
-    const provider = {
-      ...fakeProvider,
-      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return fakeProvider.start(request, events); },
-    } as unknown as AnyProvider;
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
+      async start(request: StartRequest<never, never>, events: AdapterEvents) { ev = events; return startFake(request, events); },
+    });
     const { runner, events: tracked } = setup({ shape: { provider } });
     await runner.start();
     ev.failed({ message: 'rejected: sk-1234567890abcdef', code: 'auth' });
@@ -1818,13 +1806,12 @@ describe('runner — abandon', () => {
   it('closes every leg and source synchronously, goes idle, and saves nothing', async () => {
     const onRunEnded = vi.fn();
     const stops: string[] = [];
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       start: async (request: unknown, events: unknown) => {
-        const session = await fakeProvider.start(request as never, events as never);
+        const session = await startFake(request as never, events as never);
         return { ...session, stop: () => { stops.push('session'); return session.stop(); } };
       },
-    } as unknown as AnyProvider;
+    });
     const { runner, sources } = setup({ onRunEnded, shape: { provider } });
     await runner.start();
     const stopSource = vi.spyOn(sources[0], 'stop');
@@ -1856,13 +1843,12 @@ describe('runner — abandon', () => {
   it('preempts a stop still closing: no end analytics, no auto-save, and the idle state stays its own', async () => {
     const onRunEnded = vi.fn();
     let finishStop!: () => void;
-    const provider = {
-      ...fakeProvider,
+    const provider = withWhole(fakeProvider, FAKE_WHOLE, {
       start: async (request: unknown, events: unknown) => {
-        const session = await fakeProvider.start(request as never, events as never);
+        const session = await startFake(request as never, events as never);
         return { ...session, stop: () => new Promise<void>((resolve) => { finishStop = resolve; }) };
       },
-    } as unknown as AnyProvider;
+    });
     const { runner, events } = setup({ onRunEnded, shape: { provider } });
     await runner.start();
     const stopping = runner.stop();

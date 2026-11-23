@@ -11,7 +11,7 @@ import type { SessionContext } from '../../lib/contract/adapter';
 import { recordEvents, type AdapterEvent } from '../../lib/contract/events';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { trackedClock } from '../../lib/contract/testing/trackedClock';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createGeminiAdapter } from './adapter';
 import { buildGemini, type GeminiConfig } from './config';
 import { GEMINI_DEFAULTS, type GeminiCredentials, type GeminiSettings } from './settings';

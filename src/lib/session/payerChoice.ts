@@ -7,7 +7,7 @@
  * non-member has no choice: no `payer` is sent and nothing changes for them.
  */
 import { useSyncExternalStore } from 'react';
-import type { AccountState, Payer, PayerWallets } from './types';
+import type { AccountState, Payer, PayerWallets } from '../run/types';
 
 export type { Payer };
 

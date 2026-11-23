@@ -6,7 +6,7 @@ import type { HistoryPort } from '../../lib/history/port';
 import type { HistoryRecord } from '../../lib/history/types';
 import { createHistoryPageStore, type FileJobs } from '../../lib/history/historyPageStore';
 import type { HostedFileTerms } from '../../lib/history/file/hostedFile';
-import type { AccountState } from '../../lib/session/types';
+import type { AccountState } from '../../lib/run/types';
 import { useAccountStore } from '../../stores/accountStore';
 import { openExternalUrl } from '../../utils/openExternalUrl';
 import i18n from '../../locales';

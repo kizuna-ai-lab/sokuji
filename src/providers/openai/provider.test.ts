@@ -35,6 +35,8 @@ import { RealtimeTurnDetectionControls, RealtimeTurnDetectionHelp, RealtimeTurnD
 import { migrateRealtimeSettings, REALTIME_DEFAULTS, REALTIME_LEGACY_KEYS, realtimeCredentials, realtimeLanguages, type RealtimeSettings } from './settings';
 import { AUTO_CTX, configFor, KEY, SHARED } from './testing';
 
+const [whole] = openaiProvider.units;
+
 afterEach(() => {
   vi.unstubAllGlobals();
   stored.clear();
@@ -62,19 +64,20 @@ describe('the OpenAI Realtime definition', () => {
       credentials: realtimeCredentials,
       checkReads: [],
       languages: realtimeLanguages,
-      build: buildRealtime,
-      describe: describeRealtime,
     });
+    expect(openaiProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(whole.build(AUTO_CTX, REALTIME_DEFAULTS, SHARED)).toEqual(buildRealtime(AUTO_CTX, REALTIME_DEFAULTS, SHARED));
+    expect(whole.describe).toBe(describeRealtime);
     for (const absent of ['flagged', 'session', 'participantSpeech'] as const) {
       expect(openaiProvider, absent).not.toHaveProperty(absent);
     }
   });
 
   it('offers Text only and typed text, keeps the server\'s boundaries, and offers both turn modes', () => {
-    expect(openaiProvider.speech).toBe('optional');
-    expect(openaiProvider.textInput(REALTIME_DEFAULTS)).toBe(true);
-    expect(openaiProvider.boundaries(REALTIME_DEFAULTS)).toBe('provider');
-    expect(openaiProvider.turns(REALTIME_DEFAULTS)).toEqual(['auto', 'manual']);
+    expect(whole.capabilities(REALTIME_DEFAULTS).speech).toBe('optional');
+    expect(whole.capabilities(REALTIME_DEFAULTS).textInput).toBe(true);
+    expect(whole.capabilities(REALTIME_DEFAULTS).boundaries).toBe('provider');
+    expect(whole.capabilities(REALTIME_DEFAULTS).turns).toEqual(['auto', 'manual']);
   });
 
   it('sits after Doubao AST 2.0 and before OpenAI Translate, and OpenAI Compatible is registered nowhere as a provider that runs a session (rulings 18, 1)', () => {
@@ -84,7 +87,7 @@ describe('the OpenAI Realtime definition', () => {
     // Its id is a text model's now (text models, part B): a unit that translates another provider's transcription,
     // never a session of its own.
     const compatible = PROVIDERS.find((p) => p.id === 'openai_compatible')!;
-    expect(compatible.units?.map((u) => u.start)).toEqual([undefined]);
+    expect(compatible.units.map((u) => u.start)).toEqual([undefined]);
     expect(runsByItself('openai_compatible')).toBe(false);
   });
 
@@ -101,7 +104,7 @@ describe('the OpenAI Realtime definition', () => {
     expect(participant).toEqual({ direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' });
     const s: RealtimeSettings = { ...REALTIME_DEFAULTS, useTemplateMode: false, systemInstructions: 'Mine.', participantSystemInstructions: "Other's.", turnDetectionMode: 'Semantic' };
     const shared = { ...SHARED, reversed: (d: { source: string; target: string }) => d.source === 'en' && d.target === 'ja' };
-    expect(openaiProvider.build(participant, s, shared)).toMatchObject({ instructions: "Other's.", modalities: ['audio'], turnDetection: { type: 'semantic_vad', eagerness: 'auto' } });
+    expect(whole.build(participant, s, shared)).toMatchObject({ instructions: "Other's.", modalities: ['audio'], turnDetection: { type: 'semantic_vad', eagerness: 'auto' } });
     expect(contextsFor(both({ source: 'ja', target: 'en' })).participant!.speech).toBe(false);
     expect(gate(both({ source: AUTO, target: 'en' }), 'electron')).toMatchObject({ code: 'participant_unsupported', leg: 'participant' });
     expect(gate(both({ source: 'ja', target: 'en' }), 'electron')).toBeNull();
@@ -113,7 +116,7 @@ describe('the OpenAI Realtime definition', () => {
     const controller = new AbortController();
     const reason = new Error('cancelled');
     controller.abort(reason);
-    await expect(openaiProvider.start(
+    await expect(whole.start!(
       { context: AUTO_CTX, config: configFor(), credentials: KEY, clock: createVirtualClock(0), signal: controller.signal },
       recordEvents().events,
     )).rejects.toBe(reason);
@@ -144,7 +147,7 @@ describe('the OpenAI Realtime definition', () => {
     expect(entry.settings).not.toHaveProperty('transportType');
     expect(readCredentials(openaiProvider, entry.settings, entry.credentials, noAuth)).toEqual({ apiKey: 'sk-proj-oldProfileKey0123' });
     expect(entry.pair).toEqual({ source: 'ko', target: 'ja' });
-    const config = openaiProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as RealtimeSettings, { ...SHARED, models: [{ id: 'gpt-realtime-2.1' }] }) as RealtimeConfig;
+    const config = whole.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as RealtimeSettings, { ...SHARED, models: [{ id: 'gpt-realtime-2.1' }] }) as RealtimeConfig;
     expect(config).toMatchObject({ transport: 'websocket', model: 'gpt-realtime-2.1', voice: 'marin', maxTokens: 2048, instructions: 'Translate plainly.' });
     expect(setSetting).not.toHaveBeenCalled();
   });

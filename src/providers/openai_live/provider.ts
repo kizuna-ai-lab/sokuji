@@ -1,5 +1,6 @@
 import { OPENAI_KEY_STORED_AT } from '../openaiKey';
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createLiveAdapter } from './adapter';
 import { checkLive } from './check';
@@ -40,7 +41,7 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
   settings: { key: 'openaiLive', defaults: LIVE_DEFAULTS, legacyKeys: LIVE_LEGACY_KEYS, migrate: migrateLiveSettings },
   Settings: LiveSettingsView,
   // The instructions on translation, the voices on speech (mock v19).
-  optionStages: [TL, SP],
+  settingsStages: [TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: LiveVoiceSummary,
 
@@ -52,16 +53,19 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
 
   languages: liveLanguages,
 
-  // Text only is offered (ruling 1): the API always speaks — and bills the audio — and a leg that does not speak drops it; the participant speaks on its switch.
-  speech: 'optional',
-  // An interpreter takes no typed text (ruling 9).
-  textInput: () => false,
-  // Our own silence timers end segments (the old offer: pause, no auto, sizes).
-  boundaries: () => 'silence',
-  // Both turn modes: a release mutes the session, a press unmutes it (ruling 5).
-  turns: () => ['auto', 'manual'],
+  endToEnd: true,
+  units: [wholeUnitOf<LiveSettings, LiveCredentials, LiveConfig>({
+    // Text only is offered (ruling 1): the API always speaks — and bills the audio — and a leg that does not speak drops it; the participant speaks on its switch.
+    speech: 'optional',
+    // An interpreter takes no typed text (ruling 9).
+    textInput: () => false,
+    // Our own silence timers end segments (the old offer: pause, no auto, sizes).
+    boundaries: () => 'silence',
+    // Both turn modes: a release mutes the session, a press unmutes it (ruling 5).
+    turns: () => ['auto', 'manual'],
 
-  build: buildLive,
-  describe: describeLive,
-  start: adapter.start,
+    build: buildLive,
+    describe: describeLive,
+    start: adapter.start,
+  })],
 };

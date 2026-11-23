@@ -9,7 +9,7 @@ import {
 } from './systemAudio';
 
 /** A participant recorder that records its calls; `push` delivers a chunk while it records. */
-function fakeCapture(o: { begins?: boolean; stream?: MediaStream; failure?: unknown } = {}) {
+function fakeCapture(o: { begins?: boolean; started?: Promise<boolean>; stream?: MediaStream; failure?: unknown } = {}) {
   let callback: ((data: { mono: Int16Array }) => void) | null = null;
   const capture = {
     begun: [] as Array<{ deviceId?: string } | undefined>,
@@ -20,7 +20,7 @@ function fakeCapture(o: { begins?: boolean; stream?: MediaStream; failure?: unkn
     onAudioSeen: null as (() => void) | null,
     async begin(options?: { deviceId?: string }) {
       capture.begun.push(options);
-      return o.begins ?? true;
+      return o.started ?? o.begins ?? true;
     },
     async record(fn: (data: { mono: Int16Array }) => void) {
       callback = fn;
@@ -54,6 +54,7 @@ function setup(o: {
   const loopback = o.loopback ?? fakeCapture();
   const wait = vi.fn(async () => {});
   const screenRecording = vi.fn(async () => o.screenRecording ?? 'granted');
+  const appLostListeners = new Set<() => void>();
   const deps: SystemAudioDeps = {
     invoke: async (channel, data) => {
       invoked.push([channel, data]);
@@ -64,8 +65,14 @@ function setup(o: {
     app: () => app,
     device: () => device,
     loopback: () => loopback,
+    appLost: (listener) => {
+      appLostListeners.add(listener);
+      return () => { appLostListeners.delete(listener); };
+    },
     screenRecording,
   };
+  /** The main process says the application the PipeWire tap follows has quit. */
+  const appQuit = () => { for (const listener of [...appLostListeners]) listener(); };
   let current = { sourceId: o.sourceId ?? 'desktop-audio-loopback', muted: false };
   const listeners = new Set<() => void>();
   const audioSeen = vi.fn();
@@ -84,7 +91,7 @@ function setup(o: {
     current = { ...current, ...patch };
     for (const listener of listeners) listener();
   };
-  return { deps, settings, set, invoked, app, device, loopback, wait, audioSeen, widened, screenRecording };
+  return { deps, settings, set, invoked, app, device, loopback, wait, audioSeen, widened, screenRecording, appQuit, appLostListeners };
 }
 
 const settle = async () => {
@@ -202,6 +209,62 @@ describe('openSystemAudio — running', () => {
     expect(s.loopback.begun).toEqual([undefined]);
   });
 
+  it('falls back to whole-system capture, visibly, when the application a PipeWire tap follows quits (#617)', async () => {
+    const s = setup({
+      sourceId: 'app:pid:7',
+      answer: { success: true, monitorLabel: 'Sokuji Capture' },
+      devices: [{ kind: 'audioinput', label: 'Sokuji Capture', deviceId: 'mon-1' }],
+    });
+    const source = await openSystemAudio(s.settings, live(), s.deps);
+    const degraded = vi.fn();
+    source.onDegraded(degraded);
+    s.appQuit();
+    await settle();
+    expect(degraded).toHaveBeenCalledWith(expect.objectContaining({ code: APP_CAPTURE_LOST }));
+    expect(s.device.ended).toBe(1);
+    expect(s.loopback.begun).toEqual([undefined]);
+    expect(s.widened).toHaveBeenLastCalledWith(true);
+    // Heard once: the whole-system capture it fell back to follows no application.
+    expect(s.appLostListeners.size).toBe(0);
+  });
+
+  it('ends a tap recorder still starting when the application quits, instead of letting it record beside the fallback', async () => {
+    let start!: (begun: boolean) => void;
+    const device = fakeCapture({ started: new Promise<boolean>((resolve) => { start = resolve; }) });
+    const s = setup({
+      sourceId: 'app:pid:7',
+      answer: { success: true, monitorLabel: 'Sokuji Capture' },
+      devices: [{ kind: 'audioinput', label: 'Sokuji Capture', deviceId: 'mon-1' }],
+      device,
+    });
+    const opening = openSystemAudio(s.settings, live(), s.deps);
+    await settle(); // the tap's recorder is starting
+    s.appQuit();
+    await settle(); // the fallback is recording the whole system
+    const endedBefore = device.ended;
+    start(true);
+    const source = await opening;
+    const heard = vi.fn();
+    source.onPcm(heard);
+    device.push();
+    expect(heard).not.toHaveBeenCalled();
+    expect(device.ended).toBe(endedBefore + 1);
+    s.loopback.push();
+    expect(heard).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops listening for the tapped application when the source stops', async () => {
+    const s = setup({
+      sourceId: 'app:pid:7',
+      answer: { success: true, monitorLabel: 'Sokuji Capture' },
+      devices: [{ kind: 'audioinput', label: 'Sokuji Capture', deviceId: 'mon-1' }],
+    });
+    const source = await openSystemAudio(s.settings, live(), s.deps);
+    expect(s.appLostListeners.size).toBe(1);
+    await source.stop();
+    expect(s.appLostListeners.size).toBe(0);
+  });
+
   it('ends when the fallback cannot start', async () => {
     const s = setup({ sourceId: 'app:42', answer: { success: true, capture: 'app' }, loopback: fakeCapture({ begins: false }) });
     const source = await openSystemAudio(s.settings, live(), s.deps);
@@ -269,6 +332,7 @@ describe('openSystemAudio — running', () => {
       app: () => { const c = fakeCapture(); recorders.push(c); return c; },
       device: () => fakeCapture(),
       loopback: () => loopback,
+      appLost: () => () => {},
       screenRecording: async () => 'granted',
     };
     let current = { sourceId: 'app:1', muted: false };

@@ -10,7 +10,8 @@
  */
 import type { Adapter } from '../../lib/contract/adapter';
 import { TR, TR_TL } from '../../lib/lineup/types';
-import { sameStages, type UnitDefinition } from '../../lib/plan/types';
+import { sameStages } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import { buildSoniox, buildSonioxAlone, describeSoniox, type SonioxConfig } from './config';
 import type { SonioxCredentials, SonioxSettings } from './settings';
 import { sonioxTtsUnitFor, type SonioxTtsUnit } from './ttsUnit';

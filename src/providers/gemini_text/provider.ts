@@ -6,15 +6,14 @@
 // app only (spec §1).
 import { GeminiIcon } from '../../components/Icons/ProviderIcons';
 import { textModelSettingsView } from '../../components/providers/TextModelSettings';
-import { AdapterStartError } from '../../lib/contract/adapter';
 import { TL } from '../../lib/lineup/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { createTextModelCheck, type TextModelCheckDeps } from '../../lib/textModel/check';
 import { textModelLanguages } from '../../lib/textModel/languages';
 import type { TextModelSessionDeps } from '../../lib/textModel/translation';
 import {
-  buildTextModelTranslation, describeTextModelTranslation, migrateTextModelSettings, textModelTranslationUnit, TEXT_MODEL_CHECK_READS, TEXT_MODEL_DEFAULTS,
+  migrateTextModelSettings, textModelTranslationUnit, TEXT_MODEL_CHECK_READS, TEXT_MODEL_DEFAULTS,
   type TextModelSettings,
 } from '../../lib/textModel/unit';
 import { GEMINI_KEY_STORED_AT } from '../geminiKey';
@@ -42,7 +41,7 @@ export const geminiTextProvider: Provider<TextModelSettings, GeminiTextCredentia
 
   settings: { key: 'geminiText', defaults: TEXT_MODEL_DEFAULTS, migrate: migrateTextModelSettings },
   Settings: textModelSettingsView('gemini'),
-  optionStages: [TL],
+  settingsStages: [TL],
 
   credentials: {
     keys: ['apiKey'],
@@ -58,16 +57,6 @@ export const geminiTextProvider: Provider<TextModelSettings, GeminiTextCredentia
   checkReads: TEXT_MODEL_CHECK_READS,
 
   languages: textModelLanguages,
-
-  speech: 'never',
-  textInput: () => false,
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-
-  build: (context, s, shared) => buildTextModelTranslation('gemini', context, s, shared),
-  describe: describeTextModelTranslation,
-  // It never runs a session whole: it translates another provider's transcription, through its unit.
-  start: () => Promise.reject(new AdapterStartError("Gemini's text models only translate: they start through their translation unit.", 'plan_unsupported')),
 
   units: [createGeminiTextUnit()],
 };

@@ -73,20 +73,20 @@ export function StagePart({ stages, children }: { stages: readonly RunStage[]; c
 }
 
 /**
- * Whether a stage card has options for its provider, from the provider's `optionStages`: its own stage's, or the
+ * Whether a stage card has options for its provider, from the provider's `settingsStages`: its own stage's, or the
  * ones acting on several served stages when it is the first of them; a later card points back to that first card,
  * naming the stages those options act on. Turn detection belongs to transcription. Without a declaration, every
  * option shows in the provider's first card.
  */
 export function cardOptions(
-  optionStages: readonly (readonly RunStage[])[] | undefined,
+  settingsStages: readonly (readonly RunStage[])[] | undefined,
   served: readonly RunStage[],
   stage: RunStage,
   hasTurnDetection: boolean,
 ): { has: boolean; rows: boolean; pointerTo: RunStage | null; pointerStages: RunStage[] } {
   const first = RUN_STAGES.find((s) => served.includes(s));
-  if (!optionStages) return { has: stage === first, rows: stage === first, pointerTo: null, pointerStages: [] };
-  const acts = optionStages.map((st) => actingOn(st, served)).filter((a) => a.length > 0);
+  if (!settingsStages) return { has: stage === first, rows: stage === first, pointerTo: null, pointerStages: [] };
+  const acts = settingsStages.map((st) => actingOn(st, served)).filter((a) => a.length > 0);
   const own = acts.some((a) => a.length === 1 && a[0] === stage) || (stage === 'transcription' && hasTurnDetection);
   const sharedHere = acts.some((a) => a.length > 1 && a[0] === stage);
   const elsewhere = acts.filter((a) => a.length > 1 && a[0] !== stage && a.includes(stage));

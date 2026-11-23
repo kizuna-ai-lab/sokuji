@@ -10,7 +10,7 @@ import { startLabel } from './startLabel';
 import type { RunState } from '../../../lib/session/types';
 import type { AudioMode } from '../../../stores/audioStore';
 import type { EarsLegendEntry } from '../useFaceToFace';
-import type { LanguagePair } from '../../../lib/provider/types';
+import type { LanguagePair } from '../../../lib/run/types';
 import { LanguagePairText } from '../../LanguagePairText/LanguagePairText';
 import { parseCode } from '../../../lib/language/code';
 

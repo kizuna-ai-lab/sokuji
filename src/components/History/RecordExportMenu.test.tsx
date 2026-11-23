@@ -6,6 +6,9 @@ import RecordExportMenu from './RecordExportMenu';
 import type { HistoryNotes, HistoryRecord, HistoryTranscriptRow as HistoryTranscript } from '../../lib/history/types';
 import type { RecordRow } from '../../lib/history/recordView';
 import type { Leg, Segment } from '../../lib/conversation/types';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 afterEach(() => cleanup());
 

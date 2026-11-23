@@ -2,7 +2,8 @@
 // from the run's readiness. The check here is a stand-in: nothing reaches a service.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, waitFor, act } from '@testing-library/react';
-import type { AnyProvider, AuthContext, CheckResult } from '../../lib/provider/types';
+import type { AnyProvider, CheckResult } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { TEXT_MODEL_DEFAULTS } from '../../lib/textModel/unit';
 import { openaiCompatibleProvider } from '../../providers/openai_compatible/provider';
 import { openaiTextProvider } from '../../providers/openai_text/provider';

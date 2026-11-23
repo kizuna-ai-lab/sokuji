@@ -8,9 +8,8 @@
 // model, and then the model is typed. For it the lowest reasoning means none is sent (its models are unknown).
 import { Plug } from 'lucide-react';
 import { textModelSettingsView } from '../../components/providers/TextModelSettings';
-import { AdapterStartError } from '../../lib/contract/adapter';
 import { TL } from '../../lib/lineup/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { compatibleAddressProblem } from '../../lib/textModel/address';
 import { createTextModelCheck, type TextModelCheckDeps } from '../../lib/textModel/check';
@@ -18,7 +17,7 @@ import { ADDRESS_WORDS } from '../../lib/textModel/client';
 import { textModelLanguages } from '../../lib/textModel/languages';
 import type { TextModelSessionDeps } from '../../lib/textModel/translation';
 import {
-  buildTextModelTranslation, describeTextModelTranslation, migrateTextModelSettings, textModelTranslationUnit, TEXT_MODEL_CHECK_READS, TEXT_MODEL_DEFAULTS,
+  migrateTextModelSettings, textModelTranslationUnit, TEXT_MODEL_CHECK_READS, TEXT_MODEL_DEFAULTS,
   type TextModelSettings,
 } from '../../lib/textModel/unit';
 import { createCompatibleTextTranslation, type CompatibleTextConfig, type CompatibleTextCredentials } from './adapter';
@@ -49,7 +48,7 @@ export const openaiCompatibleProvider: Provider<TextModelSettings, CompatibleTex
   // should read or send to the address entered now.
   settings: { key: 'compatibleText', defaults: TEXT_MODEL_DEFAULTS, migrate: migrateTextModelSettings },
   Settings: textModelSettingsView('compatible'),
-  optionStages: [TL],
+  settingsStages: [TL],
 
   credentials: {
     keys: ['baseUrl', 'apiKey'],
@@ -71,16 +70,6 @@ export const openaiCompatibleProvider: Provider<TextModelSettings, CompatibleTex
   checkReads: TEXT_MODEL_CHECK_READS,
 
   languages: textModelLanguages,
-
-  speech: 'never',
-  textInput: () => false,
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
-
-  build: (context, s, shared) => buildTextModelTranslation('compatible', context, s, shared),
-  describe: describeTextModelTranslation,
-  // It never runs a session whole: it translates another provider's transcription, through its unit.
-  start: () => Promise.reject(new AdapterStartError('A compatible service only translates: it starts through its translation unit.', 'plan_unsupported')),
 
   units: [createCompatibleTextUnit()],
 };

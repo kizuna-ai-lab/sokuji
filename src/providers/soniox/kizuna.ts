@@ -5,7 +5,7 @@ import { kizunaSonioxMinimumBalance } from './kizunaBudget';
 import { createKizunaLease } from './lease';
 import { getApiUrl } from '../../utils/environment';
 import { useManagedVoiceSource } from './managedVoiceSource';
-import { sonioxFileRecognitionBase, sonioxProvider } from './provider';
+import { sonioxAdapter, sonioxFileRecognitionBase, sonioxProvider } from './provider';
 import { createSonioxSettingsView } from './SonioxSettings';
 import { sonioxUnitsFor } from './units';
 import { createSonioxVoiceSummary } from './SonioxVoiceSummary';
@@ -30,8 +30,8 @@ export const KIZUNA_PARTICIPANT_SPEECH = true;
  * slice, so a stored selection and settings carry over; the sign-in in
  * place of a key; the lease that mints each leg's keys and ends the run
  * with its grant; the voice claim; the balance floor. The one
- * participant-speech flag reaches the definition's capability, its lease
- * and its floor (choice 11); the tests build a flag-on twin here.
+ * participant-speech flag reaches its units, its lease and its floor
+ * (choice 11); the tests build a flag-on twin here.
  */
 export function createKizunaSonioxProvider({ participantSpeech }: { participantSpeech: boolean }) {
   return managed(sonioxProvider, {
@@ -43,9 +43,8 @@ export function createKizunaSonioxProvider({ participantSpeech }: { participantS
     Settings: KizunaSonioxSettingsView,
     VoiceSummary: KizunaSonioxVoiceSummary,
     signedOut: 'Sign in to use Kizuna AI Soniox.',
-    participantSpeech,
     // Soniox's two units over the same adapter, with this definition's own participant-speech flag.
-    units: sonioxUnitsFor({ start: sonioxProvider.start, participantSpeech }),
+    units: sonioxUnitsFor({ start: sonioxAdapter.start, participantSpeech }),
     // A saved recording as a file job of the signed-in account at the Kizuna AI service, which runs it at Soniox in the
     // region the settings name, the same one live sessions use (owner, 2026-11-18). No key: the History page attaches
     // the service's address and the sign-in.

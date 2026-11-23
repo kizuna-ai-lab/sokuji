@@ -10,7 +10,8 @@
  */
 import { INSTRUCTION_LEGACY_KEYS, INSTRUCTIONS_DEFAULTS, migrateInstructions, type InstructionsSettings } from '../../lib/provider/instructions';
 import { englishLanguageName, wireTable } from '../../lib/language';
-import type { CredentialsMissing, LanguageOption, MigrationInputs, ModelOption, Provider } from '../../lib/provider/types';
+import type { CredentialsMissing, LanguageOption, MigrationInputs, Provider } from '../../lib/provider/types';
+import type { ModelOption } from '../../lib/run/types';
 import { distinctVoice } from '../../lib/provider/voices';
 
 export interface GeminiSettings extends InstructionsSettings {

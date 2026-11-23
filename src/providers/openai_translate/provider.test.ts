@@ -31,6 +31,8 @@ import { migrateTranslateSettings, TRANSLATE_DEFAULTS, translateCredentials, tra
 import { AUTO_CTX, configFor, KEY, SHARED } from './testing';
 import { TranslateSettingsView } from './TranslateSettings';
 
+const [whole] = openaiTranslateProvider.units;
+
 afterEach(() => {
   vi.unstubAllGlobals();
   stored.clear();
@@ -55,19 +57,20 @@ describe('the OpenAI Translate definition', () => {
       Settings: TranslateSettingsView,
       credentials: translateCredentials,
       languages: translateLanguages,
-      build: buildTranslate,
-      describe: describeTranslate,
     });
+    expect(openaiTranslateProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(whole.build(AUTO_CTX, TRANSLATE_DEFAULTS, SHARED)).toEqual(buildTranslate(AUTO_CTX, TRANSLATE_DEFAULTS, SHARED));
+    expect(whole.describe).toBe(describeTranslate);
     for (const absent of ['flagged', 'TurnDetection', 'session', 'participantSpeech'] as const) {
       expect(openaiTranslateProvider, absent).not.toHaveProperty(absent);
     }
   });
 
   it('offers Text only, takes no typed text, ends segments on our own timers, and offers both turn modes (ruling 4)', () => {
-    expect(openaiTranslateProvider.speech).toBe('optional');
-    expect(openaiTranslateProvider.textInput(TRANSLATE_DEFAULTS)).toBe(false);
-    expect(openaiTranslateProvider.boundaries(TRANSLATE_DEFAULTS)).toBe('silence');
-    expect(openaiTranslateProvider.turns(TRANSLATE_DEFAULTS)).toEqual(['auto', 'manual']);
+    expect(whole.capabilities(TRANSLATE_DEFAULTS).speech).toBe('optional');
+    expect(whole.capabilities(TRANSLATE_DEFAULTS).textInput).toBe(false);
+    expect(whole.capabilities(TRANSLATE_DEFAULTS).boundaries).toBe('silence');
+    expect(whole.capabilities(TRANSLATE_DEFAULTS).turns).toEqual(['auto', 'manual']);
   });
 
   it('sits before Soniox (ruling 11), OpenAI Live between them (Stage 2 OpenAI Live, ruling 9)', () => {
@@ -79,7 +82,7 @@ describe('the OpenAI Translate definition', () => {
   it("lets the participant speak when its switch is on, into the pair's source (ruling 5), and a speaker on Text only not speak (ruling 4)", () => {
     const participant = contextsFor(both({ source: 'ja', target: 'en' }, { participantSpeech: true })).participant!;
     expect(participant).toEqual({ direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' });
-    expect((openaiTranslateProvider.build(participant, TRANSLATE_DEFAULTS, SHARED) as TranslateConfig).target).toBe('ja');
+    expect((whole.build(participant, TRANSLATE_DEFAULTS, SHARED) as TranslateConfig).target).toBe('ja');
     expect(contextsFor(both({ source: 'ja', target: 'en' })).participant!.speech).toBe(false);
     expect(contextsFor(both({ source: 'ja', target: 'en' }, { textOnly: true })).speaker!.speech).toBe(false);
   });
@@ -96,7 +99,7 @@ describe('the OpenAI Translate definition', () => {
     const controller = new AbortController();
     const reason = new Error('cancelled');
     controller.abort(reason);
-    await expect(openaiTranslateProvider.start(
+    await expect(whole.start!(
       { context: AUTO_CTX, config: configFor(), credentials: KEY, clock: createVirtualClock(0), signal: controller.signal },
       recordEvents().events,
     )).rejects.toBe(reason);
@@ -115,7 +118,7 @@ describe('the OpenAI Translate definition', () => {
     expect(entry.settings as TranslateSettings).toEqual({ noiseReduction: 'Far field' });
     expect(readCredentials(openaiTranslateProvider, entry.settings, entry.credentials, { signedIn: false, getToken: async () => null })).toEqual({ apiKey: 'sk-proj-oldProfileKey0123' });
     expect(entry.pair).toEqual({ source: 'ko', target: 'ja' });
-    const config = openaiTranslateProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as TranslateSettings, SHARED) as TranslateConfig;
+    const config = whole.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as TranslateSettings, SHARED) as TranslateConfig;
     expect(config).toMatchObject({ transport: 'websocket', noiseReduction: 'far_field', transcriptModel: 'gpt-live-transcribe', target: 'ja' });
     expect(setSetting).not.toHaveBeenCalled();
   });

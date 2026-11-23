@@ -45,6 +45,9 @@ import { runsOn } from '../../stores/lineUpStore.testing';
 import { useModelStore } from '../../stores/modelStore';
 import { LOCAL_INFERENCE_DEFAULTS } from '../../providers/localInference/settings';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const SUPERTONIC = 'supertonic-3';
 // A speech model with several speakers (904), and one with a single voice.

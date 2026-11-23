@@ -30,7 +30,8 @@ import { buildPlan, describePlan } from '../plan/composite';
 import { planFromStores } from '../plan/fromStores';
 import { checkStagesOf, transcriptionProvider } from '../plan/read';
 import type { RunPlan } from '../plan/types';
-import type { AnyProvider, SharedSettings } from '../provider/types';
+import type { AnyProvider } from '../provider/types';
+import type { SharedSettings } from '../run/types';
 import { ensureReadyFromStores, faceToFaceFromStores, lineUpNoticeFromStores, liveGate, readShapeFromStores } from './appShape';
 import { balanceRefusal, gate, planLanguages } from './shape';
 

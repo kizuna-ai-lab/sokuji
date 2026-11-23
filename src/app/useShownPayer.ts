@@ -5,7 +5,7 @@
  * (not an organization member then) shows none: who pays it is not the switch's to say.
  */
 import { useAccountPayer } from '../lib/session/payerChoice';
-import type { AccountState, Payer } from '../lib/session/types';
+import type { AccountState, Payer } from '../lib/run/types';
 import { useRunState } from './useRun';
 
 export function useShownPayer(account: AccountState | null | undefined): Payer | undefined {

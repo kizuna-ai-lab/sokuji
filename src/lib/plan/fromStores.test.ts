@@ -29,7 +29,7 @@ import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { planFromStores, usePlan, useStageUnit } from './fromStores';
 import { checkStagesOf, providersIn, transcriptionProvider } from './read';
-import type { SharedSettings } from '../provider/types';
+import type { SharedSettings } from '../run/types';
 import { planOf } from './testing';
 import { unitsOf } from './wholeUnit';
 
@@ -60,7 +60,7 @@ describe('planFromStores', () => {
     expect(planFromStores()).toEqual({ state: 'loading' });
   });
 
-  it('is ready with the selected provider as one whole-provider unit, and its entry as its account', () => {
+  it("is ready with the selected provider's plan alone, and its entry as its account", () => {
     runsOn('soniox');
     useProviderStore.setState({ entries: { soniox: sonioxEntry, gemini: geminiEntry } });
     const found = planFromStores();
@@ -169,7 +169,7 @@ describe('useStageUnit', () => {
 
     act(() => useProviderStore.setState({ entries: { soniox: sonioxEntry } }));
     expect(result.current).toMatchObject({ provider: sonioxProvider, unit: unitsOf(sonioxProvider).find((u) => u.id === 'tts'), settings: sonioxEntry.settings });
-    expect(result.current!.capabilities.speech).toBe(sonioxProvider.speech);
+    expect(result.current!.capabilities.speech).toBe('optional');
   });
 });
 

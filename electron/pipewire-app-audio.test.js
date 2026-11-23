@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
   parseAppStreams,
   resolvePortIds,
@@ -165,8 +165,9 @@ function fakeExec(calls, { dump = FULL_DUMP, moduleId = '536870913', stdout } = 
 // them should sit through it.
 const noWait = async () => {};
 
-// The module holds captureModuleId in module scope; release it between tests.
-beforeEach(async () => { await disconnectAppSource({ exec: async () => ({ stdout: '' }) }); });
+// The module holds the tap (its module ids and its watch) in module scope;
+// release it after each test, the last one's included.
+afterEach(async () => { await disconnectAppSource({ exec: async () => ({ stdout: '' }) }); });
 
 describe('connectAppSource', () => {
   it('creates the null sink and links every channel pair by numeric id', async () => {
@@ -487,6 +488,108 @@ describe('the remapped source is bound to the capture sink, not the default inpu
     // Better to leave the graph as found than to rewire part of it.
     expect(calls.some((c) => c.startsWith('pw-link -d'))).toBe(false);
     expect(calls.some((c) => c === 'pw-link 310 401')).toBe(false);
+  });
+});
+
+// #617: the tap linked only the streams its application had when it started.
+// A tab closed and another opened is a new stream node, often under the id
+// PipeWire just freed (seen on PipeWire 1.0.5), and nothing linked it: the
+// session recorded silence until it was stopped.
+describe('a tap follows its application while it lives (#617)', () => {
+  const tab = (nodeId, [left, right]) => [
+    { ...NODE_STREAM, id: nodeId },
+    port(left, nodeId, 'output', 'output_FL'),
+    port(right, nodeId, 'output', 'output_FR'),
+  ];
+  // FULL_DUMP with the application's stream (node 205, ports 91/55) gone.
+  const NO_STREAM = FULL_DUMP.filter((o) => o.id !== 205 && o.info?.props?.['node.id'] !== 205);
+
+  async function tapped({ isAlive = () => true } = {}) {
+    const t = { calls: [], graph: FULL_DUMP, onLost: vi.fn(), cleared: 0, look: null };
+    t.exec = async (cmd) => {
+      t.calls.push(cmd);
+      if (cmd.startsWith('pw-dump')) return { stdout: JSON.stringify(t.graph) };
+      if (cmd.includes('load-module')) return { stdout: '536870913\n' };
+      return { stdout: '' };
+    };
+    const timers = { setInterval: (fn) => { t.look = fn; return 1; }, clearInterval: () => { t.cleared += 1; } };
+    const r = await connectAppSource('app:pid:4242', { exec: t.exec, delay: noWait, timers, isAlive, onLost: t.onLost });
+    expect(r.success).toBe(true);
+    t.calls.length = 0;
+    return t;
+  }
+
+  it('links a stream the application opened after the tap started, under a reused node id', async () => {
+    const t = await tapped();
+    t.graph = [...NO_STREAM, ...tab(205, [95, 96])];
+    await t.look();
+    expect(t.calls).toContain('pw-link 95 153');
+    expect(t.calls).toContain('pw-link 96 142');
+  });
+
+  it('leaves the streams that already feed the tap alone', async () => {
+    const t = await tapped();
+    t.graph = [...FULL_DUMP, link(1, 91, 153), link(2, 55, 142)];
+    await t.look();
+    expect(t.calls.filter((c) => c.startsWith('pw-link'))).toEqual([]);
+  });
+
+  it('waits through a spell with no stream while the application runs, then links the next one', async () => {
+    const t = await tapped();
+    t.graph = NO_STREAM; // the last tab closed
+    await t.look();
+    expect(t.onLost).not.toHaveBeenCalled();
+    t.graph = [...NO_STREAM, ...tab(207, [97, 98])];
+    await t.look();
+    expect(t.calls).toContain('pw-link 97 153');
+  });
+
+  it('reports the application gone, once, when it quit, and stops looking', async () => {
+    const t = await tapped({ isAlive: () => false });
+    t.graph = NO_STREAM;
+    await t.look();
+    expect(t.onLost).toHaveBeenCalledTimes(1);
+    expect(t.cleared).toBe(1);
+    await t.look(); // a look already due when it stopped
+    expect(t.onLost).toHaveBeenCalledTimes(1);
+  });
+
+  // The main process treats an unhandled rejection as fatal and quits (main.js), so a look that fails in a way
+  // nobody foresaw is logged, never thrown: it must not end a meeting.
+  it('a look that fails is logged, not thrown, so it can never quit the app', async () => {
+    const t = await tapped({ isAlive: () => false });
+    t.onLost.mockImplementation(() => { throw new Error('the window is gone'); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    t.graph = NO_STREAM;
+    await expect(t.look()).resolves.toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('[PipeWire]'), 'the window is gone');
+    warn.mockRestore();
+  });
+
+  // Review on #866: the renderer must hear that the application quit, so a report that fails is tried again on the
+  // next look instead of the watch stopping without it.
+  it('keeps looking until the report that the application quit goes through', async () => {
+    const t = await tapped({ isAlive: () => false });
+    t.onLost.mockImplementationOnce(() => { throw new Error('the window is busy'); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    t.graph = NO_STREAM;
+    await t.look();
+    expect(t.cleared).toBe(0);
+    await t.look();
+    expect(t.onLost).toHaveBeenCalledTimes(2);
+    expect(t.cleared).toBe(1);
+    await t.look();
+    expect(t.onLost).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
+
+  it('stops looking when the tap is disconnected', async () => {
+    const t = await tapped();
+    await disconnectAppSource({ exec: t.exec });
+    expect(t.cleared).toBe(1);
+    t.calls.length = 0;
+    await t.look();
+    expect(t.calls).toEqual([]);
   });
 });
 

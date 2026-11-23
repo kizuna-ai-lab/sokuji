@@ -4,7 +4,8 @@
  */
 import { wireTable } from '../../lib/language/wire';
 import { AUTO } from '../../lib/provider/languages';
-import type { LanguageOption, LanguagePair, Provider } from '../../lib/provider/types';
+import type { LanguageOption, Provider } from '../../lib/provider/types';
+import type { LanguagePair } from '../../lib/run/types';
 import type { PalabraSettings } from './settings';
 
 /**

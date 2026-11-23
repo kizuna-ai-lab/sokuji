@@ -34,6 +34,8 @@ import { palabraProvider } from './provider';
 import { migratePalabraSettings, PALABRA_DEFAULTS, palabraCredentials, palabraLanguages, type PalabraSettings } from './settings';
 import { APP, AUTO_CTX, configFor, KEY, SHARED } from './testing';
 
+const [whole] = palabraProvider.units;
+
 const noAuth = { signedIn: false, getToken: async () => null };
 
 afterEach(() => {
@@ -62,9 +64,10 @@ describe('the Palabra AI definition', () => {
       credentials: palabraCredentials,
       checkReads: ['authMode'],
       languages: palabraLanguages,
-      build: buildPalabra,
-      describe: describePalabra,
     });
+    expect(palabraProvider.units.map((u) => u.id)).toEqual(['whole']);
+    expect(whole.build(AUTO_CTX, PALABRA_DEFAULTS, SHARED)).toEqual(buildPalabra(AUTO_CTX, PALABRA_DEFAULTS, SHARED));
+    expect(whole.describe).toBe(describePalabra);
     // No `legacyKeys`, nothing converted (ruling 2); unflagged (ruling 14).
     for (const absent of ['flagged', 'session', 'participantSpeech', 'testerSwitch'] as const) expect(palabraProvider, absent).not.toHaveProperty(absent);
     expect(palabraProvider.settings).not.toHaveProperty('legacyKeys');
@@ -72,10 +75,10 @@ describe('the Palabra AI definition', () => {
   });
 
   it("offers Text only (ruling 7), takes no typed text, keeps the server's boundaries, and offers both turn modes", () => {
-    expect(palabraProvider.speech).toBe('optional');
-    expect(palabraProvider.textInput(PALABRA_DEFAULTS)).toBe(false);
-    expect(palabraProvider.boundaries(PALABRA_DEFAULTS)).toBe('provider');
-    expect(palabraProvider.turns(PALABRA_DEFAULTS)).toEqual(['auto', 'manual']);
+    expect(whole.capabilities(PALABRA_DEFAULTS).speech).toBe('optional');
+    expect(whole.capabilities(PALABRA_DEFAULTS).textInput).toBe(false);
+    expect(whole.capabilities(PALABRA_DEFAULTS).boundaries).toBe('provider');
+    expect(whole.capabilities(PALABRA_DEFAULTS).turns).toEqual(['auto', 'manual']);
   });
 
   it('sits last, after Qwen LiveTranslate (ruling 14), of the providers that run a session by themselves: the text models that only translate follow it', () => {
@@ -87,12 +90,12 @@ describe('the Palabra AI definition', () => {
   it("runs the participant in Palabra's own reverse — a region target by its source code — and speaks it when its switch is on (rulings 7, 9)", () => {
     const participant = contextsFor(both({ source: 'ja', target: 'en-US' }, { participantSpeech: true })).participant!;
     expect(participant).toEqual({ direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' });
-    expect(palabraProvider.build(participant, PALABRA_DEFAULTS, SHARED)).toMatchObject({ source: 'en', target: 'ja', speech: true });
+    expect(whole.build(participant, PALABRA_DEFAULTS, SHARED)).toMatchObject({ source: 'en', target: 'ja', speech: true });
     expect(gate(both({ source: 'ja', target: 'en-US' }), 'electron')).toBeNull();
     // The other way: English reverses to its documented US English.
     expect(contextsFor(both({ source: 'en', target: 'ja' })).participant!.direction).toEqual({ source: 'ja', target: 'en-US' });
     // A participant that does not speak asks for text alone.
-    expect((palabraProvider.build(contextsFor(both({ source: 'ja', target: 'en-US' })).participant!, PALABRA_DEFAULTS, SHARED) as PalabraConfig).speech).toBe(false);
+    expect((whole.build(contextsFor(both({ source: 'ja', target: 'en-US' })).participant!, PALABRA_DEFAULTS, SHARED) as PalabraConfig).speech).toBe(false);
   });
 
   it('refuses Both where the docs give no reverse: an Auto-detect source, or a target with no source code (D20, ruling 8)', () => {
@@ -112,7 +115,7 @@ describe('the Palabra AI definition', () => {
     const reason = new Error('cancelled');
     controller.abort(reason);
     for (const credentials of [KEY, APP]) {
-      await expect(palabraProvider.start(
+      await expect(whole.start!(
         { context: AUTO_CTX, config: configFor(), credentials, clock: createVirtualClock(0), signal: controller.signal },
         recordEvents().events,
       )).rejects.toBe(reason);
@@ -134,7 +137,7 @@ describe('the Palabra AI definition', () => {
     expect(entry.settings as PalabraSettings).toEqual({ ...PALABRA_DEFAULTS, voiceId: 'default_high', segmentConfirmationSilenceThreshold: 0.1 });
     expect(readCredentials(palabraProvider, entry.settings, entry.credentials, noAuth)).toEqual({ kind: 'apiKey', apiKey: 'plbr_oldProfileKey0123456789' });
     expect(entry.pair).toEqual({ source: 'ja', target: 'en-US' });
-    expect((palabraProvider.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as PalabraSettings, SHARED) as PalabraConfig).silenceThreshold).toBe(0.3);
+    expect((whole.build({ direction: entry.pair, speech: true, turns: 'auto' }, entry.settings as PalabraSettings, SHARED) as PalabraConfig).silenceThreshold).toBe(0.3);
     expect(setSetting).not.toHaveBeenCalled();
   });
 

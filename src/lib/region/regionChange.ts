@@ -10,7 +10,7 @@ import { requestSonioxRegionChange } from '../../providers/soniox/regionChange';
 import { loadedProvider, useProviderStore } from '../../stores/providerStore';
 import { useRegionRecommendationStore } from '../../stores/regionRecommendationStore';
 import type { SonioxRegion } from '../soniox/regions';
-import type { AuthContext } from '../provider/types';
+import type { AuthContext } from '../run/types';
 import { markChoseManually } from './record';
 import { REGION_FAMILIES, REGION_FAMILY_OF, currentRegion, isRecommendedProvider, type RegionalProviderId } from './regionalProviders';
 import { regionRecommendationEvent } from './runRecommendation';

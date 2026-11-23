@@ -13,7 +13,8 @@ import { servesSpeech } from '../../lib/plan/read';
 import { stubProvider } from '../../lib/plan/testing';
 import { isRefusal, type RunPlan } from '../../lib/plan/types';
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
-import type { LeaseContext, RunShape } from '../../lib/session/types';
+import type { RunShape } from '../../lib/session/types';
+import type { LeaseContext } from '../../lib/run/types';
 import { edgeProvider } from '../edge/provider';
 import { kizunaSonioxProvider } from './kizuna';
 import { kizunaSonioxMinimumBalance, sonioxSessionCapSeconds, SONIOX_MAX_TRANSCRIPTION_SESSION_S } from './kizunaBudget';
@@ -21,6 +22,9 @@ import { createKizunaLease } from './lease';
 import { isSttRole, leaseRequest, requestBody, requestedRoles } from './leaseRequest';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 import { createKizunaVoiceClaim } from './voiceClaim';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const providers = [kizunaSonioxProvider, edgeProvider];
 const planOf = (speech: string): RunPlan => {

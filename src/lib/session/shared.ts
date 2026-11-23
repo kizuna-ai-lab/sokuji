@@ -1,4 +1,4 @@
-import type { LanguagePair, SessionWords, SharedSettings } from '../provider/types';
+import type { LanguagePair, SessionWords, SharedSettings } from '../run/types';
 
 /**
  * What every builder may read beyond its own settings, resolved once per

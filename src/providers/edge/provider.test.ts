@@ -19,9 +19,9 @@ describe('the Edge provider', () => {
     expect(edgeProvider.kind).toBe('online');
     expect(edgeProvider.credentials.keys).toEqual([]);
     expect(edgeProvider.credentials.read({}, { signedIn: false, getToken: async () => null })).toEqual({});
-    expect(edgeProvider.units!.map((u) => u.id)).toEqual(['speech']);
-    expect(edgeProvider.optionStages).toEqual([['speech']]);
-    expect(edgeProvider.speech).toBe('optional');
+    expect(edgeProvider.units.map((u) => u.id)).toEqual(['speech']);
+    expect(edgeProvider.settingsStages).toEqual([['speech']]);
+    expect(edgeProvider.units[0].capabilities(EDGE_DEFAULTS).speech).toBe('optional');
     expect(await edgeProvider.check({}, EDGE_DEFAULTS, ctx)).toEqual({ ok: true });
   });
 

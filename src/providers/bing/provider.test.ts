@@ -20,11 +20,11 @@ describe('the Bing provider', () => {
     expect(bingProvider.kind).toBe('online');
     expect(bingProvider.credentials.keys).toEqual([]);
     expect(bingProvider.credentials.read({}, { signedIn: false, getToken: async () => null })).toEqual({});
-    expect(bingProvider.units!.map((u) => u.id)).toEqual(['translation']);
+    expect(bingProvider.units.map((u) => u.id)).toEqual(['translation']);
   });
 
   it('has no options: none acts on any stage, so its line-up card has no fold', () => {
-    expect(bingProvider.optionStages).toEqual([]);
+    expect(bingProvider.settingsStages).toEqual([]);
   });
 
   it('needs nothing to be ready', async () => {
@@ -40,7 +40,7 @@ describe('the Bing provider', () => {
     expect(targets).not.toContain('en');
   });
 
-  it('never starts whole', async () => {
-    await expect(bingProvider.start({} as never, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
+  it('never starts whole', () => {
+    expect(bingProvider).not.toHaveProperty('start');
   });
 });

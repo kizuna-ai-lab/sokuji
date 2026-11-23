@@ -1,5 +1,6 @@
 import { OPENAI_KEY_STORED_AT } from '../openaiKey';
 import { OpenAIIcon } from '../../components/Icons/ProviderIcons';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createTranslateAdapter } from './adapter';
 import { checkTranslate } from './check';
@@ -39,7 +40,7 @@ export const openaiTranslateProvider: Provider<TranslateSettings, TranslateCrede
   settings: { key: 'openaiTranslate', defaults: TRANSLATE_DEFAULTS, migrate: migrateTranslateSettings },
   Settings: TranslateSettingsView,
   // Its note and the noise reduction, with transcription (mock v19).
-  optionStages: [TR],
+  settingsStages: [TR],
 
   // One OpenAI key for the three OpenAI providers (owner, 2026-11-15).
   credentials: { ...translateCredentials, storedAt: OPENAI_KEY_STORED_AT },
@@ -49,15 +50,18 @@ export const openaiTranslateProvider: Provider<TranslateSettings, TranslateCrede
 
   languages: translateLanguages,
 
-  // Text only is offered (ruling 4): the API still speaks, and a leg that does not speak drops the audio.
-  speech: 'optional',
-  // The endpoint takes audio only.
-  textInput: () => false,
-  // Our own silence timers end segments (the old offer: pause, no auto, sizes).
-  boundaries: () => 'silence',
-  turns: () => ['auto', 'manual'],
+  endToEnd: true,
+  units: [wholeUnitOf<TranslateSettings, TranslateCredentials, TranslateConfig>({
+    // Text only is offered (ruling 4): the API still speaks, and a leg that does not speak drops the audio.
+    speech: 'optional',
+    // The endpoint takes audio only.
+    textInput: () => false,
+    // Our own silence timers end segments (the old offer: pause, no auto, sizes).
+    boundaries: () => 'silence',
+    turns: () => ['auto', 'manual'],
 
-  build: buildTranslate,
-  describe: describeTranslate,
-  start: adapter.start,
+    build: buildTranslate,
+    describe: describeTranslate,
+    start: adapter.start,
+  })],
 };

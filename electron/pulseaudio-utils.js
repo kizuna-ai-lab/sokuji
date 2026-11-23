@@ -305,10 +305,11 @@ async function listSystemAudioSources({ host = appAudio } = {}) {
  * `app:<nodeId>` taps one application by linking its output ports to a private
  * null sink; `desktop-audio-loopback` keeps the getDisplayMedia path and only
  * has to release any previous tap.
- * @param {{host?: object}} deps - `host` is injected in tests
+ * @param {{host?: object, onLost?: () => void}} deps - `host` is injected in tests;
+ *   `onLost` hears that the tapped application quit
  */
-async function connectSystemAudioSource(sourceId, { host = appAudio } = {}) {
-  if (String(sourceId).startsWith('app:')) return host.connectAppSource(sourceId);
+async function connectSystemAudioSource(sourceId, { host = appAudio, onLost } = {}) {
+  if (String(sourceId).startsWith('app:')) return host.connectAppSource(sourceId, { onLost });
   await host.disconnectAppSource();
   return { success: true };
 }

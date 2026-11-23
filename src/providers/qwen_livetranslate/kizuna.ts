@@ -8,10 +8,11 @@ import { ALL_STAGES, SP, TR, TR_TL } from '../../lib/lineup/types';
 
 /**
  * Kizuna AI's managed Qwen LiveTranslate (spec 2026-10-17-kizuna-managed-qwen):
- * Qwen's languages, builder and adapter under its own id and slice; the
- * sign-in in place of a key; the lease that buys the run's token and ends
- * the run with its grant; the balance floor. Unflagged by the owner on
- * 2026-10-22: a release offers it wherever the Kizuna umbrella is on.
+ * Qwen's languages and whole unit (its base's, carried by `managed()`) under
+ * its own id and slice; the sign-in in place of a key; the lease that buys
+ * the run's token and ends the run with its grant; the balance floor.
+ * Unflagged by the owner on 2026-10-22: a release offers it wherever the
+ * Kizuna umbrella is on.
  */
 export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   id: 'kizunaai_qwen',
@@ -24,7 +25,7 @@ export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   // The shared view under a Region dropdown: the region is the managed session's, an own key has none.
   Settings: KizunaQwenSettingsView,
   // The region on every stage, then the shared view's (mock v19).
-  optionStages: [ALL_STAGES, TR, SP, TR_TL],
+  settingsStages: [ALL_STAGES, TR, SP, TR_TL],
   VoiceSummary: QwenVoiceSummary,
   signedOut: 'Sign in to use Kizuna AI Qwen.',
   session: { acquire: createQwenLease(), minimumBalance: kizunaQwenMinimumBalance },

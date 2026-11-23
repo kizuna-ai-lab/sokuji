@@ -290,7 +290,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   };
 
   // Each card's options (mock v19): the host serving the card's stage, and the stages that host serves. A provider
-  // with no options (Bing) declares none (`optionStages`), and its card has no fold.
+  // with no options (Bing) declares none (`settingsStages`), and its card has no fold.
   const hostOf = (id: string) => caps(id)?.host ?? id;
   const ownerOf = (stage: RunStage): string | null => {
     const id = lineUp?.[stage];
@@ -302,7 +302,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
     const provider = owner ? providers.find((p) => p.id === owner) : undefined;
     if (!owner || !provider) return null;
     const served = servedBy(owner);
-    return { owner, provider, served, ...cardOptions(provider.optionStages, served, stage, Boolean(provider.TurnDetection)) };
+    return { owner, provider, served, ...cardOptions(provider.settingsStages, served, stage, Boolean(provider.TurnDetection)) };
   };
   const firstWithOptions = RUN_STAGES.find((s) => optionsOf(s)?.has);
   const openCard = (stage: RunStage | undefined) => { if (stage) setOpenCards((o) => (o[stage] ? o : { ...o, [stage]: true })); };
@@ -337,7 +337,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
         </button>
         {open && (
           <div className="lineup-stage__options-body">
-            {o.provider.optionStages ? (
+            {o.provider.settingsStages ? (
               <SettingsStage stage={stage} served={o.served}>
                 <ProviderEngine providers={providers} providerId={o.owner} disabled={locked}
                   initialSlot={engineSlotTarget && SLOT_CARD[engineSlotTarget.stage] === stage ? engineSlotTarget : null}

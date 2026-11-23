@@ -1,7 +1,7 @@
 // src/lib/plan/choice.test.ts
 import { describe, expect, it } from 'vitest';
-import { CAPS } from '../lineup/catalog';
-import { choose as chooseWith } from '../lineup/choose';
+import { allCaps } from '../lineup/catalog';
+import { choose as chooseWith } from './choose';
 import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, RunStage } from '../lineup/types';
 import { RELEASED } from '../../providers/registry';
@@ -15,10 +15,10 @@ const choose = (from: LineUp, stage: RunStage, id: string) => chooseWith(from, s
 const lineUp = (transcription: string, translation: string, speech: string): LineUp => ({ transcription, translation, speech, summarisation: null });
 const all = (id: string) => lineUp(id, id, id);
 /** Every option the catalog lists for a stage. */
-const optionsFor = (stage: RunStage) => CAPS.filter((c) => c.stages.includes(stage)).map((c) => c.id);
+const optionsFor = (stage: RunStage) => allCaps().filter((c) => c.stages.includes(stage)).map((c) => c.id);
 // The same, under a catalog in which Kizuna AI's Soniox voice is not offered alone: what an option whose voice
 // reads only its own translation is shown as. No released option is one any more.
-const notAlone: ComposeInput = { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) };
+const notAlone: ComposeInput = { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) };
 const END_TO_END = ['kizunaai_qwen', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'qwen_livetranslate', 'palabraai'];
 
 describe('a choice the composer would refuse', () => {

@@ -8,12 +8,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
-import { CAPS } from '../../lib/lineup/catalog';
+import { allCaps } from '../../lib/lineup/catalog';
 import { compose } from '../../lib/plan/compose';
 import { servesSpeech, servesTranscription } from '../../lib/plan/read';
 import { isRefusal, type RunPlan } from '../../lib/plan/types';
 import { balanceRefusal, BALANCE_BELOW_FLOOR } from '../../lib/session/shape';
-import type { LeaseContext, RunShape } from '../../lib/session/types';
+import type { RunShape } from '../../lib/session/types';
+import type { LeaseContext } from '../../lib/run/types';
 import { useProviderStore } from '../../stores/providerStore';
 import { kizunaSonioxProvider } from './kizuna';
 import { createKizunaLease } from './lease';
@@ -22,6 +23,9 @@ import { sonioxProvider } from './provider';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 import { createKizunaVoiceClaim } from './voiceClaim';
 import { VOICE_LEASE_KEY, voiceLeaseMemory } from './voiceLeaseMemory';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const LINE_UP = { transcription: 'soniox', translation: 'soniox', speech: 'kizunaai_soniox' };
 const input = { providers: [sonioxProvider, kizunaSonioxProvider], settings: () => SONIOX_DEFAULTS };
@@ -46,7 +50,7 @@ const shapeOn = (legs: LegName[], o: { textOnly?: boolean; participantSpeech?: b
 
 describe('the plan', () => {
   it("composes under the app's own catalog, which offers the voice alone, and is refused under one that does not", () => {
-    expect(compose(LINE_UP, { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) }))
+    expect(compose(LINE_UP, { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) }))
       .toEqual({ refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_soniox' });
     expect(plan.units.map((u) => [u.provider.id, u.unit.id, u.stages])).toEqual([['soniox', 'stt', ['transcription', 'translation']], ['kizunaai_soniox', 'tts', ['speech']]]);
   });

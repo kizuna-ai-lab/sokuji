@@ -8,10 +8,11 @@ import type { ProviderType } from '../../types/Provider';
 import type { AnyProvider } from '../../lib/provider/types';
 import { providerIdFromStored } from '../../lib/session/storedSettings';
 import { presentProviders } from '../../providers/registry';
-import { runsAlone } from '../../lib/plan/wholeUnit';
+import { capabilitiesAlone, runsAlone } from '../../lib/plan/wholeUnit';
+import type { UnitCapabilities } from '../../lib/run/types';
 import type { ProviderPath, ScenarioId } from '../../lib/setup/types';
 import { getScenario, providerFitForScenario } from '../../lib/setup/scenarios';
-import type { ProviderFit } from '../../lib/setup/scenarios';
+import type { ProviderFit, ScenarioPreset } from '../../lib/setup/scenarios';
 export { lineUpOf } from './lineUpOf';
 
 export interface ProviderOption {
@@ -25,9 +26,14 @@ export function managedProvider(): ProviderType | null {
   return p ? (p.id as ProviderType) : null;
 }
 
-/** A definition's speech as the old descriptor's `textOnlyCapability`: the word the scenario fit and the pair sentence read. */
-export function textOnlyCapabilityOf(p: Pick<AnyProvider, 'speech'>): 'always' | 'optional' | 'never' {
-  return p.speech === 'always' ? 'never' : p.speech === 'never' ? 'always' : 'optional';
+/** A unit's speech as the old descriptor's `textOnlyCapability`: the word the scenario fit and the pair sentence read. */
+export function textOnlyCapabilityOf(speaking: Pick<UnitCapabilities, 'speech'>): 'always' | 'optional' | 'never' {
+  return speaking.speech === 'always' ? 'never' : speaking.speech === 'never' ? 'always' : 'optional';
+}
+
+/** A provider's fit for a scenario: what its units that speak and transcribe say in a run on it alone. */
+function fitOf(p: AnyProvider, preset: ScenarioPreset): ProviderFit {
+  return providerFitForScenario(textOnlyCapabilityOf(capabilitiesAlone(p, 'speech')), preset, capabilitiesAlone(p, 'transcription').faceToFace);
 }
 
 /**
@@ -51,7 +57,7 @@ export function availablePaths(): ProviderPath[] {
 
 export function providerFits(provider: ProviderType, scenario: ScenarioId): boolean {
   const p = wizardProvider(provider);
-  return p !== undefined && providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true).ok;
+  return p !== undefined && fitOf(p, getScenario(scenario)).ok;
 }
 
 
@@ -60,7 +66,7 @@ export function ownKeyOptions(scenario: ScenarioId): ProviderOption[] {
   const preset = getScenario(scenario);
   return presentProviders()
     .filter((p) => p.kind === 'own-key' && runsAlone(p))
-    .map((p) => ({ id: p.id as ProviderType, fit: providerFitForScenario(textOnlyCapabilityOf(p), preset, p.faceToFace === true) }));
+    .map((p) => ({ id: p.id as ProviderType, fit: fitOf(p, preset) }));
 }
 
 /** Every managed provider the build registers, in its order (Kizuna Soniox first, the recommended one), each with its fit for the scenario. */
@@ -68,7 +74,7 @@ export function managedOptions(scenario: ScenarioId): ProviderOption[] {
   const preset = getScenario(scenario);
   return presentProviders()
     .filter((p) => p.kind === 'managed')
-    .map((p) => ({ id: p.id as ProviderType, fit: providerFitForScenario(textOnlyCapabilityOf(p), preset, p.faceToFace === true) }));
+    .map((p) => ({ id: p.id as ProviderType, fit: fitOf(p, preset) }));
 }
 
 /** The first managed option, the recommended one, or null in a build that registers none. */
@@ -93,7 +99,7 @@ export function offlineOptions(): ProviderType[] {
 /** The offline path's fit: its engine (`offlineOptions`) offers no face-to-face. */
 export function offlineFit(scenario: ScenarioId): ProviderFit {
   const p = wizardProvider(offlineOptions()[0]);
-  return p ? providerFitForScenario(textOnlyCapabilityOf(p), getScenario(scenario), p.faceToFace === true) : { ok: true };
+  return p ? fitOf(p, getScenario(scenario)) : { ok: true };
 }
 
 /** Whether a stored setup's path and provider are still on offer, so a Help

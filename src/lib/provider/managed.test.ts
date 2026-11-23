@@ -2,18 +2,20 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { FlaskConical } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { AdapterEvents, StartRequest } from '../contract/adapter';
-import { fakeProvider } from '../../providers/fake/provider';
+import { FAKE_WHOLE, fakeProvider } from '../../providers/fake/provider';
 import { FAKE_DEFAULTS, type FakeSettings } from '../../providers/fake/settings';
 import type { FakeConfig, FakeCredentials } from '../../providers/fake/adapter';
-import type { SessionHooks } from '../session/types';
+import { withWhole } from '../plan/testing';
+import { capabilitiesAlone, unitsOf } from '../plan/wholeUnit';
+import type { AuthContext, SessionHooks } from '../run/types';
 import { managed, readSignIn, type ManagedOverrides } from './managed';
-import type { AnyProvider, AuthContext, CredentialsMissing, Provider, SettingsProps } from './types';
+import type { AnyProvider, CredentialsMissing, Provider, SettingsProps } from './types';
 
 /** What a provider's `read` answers, `missing` aside. */
 type ReadOf<P extends AnyProvider> = Exclude<ReturnType<P['credentials']['read']>, CredentialsMissing>;
 
 const TwinSettings: ComponentType<SettingsProps<FakeSettings>> = () => null;
-const acquire: NonNullable<SessionHooks<FakeSettings, FakeCredentials, FakeConfig>['acquire']> = async () => ({ credentials: () => ({}), release: async () => {} });
+const acquire: NonNullable<SessionHooks<FakeSettings, FakeCredentials, FakeConfig, AnyProvider>['acquire']> = async () => ({ credentials: () => ({}), release: async () => {} });
 const OVERRIDES: ManagedOverrides<FakeSettings, FakeCredentials, FakeConfig, 'twin'> = {
   id: 'twin', vendor: 'Vendor', icon: FlaskConical, settingsKey: 'twinSlice', Settings: TwinSettings,
   signedOut: 'Sign in to use the twin.', session: { acquire },
@@ -34,13 +36,12 @@ describe('readSignIn', () => {
 });
 
 describe('managed', () => {
-  it("is its own provider over the base's languages, capabilities, builder and adapter", () => {
+  it("is its own provider over the base's languages and units", () => {
     const twin = managed(fakeProvider, OVERRIDES);
     expect(twin).toMatchObject({ id: 'twin', kind: 'managed', vendor: 'Vendor', icon: FlaskConical, platforms: fakeProvider.platforms, Settings: TwinSettings });
     expect(twin.settings).toEqual({ key: 'twinSlice', defaults: fakeProvider.settings.defaults, migrate: fakeProvider.settings.migrate });
-    for (const member of ['languages', 'speech', 'textInput', 'boundaries', 'turns', 'build', 'describe', 'start'] as const) {
-      expect(twin[member], member).toBe(fakeProvider[member]);
-    }
+    expect(twin.languages).toBe(fakeProvider.languages);
+    expect(twin.units).toBe(fakeProvider.units);
   });
 
   it('has no credential field, reads the sign-in, and checks nothing: a static answer that calls no one', async () => {
@@ -68,6 +69,11 @@ describe('managed', () => {
     const base = { ...fakeProvider, guideUrl: 'https://example.com/guide', flagged: true as const, testerSwitch: 'debug:fake' };
     const twin = managed(base, OVERRIDES);
     for (const member of ['guideUrl', 'flagged', 'testerSwitch'] as const) expect(twin, member).not.toHaveProperty(member);
+  });
+
+  it("carries the base's end-to-end flag, and none when the base has none", () => {
+    expect(managed({ ...fakeProvider, endToEnd: true }, OVERRIDES).endToEnd).toBe(true);
+    expect('endToEnd' in managed(fakeProvider, OVERRIDES)).toBe(false);
   });
 
   it('a twin can be flagged on its own', () => {
@@ -111,18 +117,16 @@ describe('managed', () => {
     expect('VoiceSummary' in managed(fakeProvider, OVERRIDES)).toBe(false);
   });
 
-  it('carries the participant-speech flag as given, and nothing when none is', () => {
-    expect(managed(fakeProvider, OVERRIDES)).not.toHaveProperty('participantSpeech');
-    expect(managed(fakeProvider, { ...OVERRIDES, participantSpeech: false }).participantSpeech).toBe(false);
-    expect(managed(fakeProvider, { ...OVERRIDES, participantSpeech: true }).participantSpeech).toBe(true);
+  it("runs its base's units when it gives none of its own, and its own when it does", () => {
+    expect(managed(fakeProvider, OVERRIDES).units).toBe(fakeProvider.units);
+    const own = [unitsOf(fakeProvider)[0]];
+    expect(managed(fakeProvider, { ...OVERRIDES, units: own }).units).toBe(own);
   });
 
-  it("keeps the base's own participant-speech flag when the twin gives none: a twin never speaks where its base cannot", () => {
-    const silentBase = { ...fakeProvider, participantSpeech: false };
-    expect(managed(silentBase, OVERRIDES).participantSpeech).toBe(false);
-    // The twin's own flag, when given, is the one it carries.
-    expect(managed(silentBase, { ...OVERRIDES, participantSpeech: true }).participantSpeech).toBe(true);
-    expect(managed({ ...fakeProvider, participantSpeech: true }, { ...OVERRIDES, participantSpeech: false }).participantSpeech).toBe(false);
+  it("a twin's participant speaks as its units say: its base's, or its own", () => {
+    const silent = withWhole(fakeProvider, FAKE_WHOLE, { participantSpeech: false });
+    expect(capabilitiesAlone(managed(silent, OVERRIDES), 'speech').participantSpeech).toBe(false);
+    expect(capabilitiesAlone(managed(silent, { ...OVERRIDES, units: fakeProvider.units }), 'speech').participantSpeech).toBe(true);
   });
 
   // Compile-time (choice 1): the typecheck gate enforces every `@ts-expect-error` here.
@@ -135,11 +139,11 @@ describe('managed', () => {
     const own: ReadOf<typeof fakeProvider> = {};
     // @ts-expect-error an own-key read answers its K, not the sign-in
     const notOwn: ReadOf<typeof fakeProvider> = { signedIn: true };
-    // `check` takes what `read` answers; `start` still takes the lease's K.
+    // `check` takes what `read` answers; A start takes the provider's K: the fake's own here, since a twin's units are erased.
     const request = {} as StartRequest<FakeConfig, FakeCredentials>;
-    void twin.start(request, {} as AdapterEvents).catch(() => {});
+    void FAKE_WHOLE.start(request, {} as AdapterEvents).catch(() => {});
     // @ts-expect-error a start never receives the sign-in
-    void twin.start({ ...request, credentials: signIn }, {} as AdapterEvents).catch(() => {});
+    void FAKE_WHOLE.start({ ...request, credentials: signIn }, {} as AdapterEvents).catch(() => {});
     // @ts-expect-error a twin must mint its keys: acquire is required
     managed(fakeProvider, { ...OVERRIDES, session: {} });
     expect([signIn, key, own, notOwn]).toHaveLength(4);

@@ -9,8 +9,9 @@
 import { RUN_STAGES } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
 import type { AnyProvider } from '../provider/types';
-import type { PlanAccount, RunShape } from '../session/types';
-import type { PlannedUnit, RunPlan, UnitCapabilities } from './types';
+import type { RunShape } from '../session/types';
+import type { PlanAccount, UnitCapabilities } from '../run/types';
+import type { PlannedUnit, RunPlan } from './types';
 
 /** The providers of a plan, each once, in the order of their units. */
 export function providersIn(plan: RunPlan): readonly AnyProvider[] {

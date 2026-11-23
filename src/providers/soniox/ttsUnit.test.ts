@@ -12,7 +12,7 @@ import { flush } from '../../lib/contract/testing/drive';
 import { fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import type { LegName } from '../../lib/conversation/types';
 import { isSpeechUnit } from '../../lib/plan/types';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import type { SonioxTtsConfig } from './config';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxLeasePort, type SonioxSettings, type SonioxVoiceCredentials } from './settings';
 import { AUTO_CTX, b64, KEY, SHARED, type Json } from './testing';

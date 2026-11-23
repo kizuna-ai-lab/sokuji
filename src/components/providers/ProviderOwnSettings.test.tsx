@@ -27,9 +27,11 @@ vi.mock('react-i18next', async (importOriginal) => {
 });
 vi.mock('../../app/voicePreview', () => ({ appVoicePreview: { play: vi.fn(), stop: vi.fn() } }));
 
-import { fakeProvider } from '../../providers/fake/provider';
+import { fakeProvider, FAKE_WHOLE } from '../../providers/fake/provider';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
-import type { AuthContext, EngineProps, SettingsProps } from '../../lib/provider/types';
+import type { EngineProps, SettingsProps } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import type { FakeSettings } from '../../providers/fake/settings';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
@@ -120,7 +122,7 @@ describe('ProviderOwnSettings', () => {
     const { rerender } = render(<ProviderOwnSettings providers={[{ ...fakeProvider, Settings }]} auth={AUTH} />);
     expect(seen[seen.length - 1].participantSpeaks).toBe(true);
     expect(seen[seen.length - 1].faceToFace).toBe(false);
-    rerender(<ProviderOwnSettings providers={[{ ...fakeProvider, participantSpeech: false, Settings }]} auth={AUTH} />);
+    rerender(<ProviderOwnSettings providers={[{ ...fakeProvider, units: [wholeUnitOf({ ...FAKE_WHOLE, participantSpeech: false })], Settings }]} auth={AUTH} />);
     expect(seen[seen.length - 1].participantSpeaks).toBe(false);
   });
 
@@ -249,7 +251,7 @@ describe('ProviderEngine', () => {
     const Engine = (props: EngineProps<FakeSettings>) => { seen.push(props); return null; };
     const { rerender } = render(<ProviderEngine providers={[{ ...fakeProvider, Engine }]} />);
     expect(seen[seen.length - 1].participantSpeaks).toBe(true);
-    rerender(<ProviderEngine providers={[{ ...fakeProvider, participantSpeech: false, Engine }]} />);
+    rerender(<ProviderEngine providers={[{ ...fakeProvider, units: [wholeUnitOf({ ...FAKE_WHOLE, participantSpeech: false })], Engine }]} />);
     expect(seen[seen.length - 1].participantSpeaks).toBe(false);
   });
 

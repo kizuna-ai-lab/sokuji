@@ -8,7 +8,7 @@
  * the organization was to pay, and `org_wallet_frozen` a 403 whose body says
  * `subject: "organization"` (or the gate's frozen check on the organization).
  */
-import type { AccountState, Payer } from './types';
+import type { AccountState, Payer } from '../run/types';
 
 export const ORG_BALANCE_HELD = 'org_balance_held';
 export const ORG_INSUFFICIENT_BALANCE = 'org_insufficient_balance';

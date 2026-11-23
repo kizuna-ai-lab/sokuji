@@ -1,4 +1,5 @@
 import { VolcengineIcon } from '../../components/Icons/ProviderIcons';
+import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
 import { createAst2Adapter } from './adapter';
 import { Ast2SettingsView, Ast2VoiceSummary } from './Ast2Settings';
@@ -31,7 +32,7 @@ export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast
   settings: { key: 'volcengineAST2', defaults: AST2_DEFAULTS, migrate: migrateAst2Settings },
   Settings: Ast2SettingsView,
   // Its note with transcription, the vocabulary on transcription and translation, the voices on speech (mock v19).
-  optionStages: [TR, TR_TL, SP],
+  settingsStages: [TR, TR_TL, SP],
   // Each spoken leg's voice, under its Speech row: its own direction's slot.
   VoiceSummary: Ast2VoiceSummary,
 
@@ -44,14 +45,17 @@ export const volcengineAst2Provider: Provider<Ast2Settings, Ast2Credentials, Ast
   // The offer follows whether the run speaks (ruling 3; choice 1).
   languages: ast2Languages,
 
-  speech: 'optional',
-  // Doubao's session takes audio only.
-  textInput: () => false,
-  // The server's End phase ends a segment (the old offer: pause off, auto and sizes on).
-  boundaries: () => 'provider',
-  turns: () => ['auto', 'manual'],
+  endToEnd: true,
+  units: [wholeUnitOf<Ast2Settings, Ast2Credentials, Ast2Config>({
+    speech: 'optional',
+    // Doubao's session takes audio only.
+    textInput: () => false,
+    // The server's End phase ends a segment (the old offer: pause off, auto and sizes on).
+    boundaries: () => 'provider',
+    turns: () => ['auto', 'manual'],
 
-  build: buildAst2,
-  describe: describeAst2,
-  start: adapter.start,
+    build: buildAst2,
+    describe: describeAst2,
+    start: adapter.start,
+  })],
 };

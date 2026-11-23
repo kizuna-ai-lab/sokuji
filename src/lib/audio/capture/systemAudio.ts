@@ -52,6 +52,8 @@ export interface SystemAudioDeps {
   app(): ParticipantCapture;
   device(): ParticipantCapture;
   loopback(): ParticipantCapture;
+  /** Hears the main process say the application a PipeWire tap follows has quit; returns the unsubscribe. */
+  appLost(listener: () => void): () => void;
   /** The OS's Screen Recording permission as the main process reports it (`granted`, `denied`, `not-determined`, `unknown`); outside macOS always `granted`. */
   screenRecording(): Promise<string>;
 }
@@ -63,6 +65,11 @@ export const electronSystemAudio = (): SystemAudioDeps => ({
   app: () => new AppAudioRecorder(SAMPLE_RATE),
   device: () => new DeviceCaptureRecorder(SAMPLE_RATE),
   loopback: () => new LoopbackRecorder(SAMPLE_RATE),
+  appLost: (listener) => {
+    const handler = () => listener();
+    window.electron.receive('system-audio:lost', handler);
+    return () => window.electron.removeListener('system-audio:lost', handler);
+  },
   screenRecording: async () => {
     try {
       const answer = (await window.electron.invoke('check-screen-recording-permission')) as { status?: unknown } | undefined;
@@ -96,6 +103,7 @@ export async function openSystemAudio(
   let recorder: ParticipantCapture | null = null;
   let connected = false;
   let unwatch = () => {};
+  let unlisten = () => {};
   let unsubscribe = () => {};
   let chain: Promise<void> = Promise.resolve();
 
@@ -105,6 +113,8 @@ export async function openSystemAudio(
     recorder = null;
     unwatch();
     unwatch = () => {};
+    unlisten();
+    unlisten = () => {};
     if (!current) return;
     current.onLost = null;
     try {
@@ -170,19 +180,32 @@ export async function openSystemAudio(
       throw new SourceOpenError('Screen Recording permission is denied, so the whole system cannot be captured.', LOOPBACK_DENIED);
     }
     const next = connection.mode === 'app' ? deps.app() : connection.mode === 'device' ? deps.device() : deps.loopback();
+    const lose = () => {
+      // Captured now: by the time this runs, a queued switch may have already
+      // made `recorder` point elsewhere, and this death is then stale (M1).
+      const lost = next;
+      chain = chain.then(() => fallBack(lost)).catch((error: unknown) => core.end(`System audio stopped: ${describeCause(error)}`));
+    };
     if (connection.mode === 'app') {
       next.onWarning = (code) => core.degrade({ code, message: code === SILENT_NO_PERMISSION ? SILENT_MESSAGE : `The application capture warned: ${code}` });
       next.onAudioSeen = () => settings.audioSeen();
-      next.onLost = () => {
-        // Captured now: by the time this runs, a queued switch may have already
-        // made `recorder` point elsewhere, and this death is then stale (M1).
-        const lost = next;
-        chain = chain.then(() => fallBack(lost)).catch((error: unknown) => core.end(`System audio stopped: ${describeCause(error)}`));
-      };
+      next.onLost = lose;
     }
+    // A PipeWire tap's monitor device outlives the application it follows (its
+    // sink is Sokuji's), so the main process says when the application quit (#617).
+    if (connection.mode === 'device') unlisten = deps.appLost(lose);
     recorder = next;
     const options = connection.mode === 'app' ? { deviceId: sourceId } : connection.mode === 'device' ? { deviceId: connection.monitorId } : undefined;
-    if (!(await next.begin(options))) {
+    const begun = await next.begin(options);
+    // The capture was lost while this started, and the fallback has replaced
+    // it: its end() came before there was anything to end, so end it now, or
+    // it would record alongside the fallback; a failed start is the fallback's
+    // to own, not to clear.
+    if (recorder !== next) {
+      if (begun) await next.end();
+      return;
+    }
+    if (!begun) {
       recorder = null;
       // The recorder's own reason (a DOMException's kind and words, or the
       // helper's answer) is the only clue to why; without it the start
@@ -195,9 +218,10 @@ export async function openSystemAudio(
   };
 
   /**
-   * The helper died: widen to whole-system capture, visibly (ruling 5). Only
-   * when the dead recorder is still the current one — a queued switch may
-   * already have replaced it, in which case this death is stale (M1).
+   * The helper died, or the application a PipeWire tap follows quit: widen to
+   * whole-system capture, visibly (ruling 5). Only when the dead recorder is
+   * still the current one — a queued switch may already have replaced it, in
+   * which case this death is stale (M1).
    */
   const fallBack = async (lost: ParticipantCapture) => {
     if (core.stopped || core.ended || recorder !== lost) return;

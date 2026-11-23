@@ -8,7 +8,7 @@
  */
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { FakeSocket } from '../../lib/contract/testing/fakeSocket';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import type { SonioxCredentials } from './settings';
 import type { SonioxToken } from './sttStream';
 

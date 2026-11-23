@@ -10,7 +10,7 @@ import { getManifestEntry, getModelSizeMb } from '../../../lib/local-inference/m
 import { shortenModelName } from '../../../lib/local-inference/modelName';
 import { languageNameFor } from './languageName';
 import type { EngineAdapter } from './EngineTypes';
-import type { LanguagePair } from '../../../lib/provider/types';
+import type { LanguagePair } from '../../../lib/run/types';
 import type { LocalInferenceSettings } from '../../../providers/localInference/settings';
 
 /**

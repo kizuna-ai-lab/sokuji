@@ -9,7 +9,7 @@
  * cannot stop speaking, so the adapter drops the audio (ruling 4).
  */
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { ProviderRefusal, SharedSettings } from '../../lib/provider/types';
+import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import { clampSegmentPauseMs, segmentPauseMs } from '../../lib/segmentation/segmentationMode';
 import { TRANSCRIPT_MODEL, TRANSLATE_MODEL, TRANSLATE_TARGETS, translateLanguages, type NoiseReduction, type TranslateSettings } from './settings';
 

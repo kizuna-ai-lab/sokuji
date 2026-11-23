@@ -19,11 +19,12 @@ import type { VirtualClock } from '../../lib/contract/clock';
 import { FakeSocket, fakeSockets } from '../../lib/contract/testing/fakeSocket';
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
-import { buildPlan, startComposite, type PlanConfigs } from '../../lib/plan/composite';
+import { buildPlan, startComposite } from '../../lib/plan/composite';
 import { startCompositeBoth } from '../../lib/plan/compositeBoth';
-import type { PlannedUnit, RunPlan } from '../../lib/plan/types';
+import type { PlanConfigs, PlannedUnit, RunPlan } from '../../lib/plan/types';
 import { wholePlan } from '../../lib/plan/wholeUnit';
-import type { AnyProvider, SharedSettings } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { AgentTextFeed } from '../../lib/session/agentText';
 import { createSonioxAdapter } from './adapter';
 import { sonioxProvider } from './provider';
@@ -113,7 +114,6 @@ export function sonioxOnSockets(
   }
   const provider = {
     ...of,
-    start: adapter.start,
     units: [sonioxSttUnitFor({ start: adapter.start, ...flag }), voice],
     session: { ...of.session, startBoth: adapter.startBoth },
   } as AnyProvider;

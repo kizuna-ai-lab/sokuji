@@ -70,9 +70,8 @@ describe('the fake voice provider', () => {
     expect(unit.describe(config)).toEqual({ ttsModel: 'fake-voice' });
   });
 
-  it('is never a text provider: its own start rejects', async () => {
-    const request = { context: { direction: { source: 'en', target: 'ja' }, speech: true, turns: 'auto' as const }, config: { voice: 'fake' as const }, credentials: {}, clock: createVirtualClock(0), signal: new AbortController().signal };
-    await expect(fakeVoiceProvider.start(request, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
+  it('is never a text provider: it has no start of its own', () => {
+    expect(fakeVoiceProvider).not.toHaveProperty('start');
   });
 });
 
@@ -185,19 +184,19 @@ describe('the fake voice in the catalog', () => {
     vi.resetModules();
   });
 
-  /** The catalog and the composer as a build of this mode has them. */
+  /** The catalog and the composer as a build of this mode has them, with the registry that registers the catalog. */
   async function build(mode: string, dev: boolean) {
     vi.stubEnv('MODE', mode);
     vi.stubEnv('DEV', dev);
     vi.resetModules();
-    const [catalog, composer] = await Promise.all([import('../../lib/lineup/catalog'), import('../../lib/plan/compose')]);
+    const [catalog, composer] = await Promise.all([import('../../lib/lineup/catalog'), import('../../lib/plan/compose'), import('../registry')]);
     return { catalog, composer };
   }
 
   it('serves speech alone and hosts itself, in the build whose line-up may name the fake', async () => {
     const { catalog } = await build('e2e', false);
     expect(catalog.caps('fake')).toBeDefined();
-    expect(catalog.caps('fake_voice')).toEqual({ id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false });
+    expect(catalog.caps('fake_voice')).toEqual({ id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'key', voiceAlone: true, takesVoice: false });
     // The fake's text may be read by it: transcription and translation go together, speech apart.
     expect(catalog.caps('fake')).toMatchObject({ joint: ['transcription', 'translation'], voiceAlone: false, takesVoice: true });
   });

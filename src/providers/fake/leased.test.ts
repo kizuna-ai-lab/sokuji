@@ -4,7 +4,8 @@ import { AdapterStartError, LegStartError } from '../../lib/contract/adapter';
 import { createVirtualClock } from '../../lib/contract/clock';
 import { recordEvents } from '../../lib/contract/events';
 import type { LegName } from '../../lib/conversation/types';
-import type { AnyProvider, SharedSettings } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { createRunner } from '../../lib/session/runner';
 import type { RunShape } from '../../lib/session/types';
 import { shapeWith } from '../../lib/plan/testing';
@@ -18,6 +19,7 @@ const s = (patch: Partial<FakeLeasedSettings> = {}): FakeLeasedSettings => ({ ..
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 const session = fakeLeasedProvider.session!;
+const [whole] = fakeLeasedProvider.units;
 const live = () => new AbortController().signal;
 
 /** A frozen shape for the hooks that only pass it through. */
@@ -51,7 +53,7 @@ function bothLegs(speakerSettings: FakeLeasedSettings, participantSettings: Fake
   const clock = createVirtualClock(0);
   const settingsFor: Record<LegName, FakeLeasedSettings> = { speaker: speakerSettings, participant: participantSettings };
   const request = (leg: LegName): StartRequest<FakeLeasedConfig, FakeLeasedCredentials> => {
-    const config = fakeLeasedProvider.build(contexts[leg], settingsFor[leg], shared);
+    const config = whole.build(contexts[leg], settingsFor[leg], shared);
     if ('refused' in config) throw new Error(config.refused);
     return { context: contexts[leg], config, credentials: { leg }, clock, signal: live() };
   };
@@ -84,6 +86,7 @@ function leasedRunner(settings: FakeLeasedSettings, legs: RunShape['legs']) {
 
 describe('the leased fake', () => {
   it('is managed, with no credential field', () => {
+    expect(fakeLeasedProvider.units.map((u) => u.id)).toEqual(['whole']);
     expect(fakeLeasedProvider.kind).toBe('managed');
     expect(fakeLeasedProvider.credentials.keys).toEqual([]);
     expect(fakeLeasedProvider.credentials.fields(s())).toEqual([]);

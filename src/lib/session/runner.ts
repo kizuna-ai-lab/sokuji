@@ -11,7 +11,8 @@ import type { RunNoticeCode } from './codes';
 import { ConversationSet, type ConversationInfo } from './conversationSet';
 import { guardPorts, type ControlMethod, type RunnerDeps } from './ports';
 import { apiErrorType, LegOpenError, RefusedError, retentionFor, Run, type RunHost } from './run';
-import type { LegState, Payer, RunEnd, RunState } from './types';
+import type { LegState, RunEnd, RunState } from './types';
+import type { Payer } from '../run/types';
 
 /** The payer a run was started with, for the state the panel reads while it runs; nothing for a run with none (not a member). */
 const payerOf = (shape: { payer?: Payer }): { payer?: Payer } => (shape.payer ? { payer: shape.payer } : {});

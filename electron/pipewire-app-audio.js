@@ -39,6 +39,12 @@ const CAPTURE_SINK_DESCRIPTION = 'Sokuji_App_Capture';
 let captureModuleId = null;
 let captureSourceModuleId = null;
 
+// How often a live tap looks for streams its application opened since (#617).
+const RELINK_POLL_MS = 1000;
+
+// The live tap's watch: the application it follows and how to report it gone.
+let watch = null;
+
 /**
  * Group the playback streams in a `pw-dump` into one entry per application.
  *
@@ -172,6 +178,84 @@ function findNodeByName(dump, name) {
 }
 
 const defaultDelay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Link a node's output ports to the capture sink's inputs, channel by channel; returns how many. */
+async function linkToSink(exec, outs, ins) {
+  let linked = 0;
+  for (let i = 0; i < Math.min(outs.length, ins.length); i++) {
+    const out = Number(outs[i]);
+    const inp = Number(ins[i]);
+    if (!Number.isInteger(out) || !Number.isInteger(inp)) {
+      throw new Error('refusing to link non-numeric port ids');
+    }
+    await exec(`pw-link ${out} ${inp}`);
+    linked++;
+  }
+  return linked;
+}
+
+/** Whether a process exists. EPERM is a process we may not signal, so it exists. */
+function processAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return e.code === 'EPERM';
+  }
+}
+
+/**
+ * One look at the graph for the live tap (#617). The tap links the nodes its
+ * application has when it starts; a tab closed and another opened is a new
+ * node (often under the old id, which PipeWire hands out again), and nothing
+ * links it, so the tap records silence for the rest of the session. Link every
+ * node of the application that does not feed the sink yet. With no node left
+ * and the process gone, the application has quit: report it, once, so the
+ * renderer widens to the whole system.
+ */
+async function followApplication(current, { exec, isAlive }) {
+  if (watch !== current) return;
+  let dump;
+  try {
+    dump = await dumpGraph(exec);
+  } catch {
+    return; // The next look tries again.
+  }
+  const entry = parseAppStreams(dump).find((s) => s.deviceId === current.deviceId);
+  if (!entry) {
+    // No stream is a quiet application (its last tab closed) while it runs.
+    if (current.pid !== null && isAlive(current.pid)) return;
+    // Reported first: a report that fails leaves the watch on, and the next look tries again (#866 review).
+    current.onLost?.();
+    stopWatch();
+    return;
+  }
+  const sink = findNodeByName(dump, CAPTURE_SINK_NAME);
+  const ins = sink ? resolvePortIds(dump, sink.id, 'input') : [];
+  if (ins.length === 0) return;
+  const sinkInputs = new Set(ins);
+  const feeding = new Set();
+  for (const obj of dump) {
+    if (obj?.type !== 'PipeWire:Interface:Link') continue;
+    const props = obj?.info?.props;
+    if (sinkInputs.has(props?.['link.input.port'])) feeding.add(props?.['link.output.port']);
+  }
+  for (const nodeId of entry.nodeIds) {
+    const outs = resolvePortIds(dump, nodeId, 'output');
+    if (outs.some((out) => feeding.has(out))) continue;
+    try {
+      await linkToSink(exec, outs, ins);
+    } catch {
+      // The stream closed between the dump and the link; the next look sees that.
+    }
+  }
+}
+
+function stopWatch() {
+  if (!watch) return;
+  watch.timers.clearInterval(watch.timer);
+  watch = null;
+}
 
 /**
  * Point the remapped source's capture stream at the capture sink's monitor.
@@ -324,11 +408,18 @@ async function listAppSources({
 }
 
 /**
- * Tap one application's audio.
- * @param {string} deviceId - `app:<nodeId>`
+ * Tap one application's audio, and keep tapping the streams it opens later.
+ * @param {string} deviceId - `app:pid:<pid>`, or `app:node:<nodeId>` for a stream with no pid
+ * @param {{onLost?: () => void}} opts - `onLost`: the application quit while tapped
  * @returns {Promise<{success: boolean, monitorLabel?: string, error?: string}>}
  */
-async function connectAppSourceUnsafe(deviceId, { exec = defaultExec, delay = defaultDelay } = {}) {
+async function connectAppSourceUnsafe(deviceId, {
+  exec = defaultExec,
+  delay = defaultDelay,
+  onLost,
+  timers = { setInterval, clearInterval },
+  isAlive = processAlive,
+} = {}) {
   const id = String(deviceId);
   if (!id.startsWith('app:')) {
     return { success: false, error: `Not an application source: ${deviceId}` };
@@ -395,16 +486,7 @@ async function connectAppSourceUnsafe(deviceId, { exec = defaultExec, delay = de
     // single node would capture one tab and silently miss the rest.
     let linked = 0;
     for (const nodeId of entry.nodeIds) {
-      const outs = resolvePortIds(withSink, nodeId, 'output');
-      for (let i = 0; i < Math.min(outs.length, ins.length); i++) {
-        const out = Number(outs[i]);
-        const inp = Number(ins[i]);
-        if (!Number.isInteger(out) || !Number.isInteger(inp)) {
-          throw new Error('refusing to link non-numeric port ids');
-        }
-        await exec(`pw-link ${out} ${inp}`);
-        linked++;
-      }
+      linked += await linkToSink(exec, resolvePortIds(withSink, nodeId, 'output'), ins);
     }
     if (linked === 0) {
       throw new Error('no ports to link (the application may have stopped playing)');
@@ -419,6 +501,19 @@ async function connectAppSourceUnsafe(deviceId, { exec = defaultExec, delay = de
         'the capture source stayed attached to the default input instead of the tap'
       );
     }
+
+    // Follow the application for as long as the tap lives. A look still running
+    // when the next is due is not queued behind: they would pile up.
+    const current = { deviceId: id, pid: entry.pid, onLost, timers, timer: null, looking: false };
+    current.timer = timers.setInterval(() => {
+      if (current.looking) return;
+      current.looking = true;
+      return serialize(() => followApplication(current, { exec, isAlive }))
+        // Logged, never thrown: main.js quits the app on an unhandled rejection, mid-meeting.
+        .catch((e) => console.warn('[Sokuji] [PipeWire] Following the tapped application failed:', e?.message ?? e))
+        .finally(() => { current.looking = false; });
+    }, RELINK_POLL_MS);
+    watch = current;
 
     return { success: true, monitorLabel: CAPTURE_SINK_DESCRIPTION };
   } catch (e) {
@@ -435,6 +530,7 @@ async function connectAppSourceUnsafe(deviceId, { exec = defaultExec, delay = de
  * @returns {Promise<{success: boolean}>}
  */
 async function disconnectAppSourceUnsafe({ exec = defaultExec } = {}) {
+  stopWatch();
   if (!captureModuleId && !captureSourceModuleId) return { success: true };
   // The remapped source depends on the sink's monitor, so it goes first.
   if (captureSourceModuleId) {

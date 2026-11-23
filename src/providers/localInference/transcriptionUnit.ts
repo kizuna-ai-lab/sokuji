@@ -13,10 +13,10 @@ import { AdapterStartError, type Adapter } from '../../lib/contract/adapter';
 import type { LegName } from '../../lib/conversation/types';
 import { localTranscriptionStagesOf } from '../../lib/lineup/localStages';
 import { TR } from '../../lib/lineup/types';
-import { sameStages, type UnitDefinition } from '../../lib/plan/types';
-import type { ProviderRefusal } from '../../lib/provider/types';
+import { sameStages } from '../../lib/plan/types';
+import type { ProviderRefusal, UnitDefinition } from '../../lib/run/types';
 import { createLocalInferenceAdapter, type LocalCredentials } from './adapter';
-import { fitsBudget, localRecognition, noAsr, resolveLocal, type LocalInferenceConfig } from './config';
+import { fitsBudget, localModelsOf, localRecognition, noAsr, resolveLocal, type LocalInferenceConfig } from './config';
 import { defaultEngines, type LocalEngines } from './engines';
 import type { LocalInferenceSettings } from './settings';
 
@@ -41,7 +41,7 @@ export function buildLocalTranscription(
   s: LocalInferenceSettings,
   shared: Parameters<LocalTranscriptionUnit['build']>[2],
 ): LocalInferenceConfig | ProviderRefusal {
-  const resolved = resolveLocal(context.direction, s, localTranscriptionStagesOf(shared.lineUp ?? null));
+  const resolved = resolveLocal(context.direction, s, localTranscriptionStagesOf(shared.lineUp ?? null), localModelsOf(shared));
   if (!resolved.asr) return noAsr(context.direction.source);
   return { ...localRecognition(s, resolved.asr.modelId), translation: { kind: 'none' }, transcribesAlone: true };
 }
@@ -109,8 +109,8 @@ export function areLocalTranscriptionConfigs(configs: Partial<Record<LegName, un
  * The memory budget of a run in which the local provider only transcribes: the recognition models of its legs, and
  * nothing else. Over budget, the start is refused: no voice of its own can be dropped to make room.
  */
-export function admitLocalTranscription(configs: Partial<Record<LegName, LocalInferenceConfig>>): true | ProviderRefusal {
+export function admitLocalTranscription(configs: Partial<Record<LegName, LocalInferenceConfig>>, deviceFeatures: readonly string[]): true | ProviderRefusal {
   const ids = Object.values(configs).flatMap((c) => (c ? [c.asr.modelId] : []));
-  if (fitsBudget(ids)) return true;
+  if (fitsBudget(ids, deviceFeatures)) return true;
   return { refused: 'The models need more memory than this device has.', code: 'memory_exceeded' };
 }

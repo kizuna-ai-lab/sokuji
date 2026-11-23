@@ -1,6 +1,7 @@
 import PalabraVoiceSection from '../../components/Settings/sections/PalabraVoiceSection';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
-import type { LanguagePair, PreviewPort, ProviderAccount } from '../../lib/provider/types';
+import type { PreviewPort, ProviderAccount } from '../../lib/provider/types';
+import type { LanguagePair } from '../../lib/run/types';
 import { palabraParticipantVoice, type PalabraSettings } from './settings';
 import { usePalabraVoiceSource } from './voiceSource';
 

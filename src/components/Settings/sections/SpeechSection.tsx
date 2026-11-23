@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ownProps, useProviderEntry, useStageProvider } from '../../providers/useProviderEntry';
 import { useAnalytics } from '../../../lib/analytics';
 import { useStageUnit } from '../../../lib/plan/fromStores';
-import type { TurnMode } from '../../../lib/session/types';
+import type { TurnMode } from '../../../lib/run/types';
 import { presentProviders } from '../../../providers/registry';
 import { stageIdsFor } from '../../../lib/lineup/catalog';
 import { lineUpThatRuns, useStageProviderId } from '../../../stores/lineUpStore';

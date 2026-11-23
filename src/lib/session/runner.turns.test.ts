@@ -2,37 +2,39 @@ import { describe, it, expect, vi } from 'vitest';
 import type { AdapterEvents, StartRequest } from '../contract/adapter';
 import { createVirtualClock } from '../contract/clock';
 import type { AnyProvider } from '../provider/types';
-import { fakeProvider } from '../../providers/fake/provider';
+import { FAKE_WHOLE, fakeProvider, startFake } from '../../providers/fake/provider';
 import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import type { FakeConfig, FakeCredentials } from '../../providers/fake/adapter';
 import { createRunner } from './runner';
-import { shapeWith } from '../plan/testing';
-import type { RunShape, TurnMode } from './types';
+import { shapeWith, withWhole } from '../plan/testing';
+import type { WholeUnitParts } from '../plan/wholeUnit';
+import type { RunShape } from './types';
+import type { TurnMode } from '../run/types';
 import type { PlaybackPort } from './ports';
 
 // Who serves each stage: every event that names the run's provider carries it; here one provider serves all three.
 const STAGES = { transcription: 'fake', translation: 'fake', speech: 'fake' };
 
 /** The fake, with every call its sessions receive written to `log` as `<leg>:<call>`. */
-function spyingProvider(log: string[], patch: Partial<AnyProvider> = {}): AnyProvider {
-  return {
-    ...fakeProvider,
-    ...patch,
-    async start(request: StartRequest<FakeConfig, FakeCredentials>, events: AdapterEvents) {
-      const leg = request.context.direction.source === 'en' ? 'speaker' : 'participant';
-      const inner = await fakeProvider.start(request, events);
-      return {
-        info: inner.info,
-        appendAudio: (pcm: Int16Array) => { log.push(`${leg}:audio`); inner.appendAudio(pcm); },
-        appendText: (text: string) => { log.push(`${leg}:text`); inner.appendText(text); },
-        beginTurn: () => { log.push(`${leg}:begin`); inner.beginTurn(); },
-        endTurn: () => { log.push(`${leg}:end`); inner.endTurn(); },
-        cancelTurn: () => { log.push(`${leg}:cancel`); inner.cancelTurn(); },
-        stop: () => inner.stop(),
-      };
-    },
-  } as AnyProvider;
+function spyingStart(log: string[]): WholeUnitParts['start'] {
+  return async (request: StartRequest<FakeConfig, FakeCredentials>, events: AdapterEvents) => {
+    const leg = request.context.direction.source === 'en' ? 'speaker' : 'participant';
+    const inner = await startFake(request, events);
+    return {
+      info: inner.info,
+      appendAudio: (pcm: Int16Array) => { log.push(`${leg}:audio`); inner.appendAudio(pcm); },
+      appendText: (text: string) => { log.push(`${leg}:text`); inner.appendText(text); },
+      beginTurn: () => { log.push(`${leg}:begin`); inner.beginTurn(); },
+      endTurn: () => { log.push(`${leg}:end`); inner.endTurn(); },
+      cancelTurn: () => { log.push(`${leg}:cancel`); inner.cancelTurn(); },
+      stop: () => inner.stop(),
+    };
+  };
+}
+
+function spyingProvider(log: string[], patch: Partial<WholeUnitParts> = {}): AnyProvider {
+  return withWhole(fakeProvider, FAKE_WHOLE, { ...patch, start: spyingStart(log) });
 }
 
 function setup(o: { turnMode?: TurnMode; legs?: RunShape['legs']; provider?: AnyProvider; log?: string[]; playback?: Partial<PlaybackPort>; taps?: string[] } = {}) {
@@ -306,12 +308,13 @@ describe('runner — the recording tap', () => {
     const taps: string[] = [];
     const log: string[] = [];
     const inner = spyingProvider(log);
+    const start = spyingStart(log);
     const shared = {
       ...inner,
       session: {
         startBoth: async (requests: Record<string, StartRequest<FakeConfig, FakeCredentials>>, events: Record<string, AdapterEvents>) => {
-          const speaker = await inner.start(requests.speaker as never, events.speaker);
-          const participant = await inner.start(requests.participant as never, events.participant);
+          const speaker = await start(requests.speaker as never, events.speaker);
+          const participant = await start(requests.participant as never, events.participant);
           return { speaker: { ...speaker, info: { ...speaker.info, shared: true } }, participant: { ...participant, info: { ...participant.info, shared: true } } };
         },
       },

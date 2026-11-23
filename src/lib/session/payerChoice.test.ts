@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { chosenPayer, getUseOwnBalance, setUseOwnBalance, useAccountPayer, subscribeUseOwnBalance, USE_OWN_BALANCE_KEY } from './payerChoice';
 import { payerBalance } from './orgNotice';
-import type { AccountState } from './types';
+import type { AccountState } from '../run/types';
 
 const member = {
   organization: { name: 'Acme', availableMicroUsd: 7_000_000, frozen: false },

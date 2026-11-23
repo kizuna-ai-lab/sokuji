@@ -1,40 +1,73 @@
 // src/lib/plan/wholeUnit.ts
 //
-// A provider seen as one unit: it serves every stage together, as it does
-// today, and the plan of a run on it alone. Pure functions over the provider
-// definition.
+// The whole unit an end-to-end service declares (`wholeUnitOf`), a provider's units, its plan alone, and what it
+// says alone. Pure functions over the provider definition.
 import { RUN_STAGES, SP, TR_TL } from '../lineup/types';
 import type { RunStage } from '../lineup/types';
+import type { Adapter, SessionContext } from '../contract/adapter';
 import type { AnyProvider } from '../provider/types';
+import type { ProviderRefusal, SharedSettings, UnitCapabilities, UnitDefinition } from '../run/types';
 import { sameStages } from './types';
-import type { PlannedUnit, RunPlan, UnitDefinition } from './types';
+import type { PlannedUnit, RunPlan } from './types';
 
 /**
- * The unit that is the whole provider: all three stages, or recognition and translation when it need not speak.
- * A view of the definition, not a copy: every member reads the definition when it is used, so the unit runs
- * what the definition holds then, and a read asks the definition exactly what generic code asked it before.
+ * What a provider that is one whole session is made of: the nine members `Provider` had for it, with the same types.
+ * `wholeUnitOf` makes its unit.
  */
-export function wholeUnit(p: AnyProvider): UnitDefinition {
+export interface WholeUnitParts<S = any, K = any, C = any> {
+  speech: 'always' | 'optional' | 'never';
+  /** Whether the speaker leg takes typed text under these settings: Gemini's Live Translate ignores it where its dialogue models answer it. */
+  textInput(s: S): boolean;
+  boundaries(s: S): 'provider' | 'silence';
+  turns(s: S): ReadonlyArray<'auto' | 'manual'>;
+  /**
+   * Whether the participant leg may speak. `false`: never, whatever its
+   * switch says — Kizuna Soniox ships so until the backend mints a
+   * participant speech key (Stage 2 Kizuna Soniox, ruling 2); the switch
+   * then shows off and disabled with a "not available yet" tooltip,
+   * keeping the stored choice. Absent or `true`: the participant speaks
+   * when its switch is on.
+   */
+  participantSpeech?: boolean;
+  /**
+   * Whether Both may run face-to-face (spec 2026-10-08, slice 3): two people
+   * at one microphone, attributed by speaker label and language on one
+   * shared socket. Absent: the Both popover never offers "beside me", and a
+   * stored choice is ignored.
+   */
+  faceToFace?: boolean;
+  build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;
+  describe(c: C): { asrModel?: string; translationModel?: string; ttsModel?: string };
+  start: Adapter<C, K>['start'];
+}
+
+/**
+ * The unit that is a whole session: all three stages, or recognition and translation when it need not speak.
+ * A view of its parts, not a copy: every member reads a part when it is used, so the unit runs what the parts
+ * hold then, and a read asks a part exactly what generic code asked it before. Made, it reads no part and
+ * touches no module state.
+ */
+export function wholeUnitOf<S, K, C>(parts: WholeUnitParts<S, K, C>): UnitDefinition<S, K, C> {
   return {
     id: 'whole',
     occupies: (_s, want) => {
       if (sameStages(RUN_STAGES, want)) return RUN_STAGES;
-      if (p.speech !== 'always' && sameStages(['transcription', 'translation'], want)) return ['transcription', 'translation'];
+      if (parts.speech !== 'always' && sameStages(['transcription', 'translation'], want)) return ['transcription', 'translation'];
       return null;
     },
     // A capability backed by a function is asked when it is read: a reader of one capability calls that function only.
     capabilities: s => ({
-      speech: p.speech,
-      get turns() { return p.turns(s); },
+      speech: parts.speech,
+      get turns() { return parts.turns(s); },
       turnOwner: 'either',
-      get boundaries() { return p.boundaries(s); },
-      get textInput() { return p.textInput(s); },
-      faceToFace: p.faceToFace === true,
-      participantSpeech: p.participantSpeech !== false,
+      get boundaries() { return parts.boundaries(s); },
+      get textInput() { return parts.textInput(s); },
+      faceToFace: parts.faceToFace === true,
+      participantSpeech: parts.participantSpeech !== false,
     }),
-    build: (context, s, shared) => p.build(context, s, shared),
-    get describe() { return p.describe; },
-    get start() { return p.start; },
+    build: (context, s, shared) => parts.build(context, s, shared),
+    get describe() { return parts.describe; },
+    get start() { return parts.start; },
   };
 }
 
@@ -51,16 +84,9 @@ export function runsAlone(p: AnyProvider): boolean {
     && (unit.occupies(p.settings.defaults, EVERY_STAGE) !== null || unit.occupies(p.settings.defaults, TEXT_STAGES) !== null));
 }
 
-const cache = new WeakMap<AnyProvider, readonly UnitDefinition[]>();
-
-/** A provider's units: its own list when it declares one (step 2 on), else its whole-provider unit. Same array for the same provider. */
+/** A provider's units: the list it declares. */
 export function unitsOf(p: AnyProvider): readonly UnitDefinition[] {
-  let units = cache.get(p);
-  if (!units) {
-    units = p.units ?? [wholeUnit(p)];
-    cache.set(p, units);
-  }
-  return units;
+  return p.units;
 }
 
 /** A provider's unit that occupies exactly `stages` when asked for them, under no settings: the first that does. */
@@ -87,4 +113,13 @@ export function wholePlan(p: AnyProvider): RunPlan {
   }
   const u: PlannedUnit = whole ?? { provider: p, unit: unitsOf(p)[0], stages: RUN_STAGES };
   return { units: [u], byStage: { transcription: u, translation: u, speech: u } };
+}
+
+/**
+ * What a reader asks of a provider as a whole: whether it speaks and whether its participant may, read off
+ * `'speech'`, and face-to-face, read off `'transcription'`. These come from the unit that serves the stage in a
+ * run on it alone, under its default settings, which no unit reads for these.
+ */
+export function capabilitiesAlone(p: AnyProvider, stage: RunStage): UnitCapabilities {
+  return wholePlan(p).byStage[stage].unit.capabilities(p.settings.defaults);
 }

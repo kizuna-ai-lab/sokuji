@@ -15,7 +15,8 @@ import { useEffect, useRef } from 'react';
 import { create } from 'zustand';
 import { describeCause } from '../../lib/diagnostics/describeCause';
 import { isMissing, readCredentials } from '../../lib/provider/credentials';
-import type { AnyProvider, AuthContext } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import { UNKNOWN, useProviderStore, type ProviderEntry, type Readiness } from '../../stores/providerStore';
 import { fingerprint } from '../../lib/textModel/fingerprint';
 

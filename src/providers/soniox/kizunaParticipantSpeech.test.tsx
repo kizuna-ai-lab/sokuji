@@ -43,8 +43,10 @@ import { startComposite } from '../../lib/plan/composite';
 import { startCompositeBoth } from '../../lib/plan/compositeBoth';
 import type { AnyProvider } from '../../lib/provider/types';
 import { contextsFor } from '../../lib/session/shape';
-import type { LeaseContext, RunShape } from '../../lib/session/types';
+import type { RunShape } from '../../lib/session/types';
+import type { LeaseContext } from '../../lib/run/types';
 import { shapeWith } from '../../lib/plan/testing';
+import { capabilitiesAlone } from '../../lib/plan/wholeUnit';
 import useAudioStore from '../../stores/audioStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
@@ -101,7 +103,7 @@ async function run(provider: AnyProvider, legs: LegName[], shared: boolean, role
   const lease = await provider.session!.acquire!(shape, s, ctx);
   const contexts = contextsFor(shape);
   const sockets = fakeSockets();
-  const { plan } = sonioxOnSockets(sockets, { of: provider, participantSpeech: provider.participantSpeech !== false });
+  const { plan } = sonioxOnSockets(sockets, { of: provider, participantSpeech: capabilitiesAlone(provider, 'speech').participantSpeech });
   const rec = { speaker: recordEvents(), participant: recordEvents() };
   const request = (leg: LegName) => planRequest(plan, { context: contexts[leg]!, settings: s, shared: SHARED, credentials: lease.credentials(leg) as SonioxCredentials, clock, signal });
   const starting = legs.length === 2
@@ -189,7 +191,7 @@ describe('the flag off (a test-only twin from the same factory)', () => {
 
 describe('the flag on (as shipped)', () => {
   it('is the shipped definition', () => {
-    expect(kizunaSonioxProvider.participantSpeech).toBe(true);
+    expect(capabilitiesAlone(kizunaSonioxProvider, 'speech').participantSpeech).toBe(true);
   });
 
   it('the participant leg asks for speech, and the body carries the field', async () => {

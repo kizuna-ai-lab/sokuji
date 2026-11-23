@@ -6,12 +6,11 @@
  * scope.
  */
 import { Volume2 } from 'lucide-react';
-import { AdapterStartError } from '../../lib/contract/adapter';
 import type { TextRange } from '../../lib/contract/adapter';
 import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../../lib/contract/speech';
 import { SP } from '../../lib/lineup/types';
 import { sameStages } from '../../lib/plan/types';
-import type { UnitDefinition } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import type { CredentialsMissing, Provider } from '../../lib/provider/types';
 import { FAKE_LANGUAGES } from './provider';
 
@@ -104,8 +103,8 @@ const voiceUnit: UnitDefinition<FakeVoiceSettings, FakeVoiceCredentials, FakeVoi
 };
 
 /**
- * The fake voice provider: no key, always ready, the fake's languages. It is never a text provider: generic code
- * reads its `units`, and its own `start` rejects.
+ * The fake voice provider: no key, always ready, the fake's languages. It is never a text provider: it starts
+ * through its unit.
  */
 export const fakeVoiceProvider: Provider<FakeVoiceSettings, FakeVoiceCredentials, FakeVoiceConfig> & { id: 'fake_voice' } = {
   id: 'fake_voice',
@@ -126,16 +125,6 @@ export const fakeVoiceProvider: Provider<FakeVoiceSettings, FakeVoiceCredentials
   check: async () => ({ ok: true }),
 
   languages: FAKE_LANGUAGES,
-
-  speech: 'optional',
-  textInput: () => false,
-  boundaries: () => 'silence',
-  turns: () => ['auto', 'manual'],
-  faceToFace: true,
-
-  build: () => ({ voice: 'fake' }),
-  describe: () => ({ ttsModel: 'fake-voice' }),
-  start: () => Promise.reject(new AdapterStartError('The fake voice only speaks: it starts through its speech unit.', 'plan_unsupported')),
 
   units: [voiceUnit],
 };

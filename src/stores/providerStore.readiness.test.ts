@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { stubProvider } from '../lib/plan/testing';
 import type { AnyProvider, CheckContext, CheckResult, LanguageOption } from '../lib/provider/types';
 
 const reportErrorSpy = vi.hoisted(() => vi.fn());
@@ -30,8 +31,8 @@ const signedIn = { signedIn: true, getToken: async () => 't' };
 const signedOut = noAuth;
 
 function probe(kind: 'own-key' | 'local' | 'managed', check: (k: unknown, s: unknown, ctx: CheckContext) => Promise<CheckResult>): AnyProvider {
-  return {
-    id: 'probe',
+  return stubProvider('probe', {
+    speech: 'never',
     kind,
     settings: { key: 'probe', defaults: { mode: 'a' } },
     credentials: {
@@ -41,7 +42,7 @@ function probe(kind: 'own-key' | 'local' | 'managed', check: (k: unknown, s: unk
     },
     check,
     languages: { sources: () => [opt('en')], targets: () => [opt('ja')] },
-  } as unknown as AnyProvider;
+  });
 }
 
 /** A provider whose check reads the pair and the legs (`checkReadsDirection`), as a local engine's does. */
@@ -110,6 +111,15 @@ describe('refreshReadiness', () => {
     await loadedWithKey(p, 'sk-9');
     await store.useProviderStore.getState().refreshReadiness(p, noAuth);
     expect(check).toHaveBeenCalledWith({ key: 'sk-9' }, { mode: 'a' }, { pair: { source: 'en', target: 'ja' }, legs: ['speaker'], signal: undefined });
+  });
+
+  it.each([['local', true], ['own-key', false]] as const)("hands a %s provider's check this device's models: %s", async (kind, handed) => {
+    const { localModels } = await import('./localModels');
+    const check = vi.fn(async (_k: unknown, _s: unknown, _ctx: CheckContext): Promise<CheckResult> => ({ ok: true }));
+    const p = probe(kind, check);
+    await loadedWithKey(p);
+    await store.useProviderStore.getState().refreshReadiness(p, noAuth);
+    expect(check.mock.calls[0][2].localModels).toBe(handed ? localModels : undefined);
   });
 
   it('records a refusal as not ready, with its reason', async () => {

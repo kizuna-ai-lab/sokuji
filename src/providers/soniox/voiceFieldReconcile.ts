@@ -4,7 +4,8 @@
  * offline, changes nothing. Never rejects.
  */
 import { reportWarning } from '../../lib/diagnostics/report';
-import type { AnyProvider, AuthContext } from '../../lib/provider/types';
+import type { AnyProvider } from '../../lib/provider/types';
+import type { AuthContext } from '../../lib/run/types';
 import type { SonioxRegion } from '../../lib/soniox/regions';
 import { isSonioxBuiltInVoice } from '../../lib/soniox/ttsCatalog';
 import { hasVoiceClip } from '../../lib/soniox/voiceClipStorage';

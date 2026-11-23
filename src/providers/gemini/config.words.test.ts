@@ -1,7 +1,7 @@
 // A Gemini Live model that cannot use the word list still starts its session, just without it.
 import { describe, it, expect } from 'vitest';
 import type { SessionContext } from '../../lib/contract/adapter';
-import type { SharedSettings } from '../../lib/provider/types';
+import type { SharedSettings } from '../../lib/run/types';
 import { buildGemini } from './config';
 import { GEMINI_DEFAULTS } from './settings';
 

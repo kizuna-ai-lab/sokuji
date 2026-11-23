@@ -12,7 +12,8 @@ import type { SpeechEvents, SpeechSession, SpeechStartRequest } from '../../lib/
 import type { LegName } from '../../lib/conversation/types';
 import { SP } from '../../lib/lineup/types';
 import { AUTO } from '../../lib/provider/languages';
-import { sameStages, type UnitDefinition } from '../../lib/plan/types';
+import { sameStages } from '../../lib/plan/types';
+import type { UnitDefinition } from '../../lib/run/types';
 import { describeSonioxTts, sonioxTts, type SonioxTtsConfig } from './config';
 import { sonioxWire } from './languages';
 import type { SonioxSettings, SonioxVoiceCredentials } from './settings';

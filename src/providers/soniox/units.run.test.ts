@@ -28,7 +28,6 @@ function setup(o: Partial<Pick<RunShape, 'legs' | 'textOnly' | 'participantSpeec
   // Soniox's definition, its adapter and its units on fake sockets.
   const provider = {
     ...sonioxProvider,
-    start: adapter.start,
     units: [sonioxSttUnitFor({ start: adapter.start }), createSonioxTtsUnit({ openSocket: sockets.create })],
     session: { startBoth: adapter.startBoth },
   } as AnyProvider;

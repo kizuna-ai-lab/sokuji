@@ -5,7 +5,7 @@ import { PLAN_REFUSAL_CODES } from '../plan/types';
 import { RUN_NOTICE_CODES } from './codes';
 import type { RunnerDeps } from './ports';
 import { createRunner } from './runner';
-import type { RunNotice } from './types';
+import type { RunNotice } from '../run/types';
 
 /** A runner whose start finds no shape: only what such a start reaches is real. */
 function runnerWithNoShape(planRefusal?: () => RunNotice | null) {

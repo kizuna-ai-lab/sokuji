@@ -54,7 +54,7 @@ describe('providerPaths', () => {
     expect(text[Provider.PALABRA_AI]).toEqual({ ok: true });
   });
 
-  it("judges the managed card's fit from the definition's speech", () => {
+  it("judges the managed card's fit from what its unit says of its speech", () => {
     expect(managedOption('subtitle-myself')).toEqual({ id: Provider.KIZUNA_AI_SONIOX, fit: { ok: true } });
   });
 

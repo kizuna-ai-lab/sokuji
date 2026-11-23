@@ -5,12 +5,13 @@ import { checkPlan, refusalNotice } from '../plan/checks';
 import { accountOf, capabilitiesOf, providersIn, servesSpeech, transcriptionProvider, unitFor } from '../plan/read';
 import { reversedPair, reverseSupported } from '../provider/languages';
 import type { AnyProvider, LanguageContext, Platform } from '../provider/types';
+import type { RunNotice, UnitCapabilities } from '../run/types';
 import { formatUsdFloor } from '../../utils/formatters';
 import type { RunNoticeCode } from './codes';
 import { payerBalance } from './orgNotice';
 import { ORG_INSUFFICIENT_BALANCE, ORG_WALLET_FROZEN, orgNoticeParams } from './orgNotice';
 import type { PlanRefusal, RunPlan } from '../plan/types';
-import type { RunNotice, RunShape } from './types';
+import type { RunShape } from './types';
 
 /** Why a start was refused before anything opened. */
 export interface Refusal extends RunNotice {
@@ -26,8 +27,11 @@ export interface Refusal extends RunNotice {
  */
 export interface SpeechInputs { textOnly: boolean; participantSpeech: boolean }
 
-/** What decides whether a leg speaks, of the one that speaks: a provider, or the capabilities of a plan's speech unit. */
-export type Speaking = Pick<AnyProvider, 'speech' | 'participantSpeech'>;
+/**
+ * What decides whether a leg speaks, of the one that speaks: a plan's speech unit, or a provider alone
+ * (`capabilitiesAlone`). Absent `participantSpeech`: the participant may speak.
+ */
+export type Speaking = Pick<UnitCapabilities, 'speech'> & Partial<Pick<UnitCapabilities, 'participantSpeech'>>;
 
 /** Whether a leg speaks: the one rule `contextsFor`, the gate and the language offer read. */
 export function legSpeaks(p: Speaking, leg: LegName, inputs: SpeechInputs): boolean {
