@@ -8,6 +8,7 @@ namespace sk_node {
 // Set as the environment's instance data at module init; freed with the environment.
 struct AddonData {
     Napi::FunctionReference asr_model;   // the AsrModel class (asr.cpp)
+    Napi::FunctionReference asr_stream;  // the AsrStream class (asr.cpp)
 };
 
 AddonData &Data(Napi::Env env);
