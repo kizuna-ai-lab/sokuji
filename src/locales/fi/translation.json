@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Minimi hiljaisuus puhesegmenttien jakamiseen. Lyhyemmät arvot jakavat lauseet nopeammin, pidemmät odottavat luonnollisempia taukoja.",
     "vadMaxSpeechDuration": "Maks. puheaika",
     "vadMaxSpeechDurationTooltip": "Pisin aika, jonka yksittäinen puhejakso voi kestää ennen jakamista. Osa malleista jakaa aiemmin, pisimpään jaksoon, jonka ne litteroivat oikein.",
+    "turnDetectionLimitNote": "Tämä malli jakaa yli {{seconds}} s pitkät puheenvuorot.",
     "vadPreSpeechPadDuration": "Marginaali ennen puhetta",
     "vadPreSpeechPadDurationTooltip": "Säilyttää äänen juuri ennen kuin puhe havaitaan, jotta lauseen ensimmäinen äänne ei leikkaudu pois. Suuremmat arvot välittävät tunnistukseen myös enemmän ennen puhetta olevaa kohinaa.",
     "smartTurn": "Älykäs",

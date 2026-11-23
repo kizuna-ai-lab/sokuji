@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Minsta tystnad för att dela talsegment. Kortare värden delar meningar snabbare, längre värden väntar på mer naturliga pauser.",
     "vadMaxSpeechDuration": "Max. tallängd",
     "vadMaxSpeechDurationTooltip": "Längsta tid ett enskilt talsegment kan pågå innan det delas. Vissa modeller delar tidigare, vid det längsta segment de transkriberar korrekt.",
+    "turnDetectionLimitNote": "Den här modellen delar upp yttranden som är längre än {{seconds}} s.",
     "vadPreSpeechPadDuration": "Marginal före tal",
     "vadPreSpeechPadDurationTooltip": "Behåller ljudet precis innan tal upptäcks, så att det första ljudet i en mening inte klipps bort. Högre värden skickar också mer brus från före talet till igenkänningen.",
     "smartTurn": "Smart",

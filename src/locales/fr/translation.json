@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Durée minimale de silence pour séparer les segments de parole. Des valeurs plus courtes séparent les phrases plus rapidement, des valeurs plus longues attendent des pauses plus naturelles.",
     "vadMaxSpeechDuration": "Durée max. de parole",
     "vadMaxSpeechDurationTooltip": "Durée maximale d'un segment de parole avant qu'il ne soit découpé. Certains modèles découpent plus tôt, au plus long segment qu'ils transcrivent correctement.",
+    "turnDetectionLimitNote": "Ce modèle découpe les énoncés de plus de {{seconds}} s.",
     "vadPreSpeechPadDuration": "Marge avant la parole",
     "vadPreSpeechPadDurationTooltip": "Conserve l'audio juste avant la détection de la parole, pour ne pas couper le premier son d'une phrase. Une valeur plus élevée transmet aussi à la reconnaissance davantage du bruit qui précède votre prise de parole.",
     "smartTurn": "Intelligent",
