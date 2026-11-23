@@ -7,14 +7,16 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
 function addonPath() {
-  return process.env.SOKUJI_NATIVE_NODE || join(here, '..', '..', 'build', 'cpu', 'lib', 'sokuji_native_node.node');
+  // resolve(): require() takes a relative path without ./ for a package name.
+  const env = process.env.SOKUJI_NATIVE_NODE;
+  return env ? resolve(env) : join(here, '..', '..', 'build', 'cpu', 'lib', 'sokuji_native_node.node');
 }
 
 export function loadAddon() {

@@ -8,6 +8,7 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -63,6 +64,10 @@ State &state() {
 
 // The sk_log_cb handed to sk_init; `user` is unused.
 bool LogToJs(int32_t level, const char *message, void *) {
+    // Once a sink is set the library stops printing warnings and errors itself, and the line
+    // naming an unsupported op comes right before GGML_ABORT: queued for JS, it would die with
+    // the process. So level >= 2 also goes to stderr now, as the library prints it with no sink.
+    if (level >= 2) std::fprintf(stderr, "[sokuji_native] %s\n", message ? message : "");
     try {
         State &s = state();
         std::lock_guard<std::mutex> lock(s.mu);
