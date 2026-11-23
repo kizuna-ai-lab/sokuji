@@ -111,13 +111,15 @@ export interface AsrStatusMessage {
 }
 
 /**
- * How a vad-web worker's speech segment ended, for the Logs panel: the
- * FrameProcessor's silence rule, Smart Turn, the max-speech cap, a flush
- * (push-to-talk release, session end), or a short reply after a Smart end
- * that the processor dropped and Smart Turn's gate handed back.
+ * How a speech segment ended, for the Logs panel: `silence`, the
+ * FrameProcessor's silence rule; `smart`, Smart Turn; `cap`, the max-speech
+ * cap; `release`, a press's release; `flush`, an automatic leg's drain (and,
+ * while the vad-web workers still cut their own segments, push-to-talk release
+ * and session end); `kept`, a short reply after a Smart end that the processor
+ * dropped and Smart Turn's gate handed back.
  */
 export interface SegmentEnd {
-  endedBy: 'silence' | 'smart' | 'cap' | 'flush' | 'kept';
+  endedBy: 'silence' | 'smart' | 'cap' | 'release' | 'flush' | 'kept';
   /** Smart Turn's probability that the speaker was done; `smart` only. */
   smartTurnProbability?: number;
 }
