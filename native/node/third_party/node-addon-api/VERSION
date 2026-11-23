@@ -1,0 +1,4 @@
+node-addon-api 8.9.2
+Source: https://github.com/nodejs/node-addon-api, npm tarball node-addon-api-8.9.2.tgz
+        (sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==)
+Files, unmodified: napi.h, napi-inl.h, napi-inl.deprecated.h, LICENSE.md (MIT)

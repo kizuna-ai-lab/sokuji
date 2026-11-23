@@ -185,6 +185,12 @@ endif()
 enable_testing()
 add_subdirectory(tests)
 
+# The Node-API addon (node/): installed under its own component, sokuji_node.
+option(SOKUJI_NODE_ADDON "Build the Node-API addon" ON)
+if(SOKUJI_NODE_ADDON)
+    add_subdirectory(node)
+endif()
+
 # ---- install: one flat directory, exactly what the wheel ships -------------------------
 # Everything here is COMPONENT sokuji. The fetched upstreams carry their own install()
 # rules (headers, static libs, cmake configs) in the default component; installing with
