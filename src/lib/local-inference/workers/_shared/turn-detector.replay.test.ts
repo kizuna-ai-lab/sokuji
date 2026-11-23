@@ -95,6 +95,8 @@ interface Cut {
   endedBy: string;
   smartTurnProbability?: number;
   audio: Float32Array;
+  /** The worker only: the start label it posted, `segmentStartSample(totalSamplesFed, audio)`, as it is. */
+  literalStart?: number;
 }
 
 interface Scenario {
@@ -122,6 +124,9 @@ async function worker(s: Scenario): Promise<Cut[]> {
 
 function cut(seg: LegacySegment): Cut {
   // The rescue window (Smart) ends at the frame before the one in hand; every other cut ends at the frame just processed.
+  // Ruling T11-2: the worker's kept-segment start label (`literalStart`) is one frame late against its own audio,
+  // because that window ends a frame before `totalSamplesFed` (the same root as T6-2). The detector labels the true
+  // start, so a kept segment is compared by the start its audio has; the literal label is kept and asserted below.
   const end = seg.end.endedBy === 'kept' ? seg.fedAt - FRAME : seg.fedAt;
   return {
     start: seg.end.endedBy === 'kept' ? end - seg.audio.length : seg.startSample,
@@ -129,6 +134,7 @@ function cut(seg: LegacySegment): Cut {
     endedBy: seg.end.endedBy,
     ...(seg.end.smartTurnProbability !== undefined ? { smartTurnProbability: seg.end.smartTurnProbability } : {}),
     audio: seg.audio,
+    literalStart: seg.startSample,
   };
 }
 
@@ -232,7 +238,7 @@ describe('the detector cuts the recorded Japanese sentences as the worker VAD di
     rest.forEach((c, i) => expect(difference(c.audio, before[i].audio)).toBeNull());
   });
 
-  it('Smart with a long Normal wait: the same segments, a kept segment ending one frame later (T6-2)', async () => {
+  it('Smart with a long Normal wait: the same segments, a kept segment ending one frame later (T6-2) and labelled a frame earlier (T11-2)', async () => {
     // Min speech 2 s makes a reply after a Smart end a misfire the gate keeps, which is the one place the two differ.
     const scenario: Scenario = { ...NORMAL, smart: 0.9, vad: { ...VAD, minSpeechDuration: 2 } };
     const before = await worker(scenario);
@@ -243,6 +249,8 @@ describe('the detector cuts the recorded Japanese sentences as the worker VAD di
     after.cuts.forEach((c, i) => {
       const w = before[i];
       if (w.endedBy !== 'kept') {
+        // T11-2 normalises kept segments only: for every other cut the label and the audio's start are the same.
+        expect(w.literalStart).toBe(w.start);
         expect(spans([c])).toEqual(spans([w]));
         expect(difference(c.audio, w.audio)).toBeNull();
         return;
@@ -250,8 +258,11 @@ describe('the detector cuts the recorded Japanese sentences as the worker VAD di
       // Ruling T6-2 (Task 6 review): a kept segment spans start..ending frame, half-open, so it may end one frame
       // (512 samples) after the worker's rescue window, on a kept segment's end only.
       expect({ start: c.start, endedBy: c.endedBy }).toEqual({ start: w.start, endedBy: w.endedBy });
-      expect(Math.abs(c.end - w.end)).toBeLessThanOrEqual(FRAME);
+      expect(c.end).toBe(w.end + FRAME);
+      expect(c.audio.length).toBe(w.audio.length + FRAME);
       expect(difference(c.audio.subarray(0, w.audio.length), w.audio)).toBeNull();
+      // Ruling T11-2: the worker's literal label is one frame after the start of its own audio, which the detector has.
+      expect(w.literalStart).toBe(c.start + FRAME);
     });
   });
 });
