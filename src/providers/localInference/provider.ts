@@ -45,7 +45,7 @@ export const localInferenceProvider: Provider<LocalInferenceSettings, LocalCrede
   settings: { key: 'localInference', defaults: LOCAL_INFERENCE_DEFAULTS },
   Settings: LocalInferenceSettingsView,
   // The engine's three slots, the speech speed and the translation prompt (mock v19); the VAD is its turn detection.
-  optionStages: [TR, TL, SP],
+  settingsStages: [TR, TL, SP],
   Engine: LocalInferenceEngine,
   EngineSummary: LocalInferenceEngineSummary,
   // Its voices sit with its TTS models, per direction (#619): the Speech section names them and opens the slot.

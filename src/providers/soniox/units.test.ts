@@ -26,6 +26,9 @@ import { sonioxProvider } from './provider';
 import { SONIOX_DEFAULTS, type SonioxCredentials, type SonioxSettings } from './settings';
 import { AUTO_CTX, isStt, KEY, SHARED, trackedClock, type Json } from './testing';
 import { SONIOX_TRANSCRIPTION_UNIT, sonioxSttUnitFor, sonioxTranscriptionUnitFor, sonioxUnitsFor } from './units';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const start = vi.fn();
 const stt = sonioxSttUnitFor({ start });

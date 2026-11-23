@@ -53,6 +53,9 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useLineUpStore } from '../../stores/lineUpStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { ProviderPicker } from './ProviderPicker';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const noAuth = { signedIn: false, getToken: async () => null };
 

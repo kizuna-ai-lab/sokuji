@@ -70,6 +70,11 @@ describe('managed', () => {
     for (const member of ['guideUrl', 'flagged', 'testerSwitch'] as const) expect(twin, member).not.toHaveProperty(member);
   });
 
+  it("carries the base's end-to-end flag, and none when the base has none", () => {
+    expect(managed({ ...fakeProvider, endToEnd: true }, OVERRIDES).endToEnd).toBe(true);
+    expect('endToEnd' in managed(fakeProvider, OVERRIDES)).toBe(false);
+  });
+
   it('a twin can be flagged on its own', () => {
     expect(managed(fakeProvider, { ...OVERRIDES, flagged: true }).flagged).toBe(true);
     expect(managed(fakeProvider, OVERRIDES)).not.toHaveProperty('flagged');

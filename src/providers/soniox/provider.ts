@@ -63,7 +63,7 @@ export const sonioxProvider: Provider<SonioxSettings, SonioxCredentials, SonioxC
   Settings: SonioxSettingsView,
   // The region on every stage, the voices on speech, the vocabulary, background and shared session on transcription
   // and translation, the read-aloud text and speaker labels on transcription (mock v19).
-  optionStages: [ALL_STAGES, SP, TR_TL, TR],
+  settingsStages: [ALL_STAGES, SP, TR_TL, TR],
   // The endpoint knobs: summarized in the Speech section under Auto, drawn on Advanced's Provider tab.
   TurnDetection: { Summary: SonioxTurnDetectionSummary, Controls: SonioxTurnDetectionControls },
   // Each spoken leg's voice, under its Speech row.

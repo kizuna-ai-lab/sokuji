@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { lineUpFromToday } from './migrate';
+import { registerReleasedCatalog } from './catalog.testing';
+
+registerReleasedCatalog();
 
 describe('the line-up from today\'s values', () => {
   it('a free user whose automatic choices resolve to Bing and Edge keeps them', () => {

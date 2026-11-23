@@ -32,7 +32,7 @@ export const edgeProvider: Provider<EdgeSettings, EdgeCredentials, LocalSpeechCo
     migrate: migrateEdgeSettings,
   },
   Settings: EdgeSettingsView,
-  optionStages: [SP],
+  settingsStages: [SP],
   VoiceSummary: EdgeVoiceSummary,
 
   credentials: {

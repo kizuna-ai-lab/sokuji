@@ -1,4 +1,4 @@
-// Each provider's `optionStages` (mock v19) says which stage sets its options act on, so the line-up page knows which
+// Each provider's `settingsStages` (mock v19) says which stage sets its options act on, so the line-up page knows which
 // stage cards have options without drawing them. It must name exactly the sets its `Settings` source wraps in
 // `StagePart` (and, for the local engine, its slots): a part the declaration misses would never get a card.
 import { describe, it, expect } from 'vitest';
@@ -25,7 +25,7 @@ const partsIn = (source: string) => [...new Set([...source.matchAll(/<StagePart 
 const qwen = src('providers/qwen_livetranslate/QwenSettings.tsx');
 const qwenShared = qwen.slice(0, qwen.indexOf('export function KizunaQwenSettingsView'));
 
-const CASES: Array<[string, { optionStages?: readonly (readonly unknown[])[] }, string]> = [
+const CASES: Array<[string, { settingsStages?: readonly (readonly unknown[])[] }, string]> = [
   ['soniox', sonioxProvider, src('providers/soniox/SonioxSettings.tsx')],
   ['kizunaai_soniox', kizunaSonioxProvider, src('providers/soniox/SonioxSettings.tsx')],
   ['gemini', geminiProvider, src('providers/gemini/GeminiSettings.tsx')],
@@ -41,8 +41,8 @@ const CASES: Array<[string, { optionStages?: readonly (readonly unknown[])[] }, 
   ['local_inference', localInferenceProvider, src('providers/localInference/LocalInferenceSettings.tsx') + '<StagePart stages={TR}><StagePart stages={TL}><StagePart stages={SP}>'],
 ];
 
-describe('optionStages', () => {
+describe('settingsStages', () => {
   it.each(CASES)('%s declares exactly the stage sets its settings use', (_id, provider, source) => {
-    expect((provider.optionStages ?? []).map(nameOf).sort()).toEqual(partsIn(source));
+    expect((provider.settingsStages ?? []).map(nameOf).sort()).toEqual(partsIn(source));
   });
 });

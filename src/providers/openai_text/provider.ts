@@ -55,7 +55,7 @@ export const openaiTextProvider: Provider<TextModelSettings, OpenAITextCredentia
 
   settings: { key: 'openaiText', defaults: TEXT_MODEL_DEFAULTS, legacyKeys: [OLD_NOTES_MODEL_KEY, OWN_NOTES_MODEL], migrate: migrateOpenAITextSettings },
   Settings: textModelSettingsView('openai'),
-  optionStages: [TL],
+  settingsStages: [TL],
 
   credentials: {
     keys: ['apiKey'],

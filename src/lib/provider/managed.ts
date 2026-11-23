@@ -32,7 +32,7 @@ export interface ManagedOverrides<S, K, C, Id extends string> {
   /** The base's settings component in its managed flavour. */
   Settings: ComponentType<SettingsProps<S>>;
   /** The stages its options act on (mock v19), when its view differs from the base provider's. */
-  optionStages?: readonly (readonly RunStage[])[];
+  settingsStages?: readonly (readonly RunStage[])[];
   /** The twin's own setup guide; never the base's, which is about getting the vendor's key. */
   guideUrl?: string;
   /** The base's voice summary in its managed flavour; absent, the base's own, if it has one. */
@@ -70,7 +70,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     Settings: o.Settings,
     ...(base.TurnDetection ? { TurnDetection: base.TurnDetection } : {}),
     // The stages its options act on (mock v19): the same view, so the same parts.
-    ...((o.optionStages ?? base.optionStages) ? { optionStages: o.optionStages ?? base.optionStages } : {}),
+    ...((o.settingsStages ?? base.settingsStages) ? { settingsStages: o.settingsStages ?? base.settingsStages } : {}),
     ...((o.VoiceSummary ?? base.VoiceSummary) ? { VoiceSummary: o.VoiceSummary ?? base.VoiceSummary } : {}),
     credentials: { keys: [], fields: () => [], read: (_values, auth) => readSignIn(auth, o.signedOut) },
     // Static: the sign-in is `read`'s to see, the balance the start gate's (spec: "Readiness is one check").
@@ -87,6 +87,7 @@ export function managed<S, K extends { missing?: never } & object, C extends { r
     build: base.build,
     describe: base.describe,
     start: base.start,
+    ...(base.endToEnd ? { endToEnd: true as const } : {}),
     ...(o.units ? { units: o.units } : {}),
     // The base's `startBoth` only: its other hooks (`prepare`, `admit`, `acquire`) are the base's own business, never the twin's.
     session: { ...(base.session?.startBoth ? { startBoth: base.session.startBoth } : {}), ...o.session },

@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
-import { RELEASED } from '../../providers/registry';
-import { allStagesBy, belongsTo, CAPS, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, stageIdsFor } from './catalog';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { presentProviders, RELEASED } from '../../providers/registry';
+import { allStagesBy, belongsTo, allCaps, caps, carriedTogether, goesWith, hostDefaults, optionFor, runsByItself, severalHosts, stageIdsFor } from './catalog';
 import type { LineUp, RunStage } from './types';
 
 describe('the line-up catalog', () => {
   it('every option is its own host', () => {
-    for (const c of CAPS) expect([c.id, c.host]).toEqual([c.id, c.id]);
+    for (const c of allCaps()) expect([c.id, c.host]).toEqual([c.id, c.id]);
   });
 
   it('the free line-up belongs to this device', () => {
@@ -22,7 +22,16 @@ describe('the line-up catalog', () => {
   });
 
   it('covers every released provider, plus Bing and Edge', () => {
-    expect(new Set(CAPS.map((c) => c.id))).toEqual(new Set([...RELEASED.map((p) => p.id), 'bing', 'edge']));
+    expect(new Set(allCaps().map((c) => c.id))).toEqual(new Set([...RELEASED.map((p) => p.id), 'bing', 'edge']));
+  });
+
+  // A stored line-up that names an option this platform does not offer (a text model, on the web) stays readable: the
+  // catalog is the compiled providers', not the present ones'.
+  it('lists every released provider, also one this platform does not offer', () => {
+    expect(allCaps().map((c) => c.id)).toEqual(RELEASED.map((p) => p.id));
+    const web = presentProviders({ platform: 'web', dev: false, enabled: new Set(), kizuna: true, switchOn: () => false });
+    expect(web.some((p) => p.id === 'openai_text')).toBe(false);
+    expect(caps('openai_text')).toBeDefined();
   });
 
   it('a text model translates alone, on a key, for any voice that stands alone: its host is itself, and nothing goes with it', () => {
@@ -37,7 +46,7 @@ describe('the line-up catalog', () => {
     for (const id of ['openai_text', 'gemini_text', 'openai_compatible']) expect(hostDefaults(id), id).toEqual({ transcription: 'local_inference', translation: id, speech: 'edge' });
     // Under a catalog of one-stage hosts, each keeps its own stage and takes this device's for the rest.
     const oneStage = [
-      ...CAPS,
+      ...allCaps(),
       { id: 'only_voice', stages: ['speech' as const], host: 'only_voice', account: 'none' as const, voiceAlone: true, takesVoice: false },
       { id: 'only_ears', stages: ['transcription' as const], host: 'only_ears', account: 'none' as const, voiceAlone: false, takesVoice: true },
     ];
@@ -48,10 +57,31 @@ describe('the line-up catalog', () => {
   });
 
   it('a stored selection may run only a provider that serves every stage by itself, or one the catalog does not know', () => {
-    for (const c of CAPS) if (c.host === c.id) expect(runsByItself(c.id), c.id).toBe(c.stages.length === 3);
+    for (const c of allCaps()) if (c.host === c.id) expect(runsByItself(c.id), c.id).toBe(c.stages.length === 3);
     expect(runsByItself('openai_compatible')).toBe(false);
     expect(runsByItself('soniox')).toBe(true);
     expect(runsByItself('fake')).toBe(true);
+  });
+});
+
+// A fresh module per case: what one case registers is not seen by the next.
+describe('the registered catalog', () => {
+  let catalog: typeof import('./catalog');
+  beforeEach(async () => {
+    vi.resetModules();
+    catalog = await import('./catalog');
+  });
+
+  it('throws while no catalog is registered', () => {
+    expect(() => catalog.allCaps()).toThrow(/No line-up catalog is registered/);
+    expect(() => catalog.caps('soniox')).toThrow();
+  });
+
+  it('reads the registered catalog when none is given', () => {
+    const only = [{ id: 'x', stages: ['speech'], host: 'x', account: 'none', voiceAlone: true, takesVoice: false }] as const;
+    catalog.registerCatalog(only);
+    expect(catalog.caps('x')).toBe(only[0]);
+    expect(catalog.caps('soniox')).toBeUndefined();
   });
 });
 
@@ -59,12 +89,12 @@ describe('the stages that go together', () => {
   const endToEnd = ['kizunaai_qwen', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'qwen_livetranslate', 'palabraai'];
 
   it('an end-to-end provider holds all three jointly; nothing else is joint', () => {
-    expect(CAPS.filter((c) => c.joint).map((c) => c.id).sort()).toEqual([...endToEnd].sort());
+    expect(allCaps().filter((c) => c.joint).map((c) => c.id).sort()).toEqual([...endToEnd].sort());
     for (const id of endToEnd) expect(caps(id)!.joint).toEqual(['transcription', 'translation', 'speech']);
   });
 
   it('Soniox, with an own key or Kizuna AI\'s, translates only what it transcribes; no other option says so', () => {
-    expect(CAPS.filter((c) => c.translatesOwn).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'soniox']);
+    expect(allCaps().filter((c) => c.translatesOwn).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'soniox']);
   });
 
   it('an end-to-end provider chosen for any stage goes with all three', () => {

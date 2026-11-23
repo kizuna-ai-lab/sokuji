@@ -30,7 +30,7 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
   settings: { key: 'qwenLiveTranslate', defaults: QWEN_DEFAULTS, migrate: migrateQwenSettings },
   Settings: QwenSettingsView,
   // Its key note and speaker labels on transcription, screen context on transcription and translation, the voices on speech (mock v19); its preferred translations are the word list's now.
-  optionStages: [TR, SP, TR_TL],
+  settingsStages: [TR, SP, TR_TL],
   // Each spoken leg's voice, or whose own voice is cloned, under its Speech row.
   VoiceSummary: QwenVoiceSummary,
   // The pause that ends a turn under automatic turns: summed up under Speech, tuned on the Provider tab.
@@ -45,6 +45,7 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
 
   // Text only is offered: a leg that does not speak asks for text alone.
   speech: 'optional',
+  endToEnd: true,
   // An interpreter takes no typed text.
   textInput: () => false,
   // The server cuts each turn: on a change of speaker or 2.5 s of silence, or at a push-to-talk release.

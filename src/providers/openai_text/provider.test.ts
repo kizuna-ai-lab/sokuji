@@ -41,7 +41,7 @@ describe("OpenAI's text models", () => {
   it('translate through their one unit, and never start a session whole', async () => {
     expect(p.units?.map((u) => [u.id, u.start, typeof u.startTranslation])).toEqual([['translation', undefined, 'function']]);
     expect([p.speech, p.textInput(TEXT_MODEL_DEFAULTS)]).toEqual(['never', false]);
-    expect(p.optionStages).toEqual([['translation']]);
+    expect(p.settingsStages).toEqual([['translation']]);
     await expect(p.start({} as never, {} as never)).rejects.toMatchObject({ code: 'plan_unsupported' });
   });
 });

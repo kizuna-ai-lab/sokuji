@@ -40,7 +40,7 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
   settings: { key: 'openaiLive', defaults: LIVE_DEFAULTS, legacyKeys: LIVE_LEGACY_KEYS, migrate: migrateLiveSettings },
   Settings: LiveSettingsView,
   // The instructions on translation, the voices on speech (mock v19).
-  optionStages: [TL, SP],
+  settingsStages: [TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: LiveVoiceSummary,
 
@@ -54,6 +54,7 @@ export const openaiLiveProvider: Provider<LiveSettings, LiveCredentials, LiveCon
 
   // Text only is offered (ruling 1): the API always speaks — and bills the audio — and a leg that does not speak drops it; the participant speaks on its switch.
   speech: 'optional',
+  endToEnd: true,
   // An interpreter takes no typed text (ruling 9).
   textInput: () => false,
   // Our own silence timers end segments (the old offer: pause, no auto, sizes).

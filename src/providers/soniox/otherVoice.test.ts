@@ -21,6 +21,9 @@ import { createKizunaLease } from './lease';
 import { isSttRole, leaseRequest, requestBody, requestedRoles } from './leaseRequest';
 import { SONIOX_DEFAULTS, type SonioxSettings } from './settings';
 import { createKizunaVoiceClaim } from './voiceClaim';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const providers = [kizunaSonioxProvider, edgeProvider];
 const planOf = (speech: string): RunPlan => {

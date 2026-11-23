@@ -24,7 +24,7 @@ export const kizunaQwenProvider = managed(qwenLiveTranslateProvider, {
   // The shared view under a Region dropdown: the region is the managed session's, an own key has none.
   Settings: KizunaQwenSettingsView,
   // The region on every stage, then the shared view's (mock v19).
-  optionStages: [ALL_STAGES, TR, SP, TR_TL],
+  settingsStages: [ALL_STAGES, TR, SP, TR_TL],
   VoiceSummary: QwenVoiceSummary,
   signedOut: 'Sign in to use Kizuna AI Qwen.',
   session: { acquire: createQwenLease(), minimumBalance: kizunaQwenMinimumBalance },

@@ -502,7 +502,7 @@ What the spec's "What adding a provider then touches" lists
    tests: `registry.test.ts` pins the whole list, and a neighbour's `provider.test.ts`
    may pin its place. `src/providers/sessionSide.consistency.test.ts` holds its adapter
    automatically (it walks every `src/providers/*` folder); pin its session side there, as
-   the ports did.
+   the ports did. An end-to-end service (no `units`) sets `endToEnd: true` on its definition.
 3. `providers.<id>.name` and `.description` in the 30 locale catalogs — only when new.
 4. The extension manifest, when it uses a host the manifest does not list yet: MV3
    declares hosts statically (`host_permissions`, and the CSP's `connect-src`).

@@ -40,7 +40,7 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
   settings: { key: 'gemini', defaults: GEMINI_DEFAULTS, legacyKeys: GEMINI_LEGACY_KEYS, migrate: migrateGeminiSettings },
   Settings: GeminiSettingsView,
   // The model on every stage, the instructions and model configuration on translation, the voices on speech (mock v19).
-  optionStages: [ALL_STAGES, TL, SP],
+  settingsStages: [ALL_STAGES, TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: GeminiVoiceSummary,
   // The server's activity-detection knobs: summarized in the Speech section under Auto, drawn on Advanced's Provider tab.
@@ -55,6 +55,7 @@ export const geminiProvider: Provider<GeminiSettings, GeminiCredentials, GeminiC
   languages: geminiLanguages,
 
   speech: 'optional',
+  endToEnd: true,
   // The dialogue models answer typed text; Live Translate ignores it (the owner's live test, 2026-09-30), so it offers
   // none, the box hidden as on every other continuous interpreter. No model chosen reads as Live Translate, as the offer does.
   textInput: (s) => !offersTranslate(s),

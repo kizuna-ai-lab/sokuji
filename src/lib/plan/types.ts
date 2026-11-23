@@ -44,7 +44,10 @@ export interface UnitCapabilities {
 export interface UnitDefinition<S = any, K = any, C = any> {
   /** 'whole' in step 1. */
   id: string;
-  /** The stages this unit occupies when asked for `want`, or null when it cannot serve exactly that. */
+  /**
+   * The stages this unit occupies when asked for `want`, or null when it cannot serve exactly that.
+   * Must not read the settings `s`: the line-up catalog is derived from it once, without settings.
+   */
   occupies(s: S, want: ReadonlySet<RunStage>): readonly RunStage[] | null;
   capabilities(s: S): UnitCapabilities;
   build(context: SessionContext, s: S, shared: SharedSettings): C | ProviderRefusal;

@@ -35,7 +35,7 @@ export const palabraProvider: Provider<PalabraSettings, PalabraCredentials, Pala
   settings: { key: 'palabraai', defaults: PALABRA_DEFAULTS, migrate: migratePalabraSettings },
   Settings: PalabraSettingsView,
   // Sentence splitting and partials on transcription and translation, the voice, buffers and tempo on speech (mock v19).
-  optionStages: [TR_TL, SP],
+  settingsStages: [TR_TL, SP],
   // The one voice, under each spoken Speech row.
   VoiceSummary: PalabraVoiceSummary,
   TurnDetection: { Summary: PalabraTurnDetectionSummary, Controls: PalabraTurnDetectionControls },
@@ -50,6 +50,7 @@ export const palabraProvider: Provider<PalabraSettings, PalabraCredentials, Pala
 
   // A leg that does not speak asks for text alone (ruling 7): Text only is offered.
   speech: 'optional',
+  endToEnd: true,
   // It takes audio only (parity).
   textInput: () => false,
   // A validated transcription ends a segment (the old offer: pause off, auto and sizes on).

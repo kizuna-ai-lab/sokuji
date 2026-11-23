@@ -52,10 +52,10 @@ vi.mock('../services/providers/astGuard', () => ({
 const voiceNotAlone = vi.hoisted(() => ({ on: false }));
 vi.mock('../lib/plan/choice', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/plan/choice')>();
-  const { CAPS } = await import('../lib/lineup/catalog');
+  const { allCaps } = await import('../lib/lineup/catalog');
   const choiceInput: typeof actual.choiceInput = (providers, entries) => {
     const input = actual.choiceInput(providers, entries);
-    return voiceNotAlone.on ? { ...input, catalog: CAPS.map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) } : input;
+    return voiceNotAlone.on ? { ...input, catalog: allCaps().map((c) => (c.id === 'kizunaai_soniox' ? { ...c, voiceAlone: false } : c)) } : input;
   };
   return { ...actual, choiceInput };
 });
@@ -67,6 +67,9 @@ import useLogStore from './logStore';
 import { settleReports } from '../lib/diagnostics/report';
 import { registerPresentProviders } from '../lib/plan/present';
 import { stubHosts, stubProvider } from '../lib/plan/testing';
+import { registerReleasedCatalog } from '../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 // The registry stays out of these tests: every host is offered, as a stub, so a choice composes as it does in the app.
 // The two Soniox providers have a text unit and a voice, as in the app, so a line-up that mixes them composes.

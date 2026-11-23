@@ -11,7 +11,7 @@ import { createVirtualClock } from '../../lib/contract/clock';
 import { checkConformance, recordConformance } from '../../lib/contract/conformance';
 import { flush } from '../../lib/contract/testing/drive';
 import type { LegName } from '../../lib/conversation/types';
-import { CAPS } from '../../lib/lineup/catalog';
+import { allCaps } from '../../lib/lineup/catalog';
 import type { ProviderCaps, StageIds } from '../../lib/lineup/types';
 import type { DirectionResult } from '../../lib/local-inference/selection/types';
 import { compose } from '../../lib/plan/compose';
@@ -45,6 +45,9 @@ import { localInferenceProvider } from '../localInference/provider';
 import { LOCAL_INFERENCE_DEFAULTS } from '../localInference/settings';
 import { createLocalTranscriptionUnit } from '../localInference/transcriptionUnit';
 import { createOpenAITextUnit, openaiTextProvider } from './provider';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 /** Not a key of any service. */
 const KEY = 'test-key-0000';
@@ -92,7 +95,7 @@ function fakeEngines() {
 }
 
 /** The released catalog with the fake voice beside it: a voice of its own host, offered alone. */
-const CATALOG: ProviderCaps[] = [...CAPS, { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false }];
+const CATALOG: ProviderCaps[] = [...allCaps(), { id: 'fake_voice', stages: ['speech'], host: 'fake_voice', account: 'none', voiceAlone: true, takesVoice: false }];
 
 function planOver(engines: LocalEngines, transport: TextModelTransport): RunPlan {
   const [whole, , translation, speech] = localInferenceProvider.units!;

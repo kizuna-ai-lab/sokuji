@@ -321,11 +321,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
   };
   Settings: ComponentType<SettingsProps<S>>;
   /**
-   * The stage sets its options act on (mock v19): one per kind of `StagePart` in `Settings` (and the `Engine`'s
-   * slots), from `src/lib/lineup/types.ts`. The line-up page reads it to know which stage cards have options and
-   * where a setting acting on several stages is shown. Absent: every option shows in the provider's first card.
+   * The layout of its options on the line-up page, not what it can do (its units say that): the stage sets its options
+   * act on (mock v19), one per kind of `StagePart` in `Settings` (and the `Engine`'s slots), from
+   * `src/lib/lineup/types.ts`. The page reads it to know which stage cards show options and where a setting acting on
+   * several stages is shown. A provider that does every stage may still keep its options on one card: OpenAI
+   * Translate's sit on the transcription card. Absent: every option shows in the provider's first card.
    */
-  optionStages?: readonly (readonly RunStage[])[];
+  settingsStages?: readonly (readonly RunStage[])[];
   /** Model management, the local engines only: pushed from the summary in Simple mode, inline on Advanced's Provider tab. */
   Engine?: ComponentType<EngineProps<S>>;
   /** The `Engine`'s summary under the picker: its slot chips and memory estimate — Simple mode's way in, and drawn before `Engine` on Advanced's Provider tab (ruling 15). */
@@ -489,6 +491,13 @@ export interface Provider<S, K extends { missing?: never } & object, C extends {
    * own. Absent: one unit that is the whole provider, from `build`, `describe` and `start` (`unitsOf`).
    */
   units?: readonly UnitDefinition[];
+  /**
+   * An end-to-end service: one connection does every stage, and a line-up takes it for all three or for none. Its units
+   * may serve transcription and translation without speaking (a text-only session of it), but no other voice reads its
+   * text: it is not known, per vendor, to stop making — and charging for — audio when asked for text alone. The line-up
+   * catalog reads it (`capsOf`): its `joint` is every stage and its `takesVoice` false, whatever its units say.
+   */
+  endToEnd?: true;
 
   // across legs and time — optional
   session?: SessionHooks<S, K, C>;

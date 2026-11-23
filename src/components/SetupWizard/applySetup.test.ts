@@ -5,6 +5,9 @@ import { initialDraft } from './setupDraft';
 import type { SetupDraft } from './setupDraft';
 import { SCENARIOS } from '../../lib/setup/scenarios';
 import { Provider } from '../../types/Provider';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 function deps(overrides: Partial<ApplySetupDeps> = {}): ApplySetupDeps {
   return {

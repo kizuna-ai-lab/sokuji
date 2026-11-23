@@ -17,6 +17,9 @@ import { useLineUpStore } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { runsOn } from '../../stores/lineUpStore.testing';
 import { ownProps, useProviderEntry, useStageProvider } from './useProviderEntry';
+import { registerReleasedCatalog } from '../../lib/lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 beforeEach(() => {
   useLineUpStore.setState({ lineUp: null, stored: false, unstoredProvider: null });

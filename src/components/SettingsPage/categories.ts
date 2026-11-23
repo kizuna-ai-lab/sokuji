@@ -3,7 +3,7 @@
 // The categories of the settings page, in the agreed order (providers and
 // stages design, section 8.1), and where each of today's navigation targets
 // lands on the page.
-import { CAPS } from '../../lib/lineup/catalog';
+import { allCaps } from '../../lib/lineup/catalog';
 import { accountAnchor, accountKeyOf, providerOfTarget } from './accountRows';
 
 export type CategoryId = 'lineup' | 'words' | 'accounts' | 'models' | 'audio' | 'display' | 'history' | 'general';
@@ -19,7 +19,7 @@ export interface Category {
   /** English search words, used too when a locale has none. */
   words: readonly string[];
   /** Translation keys of names that find this category too, as the interface shows them (a provider's name). */
-  nameKeys?: readonly string[];
+  nameKeys?: () => readonly string[];
   desktopOnly?: true;
   /** During a session: everything locked, part of it, or nothing. */
   lockedInSession: 'locked' | 'partly' | 'open';
@@ -36,7 +36,7 @@ export const CATEGORIES: readonly Category[] = [
   // The app's one word list and the session background (spec §9); the extension has it too.
   category({ id: 'words', group: 'session', words: ['word list', 'terms', 'glossary', 'background'], lockedInSession: 'locked', shown: () => true }),
   // Every provider by the name the interface gives it: their keys and sign-ins are on this page.
-  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance', 'volcengine' /* Doubao's maker, whose console issues its keys */], nameKeys: CAPS.map((c) => `providers.${c.id}.name`), lockedInSession: 'partly', shown: () => true }),
+  category({ id: 'accounts', group: 'providers', words: ['account', 'sign in', 'api key', 'keys', 'credential', 'balance', 'volcengine' /* Doubao's maker, whose console issues its keys */], nameKeys: () => allCaps().map((c) => `providers.${c.id}.name`), lockedInSession: 'partly', shown: () => true }),
   // Every download, delete and import there waits for the session to end (the owner, 2026-11-17).
   category({ id: 'models', group: 'providers', words: ['models', 'download', 'storage', 'delete', 'disk'], lockedInSession: 'locked', shown: () => true }),
   category({ id: 'audio', group: 'devices', words: ['microphone', 'noise suppression', 'echo', 'speaker', 'headphones', 'monitor', 'passthrough', 'virtual microphone', 'system audio'], lockedInSession: 'partly', shown: () => true }),
@@ -123,5 +123,5 @@ export function filterCategories(query: string, t: (key: string) => string, list
   // query does not run across their spaces ("sand" does not find "Accounts and keys").
   const squash = (text: string) => text.toLowerCase().replace(/\s+/g, '');
   return list.filter((c) => [t(c.titleKey), t(c.wordsKey), ...c.words].some((text) => text.toLowerCase().includes(q))
-    || (c.nameKeys ?? []).some((k) => squash(t(k)).includes(squash(q))));
+    || (c.nameKeys?.() ?? []).some((k) => squash(t(k)).includes(squash(q))));
 }

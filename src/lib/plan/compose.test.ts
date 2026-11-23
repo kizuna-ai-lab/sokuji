@@ -1,6 +1,6 @@
 // src/lib/plan/compose.test.ts
 import { describe, expect, it, vi } from 'vitest';
-import { CAPS, caps } from '../lineup/catalog';
+import { allCaps, caps } from '../lineup/catalog';
 import { oldRunOf } from '../lineup/oldRules.testing';
 import { RUN_STAGES } from '../lineup/types';
 import type { LineUp, RunStage } from '../lineup/types';
@@ -11,6 +11,9 @@ import { planOf, stubHosts, stubProvider } from './testing';
 import { isRefusal } from './types';
 import type { PlanRefusal, PlanRefusalCode, RunPlan } from './types';
 import { wholeUnit } from './wholeUnit';
+import { registerReleasedCatalog } from '../lineup/catalog.testing';
+
+registerReleasedCatalog();
 
 const all = (id: string): Pick<LineUp, RunStage> => ({ transcription: id, translation: id, speech: id });
 
@@ -79,7 +82,7 @@ describe('compose', () => {
     const whole = occupying('whole', ...RUN_STAGES);
     const on = (id: string, units: unknown[]): ComposeInput => ({ providers: [stubProvider(id, { units }), ...offered.filter((p) => p.id !== id)], settings: () => undefined });
     // A catalog in which Soniox holds transcription and translation jointly, as it did before they could be chosen apart.
-    const jointSoniox = CAPS.map((c) => (c.id === 'soniox' ? { ...c, translatesOwn: false, joint: ['transcription', 'translation'] as RunStage[] } : c));
+    const jointSoniox = allCaps().map((c) => (c.id === 'soniox' ? { ...c, translatesOwn: false, joint: ['transcription', 'translation'] as RunStage[] } : c));
     const shape = (got: RunPlan | PlanRefusal) => (isRefusal(got) ? got : got.units.map((u) => [u.provider.id, u.unit.id, u.stages]));
 
     it.each([
@@ -156,7 +159,7 @@ describe('compose', () => {
 
   it.each(['optional', 'always'] as const)('runs exactly the line-ups the old rule ran, on the same provider, with every provider\'s speech %s', (speech) => {
     const allPresent = stubHosts({ speech });
-    for (const t of CAPS) for (const tl of CAPS) for (const s of CAPS) {
+    for (const t of allCaps()) for (const tl of allCaps()) for (const s of allCaps()) {
       const l = { transcription: t.id, translation: tl.id, speech: s.id };
       const got = compose(l, allPresent);
       const old = oldRunOf({ ...l, summarisation: null });

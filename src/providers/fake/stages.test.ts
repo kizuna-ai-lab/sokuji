@@ -392,8 +392,8 @@ describe('the fakes of one stage in the catalog and the registry', () => {
 
   it('each serves its one stage and hosts itself, in the build whose line-up may name the fakes', async () => {
     const { catalog } = await build('e2e', false);
-    expect(catalog.caps('fake_transcriber')).toEqual({ id: 'fake_transcriber', stages: ['transcription'], host: 'fake_transcriber', account: 'none', voiceAlone: false, takesVoice: true });
-    expect(catalog.caps('fake_translator')).toEqual({ id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'none', voiceAlone: false, takesVoice: true });
+    expect(catalog.caps('fake_transcriber')).toEqual({ id: 'fake_transcriber', stages: ['transcription'], host: 'fake_transcriber', account: 'key', voiceAlone: false, takesVoice: true });
+    expect(catalog.caps('fake_translator')).toEqual({ id: 'fake_translator', stages: ['translation'], host: 'fake_translator', account: 'key', voiceAlone: false, takesVoice: true });
   });
 
   it('are in no other catalog, and in no release build', async () => {
