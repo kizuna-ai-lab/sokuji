@@ -36,10 +36,11 @@ export class DetectorLeg {
     });
   }
 
-  push(pcm: Int16Array): void { this.core.push(pcm); }
-  drain(): void { this.core.drain(); }
-  begin(press: number): void { this.core.begin(press); }
-  cancel(press: number): void { this.core.cancel(press); }
+  /** Once the leg has failed these reach nothing: the core takes no more input and Silero is not asked again. */
+  push(pcm: Int16Array): void { if (!this.failed) this.core.push(pcm); }
+  drain(): void { if (!this.failed) this.core.drain(); }
+  begin(press: number): void { if (!this.failed) this.core.begin(press); }
+  cancel(press: number): void { if (!this.failed) this.core.cancel(press); }
   taken(msg: RecognizerTaken): void { this.assembler.taken(msg); }
   stop(epoch: number): void {
     this.core.stop();

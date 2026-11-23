@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { DetectorLeg } from './turn-detector-leg';
 import type { DetectorNotice, DetectorOutput } from './turn-detector-protocol';
 
@@ -65,5 +65,85 @@ describe('DetectorLeg', () => {
       l.taken({ type: 'taken', epoch: seg.epoch, seq: seg.seq });
     }
     expect(notices).toEqual([]);
+  });
+});
+
+/** An automatic leg whose Silero stub says "speech" (or throws), so speech_start would fire. */
+function autoLeg(infer: (frame: Float32Array) => Promise<number>) {
+  const posted: DetectorOutput[] = [];
+  const notices: DetectorNotice[] = [];
+  const l = new DetectorLeg({
+    core: { turns: 'auto', vad: {}, limit: {}, infer, resetModel: () => {} },
+    post: (msg) => posted.push(msg),
+    notify: (n) => notices.push(n),
+  });
+  /** One second of speech, drained: a segment, which nobody takes. */
+  const utterance = async () => {
+    l.push(pcm(24000));
+    l.drain();
+    await l.core.idle();
+  };
+  return { l, posted, notices, utterance };
+}
+
+describe('DetectorLeg after a failure, with Silero in the loop', () => {
+  const speech = async () => 0.9;
+
+  it('speech_start fires before a failure (the stub is speech)', async () => {
+    const { notices, utterance } = autoLeg(speech);
+    await utterance();
+    expect(notices.filter((n) => n.type === 'speech_start').length).toBeGreaterThan(0);
+  });
+
+  it('after a decode-queue failure fed audio gives no speech_start, segment, cancel or drained, and Silero is not asked again', async () => {
+    const infer = vi.fn(speech);
+    const { l, posted, notices, utterance } = autoLeg(infer);
+    for (let i = 0; i < 6; i++) await utterance();
+    expect(notices.filter((n) => n.type === 'failed')).toHaveLength(1);
+    const asked = infer.mock.calls.length;
+    const posts = posted.length;
+    const noticeCount = notices.length;
+    l.push(pcm(24000));
+    l.begin(9);
+    l.cancel(9);
+    l.drain();
+    await l.core.idle();
+    expect(infer.mock.calls.length).toBe(asked);
+    expect(posted).toHaveLength(posts);
+    expect(notices).toHaveLength(noticeCount);
+  });
+
+  it('a Silero failure after ready posts one turn_detection_unavailable and nothing after it', async () => {
+    let calls = 0;
+    const infer = vi.fn(async () => {
+      if (++calls > 5) throw new Error('session lost');
+      return 0.9;
+    });
+    const { l, posted, notices } = autoLeg(infer);
+    l.push(pcm(24000));
+    await l.core.idle();
+    const failed = notices.filter((n) => n.type === 'failed');
+    expect(failed).toHaveLength(1);
+    expect(failed[0]).toMatchObject({ code: 'turn_detection_unavailable' });
+    expect(notices[notices.length - 1]).toBe(failed[0]);
+    const posts = posted.length;
+    const asked = infer.mock.calls.length;
+    l.push(pcm(24000 * 3)); // an overload too: still no second notice
+    l.drain();
+    l.begin(1);
+    await l.core.idle();
+    expect(notices.filter((n) => n.type === 'failed')).toHaveLength(1);
+    expect(notices[notices.length - 1]).toBe(failed[0]);
+    expect(posted).toHaveLength(posts);
+    expect(infer.mock.calls.length).toBe(asked);
+  });
+
+  it('stop(epoch) after a failure does not throw and leaves the leg dead', async () => {
+    const { l, notices, utterance } = autoLeg(speech);
+    for (let i = 0; i < 6; i++) await utterance();
+    const count = notices.length;
+    l.stop(2);
+    await utterance();
+    expect(notices).toHaveLength(count);
   });
 });
