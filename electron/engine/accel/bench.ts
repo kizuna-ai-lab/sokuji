@@ -128,15 +128,15 @@ export function measureTps(backend: unknown, plan: Plan, modelId: string, machin
 
 export const BENCH_TTS_TEXT = 'The weather is lovely today, so I will go for a walk in the park.';
 
-interface Generates { generate(text: string, speed: number): Promise<[Float32Array, number, number]> }
+interface Generates { generate(text: string, speed: number): Promise<[Float32Array, number, number, number?]> }
 
 /** TTS RTF (generation seconds / audio seconds) of a fixed sentence, under "tts:"; the per-synth rate counts. */
 export function measureRtfTts(backend: unknown, plan: Plan, modelId: string, machine: Machine, { force = false } = {}): Promise<number | null> {
   return measure(backend, plan, modelId, machine, {
     ns: 'tts:', force,
     run: async (b) => {
-      const [samples, rate, genMs] = await (b as Generates).generate(BENCH_TTS_TEXT, 1.0);
-      const audioS = samples.length / rate;
+      const [samples, rate, genMs, channels = 1] = await (b as Generates).generate(BENCH_TTS_TEXT, 1.0);
+      const audioS = samples.length / channels / rate;           // interleaved samples → seconds
       if (audioS <= 0) return null;
       return genMs / 1000.0 / audioS;
     },

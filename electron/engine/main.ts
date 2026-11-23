@@ -7,6 +7,7 @@ import { register as registerAccel } from './accel/handlers';
 import { register as registerModels } from './models/handlers';
 import { register as registerAsr } from './asr/handlers';
 import { register as registerTranslate } from './translate/handlers';
+import { register as registerTts } from './tts/handlers';
 import { seams } from './accel/seams';
 import { createState, serve, type EngineState, type Log } from './server';
 
@@ -26,6 +27,7 @@ export function registerAll(state: EngineState): void {
   registerModels(state);
   registerAsr(state);
   registerTranslate(state);
+  registerTts(state);
 }
 
 export async function startEngine(opts: EngineOptions): Promise<{ port: number; close(): Promise<void> }> {

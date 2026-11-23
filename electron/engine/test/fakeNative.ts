@@ -22,6 +22,106 @@ export interface FakeNativeOptions {
   asr?: FakeAsrOptions;
   /** Scripted translators (sidecar/tests/test_translate_backend.py's fakes). */
   translate?: FakeTranslateOptions;
+  /** Scripted TTS models (sidecar/tests/test_tts_backend.py's fakes). */
+  tts?: FakeTtsOptions;
+  /** resample(): what a test stands in for speexdsp. */
+  resample?: (pcm: Float32Array, channels: number, fromRate: number, toRate: number) => Float32Array;
+}
+
+export interface FakeTtsChunk { pcm: number[] | Float32Array; rate?: number; channels?: number }
+export interface FakeTtsOptions {
+  caps?: Partial<{ streaming: boolean; clones: boolean; transcriptRequired: boolean; sampleRate: number }>;
+  /** What each synth delivers through onAudio, in order (default: one chunk of 100 ones). */
+  chunks?: FakeTtsChunk[];
+  presets?: string[];
+  /** A bare synth fails until a voice or preset is set (pocket_tts). */
+  needsVoice?: boolean;
+  /** Each synth waits for release() before its first chunk. */
+  gateBefore?: boolean;
+  /** Each synth waits for release() after its first chunk. */
+  gateAfterFirst?: boolean;
+  /** Each synth never ends and never looks at its signal. */
+  wedged?: boolean;
+  /** Each synth fails with this after its first chunk. */
+  failAfterFirst?: string;
+  /** Each synth fails with this before any chunk. */
+  synthError?: string;
+  loadError?: string;
+}
+
+/** One scripted Tts: records calls; unload runs after the synths in flight, as the addon's worker queue does. */
+export class FakeTts {
+  readonly log: unknown[] = [];
+  readonly signals: Array<AbortSignal | undefined> = [];
+  readonly capabilities: { streaming: boolean; clones: boolean; transcriptRequired: boolean; sampleRate: number };
+  voice: [number, number, string | null] | null = null;
+  preset: string | null = null;
+  unloaded = false;
+  active = 0;
+  maxActive = 0;
+  private readonly inflight = new Set<Promise<void>>();
+  private markStarted!: () => void;
+  started: Promise<void> = new Promise((r) => { this.markStarted = r; });
+  private releaseGate!: () => void;
+  private readonly gate: Promise<void> = new Promise((r) => { this.releaseGate = r; });
+  constructor(readonly path: string, readonly deviceIndex: number | null, readonly loadOptions: { family: string; language?: string | null }, private readonly o: FakeTtsOptions) {
+    this.capabilities = { streaming: false, clones: true, transcriptRequired: false, sampleRate: 24000, ...(o.caps ?? {}) };
+  }
+  release(): void {
+    this.releaseGate();
+  }
+  private check(op: string): void {
+    if (this.unloaded) throw nativeError(`${op}: model is unloaded`, -2);
+  }
+  async presets() {
+    this.check('sk_tts_presets');
+    return [...(this.o.presets ?? ['Alba', 'Bella'])];
+  }
+  async setVoice(pcm: Float32Array, sampleRate: number, refText: string | null) {
+    this.check('sk_tts_set_voice');
+    this.voice = [pcm.length, sampleRate, refText];
+  }
+  async setPreset(name: string) {
+    this.check('sk_tts_set_preset');
+    this.preset = name;
+  }
+  synth(text: string, language: string | null, speed: number, opts: { signal?: AbortSignal; onAudio: (pcm: Float32Array, sampleRate: number, channels: number) => void }): Promise<void> {
+    this.check('sk_tts_synth');
+    this.log.push(['synth', text, language, speed]);
+    this.signals.push(opts.signal);
+    const chunks = this.o.chunks ?? [{ pcm: new Array(100).fill(1) }];
+    const deliver = (c: FakeTtsChunk) => opts.onAudio(Float32Array.from(c.pcm), c.rate ?? this.capabilities.sampleRate, c.channels ?? 1);
+    const cancelled = () => nativeError('sk_tts_synth: cancelled', -5);
+    const p = (async () => {
+      this.active += 1;
+      this.maxActive = Math.max(this.maxActive, this.active);
+      try {
+        this.markStarted();
+        if (this.o.wedged) await new Promise<never>(() => {});
+        if (this.o.synthError) throw nativeError(this.o.synthError, -1);
+        if (this.o.needsVoice && this.preset === null && this.voice === null) throw nativeError('PocketTTS session prepare() requires a session voice via --voice-id or --voice-ref', -8);
+        if (this.o.gateBefore) await this.gate;
+        for (let i = 0; i < chunks.length; i++) {
+          if (opts.signal?.aborted) throw cancelled();
+          deliver(chunks[i]);
+          if (i === 0 && this.o.failAfterFirst) throw new Error(this.o.failAfterFirst);
+          if (i === 0 && this.o.gateAfterFirst) await this.gate;
+        }
+      } finally {
+        this.active -= 1;
+      }
+    })();
+    const tracked = p.then(() => {}, () => {});
+    this.inflight.add(tracked);
+    void tracked.then(() => this.inflight.delete(tracked));
+    return p;
+  }
+  async unload() {
+    this.log.push(['unload-called']);
+    await Promise.all([...this.inflight]);
+    this.log.push(['unload']);
+    this.unloaded = true;
+  }
 }
 
 export interface FakeTranslateOptions {
@@ -156,7 +256,7 @@ export class FakeAsrModel {
   }
 }
 
-export type FakeNative = NativeModule & { calls: string[]; inits: Array<{ threads: number | undefined; onLog: boolean }>; asrModels: FakeAsrModel[]; translators: FakeTranslator[] };
+export type FakeNative = NativeModule & { calls: string[]; inits: Array<{ threads: number | undefined; onLog: boolean }>; asrModels: FakeAsrModel[]; translators: FakeTranslator[]; ttsModels: FakeTts[] };
 
 const notScripted = (name: string) => () => { throw new Error(`fake native: ${name} is not scripted in this test`); };
 
@@ -175,6 +275,7 @@ export function makeFakeNative(opts: FakeNativeOptions = {}): FakeNative {
   const abi = opts.abi ?? 2;
   const asrModels: FakeAsrModel[] = [];
   const translators: FakeTranslator[] = [];
+  const ttsModels: FakeTts[] = [];
   const version = opts.version ?? '1.2.0';
   const fake = {
     calls,
@@ -196,7 +297,7 @@ export function makeFakeNative(opts: FakeNativeOptions = {}): FakeNative {
       return opts.opCoverage ? opts.opCoverage(index, stage, family, dtypes) : { allSupported: true, unsupported: [], checked: [] };
     },
     audioFamilies: () => [],
-    resample: notScripted('resample'),
+    resample: opts.resample ?? notScripted('resample'),
     asrModels,
     asrLoad: opts.asr
       ? async (path: string, deviceIndex: number | null) => {
@@ -217,7 +318,16 @@ export function makeFakeNative(opts: FakeNativeOptions = {}): FakeNative {
         return t;
       }
       : notScripted('translateLoad'),
-    ttsLoad: notScripted('ttsLoad'),
+    ttsModels,
+    ttsLoad: opts.tts
+      ? async (path: string, deviceIndex: number | null, o: { family: string; language?: string | null }) => {
+        calls.push('ttsLoad');
+        if (opts.tts!.loadError) throw nativeError(opts.tts!.loadError, -3);
+        const t = new FakeTts(path, deviceIndex, o, opts.tts!);
+        ttsModels.push(t);
+        return t;
+      }
+      : notScripted('ttsLoad'),
   };
   return fake as unknown as FakeNative;
 }
