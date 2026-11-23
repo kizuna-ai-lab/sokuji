@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-23
 **Branch:** `docs/sidecar-without-python`
-**Status:** draft for review. No product code is written until this design is approved.
+**Status:** approved 2026-11-23 (decisions in §12). Implementation plans follow.
 
 ## 1. Summary
 
@@ -14,14 +14,13 @@ removes Python. The engine becomes a TypeScript program running in an Electron
 The native libraries ship **inside the app installer**, are signed with the app, and are
 upgraded with the app. The renderer's WebSocket protocol does not change.
 
-Decisions this document asks for (detail in §12):
+Decided (detail in §12):
 
 1. Bind with a Node-API addon, not koffi (§4, §5).
 2. Ship the Vulkan backend inside the installer rather than downloading it on demand (§8.6).
-3. Replace the Python engine in one cut once the Node engine passes the parity gates,
-   without a release that carries both (§9). Local Native has not shipped yet, so there is
-   no installed base to carry over.
-4. Ask SignPath to sign the Windows native files (§8.4), and find GPU machines for the
+3. No transition: Local Native has never been released, so the new engine simply replaces
+   the Python one. Switching to it and deleting Python are one change (§9).
+4. Still open: SignPath for the Windows native files (§8.4), and GPU machines for the
    Windows and linux-x64 checks (§7).
 
 ## 2. Where we are today
@@ -460,26 +459,25 @@ disk; 9 on Windows, 7.5 MB) is the cheaper lever, at some performance risk on ol
 
 ## 9. Rollout
 
-Local Native is gated off for users, so the switch can be a single cut, protected by
-gates rather than by a release that carries both engines.
+Local Native has never been released, so there is no transition to manage: the new engine
+replaces the Python one, protected by gates rather than by a release that carries both.
 
 **How the phases reach `main`.** Phases 1–3 merge one by one as dormant code: native CI
 changes, the addon, and the TS engine under `electron/engine/`. Nothing in them changes
-what `build.yml` packages or what `native-host:start` launches; the Node engine runs only
-when `SOKUJI_ENGINE=node` is set (development and e2e). Phase 4 is **the switch PR**: it
-adds the native files to packaging and makes `native-host:start` launch the Node engine,
-in one change. Before it merges, its branch is built on all five platforms through a
-manual run of `build.yml`, and those packaged builds pass the gate. No tag between phases
-ships native files next to the Python path.
+what `build.yml` packages or what `native-host:start` launches; the engine's own tests run
+it as a plain Node process with a WebSocket client. There is no switch between engines.
+Phase 4 is **the switch PR**: it adds the native files to packaging, makes
+`native-host:start` launch the Node engine, and deletes the Python sidecar, in one change.
+Before it merges, its branch is built on all five platforms through a manual run of
+`build.yml`, and those packaged builds pass the gate.
 
 | Phase | Work | Exit gate |
 |---|---|---|
 | 1. Addon and native packaging | Addon for the full ABI; addon tests in native CI; Windows signing; per-SKU archives on a `native-v1.2.x` prerelease | Addon tests green on all five runners; JFK transcribes from the archive on each |
 | 2. Golden export | One script exports catalog, planner, characterization and DSP vectors from the Python code, plus the recorded session (§7) | Vectors committed |
 | 3. Engine port | TS modules per §6.3, ported tests, downloader, Origin check | Vectors and the recorded session match; strict wire validation passes |
-| 4. The switch | utilityProcess host, restart and watchdog, packaging; `sidecar-bundle:status` answers `ready`, `install` / `remove` do nothing (renderer unchanged) | Packaged builds from the branch on all five platforms run a full session; the re-port's real-session e2e tests pass against the Node engine; Mac build notarized and checked on a real Mac |
-| 5. Delete | Remove `sidecar/`, the sidecar workflows, `sidecar-bundle.js`, `sidecarVersion`, the Python CI job; delete `userData/sidecar/` on first run | Full unit and e2e suites green |
-| 6. Renderer cleanup | Remove the dead bundle states (`bundleStatus`, `bundlePhase`, the install card, `sidecar-bundle-progress`) and the IPC stubs | Full suites green |
+| 4. The switch | utilityProcess host, restart and watchdog, packaging; `sidecar-bundle:status` answers `ready`, `install` / `remove` do nothing (renderer unchanged); remove `sidecar/`, the sidecar workflows, `sidecar-bundle.js`, `sidecarVersion`, the Python CI job; delete `userData/sidecar/` on first run | Packaged builds from the branch on all five platforms run a full session; the re-port's real-session e2e tests pass against the Node engine; Mac build notarized and checked on a real Mac; full unit and e2e suites green |
+| 5. Renderer cleanup | Remove the dead bundle states (`bundleStatus`, `bundlePhase`, the install card, `sidecar-bundle-progress`) and the IPC stubs | Full suites green |
 
 Testers' models in `userData/hf-cache` stay. The old bundle directory (up to a few hundred
 MB unpacked) is removed on first run of the new version.
@@ -496,7 +494,7 @@ runs on the Python engine and touches `nativeModelStore` and the native model sc
   gate: the same sessions must pass on the Node engine.
 - Phase 4 keeps the main-process IPC contract (`sidecar-bundle:status` answers `ready`),
   so the re-port's UI needs no change at the switch.
-- Phase 6 removes the bundle states only after the re-port's stack has landed, so the two
+- Phase 5 removes the bundle states only after the re-port's stack has landed, so the two
   never edit the same lines at the same time.
 - The engine keeps today's one-engine-per-stage behaviour, shared by all connections.
   Moving to one engine per connection is a separate decision; the TS engine makes it
@@ -513,9 +511,9 @@ Estimated in working days for one developer agent, including tests and review ro
 | 3. Engine port: catalog, planner, GGUF header, accel | 4–5 |
 | 3. Engine port: downloads and cache | 2–3 |
 | 3. Engine port: server, wire, ASR / translate / TTS engines | 4–5 |
-| 4. The switch: Electron integration, packaging, signing | 4–6 |
-| 4–5. Cross-platform verification, parity and performance against Python, deletion | 4–5 |
-| 6. Renderer cleanup | 1–2 |
+| 4. The switch: Electron integration, packaging, signing, deletion | 5–7 |
+| 4. Cross-platform verification, parity and performance | 3–4 |
+| 5. Renderer cleanup | 1–2 |
 | **Total** | **25–33** |
 
 About five to seven weeks of calendar time with reviews and the Mac and Windows checks,
@@ -538,14 +536,19 @@ agents, which brings the calendar time toward four weeks.
 | The downloader behaves differently from huggingface_hub (redirects, proxies, mirrors) | Medium | Same cache layout both ways during the transition; tests against a Python-built cache; `HF_ENDPOINT` honoured |
 | Protocol drift breaks the renderer or the re-port | Low | Protocol frozen (§7); strict wire validator; recorded-session test |
 
-## 12. Decisions requested
+## 12. Decisions
 
-1. **Node-API addon instead of koffi** (§4, §5). Recommended.
-2. **Ship the Vulkan backend in the installer** (§8.6). Recommended.
-3. **Single cut after the gates, no release that carries both engines** (§9).
-   Recommended, because Local Native has not shipped.
-4. **Ask SignPath to sign the native DLLs and the addon** at native-release time (§8.4).
-   Needs a SignPath configuration change.
+Decided by the maintainer on 2026-11-23:
+
+1. **Node-API addon**, not koffi (§4, §5).
+2. **The Vulkan backend ships in the installer** (§8.6).
+3. **No transition.** Local Native was never released, so the new engine replaces the
+   Python one in a single change (§9).
+
+Still open:
+
+4. **SignPath for the native DLLs and the addon** at native-release time (§8.4). Needs a
+   SignPath configuration change; asked when phase 1 reaches it.
 5. **Machines for the GPU checks**: a Windows machine with a GPU and a linux-x64 machine
    for phase 4 (§7). The linux-arm64 machine and a real Mac are already available.
 
