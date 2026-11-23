@@ -252,6 +252,10 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
     // failure.
     setError(null);
     const generation = recGenerationRef.current;
+    // Held outside the try so a failure after the microphone opened can
+    // release it: otherwise the OS keeps showing the microphone in use.
+    let stream: MediaStream | undefined;
+    let ctx: AudioContext | undefined;
     try {
       // Voice-cloning reference audio must be captured RAW: the cloning
       // model mimics everything in the clip, so browser echo-cancellation /
@@ -259,7 +263,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
       // (Soniox's docs note the model reproduces even background noise from
       // the reference — the same reasoning applies to the native cloners).
       // Mono is enough for a voice reference and keeps the encoded clip small.
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
@@ -271,7 +275,7 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
-      const ctx = new AudioContext();
+      ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const processor = ctx.createScriptProcessor(4096, 1, 1);
       const chunks: Float32Array[] = [];
@@ -293,6 +297,8 @@ const VoiceCreateModal: React.FC<VoiceCreateModalProps> = ({
         if (left <= 0) void stopRecordingRef.current?.();
       }, 250);
     } catch (err) {
+      stream?.getTracks().forEach((track) => track.stop());
+      ctx?.close().catch(() => {});
       // Same reason as handleFiles: without this a denied or missing
       // microphone left the Record button as it was, as if nothing happened.
       // An attempt the dialog was closed on says nothing: close() already
