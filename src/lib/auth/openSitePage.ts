@@ -56,10 +56,17 @@ export async function openSitePage(targetPath: string, deps: OpenSitePageDeps): 
   const bridge = (window as { electron?: { invoke?: (channel: string, ...args: unknown[]) => Promise<unknown> } }).electron;
   if (isElectron() && bridge?.invoke) {
     // Not awaited, and caught: a rejected invoke (main process gone, handler throwing) would otherwise surface as an
-    // unhandled rejection with nothing in the UI to show for it.
-    void bridge.invoke('open-external', url).catch((e: unknown) => {
-      reportWarning('Account', 'Could not open the website page.', { cause: e });
-    });
+    // unhandled rejection with nothing in the UI to show for it. The main process answers its own failure to open
+    // the browser (`{ success: false, error }`, electron/main.js) rather than throwing it: reported the same way.
+    void bridge.invoke('open-external', url).then(
+      (result: unknown) => {
+        const answer = result as { success?: boolean; error?: string } | undefined;
+        if (answer?.success === false) reportWarning('Account', 'Could not open the website page.', { cause: answer.error });
+      },
+      (e: unknown) => {
+        reportWarning('Account', 'Could not open the website page.', { cause: e });
+      },
+    );
   } else {
     window.open(url, '_blank');
   }
