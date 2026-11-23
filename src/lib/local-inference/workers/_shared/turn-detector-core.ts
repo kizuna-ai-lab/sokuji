@@ -25,7 +25,7 @@ import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processo
 import type { VadWebConfig } from '../../types';
 import { resolveMaxSpeechFrames, VAD_FRAME_SAMPLES, VAD_SAMPLE_RATE, type SegmentLimit } from './max-speech-frames';
 import { TimelineResampler } from './timeline-resampler';
-import type { DetectorNotice, SegmentEndedBy, TurnTrace } from './turn-detector-protocol';
+import { INPUT_BACKLOG_SECONDS, overloadedNotice, type DetectorNotice, type SegmentEndedBy, type TurnTrace } from './turn-detector-protocol';
 import type { FrameProcessorParams, TurnLink } from './turn-gate';
 import { resolveVadThresholds } from './vad-thresholds';
 
@@ -84,6 +84,9 @@ export class TurnDetectorCore {
   /** Raised by stop(): an op in flight stops at its next frame. */
   private generation = 0;
   private failed = false;
+  private readonly inputRate: number;
+  /** Samples of the frame in hand, which has left `pending` but is not yet processed. */
+  private inFlight = 0;
   /** Resampled samples not processed yet: under a frame between ops. */
   private pending = new Float32Array(0);
   /** Samples processed; the next frame starts here. */
@@ -101,11 +104,21 @@ export class TurnDetectorCore {
 
   constructor(private readonly o: TurnDetectorCoreOptions) {
     this.resampler = new TimelineResampler(o.inputRate);
+    this.inputRate = o.inputRate ?? 24000;
     this.vad = o.turns === 'auto' ? this.createVad() : null;
     this.pressCapSamples = resolveMaxSpeechFrames(o.vad.maxSpeechDuration, 0, o.limit) * VAD_FRAME_SAMPLES;
   }
 
+  /**
+   * Never drops a chunk. If the input not yet processed (queued chunks, plus what is resampled and
+   * waiting, plus the frame in hand) would pass INPUT_BACKLOG_SECONDS, the leg fails instead (C3).
+   */
   push(pcm: Int16Array): void {
+    if (this.failed) return;
+    if (this.unprocessedInput() + pcm.length > INPUT_BACKLOG_SECONDS * this.inputRate) {
+      this.fail(overloadedNotice());
+      return;
+    }
     this.enqueue({ kind: 'push', pcm });
   }
 
@@ -127,10 +140,18 @@ export class TurnDetectorCore {
     this.enqueue({ kind: 'cancel', press });
   }
 
-  /** Drops the queue at once; the frame in hand finishes. */
+  /**
+   * Drops what is queued and what is resampled but unprocessed, at once, and starts the turn afresh
+   * (C3: stop never waits for a backlog). The frame in hand is discarded when it returns, with all its
+   * events, so nothing it decided reaches the trace. Positions stay those of the samples processed: the
+   * dropped input never enters the timeline, so the trace stays contiguous, and counting goes on from
+   * where it stopped.
+   */
   stop(): void {
     this.queue = [];
+    this.pending = new Float32Array(0);
     this.generation++;
+    if (this.inFlight === 0) this.resetTurn();
   }
 
   idle(): Promise<void> {
@@ -179,6 +200,33 @@ export class TurnDetectorCore {
     };
   }
 
+  /** Input-rate samples that arrived and are not processed yet. */
+  private unprocessedInput(): number {
+    let n = 0;
+    for (const op of this.queue) if (op.kind === 'push') n += op.pcm.length;
+    return n + ((this.pending.length + this.inFlight) * this.inputRate) / VAD_SAMPLE_RATE;
+  }
+
+  /** The leg fails: nothing more is accepted or processed, and the frame in hand is discarded. */
+  private fail(notice: DetectorNotice): void {
+    this.failed = true;
+    this.queue = [];
+    this.pending = new Float32Array(0);
+    this.generation++;
+    if (this.inFlight === 0) this.resetTurn();
+    this.o.notify(notice);
+  }
+
+  /** No open segment, no pad held, the processor and the Smart Turn gate back to silence. */
+  private resetTurn(): void {
+    this.open = null;
+    this.held = [];
+    this.emptied = false;
+    this.speechFrames = 0;
+    this.vad?.processor.reset();
+    this.vad?.smart?.reset();
+  }
+
   private enqueue(op: Op): void {
     if (this.failed) return;
     this.queue.push(op);
@@ -190,10 +238,9 @@ export class TurnDetectorCore {
       try {
         await this.apply(op, this.generation);
       } catch (err) {
-        this.failed = true;
-        this.queue = [];
+        if (this.failed) break;
         const reason = err instanceof Error ? err.message : String(err);
-        this.o.notify({ type: 'failed', code: 'turn_detection_unavailable', message: `Turn detection failed: ${reason}` });
+        this.fail({ type: 'failed', code: 'turn_detection_unavailable', message: `Turn detection failed: ${reason}` });
         break;
       }
     }
@@ -236,7 +283,7 @@ export class TurnDetectorCore {
       if (generation !== this.generation) return;
       const samples = this.pending.slice(0, VAD_FRAME_SAMPLES);
       this.pending = this.pending.subarray(VAD_FRAME_SAMPLES);
-      await this.frame(samples);
+      await this.runFrame(samples, generation);
     }
   }
 
@@ -247,7 +294,7 @@ export class TurnDetectorCore {
     if (generation !== this.generation || this.pending.length === 0) return;
     const samples = this.pending.slice();
     this.pending = new Float32Array(0);
-    await this.frame(samples);
+    await this.runFrame(samples, generation);
   }
 
   private append(samples: Float32Array): void {
@@ -258,8 +305,17 @@ export class TurnDetectorCore {
     this.pending = joined;
   }
 
+  private async runFrame(samples: Float32Array, generation: number): Promise<void> {
+    this.inFlight = samples.length;
+    try {
+      await this.frame(samples, generation);
+    } finally {
+      this.inFlight = 0;
+    }
+  }
+
   /** One frame of up to 512 real samples: the processor, then the trace, then what the frame decided. */
-  private async frame(samples: Float32Array): Promise<void> {
+  private async frame(samples: Float32Array, generation: number): Promise<void> {
     const from = this.position;
     const to = from + samples.length;
     const vad = this.vad;
@@ -279,6 +335,11 @@ export class TurnDetectorCore {
     this.emptied = false;
     const events: FrameProcessorEvent[] = [];
     await processor.process(input, (ev) => events.push(ev));
+    // stop() or a failure came while the processor was working: the frame belongs to a turn that is over.
+    if (generation !== this.generation) {
+      this.resetTurn();
+      return;
+    }
     this.o.trace({ kind: 'frame', from, to, samples });
 
     let probability = 0;

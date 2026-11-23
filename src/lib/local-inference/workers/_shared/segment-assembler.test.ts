@@ -113,4 +113,62 @@ describe('SegmentAssembler', () => {
     expect(posted[0].msg).toMatchObject({ start: 1024, end: 2560 });
     expect(() => a.trace({ kind: 'close', from: 512, to: 2560, endedBy: 'silence' })).toThrow(RangeError);
   });
+
+  /** `count` segments of `samples` each, the n-th traced as seq n. */
+  const segments = (a: SegmentAssembler, count: number, samples: number, from = 0) => {
+    for (let i = 0; i < count; i++) {
+      const at = from + i * samples;
+      a.trace({ kind: 'frame', from: at, to: at + samples, samples: ramp(at, samples) });
+      a.trace({ kind: 'close', from: at, to: at + samples, endedBy: 'silence' });
+    }
+  };
+
+  it('a sixth waiting segment fails the leg once; taken acks free the queue; nothing is posted after', () => {
+    const { a, posted, notices } = assembler();
+    segments(a, 5, 100);
+    expect(notices).toEqual([]);
+    a.taken({ type: 'taken', epoch: 1, seq: 1 });
+    segments(a, 1, 100, 500);
+    expect(notices).toEqual([]); // five waiting again
+    segments(a, 1, 100, 600);
+    expect(notices).toEqual([
+      { type: 'failed', code: 'turn_detection_overloaded', message: 'Turn detection cannot keep up on this device.' },
+    ]);
+    const count = posted.length;
+    expect(count).toBe(7); // the segment that tipped it was posted
+    segments(a, 2, 100, 700);
+    expect(posted).toHaveLength(count);
+    expect(notices).toHaveLength(1);
+  });
+
+  it('more than 30 s waiting ahead of the newest segment fails it; one 40 s segment alone does not', () => {
+    const s = 16000;
+    const lone = assembler();
+    segments(lone.a, 1, 40 * s);
+    expect(lone.notices).toEqual([]);
+
+    const exact = assembler();
+    segments(exact.a, 1, 30 * s);
+    segments(exact.a, 1, 40 * s, 30 * s); // exactly 30 s ahead of the newest
+    expect(exact.notices).toEqual([]);
+
+    const over = assembler();
+    segments(over.a, 1, 30 * s + 1);
+    segments(over.a, 1, 5 * s, 30 * s + 1);
+    expect(over.notices).toHaveLength(1);
+    expect(over.notices[0]).toMatchObject({ code: 'turn_detection_overloaded' });
+  });
+
+  it('stop(2) numbers what follows with the new epoch and forgets what waited; a taken of epoch 1 is ignored', () => {
+    const { a, posted, notices } = assembler();
+    segments(a, 5, 100);
+    a.stop(2);
+    a.taken({ type: 'taken', epoch: 1, seq: 1 });
+    segments(a, 5, 100, 500);
+    expect(notices).toEqual([]); // five of epoch 2, the epoch-1 queue forgotten
+    expect(posted.map((p) => p.msg.epoch)).toEqual([1, 1, 1, 1, 1, 2, 2, 2, 2, 2]);
+    expect(posted.map((p) => p.msg.seq)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    segments(a, 1, 100, 1000);
+    expect(notices).toHaveLength(1); // the stale ack freed nothing: a sixth of epoch 2 fails
+  });
 });

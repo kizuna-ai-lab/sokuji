@@ -48,3 +48,8 @@ export const INPUT_BACKLOG_SECONDS = 2;
 export const DECODE_QUEUE_SEGMENTS = 5;
 /** Audio waiting ahead of the newest segment beyond this fails the leg (C3). */
 export const DECODE_QUEUE_SECONDS = 30;
+
+/** The notice for both overloads (input and decode queue), verbatim. */
+export function overloadedNotice(): DetectorNotice {
+  return { type: 'failed', code: 'turn_detection_overloaded', message: 'Turn detection cannot keep up on this device.' };
+}

@@ -110,8 +110,12 @@ function harness(probs: number[], o: HarnessOptions = {}) {
   const input: Int16Array[] = [];
   const rand = mulberry32(o.seed ?? 1);
   const ref: { core?: TurnDetectorCore } = {};
-  const assembler = new SegmentAssembler({
-    post: (msg) => outputs.push(msg),
+  const assembler: SegmentAssembler = new SegmentAssembler({
+    post: (msg) => {
+      outputs.push(msg);
+      // The recognizer starts each segment as it arrives, so the decode queue (C3) stays empty here.
+      if (msg.type === 'segment') queueMicrotask(() => assembler.taken({ type: 'taken', epoch: msg.epoch, seq: msg.seq }));
+    },
     notify: (n) => notices.push(n),
     earliestNeeded: () => ref.core!.earliestNeeded(),
   });
@@ -135,12 +139,14 @@ function harness(probs: number[], o: HarnessOptions = {}) {
     },
   });
   ref.core = core;
+  let sincePaced = 0;
   const push = (pcm: Int16Array) => {
     input.push(pcm);
     core.push(pcm);
   };
   return {
     core,
+    assembler,
     trace,
     events,
     outputs,
@@ -152,7 +158,17 @@ function harness(probs: number[], o: HarnessOptions = {}) {
     timeline: () => timelineOf(input),
     /** Whole frames of audio, then waits for the core. */
     async feed(frames: number) {
-      push(noise(rand, frames * IN_FRAME));
+      // In slices of at most a second: the detector fails a leg that holds more than 2 s unprocessed (C3).
+      for (let left = frames * IN_FRAME; left > 0; left -= 24000) {
+        push(noise(rand, Math.min(left, 24000)));
+        await core.idle();
+      }
+    },
+    /** Waits for the core once about a second has been pushed since the last wait. */
+    async paced(samples: number) {
+      sincePaced += samples;
+      if (sincePaced < 24000) return;
+      sincePaced = 0;
       await core.idle();
     },
   };
@@ -266,6 +282,7 @@ describe('TurnDetectorCore — automatic turns', () => {
         const n = 1 + Math.floor(rand() * 3000);
         h.push(h.noise(n));
         sent += n;
+        await h.paced(n);
       }
       h.core.drain();
       await h.core.idle();
@@ -522,7 +539,10 @@ describe('TurnDetectorCore — automatic turns', () => {
     const alone: Array<ReturnType<typeof harness>> = [];
     for (let leg = 0; leg < 2; leg++) {
       const h = harness(legs[leg]);
-      for (const c of chunks[leg]) h.push(c);
+      for (const c of chunks[leg]) {
+        h.push(c);
+        await h.paced(c.length);
+      }
       h.core.drain();
       await h.core.idle();
       alone.push(h);
@@ -530,7 +550,11 @@ describe('TurnDetectorCore — automatic turns', () => {
 
     const together = [harness(legs[0]), harness(legs[1])];
     for (let i = 0; i < Math.max(chunks[0].length, chunks[1].length); i++) {
-      for (let leg = 0; leg < 2; leg++) if (chunks[leg][i]) together[leg].push(chunks[leg][i]);
+      for (let leg = 0; leg < 2; leg++) {
+        if (!chunks[leg][i]) continue;
+        together[leg].push(chunks[leg][i]);
+        await together[leg].paced(chunks[leg][i].length);
+      }
     }
     together.forEach((h) => h.core.drain());
     await Promise.all(together.map((h) => h.core.idle()));
@@ -563,6 +587,7 @@ describe('TurnDetectorCore — automatic turns', () => {
         const n = 1 + Math.floor(rand() * 3000);
         h.push(h.noise(n));
         sent += n;
+        await h.paced(n);
         if (rand() < 0.1) {
           h.core.drain();
           drains++;
@@ -685,11 +710,14 @@ function manual(o: { limit?: SegmentLimit; maxSpeech?: number } = {}) {
     timeline: () => timelineOf(input),
     /** `samples` 16 kHz samples' worth of input. */
     async push(samples: number, amplitude = 30000) {
-      const pcm = new Int16Array(samples * 1.5);
-      for (let i = 0; i < pcm.length; i++) pcm[i] = Math.floor((rand() * 2 - 1) * amplitude);
-      input.push(pcm);
-      core.push(pcm);
-      await core.idle();
+      // In slices of at most a second: the detector fails a leg that holds more than 2 s unprocessed (C3).
+      for (let left = samples * 1.5; left > 0; left -= 24000) {
+        const pcm = new Int16Array(Math.min(left, 24000));
+        for (let i = 0; i < pcm.length; i++) pcm[i] = Math.floor((rand() * 2 - 1) * amplitude);
+        input.push(pcm);
+        core.push(pcm);
+        await core.idle();
+      }
     },
     async settle() {
       await core.idle();
@@ -893,5 +921,104 @@ describe('TurnDetectorCore — presses', () => {
     // Every sample is in a frame, press or not.
     const framed = m.trace.filter((e) => e.kind === 'frame').reduce((n, e) => n + (e as { samples: Float32Array }).samples.length, 0);
     expect(framed).toBe(3300);
+  });
+});
+
+describe('TurnDetectorCore — bounds, stop', () => {
+  /** An infer that answers only when the test lets it. */
+  function held() {
+    const waiting: Array<(p: number) => void> = [];
+    let calls = 0;
+    return {
+      infer: () => {
+        calls++;
+        return new Promise<number>((resolve) => waiting.push(resolve));
+      },
+      calls: () => calls,
+      release: async (p = SILENCE) => {
+        while (waiting.length) {
+          waiting.shift()!(p);
+          await new Promise((r) => setTimeout(r, 0));
+        }
+      },
+    };
+  }
+  const overloaded = { type: 'failed', code: 'turn_detection_overloaded', message: 'Turn detection cannot keep up on this device.' };
+
+  it('input slower than real time: past 2 s unprocessed the leg fails once and processes nothing more', async () => {
+    const gate = held();
+    const h = harness([], { infer: gate.infer });
+    h.push(new Int16Array(24000 * 2.1));
+    expect(h.notices).toEqual([overloaded]);
+    h.push(new Int16Array(24000));
+    h.core.drain();
+    await gate.release();
+    await h.core.idle();
+    expect(h.notices).toEqual([overloaded]);
+    expect(gate.calls()).toBe(0);
+    expect(h.trace).toEqual([]);
+  });
+
+  it('chunks that add up: the leg fails once the unprocessed total passes 2 s, not before', async () => {
+    const gate = held();
+    const h = harness([], { infer: gate.infer });
+    for (let i = 0; i < 100; i++) h.push(new Int16Array(480)); // 2 s exactly in 20 ms chunks
+    expect(h.notices).toEqual([]);
+    h.push(new Int16Array(480));
+    expect(h.notices).toEqual([overloaded]);
+    await gate.release();
+    await h.core.idle();
+    expect(gate.calls()).toBeLessThanOrEqual(1); // only the frame in hand
+    expect(h.trace).toEqual([]);
+    expect(h.notices).toHaveLength(1);
+  });
+
+  it('exactly 2 s unprocessed does not fail', async () => {
+    const gate = held();
+    const h = harness([], { infer: gate.infer });
+    h.push(new Int16Array(24000 * 2));
+    expect(h.notices).toEqual([]);
+    await gate.release();
+    await h.core.idle();
+    expect(h.notices).toEqual([]);
+    expect(gate.calls()).toBe(Math.floor((16000 * 2) / FRAME));
+  });
+
+  it('stop with a backlog returns at once: queued input dropped, nothing more posted, late taken ignored', async () => {
+    const gate = held();
+    const h = harness([], { infer: gate.infer });
+    h.push(h.noise(IN_FRAME * 20));
+    h.push(h.noise(IN_FRAME * 20));
+    h.core.drain();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(gate.calls()).toBe(1);
+    h.core.stop();
+    h.assembler.stop(2);
+    await gate.release(SPEECH); // the frame in hand answers late
+    await h.core.idle();
+    h.assembler.taken({ type: 'taken', epoch: 1, seq: 1 }); // late, of the old epoch: ignored
+    expect(gate.calls()).toBe(1);
+    expect(h.trace).toEqual([]); // nothing of the old epoch, drained included
+    expect(h.outputs).toEqual([]);
+    expect(h.notices).toEqual([]);
+  });
+
+  it('after stop, the core takes new audio on the timeline from where it processed: positions are contiguous, and the old speech is forgotten', async () => {
+    const h = harness([...run(6, SPEECH), ...run(40, SILENCE)]);
+    await h.feed(3); // speech starts, no segment closed
+    h.core.stop();
+    await h.core.idle();
+    await h.feed(20);
+    const frames = h.trace.filter((e): e is Extract<TurnTrace, { kind: 'frame' }> => e.kind === 'frame');
+    frames.forEach((f, i) => expect(f.from).toBe(i * FRAME));
+    // The speech frames processed after the stop are the new epoch's own; no error, no failure.
+    expect(h.notices.filter((n) => n.type === 'failed')).toEqual([]);
+  });
+
+  it('a failure of the core after an overload does not report a second notice', async () => {
+    const h = harness([], { infer: async () => { throw new Error('boom'); } });
+    h.push(h.noise(IN_FRAME * 2));
+    await h.core.idle();
+    expect(h.notices).toEqual([{ type: 'failed', code: 'turn_detection_unavailable', message: 'Turn detection failed: boom' }]);
   });
 });

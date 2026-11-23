@@ -5,7 +5,17 @@
  * the timeline's samples `[start, end)`.
  */
 import { FrameLog } from './frame-log';
-import type { DetectorNotice, DetectorOutput, DetectorSegment, TurnTrace } from './turn-detector-protocol';
+import { VAD_SAMPLE_RATE } from './max-speech-frames';
+import {
+  DECODE_QUEUE_SECONDS,
+  DECODE_QUEUE_SEGMENTS,
+  overloadedNotice,
+  type DetectorNotice,
+  type DetectorOutput,
+  type DetectorSegment,
+  type RecognizerTaken,
+  type TurnTrace,
+} from './turn-detector-protocol';
 
 export interface SegmentAssemblerOptions {
   post(msg: DetectorOutput, transfer: Transferable[]): void;
@@ -17,14 +27,30 @@ export interface SegmentAssemblerOptions {
 
 export class SegmentAssembler {
   private readonly log = new FrameLog();
-  private readonly epoch: number;
+  private epoch: number;
   private seq = 0;
+  /** Segments of this epoch posted and not yet `taken`, seq → samples. */
+  private waiting = new Map<number, number>();
+  /** The leg failed: nothing more is posted. */
+  private failed = false;
 
   constructor(private readonly o: SegmentAssemblerOptions) {
     this.epoch = o.epoch ?? 1;
   }
 
+  /** The recognizer started decoding `seq`; an older epoch's ack is ignored. */
+  taken(msg: RecognizerTaken): void {
+    if (msg.epoch === this.epoch) this.waiting.delete(msg.seq);
+  }
+
+  /** Raises the epoch: what was waiting no longer counts, and what follows is the new epoch's. */
+  stop(epoch: number): void {
+    this.epoch = epoch;
+    this.waiting.clear();
+  }
+
   trace(event: TurnTrace): void {
+    if (this.failed) return;
     switch (event.kind) {
       case 'frame':
         this.log.append(event.samples);
@@ -43,6 +69,8 @@ export class SegmentAssembler {
           ...(event.smartTurnProbability !== undefined ? { smartTurnProbability: event.smartTurnProbability } : {}),
         };
         this.o.post(segment, [audio.buffer]);
+        this.waiting.set(segment.seq, audio.length);
+        this.checkDecodeQueue(audio.length);
         break;
       }
       case 'cancel':
@@ -58,5 +86,17 @@ export class SegmentAssembler {
     // After every event, not only a close: through a long silence nothing closes, and the
     // log would otherwise keep all of it.
     this.log.trimBefore(this.o.earliestNeeded());
+  }
+
+  /** At most DECODE_QUEUE_SEGMENTS wait, and at most DECODE_QUEUE_SECONDS of audio ahead of the newest one (C3). */
+  private checkDecodeQueue(newest: number): void {
+    let ahead = 0;
+    for (const samples of this.waiting.values()) ahead += samples;
+    ahead -= newest;
+    if (this.waiting.size > DECODE_QUEUE_SEGMENTS || ahead > DECODE_QUEUE_SECONDS * VAD_SAMPLE_RATE) {
+      this.failed = true;
+      this.waiting.clear();
+      this.o.notify(overloadedNotice());
+    }
   }
 }
