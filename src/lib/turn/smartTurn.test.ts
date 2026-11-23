@@ -6,6 +6,11 @@ import {
   effectiveCheckAfter,
   supportsSmartTurn,
 } from './smartTurn';
+import type { ModelManifestEntry } from '../local-inference/modelManifest';
+
+/** Compile-time: every Smart Turn worker type is a worker type the manifest has. */
+const _typesExist: readonly NonNullable<ModelManifestEntry['asrWorkerType']>[] = SMART_TURN_WORKER_TYPES;
+void _typesExist;
 
 describe('supportsSmartTurn', () => {
   it.each(SMART_TURN_WORKER_TYPES)('runs the gate in %s', (asrWorkerType) => {

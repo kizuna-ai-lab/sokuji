@@ -1,5 +1,3 @@
-import type { ModelManifestEntry } from '../local-inference/modelManifest';
-
 export const SMART_TURN_MODEL_ID = 'smart-turn-v3.2';
 
 export type VadEndOfTurn = 'normal' | 'smart';
@@ -11,7 +9,9 @@ export const SMART_TURN_WORKER_TYPES = [
   'qwen3-asr-webgpu',
   'cohere-transcribe-webgpu',
   'voxtral-3b-webgpu',
-] as const satisfies readonly NonNullable<ModelManifestEntry['asrWorkerType']>[];
+] as const;
+// Every name is a real worker type of the manifest: checked in smartTurn.test.ts, which may import the manifest
+// (this file may not: the run contract's types read it, and the manifest's types reach the run contract).
 
 export const SMART_TURN_CHECK_AFTER_RANGE = { min: 0.1, max: 0.5, step: 0.05 } as const;
 export const SMART_TURN_THRESHOLD_RANGE = { min: 0.3, max: 0.9, step: 0.05 } as const;

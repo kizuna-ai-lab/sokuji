@@ -3,6 +3,7 @@ import { directionKey, type DirectionResult, type Selections } from '../../lib/l
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { SharedSettings } from '../../lib/run/types';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
+import { TURN_DETECTION_DEFAULTS, type TurnDetectionSettings } from '../../lib/turn/turnDetectionSettings';
 
 /** One direction's table entry: an id per stage, or absent/null for "does not
  *  resolve". `autoTranslation` is what the translation stage resolves to once
@@ -70,7 +71,7 @@ function settings(overrides: Partial<LocalInferenceSettings> = {}): LocalInferen
   return { ...LOCAL_INFERENCE_DEFAULTS, ...overrides };
 }
 
-function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['segmentation']; words?: SharedSettings['words']; lineUp?: SharedSettings['lineUp'] } = {}): SharedSettings {
+function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['segmentation']; words?: SharedSettings['words']; lineUp?: SharedSettings['lineUp']; turnDetection?: Partial<TurnDetectionSettings> } = {}): SharedSettings {
   return {
     pauses: { sourceSeconds: 0, translationSeconds: 0 },
     reversed: () => overrides.reversed ?? false,
@@ -79,6 +80,7 @@ function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['
     localModels: models,
     ...(overrides.words ? { words: overrides.words } : {}),
     ...(overrides.lineUp ? { lineUp: overrides.lineUp } : {}),
+    ...(overrides.turnDetection ? { turnDetection: { ...TURN_DETECTION_DEFAULTS, ...overrides.turnDetection } } : {}),
   };
 }
 
@@ -220,15 +222,22 @@ describe('buildLocalInference', () => {
 
   it('carries a set VAD negative threshold into vad.negativeThreshold, and leaves it out when unset', () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
-    const withIt = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ vadNegativeThreshold: 0.15 }), shared()) as LocalInferenceConfig;
+    const withIt = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ turnDetection: { negativeThreshold: 0.15 } })) as LocalInferenceConfig;
     expect(withIt.vad).toEqual({ threshold: 0.3, negativeThreshold: 0.15, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 });
     const without = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig;
     expect(without.vad).not.toHaveProperty('negativeThreshold');
   });
 
+  it('the leg reads turn detection from shared.turnDetection, the defaults without it', () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    const built = (sh: SharedSettings) => buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), sh) as LocalInferenceConfig;
+    expect(built(shared({ turnDetection: { threshold: 0.45 } })).vad.threshold).toBe(0.45);
+    expect(built(shared()).vad.threshold).toBe(0.3);
+  });
+
   it('carries the pre-speech padding into vad.preSpeechPadDuration', () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
-    const set = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ vadPreSpeechPadDuration: 0.3 }), shared()) as LocalInferenceConfig;
+    const set = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ turnDetection: { prePad: 0.3 } })) as LocalInferenceConfig;
     expect(set.vad.preSpeechPadDuration).toBe(0.3);
     const byDefault = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig;
     expect(byDefault.vad.preSpeechPadDuration).toBe(0.8);
@@ -279,11 +288,11 @@ describe('buildLocalInference', () => {
       resolved({ 'ja>en': { asr: 'a', translation: 't' } });
     });
 
-    const build = (over: Partial<LocalInferenceSettings>) =>
-      buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(over), shared()) as LocalInferenceConfig;
+    const build = (over: Partial<TurnDetectionSettings>) =>
+      buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ turnDetection: over })) as LocalInferenceConfig;
 
     it('carries Smart Turn into vad.smartTurn', () => {
-      expect(build({ vadEndOfTurn: 'smart' }).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
+      expect(build({ endOfTurn: 'smart' }).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
     });
 
     it('leaves it out under Normal', () => {
@@ -292,17 +301,17 @@ describe('buildLocalInference', () => {
 
     it.each(['sherpa-onnx', 'voxtral-webgpu', undefined])('leaves it out for an ASR whose worker is %s', (asrWorkerType) => {
       mockManifest = { a: { type: 'asr', asrWorkerType } };
-      expect(build({ vadEndOfTurn: 'smart' }).vad).not.toHaveProperty('smartTurn');
+      expect(build({ endOfTurn: 'smart' }).vad).not.toHaveProperty('smartTurn');
     });
 
     it('holds Turn Check After 0.2 s under Max Wait', () => {
-      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.4, smartTurnCheckAfter: 0.5 }).vad.smartTurn)
+      expect(build({ endOfTurn: 'smart', minSilence: 0.4, smartTurnCheckAfter: 0.5 }).vad.smartTurn)
         .toEqual({ checkAfter: 0.2, threshold: 0.5 });
     });
 
     it('drops Smart when Max Wait leaves under 0.10 s for it', () => {
-      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.25 }).vad).not.toHaveProperty('smartTurn');
-      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.3 }).vad.smartTurn).toEqual({ checkAfter: 0.1, threshold: 0.5 });
+      expect(build({ endOfTurn: 'smart', minSilence: 0.25 }).vad).not.toHaveProperty('smartTurn');
+      expect(build({ endOfTurn: 'smart', minSilence: 0.3 }).vad.smartTurn).toEqual({ checkAfter: 0.1, threshold: 0.5 });
     });
   });
 });

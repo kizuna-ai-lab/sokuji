@@ -6,7 +6,8 @@ import type { AdmittedConfigs, ProviderRefusal, SharedSettings } from '../../lib
 import { guardAstCrossStage } from '../../services/providers/astGuard';
 import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
-import { effectiveCheckAfter, supportsSmartTurn } from '../../lib/turn/smartTurn';
+import { supportsSmartTurn } from '../../lib/turn/smartTurn';
+import { TURN_DETECTION_DEFAULTS, vadConfigOf, type TurnDetectionSettings } from '../../lib/turn/turnDetectionSettings';
 import { directionKey, type DirectionResult, type LocalModels } from '../../lib/local-inference/selection/types';
 import type { LocalInferenceSettings } from './settings';
 import { directionVoice, speakerIdFor } from './voices';
@@ -160,23 +161,10 @@ export function noAsr(source: string): ProviderRefusal {
  * with Smart Turn where the settings ask for it and the model's worker takes it. One builder for the whole local
  * session and for the local recognition as a unit of its own.
  */
-export function localRecognition(s: LocalInferenceSettings, asrModelId: string): Pick<LocalInferenceConfig, 'asr' | 'vad'> {
+export function localRecognition(td: TurnDetectionSettings, asrModelId: string): Pick<LocalInferenceConfig, 'asr' | 'vad'> {
   const asrEntry = getManifestEntry(asrModelId);
   const asr = { modelId: asrModelId, streaming: asrEntry?.type === 'asr-stream' };
-
-  const vad: LocalInferenceConfig['vad'] = {
-    threshold: s.vadThreshold,
-    minSilenceDuration: s.vadMinSilenceDuration,
-    minSpeechDuration: s.vadMinSpeechDuration,
-    maxSpeechDuration: s.vadMaxSpeechDuration,
-    preSpeechPadDuration: s.vadPreSpeechPadDuration,
-  };
-  if (s.vadNegativeThreshold) vad.negativeThreshold = s.vadNegativeThreshold;
-  if (s.vadEndOfTurn === 'smart' && supportsSmartTurn(asrEntry)) {
-    const checkAfter = effectiveCheckAfter(s.smartTurnCheckAfter, s.vadMinSilenceDuration);
-    if (checkAfter !== null) vad.smartTurn = { checkAfter, threshold: s.smartTurnThreshold };
-  }
-  return { asr, vad };
+  return { asr, vad: vadConfigOf(td, supportsSmartTurn(asrEntry)) as LocalInferenceConfig['vad'] };
 }
 
 /**
@@ -197,7 +185,7 @@ export function buildLocalInference(
 
   if (!resolved.asr) return noAsr(source);
 
-  const { asr, vad } = localRecognition(s, resolved.asr.modelId);
+  const { asr, vad } = localRecognition(shared.turnDetection ?? TURN_DETECTION_DEFAULTS, resolved.asr.modelId);
 
   // Today's inference (LocalInferenceClient.ts ~406-408): the ASR model
   // handles translation itself (Granite Speech) when it was also picked,

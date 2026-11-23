@@ -1,3 +1,4 @@
+import type { TurnDetectionSettings } from '../turn/turnDetectionSettings';
 import type { LanguagePair, SessionWords, SharedSettings } from '../run/types';
 
 /**
@@ -15,6 +16,7 @@ export function buildSharedSettings(
   segmentation: SharedSettings['segmentation'],
   faceToFace = false,
   words?: SessionWords,
+  turnDetection?: TurnDetectionSettings,
 ): Omit<SharedSettings, 'models'> {
   const hasWords = !!words && (words.entries.length > 0 || words.background.trim() !== '');
   return {
@@ -23,5 +25,6 @@ export function buildSharedSettings(
     reversed: (direction) => participant !== null && direction.source === participant.source && direction.target === participant.target,
     ...(faceToFace ? { faceToFace: true } : {}),
     ...(hasWords ? { words } : {}),
+    ...(turnDetection ? { turnDetection } : {}),
   };
 }

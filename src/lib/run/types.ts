@@ -13,6 +13,7 @@ import type { RunStage, StageIds } from '../lineup/types';
 import type { LocalModels } from '../local-inference/selection/types';
 import type { NativeModels } from '../local-inference/native/nativeModels';
 import type { WordEntry } from '../words/list';
+import type { TurnDetectionSettings } from '../turn/turnDetectionSettings';
 
 export interface LanguagePair { source: string; target: string }
 
@@ -57,6 +58,8 @@ export interface SharedSettings {
   bothLegs?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
+  /** Turn detection as stored, read at start; absent: the defaults. */
+  turnDetection?: TurnDetectionSettings;
   /** The app's word list and session background, read at start (spec §9): each builder sends what `wordsFor` gives its service. Absent: none. */
   words?: SessionWords;
   /**
