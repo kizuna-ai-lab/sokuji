@@ -20,6 +20,77 @@ export interface FakeNativeOptions {
   engineVersions?: Record<string, string>;
   /** Scripted ASR models (sidecar/tests/test_asr_backend.py's _FakeModel). */
   asr?: FakeAsrOptions;
+  /** Scripted translators (sidecar/tests/test_translate_backend.py's fakes). */
+  translate?: FakeTranslateOptions;
+}
+
+export interface FakeTranslateOptions {
+  /** What chat() streams, piece by piece: text, or raw bytes (to split a character). */
+  pieces?: Array<string | number[]>;
+  /** What complete() streams. */
+  completePieces?: Array<string | number[]>;
+  /** chat() rejects with this message before any token. */
+  chatError?: string;
+  /** Each call waits for release() before its first token. */
+  gated?: boolean;
+  /** Each call never ends and never looks at its signal. */
+  wedged?: boolean;
+  /** translateLoad rejects with this NativeError message. */
+  loadError?: string;
+}
+
+const utf8 = new TextEncoder();
+
+/** One scripted Translator: records calls; unload runs after the calls in flight, as the addon's worker queue does. */
+export class FakeTranslator {
+  readonly log: unknown[] = [];
+  /** Every call's abort signal, in call order. */
+  readonly signals: Array<AbortSignal | undefined> = [];
+  unloaded = false;
+  readonly loadOptions: unknown;
+  private readonly inflight = new Set<Promise<void>>();
+  private markStarted!: () => void;
+  /** Resolves when a call has started (and, gated, is waiting). */
+  started: Promise<void> = new Promise((r) => { this.markStarted = r; });
+  private releaseGate!: () => void;
+  private readonly gate: Promise<void> = new Promise((r) => { this.releaseGate = r; });
+  constructor(readonly path: string, readonly deviceIndex: number | null, opts: unknown, private readonly o: FakeTranslateOptions) {
+    this.loadOptions = opts;
+  }
+  release(): void {
+    this.releaseGate();
+  }
+  private run(pieces: Array<string | number[]>, opts: { signal?: AbortSignal; onToken: (b: Uint8Array) => void }, what: string): Promise<void> {
+    this.signals.push(opts.signal);
+    const p = (async () => {
+      this.markStarted();
+      if (this.o.wedged) await new Promise<never>(() => {});
+      if (this.o.gated) await this.gate;
+      for (const piece of pieces) {
+        if (opts.signal?.aborted) throw nativeError(`${what}: cancelled`, -5);
+        opts.onToken(typeof piece === 'string' ? utf8.encode(piece) : Uint8Array.from(piece));
+      }
+    })();
+    const tracked = p.then(() => {}, () => {});
+    this.inflight.add(tracked);
+    void tracked.then(() => this.inflight.delete(tracked));
+    return p;
+  }
+  async chat(messages: unknown, gen: { maxTokens?: number; assistantPrefill?: string }, opts: { signal?: AbortSignal; onToken: (b: Uint8Array) => void }) {
+    this.log.push(['chat', messages, gen.maxTokens, gen.assistantPrefill ?? null]);
+    if (this.o.chatError) throw nativeError(this.o.chatError, -1);
+    return this.run(this.o.pieces ?? ['Bon', 'jour', '.'], opts, 'sk_translate_chat');
+  }
+  async complete(prompt: string, gen: { maxTokens?: number }, opts: { signal?: AbortSignal; onToken: (b: Uint8Array) => void }) {
+    this.log.push(['complete', prompt, gen.maxTokens]);
+    return this.run(this.o.completePieces ?? ['Oui.'], opts, 'sk_translate_complete');
+  }
+  async unload() {
+    this.log.push(['unload-called']);           // when the backend asked, before the queue lets it run
+    await Promise.all([...this.inflight]);
+    this.log.push(['unload']);
+    this.unloaded = true;
+  }
 }
 
 export interface FakeAsrOptions {
@@ -85,7 +156,7 @@ export class FakeAsrModel {
   }
 }
 
-export type FakeNative = NativeModule & { calls: string[]; inits: Array<{ threads: number | undefined; onLog: boolean }>; asrModels: FakeAsrModel[] };
+export type FakeNative = NativeModule & { calls: string[]; inits: Array<{ threads: number | undefined; onLog: boolean }>; asrModels: FakeAsrModel[]; translators: FakeTranslator[] };
 
 const notScripted = (name: string) => () => { throw new Error(`fake native: ${name} is not scripted in this test`); };
 
@@ -103,6 +174,7 @@ export function makeFakeNative(opts: FakeNativeOptions = {}): FakeNative {
   }));
   const abi = opts.abi ?? 2;
   const asrModels: FakeAsrModel[] = [];
+  const translators: FakeTranslator[] = [];
   const version = opts.version ?? '1.2.0';
   const fake = {
     calls,
@@ -135,7 +207,16 @@ export function makeFakeNative(opts: FakeNativeOptions = {}): FakeNative {
         return m;
       }
       : notScripted('asrLoad'),
-    translateLoad: notScripted('translateLoad'),
+    translators,
+    translateLoad: opts.translate
+      ? async (path: string, deviceIndex: number | null, o?: unknown) => {
+        calls.push('translateLoad');
+        if (opts.translate!.loadError) throw nativeError(opts.translate!.loadError);
+        const t = new FakeTranslator(path, deviceIndex, o, opts.translate!);
+        translators.push(t);
+        return t;
+      }
+      : notScripted('translateLoad'),
     ttsLoad: notScripted('ttsLoad'),
   };
   return fake as unknown as FakeNative;

@@ -108,7 +108,7 @@ export const BENCH_TRANSLATE_TEXT = 'The weather is lovely today, so I think I w
 export const BENCH_TRANSLATE_SRC = 'English';
 export const BENCH_TRANSLATE_TGT = 'French';
 
-interface Translates { translate(text: string, systemPrompt: string, src: string, tgt: string, wrap: boolean): Promise<[string, number]> }
+interface Translates { translate(text: string, systemPrompt: string, src: string, tgt: string, opts?: { wrap?: boolean }): Promise<[string, number]> }
 
 /** Decode throughput (generated tokens / seconds) after one warm-up pass, under "tps:". Never throws. */
 export function measureTps(backend: unknown, plan: Plan, modelId: string, machine: Machine, { force = false } = {}): Promise<number | null> {
@@ -116,9 +116,9 @@ export function measureTps(backend: unknown, plan: Plan, modelId: string, machin
     ns: 'tps:', force,
     run: async (b) => {
       const t = b as Translates;
-      await t.translate(BENCH_TRANSLATE_TEXT, '', BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, false); // warm-up
+      await t.translate(BENCH_TRANSLATE_TEXT, '', BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, { wrap: false }); // warm-up
       const t0 = seams.now();
-      const [, nNew] = await t.translate(BENCH_TRANSLATE_TEXT, '', BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, false);
+      const [, nNew] = await t.translate(BENCH_TRANSLATE_TEXT, '', BENCH_TRANSLATE_SRC, BENCH_TRANSLATE_TGT, { wrap: false });
       const dt = (seams.now() - t0) / 1000;
       if (dt <= 0 || nNew <= 0) return null;
       return nNew / dt;
