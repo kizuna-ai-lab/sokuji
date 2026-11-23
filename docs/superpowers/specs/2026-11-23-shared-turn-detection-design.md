@@ -1,6 +1,6 @@
 # Shared turn detection for local recognizers — design
 
-Date: 2026-11-23. Status: draft for the owner's review.
+Date: 2026-11-23. Status: draft for the owner's review; revised after an independent review (§3.1).
 
 ## 1. Goal and policy
 
@@ -44,55 +44,115 @@ Problems this causes:
 
 ## 3. The component
 
-**One turn-detector worker per leg, in the renderer, generalised from `native-vad.worker.ts`.** It takes the leg's
-audio (24 kHz Int16, as the adapters receive it), resamples to 16 kHz once, runs Silero v5 through vad-web's
-`FrameProcessor` with the shared `SileroInput` context, and hosts the Smart Turn gate (`TurnGate`, today in
-`workers/_shared/turn-gate.ts`), which needs the audio window and so lives with the VAD. It connects to the one
-shared Smart Turn worker (`TurnRuntime`) the way the ASR workers do today.
+**One turn-detector worker per leg that needs ours, in the renderer, generalised from `native-vad.worker.ts`.**
+"One component" means one implementation and one set of settings, not one shared instance: each leg has its own
+VAD state, buffers and Smart Turn window. The detector takes the leg's audio (24 kHz Int16, as the adapters receive
+it), resamples to 16 kHz once, runs Silero v5 through vad-web's `FrameProcessor` with the shared `SileroInput`
+context, and hosts the Smart Turn gate (`TurnGate`, today in `workers/_shared/turn-gate.ts`), which needs the
+audio window and so lives with the VAD. It connects to the one shared Smart Turn worker (`TurnRuntime`) the way the
+ASR workers do today.
 
-It answers in one of two shapes, chosen by the recognizer:
+It is the **only** receiver of the leg's audio: the adapter sends audio to the detector and nowhere else. The
+detector delivers to the recognizer on one ordered output, in one of two shapes chosen by the recognizer:
 
 - **Segments**, for recognizers that decode one utterance at a time (sherpa-onnx offline, the five WebGPU
-  workers): `{ type: 'segment', audio: Float32Array (16 kHz), startSample, endedBy: 'silence' | 'smart' | 'cap' |
-  'turn-end', smartTurnProbability? }`. The segment keeps today's shape (pre-pad + speech + the silence that ended
-  it), so recognition accuracy does not move. It is sent on a direct `MessageChannel` from the detector to the ASR
-  worker, transferred, not through the main thread.
-- **Marks**, for recognizers that hold the audio themselves (Voxtral 4B's continuous feed, Local Native's
-  sidecar): `{ type: 'mark', event: 'start' | 'end' | 'cancel', sample }`, where `sample` is the 16 kHz sample
-  index the edge belongs to, so a recognizer that receives audio and marks on different paths places the edge
-  exactly. Local Native's sidecar ignores `sample` (its 0.7 s pre-roll absorbs the skew) and keeps its wire.
+  workers): `{ type: 'segment', press?, seq, audio: Float32Array (16 kHz), start, end, endedBy: 'silence' |
+  'smart' | 'cap' | 'release', smartTurnProbability? }`. The segment keeps today's shape (pre-pad + speech + the
+  silence that ended it), so recognition accuracy does not move. It goes on a direct `MessageChannel` from the
+  detector to the ASR worker, transferred (the detector keeps no copy), not through the main thread.
+- **Audio and marks**, for recognizers that hold the audio themselves (Voxtral 4B's continuous feed, Local
+  Native's sidecar): the detector relays the leg's audio frame by frame **after** the VAD has processed each frame,
+  and puts each mark between the frames it separates: `…audio(frame k) · mark(end) · audio(frame k+1)…`. A
+  recognizer that acts on a mark when it receives it therefore acts at exactly the right place: nothing past the
+  boundary has reached it. No position field is needed on the wire (§3.1).
 
-**Engine limits move to the manifest.** Each recognizer's longest segment (Whisper 29 s, Granite 30 s / 20 s
-translating, Qwen3-ASR 40 s / 15 s Hindi / 20 s Thai, Voxtral 3B 30 s, Voxtral 4B 35 s, Moonshine v2 9 s, sherpa
-offline 20 s; Cohere none) becomes a manifest field. The detector cuts at `min(the user's max speech, the
-engine's limit)` with `endedBy: 'cap'`, as the workers do now.
+## 3.1 Contracts
 
-**What the detector never drops.** It queues audio messages and processes them in order (native-vad's queue),
-so the chunk-dropping goes away for every recognizer.
+These are the detector's interface. Each has tests in §9.
+
+**C1. One timeline per leg, and ordered delivery.**
+- A leg's timeline is the 16 kHz sample index counted from the leg's first audio chunk, as half-open intervals
+  `[start, end)`. The detector does the leg's only resampling and carries the fractional remainder across chunks,
+  so positions never drift with irregular chunk sizes. Counting continues through cancels and presses.
+- VAD frames are 512 samples at 16 kHz, which is exactly 768 samples at 24 kHz, so a boundary always falls between
+  whole frames on both rates. For Local Native, which takes 24 kHz PCM, the detector relays the original 24 kHz
+  frames, split at those boundaries.
+- Voxtral 4B: its feed appends what it receives; `start` starts or queues generation, `end` finishes it on the
+  audio received so far, `cancel` aborts it. With the ordered output these are exact. While a previous generation
+  is still draining, the next `start` queues, as today, and its audio is kept from its start frame on.
+- Local Native: the client forwards the detector's output to the sidecar's socket in the order it arrives (PCM
+  chunks and `vad_mark`), so the sidecar's "cut when the mark arrives" is the cut at the position. The wire does not
+  change. The sidecar's 0.7 s pre-roll still seeds the start of a segment; it is not relied on to absorb delay.
+
+**C2. Push-to-talk: presses and segments.** See §5.
+- A press (`press`, from the runner's `beginTurn`) is one logical turn; the segments one press produces (`seq`) are
+  only the engine's length limit cutting it, and none of them goes through minSpeech or Smart Turn.
+- `endTurn` closes the press (`endedBy: 'release'`); `cancelTurn` drops the press's segments not yet decoded and
+  makes every later result of that press void: results carry `press`, and the adapter publishes nothing for a
+  cancelled or older press. Results already published before the cancel stay, as they do today.
+- A late `start`, Smart Turn answer or result of press p never reaches press p + 1.
+
+**C3. Bounded queues, drain and stop.**
+- Input: the detector processes audio in order and never drops a chunk. If its unprocessed input exceeds 2 s
+  (it is falling behind real time), the leg fails with a notice ("turn detection cannot keep up on this device")
+  rather than drop audio or fall ever further behind.
+- Decoding: at most 5 segments or 30 s of audio may wait for the recognizer. Beyond that the leg fails with a notice,
+  the same way.
+- Drain (`endTurn`, `flush`, the end of a session): the detector closes the open segment, emits it, then emits
+  `drained{seq}` on the same ordered output; the recognizer answers `drained{seq}` once everything before it is
+  decoded. The adapter waits for that answer (with a timeout), which covers a segment still on its way over the
+  direct channel.
+- Stop: an epoch number. `stop` raises it first; the detector drops its queued input at once, the recognizer drops
+  segments of an older epoch, and the adapter ignores late results of an older epoch. Stop never waits for a
+  backlog to drain.
+- Failures: Smart Turn missing, failing or answering late → the leg keeps Normal turn detection (a stale answer
+  never ends a newer segment). Silero failing to load → the leg fails with a notice; it never waits silently.
+
+**C4. Length limits, as today's integer arithmetic.** The manifest keeps each model's limit with its kind:
+`{ kind: 'segment' | 'speech', seconds, byTask?, byLanguage? }` — `segment` counts the whole input including the
+pre-pad (Whisper 29 s, Voxtral 3B 30 s), `speech` the speech after it. Granite's (30 s, 20 s translating) and
+Qwen3-ASR's (40 s; Hindi 15 s, Thai 20 s) variants resolve from the leg's task and language at start. The detector
+reuses `resolveMaxSpeechFrames` (`workers/_shared/max-speech-frames.ts`), which deducts the pre-pad and rounds to
+512-sample frames: for Whisper with a 0.8 s pre-pad and a 30 s setting that is 881 frames, 28.992 s with the pad.
+Local Native's limit is set below the sidecar's backstops (20 s streaming, 30 s offline), counting the sidecar's
+0.7 s pre-roll.
+
+**C5. Which legs use the detector: decided per leg, from the resolved model.** One `local_inference`
+transcription unit hosts both streaming and segmented models, so the choice is not a property of the unit. Once a
+leg's recognition model is resolved (`localRecognition`, `providers/localInference/config.ts:163-178`), its config
+carries `turnDetection: 'shared' | 'own'`: `shared` for a model already moved to the detector, `own` for a streaming
+model, a cloud recognizer, and any model not yet moved in the step under way. The adapter opens a detector only for
+a `shared` leg, so no leg ever runs two VADs. The same answer decides what the settings show (§7). This covers two
+legs on different models, the whole unit and the transcription-only unit alike, and a model changed between runs.
+`turnOwner` (`lib/run/types.ts:97-98`) is retired rather than given a reader: the decision is per leg, not per unit.
+
+**Engine limits move to the manifest** (C4), and **the detector never drops audio** (C3): the vad-web workers'
+chunk-dropping goes away for every recognizer.
 
 ## 4. The recognizers
 
 | Recognizer | Change | Stays |
 |---|---|---|
-| WebGPU ×5 | Add `segment` input, calling the existing `schedule*(audio, start, {endedBy})`; without `vadConfig` at init, skip `initVad` and `openTurnLink`; `flush` waits for the decode chain only; `audio` becomes a no-op. Their VAD ORT instance goes (Qwen3-ASR may drop `onnxruntime-all`). Cohere and Voxtral 3B gain `startSample` from the segment. | The decode code. |
-| sherpa-onnx offline | Add `segment` input in the classic worker: one decode function (folding the two duplicated blocks); an init flag skips `createVad` and its buffer. | The WASM build: its VAD stays compiled but unused (rebuilding without it is a later saving). |
-| Voxtral 4B | Keep the continuous `audio` feed into `audioFeed`; drop its VAD loop; `mark start` → start or queue generation, `end` → `finishGenerate`, `cancel` → `abortGenerate`, each at `sample`; the idle trim keeps audio back to the oldest unanswered `sample`. | Punctuation cuts inside a turn ("exactly one layer may cut" stays true: punctuation splits results, the detector ends turns). |
-| Local Native | `nativeVad()` and its worker give way to the detector in marks mode; `vad_mark` on the sidecar's socket unchanged. The detector's cap stays below the sidecar's 20 s / 30 s backstops. | The sidecar and its wire. |
-| sherpa streaming, every cloud service | None: rule 1. | Their own endpointing. |
+| WebGPU ×5 | Add `segment` input, calling the existing `schedule*(audio, start, {endedBy})`; answer `drained`; drop segments of an older epoch; without `vadConfig` at init, skip `initVad` and `openTurnLink`; `audio` is no longer sent to them. Their VAD ORT instance goes (Qwen3-ASR may drop `onnxruntime-all`). Cohere and Voxtral 3B gain a start from the segment. | The decode code. |
+| sherpa-onnx offline | Add `segment` input in the classic worker: one decode function (folding the two duplicated blocks); `drained`; an init flag skips `createVad` and its buffer. | The WASM build: its VAD stays compiled but unused (rebuilding without it is a later saving). |
+| Voxtral 4B | Keep the continuous feed into `audioFeed`, now fed by the detector's ordered output; drop its VAD loop; marks per C1. | Punctuation cuts inside a turn ("exactly one layer may cut" stays true: punctuation splits results, the detector ends turns). |
+| Local Native | `nativeVad()` and its worker give way to the detector in audio-and-marks mode; the client forwards its output in order (C1). | The sidecar and its wire. |
+| sherpa streaming, every cloud service | None: rule 1 (`turnDetection: 'own'`). | Their own endpointing. |
 
-**The adapters.** `AsrInit.vadConfig` and `turnPort` give way to a detector the adapter opens per leg and hands
-to the engine (a port). The 700 ms pad goes. `startSample` has one source for every engine. `turnOwner` gets a
-reader: the composer refuses no plan on it (every local recognizer above is `'external'` and every cloud one
-`'unit'`), but the run reads it to know whether a turn-detector is opened for the unit.
+**The adapters.** `AsrInit.vadConfig` and `turnPort` give way to a detector the adapter opens for a `shared` leg
+and connects to the engine (a port). The 700 ms pad goes. Every engine's result start comes from the segment.
 
 ## 5. Push-to-talk
 
-With the detector in front of the recognizer, a press can be the turn, exactly: press opens a segment (or sends
-`start`), release closes it (`turn-end` / `end`), cancel drops it. The VAD is not asked during a press. Speech
-shorter than the runner's 500 ms voiced minimum is already a cancel (`lib/session/turn.ts`). A press longer than
-the engine's limit is cut at the limit and continues in the next segment, as today's cap does.
+With the detector in front of the recognizer, a press is the turn: `beginTurn` opens a press, `endTurn` closes it
+(`release`), `cancelTurn` drops it (C2). The VAD is not asked during a press. A press longer than the engine's
+limit is cut at the limit and continues in the next segment of the same press; that cut is the one exception to
+"a press is one segment", and it is not re-checked by the VAD, so a short tail after the cut is decoded, not dropped.
 
-This changes one behaviour: quiet speech inside a press is no longer dropped by the VAD. Decision 1 (§10).
+The runner's own check stays as it is for every provider: a press with less than 500 ms of audio above an average
+amplitude of 0.01 is cancelled (`lib/session/turn.ts:3-16`, `lib/session/run.ts:549-558`). So a near-silent press is
+still cancelled, as today. What changes is the band in between: speech loud enough for the runner's check but below
+Silero's speech threshold, or shorter than minSpeech, is no longer dropped inside a press. Decision 1 (§10).
 
 ## 6. Smart Turn
 
@@ -122,8 +182,8 @@ nobody's tuning is lost; the old keys are left in place for one release, then re
 
 **UI.** One Turn detection control set, the same knobs for every recognizer in rule 2 — no more 0 / 3 / 6 / 6 +
 Smart depending on the model. It shows where LocalInference's does today: the Speech section's summary under Auto,
-and the line-up card of the transcription stage, for `local_inference` (segmented models) and `local_native`.
-For a streaming model and every cloud service the card shows none (rule 1). The engine limit is a note under Max
+and the line-up card of the transcription stage, whenever a leg's resolved model is `shared` (C5). For a leg on a
+streaming model or a cloud service it shows none (rule 1). The engine limit is a note under Max
 speech ("this model splits utterances longer than 9 s"). `vadIsWebWorker`, `showVad`, `SMART_TURN_WORKER_TYPES`
 and `supportsSmartTurn` go. Restore defaults stays. The participant leg keeps automatic turns.
 
@@ -131,8 +191,9 @@ and `supportsSmartTurn` go. Restore defaults stays. The participant leg keeps au
 
 Each a PR into `main`, each leaving every recognizer working:
 
-1. **The detector and the settings.** The turn-detector worker (segments and marks, the gate, engine limits from
-   the manifest), `settings.turnDetection.*` with its migration, the one Controls component. Wired to the WebGPU
+1. **The detector and the settings.** The turn-detector worker with the contracts of §3.1 (segments and
+   audio-and-marks, the gate, limits from the manifest, bounded queues, drain and epochs), the per-leg
+   `turnDetection` decision, `settings.turnDetection.*` with its migration, the one Controls component. Wired to the WebGPU
    ×5 first: they take `segment`, lose their VAD; the adapter opens the detector for them. The other recognizers
    keep their own VAD in this step and read the new settings. Push-to-talk per §5 for these five.
 2. **sherpa-onnx offline** takes segments. SenseVoice and the rest get Smart Turn and the shared knobs.
@@ -144,19 +205,34 @@ Each a PR into `main`, each leaving every recognizer working:
 
 ## 9. Testing
 
-- **Unit:** the detector on recorded fixtures — the segments it cuts (count, start sample, end reason) match the
-  current WebGPU worker's on the same audio; Smart Turn's gate as today's tests, moved; marks' `sample`; the queue
-  never drops a chunk under a slow consumer; the migration.
-- **Recognizers:** each worker's `segment` / mark handling, with the existing decode tests.
-- **Before/after on real audio:** the e2e Japanese sentences through SenseVoice, Whisper and Voxtral 4B on this
-  repo's e2e build, before and after each step: sentences heard and translated, segment boundaries, and the time
-  from the end of speech to the final text. A step does not ship if any of them gets worse beyond noise.
-- **Push-to-talk:** press/release produces one segment; quiet speech inside a press is kept (decision 1).
+Rules that hold or fail exactly (zero gaps, zero overlaps) are tested apart from recognition quality and latency,
+which are statistics.
+
+**Unit (the detector and each recognizer):**
+
+| Case | Must hold |
+|---|---|
+| A boundary inside a chunk; audio before a mark and a mark before audio; irregular chunk sizes | Every segment's interval and every relayed audio span is exact: no gap, no overlap, no audio of one turn inside the next; positions do not drift (C1) |
+| Two legs at once | Positions, state and cancels of one leg never touch the other |
+| Voxtral 4B: a second end, or the next start, while a generation is still draining | Each interval belongs to one turn, in timeline order |
+| Local Native: the detector delayed by more than 0.7 s | Output stays exact by ordering, not by the sidecar's pre-roll |
+| Push-to-talk: quiet speech, a short press, a silent press, quick repeated presses, cancel | The runner's check decides as today; inside a kept press the VAD drops nothing; after a cancel no new result of that press is published (C2) |
+| A press or an automatic turn crossing the length limit with 100–300 ms left after it | The limit as C4's arithmetic; the tail is decoded once, the pre-pad never repeated |
+| Input slower than real time; stop with a backlog | Queues stay bounded and the leg fails with a notice; stop returns at once and late results are ignored (C3) |
+| Smart Turn missing, failing, or answering late | Normal turn detection goes on; a stale answer never ends a newer segment |
+| The migration | Each stored `localInference.vad*` value is carried over once |
+| `turnDetection` per leg | Segmented + streaming legs, the whole and the transcription-only unit, a model changed: the detector opens exactly for `shared` legs and the settings show accordingly (C5) |
+
+**Before/after on real audio:** the e2e Japanese sentences through SenseVoice, Whisper and Voxtral 4B on the e2e
+build, before and after each step, with the same models, settings and clips, five runs each: sentences heard and
+translated, segment boundaries, and the time from the end of speech to the final text. A step ships only if the
+medians are no worse than before by more than the run-to-run spread measured on the before side.
 
 ## 10. Decisions for the owner
 
-1. **Push-to-talk:** the press is the turn and the VAD is not asked during it (recommended), or the VAD keeps
-   cutting inside a press as today.
+1. **Push-to-talk:** the press is the turn and the VAD is not asked during it (recommended; the runner's
+   near-silence check stays, and a press past the model's limit is cut into segments of the same press), or the
+   VAD keeps cutting inside a press as today.
 2. **Order:** WebGPU first, then SenseVoice and the others, then Voxtral 4B, then Local Native after #578
    (recommended); or SenseVoice first, since it is the default.
 
@@ -175,5 +251,7 @@ Each a PR into `main`, each leaving every recognizer working:
 
 - That the segments the detector cuts match the worker VAD's closely enough to keep recognition accuracy (the
   before/after check in §9 is the gate).
+- The input-backlog and decoding-queue bounds (2 s; 5 segments / 30 s) are starting values; the slowest supported
+  device sets them in step 1.
 - The cost of one more transferred message per segment (expected a few milliseconds).
 - sherpa's bundled Silero version against Silero v5: SenseVoice's segments may move slightly in step 2.
