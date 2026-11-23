@@ -5,7 +5,8 @@
  * Positions are 16 kHz sample indices on the leg's timeline, counted from the
  * leg's first audio chunk; intervals are half-open, `[from, to)`.
  */
-import type { SegmentEnd } from '../../types';
+import type { SegmentEnd, VadWebConfig } from '../../types';
+import type { SegmentLimit } from './max-speech-frames';
 
 export type SegmentEndedBy = SegmentEnd['endedBy'];
 
@@ -53,3 +54,28 @@ export const DECODE_QUEUE_SECONDS = 30;
 export function overloadedNotice(): DetectorNotice {
   return { type: 'failed', code: 'turn_detection_overloaded', message: 'Turn detection cannot keep up on this device.' };
 }
+
+/** Main thread → detector worker. The worker transfers `output` and `turnPort` ownership on arrival. */
+export interface DetectorInitMessage {
+  type: 'init';
+  turns: 'auto' | 'manual';
+  vad: VadWebConfig;
+  limit: SegmentLimit;
+  output: MessagePort;
+  turnPort?: MessagePort;
+  ortWasmBaseUrl: string;
+  vadModelUrl: string;
+}
+export type DetectorInbound =
+  | DetectorInitMessage
+  | { type: 'audio'; pcm: Int16Array; sampleRate: number }
+  | { type: 'begin'; press: number }
+  | { type: 'drain'; press?: number }
+  | { type: 'cancel'; press: number }
+  | { type: 'stop'; epoch: number }
+  | { type: 'dispose' };
+/** Detector worker → main thread. `error` before `ready` fails the init; after it, a notice stands in for it. */
+export type DetectorOutbound =
+  | { type: 'ready'; loadTimeMs: number }
+  | DetectorNotice
+  | { type: 'error'; error: string; code?: TurnFailureCode };
