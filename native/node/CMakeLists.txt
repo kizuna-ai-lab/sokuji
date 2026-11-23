@@ -9,7 +9,8 @@ add_library(sokuji_native_node MODULE
     src/common.cpp
     src/worker.cpp
     src/asr.cpp
-    src/translate.cpp)
+    src/translate.cpp
+    src/tts.cpp)
 set_target_properties(sokuji_native_node PROPERTIES
     OUTPUT_NAME sokuji_native_node
     PREFIX ""

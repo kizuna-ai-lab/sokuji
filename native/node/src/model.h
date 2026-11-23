@@ -1,4 +1,4 @@
-// What every loaded-model object (AsrModel, Translator, and TTS next) shares: the native handle,
+// What every loaded-model object (AsrModel, Translator, Tts) shares: the native handle,
 // the model's own worker thread, and unload.
 //
 //   NativeHandle    the native pointer, freed exactly once by whoever gets there first

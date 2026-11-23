@@ -53,6 +53,7 @@ Napi::Object InitAddon(Napi::Env env, Napi::Object exports) {
     sk_node::RegisterCommon(env, exports);
     sk_node::RegisterAsr(env, exports);
     sk_node::RegisterTranslate(env, exports);
+    sk_node::RegisterTts(env, exports);
     return exports;
 }
 
