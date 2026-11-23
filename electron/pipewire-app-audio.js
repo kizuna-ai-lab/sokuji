@@ -508,6 +508,8 @@ async function connectAppSourceUnsafe(deviceId, {
       if (current.looking) return;
       current.looking = true;
       return serialize(() => followApplication(current, { exec, isAlive }))
+        // Logged, never thrown: main.js quits the app on an unhandled rejection, mid-meeting.
+        .catch((e) => console.warn('[Sokuji] [PipeWire] Following the tapped application failed:', e?.message ?? e))
         .finally(() => { current.looking = false; });
     }, RELINK_POLL_MS);
     watch = current;
