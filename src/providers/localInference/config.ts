@@ -4,11 +4,12 @@ import type { LegName } from '../../lib/conversation/types';
 import { ALL_LOCAL_STAGES, localStagesOf, type LocalStages } from '../../lib/lineup/localStages';
 import type { AdmittedConfigs, ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import { guardAstCrossStage } from '../../services/providers/astGuard';
-import { getManifestEntry, estimateModelMemoryByDevice } from '../../lib/local-inference/modelManifest';
+import { getManifestEntry, estimateModelMemoryByDevice, segmentLimitFor } from '../../lib/local-inference/modelManifest';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import { turnDetectionOf, type TurnDetection } from '../../lib/turn/turnDetection';
 import { TURN_DETECTION_DEFAULTS, vadConfigOf, type TurnDetectionSettings } from '../../lib/turn/turnDetectionSettings';
 import { directionKey, type DirectionResult, type LocalModels } from '../../lib/local-inference/selection/types';
+import type { SegmentLimit } from '../../lib/local-inference/workers/_shared/max-speech-frames';
 import type { LocalInferenceSettings } from './settings';
 import { directionVoice, speakerIdFor } from './voices';
 import type { LocalTtsConfig, TtsUnavailableCode } from '../../lib/local-inference/sessions/speech';
@@ -25,6 +26,8 @@ export type { LocalTtsConfig, TtsUnavailableCode };
  */
 export interface LocalInferenceConfig {
   asr: { modelId: string; streaming: boolean; turnDetection: TurnDetection };
+  /** The longest segment this leg's recognizer is handed (its manifest limit for the leg's task and language). Set for `shared` legs. */
+  limit?: SegmentLimit;
   vad: { threshold: number; negativeThreshold?: number; minSilenceDuration: number; minSpeechDuration: number; maxSpeechDuration: number; preSpeechPadDuration: number; smartTurn?: { checkAfter: number; threshold: number } };
   translation:
     | { kind: 'engine'; modelId: string; instructions: string; wrapTranscript: boolean }
@@ -161,11 +164,14 @@ export function noAsr(source: string): ProviderRefusal {
  * with Smart Turn where the settings ask for it and the model's worker takes it. One builder for the whole local
  * session and for the local recognition as a unit of its own.
  */
-export function localRecognition(td: TurnDetectionSettings, asrModelId: string): Pick<LocalInferenceConfig, 'asr' | 'vad'> {
+export type RecognitionLeg = { language: string; task: 'transcribe' | 'translate' };
+
+export function localRecognition(td: TurnDetectionSettings, asrModelId: string, leg: RecognitionLeg): Pick<LocalInferenceConfig, 'asr' | 'vad' | 'limit'> {
   const asrEntry = getManifestEntry(asrModelId);
   const turnDetection = turnDetectionOf(asrEntry);
   const asr = { modelId: asrModelId, streaming: asrEntry?.type === 'asr-stream', turnDetection };
-  return { asr, vad: vadConfigOf(td, turnDetection === 'shared') as LocalInferenceConfig['vad'] };
+  const vad = vadConfigOf(td, turnDetection === 'shared') as LocalInferenceConfig['vad'];
+  return turnDetection === 'shared' ? { asr, vad, limit: segmentLimitFor(asrEntry, leg) } : { asr, vad };
 }
 
 /**
@@ -186,12 +192,11 @@ export function buildLocalInference(
 
   if (!resolved.asr) return noAsr(source);
 
-  const { asr, vad } = localRecognition(shared.turnDetection ?? TURN_DETECTION_DEFAULTS, resolved.asr.modelId);
-
   // Today's inference (LocalInferenceClient.ts ~406-408): the ASR model
   // handles translation itself (Granite Speech) when it was also picked,
   // explicitly, as the translation stage.
   const isAst = translatesSpeechDirectly(resolved.asr.modelId, resolved.translation?.modelId);
+  const { asr, vad, limit } = localRecognition(shared.turnDetection ?? TURN_DETECTION_DEFAULTS, resolved.asr.modelId, { language: source, task: isAst ? 'translate' : 'transcribe' });
 
   let translation: LocalInferenceConfig['translation'];
   if (isAst) {
@@ -202,7 +207,7 @@ export function buildLocalInference(
     translation = { kind: 'engine', modelId: resolved.translation.modelId, ...localTranslationPrompt(context, s, shared) };
   }
 
-  const config: LocalInferenceConfig = { asr, vad, translation };
+  const config: LocalInferenceConfig = { asr, vad, translation, ...(limit ? { limit } : {}) };
   if (shared.segmentation.mode === 'sentences') config.jobSentences = shared.segmentation.sentencesPerRow;
   if (context.speech && resolved.tts) config.tts = localTts(context.direction, s, resolved.tts.modelId);
   else if (context.speech) config.ttsUnavailable = ttsMissingCode(context.direction, shared);

@@ -2,7 +2,8 @@
  * Which legs our turn detection serves, decided per leg from the resolved model.
  * `shared`: the app's detector (VAD, and Smart Turn where stored) ends the turn. `own`: the model ends it itself.
  */
-import type { ModelManifestEntry } from '../local-inference/modelManifest';
+import { segmentLimitFor, type ModelManifestEntry } from '../local-inference/modelManifest';
+import { resolveMaxSpeechFrames } from '../local-inference/workers/_shared/max-speech-frames';
 import type { TurnDetectionSettings } from './turnDetectionSettings';
 
 export type TurnDetection = 'shared' | 'own';
@@ -40,12 +41,22 @@ export interface TurnDetectionLeg {
 export interface TurnDetectionScope {
   shown: boolean;
   smartOffered: boolean;
+  /** The longest segment, in seconds, the shown legs' recognizers are handed; set only when below Max speech. */
   limitSeconds?: number;
 }
 
-export function turnDetectionScope(legs: readonly TurnDetectionLeg[], _td: TurnDetectionSettings): TurnDetectionScope {
-  return {
-    shown: legs.some((l) => takesOurTurnDetection(l.entry)),
+const VAD_FRAME_SECONDS = 0.032;
+
+export function turnDetectionScope(legs: readonly TurnDetectionLeg[], td: TurnDetectionSettings): TurnDetectionScope {
+  const shownLegs = legs.filter((l) => takesOurTurnDetection(l.entry));
+  const scope: TurnDetectionScope = {
+    shown: shownLegs.length > 0,
     smartOffered: legs.some((l) => l.turns === 'auto' && turnDetectionOf(l.entry) === 'shared'),
   };
+  const frames = shownLegs.map((l) => resolveMaxSpeechFrames(td.maxSpeech, td.prePad * 1000, segmentLimitFor(l.entry, l)));
+  if (frames.length > 0) {
+    const limitSeconds = Math.round(Math.min(...frames) * VAD_FRAME_SECONDS * 10) / 10;
+    if (limitSeconds < td.maxSpeech) scope.limitSeconds = limitSeconds;
+  }
+  return scope;
 }

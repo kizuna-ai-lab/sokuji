@@ -30,7 +30,7 @@ const mockResolve = vi.fn((src: string, tgt: string, selections: Selections): Di
 
 /** Per-model manifest stub: only the fields `build`/`admit` read. Absent id: a
  *  plain offline ASR entry, no AST capability. */
-let mockManifest: Record<string, { type?: string; asrEngine?: string; astLanguages?: unknown; asrWorkerType?: string; ttsConfig?: { defaultSid?: number } }> = {};
+let mockManifest: Record<string, { type?: string; asrLimit?: unknown; asrEngine?: string; astLanguages?: unknown; asrWorkerType?: string; ttsConfig?: { defaultSid?: number } }> = {};
 /** Per-model memory size in MB, summed by the mocked `estimateModelMemoryByDevice`. */
 let mockSizes: Record<string, number> = {};
 
@@ -43,7 +43,8 @@ const estimate = vi.hoisted(() => vi.fn((ids: ReadonlyArray<string | undefined |
   return { vramMb: 0, ramMb };
 }));
 
-vi.mock('../../lib/local-inference/modelManifest', () => ({
+vi.mock('../../lib/local-inference/modelManifest', async (importActual) => ({
+  segmentLimitFor: (await importActual<typeof import('../../lib/local-inference/modelManifest')>()).segmentLimitFor,
   getManifestEntry: (id: string) => mockManifest[id] ?? { type: 'asr' },
   estimateModelMemoryByDevice: estimate,
 }));
@@ -329,6 +330,17 @@ describe('buildLocalInference', () => {
       expect(build({ endOfTurn: 'smart' }).asr.turnDetection).toBe('shared');
       mockManifest = { a: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
       expect(build({ endOfTurn: 'smart' }).asr.turnDetection).toBe('own');
+    });
+
+    it('a shared leg carries its limit for its task and language; an own leg none', () => {
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'granite-speech-webgpu', asrEngine: 'granite-speech', asrLimit: { kind: 'speech', seconds: 30, byTask: { translate: 20 } }, astLanguages: { en: ['ja'] } } };
+      resolved({ 'en>ja': { asr: 'a', translation: 'a' } });
+      const built = () => buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig;
+      expect(built().limit).toEqual({ maxSpeechSeconds: 20 });
+      resolved({ 'en>ja': { asr: 'a', translation: 't' } });
+      expect(built().limit).toEqual({ maxSpeechSeconds: 30 });
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
+      expect(built()).not.toHaveProperty('limit');
     });
 
     it('holds Turn Check After 0.2 s under Max Wait', () => {

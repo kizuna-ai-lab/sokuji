@@ -94,6 +94,7 @@ let speechFramesSinceStart = 0;
 // for most of them, since only a segment that follows silence carries the
 // full pre-speech pad), on a multi-chunk WebGPU path this app has never run
 // (the old 20 s cap never reached it).
+// Pinned equal to VOXTRAL_3B_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
 const VOXTRAL_3B_MAX_SEGMENT_SAMPLES = 30 * VAD_SAMPLE_RATE;
 
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {

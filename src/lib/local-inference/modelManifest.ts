@@ -65,6 +65,18 @@ export interface TtsModelConfig {
   totalStep?: number;
 }
 
+/**
+ * The longest audio a recognizer reads in one segment.
+ * `segment`: the whole segment, pre-speech pad included, in `seconds`. `speech`: the speech alone, as if the Max Speech
+ * setting were set to it. `byTask` and `byLanguage` (by primary subtag) override `seconds`; the language wins.
+ */
+export interface AsrLengthLimit {
+  kind: 'segment' | 'speech';
+  seconds: number;
+  byTask?: { translate?: number };
+  byLanguage?: Readonly<Record<string, number>>;
+}
+
 export interface ModelManifestEntry {
   // ─── Identity ──────────────────────────────────────────────────────────
   /** Unique model identifier (e.g. 'sensevoice', 'piper-en', 'opus-mt-ja-en') */
@@ -118,6 +130,8 @@ export interface ModelManifestEntry {
   asrEngine?: AsrEngineType | StreamAsrEngineType;
   /** Which ASR worker to use. Defaults to 'sherpa-onnx' if omitted. */
   asrWorkerType?: 'sherpa-onnx' | 'whisper-webgpu' | 'voxtral-webgpu' | 'voxtral-3b-webgpu' | 'cohere-transcribe-webgpu' | 'granite-speech-webgpu' | 'qwen3-asr-webgpu';
+  /** The longest segment this recognizer is handed, and what kind of limit it is. See `AsrLengthLimit`. */
+  asrLimit?: AsrLengthLimit;
   /** AST (speech translation) language support. When present, model appears as a translation option when selected as ASR. */
   astLanguages?: {
     /** Languages the model can transcribe */
@@ -532,6 +546,105 @@ function whisperFiles(
   return files;
 }
 
+// ─── ASR length limits ───────────────────────────────────────────────────────
+// Each engine has a longest segment it transcribes correctly. The measurements are kept here, with the number.
+
+/**
+ * The longest segment Whisper is handed, pre-speech pad included.
+ * WhisperFeatureExtractor reads the first 480000 samples (30 s) and drops the
+ * rest with nothing but a console warning, and a window that is completely
+ * full — no zero padding left — can also cut the no-timestamp decode short:
+ * whisper-small returned 69 characters for a 30.000 s segment it transcribed
+ * as 135 at 29.984 s. That was on clips from several speakers concatenated;
+ * 11 windows of single-speaker speech lost only the truncated tail. One
+ * second under the window rather than one frame, because only whisper-small
+ * could be decoded locally. `chunk_length_s` is not the way out: without
+ * timestamps its merge is a longest-common-sequence over raw tokens, which
+ * dropped or duplicated speech in every language tried and took 1.5-4x as
+ * long.
+ */
+const WHISPER_LIMIT: AsrLengthLimit = { kind: 'segment', seconds: 29 };
+
+/**
+ * The longest segment Voxtral Mini 3B is handed, pre-speech pad included: one
+ * 30 s encoder chunk. Nothing is lost past it — transformers.js splits a
+ * longer segment into 30 s chunks — but a 30 s cap makes a segment of 30.016
+ * to 30.816 s, so every capped segment would pay a second encoder pass and
+ * 375 more prefill tokens for the 16 to 816 ms that overflow (16 to 176 ms
+ * for most of them, since only a segment that follows silence carries the
+ * full pre-speech pad), on a multi-chunk WebGPU path this app has never run
+ * (the old 20 s cap never reached it).
+ */
+const VOXTRAL_3B_LIMIT: AsrLengthLimit = { kind: 'segment', seconds: 30 };
+
+/**
+ * The longest speech Granite Speech is handed. There is no audio-side limit, and
+ * the decode budget removes the other one, so what is left is the model
+ * itself: it ends the transcript early at a sentence or speaker boundary,
+ * and what it drops grows with the segment: up to 6.7 s of a 20.8 s segment,
+ * 8.7 s of 30.8 s, 11.7 s of 35.8 s, and 41.6 s of a 60.8 s one with two
+ * speaker changes. No length above 30 s was reliably complete. Translate mode
+ * stays at the old 20 s: at 30.8 s it returned untranslated English as the
+ * translation in one window of three and dropped the last third of another.
+ */
+const GRANITE_LIMIT: AsrLengthLimit = { kind: 'speech', seconds: 30, byTask: { translate: 20 } };
+
+/**
+ * The longest speech Qwen3-ASR is handed, by source language. There is no
+ * audio-side limit; the limit is the decode budget, prompt_config.json's
+ * max_new_tokens = 256, and a transcript that needs more is cut at the tail
+ * and posted as an ordinary result. In seconds that depends on how the
+ * tokenizer treats the language. Real English and Japanese need 58-78 s to
+ * fill it (and at 60 s the decode runs at 0.8-1.3x real time, so the queue
+ * never drains). Hindi and Thai are far denser, and both were measured on
+ * FLEURS audio through the shipped graphs: at 20.8 s four of six Hindi
+ * windows overflowed, losing 3 to 49 characters and sometimes ending in
+ * U+FFFD, and at 30.8 s every fast Thai window overflowed, losing 45 to 86.
+ * At 15.8 s and 20.8 s respectively they fit, needing 230 and 209 tokens at
+ * p99 pace.
+ * Raising the budget instead needs a repetition stop first: given 400 tokens,
+ * the 1.7B model looped "doctor, doctor, ..." on clean English until they
+ * ran out.
+ */
+const QWEN3_ASR_LIMIT: AsrLengthLimit = { kind: 'speech', seconds: 40, byLanguage: { hi: 15, th: 20 } };
+
+/**
+ * The longest speech one Voxtral Realtime generate() run is fed. No text is lost past it — a
+ * 60 s run transcribes completely — but the run has to stay under 512 audio
+ * tokens (80 ms each: 2.56 s left pad + 0.8 s pre-roll + speech + 1.36 s tail
+ * pad) to keep up with real time. Past that the float32 decoder KV tensors
+ * leave the 2 MiB allocation class and every token costs ~130 ms more: on a
+ * GB10 a 40 s run finished 10 s late and a 60 s one 38-59 s late, and Stop
+ * pressed while it lags discards the backlog. 35 s is 498-499 tokens. Not
+ * lower — each forced cut damages about one word. Measured on q4 only;
+ * q4f16's float16 KV is predicted to reach the step at ~78 s, which nobody
+ * has run.
+ *
+ * The 13 tokens of headroom are not all slack: an utterance that starts while
+ * the previous run is still draining is staged untrimmed, so it carries every
+ * sample since the last endpoint instead of the 0.8 s pre-roll (the idle trim
+ * at feedAudio is gated on `!isGenerating`). A drain longer than ~2.8 s then
+ * pushes the carrying run past 512 — 523 to 537 tokens at a drain of 4.6 s
+ * (the 2026-09 simulation gave 513-527 with the 7-token tail of the time),
+ * against the 1.2-2.65 s measured on the GB10. Latency only,
+ * no text lost, and the same at any cap; trimming the staged buffer is a
+ * separate change.
+ */
+const VOXTRAL_REALTIME_LIMIT: AsrLengthLimit = { kind: 'speech', seconds: 35 };
+
+/**
+ * Moonshine v2 throws on any segment past ~9.3 s: its decoder's
+ * mask shape does not match the encoder past 384 frames, and the
+ * bundled wasm cannot catch the C++ exception, so the whole
+ * segment comes back as "ASR processing error" and one error
+ * bubble. Executed on moonshine-tiny-ja-quant through the sherpa-onnx worker: 8 s fine, 12 s throws, twice. Nine seconds is the
+ * largest safe multiple of a second.
+ */
+const MOONSHINE_V2_LIMIT: AsrLengthLimit = { kind: 'speech', seconds: 9 };
+
+/** Every other sherpa-onnx offline engine keeps the 20 s that worker has always used. */
+const SHERPA_OFFLINE_LIMIT: AsrLengthLimit = { kind: 'speech', seconds: 20 };
+
 // ─── Model Manifest ──────────────────────────────────────────────────────────
 
 export const MODEL_MANIFEST: ModelManifestEntry[] = [
@@ -566,6 +679,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-tiny-en-quant',
     variants: { default: { dtype: 'default', files: asrFiles(44_900_404, 355) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   {
     id: 'moonshine-tiny-ja-quant',
@@ -575,6 +689,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-tiny-ja-quant',
     variants: { default: { dtype: 'default', files: asrFiles(72_772_004, 355) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   {
     id: 'moonshine-tiny-ko-quant',
@@ -584,6 +699,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-tiny-ko-quant',
     variants: { default: { dtype: 'default', files: asrFiles(72_772_060, 355) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   {
     id: 'moonshine-base-zh-quant',
@@ -593,6 +709,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-base-zh-quant',
     variants: { default: { dtype: 'default', files: asrFiles(141_957_884, 363) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   {
     id: 'moonshine-base-ja-quant',
@@ -602,6 +719,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-base-ja-quant',
     variants: { default: { dtype: 'default', files: asrFiles(141_957_788, 363) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   {
     id: 'moonshine-base-es-quant',
@@ -611,6 +729,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-base-es-quant',
     variants: { default: { dtype: 'default', files: asrFiles(65_765_808, 355) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   {
     id: 'moonshine-base-ar-quant',
@@ -620,6 +739,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-base-ar-quant',
     variants: { default: { dtype: 'default', files: asrFiles(141_957_924, 363) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   {
     id: 'moonshine-base-uk-quant',
@@ -629,6 +749,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-base-uk-quant',
     variants: { default: { dtype: 'default', files: asrFiles(141_957_788, 363) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   {
     id: 'moonshine-base-vi-quant',
@@ -638,6 +759,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
     cdnPath: 'wasm-moonshine-base-vi-quant',
     variants: { default: { dtype: 'default', files: asrFiles(141_957_884, 363) } },
     asrEngine: 'moonshine-v2',
+    asrLimit: MOONSHINE_V2_LIMIT,
   },
   // NeMo
   {
@@ -864,6 +986,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // Shared config/tokenizer files + per-variant ONNX model files.
   {
     id: 'voxtral-mini-4b-webgpu',
+    asrLimit: VOXTRAL_REALTIME_LIMIT,
     type: 'asr-stream',
     name: 'Voxtral Mini 4B Realtime (WebGPU)',
     languages: ['ar', 'de', 'en', 'es', 'fr', 'hi', 'it', 'nl', 'pt', 'zh', 'ja', 'ko', 'ru'],
@@ -927,6 +1050,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // with q4f16 audio encoder + decoder.
   {
     id: 'voxtral-mini-3b-webgpu',
+    asrLimit: VOXTRAL_3B_LIMIT,
     type: 'asr',
     name: 'Voxtral Mini 3B 2507 (WebGPU)',
     languages: ['en', 'es', 'fr', 'pt', 'hi', 'de', 'nl', 'it'],
@@ -1056,6 +1180,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // q4f16. Medium also OOMs with fp16 encoder (~615MB). Keep q4 only for these models.
   {
     id: 'whisper-tiny-en-webgpu',
+    asrLimit: WHISPER_LIMIT,
     type: 'asr',
     name: 'Whisper Tiny EN (WebGPU)',
     languages: ['en'],
@@ -1081,6 +1206,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
   {
     id: 'whisper-tiny-webgpu',
+    asrLimit: WHISPER_LIMIT,
     type: 'asr',
     name: 'Whisper Tiny (WebGPU, 99+ languages)',
     // Derivation would collide with the plain whisper-tiny (both reduce to
@@ -1110,6 +1236,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
   {
     id: 'whisper-base-webgpu',
+    asrLimit: WHISPER_LIMIT,
     type: 'asr',
     name: 'Whisper Base (WebGPU, 99+ languages)',
     languages: ['multilingual'],
@@ -1136,6 +1263,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
   {
     id: 'whisper-small-webgpu',
+    asrLimit: WHISPER_LIMIT,
     type: 'asr',
     name: 'Whisper Small (WebGPU, 99+ languages)',
     languages: ['multilingual'],
@@ -1162,6 +1290,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
   {
     id: 'whisper-medium-webgpu',
+    asrLimit: WHISPER_LIMIT,
     type: 'asr',
     name: 'Whisper Medium (WebGPU, 99+ languages)',
     languages: ['multilingual'],
@@ -1189,6 +1318,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   },
   {
     id: 'whisper-large-v3-turbo-webgpu',
+    asrLimit: WHISPER_LIMIT,
     type: 'asr',
     name: 'Whisper Large V3 Turbo (WebGPU, 99+ languages)',
     languages: ['multilingual'],
@@ -1223,6 +1353,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // ─── Granite Speech (WebGPU) ─────────────────────────────────────────────
   {
     id: 'granite-speech',
+    asrLimit: GRANITE_LIMIT,
     type: 'asr',
     name: 'Granite Speech 4.0 1B (WebGPU)',
     languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'],
@@ -1283,6 +1414,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // same languages. IBM reports Mean WER 5.33 on Open ASR Leaderboard.
   {
     id: 'granite-speech-4.1-2b',
+    asrLimit: GRANITE_LIMIT,
     type: 'asr',
     name: 'Granite Speech 4.1 2B (WebGPU)',
     languages: ['en', 'fr', 'de', 'es', 'pt', 'ja'],
@@ -1348,6 +1480,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // `dtype` is the variant key the worker looks up in prompt_config.json.
   {
     id: 'qwen3-asr-0.6b-webgpu',
+    asrLimit: QWEN3_ASR_LIMIT,
     type: 'asr',
     name: 'Qwen3-ASR 0.6B (WebGPU)',
     shortName: 'Qwen3-ASR 0.6B',
@@ -1410,6 +1543,7 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // Voxtral 4B still rank ahead of both where they apply.
   {
     id: 'qwen3-asr-1.7b-webgpu',
+    asrLimit: QWEN3_ASR_LIMIT,
     type: 'asr',
     name: 'Qwen3-ASR 1.7B (WebGPU)',
     shortName: 'Qwen3-ASR 1.7B',
@@ -3414,6 +3548,7 @@ import { canonicalTag } from '../language/code';
 import { EDGE_TTS_LANGUAGES, WHISPER_LANGUAGES } from './languageSupport';
 import type { LanguageOption } from '../provider/types';
 import { isSupportedByBing } from '../bing-translator';
+import type { SegmentLimit } from './workers/_shared/max-speech-frames';
 
 /** Check if a model is truly universal (languages: ['multilingual']) vs bounded multilingual */
 function isUniversalMultilingual(m: ModelManifestEntry): boolean {
@@ -3476,6 +3611,28 @@ export function getLocalInferenceTargetLanguages(sourceLang: string): LanguageOp
 // ─── Query Helpers ───────────────────────────────────────────────────────────
 
 /** Get a manifest entry by model ID */
+/** The length limit an entry declares; a sherpa-onnx offline recognizer without its own has `SHERPA_OFFLINE_LIMIT`. */
+export function asrLimitOf(entry: ModelManifestEntry | undefined): AsrLengthLimit | undefined {
+  if (!entry) return undefined;
+  if (entry.asrLimit) return entry.asrLimit;
+  return entry.type === 'asr' && (entry.asrWorkerType ?? 'sherpa-onnx') === 'sherpa-onnx' ? SHERPA_OFFLINE_LIMIT : undefined;
+}
+
+/**
+ * What `resolveMaxSpeechFrames` is given for a leg of this recognizer: its limit by language (primary subtag), then
+ * by task; `{}` for a model with none.
+ */
+export function segmentLimitFor(
+  entry: ModelManifestEntry | undefined,
+  leg: { task: 'transcribe' | 'translate'; language: string },
+): SegmentLimit {
+  const limit = asrLimitOf(entry);
+  if (!limit) return {};
+  const primary = leg.language.toLowerCase().split(/[-_]/)[0];
+  const seconds = limit.byLanguage?.[primary] ?? (leg.task === 'translate' ? limit.byTask?.translate : undefined) ?? limit.seconds;
+  return limit.kind === 'segment' ? { maxSegmentSamples: seconds * 16000 } : { maxSpeechSeconds: seconds };
+}
+
 export function getManifestEntry(modelId: string): ModelManifestEntry | undefined {
   return MODEL_MANIFEST.find(m => m.id === modelId);
 }

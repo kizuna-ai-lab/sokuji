@@ -44,7 +44,7 @@ export function buildLocalTranscription(
 ): LocalInferenceConfig | ProviderRefusal {
   const resolved = resolveLocal(context.direction, s, localTranscriptionStagesOf(shared.lineUp ?? null), localModelsOf(shared));
   if (!resolved.asr) return noAsr(context.direction.source);
-  return { ...localRecognition(shared.turnDetection ?? TURN_DETECTION_DEFAULTS, resolved.asr.modelId), translation: { kind: 'none' }, transcribesAlone: true };
+  return { ...localRecognition(shared.turnDetection ?? TURN_DETECTION_DEFAULTS, resolved.asr.modelId, { language: context.direction.source, task: 'transcribe' }), translation: { kind: 'none' }, transcribesAlone: true };
 }
 
 /**

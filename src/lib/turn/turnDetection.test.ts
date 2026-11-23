@@ -44,4 +44,18 @@ describe('turnDetectionScope', () => {
     expect(turnDetectionScope([leg('whisper-base-webgpu', 'manual'), leg('sensevoice-int8', 'auto')], td).smartOffered).toBe(false);
     expect(turnDetectionScope([leg('whisper-base-webgpu', 'manual'), leg('whisper-base-webgpu', 'auto')], td).smartOffered).toBe(true);
   });
+
+  it('the Max speech note: 28.2 s for Whisper at 30 s with a 0.8 s pad, none at 20 s', () => {
+    const whisper = leg('whisper-base-webgpu', 'auto');
+    expect(turnDetectionScope([whisper], td).limitSeconds).toBe(28.2);
+    expect(turnDetectionScope([whisper], { ...td, maxSpeech: 20 })).not.toHaveProperty('limitSeconds');
+  });
+
+  it('takes the smallest limit over the legs shown', () => {
+    expect(turnDetectionScope([leg('whisper-base-webgpu', 'auto'), leg('moonshine-tiny-ja-quant', 'auto')], td).limitSeconds).toBe(9);
+  });
+
+  it('a model with no limit sets none', () => {
+    expect(turnDetectionScope([leg('cohere-transcribe-webgpu', 'auto')], td)).not.toHaveProperty('limitSeconds');
+  });
 });

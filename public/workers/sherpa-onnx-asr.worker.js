@@ -272,6 +272,7 @@ function handleInit(msg) {
             threshold: vadConfig.threshold || 0.50,
             minSilenceDuration: vadConfig.minSilenceDuration || 0.50,
             minSpeechDuration: vadConfig.minSpeechDuration || 0.25,
+            // Pinned equal to MOONSHINE_V2_LIMIT and SHERPA_OFFLINE_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts).
             // moonshine-v2 throws on any segment past ~9.3 s: its decoder's
             // mask shape does not match the encoder past 384 frames, and the
             // bundled wasm cannot catch the C++ exception, so the whole
