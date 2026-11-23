@@ -49,6 +49,9 @@ vi.mock('../../lib/diagnostics/report', async () => {
   return { ...actual, reportWarning: (...args: unknown[]) => mockReportWarning(...args) };
 });
 
+let mockStages: { translation: 'local' | null; speech: 'local' | null; transcription?: 'local' | null } | null = null;
+vi.mock('../../stores/lineUpStore', () => ({ useStoredLocalStages: () => mockStages }));
+
 let mockTurnMode = 'auto';
 let mockLegs: string[] = ['speaker'];
 vi.mock('../../stores/turnModeStore', () => ({
@@ -84,6 +87,7 @@ beforeEach(() => {
     asr: { modelId: source === 'ja' ? 'asr-model' : 'reverse-asr-model' }, translation: null, tts: null,
   }));
   mockTurnMode = 'auto';
+  mockStages = null;
   mockLegs = ['speaker'];
   mockRemove.mockReset().mockResolvedValue(undefined);
   mockReportWarning.mockReset();
@@ -122,7 +126,7 @@ describe('LocalInferenceTurnDetection reads the values from the turn detection s
 
   it("resolves the speaker direction's ASR from the provider's selections", () => {
     render(<LocalInferenceTurnDetectionSummary {...props} />);
-    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', LOCAL_INFERENCE_DEFAULTS.selections);
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', LOCAL_INFERENCE_DEFAULTS.selections, { translation: 'local', speech: 'local' });
   });
 });
 
@@ -190,5 +194,29 @@ describe('LocalInferenceTurnDetection legs', () => {
     mockPhase = 'unknown';
     render(<LocalInferenceTurnDetectionControls {...props} />);
     expect(mockRefresh).toHaveBeenCalled();
+  });
+});
+
+describe('LocalInferenceTurnDetection resolves each leg under the stages the run serves', () => {
+  // A lingering Granite translation pick: it names the recognizer as the translation model.
+  const lingering = (_source: string, _target: string, _selections: unknown, stages?: { translation: 'local' | null } | null) => ({
+    asr: { modelId: 'granite-speech' },
+    translation: stages?.translation === null ? null : { modelId: 'granite-speech' },
+    tts: null,
+  });
+  const note = (seconds: number) => `This model splits utterances longer than ${seconds} s.`;
+
+  it('shows the translation cap when this machine translates the speech', () => {
+    mockResolve.mockImplementation(lingering);
+    render(<LocalInferenceTurnDetectionControls {...props} />);
+    expect(screen.getByText(note(20))).toBeTruthy();
+  });
+
+  it('shows no translation cap when another provider translates: the leg transcribes', () => {
+    mockStages = { translation: null, speech: 'local', transcription: 'local' };
+    mockResolve.mockImplementation(lingering);
+    render(<LocalInferenceTurnDetectionControls {...props} />);
+    expect(screen.queryByText(note(20))).toBeNull();
+    expect(mockResolve).toHaveBeenCalledWith('ja', 'en', LOCAL_INFERENCE_DEFAULTS.selections, mockStages);
   });
 });

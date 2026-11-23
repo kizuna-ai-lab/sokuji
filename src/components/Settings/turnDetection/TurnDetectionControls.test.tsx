@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 
 const { persistSetting } = vi.hoisted(() => ({ persistSetting: vi.fn(async () => {}) }));
 vi.mock('../../../services/persistSetting', () => ({ persistSetting }));
@@ -62,6 +62,17 @@ describe('TurnDetectionControls', () => {
       for (const label of LABELS) expect(screen.getByText(label)).toBeTruthy();
       unmount();
     }
+  });
+
+  it('names every slider by its visible label', () => {
+    render(<TurnDetectionControls scope={SHOWN} />);
+    for (const label of LABELS) expect(screen.getByRole('slider', { name: label })).toBeTruthy();
+  });
+
+  it('names the Smart sliders too', () => {
+    set({ endOfTurn: 'smart' });
+    render(<TurnDetectionControls scope={SMART_SCOPE} />);
+    for (const label of ['Turn Check After', 'Turn Threshold', 'Max Wait']) expect(screen.getByRole('slider', { name: label })).toBeTruthy();
   });
 
   it('shows nothing for a streaming model (scope not shown)', () => {
@@ -134,9 +145,36 @@ describe('TurnDetectionControls', () => {
       expect(sliderFor('Turn Check After').max).toBe('0.2');
       expect(screen.getByText('0.20s')).toBeTruthy();
       unmount();
+    });
+
+    it('does not show Smart as active when Max Wait leaves no room for Turn Check After; clicking Smart lifts it to 0.30 s', async () => {
       set({ endOfTurn: 'smart', minSilence: 0.25 });
       render(<TurnDetectionControls scope={SMART_SCOPE} />);
-      expect(screen.getByText('—')).toBeTruthy();
+      expect(button('Smart').getAttribute('aria-pressed')).toBe('false');
+      expect(button('Normal').getAttribute('aria-pressed')).toBe('true');
+      expect(screen.queryByText('Turn Check After')).toBeNull();
+      await act(async () => { fireEvent.click(button('Smart')); });
+      expect(mockDownload).toHaveBeenCalledTimes(1);
+      expect(useTurnDetectionStore.getState().settings).toMatchObject({ endOfTurn: 'smart', minSilence: 0.3 });
+      expect(button('Smart').getAttribute('aria-pressed')).toBe('true');
+    });
+
+    it('a Normal click made while the Smart enable is pending wins over it', async () => {
+      let finish!: () => void;
+      mockDownload.mockImplementation(() => new Promise<void>((resolve) => { finish = () => { mockPhase = 'ready'; resolve(); }; }));
+      render(<TurnDetectionControls scope={SMART_SCOPE} />);
+      await act(async () => { fireEvent.click(button('Smart')); });
+      await act(async () => { fireEvent.click(button('Normal')); });
+      await act(async () => { finish(); });
+      expect(useTurnDetectionStore.getState().settings.endOfTurn).toBe('normal');
+    });
+
+    it('a Normal click after Smart was on, then a later Smart click, still enables Smart', async () => {
+      render(<TurnDetectionControls scope={SMART_SCOPE} />);
+      await act(async () => { fireEvent.click(button('Smart')); });
+      await act(async () => { fireEvent.click(button('Normal')); });
+      await act(async () => { fireEvent.click(button('Smart')); });
+      expect(useTurnDetectionStore.getState().settings.endOfTurn).toBe('smart');
     });
 
     it('reads a stored Smart as Normal when no leg offers it, or the model is gone', () => {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { useModelStore, useModelStatuses } from '../../stores/modelStore';
 import { useProviderStore } from '../../stores/providerStore';
+import { useStoredLocalStages } from '../../stores/lineUpStore';
+import { ALL_LOCAL_STAGES } from '../../lib/lineup/localStages';
 import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useTurnDetectionStore } from '../../stores/turnDetectionStore';
 import { useSmartTurnPhase, useSmartTurnStore } from '../../stores/smartTurnStore';
@@ -9,7 +11,7 @@ import { turnDetectionScope, type TurnDetectionLeg } from '../../lib/turn/turnDe
 import { TurnDetectionControls, TurnDetectionHelp, TurnDetectionSummary } from '../../components/Settings/turnDetection/TurnDetectionControls';
 import type { SettingsProps } from '../../lib/provider/types';
 import type { LanguagePair } from '../../lib/run/types';
-import { translatesSpeechDirectly } from './config';
+import { resolveLocal, translatesSpeechDirectly } from './config';
 import type { LocalInferenceSettings as S } from './settings';
 
 /**
@@ -26,11 +28,14 @@ function useTurnDetectionLegs(settings: S, pair: LanguagePair | undefined): Turn
   const modelStatuses = useModelStatuses();
   const turnMode = useTurnModeStore((s) => s.turnMode);
   const activeLegs = useProviderStore((s) => s.legs);
+  // The stages the run serves, as the builders resolve them: a translation pick left in the selections does not
+  // make a leg translate when another provider translates.
+  const stages = useStoredLocalStages() ?? ALL_LOCAL_STAGES;
   const phase = useSmartTurnPhase();
   const td = useTurnDetectionStore((s) => s.settings);
   const legs = useMemo(() => {
     const leg = (from: string, to: string, turns: 'auto' | 'manual'): TurnDetectionLeg => {
-      const resolved = useModelStore.getState().resolve(from, to, settings.selections);
+      const resolved = resolveLocal({ source: from, target: to }, settings, stages, useModelStore.getState());
       const asrId = resolved.asr?.modelId;
       return {
         entry: getManifestEntry(asrId ?? ''),
@@ -44,7 +49,7 @@ function useTurnDetectionLegs(settings: S, pair: LanguagePair | undefined): Turn
     if (activeLegs.includes('participant')) out.push(leg(target, source, 'auto'));
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `modelStatuses` is the recompute trigger
-  }, [source, target, settings.selections, modelStatuses, turnMode, activeLegs]);
+  }, [source, target, settings, stages, modelStatuses, turnMode, activeLegs]);
   const smartOffered = turnDetectionScope(legs, td).smartOffered;
   useEffect(() => {
     if (smartOffered && phase === 'unknown') void useSmartTurnStore.getState().refresh();

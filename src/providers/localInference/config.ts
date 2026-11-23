@@ -126,7 +126,7 @@ export function localStagesFor(shared: Pick<SharedSettings, 'lineUp'>): LocalSta
  * (see astGuard.ts), which downgrades an explicit AST-mismatched translation pick back to auto before it is judged.
  * Always under stages: resolved with none, Bing and Edge would be among the choices.
  */
-export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages, models: LocalModels): DirectionResult {
+export function resolveLocal(direction: SessionContext['direction'], s: LocalInferenceSettings, stages: LocalStages, models: Pick<LocalModels, 'resolve'>): DirectionResult {
   const { source, target } = direction;
   const rawResolved = models.resolve(source, target, s.selections, stages);
   return guardAstCrossStage(

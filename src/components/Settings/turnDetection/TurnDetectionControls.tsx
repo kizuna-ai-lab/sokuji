@@ -3,7 +3,7 @@
  * uses the app's detector. What a surface shows follows its `TurnDetectionScope` (`turnDetectionScope`): nothing when
  * no leg takes our settings, Normal / Smart only when an automatic leg runs Smart Turn.
  */
-import React from 'react';
+import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CircleHelp, RotateCcw, RotateCw, Trash2 } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
@@ -104,9 +104,14 @@ const SLIDER_FIELDS = ['threshold', 'negativeThreshold', 'minSilence', 'minSpeec
 /** What a session will run: Smart is chosen, an automatic leg is on a shared model, and the model is on disk (or not yet known). */
 function useSmartOn(scope: TurnDetectionScope): boolean {
   const phase = useSmartTurnPhase();
-  const endOfTurn = useTurnDetectionStore((s) => s.settings.endOfTurn);
-  return scope.smartOffered && endOfTurn === 'smart' && (phase === 'ready' || phase === 'unknown');
+  const { endOfTurn, minSilence } = useTurnDetectionStore((s) => s.settings);
+  // The summary and `vadConfigOf` run Smart only while Turn Check After has room under Max Wait: so does the display.
+  const canRun = effectiveCheckAfter(TURN_DETECTION_RANGES.smartTurnCheckAfter.min, minSilence) !== null;
+  return scope.smartOffered && endOfTurn === 'smart' && canRun && (phase === 'ready' || phase === 'unknown');
 }
+
+/** Counts the Normal / Smart choices; a pending Smart enable that is no longer the latest does not write. */
+let latestChoice = 0;
 
 /** Normal / Smart over the store: turning Smart on downloads the model first and lifts a Max Wait under 0.3 s to 0.3 s. */
 function EndOfTurn({ smart, disabled }: { smart: boolean; disabled: boolean }) {
@@ -116,7 +121,10 @@ function EndOfTurn({ smart, disabled }: { smart: boolean; disabled: boolean }) {
   const endOfTurn = useTurnDetectionStore((s) => s.settings.endOfTurn);
 
   const enableSmart = async () => {
+    const request = ++latestChoice;
     await useSmartTurnStore.getState().download();
+    // A choice made since this one started (Normal, or another Smart) is the later word.
+    if (request !== latestChoice) return;
     if (useSmartTurnStore.getState().phase !== 'ready') return;
     // Read when the download ends: Max Wait may have moved meanwhile.
     const { minSilence } = useTurnDetectionStore.getState().settings;
@@ -137,6 +145,7 @@ function EndOfTurn({ smart, disabled }: { smart: boolean; disabled: boolean }) {
     if (next === 'smart') {
       if (!smart) void enableSmart();
     } else {
+      latestChoice++;
       if (phase === 'error') useSmartTurnStore.getState().dismiss();
       if (endOfTurn !== 'normal') useTurnDetectionStore.getState().update({ endOfTurn: 'normal' });
     }
@@ -167,11 +176,12 @@ function Slider({ label, tooltip, value, shown, field, extra, disabled, min, max
 }) {
   const range = TURN_DETECTION_RANGES[field as keyof typeof TURN_DETECTION_RANGES];
   const update = useTurnDetectionStore((s) => s.update);
+  const labelId = useId();
   return (
     <div className="setting-item">
       <div className="setting-label">
         <span>
-          {label}
+          <span id={labelId}>{label}</span>
           <Tooltip content={tooltip} position="top">{inlineHelpIcon}</Tooltip>
         </span>
         <span className="setting-value">{shown}</span>
@@ -179,7 +189,7 @@ function Slider({ label, tooltip, value, shown, field, extra, disabled, min, max
       <input
         type="range" min={min ?? range.min} max={max ?? range.max} step={range.step} value={value}
         onChange={(e) => update({ [field]: parseFloat(e.target.value) })}
-        className="slider" disabled={disabled}
+        className="slider" disabled={disabled} aria-labelledby={labelId}
       />
       {extra}
     </div>
