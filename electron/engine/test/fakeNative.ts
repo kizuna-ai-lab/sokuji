@@ -18,9 +18,74 @@ export interface FakeNativeOptions {
   version?: string;
   /** engineVersions(): pins plus "lane". */
   engineVersions?: Record<string, string>;
+  /** Scripted ASR models (sidecar/tests/test_asr_backend.py's _FakeModel). */
+  asr?: FakeAsrOptions;
 }
 
-export type FakeNative = NativeModule & { calls: string[]; inits: Array<{ threads: number | undefined; onLog: boolean }> };
+export interface FakeAsrOptions {
+  languages?: string[];
+  supportsStreaming?: boolean;
+  /** What run() answers. */
+  text?: string;
+  /** How long run() takes. */
+  runDelayMs?: number;
+  /** asrLoad rejects with this NativeError message. */
+  loadError?: string;
+}
+
+const nativeError = (message: string, status = -6) => Object.assign(new Error(message), { name: 'NativeError', status });
+
+/** One scripted AsrStream: committed text set by the test, finalize answers it plus " FINAL". */
+export class FakeAsrStream {
+  committed = '';
+  closed = false;
+  finalized = false;
+  /** Feeds reject with this once set (a stream the library refused). */
+  feedError: string | null = null;
+  constructor(private readonly log: unknown[], readonly language: string | null) {}
+  async feed(pcm: Float32Array) {
+    this.log.push(['feed', pcm.length]);
+    if (this.feedError !== null) throw nativeError(this.feedError, -1);
+    return { committed: this.committed, tentative: '' };
+  }
+  async finalize() {
+    this.log.push(['finalize']);
+    this.finalized = true;
+    this.closed = true;
+    return `${this.committed} FINAL`;
+  }
+  close() {
+    this.log.push(['close']);
+    this.closed = true;
+  }
+}
+
+/** One scripted AsrModel: records runs and streams. */
+export class FakeAsrModel {
+  readonly log: unknown[] = [];
+  readonly runs: Array<{ n: number; language: string | null; pcm: Float32Array }> = [];
+  readonly streams: FakeAsrStream[] = [];
+  unloaded = false;
+  readonly capabilities: { languages: string[]; supportsStreaming: boolean; supportsLanguageDetect: boolean; nativeSampleRate: number; arch: string };
+  constructor(readonly path: string, readonly deviceIndex: number | null, private readonly opts: FakeAsrOptions) {
+    this.capabilities = { languages: opts.languages ?? [], supportsStreaming: opts.supportsStreaming ?? false, supportsLanguageDetect: true, nativeSampleRate: 16000, arch: 'fake' };
+  }
+  async run(pcm: Float32Array, language: string | null) {
+    this.runs.push({ n: pcm.length, language, pcm: new Float32Array(pcm) });
+    if (this.opts.runDelayMs) await new Promise((r) => setTimeout(r, this.opts.runDelayMs));
+    return this.opts.text ?? '  hello world  ';
+  }
+  openStream(language: string | null) {
+    const st = new FakeAsrStream(this.log, language);
+    this.streams.push(st);
+    return st;
+  }
+  async unload() {
+    this.unloaded = true;
+  }
+}
+
+export type FakeNative = NativeModule & { calls: string[]; inits: Array<{ threads: number | undefined; onLog: boolean }>; asrModels: FakeAsrModel[] };
 
 const notScripted = (name: string) => () => { throw new Error(`fake native: ${name} is not scripted in this test`); };
 
@@ -37,6 +102,7 @@ export function makeFakeNative(opts: FakeNativeOptions = {}): FakeNative {
     kind: d.kind,
   }));
   const abi = opts.abi ?? 2;
+  const asrModels: FakeAsrModel[] = [];
   const version = opts.version ?? '1.2.0';
   const fake = {
     calls,
@@ -59,7 +125,16 @@ export function makeFakeNative(opts: FakeNativeOptions = {}): FakeNative {
     },
     audioFamilies: () => [],
     resample: notScripted('resample'),
-    asrLoad: notScripted('asrLoad'),
+    asrModels,
+    asrLoad: opts.asr
+      ? async (path: string, deviceIndex: number | null) => {
+        calls.push('asrLoad');
+        if (opts.asr!.loadError) throw nativeError(opts.asr!.loadError);
+        const m = new FakeAsrModel(path, deviceIndex, opts.asr!);
+        asrModels.push(m);
+        return m;
+      }
+      : notScripted('asrLoad'),
     translateLoad: notScripted('translateLoad'),
     ttsLoad: notScripted('ttsLoad'),
   };

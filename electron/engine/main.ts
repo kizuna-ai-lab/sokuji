@@ -5,6 +5,8 @@
 import { loadNative, setNativeLog, useNative, type NativeModule } from './native';
 import { register as registerAccel } from './accel/handlers';
 import { register as registerModels } from './models/handlers';
+import { register as registerAsr } from './asr/handlers';
+import { seams } from './accel/seams';
 import { createState, serve, type EngineState, type Log } from './server';
 
 export interface EngineOptions {
@@ -21,10 +23,12 @@ export interface EngineOptions {
 export function registerAll(state: EngineState): void {
   registerAccel(state);
   registerModels(state);
+  registerAsr(state);
 }
 
 export async function startEngine(opts: EngineOptions): Promise<{ port: number; close(): Promise<void> }> {
   setNativeLog(opts.log);
+  seams.log = opts.log;                      // the stages' own log lines (accel, ASR, …) go where the server's do
   useNative(opts.native ?? loadNative(opts.nativeDir), opts.nativeDir);
   const state = createState();
   registerAll(state);
