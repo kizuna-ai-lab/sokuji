@@ -26,13 +26,18 @@ inline std::optional<std::string> NullableStringArg(const Napi::CallbackInfo &in
     return info[i].As<Napi::String>().Utf8Value();
 }
 
+// `v` as an integer that fits int32.
+inline int32_t Int32Value(Napi::Env env, const Napi::Value &v, const std::string &what) {
+    const double d = v.IsNumber() ? v.As<Napi::Number>().DoubleValue() : -1.5;
+    if (!(d >= INT32_MIN && d <= INT32_MAX) || std::floor(d) != d) {
+        throw Napi::TypeError::New(env, what + " must be an integer");
+    }
+    return static_cast<int32_t>(d);
+}
+
 // An integer that fits int32.
 inline int32_t IndexArg(const Napi::CallbackInfo &info, size_t i, const char *what) {
-    const double v = info.Length() > i && info[i].IsNumber() ? info[i].As<Napi::Number>().DoubleValue() : -1.5;
-    if (!(v >= INT32_MIN && v <= INT32_MAX) || std::floor(v) != v) {
-        throw Napi::TypeError::New(info.Env(), std::string(what) + " must be an integer");
-    }
-    return static_cast<int32_t>(v);
+    return Int32Value(info.Env(), info.Length() > i ? info[i] : info.Env().Undefined(), what);
 }
 
 // deviceIndex: null/undefined → nullopt (the C API's NULL device: auto), else an integer.
@@ -52,6 +57,30 @@ inline std::vector<float> Float32Arg(const Napi::CallbackInfo &info, size_t i, c
     Napi::Float32Array a = info[i].As<Napi::Float32Array>();
     const float *data = a.Data();
     return std::vector<float>(data, data + a.ElementLength());
+}
+
+// A bag of optional settings: undefined/null is an empty bag (every setting takes its
+// default), anything else must be an object.
+inline Napi::Object OptionsArg(const Napi::CallbackInfo &info, size_t i, const char *what) {
+    if (info.Length() <= i || info[i].IsUndefined() || info[i].IsNull()) return Napi::Object::New(info.Env());
+    if (!info[i].IsObject()) throw Napi::TypeError::New(info.Env(), std::string(what) + " must be an object");
+    return info[i].As<Napi::Object>();
+}
+
+// opts[key]: undefined/null → `fallback`, else an integer that fits int32.
+inline int32_t Int32Option(const Napi::Object &opts, const char *key, int32_t fallback, const std::string &what) {
+    Napi::Value v = opts.Get(key);
+    if (v.IsUndefined() || v.IsNull()) return fallback;
+    return Int32Value(opts.Env(), v, what);
+}
+
+// opts[key]: undefined/null → nullopt (the C API's NULL), else a string.
+inline std::optional<std::string> NullableStringOption(const Napi::Object &opts, const char *key,
+                                                       const std::string &what) {
+    Napi::Value v = opts.Get(key);
+    if (v.IsUndefined() || v.IsNull()) return std::nullopt;
+    if (!v.IsString()) throw Napi::TypeError::New(opts.Env(), what + " must be a string or null");
+    return v.As<Napi::String>().Utf8Value();
 }
 
 // The options bag of a call that runs on a worker: { signal?, <callback>? }.

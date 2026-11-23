@@ -9,11 +9,13 @@ namespace sk_node {
 struct AddonData {
     Napi::FunctionReference asr_model;   // the AsrModel class (asr.cpp)
     Napi::FunctionReference asr_stream;  // the AsrStream class (asr.cpp)
+    Napi::FunctionReference translator;  // the Translator class (translate.cpp)
 };
 
 AddonData &Data(Napi::Env env);
 
-void RegisterCommon(Napi::Env env, Napi::Object exports);   // common.cpp
-void RegisterAsr(Napi::Env env, Napi::Object exports);      // asr.cpp
+void RegisterCommon(Napi::Env env, Napi::Object exports);      // common.cpp
+void RegisterAsr(Napi::Env env, Napi::Object exports);         // asr.cpp
+void RegisterTranslate(Napi::Env env, Napi::Object exports);   // translate.cpp
 
 }  // namespace sk_node

@@ -52,6 +52,7 @@ Napi::Object InitAddon(Napi::Env env, Napi::Object exports) {
     env.SetInstanceData(new sk_node::AddonData());   // deleted with the environment
     sk_node::RegisterCommon(env, exports);
     sk_node::RegisterAsr(env, exports);
+    sk_node::RegisterTranslate(env, exports);
     return exports;
 }
 
