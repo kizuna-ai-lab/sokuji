@@ -439,7 +439,9 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
     // stale bundle — 'mismatch' surfaces as unavailable + the card's update CTA.
     set({ sidecarStatus: 'starting' });
     await get().refreshBundle();
-    if (get().bundleStatus === 'mismatch') {
+    // A bundle still installing is not booted half-written. The install's end changes bundleStatus, which Local
+    // Native's readiness watch keys on (nativeReadinessKey), so the next check boots the finished engine.
+    if (get().bundleStatus === 'mismatch' || get().bundleStatus === 'installing') {
       set({ sidecarStatus: 'unavailable', engineInfo: null, deviceProfiles: null, profileGeneration: null });
       return;
     }
@@ -606,7 +608,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       const bundle = get().bundleStatus;
       const reason: NativeReadinessReason =
         bundle === 'mismatch' ? 'engine-mismatch'
-        : (bundle === 'absent' || bundle === 'paused') ? 'engine-absent'
+        // Installing reads as not installed yet: the engine card shows the download, and Start waits for it.
+        : (bundle === 'absent' || bundle === 'paused' || bundle === 'installing') ? 'engine-absent'
         : status === 'unavailable' ? 'unavailable'
         : 'starting';
       return { ready: false, reason, notes: [] };

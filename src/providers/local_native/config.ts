@@ -5,6 +5,7 @@ import type { NativeModelInfo } from '../../lib/local-inference/native/nativePro
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import type { NativeDevice } from '../../lib/local-inference/native/nativeCatalog';
 import type { NativeHost, NativeModels } from '../../lib/local-inference/native/nativeModels';
+import type { TtsUnavailableCode } from '../../lib/local-inference/sessions/speech';
 import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import type { LocalNativeSettings } from './settings';
 
@@ -38,6 +39,8 @@ export interface LocalNativeConfig {
   host: NativeHost;
   /** The transcription unit's config: only source segments are said, each final stating all of it stable. */
   transcribesAlone?: true;
+  /** A leg that should speak but has no voice for its target: said once at the start, as LocalInference's (#619). */
+  ttsUnavailable?: TtsUnavailableCode;
 }
 
 /** LocalInference's prompt rule (its `config.ts`), the same here: template mode uses the default; else the speaker's prompt, or, for the reverse direction, its own. */
@@ -126,6 +129,8 @@ export function buildLocalNative(
       voice: s.ttsVoice,
       capability: catalog[resolved.tts.modelId] ? voiceCapability(catalog[resolved.tts.modelId]) : null,
     };
+  } else if (context.speech) {
+    config.ttsUnavailable = shared.reversed(context.direction) ? 'participant_tts_missing' : 'speaker_tts_missing';
   }
   return config;
 }

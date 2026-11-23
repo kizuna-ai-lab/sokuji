@@ -19,7 +19,7 @@ export interface NativeEngineSettings { selections: Selections; asrDevice: Nativ
 /** What the host hands the native model UI: its settings, how to write them, and the pair (#578). */
 export interface NativeEngineOverride { settings: NativeEngineSettings; update(patch: Partial<NativeEngineSettings>): void; pair: LanguagePair }
 
-/** LOCAL_NATIVE's EngineAdapter — sidecar catalog + statuses, EngineSection gate. Every mount hands it the host's settings / update / pair: Local Native's `Engine`, and the old settings shell its slice (#578). */
+/** LOCAL_NATIVE's EngineAdapter — sidecar catalog + statuses, EngineSection gate. Its host, Local Native's `Engine`, hands it the settings / update / pair (#578). */
 export function useNativeEngineAdapter(isSessionActive: boolean, override: NativeEngineOverride): EngineAdapter {
   const sourceLanguage = override.pair.source;
   const targetLanguage = override.pair.target;
@@ -88,7 +88,7 @@ export function useNativeEngineAdapter(isSessionActive: boolean, override: Nativ
       slotBadge: (slot, id) => {
         const [src, tgt] = split(slot.dir);
         const modelId = useNativeModelStore.getState().resolve(src, tgt, selections)[slot.stage]?.modelId ?? null;
-        const setting = slot.stage === 'asr' ? asrDevice : slot.stage === 'translation' ? translationDevice : ttsDevice;
+        const setting = { asr: asrDevice, translation: translationDevice, tts: ttsDevice }[slot.stage];
         return React.createElement(SlotDeviceBadge, { stage: slot.stage, modelId, id, setting });
       },
       stagesFor: (_dir, isSpeaker): Stage[] => (isSpeaker ? ['asr', 'translation', 'tts'] : ['asr', 'translation']),

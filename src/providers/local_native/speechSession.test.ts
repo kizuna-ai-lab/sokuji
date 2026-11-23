@@ -162,6 +162,25 @@ describe("Local Native's speech session", () => {
     expect(checkSpeech(h.log)).toEqual([]);
   });
 
+  it('a socket that closes while the voice is applied degrades speech once, and nothing is read', async () => {
+    let listed: (v: never[]) => void = () => {};
+    const host = createFakeNativeHost({ listVoices: () => new Promise<never[]>((resolve) => { listed = resolve; }) });
+    const h = create(voice({ voice: 'builtin:Bella', host }));
+    const opening = h.session.open();
+    h.tts.ready();
+    await flush();
+    h.tts.close('native host disconnected');
+    listed([]);
+    await opening;
+    await flush();
+    h.session.speak(1, 'Hello.', [0, 6], 'en');
+    await flush();
+    expect(h.of('degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded', message: 'Speech synthesis stopped: native host disconnected' })]);
+    expect(h.tts.spoken).toEqual([]);
+    expect(h.tts.disposes).toBe(1);
+    expect(checkSpeech(h.log)).toEqual([]);
+  });
+
   it('close lets the socket go, and nothing follows', async () => {
     const h = await opened();
     h.session.speak(1, 'Hello.', [0, 6], 'en');

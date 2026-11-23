@@ -835,6 +835,16 @@ describe('ensureSelectionReady (facade)', () => {
     expect(r.reason).toBe('engine-absent');
   });
 
+  it('bundle installing → reason engine-absent, and the half-installed engine is not booted', async () => {
+    useNativeModelStore.setState({ sidecarStatus: 'unavailable', bundleStatus: 'installing' });
+    mockModelsCatalogReject();
+    const before = modelsCatalogCallCount();
+    const r = await useNativeModelStore.getState().ensureSelectionReady(read({ textOnly: false }));
+    expect(r.reason).toBe('engine-absent');
+    expect(modelsCatalogCallCount()).toBe(before);
+    expect(useNativeModelStore.getState().bundleStatus).toBe('installing');
+  });
+
   it('bundle mismatch → reason engine-mismatch', async () => {
     useNativeModelStore.setState({ sidecarStatus: 'unavailable', bundleStatus: 'mismatch' });
     (globalThis as any).window.electron.invoke = vi.fn().mockRejectedValue(new Error('no ipc'));

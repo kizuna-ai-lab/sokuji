@@ -75,7 +75,7 @@ export function createNativeTranslationUnit(deps: { engines?: Pick<LocalNativeEn
       const facts = nativeModelsOf(shared);
       const translation = facts.resolve(source, target, s.selections).translation;
       if (!translation) return { refused: `No translation model for ${source} → ${target}.`, code: 'native_translation_missing' };
-      const instructions = localInstructions(context, s, shared as SharedSettings);
+      const instructions = localInstructions(context, s, shared);
       const wrapTranscript = s.useTemplateMode
         || instructions === buildDefaultLocalPrompt(source, target)
         || instructions === buildDefaultLocalPrompt(target, source);

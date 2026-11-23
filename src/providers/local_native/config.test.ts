@@ -75,6 +75,17 @@ describe('buildLocalNative', () => {
     expect(built(buildLocalNative(forward, s({ selections }), shared())).asr).toEqual({ modelId: 'asr-a', variant: 'q8_0', device: 'auto' });
   });
 
+  it('a leg that speaks with no voice for its target is built silent, and says which side has none', () => {
+    useNativeModelStore.setState({ statuses: { ...READY, 'tts-a': 'absent' } });
+    const speaker = built(buildLocalNative(forward, s(), shared()));
+    expect(speaker.tts).toBeUndefined();
+    expect(speaker.ttsUnavailable).toBe('speaker_tts_missing');
+    const participant = built(buildLocalNative({ ...reverse, speech: true }, s(), shared()));
+    expect(participant.ttsUnavailable).toBe('participant_tts_missing');
+    // A leg that does not speak has nothing to say.
+    expect(built(buildLocalNative(reverse, s(), shared())).ttsUnavailable).toBeUndefined();
+  });
+
   it('refuses a leg with no speech recognition model', () => {
     useNativeModelStore.setState({ statuses: { ...READY, 'asr-a': 'absent' } });
     expect(buildLocalNative(forward, s(), shared())).toEqual({ refused: 'No speech recognition model for ja.', code: 'no_asr', params: { source: 'ja' } });

@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { EngineSurface } from '../../components/Settings/engine/EngineSurface';
 import type { SlotId } from '../../components/Settings/engine/EngineTypes';
 import { useNativeEngineAdapter, type NativeEngineSettings } from '../../components/Settings/engine/useNativeEngineAdapter';
-import { EngineSection } from '../../components/Settings/sections/EngineSection';
 import { NativeModelManagementSection } from '../../components/Settings/sections/NativeModelManagementSection';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import type { EngineProps } from '../../lib/provider/types';
@@ -13,8 +12,9 @@ import type { LocalNativeSettings } from './settings';
 const fitsTheModelUi = (s: LocalNativeSettings): NativeEngineSettings => s;
 
 /**
- * Local Native's `Engine`, in the manner of LocalInference's: the engine card (it draws only the states a person can
- * act on), `EngineSurface` over `useNativeEngineAdapter` fed from `settings` / `update` / the pair, and, while a slot's
+ * Local Native's `Engine`, in the manner of LocalInference's: `EngineSurface` over `useNativeEngineAdapter` fed from
+ * `settings` / `update` / the pair — the engine page draws the engine card at its top through the adapter's gate (it
+ * draws only the states a person can act on) — and, while a slot's
  * "Browse library…" is open, that stage of the native library for the slot's direction under the slots. The library
  * moves to Models and storage later (#578 ruling 27). Voice previews take the app's route through the preview port its
  * host hands it (#578 ruling 13).
@@ -30,7 +30,6 @@ export function LocalNativeEngine({
   const [browsing, setBrowsing] = useState<SlotId | null>(null);
   return (
     <VoicePreviewContext.Provider value={preview ?? null}>
-      <EngineSection isSessionActive={disabled} />
       <EngineSurface
         adapter={adapter}
         effectiveMode={modeOfLegs(legs)}

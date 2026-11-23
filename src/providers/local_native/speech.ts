@@ -7,7 +7,7 @@ import { splitSentences } from '../../utils/splitSentences';
 import type { NativeTtsLike } from './engines';
 
 /**
- * One translation spoken sentence by sentence (the old client's `runJob`
+ * One translation, spoken sentence by sentence (the old client's `runJob`
  * TTS loop). One-shot families: one clip per sentence with its exact range.
  * Streaming families: each chunk as it arrives, unranged, and once the
  * sentence ends its range divided among those chunks by sample count —

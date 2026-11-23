@@ -5,7 +5,6 @@ import { gpuTierAvailable, type NativeDevice } from '../../../lib/local-inferenc
 import type { Stage } from '../../../lib/local-inference/selection/types';
 import './Engine.scss';
 
-
 const SETTING_LABEL_KEY: Record<NativeDevice, [string, string]> = {
   auto: ['models.deviceAuto', 'Auto'],
   cpu: ['models.deviceCpu', 'CPU'],

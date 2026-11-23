@@ -445,9 +445,9 @@ const useSettingsStore = create<SettingsStore>()(
 
       // Reset the validation state synchronously, before persisting, so the
       // previous provider's verdict does not linger. Nothing validates on a
-      // provider change: the one provider this store validates, Local Native,
-      // is revalidated by nativeModelStore when its bundle, sidecar or models
-      // change (Stage 2 deletion, ruling 1).
+      // provider change: Local Native's readiness is its provider's own now,
+      // asked again by its readiness watch when its bundle, sidecar or models
+      // change (kizuna-ai-lab/sokuji#578).
       get().clearCache();
 
       const service = ServiceFactory.getSettingsService();

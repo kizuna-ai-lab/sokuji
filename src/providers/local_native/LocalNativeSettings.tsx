@@ -6,7 +6,7 @@ import type { SettingsProps } from '../../lib/provider/types';
 import { SP, TL } from '../../lib/lineup/types';
 import { StagePart } from '../../components/providers/stageParts';
 import { useNativeModelStore } from '../../stores/nativeModelStore';
-import { modeOfLegs } from './engineLegs';
+import { FALLBACK_PAIR, modeOfLegs } from './engineLegs';
 import type { LocalNativeSettings as S } from './settings';
 
 /**
@@ -16,8 +16,8 @@ import type { LocalNativeSettings as S } from './settings';
  * `Engine`; its VAD knobs are its `TurnDetection`.
  */
 export function LocalNativeSettingsView({ settings, update, disabled = false, pair, legs = [] }: SettingsProps<S>) {
-  const source = pair?.source ?? 'ja';
-  const target = pair?.target ?? 'en';
+  const source = pair?.source ?? FALLBACK_PAIR.source;
+  const target = pair?.target ?? FALLBACK_PAIR.target;
   const mode = modeOfLegs(legs);
   const catalog = useNativeModelStore((s) => s.catalog);
   const statuses = useNativeModelStore((s) => s.statuses);

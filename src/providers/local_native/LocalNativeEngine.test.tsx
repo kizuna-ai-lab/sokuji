@@ -8,15 +8,24 @@ const seen = vi.hoisted(() => ({
   sections: [] as Array<{ isSessionActive?: boolean }>,
   libraries: [] as Array<Record<string, unknown>>,
 }));
-vi.mock('../../components/Settings/engine/useNativeEngineAdapter', () => ({
-  useNativeEngineAdapter: (_active: boolean, override: unknown) => { seen.overrides.push(override); return {}; },
-}));
+// The adapter's gate is the engine card, as the real adapter makes it (useNativeEngineAdapter.ts).
+vi.mock('../../components/Settings/engine/useNativeEngineAdapter', async () => {
+  const { createElement } = await import('react');
+  const { EngineSection } = await import('../../components/Settings/sections/EngineSection');
+  return {
+    useNativeEngineAdapter: (active: boolean, override: unknown) => {
+      seen.overrides.push(override);
+      return { gate: createElement(EngineSection, { isSessionActive: active }) };
+    },
+  };
+});
+// The surface draws the adapter's gate at the top, as the real engine page does (EnginePage.tsx).
 vi.mock('../../components/Settings/engine/EngineSurface', async () => {
   const { VoicePreviewContext } = await import('../../components/providers/VoicePreviewContext');
   return {
-    EngineSurface: ({ effectiveMode, onBrowse }: { effectiveMode: string; onBrowse?: (slot: { dir: string; stage: string }) => void }) => {
+    EngineSurface: ({ adapter, effectiveMode, onBrowse }: { adapter: { gate?: unknown }; effectiveMode: string; onBrowse?: (slot: { dir: string; stage: string }) => void }) => {
       seen.surfaces.push({ effectiveMode, onBrowse, port: useContext(VoicePreviewContext) });
-      return null;
+      return (adapter.gate ?? null) as never;
     },
   };
 });
@@ -38,6 +47,11 @@ beforeEach(() => {
 });
 
 describe('LocalNativeEngine', () => {
+  it('draws the engine card once: the engine page draws it, through the adapter', () => {
+    render(<LocalNativeEngine settings={LOCAL_NATIVE_DEFAULTS} update={vi.fn()} pair={{ source: 'ja', target: 'en' }} legs={['speaker']} disabled />);
+    expect(seen.sections).toEqual([{ isSessionActive: true }]);
+  });
+
   it("draws the engine card and the slots over the host's settings, update and pair", () => {
     const update = vi.fn();
     const { rerender } = render(<LocalNativeEngine settings={LOCAL_NATIVE_DEFAULTS} update={update} pair={{ source: 'ja', target: 'en' }} legs={['participant']} disabled />);

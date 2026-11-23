@@ -188,6 +188,15 @@ describe('opening', () => {
     conformant(t.log, speaking);
   });
 
+  it('a leg that speaks with no voice for its target says so once, naming the language (#619)', async () => {
+    const t = await open(config({ ttsUnavailable: 'speaker_tts_missing' }), speaking);
+    expect(t.calls).not.toContain('tts');
+    expect(ofKind(t.log, 'degraded')).toEqual([{ code: 'speaker_tts_missing', message: 'Translation the other side hears is text only: no speech model speaks en.', params: { target: 'en' } }]);
+    conformant(t.log, speaking);
+    const quiet = await open(config({ ttsUnavailable: 'speaker_tts_missing' }), silent);
+    expect(ofKind(quiet.log, 'degraded')).toEqual([]);
+  });
+
   it('a transcription-only session says so once', async () => {
     const t = await open(config({ translation: null }));
     expect(t.calls).toEqual(['asr', 'vad']);
@@ -341,6 +350,29 @@ describe('failing and ending', () => {
     t.tts.close();
     expect(ofKind(t.log, 'failed')).toEqual([]);
     expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded' })]);
+    t.asr.final('こんにちは');
+    t.translation.answer('Hello.');
+    await settle();
+    expect(t.tts.spoken).toEqual([]);
+    expect(segments(t.log, 'translation')).toEqual([{ origin: 'u1', text: 'Hello.', closed: true }]);
+    conformant(t.log, speaking);
+  });
+
+  it('a TTS socket that closes while the voice is applied stops speech only, said once', async () => {
+    let listed: (v: never[]) => void = () => {};
+    const host = createFakeNativeHost({ listVoices: () => new Promise<never[]>((resolve) => { listed = resolve; }) });
+    const t = begin(config({ tts: { ...TTS, voice: 'builtin:Bella' } }), speaking, host);
+    t.asr.ready();
+    t.translation.ready();
+    t.tts.ready();
+    t.vad.ready();
+    await settle();
+    t.tts.close('native host disconnected');
+    listed([]);
+    await t.starting;
+    await settle();
+    expect(ofKind(t.log, 'failed')).toEqual([]);
+    expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded', message: 'Speech synthesis stopped: native host disconnected' })]);
     t.asr.final('こんにちは');
     t.translation.answer('Hello.');
     await settle();

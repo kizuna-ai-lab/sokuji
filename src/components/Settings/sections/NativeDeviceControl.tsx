@@ -7,7 +7,6 @@ import { gpuTierAvailable, type NativeDevice } from '../../../lib/local-inferenc
 import type { Stage } from '../../../lib/local-inference/selection/types';
 import './NativeDeviceControl.scss';
 
-
 const TOOLTIP_KEY: Record<Stage, [string, string]> = {
   asr: ['models.computeDeviceTooltip', 'Which device runs the speech model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.'],
   translation: ['models.computeDeviceTooltipTranslation', 'Which device runs the translation model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.'],

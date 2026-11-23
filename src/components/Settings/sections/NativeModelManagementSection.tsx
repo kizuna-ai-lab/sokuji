@@ -470,7 +470,7 @@ export const NativeModelManagementSection: React.FC<{
   /** The direction ("src→tgt") whose slot opened this Library push — see
    *  ModelManagementSection's prop of the same name. */
   direction?: string;
-  /** The host's settings, its writer, and its pair (#578): Local Native's `Engine`, or the old shell's slice. */
+  /** The host's settings, its writer, and its pair (#578): Local Native's `Engine`. */
   settings: NativeEngineSettings;
   update: (patch: Partial<NativeEngineSettings>) => void;
   pair: LanguagePair;

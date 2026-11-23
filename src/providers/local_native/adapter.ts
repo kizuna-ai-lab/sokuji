@@ -19,6 +19,7 @@ import type { LocalNativeConfig } from './config';
 import type { NativeHost, NativeInitReport, NativeStage } from '../../lib/local-inference/native/nativeModels';
 import { nativeEngines, type LocalNativeEngines, type NativeAsrLike, type NativeTranslationLike, type NativeTtsLike, type NativeTtsReady, type NativeVadLike } from './engines';
 import { speakNative } from './speech';
+import { ttsMissing } from '../../lib/local-inference/sessions/speech';
 import { applyVoice, voiceClipMissing } from './voice';
 
 /**
@@ -248,9 +249,21 @@ class NativeSession implements AdapterSession {
         const startedAt = this.request.clock.now();
         const ready = await tts.init({ modelId: ttsConfig.modelId, device: ttsConfig.device, language: target, variant: ttsConfig.variant });
         if (this.ended) return;
+        // Heard from as soon as it has loaded: a socket that goes away while the voice is applied is said, not missed.
+        tts.onError = (message) => {
+          const notice = { code: 'tts_degraded' as const, message };
+          if (this.live) this.emit('degraded', notice);
+          else this.notices.push(notice);
+        };
+        tts.onClosed = (message) => this.ttsDied(tts, message);
         this.loadedStage('tts', ttsConfig.modelId, ready, this.request.clock.now() - startedAt);
         const applied = await applyVoice(tts, ttsConfig, target, ready, this.host);
         if (this.ended) return;
+        // It died while the voice was applied: `ttsDied` has said so.
+        if (this.tts !== tts) {
+          loaded('tts');
+          return;
+        }
         this.ttsReady = ready;
         this.voiceLabel = applied.voice;
         if (applied.substituted) {
@@ -259,11 +272,14 @@ class NativeSession implements AdapterSession {
             message: `Configured voice ${applied.substituted.from} is no longer usable with this model (deleted, or missing a required transcript); substituted voice ${applied.substituted.to}. Update the selection in settings.`,
           });
         }
-        tts.onError = (message) => this.emit('degraded', { code: 'tts_degraded', message });
-        tts.onClosed = (message) => this.ttsDied(tts, message);
       }
     } catch (error) {
       if (this.ended) return;
+      // A voice that failed because its socket went away has been said once, by `ttsDied`.
+      if (this.tts !== tts) {
+        loaded('tts');
+        return;
+      }
       this.frame('in', 'local.native.init.tts.error', { model: ttsConfig.modelId, error: describeCause(error) });
       this.dropTts(tts);
       this.notices.push({ code: 'tts_degraded', message: `TTS unavailable, continuing without it: ${describeCause(error)}`, cause: error });
@@ -309,13 +325,18 @@ class NativeSession implements AdapterSession {
   }
 
   /**
-   * The notices the start found, and transcription-only's own, once the start has resolved. A session that
-   * transcribes alone is not transcription-only: another unit translates what it hears.
+   * The notices the start found, transcription-only's own and a missing voice's, once the start has resolved. A session
+   * that transcribes alone is not transcription-only: another unit translates what it hears.
    */
   announce(): void {
     for (const notice of this.notices) this.emit('degraded', notice);
     this.notices = [];
     if (!this.config.translation && !this.config.transcribesAlone) this.announceTranslationUnavailable();
+    if (this.config.ttsUnavailable && this.request.context.speech) {
+      // A leg that should speak but cannot says so once, naming the language no model speaks (#619).
+      const { target } = this.request.context.direction;
+      this.emit('degraded', { code: this.config.ttsUnavailable, message: ttsMissing(this.config.ttsUnavailable, target), params: { target } });
+    }
   }
 
   private announceTranslationUnavailable(): void {

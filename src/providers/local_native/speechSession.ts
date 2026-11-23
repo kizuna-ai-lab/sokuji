@@ -170,10 +170,13 @@ export function startNativeSpeech(
       return;
     }
     if (closed) return;
+    // Heard from as soon as it has loaded: a socket that goes away while the voice is applied is said, not missed.
+    tts.onError = (message) => { if (!closed && !gone) events.degraded({ code: 'tts_degraded', message }); };
+    tts.onClosed = (message) => lost(`Speech synthesis stopped: ${message}`);
     frame('in', 'local.native.init.tts.ready', { model: config.modelId, loadTimeMs: loaded.loadTimeMs ?? clock.now() - startedAt, device: loaded.device });
     config.host.plan('tts', { ...loaded, model: config.modelId, device: loaded.device ?? 'cpu' });
     const applied = await applyVoice(tts, config, target, loaded, config.host);
-    if (closed) return;
+    if (closed || gone) return;
     voiceLabel = applied.voice;
     if (applied.substituted) {
       events.degraded({
@@ -181,8 +184,6 @@ export function startNativeSpeech(
         message: `Configured voice ${applied.substituted.from} is no longer usable with this model (deleted, or missing a required transcript); substituted voice ${applied.substituted.to}. Update the selection in settings.`,
       });
     }
-    tts.onError = (message) => { if (!closed && !gone) events.degraded({ code: 'tts_degraded', message }); };
-    tts.onClosed = (message) => lost(`Speech synthesis stopped: ${message}`);
     ready = loaded;
     void drain();
   };
