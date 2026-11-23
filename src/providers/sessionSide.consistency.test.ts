@@ -412,6 +412,10 @@ describe('a provider session side', () => {
     expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
     // Nor the text models' shared session and its client: every deadline is the job translator's, on the request's clock.
     for (const file of TEXT_MODEL_SESSION) expect(globalTimerCalls(readFileSync(join(REPO_ROOT, file), 'utf-8'), file), file).toEqual([]);
+    // Nor the sidecar clients every native unit drives, by name (#578 ruling 23).
+    for (const file of ['SidecarConnection.ts', 'NativeAsrClient.ts', 'NativeTranslateClient.ts', 'NativeTtsClient.ts', 'createNativeVadWorker.ts']) {
+      expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/local-inference/native', file), 'utf-8'), file), file).toEqual([]);
+    }
   });
 
   it("the text models' shared session imports no store and no reporter as a value", () => {
