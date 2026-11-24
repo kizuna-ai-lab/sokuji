@@ -132,8 +132,8 @@ export class TurnDetectorCore {
   }
 
   /**
-   * Manual turns: a press starts at the next sample. A press still open ends first, as a release (the
-   * partial frame, the close), so nothing of it reaches the new one.
+   * Manual turns: a press starts at the next sample. The timeline is settled first (the partial frame traced), and a
+   * press still open ends as a release, so nothing of an earlier press or the gap reaches the new one.
    */
   begin(press: number): void {
     this.enqueue({ kind: 'begin', press });
@@ -265,12 +265,12 @@ export class TurnDetectorCore {
         this.o.trace({ kind: 'cancel', press: op.press });
         return;
       case 'begin':
-        if (this.open) {
-          await this.settle(generation);
-          if (generation !== this.generation) return;
-          this.releasePress();
-        }
-        this.openAt(this.position + this.pending.length, false, op.press);
+        // Always settled first, a press open or not: what a cancelled press or the gap left (the partial frame) is
+        // traced, and relayed, before this press starts, so none of it seeds the new one.
+        await this.settle(generation);
+        if (generation !== this.generation) return;
+        if (this.open) this.releasePress();
+        this.openAt(this.position, false, op.press);
         return;
       case 'drain':
         await this.settle(generation);

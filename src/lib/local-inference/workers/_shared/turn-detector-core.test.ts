@@ -782,6 +782,24 @@ describe('TurnDetectorCore — presses', () => {
     expect(difference(m.segments()[0].audio, m.timeline())).toBeNull();
   });
 
+  it("a cancelled press's partial frame is traced before the next press opens; the next press holds none of its samples", async () => {
+    const m = manual();
+    m.core.begin(1);
+    await m.push(FRAME * 3 + 200); // three frames and a tail under a frame
+    m.core.cancel(1);
+    m.core.begin(2);
+    await m.push(FRAME * 2);
+    m.core.drain();
+    await m.settle();
+    const open2 = m.trace.findIndex((e) => e.kind === 'open' && e.press === 2);
+    const before = m.trace.slice(0, open2).filter((e) => e.kind === 'frame') as Array<{ from: number; to: number }>;
+    expect(before[before.length - 1]).toMatchObject({ from: FRAME * 3, to: FRAME * 3 + 200 });
+    expect(m.trace[open2]).toMatchObject({ at: FRAME * 3 + 200 });
+    expect(m.segments().filter((s) => s.press === 2).map((s) => [s.start, s.end])).toEqual([[FRAME * 3 + 200, FRAME * 5 + 200]]);
+    const s2 = m.segments().find((s) => s.press === 2)!;
+    expect(difference(s2.audio, m.timeline().subarray(FRAME * 3 + 200))).toBeNull();
+  });
+
   it('a Whisper press of 463872 + 3200 samples: [0, 463872) cap and [463872, 467072) release, both of the press, the tail decoded once', async () => {
     const m = manual({ limit: { maxSegmentSamples: 464000 }, maxSpeech: 30 });
     m.core.begin(9);

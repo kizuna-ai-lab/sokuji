@@ -284,6 +284,25 @@ describe('MarksRelay over the core', () => {
     expect(w.out.filter((o) => o.type === 'mark').map((o) => (o as { event: string }).event)).toEqual(['start', 'end']);
   });
 
+  it("a cancelled press's tail is relayed before the next press's start; everything after that start is the next press's", async () => {
+    const w = wired('manual');
+    w.core.begin(1);
+    await w.push(FRAME * 3 * 1.5 + 300); // three frames and a tail
+    w.core.cancel(1);
+    w.core.begin(2);
+    const mark = w.input.length;
+    await w.push(IN_FRAME * 2);
+    await w.done();
+    expect(w.audio()).toEqual(w.input);
+    expect(w.out.flatMap((o) => (o.type === 'mark' ? [o.event] : []))).toEqual(['start', 'cancel', 'start', 'end']);
+    const secondStart = w.out.findIndex((o, i) => o.type === 'mark' && o.event === 'start' && i > 0);
+    const before = w.out.slice(0, secondStart).flatMap((o) => (o.type === 'audio' ? [...o.pcm] : []));
+    const after = w.out.slice(secondStart).flatMap((o) => (o.type === 'audio' ? [...o.pcm] : []));
+    expect(before).toEqual(w.input.slice(0, mark));
+    expect(after).toEqual(w.input.slice(mark));
+    expect(w.out.findIndex((o) => o.type === 'mark' && o.event === 'cancel')).toBeLessThan(secondStart);
+  });
+
   it("manual: the partial frame's real samples come before the closing mark, then the next press", async () => {
     const w = wired('manual');
     w.core.begin(1);
