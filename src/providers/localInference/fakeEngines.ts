@@ -27,11 +27,15 @@ export class FakeAsr implements AsrLike {
   onPartialResult: AsrLike['onPartialResult'] = null;
   onResult: AsrLike['onResult'] = null;
   onSpeechStart: AsrLike['onSpeechStart'] = null;
+  onDrained: AsrLike['onDrained'] = null;
   onError: AsrLike['onError'] = null;
   onFatal: AsrLike['onFatal'] = null;
 
   config: LocalInferenceConfig['asr'] | null = null;
-  inits: Array<{ modelId: string; options: AsrInit }> = [];
+  /** `turnPort`: what the adapter still hands a recognizer for Smart Turn; the real engines no longer read it. */
+  inits: Array<{ modelId: string; options: AsrInit & { turnPort?: MessagePort } }> = [];
+  /** The epochs `stop` was called with. */
+  stops: number[] = [];
   fed: Int16Array[] = [];
   /** The sample rate each `feedAudio` was told. */
   rates: number[] = [];
@@ -55,6 +59,7 @@ export class FakeAsr implements AsrLike {
     this.rates.push(sampleRate);
   }
   flush(): void { this.flushes++; }
+  stop(epoch: number): void { this.stops.push(epoch); }
   dispose(): void { this.disposes++; }
 
   partial(text: string): void { this.onPartialResult?.(text); }

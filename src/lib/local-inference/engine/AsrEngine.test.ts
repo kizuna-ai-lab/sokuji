@@ -51,7 +51,7 @@ describe('AsrEngine (characterization)', () => {
     worker.emit({ type: 'result', text: 'hello', durationMs: 10, recognitionTimeMs: 5 });
     expect(onStatus).toHaveBeenCalledWith('loading');
     expect(onSpeechStart).toHaveBeenCalledTimes(1);
-    expect(onPartial).toHaveBeenCalledWith('he');
+    expect(onPartial).toHaveBeenCalledWith('he', {});
     expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ text: 'hello', durationMs: 10, recognitionTimeMs: 5 }));
     expect(onResult.mock.calls[0][0]).not.toHaveProperty('endedBy');
     worker.emit({ type: 'result', text: 'done', durationMs: 10, recognitionTimeMs: 5, endedBy: 'smart', smartTurnProbability: 0.8 });

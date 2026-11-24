@@ -1,9 +1,11 @@
-import { AsrEngine, type AsrResult } from '../../lib/local-inference/engine/AsrEngine';
+import { AsrEngine, type AsrPartialTag, type AsrResult } from '../../lib/local-inference/engine/AsrEngine';
 import { StreamingAsrEngine } from '../../lib/local-inference/engine/StreamingAsrEngine';
 import { TranslationEngine } from '../../lib/local-inference/engine/TranslationEngine';
 import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
+import { TurnDetector, type TurnDetectorInit } from '../../lib/local-inference/engine/TurnDetector';
 import { turnRuntime, type TurnConnection } from '../../lib/turn/TurnRuntime';
 import type { VadWebConfig } from '../../lib/local-inference/types';
+import type { TurnFailureCode } from '../../lib/local-inference/workers/_shared/turn-detector-protocol';
 import type { LocalInferenceConfig } from './config';
 import type { TranslationLike, TtsLike } from '../../lib/local-inference/sessions/engines';
 
@@ -15,15 +17,16 @@ import type { TranslationLike, TtsLike } from '../../lib/local-inference/session
  */
 
 export interface AsrInit {
-  vadConfig: VadWebConfig;
+  /** What the recognizer's own VAD reads: sherpa-onnx and Voxtral 4B. The WebGPU recognizers run none. */
+  vadConfig?: VadWebConfig;
   /** The source language hint. */
   language: string;
   /** AST: the model itself translates into this language (Granite Speech). */
   translateTo?: string;
   /** The voxtral worker's own sentence endpoint (default on): off only while the adapter's stream shape seals — exactly one layer may cut. */
   punctuationEndpoint?: boolean;
-  /** Smart Turn's port: the vad-web worker asks it whether a pause ends the turn. */
-  turnPort?: MessagePort;
+  /** The turn detector's segments for a WebGPU recognizer; transferred. Required by those, ignored by the rest. */
+  segmentPort?: MessagePort;
 }
 
 /** An utterance the ASR finished: the engine's own shape. */
@@ -34,15 +37,36 @@ export interface AsrLike {
   init(modelId: string, options: AsrInit): Promise<void>;
   feedAudio(samples: Int16Array, sampleRate: number): void;
   flush(): void;
+  /** Raise the recognizer's epoch: the older epoch's queued segments are dropped. A no-op for an engine that cuts its own turns. */
+  stop(epoch: number): void;
   dispose(): void;
-  /** The cumulative hypothesis for the utterance so far, never a delta. */
-  onPartialResult: ((text: string) => void) | null;
+  /** The cumulative hypothesis for the utterance so far, never a delta. `tag`: the segment's press and epoch, when the recognizer decodes the detector's segments. */
+  onPartialResult: ((text: string, tag?: AsrPartialTag) => void) | null;
+  /** The recognizer decoded or dropped everything the detector sent before its drain mark `seq`. */
+  onDrained: ((seq: number) => void) | null;
   /** `startSample`: where the utterance began in the audio fed since `init`, at 16 kHz, when the recognizer says. */
   onResult: ((result: AsrResult) => void) | null;
   onSpeechStart: (() => void) | null;
   /** An error message from the ready worker: one utterance failed, the engine goes on. */
   onError: ((error: string) => void) | null;
   /** The ready worker died: nothing more will be transcribed. */
+  onFatal: ((error: string) => void) | null;
+}
+
+/** The turn detector, as the adapter drives it: `TurnDetector`'s public shape. */
+export interface TurnDetectorLike {
+  init(o: TurnDetectorInit): Promise<unknown>;
+  /** The buffer is transferred: the caller keeps no use of `pcm`. */
+  feedAudio(pcm: Int16Array): void;
+  begin(press: number): void;
+  drain(press?: number): void;
+  cancel(press: number): void;
+  stop(epoch: number): void;
+  dispose(): void;
+  onSpeechStart: (() => void) | null;
+  /** The leg's one failure; fires at most once. */
+  onFailed: ((failure: { code: TurnFailureCode; message: string }) => void) | null;
+  /** The detector worker died after it was ready. */
   onFatal: ((error: string) => void) | null;
 }
 
@@ -53,6 +77,8 @@ export interface LocalEngines {
   tts(): TtsLike;
   /** A connection to the Smart Turn worker; null when it cannot run. */
   turn?: () => Promise<TurnConnection | null>;
+  /** A turn detector for a leg whose recognizer takes our turn detection. */
+  detector?: () => TurnDetectorLike;
 }
 
 function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
@@ -60,20 +86,25 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
     onPartialResult: null,
     onResult: null,
     onSpeechStart: null,
+    onDrained: null,
     onError: null,
     onFatal: null,
-    async init(modelId, { vadConfig, language, translateTo, punctuationEndpoint, turnPort }) {
+    async init(modelId, { vadConfig, language, translateTo, punctuationEndpoint, segmentPort }) {
       if (engine instanceof StreamingAsrEngine) {
         await engine.init(modelId, { language, vadConfig, punctuationEndpoint: punctuationEndpoint ?? true });
       } else {
-        await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined, turnPort);
+        await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined, segmentPort);
       }
     },
     feedAudio: (samples, sampleRate) => engine.feedAudio(samples, sampleRate),
     flush: () => engine.flush(),
+    // Only a recognizer that decodes the detector's segments has an epoch.
+    stop: (epoch) => { if (engine instanceof AsrEngine) engine.stop(epoch); },
     dispose: () => engine.dispose(),
   };
-  engine.onPartialResult = (text) => asr.onPartialResult?.(text);
+  // The streaming engine's partials carry no tag.
+  engine.onPartialResult = (text: string, tag?: AsrPartialTag) => asr.onPartialResult?.(text, tag);
+  if (engine instanceof AsrEngine) engine.onDrained = (seq) => asr.onDrained?.(seq);
   engine.onResult = (result: AsrResult) => asr.onResult?.(result);
   engine.onSpeechStart = () => asr.onSpeechStart?.();
   // Two failures, kept apart by the engine's own hook: a ready worker's
@@ -89,4 +120,5 @@ export const defaultEngines: LocalEngines = {
   translation: () => new TranslationEngine(),
   tts: () => new TtsEngine(),
   turn: () => turnRuntime.connect(),
+  detector: () => new TurnDetector(),
 };

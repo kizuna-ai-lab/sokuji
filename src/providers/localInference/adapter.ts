@@ -228,7 +228,8 @@ class LocalSession implements AdapterSession {
         }
         return this.openTurn(this.connectTurn).then((turnPort) => {
           if (this.ended) throw new Error('ended');
-          return this.asr.init(config.asr.modelId, turnPort ? { ...options, turnPort } : options);
+          // The recognizer no longer takes Smart Turn's port (the turn detector does); the cast keeps this path until the adapter opens a detector.
+          return this.asr.init(config.asr.modelId, (turnPort ? { ...options, turnPort } : options) as AsrInit);
         });
       },
       dispose: () => this.asr.dispose(),
