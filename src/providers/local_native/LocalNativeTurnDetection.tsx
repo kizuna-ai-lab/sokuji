@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { CircleHelp } from 'lucide-react';
-import { VadControl } from '../../components/Settings/sections/LocalSettingsControls';
 import Tooltip from '../../components/Tooltip/Tooltip';
 import type { SettingsProps } from '../../lib/provider/types';
 import type { LocalNativeSettings as S } from './settings';
@@ -28,16 +27,49 @@ export function LocalNativeTurnDetectionHelp(_props: SettingsProps<S>) {
   );
 }
 
+type NativeVad = Pick<S, 'vadThreshold' | 'vadMinSilenceDuration' | 'vadMinSpeechDuration'>;
+
+/**
+ * The three knobs as sliders, same words and look as the shared turn-detection
+ * controls. Local Native keeps its own until it moves onto the shared detector
+ * (design step 4); the shared panel takes the local-inference scope only.
+ */
 export function LocalNativeTurnDetectionControls({ settings, update, disabled = false }: SettingsProps<S>) {
+  const { t } = useTranslation();
+  const slider = (
+    key: keyof NativeVad, label: string, labelKey: string, tip: string, tipKey: string,
+    min: string, max: string, unit: string,
+  ) => (
+    <div className="setting-item">
+      <div className="setting-label">
+        <span>
+          {t(labelKey, label)}
+          <Tooltip content={t(tipKey, tip)} position="top">{helpIcon}</Tooltip>
+        </span>
+        <span className="setting-value">{settings[key].toFixed(2)}{unit}</span>
+      </div>
+      <input
+        type="range" min={min} max={max} step="0.05" value={settings[key]}
+        onChange={(e) => update({ [key]: parseFloat(e.target.value) } as Partial<NativeVad>)}
+        className="slider" disabled={disabled}
+      />
+    </div>
+  );
   return (
-    <VadControl
-      values={{
-        vadThreshold: settings.vadThreshold,
-        vadMinSilenceDuration: settings.vadMinSilenceDuration,
-        vadMinSpeechDuration: settings.vadMinSpeechDuration,
-      }}
-      onChange={(patch) => update(patch)}
-      disabled={disabled}
-    />
+    <div className="settings-section">
+      <h2>
+        {t('settings.vadSettings', 'VAD Settings')}
+        <LocalNativeTurnDetectionHelp settings={settings} update={update} />
+      </h2>
+      {slider('vadThreshold', 'Speech Threshold', 'settings.vadThreshold',
+        'Speech detection sensitivity. Higher values require louder/clearer speech to trigger recognition. Lower values are more sensitive to quiet speech.',
+        'settings.vadThresholdTooltip', '0.1', '0.95', '')}
+      {slider('vadMinSilenceDuration', 'Min Silence Duration', 'settings.vadMinSilenceDuration',
+        'Minimum silence duration to split speech segments. Shorter values split sentences faster, longer values wait for more natural pauses.',
+        'settings.vadMinSilenceDurationTooltip', '0.05', '2.0', 's')}
+      {slider('vadMinSpeechDuration', 'Min Speech Duration', 'settings.vadMinSpeechDuration',
+        'Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.',
+        'settings.vadMinSpeechDurationTooltip', '0.05', '1.0', 's')}
+    </div>
   );
 }

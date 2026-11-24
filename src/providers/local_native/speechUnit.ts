@@ -27,7 +27,6 @@ export function createNativeSpeechUnit(deps: { engines?: Pick<LocalNativeEngines
     capabilities: () => ({
       speech: 'optional',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'silence',
       textInput: false,
       faceToFace: false,

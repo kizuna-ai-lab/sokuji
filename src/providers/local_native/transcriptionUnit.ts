@@ -61,7 +61,6 @@ export function createNativeTranscriptionUnit(deps: { engines?: LocalNativeEngin
     capabilities: () => ({
       speech: 'never',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'provider',
       textInput: true,
       faceToFace: false,

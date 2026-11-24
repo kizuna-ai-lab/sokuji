@@ -25,7 +25,7 @@ describe("what Local Native's speech unit declares", () => {
     expect(occupies(['speech'])).toEqual(['speech']);
     expect(occupies(['translation', 'speech'])).toBeNull();
     const caps = nativeSpeechUnit.capabilities(LOCAL_NATIVE_DEFAULTS);
-    expect(caps).toEqual({ speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'silence', textInput: false, faceToFace: false, participantSpeech: true });
+    expect(caps).toEqual({ speech: 'optional', turns: ['auto', 'manual'], boundaries: 'silence', textInput: false, faceToFace: false, participantSpeech: true });
     expect('speaks' in caps).toBe(false);
   });
 });
