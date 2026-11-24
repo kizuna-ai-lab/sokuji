@@ -8,7 +8,7 @@ import type { TurnDetectionSettings } from './turnDetectionSettings';
 
 export type TurnDetection = 'shared' | 'own';
 
-/** The vad-web workers that wire the gate (workers/turnDetection.consistency.test.ts). Step 2 adds 'sherpa-onnx' for `type: 'asr'`; step 3 'voxtral-webgpu'. */
+/** The workers that decode the detector's segments (workers/turnDetection.consistency.test.ts). Step 2 adds 'sherpa-onnx' for `type: 'asr'`; step 3 'voxtral-webgpu'. */
 export const DETECTOR_WORKER_TYPES = [
   'whisper-webgpu',
   'cohere-transcribe-webgpu',

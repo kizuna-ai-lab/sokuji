@@ -67,7 +67,8 @@ describe('the detector-type workers decode the detector\'s segments and run no V
       });
 
       it('routes stop to the inbox', () => {
-        expect(source).toMatch(/case 'stop':/);
+        expect(source).toMatch(/case 'stop':\s*inbox\?\.stop\(msg\.epoch\)/);
+        expect(source).not.toMatch(/case 'flush':/);
       });
     });
   }
