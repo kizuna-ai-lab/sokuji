@@ -43,7 +43,7 @@ export function LocalNativeTurnDetectionControls({ settings, update, disabled = 
     <div className="setting-item">
       <div className="setting-label">
         <span>
-          {t(labelKey, label)}
+          <span id={`native-vad-${key}`}>{t(labelKey, label)}</span>
           <Tooltip content={t(tipKey, tip)} position="top">{helpIcon}</Tooltip>
         </span>
         <span className="setting-value">{settings[key].toFixed(2)}{unit}</span>
@@ -51,7 +51,7 @@ export function LocalNativeTurnDetectionControls({ settings, update, disabled = 
       <input
         type="range" min={min} max={max} step="0.05" value={settings[key]}
         onChange={(e) => update({ [key]: parseFloat(e.target.value) } as Partial<NativeVad>)}
-        className="slider" disabled={disabled}
+        className="slider" disabled={disabled} aria-labelledby={`native-vad-${key}`}
       />
     </div>
   );
