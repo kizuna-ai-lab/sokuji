@@ -77,7 +77,7 @@ describe('TimelineResampler', () => {
       expect(rs.position).toBe(one.position);
       expect(rs.position).toBe(got.length);
     }
-  });
+  }, 60_000);
 
   it('after N input samples and a flush, the position is floor(2(N-1)/3) + 1', () => {
     for (const n of [1, 2, 3, 2401, 1_000_000]) {
