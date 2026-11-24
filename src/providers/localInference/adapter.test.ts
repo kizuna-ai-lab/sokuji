@@ -349,6 +349,15 @@ describe('the LocalInference adapter — turns (a shared leg)', () => {
     await t.starting;
   });
 
+  it('the detector dying while the recognizer is still loading fails the start, not a deaf leg', async () => {
+    const t = begin(whisper());
+    t.translation.ready();
+    t.detector.ready();
+    t.detector.die('RuntimeError: unreachable');
+    t.asr.ready();
+    await expect(t.starting).rejects.toThrow(/Turn detection stopped/);
+  });
+
   it('a shared leg without a detector in the engines rejects the start', async () => {
     const fakes = createFakeEngines();
     delete fakes.engines.detector;

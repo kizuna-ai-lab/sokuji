@@ -69,7 +69,7 @@ const DRAIN_TIMEOUT_MS = 60_000;
 /** A manual turn's drain, until the recognizer says it decoded or dropped everything the press sent. */
 interface PendingDrain { press: number; since: number; timedOut: boolean; cancelTimer: () => void }
 
-/** The recognizers count the audio they were fed at their VAD's 16 kHz: a result's `startSample` is in those samples. */
+/** The recognizers count the audio at the detector's (or, on an own leg, their VAD's) 16 kHz timeline: a result's `startSample` is in those samples. */
 const ASR_SAMPLE_RATE = 16000;
 
 const CJK_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
@@ -529,6 +529,8 @@ class LocalSession implements AdapterSession {
       : undefined;
     if (this.ended) throw new Error('ended');
     const { port1, port2 } = new MessageChannel();
+    // The detector may be ready long before a large recognizer finishes loading: a crash in between must not be lost.
+    this.listenToDetectorFailures(detector);
     try {
       await Promise.all([
         detector.init({
@@ -561,6 +563,14 @@ class LocalSession implements AdapterSession {
     return turn?.port;
   }
 
+  private listenToDetectorFailures(detector: TurnDetectorLike): void {
+    detector.onFailed = ({ code, message }) => this.fatal(message, code);
+    detector.onFatal = (error) => {
+      this.frame('in', 'local.turn.error', { error });
+      this.fatal(`Turn detection stopped: ${error}`);
+    };
+  }
+
   /** ASR's callbacks, once its engine loaded: before that, its errors reject the start instead. */
   private listenToAsr(): void {
     const { asr, detector } = this;
@@ -568,11 +578,7 @@ class LocalSession implements AdapterSession {
     if (detector) {
       // The detector hears the speech; the recognizer decodes what it is sent.
       detector.onSpeechStart = speechStart;
-      detector.onFailed = ({ code, message }) => this.fatal(message, code);
-      detector.onFatal = (error) => {
-        this.frame('in', 'local.turn.error', { error });
-        this.fatal(`Turn detection stopped: ${error}`);
-      };
+      this.listenToDetectorFailures(detector);
       asr.onDrained = () => this.drainAnswered();
     } else {
       asr.onSpeechStart = speechStart;
