@@ -31,6 +31,11 @@ export class SegmentInbox {
     private readonly port: MessagePort,
     private readonly decode: (audio: Float32Array, startSample: number, tag: DecodeTag) => Promise<void>,
     private readonly toMain: (msg: { type: 'drained'; epoch: number; seq: number }) => void,
+    /**
+     * A decode threw or rejected (a lost WebGPU device, say). Required: the segment was acked `taken` before
+     * it started, so without this a failed decode is invisible to everyone. Called once per failing segment.
+     */
+    private readonly onDecodeError: (err: unknown, tag: DecodeTag) => void,
   ) {
     port.onmessage = (e: MessageEvent<DetectorOutput>) => this.receive(e.data);
   }
@@ -106,8 +111,12 @@ export class SegmentInbox {
       };
       try {
         await this.decode(audio, start, tag);
-      } catch {
-        // A failed decode reports itself; the next segment still runs.
+      } catch (err) {
+        // The segment was acked before it started, so the detector is not wedged. Whatever the decode
+        // published before failing is its own business; the inbox publishes nothing for a failed one. The
+        // segments behind it still run (a transient failure should not eat the rest of a turn), and drained
+        // marks are still answered. A reporter that throws must not stop the queue either.
+        try { this.onDecodeError(err, tag); } catch { /* reporting is best-effort */ }
       }
     }
   }

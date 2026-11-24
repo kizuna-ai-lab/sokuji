@@ -24,6 +24,7 @@ function rig() {
     recognizerPort,
     (_audio, _start, tag) => new Promise<void>((resolve) => { started.push(tag); releases.push(resolve); }),
     () => {},
+    () => {},
   );
   /** One manual press = one segment. */
   const press = async (id: number) => {

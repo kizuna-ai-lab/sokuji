@@ -10,28 +10,32 @@ function seg(seq: number, extra: Partial<Extract<DetectorOutput, { type: 'segmen
 
 interface Call { seq: number; tag: DecodeTag; start: number; audio: Float32Array; release: () => void }
 
-function setup(opts: { auto?: boolean; throwOn?: number } = {}) {
+function setup(opts: { auto?: boolean; throwOn?: number | number[]; syncThrowOn?: number; onDecodeError?: (err: unknown, tag: DecodeTag) => void } = {}) {
   const { port1: detector, port2: recognizer } = new MessageChannel();
   const taken: RecognizerTaken[] = [];
   detector.onmessage = (e) => taken.push(e.data);
   const calls: Call[] = [];
   const drained: { type: 'drained'; epoch: number; seq: number }[] = [];
   const finished: number[] = [];
+  const errors: Array<{ err: unknown; tag: DecodeTag }> = [];
   const inbox = new SegmentInbox(
     recognizer,
-    (audio, start, tag) =>
-      new Promise<void>((resolve, reject) => {
+    (audio, start, tag) => {
+      if (opts.syncThrowOn === tag.seq) { calls.push({ seq: tag.seq, tag, start, audio, release: () => {} }); finished.push(tag.seq); throw new Error('sync boom'); }
+      return new Promise<void>((resolve, reject) => {
         const call: Call = {
           seq: tag.seq, tag, start, audio,
-          release: () => { finished.push(tag.seq); opts.throwOn === tag.seq ? reject(new Error('boom')) : resolve(); },
+          release: () => { finished.push(tag.seq); [opts.throwOn ?? []].flat().includes(tag.seq) ? reject(new Error('boom')) : resolve(); },
         };
         calls.push(call);
         if (opts.auto) call.release();
-      }),
+      });
+    },
     (m) => drained.push(m),
+    opts.onDecodeError ?? ((err, tag) => errors.push({ err, tag })),
   );
   const closeAll = () => { detector.close(); recognizer.close(); };
-  return { detector, inbox, taken, calls, drained, finished, closeAll };
+  return { detector, inbox, taken, calls, drained, finished, errors, closeAll };
 }
 
 let cleanup: (() => void) | undefined;
@@ -135,6 +139,56 @@ describe('SegmentInbox', () => {
     t.calls[0].release(); await tick();
     expect(t.calls.map((c) => c.seq)).toEqual([1, 2]);
     t.calls[1].release(); await tick();
+  });
+
+  it('a decode that rejects is reported once, with its tag and the error; the next segment still runs', async () => {
+    const t = s({ throwOn: 1 });
+    t.detector.postMessage(seg(1, { press: 4 })); t.detector.postMessage(seg(2)); await tick();
+    expect(t.errors).toEqual([]); // nothing has failed yet
+    t.calls[0].release(); await tick();
+    expect(t.errors).toHaveLength(1);
+    expect(t.errors[0].tag).toMatchObject({ epoch: 1, seq: 1, press: 4 });
+    expect((t.errors[0].err as Error).message).toBe('boom');
+    expect(t.calls.map((c) => c.seq)).toEqual([1, 2]);
+    t.calls[1].release(); await tick();
+    expect(t.errors).toHaveLength(1); // the good one is not reported
+  });
+
+  it('a decode that throws synchronously is reported once, and the next segment still runs', async () => {
+    const t = s({ syncThrowOn: 1 });
+    t.detector.postMessage(seg(1)); t.detector.postMessage(seg(2)); await tick();
+    expect(t.errors).toHaveLength(1);
+    expect(t.errors[0].tag).toMatchObject({ seq: 1 });
+    expect((t.errors[0].err as Error).message).toBe('sync boom');
+    expect(t.calls.map((c) => c.seq)).toEqual([1, 2]);
+    expect(t.taken.map((x) => x.seq)).toEqual([1, 2]); // acked even though it failed: the detector is not wedged
+    t.calls[1].release(); await tick();
+  });
+
+  it('every failing segment is reported once; drained is still answered after the failures', async () => {
+    const t = s({ auto: true, syncThrowOn: 1 });
+    t.detector.postMessage(seg(1)); t.detector.postMessage(seg(2));
+    t.detector.postMessage({ type: 'drained', epoch: 1, seq: 3 }); await tick();
+    expect(t.errors.map((e) => e.tag.seq)).toEqual([1]);
+    expect(t.drained).toEqual([{ type: 'drained', epoch: 1, seq: 3 }]);
+    expect(t.finished).toEqual([1, 2]);
+  });
+
+  it('two failing segments give two reports, in order, each with its own tag', async () => {
+    const t = s({ throwOn: [1, 2] });
+    t.detector.postMessage(seg(1)); t.detector.postMessage(seg(2)); await tick();
+    t.calls[0].release(); await tick();
+    t.calls[1].release(); await tick();
+    expect(t.errors.map((e) => e.tag.seq)).toEqual([1, 2]);
+  });
+
+  it('an onDecodeError that itself throws does not wedge the queue', async () => {
+    const t = s({ syncThrowOn: 1, onDecodeError: () => { throw new Error('reporter broke'); } });
+    t.detector.postMessage(seg(1)); t.detector.postMessage(seg(2));
+    t.detector.postMessage({ type: 'drained', epoch: 1, seq: 3 }); await tick();
+    expect(t.calls.map((c) => c.seq)).toEqual([1, 2]);
+    t.calls[1].release(); await tick();
+    expect(t.drained).toHaveLength(1);
   });
 
   it('passes start, press, epoch, endedBy and the Smart probability to decode', async () => {
