@@ -9,7 +9,7 @@
  * `seq` is monotonic across epochs, so it is only ever compared for identity.
  */
 import type { SegmentEnd } from '../../types';
-import type { DetectorOutput, DetectorSegment, RecognizerTaken } from './turn-detector-protocol';
+import { INITIAL_EPOCH, type DetectorOutput, type DetectorSegment, type RecognizerTaken } from './turn-detector-protocol';
 
 /** What a decode learns about its segment besides the audio and where it starts; `seq` is the detector's, for logs. */
 export interface DecodeTag extends SegmentEnd {
@@ -22,7 +22,8 @@ type Item = DetectorSegment | { type: 'drained'; epoch: number; seq: number };
 
 export class SegmentInbox {
   private queue: Item[] = [];
-  private epoch = 0;
+  /** Starts where the detector does, so `stop(INITIAL_EPOCH)` is the no-op it is on that end; any epoch is accepted until a stop raises this. */
+  private epoch = INITIAL_EPOCH;
   private pumping: Promise<void> | null = null;
   private closed = false;
 

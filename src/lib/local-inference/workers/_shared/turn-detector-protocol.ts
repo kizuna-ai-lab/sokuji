@@ -39,6 +39,11 @@ export interface DetectorSegment {
 }
 export interface DetectorCancel { type: 'cancel'; epoch: number; seq: number; press: number }
 export interface DetectorDrained { type: 'drained'; epoch: number; seq: number }
+/**
+ * The epoch both ends start at. A stop raises it (the adapter's counter starts here, so its first `stop()`
+ * sends `INITIAL_EPOCH + 1`); a stop that does not exceed the current epoch changes nothing on either end.
+ */
+export const INITIAL_EPOCH = 1;
 /** Detector → recognizer, one ordered port. */
 export type DetectorOutput = DetectorSegment | DetectorCancel | DetectorDrained;
 /** Recognizer → detector, the same port: the recognizer started decoding `seq`. */

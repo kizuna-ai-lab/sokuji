@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { FrameLog } from './frame-log';
 import { SegmentAssembler } from './segment-assembler';
-import type { DetectorNotice, DetectorOutput, TurnTrace } from './turn-detector-protocol';
+import { INITIAL_EPOCH, type DetectorNotice, type DetectorOutput, type TurnTrace } from './turn-detector-protocol';
 
 /** `n` samples whose values are their positions on the timeline. */
 const ramp = (from: number, n: number) => Float32Array.from({ length: n }, (_, i) => from + i);
@@ -101,6 +101,24 @@ describe('SegmentAssembler', () => {
     const a = new SegmentAssembler({ post: (msg) => posted.push(msg), notify: () => {}, earliestNeeded: () => 0, epoch: 4 });
     a.trace({ kind: 'drained' });
     expect(posted).toEqual([{ type: 'drained', epoch: 4, seq: 1 }]);
+  });
+
+  it('starts at INITIAL_EPOCH; a stop to that epoch (or lower) is not a raise and forgets nothing', () => {
+    const { a, posted, notices } = assembler();
+    segments(a, 5, 100);
+    a.stop(INITIAL_EPOCH);
+    a.stop(0);
+    expect(posted.map((p) => p.msg.epoch)).toEqual(Array(5).fill(INITIAL_EPOCH));
+    segments(a, 1, 100, 500); // still behind five waiting: the queue was not cleared
+    expect(notices).toHaveLength(1);
+  });
+
+  it('an epoch cannot be lowered again: stop(3) then stop(2) still numbers with 3', () => {
+    const { a, posted } = assembler();
+    a.stop(INITIAL_EPOCH + 2);
+    a.stop(INITIAL_EPOCH + 1);
+    a.trace({ kind: 'drained' });
+    expect(posted[0].msg.epoch).toBe(INITIAL_EPOCH + 2);
   });
 
   it('keeps only what the core still needs: a close from before earliestNeeded() cannot be sliced', () => {

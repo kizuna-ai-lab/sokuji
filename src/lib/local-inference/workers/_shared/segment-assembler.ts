@@ -8,6 +8,7 @@ import { FrameLog } from './frame-log';
 import { VAD_SAMPLE_RATE } from './max-speech-frames';
 import {
   DECODE_QUEUE_SECONDS,
+  INITIAL_EPOCH,
   DECODE_QUEUE_SEGMENTS,
   overloadedNotice,
   type DetectorNotice,
@@ -35,7 +36,7 @@ export class SegmentAssembler {
   private failed = false;
 
   constructor(private readonly o: SegmentAssemblerOptions) {
-    this.epoch = o.epoch ?? 1;
+    this.epoch = o.epoch ?? INITIAL_EPOCH;
   }
 
   /** The recognizer started decoding `seq`; an older epoch's ack is ignored. */
@@ -43,8 +44,9 @@ export class SegmentAssembler {
     if (msg.epoch === this.epoch) this.waiting.delete(msg.seq);
   }
 
-  /** Raises the epoch: what was waiting no longer counts, and what follows is the new epoch's. */
+  /** Raises the epoch: what was waiting no longer counts, and what follows is the new epoch's. One that does not exceed the current is ignored. */
   stop(epoch: number): void {
+    if (epoch <= this.epoch) return;
     this.epoch = epoch;
     this.waiting.clear();
   }
