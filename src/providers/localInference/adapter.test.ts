@@ -362,9 +362,21 @@ describe('the LocalInference adapter — turns (a shared leg)', () => {
     const t = begin(whisper());
     t.translation.ready();
     t.asr.ready();
+    await Promise.resolve(); // a crash after ready arrives as a message of its own, after the init answer was handled
+    await Promise.resolve();
     t.asr.die();
     t.detector.ready();
     await expect(t.starting).rejects.toThrow(/Speech recognition stopped/);
+  });
+
+  it('the recognizer failing while it loads rejects its init, so the start classifier sees it', async () => {
+    const t = begin(whisper());
+    t.translation.ready();
+    t.asr.failInit('out of memory');
+    t.detector.ready();
+    const error = await t.starting.then(() => null, (e: Error) => e);
+    expect(error).not.toBeNull();
+    expect(String(error?.message)).toMatch(/out of memory/);
   });
 
   it('a shared leg without a detector in the engines rejects the start', async () => {

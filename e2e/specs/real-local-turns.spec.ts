@@ -165,6 +165,9 @@ for (let run = 1; run <= RUNS; run++) {
     expect(isModel(ASR), `E2E_LOCAL_ASR is one of ${Object.keys(MODELS).join(', ')}`).toBe(true);
     const asr = ASR as ModelId;
     test.setTimeout(25 * 60_000);
+    // This run's result from an earlier batch must not outlive a rerun that fails: the comparison would read it as new.
+    // Only this model's file for this run goes; other models share the folder.
+    fs.rmSync(path.join(OUT as string, `${asr}-run${run}.json`), { force: true });
 
     const userData = profileDir();
     const known = new Set(readHistory(userData).map((record) => record.id));
@@ -209,12 +212,14 @@ for (let run = 1; run <= RUNS; run++) {
     const sentences: Measured[] = SENTENCES.map((sentence, i) => {
       // The first source segment that carries the sentence's word and opened once its clip had begun.
       const segment = sources.find((candidate) => candidate.openedAt >= clipStartedAt[i] && sentence.heard.test(candidate.text));
+      const spoken = fresh[0].heard.find((candidate) => candidate.startMs >= clipStartedAt[i] - runStartedAt - 3000 && sentence.heard.test(candidate.text));
       return {
         file: sentence.file,
         heard: sentence.heard.test(heardText),
         translated: sentence.said.test(saidText),
-        startMs: segment?.startMs ?? null,
-        endMs: segment?.endMs ?? null,
+        // The turn boundaries are the sentence the session cut for this clip (a local recognizer's segments carry no timing).
+        startMs: spoken?.startMs ?? null,
+        endMs: spoken?.endMs ?? null,
         latencyMs: segment ? segment.openedAt - clipEndedAt[i] : null,
       };
     });

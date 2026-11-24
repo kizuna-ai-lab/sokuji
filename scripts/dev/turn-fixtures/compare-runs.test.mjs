@@ -93,6 +93,14 @@ describe('compareRuns', () => {
     expect(metric(far, 'whisper', 'shift').verdict).toBe('FAIL');
   });
 
+  it('fails the shift when an after run loses an end boundary the before runs have', () => {
+    const before = [run('m'), run('m'), run('m')];
+    const lost = run('m');
+    lost.sentences.forEach((x) => { x.endMs = null; });
+    const result = compareRuns(before, [lost, lost, lost]);
+    expect(metric(result, 'm', 'shift').verdict).toBe('FAIL');
+  });
+
   it('fails a latency beyond the before side\'s spread and passes one within it', () => {
     const base = [run('whisper', { latency: 900 }), run('whisper', { latency: 1000 }), run('whisper', { latency: 1100 })];
     expect(metric(compareRuns(base, [run('whisper', { latency: 1200 })]), 'whisper', 'latency').verdict).toBe('PASS'); // 1200 <= 1000 + 200

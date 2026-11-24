@@ -70,7 +70,8 @@ const LANGUAGE_NAMES: Record<string, string> = {
 // The longest speech this engine is handed is the detector's limit for Granite (30 s, 20 s when
 // translating; declared in modelManifest.ts): there is no audio-side limit, and the decode budget
 // below removes the other one, so what is left is the model itself, which ends the transcript early
-// at a sentence or speaker boundary. This worker never sees a longer segment.
+// at a sentence or speaker boundary. The limit counts speech only: the detector adds its pre-pad (0.8 s by
+// default, up to 2 s) in front, so a segment can be that much longer than the limit.
 
 // Output tokens budgeted per second of audio. The budget used to be a fixed
 // 256, which real Japanese speakers (8.0-10.2 tokens/s) exhaust at about

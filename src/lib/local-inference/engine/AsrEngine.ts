@@ -81,8 +81,9 @@ export class AsrEngine {
       throw new Error(`${model.name} takes its segments from a turn detector: no segment port`);
     }
 
-    // If already loaded with same model, skip
-    if (this.session?.ready && this.currentModel?.id === modelId) {
+    // If already loaded with same model, skip. A new segment port belongs to a new detector the loaded worker
+    // knows nothing of, so it reloads rather than resolve with the new port dropped.
+    if (this.session?.ready && this.currentModel?.id === modelId && !segmentPort) {
       return { loadTimeMs: 0 };
     }
 

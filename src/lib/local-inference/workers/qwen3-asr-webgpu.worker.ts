@@ -132,6 +132,10 @@ async function transcribeSegment(audio: Float32Array, startSample: number, tag: 
   const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
   const startTime = performance.now();
 
+  // A tail shorter than one mel hop (160 samples, 10 ms) has no feature frames: nothing to recognize, and the
+  // encoder must not be handed zero frames.
+  if (audio.length < 160) return;
+
   try {
     const mel = logMel(audio, m.filters);
     const melData = m.encoderMelType === 'float16' ? f32ToF16(mel.data) : mel.data;

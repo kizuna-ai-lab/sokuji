@@ -16,6 +16,12 @@ export interface StoredRecord {
    * timing (the `start_ms`/`end_ms` columns of `segments`), or null where the service gave none.
    */
   segments: { side: 'source' | 'translation'; text: string; openedAt: number; startMs: number | null; endMs: number | null }[];
+  /**
+   * What was heard, as the sentences the session cut it into (the `original` transcript), in order, with the span each
+   * covers in ms from the record's start. A local recognizer gives its segments no timing (`startMs`/`endMs` above stay
+   * null); these spans are where its turn boundaries are kept.
+   */
+  heard: { text: string; startMs: number; endMs: number }[];
 }
 
 /** What the history database holds, read from disk. Call it after the app has closed: the app owns the file while it runs. */
@@ -40,7 +46,9 @@ export function readHistory(userData: string): StoredRecord[] {
         .map((row) => ({ side: row.side as 'source' | 'translation', text: String(row.text), openedAt: Number(row.openedAt),
           startMs: row.startMs === null ? null : Number(row.startMs), endMs: row.endMs === null ? null : Number(row.endMs),
         }));
-      return { id, state: String(record.state), services: String(record.services), sentences, tracks, segments };
+      const heard = (db.prepare("select s.text as text, s.start_ms as startMs, s.end_ms as endMs from sentences s join transcripts t on t.id = s.transcript_id where t.record_id = ? and t.text_kind = 'original' order by t.id, s.start_ms").all(id) as Record<string, unknown>[])
+        .map((row) => ({ text: String(row.text), startMs: Number(row.startMs), endMs: Number(row.endMs) }));
+      return { id, state: String(record.state), services: String(record.services), sentences, tracks, segments, heard };
     });
   } finally {
     db.close();

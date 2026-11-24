@@ -70,8 +70,9 @@ export function measureRun(run, reference) {
   for (const s of run.sentences) {
     const ref = reference.get(s.file);
     if (!ref) continue;
-    if (finite(s.startMs) && finite(ref.startMs)) shifts.push(Math.abs(s.startMs - ref.startMs));
-    if (finite(s.endMs) && finite(ref.endMs)) shifts.push(Math.abs(s.endMs - ref.endMs));
+    // A boundary the reference has and this run lost is evidence gone missing, not a match: it shifts without bound.
+    if (finite(ref.startMs)) shifts.push(finite(s.startMs) ? Math.abs(s.startMs - ref.startMs) : Infinity);
+    if (finite(ref.endMs)) shifts.push(finite(s.endMs) ? Math.abs(s.endMs - ref.endMs) : Infinity);
   }
   return {
     heard: run.sentences.filter((s) => s.heard).length,

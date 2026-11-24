@@ -82,6 +82,8 @@ describe('turn-detector.worker.ts', () => {
   });
 
   it('closes the link on dispose', () => {
-    expect(source.slice(source.indexOf('function handleDispose'))).toMatch(/turnLink\?\.close\(\)/);
+    const start = source.indexOf('function handleDispose');
+    const next = source.indexOf('\nfunction ', start + 1);
+    expect(source.slice(start, next === -1 ? undefined : next)).toMatch(/turnLink\?\.close\(\)/);
   });
 });
