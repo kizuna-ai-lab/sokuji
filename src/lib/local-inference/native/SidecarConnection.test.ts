@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SidecarConnection, SidecarTimeoutError } from './SidecarConnection';
+import { createVirtualClock } from '../../contract/clock';
 
 // One reusable fake WebSocket — the ONLY place in the native suite that still
 // mocks the raw socket. Every client test uses FakeSidecarConnection instead.
@@ -89,6 +90,20 @@ describe('SidecarConnection', () => {
     c.onMessage((m) => pushes.push(m));
     ws.reply({ type: 'translate_result', id, translatedText: 'late' });
     expect(pushes).toHaveLength(1);
+  });
+
+  it('a request times out on the clock it was given, not the global one (#578 ruling 23)', async () => {
+    const clock = createVirtualClock(0);
+    const c = new SidecarConnection(clock);
+    await c.connect();
+    let settled = false;
+    const answer = c.request({ type: 'ping' });
+    answer.then(() => { settled = true; }, () => { settled = true; });
+    await tick();
+    clock.advance(29_999); await tick();
+    expect(settled).toBe(false);
+    clock.advance(1);
+    await expect(answer).rejects.toBeInstanceOf(SidecarTimeoutError);
   });
 
   it('routes an id-less message to onMessage', async () => {

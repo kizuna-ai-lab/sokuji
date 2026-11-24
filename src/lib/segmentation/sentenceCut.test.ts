@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createVirtualClock } from '../../lib/contract/clock';
-import type { Punctuator } from '../../lib/contract/adapter';
-import type { SealedChunk } from '../../lib/segmentation/SentenceStream';
-import { breakpoints, sentenceEnds } from '../../lib/segmentation/sentenceEnd';
+import { createVirtualClock } from '../contract/clock';
+import type { Punctuator } from '../contract/adapter';
+import type { SealedChunk } from './SentenceStream';
+import { breakpoints, sentenceEnds } from './sentenceEnd';
 import { PUNCTUATION_BUDGET_MS, SentenceCut, runtimeOver } from './sentenceCut';
 
 function harness({ lang = 'en', sentences = 1, punctuate = (async () => null) as Punctuator } = {}) {

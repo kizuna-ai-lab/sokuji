@@ -241,6 +241,17 @@ describe('noticeText', () => {
     expect(at(enCatalog, NOTICE_ALIASES.history_recording_stopped)).toBe('The recording of this session stopped: it could not be written to disk.');
   });
 
+  it("words Local Native's readiness codes by the sentences every locale has (#578 ruling 5)", () => {
+    expect(NOTICE_ALIASES).toMatchObject({
+      native_engine_update_required: 'settings.localNativeEngineUpdateRequired',
+      native_engine_required: 'settings.localNativeEngineRequired',
+      native_unavailable: 'settings.localNativeUnavailable',
+      native_starting: 'settings.localNativeStarting',
+      native_asr_missing: 'settings.localNativeAsrIncompatible',
+      native_translation_missing: 'settings.localNativeTranslationIncompatible',
+    });
+  });
+
   it("puts the local engines' notices into words", () => {
     for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
       expect(NOTICE_WORDS[code]).toBeDefined();

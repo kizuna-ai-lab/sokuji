@@ -1,5 +1,6 @@
 import type { ServerMsg } from './nativeProtocol';
 import { SidecarConnection, INIT_REQUEST_TIMEOUT_MS, SidecarTimeoutError, type ISidecarConnection } from './SidecarConnection';
+import { realClock, type Clock } from '../../contract/clock';
 
 /** A finished native synthesis. Shape-compatible with the WASM lane's TtsResult
  *  by construction, NOT by import — the two providers are peers and the native
@@ -68,7 +69,7 @@ export class NativeTtsClient {
   private rtf = 0;                    // cached from the last init(); 0 = the sidecar reported none
   private inFlightId = 0;             // id of the current generate (for cancel())
 
-  constructor(conn: ISidecarConnection = new SidecarConnection()) {
+  constructor(conn: ISidecarConnection = new SidecarConnection(), private readonly clock: Clock = realClock) {
     this.conn = conn;
     this.conn.onBinary((buf) => { this.lastBinary = buf; });
     this.conn.onMessage((msg) => this.onPush(msg));
@@ -169,9 +170,9 @@ export class NativeTtsClient {
         // the stream emits only once a pulled text chunk is fully synthesised,
         // so on a cpu-only family that first wait IS the synthesis (voxcpm2
         // measured 10.3s for 3.7s of audio; a longer sentence outlives 30s).
-        let timer: ReturnType<typeof setTimeout>;
-        const clear = () => clearTimeout(timer);
-        const arm = (ms: number = TTS_STREAM_INACTIVITY_MS) => { timer = setTimeout(() => {
+        let cancel: (() => void) | null = null;
+        const clear = () => { cancel?.(); cancel = null; };
+        const arm = (ms: number = TTS_STREAM_INACTIVITY_MS) => { cancel = this.clock.setTimeout(() => {
           this.streamDone.delete(id); this.streamHandlers.delete(id);
           reject(new SidecarTimeoutError('tts_generate', ms));
         }, ms); };

@@ -1,4 +1,5 @@
 import type { ServerMsg } from './nativeProtocol';
+import { realClock, type Clock } from '../../contract/clock';
 
 /** Session/management RPCs should be fast; a hang is a bug. */
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
@@ -55,10 +56,13 @@ function electron(): ElectronInvoke {
 interface Pending {
   resolve: (m: ServerMsg) => void;
   reject: (e: Error) => void;
-  timer: ReturnType<typeof setTimeout> | null;
+  cancel: (() => void) | null;
 }
 
 export class SidecarConnection implements ISidecarConnection {
+  /** Every request timeout reads this clock (#578 ruling 23). */
+  constructor(private readonly clock: Clock = realClock) {}
+
   private ws: WebSocket | null = null;
   private connecting: Promise<void> | null = null;
   private disposed = false;
@@ -125,7 +129,7 @@ export class SidecarConnection implements ISidecarConnection {
     if (typeof id === 'number' && this.pending.has(id)) {
       const p = this.pending.get(id)!;
       this.pending.delete(id);
-      if (p.timer) clearTimeout(p.timer);
+      p.cancel?.();
       if (msg.type === 'error') p.reject(new Error((msg as { message: string }).message));
       else p.resolve(msg);
       return;
@@ -140,16 +144,16 @@ export class SidecarConnection implements ISidecarConnection {
     return this.connect().then(() => new Promise<ServerMsg>((resolve, reject) => {
       const id = opts?.id ?? this.nextId();
       if (!this.ws || this.ws.readyState !== WebSocket.OPEN) { reject(new Error('native host disconnected')); return; }
-      const timer = timeoutMs > 0
-        ? setTimeout(() => { if (this.pending.delete(id)) reject(new SidecarTimeoutError(payload.type, timeoutMs)); }, timeoutMs)
+      const cancel = timeoutMs > 0
+        ? this.clock.setTimeout(() => { if (this.pending.delete(id)) reject(new SidecarTimeoutError(payload.type, timeoutMs)); }, timeoutMs)
         : null;
-      this.pending.set(id, { resolve, reject, timer });
+      this.pending.set(id, { resolve, reject, cancel });
       try {
         this.ws.send(JSON.stringify({ ...payload, id }));
       } catch (e) {
         // A synchronous send() failure would otherwise leave the pending entry and
         // its timer to linger until timeout; clear them and reject now.
-        if (timer) clearTimeout(timer);
+        cancel?.();
         this.pending.delete(id);
         reject(e instanceof Error ? e : new Error(String(e)));
       }
@@ -165,7 +169,7 @@ export class SidecarConnection implements ISidecarConnection {
   }
 
   private rejectAllPending(err: Error): void {
-    for (const p of this.pending.values()) { if (p.timer) clearTimeout(p.timer); p.reject(err); }
+    for (const p of this.pending.values()) { p.cancel?.(); p.reject(err); }
     this.pending.clear();
   }
 

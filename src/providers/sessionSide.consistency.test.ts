@@ -102,6 +102,8 @@ function resolveFile(root: string, from: string, spec: string): string | null {
  */
 const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/soniox': ['speech.ts'],
+  // Local Native's voice as a unit of its own (#578): its unit (`speechUnit.ts`) resolves the voice from the native facts the run hands it.
+  'src/providers/local_native': ['speechSession.ts'],
 };
 
 /**
@@ -114,6 +116,8 @@ const VOICE_SESSIONS: Readonly<Record<string, readonly string[]>> = {
  */
 const TRANSLATION_SESSIONS: Readonly<Record<string, readonly string[]>> = {
   'src/providers/fake': ['translatorSession.ts'],
+  // Local Native's translation as a unit of its own (#578): its unit (`translationUnit.ts`) resolves the model from the native facts the run hands it.
+  'src/providers/local_native': ['translationSession.ts'],
   // The text models' sessions are their adapters (text models, part B): each starts the shared session of
   // `src/lib/textModel/translation.ts`, which `TEXT_MODEL_SESSION` below holds to the same rules.
   'src/providers/openai_text': ['adapter.ts'],
@@ -251,7 +255,6 @@ describe('a provider session side', () => {
       expect.arrayContaining([
         'src/providers/localInference/adapter.ts',
         'src/providers/localInference/engines.ts',
-        'src/providers/localInference/sentenceCut.ts',
         'src/lib/local-inference/sessions/errors.ts',
         'src/lib/local-inference/sessions/speech.ts',
         'src/lib/local-inference/sessions/speechSession.ts',
@@ -259,6 +262,16 @@ describe('a provider session side', () => {
     );
     // The local voice's unit reads the models a run hands it to build its config: the settings side, not the session's.
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/speechUnit.ts');
+    // Local Native (#578): its whole session's adapter and what it drives, and its translation's and voice's sessions;
+    // its voice's session words a missing voice as the shared speech session does, and the walk follows it there.
+    expect(sessionSide(REPO_ROOT, 'src/providers/local_native')).toEqual([
+      'src/lib/local-inference/sessions/speech.ts',
+      ...['adapter.ts', 'engines.ts', 'speech.ts', 'speechSession.ts', 'translationSession.ts', 'voice.ts'].map((f) => `src/providers/local_native/${f}`),
+    ]);
+    // Its units resolve their models from the native facts a run hands them: the settings side.
+    for (const f of ['transcriptionUnit.ts', 'translationUnit.ts', 'speechUnit.ts', 'config.ts', 'check.ts', 'provider.ts']) {
+      expect(sessionSide(REPO_ROOT, 'src/providers/local_native')).not.toContain(`src/providers/local_native/${f}`);
+    }
     // The local translation's session is walked; its unit, which resolves the engine from the models a run hands it, is the settings side.
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).toContain('src/lib/local-inference/sessions/translationSession.ts');
     expect(sessionSide(REPO_ROOT, 'src/providers/localInference')).not.toContain('src/providers/localInference/translationUnit.ts');
@@ -410,8 +423,14 @@ describe('a provider session side', () => {
     for (const file of sharedSessionFiles(REPO_ROOT)) expect(globalTimerCalls(readFileSync(join(REPO_ROOT, file), 'utf-8'), file), file).toEqual([]);
     // The walk does not follow `src/lib/**`: the one shared module two session sides cut their segments with, by name (Stage 2 translation cuts, choice 1).
     expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/continuousSegments.ts'), 'utf-8'))).toEqual([]);
+    // Nor the sentence cutter the local units cut their jobs with (#578 ruling 3).
+    expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/segmentation/sentenceCut.ts'), 'utf-8'))).toEqual([]);
     // Nor the text models' shared session and its client: every deadline is the job translator's, on the request's clock.
     for (const file of TEXT_MODEL_SESSION) expect(globalTimerCalls(readFileSync(join(REPO_ROOT, file), 'utf-8'), file), file).toEqual([]);
+    // Nor the sidecar clients every native unit drives, by name (#578 ruling 23).
+    for (const file of ['SidecarConnection.ts', 'NativeAsrClient.ts', 'NativeTranslateClient.ts', 'NativeTtsClient.ts', 'createNativeVadWorker.ts']) {
+      expect(globalTimerCalls(readFileSync(join(REPO_ROOT, 'src/lib/local-inference/native', file), 'utf-8'), file), file).toEqual([]);
+    }
   });
 
   it("the text models' shared session imports no store and no reporter as a value", () => {

@@ -39,6 +39,12 @@ describe('settingsTargetForCode', () => {
     expect(settingsTargetForCode('participant_unsupported')).toBe('languages');
   });
 
+  it("Local Native's six readiness codes lead to the provider's options (#578 ruling 5)", () => {
+    for (const code of ['native_engine_update_required', 'native_engine_required', 'native_unavailable', 'native_starting', 'native_asr_missing', 'native_translation_missing']) {
+      expect(settingsTargetForCode(code), code).toBe('provider-options');
+    }
+  });
+
   it('has no target for a code with no fix in Settings, or no code at all', () => {
     expect(settingsTargetForCode('start_failed')).toBeNull();
     expect(settingsTargetForCode('loopback_denied')).toBeNull();

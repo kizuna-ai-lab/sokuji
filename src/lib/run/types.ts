@@ -11,6 +11,7 @@ import type { TranslationEvents, TranslationSession, TranslationStartRequest } f
 import type { LegName } from '../conversation/types';
 import type { RunStage, StageIds } from '../lineup/types';
 import type { LocalModels } from '../local-inference/selection/types';
+import type { NativeModels } from '../local-inference/native/nativeModels';
 import type { WordEntry } from '../words/list';
 
 export interface LanguagePair { source: string; target: string }
@@ -70,6 +71,11 @@ export interface SharedSettings {
    * absent where the caller is not a run.
    */
   localModels?: LocalModels;
+  /**
+   * This device's native facts (`NativeModels`): what a Local Native builder resolves through and hands its session
+   * (`config.host`). Set by the run when its deps have them; absent where the caller is not a run.
+   */
+  nativeModels?: NativeModels;
 }
 
 /** The word list as a run reads it at start. */
