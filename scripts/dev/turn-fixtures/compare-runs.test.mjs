@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { compareRuns, formatReport, judge, median, spreadOf } from './compare-runs.mjs';
+import { compareRuns, formatReport, judge, median, readRuns, spreadOf } from './compare-runs.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const FILES = ['umbrella', 'door', 'meeting', 'book'];
 
@@ -41,6 +44,9 @@ describe('judge: the after side may differ from the before side by the before si
   });
   it('is n/a with no numbers on a side', () => {
     expect(judge('shift', 'lower', [], [3]).verdict).toBe('n/a');
+  });
+  it('fails when the before side measured it and the after side has nothing: evidence went missing', () => {
+    expect(judge('latency', 'lower', [1000, 1100], []).verdict).toBe('FAIL');
   });
 });
 
@@ -115,5 +121,17 @@ describe('compareRuns', () => {
     expect(result.models[0].verdict).toBe('FAIL');
     expect(result.models[0].note).toMatch(/after side/);
     expect(compareRuns([], []).verdict).toBe('FAIL');
+  });
+});
+
+describe('readRuns', () => {
+  it('refuses a run with no sentences', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'compare-runs-'));
+    try {
+      fs.writeFileSync(path.join(dir, 'run-1.json'), JSON.stringify({ model: 'whisper', sentences: [] }));
+      expect(() => readRuns(dir)).toThrow(/no sentences/);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

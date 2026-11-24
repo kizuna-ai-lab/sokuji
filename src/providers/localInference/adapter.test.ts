@@ -358,6 +358,15 @@ describe('the LocalInference adapter — turns (a shared leg)', () => {
     await expect(t.starting).rejects.toThrow(/Turn detection stopped/);
   });
 
+  it('the recognizer dying while the detector is still loading fails the start', async () => {
+    const t = begin(whisper());
+    t.translation.ready();
+    t.asr.ready();
+    t.asr.die();
+    t.detector.ready();
+    await expect(t.starting).rejects.toThrow(/Speech recognition stopped/);
+  });
+
   it('a shared leg without a detector in the engines rejects the start', async () => {
     const fakes = createFakeEngines();
     delete fakes.engines.detector;

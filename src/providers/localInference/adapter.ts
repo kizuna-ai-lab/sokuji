@@ -531,6 +531,11 @@ class LocalSession implements AdapterSession {
     const { port1, port2 } = new MessageChannel();
     // The detector may be ready long before a large recognizer finishes loading: a crash in between must not be lost.
     this.listenToDetectorFailures(detector);
+    // The recognizer may be ready long before the detector is: its crash in between must not be lost either.
+    this.asr.onFatal = (error) => {
+      this.frame('in', 'local.asr.error', { error });
+      this.fatal(`Speech recognition stopped: ${error}`);
+    };
     try {
       await Promise.all([
         detector.init({

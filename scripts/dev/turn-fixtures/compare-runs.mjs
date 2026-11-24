@@ -86,7 +86,9 @@ export function judge(name, better, beforeValues, afterValues) {
   const before = median(beforeValues);
   const after = median(afterValues);
   const spread = spreadOf(beforeValues);
-  if (before === null || after === null) return { name, better, before, after, spread, verdict: 'n/a' };
+  if (before === null) return { name, better, before, after, spread, verdict: 'n/a' }; // nothing to judge against
+  // The before side measured it and the after side did not: the evidence went missing, which is not a pass.
+  if (after === null) return { name, better, before, after, spread, verdict: 'FAIL' };
   const ok = better === 'higher' ? after >= before - spread : after <= before + spread;
   return { name, better, before, after, spread, verdict: ok ? 'PASS' : 'FAIL' };
 }
@@ -146,6 +148,7 @@ export function readRuns(dir) {
     let run;
     try { run = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (error) { throw new Error(`${file}: ${error.message}`); }
     if (typeof run?.model !== 'string' || !Array.isArray(run.sentences)) throw new Error(`${file}: not a run (needs model and sentences)`);
+    if (run.sentences.length === 0) throw new Error(`${file}: a run with no sentences is no evidence`);
     return run;
   });
 }
