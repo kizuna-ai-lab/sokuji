@@ -105,9 +105,10 @@ def read_notices_in(notices_in: pathlib.Path, build_dir: pathlib.Path) -> list[t
         name, bar, template = (s.strip() for s in line.partition("|"))
         if not bar or not name or not template:
             raise Failure(f"{notices_in}:{n}: expected `<name> | <license file>`")
-        path = template.replace("@BUILD@", str(build_dir)).replace("@SRC@", str(SRC_DIR))
-        if "@" in path:
+        # Check the template before substituting, so a build path that contains '@' is fine.
+        if "@" in template.replace("@BUILD@", "").replace("@SRC@", ""):
             raise Failure(f"{notices_in}:{n}: unknown placeholder in {template}")
+        path = template.replace("@BUILD@", str(build_dir)).replace("@SRC@", str(SRC_DIR))
         entries.append((name, pathlib.Path(path)))
     if not entries:
         raise Failure(f"{notices_in} lists no upstreams")

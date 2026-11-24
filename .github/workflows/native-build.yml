@@ -175,7 +175,15 @@ jobs:
         run: |
           ls -la native/python/dist/ | tee -a "$GITHUB_STEP_SUMMARY"
           ls -la native/build/archive/ | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Electron's shared libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Electron links GTK/NSS/ALSA/GBM even under ELECTRON_RUN_AS_NODE. These names exist
+          # on 22.04; on 24.04 they are virtual packages provided by the t64 renames.
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libnss3 libasound2 libgbm1
       - name: Load the unpacked archive under Electron
+        timeout-minutes: 10
         shell: bash
         env:
           ELECTRON_RUN_AS_NODE: '1'
@@ -215,6 +223,7 @@ jobs:
           path: native/python/dist/*.whl
           if-no-files-found: error
       - uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
         with:
           name: sokuji-native-archive-${{ matrix.sku }}
           path: native/build/archive/*

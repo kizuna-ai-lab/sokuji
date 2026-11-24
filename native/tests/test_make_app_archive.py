@@ -32,7 +32,7 @@ TOP = f"sokuji-native-{SKU}-v{VERSION}"
 ARCHIVE = f"{TOP}.tar.zst"
 STAGE_FILES = ("libsokuji_native.so", "contract.json", "sokuji_native_node.node")
 UPSTREAMS = ("ggml", "llama.cpp", "transcribe.cpp", "audio.cpp", "node-addon-api",
-             "node-api-headers", "SpeexDSP")
+             "node-api-headers", "SpeexDSP", "miniz", "cJSON", "libyaml", "sentencepiece")
 
 
 def notices_entries():
@@ -236,6 +236,27 @@ def test_a_stage_that_already_has_notices_fails(tmp_path):
     assert_refused(tmp_path, r, "NOTICES.txt")
 
 
+def test_a_symlink_in_the_stage_fails(tmp_path):
+    stage = make_stage(tmp_path)
+    (stage / "link.so").symlink_to(stage / "libsokuji_native.so")
+    r = run(stage, SKU, VERSION, tmp_path / "out")
+    assert_refused(tmp_path, r, "flat")
+
+
+def test_an_unknown_placeholder_in_notices_in_fails(tmp_path):
+    stage = make_stage(tmp_path)
+    bad = tmp_path / "bad.in"
+    bad.write_text("x | @NOPE@/LICENSE\n")
+    r = run(stage, SKU, VERSION, tmp_path / "out", "--notices-in", bad)
+    assert_refused(tmp_path, r, "placeholder")
+
+
+def test_a_build_path_containing_an_at_sign_is_fine(tmp_path):
+    stage = make_stage(tmp_path / "a@b")
+    r = run(stage, SKU, VERSION, tmp_path / "out")
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
 def test_a_missing_stage_fails(tmp_path):
     r = run(tmp_path / "no-such-stage", SKU, VERSION, tmp_path / "out")
     assert_refused(tmp_path, r, "no-such-stage")
@@ -344,3 +365,12 @@ def test_linux_floor_check_covers_the_node_addon(tmp_path):
     r = check("sokuji_native_node.node")
     assert r.returncode == 1, r.stdout + r.stderr
     assert "sokuji_native_node.node: references GLIBC_" in r.stdout
+
+
+def test_manifest_refuses_a_malformed_checksum_line(tmp_path):
+    rel = make_release_dir(tmp_path)
+    (rel / f"sokuji-native-linux-x64-v{VERSION}.tar.zst.sha256").write_text("not a checksum line\n")
+    r = run("--manifest", rel, VERSION)
+    assert r.returncode != 0
+    assert "sha256" in r.stdout + r.stderr
+    assert not (rel / "manifest.json").exists()

@@ -13,6 +13,11 @@ ggml             | @BUILD@/_deps/ggml-src/LICENSE
 llama.cpp        | @BUILD@/_deps/llama-src/LICENSE
 transcribe.cpp   | @BUILD@/_deps/transcribe-src/LICENSE
 audio.cpp        | @BUILD@/_deps/audiocpp-src/LICENSE
+# Statically linked into libsokuji_native by the engines above (vendored in their trees):
+miniz            | @BUILD@/_deps/transcribe-src/src/third_party/miniz/LICENSE
+cJSON            | @BUILD@/_deps/audiocpp-src/external/cJSON/LICENSE
+libyaml          | @BUILD@/_deps/audiocpp-src/external/libyaml/License
+sentencepiece    | @BUILD@/_deps/audiocpp-src/external/sentencepiece/LICENSE
 node-addon-api   | @SRC@/node/third_party/node-addon-api/LICENSE.md
 node-api-headers | @SRC@/node/third_party/node-api-headers/LICENSE
 SpeexDSP         | @SRC@/node/third_party/speexdsp/COPYING
