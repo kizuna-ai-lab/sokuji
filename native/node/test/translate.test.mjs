@@ -55,19 +55,31 @@ test('Japanese output survives pieces that split characters', { skip }, async (t
   assert.ok(!out.includes('�') && /[぀-ヿ一-鿿]/.test(out), out);
 });
 
-test('rare characters arrive split across pieces and reassemble', { skip }, async () => {
-  // 'Good morning' comes back in whole-character pieces on Qwen3-0.6B. Rare kanji are several
-  // byte-level tokens each, so echoing them makes pieces that end inside a character.
-  const dec = new TextDecoder('utf-8', { fatal: false }); let out = '';
-  let split = 0;
-  await tr.chat([{ role: 'user', content: 'Repeat exactly: 齉龘靐龖' }], { maxTokens: 32, assistantPrefill: PREFILL },
-                { onToken: (b) => {
-                  try { new TextDecoder('utf-8', { fatal: true }).decode(b); } catch { split++; }
-                  out += dec.decode(b, { stream: true });
-                } });
-  out += dec.decode();
-  assert.ok(split > 0, `no piece split a character: ${JSON.stringify(out)}`);
-  assert.ok(!out.includes('�') && /[一-鿿]/.test(out), out);
+test('rare characters arrive split across pieces and reassemble', { skip }, async (t) => {
+  // Pieces are the raw bytes of each token. Rare kanji are several byte-level tokens each, so
+  // echoing them usually makes pieces that end inside a character, but whether the model
+  // does that is the model's choice, not the addon's: try a few prompts, and when none of them
+  // splits, skip with a diagnostic instead of failing on model output. What must always hold is
+  // that the pieces reassemble into valid text.
+  const prompts = ['Repeat exactly: 齉龘靐龖', 'Repeat exactly: 龘龘龘靐靐靐', 'Copy this text: 爨籲鬱馨'];
+  const tries = [];
+  for (const content of prompts) {
+    const dec = new TextDecoder('utf-8', { fatal: false }); let out = '';
+    let split = 0;
+    await tr.chat([{ role: 'user', content }], { maxTokens: 32, assistantPrefill: PREFILL },
+                  { onToken: (b) => {
+                    try { new TextDecoder('utf-8', { fatal: true }).decode(b); } catch { split++; }
+                    out += dec.decode(b, { stream: true });
+                  } });
+    out += dec.decode();
+    assert.ok(!out.includes('\uFFFD'), `pieces did not reassemble into valid text: ${JSON.stringify(out)}`);
+    tries.push(`${JSON.stringify(out)}: ${split} split`);
+    if (split > 0) {
+      assert.ok(/[\u4e00-\u9fff]/.test(out), out);
+      return;
+    }
+  }
+  t.skip(`the model produced no piece that splits a character (${tries.join('; ')})`);
 });
 
 test('complete produces text', { skip }, async () => {

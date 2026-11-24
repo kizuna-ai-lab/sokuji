@@ -73,7 +73,7 @@ export SK_TEST_SAMPLE_WAV="$BUILD/_deps/transcribe-src/samples/jfk.wav"
 # runner has no Vulkan device" from "the model cache silently missed" from "the Metal
 # lane hit its paravirtual GPU" — all three are expected on some lane, and only the
 # reasons say which one actually happened.
-PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -m pytest "$ROOT/python/tests" "$ROOT/tests/parity" "$ROOT/tests/test_make_app_archive.py" -q -s -rs
+PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -m pytest "$ROOT/python/tests" "$ROOT/tests/parity" "$ROOT/tests/test_make_app_archive.py" "$ROOT/tests/test_vendored_tree.py" -q -s -rs
 # The app archive: the same stage plus the Node addon and NOTICES.txt, packed as
 # sokuji-native-<sku>-v<version>.tar.zst for the app to unpack (make_app_archive.py's docstring
 # has the layout). Only when SOKUJI_SKU names the platform (CI sets it from the matrix), so a

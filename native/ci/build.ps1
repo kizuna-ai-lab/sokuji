@@ -65,7 +65,7 @@ $env:SK_TEST_SAMPLE_WAV = "$Build\_deps\transcribe-src\samples\jfk.wav"
 # -s mirrors build.sh: keep native abort messages out of pytest's capture buffer.
 # -rs likewise: print every skip's reason, so an opt-in test that vanished because a model
 # dir or a device is missing says so instead of hiding in a bare "N skipped".
-& $Python -m pytest "$Root\python\tests" "$Root\tests\parity" "$Root\tests\test_make_app_archive.py" -q -s -rs
+& $Python -m pytest "$Root\python\tests" "$Root\tests\parity" "$Root\tests\test_make_app_archive.py" "$Root\tests\test_vendored_tree.py" -q -s -rs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Remove-Item Env:PYTHONPATH, Env:SOKUJI_NATIVE_DIR, Env:SK_TEST_SAMPLE_WAV
 # The app archive: the same stage plus the Node addon and NOTICES.txt, packed as
