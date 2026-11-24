@@ -213,3 +213,23 @@ describe('SegmentInbox', () => {
     expect(t.calls).toHaveLength(1);
   });
 });
+
+describe('SegmentInbox: a throwing drained reporter', () => {
+  it('does not stop the queue behind the mark', async () => {
+    const { port1: detector, port2: recognizer } = new MessageChannel();
+    const decoded: number[] = [];
+    const inbox = new SegmentInbox(
+      recognizer,
+      async (_audio, _start, tag) => { decoded.push(tag.seq); },
+      () => { throw new Error('port closed'); },
+      () => {},
+    );
+    detector.postMessage({ type: 'drained', epoch: 1, seq: 1 });
+    detector.postMessage(seg(2));
+    await tick();
+    expect(decoded).toEqual([2]);
+    inbox.close();
+    detector.close();
+    recognizer.close();
+  });
+});

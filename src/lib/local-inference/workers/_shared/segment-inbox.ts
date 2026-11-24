@@ -99,7 +99,8 @@ export class SegmentInbox {
         continue;
       }
       if (item.type === 'drained') {
-        this.toMain({ type: 'drained', epoch: item.epoch, seq: item.seq });
+        // A closed main port must not reject the pump: the queue behind this mark still runs.
+        try { this.toMain({ type: 'drained', epoch: item.epoch, seq: item.seq }); } catch { /* best-effort */ }
         continue;
       }
       this.ack(item);

@@ -11,7 +11,9 @@
  * a pending sample only if its position still falls within the input, holding
  * the last input sample as its upper neighbour; at 24 kHz there is none.
  */
-const OUT_RATE = 16000;
+import { VAD_SAMPLE_RATE } from './max-speech-frames';
+
+const OUT_RATE = VAD_SAMPLE_RATE;
 
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
