@@ -4,9 +4,11 @@
 
 #include "errors.h"
 
+#include <cstdlib>
 #include <exception>
 #include <set>
 #include <utility>
+#include <vector>
 
 namespace sk_node {
 
@@ -49,6 +51,10 @@ struct JobJs {
 };
 
 namespace {
+
+// Set by the exit handler (InstallExitHandler): the process is ending. From then on no worker
+// posts to a JavaScript environment, which may be half gone (process.exit() leaves it so).
+std::atomic<bool> g_exiting{false};
 
 // Environment cleanup: the job's thread-safe function is about to be deleted. Close the link
 // so the worker thread never posts to it again, and stop the native work.
@@ -110,7 +116,7 @@ struct JobAccess {
     // environment is going away) the job is destroyed here instead, outside the lock.
     static void Complete(std::unique_ptr<Job> job) {
         std::shared_ptr<JobLink> link = job->link_;
-        if (!link) return;
+        if (!link || g_exiting.load()) return;
         auto ev = std::make_unique<JobEvent>();
         ev->done = std::move(job);
         std::lock_guard<std::mutex> lock(link->mu);
@@ -194,7 +200,7 @@ void Job::Fail(const char *what, sk_status status, std::string last_error) {
 }
 
 bool Job::Emit(std::function<void(Napi::Env, Napi::Function)> call) {
-    if (!link_) return false;
+    if (!link_ || g_exiting.load()) return false;
     auto ev = std::make_unique<JobEvent>();
     ev->call = std::move(call);
     std::lock_guard<std::mutex> lock(link_->mu);
@@ -298,9 +304,57 @@ Registry &registry() {
     return *r;
 }
 
+// Workers whose owner was collected while they still had a job to run (HandleWorker::Retire).
+// Never destroyed, like the registry.
+struct Graveyard {
+    std::mutex mu;
+    std::vector<std::unique_ptr<HandleWorker>> workers;
+};
+
+Graveyard &graveyard() {
+    static Graveyard *g = new Graveyard();
+    return *g;
+}
+
+// Frees the retired workers of `owner` whose threads have ended (every one of them, with `all`:
+// the destructor then waits for the thread). Only an environment frees its own, so a worker the
+// environment's cleanup is about to join is never freed by another thread.
+void ReapRetired(napi_env owner, bool all) {
+    std::vector<std::unique_ptr<HandleWorker>> dead;
+    {
+        Graveyard &g = graveyard();
+        std::lock_guard<std::mutex> lock(g.mu);
+        for (auto it = g.workers.begin(); it != g.workers.end();) {
+            if ((*it)->owner() == owner && (all || (*it)->finished())) {
+                dead.push_back(std::move(*it));
+                it = g.workers.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+    // `dead` is destroyed here, outside the lock: each destructor joins an ended thread.
+}
+
+// The exit handler: stops every worker of the process, so none is touching the library when its
+// statics are destroyed. Two passes, so the workers wind down at the same time.
+void StopAllAtExit() {
+    try {
+        g_exiting.store(true);
+        HandleWorker::ForEachLive([](HandleWorker &w) {
+            w.cancelAll();
+            w.requestStop();
+        });
+        HandleWorker::ForEachLive([](HandleWorker &w) { w.stopAndJoin(); });
+    } catch (...) {
+        // Nothing may unwind out of an exit handler.
+    }
+}
+
 }  // namespace
 
 HandleWorker::HandleWorker(napi_env owner) : owner_(owner) {
+    if (owner != nullptr) ReapRetired(owner, false);   // workers retired earlier, long done by now
     {
         Registry &r = registry();
         std::lock_guard<std::mutex> lock(r.mu);
@@ -317,10 +371,16 @@ HandleWorker::HandleWorker(napi_env owner) : owner_(owner) {
 }
 
 HandleWorker::~HandleWorker() {
-    if (thread_.joinable() && thread_.get_id() == std::this_thread::get_id()) {
-        thread_.detach();   // never: owners are destroyed on the JS thread; but never terminate()
-    } else {
-        stopAndJoin();
+    requestStop();
+    {
+        std::lock_guard<std::mutex> lock(join_mu_);
+        if (thread_.joinable()) {
+            if (thread_.get_id() == std::this_thread::get_id()) {
+                thread_.detach();   // never: owners are destroyed on the JS thread; but never terminate()
+            } else {
+                thread_.join();
+            }
+        }
     }
     Registry &r = registry();
     std::lock_guard<std::mutex> lock(r.mu);
@@ -360,7 +420,38 @@ void HandleWorker::requestStop() {
 
 void HandleWorker::stopAndJoin() {
     requestStop();
+    // One join at a time: the destructor, the environment's cleanup and the exit handler may
+    // all reach the same worker. The later callers wait for the first, then find it ended.
+    std::lock_guard<std::mutex> lock(join_mu_);
     if (thread_.joinable() && thread_.get_id() != std::this_thread::get_id()) thread_.join();
+}
+
+void HandleWorker::Retire(std::unique_ptr<HandleWorker> worker) {
+    const napi_env owner = worker->owner();
+    {
+        Graveyard &g = graveyard();
+        std::lock_guard<std::mutex> lock(g.mu);
+        g.workers.push_back(std::move(worker));   // if this throws, `worker` still owns it: joined
+    }
+    ReapRetired(owner, false);
+}
+
+void HandleWorker::StopOwnedBy(napi_env owner) {
+    // Only this thread frees this environment's workers (a model's destructor, ReapRetired), so
+    // the pointers stay valid once the registry lock is released: the joins may take a while.
+    std::vector<HandleWorker *> mine;
+    {
+        Registry &r = registry();
+        std::lock_guard<std::mutex> lock(r.mu);
+        for (HandleWorker *w : r.live) {
+            if (w->owner_ != owner) continue;
+            w->cancelAll();
+            w->requestStop();
+            mine.push_back(w);
+        }
+    }
+    for (HandleWorker *w : mine) w->stopAndJoin();
+    ReapRetired(owner, true);
 }
 
 void HandleWorker::ForEachLive(const std::function<void(HandleWorker &)> &fn) {
@@ -377,7 +468,10 @@ void HandleWorker::Loop() {
             cv_.wait(lock, [this] { return !queue_.empty(); });
             job = std::move(queue_.front());
             queue_.pop_front();
-            if (!job) return;   // the stop sentinel: nothing is queued behind it
+            if (!job) {   // the stop sentinel: nothing is queued behind it
+                done_.store(true);
+                return;
+            }
             running_cancel_ = job->cancel;
         }
         JobAccess::Run(*job);
@@ -392,6 +486,10 @@ void HandleWorker::Loop() {
 HandleWorker &MiscWorker() {
     static HandleWorker *w = new HandleWorker(nullptr);
     return *w;
+}
+
+void InstallExitHandler() {
+    std::atexit(StopAllAtExit);
 }
 
 }  // namespace sk_node

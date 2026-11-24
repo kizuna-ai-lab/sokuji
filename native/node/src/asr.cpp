@@ -80,6 +80,7 @@ struct AsrCapsData {
 struct LoadedAsr {
     std::shared_ptr<AsrHandle> handle;
     AsrCapsData caps;
+    std::string path;   // what was loaded, for the finalizer's warning
 };
 
 // A call on a stream after close() or finalize(): the Python binding's text and status.
@@ -350,6 +351,7 @@ public:
         c.native_sample_rate = raw.native_sample_rate;
         c.arch = raw.arch ? raw.arch : "";
         loaded_.handle = std::move(handle);
+        loaded_.path = path_;
     }
 
     void settle(Napi::Env env) override {
@@ -379,7 +381,7 @@ AsrModel::AsrModel(const Napi::CallbackInfo &info) : Napi::ObjectWrap<AsrModel>(
     LoadedAsr *loaded = info[0].As<Napi::External<LoadedAsr>>().Data();
     caps_ = Napi::Persistent(CapsObject(env, loaded->caps));
     streams_ = loaded->caps.supports_streaming;
-    life_.Start(env);
+    life_.Start(env, "AsrModel(" + loaded->path + ")");
     handle_ = loaded->handle;
 }
 
@@ -429,9 +431,10 @@ Napi::Value AsrModel::OpenStream(const Napi::CallbackInfo &info) {
     return object;
 }
 
-// unload() → Promise<void>. Idempotent: every call returns the first call's promise. Jobs
-// queued before it still run; then, on the model's own thread, an open stream is closed and
-// the model freed, and the thread ends. The stream's later calls reject: model is unloaded.
+// unload() → Promise<void>. Idempotent: every call returns the first call's promise. Queued
+// jobs are cancelled and the running one stops at its next callback; then, on the model's own
+// thread, an open stream is closed and the model freed, and the thread ends. The stream's later
+// calls reject: model is unloaded.
 Napi::Value AsrModel::Unload(const Napi::CallbackInfo &info) {
     return life_.Unload(info.Env(), Value(), "sk_asr_unload", handle_);
 }

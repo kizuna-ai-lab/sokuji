@@ -2,18 +2,27 @@
 // the model's own worker thread, and unload.
 //
 //   NativeHandle    the native pointer, freed exactly once by whoever gets there first
-//   ModelLifecycle  the worker thread and the unload state of one model object:
-//                   unload() → one UnloadJob on the model's own thread, behind every job queued
-//                   before it, then the stop sentinel; the job's settle joins the thread; every
-//                   later unload() returns the first call's promise. The owner's destructor
-//                   (collected without unload(), or the environment going away) cancels what is
-//                   queued, joins, and frees the handle.
+//   ModelLifecycle  the worker thread and the unload state of one model object. The rules every
+//                   model object obeys:
+//                   - unload() sets the cancel flag of every queued job (each rejects with
+//                     SK_ERR_CANCELLED, "cancelled before it started") and of the running one (it
+//                     stops at its next native callback), then queues one UnloadJob behind them on
+//                     the model's own thread, then the stop sentinel; the job's settle joins the
+//                     thread and resolves. Every later unload() returns the first call's promise.
+//                   - a call made once unload() was called rejects at once: status -2,
+//                     "<fn>: model is unloaded", the Python binding's wording (RejectedUnloaded).
+//                   - an owner collected without unload() logs a warning naming it; its own thread
+//                     frees the model, the JS thread never waits for it (Teardown, Retire).
+//                   - an owner finalized when its environment ends finds its thread already stopped
+//                     and joined by the addon's environment cleanup hook (addon.cpp), and frees the
+//                     model on the spot.
 //   RejectedUnloaded  the rejection of a call on an unloaded (or unloading) model
 //
 // A Handle, for ModelLifecycle, is any class with a noexcept Unload() that frees the model once
 // (NativeHandle, or asr.cpp's AsrHandle, which closes the model's open stream first).
 #pragma once
 
+#include "addon.h"
 #include "errors.h"
 #include "job.h"
 #include "worker.h"
@@ -23,6 +32,7 @@
 
 #include <atomic>
 #include <memory>
+#include <string>
 #include <utility>
 
 namespace sk_node {
@@ -54,8 +64,21 @@ inline Napi::Promise RejectedUnloaded(Napi::Env env, const char *what) {
 
 class ModelLifecycle;
 
-// The model's unload on its own thread, behind every job queued before it. `what` names the C
-// function ("sk_asr_unload").
+// A collected model's last job: frees it on its own thread. Native only: nobody waits for it.
+template <class Handle>
+class ReleaseJob : public Job {
+public:
+    explicit ReleaseJob(std::shared_ptr<Handle> handle) : Job("unload"), handle_(std::move(handle)) {}
+
+    void execute() override { handle_->Unload(); }
+    void settle(Napi::Env) override {}   // never called: a native-only job has no promise
+
+private:
+    std::shared_ptr<Handle> handle_;
+};
+
+// The model's unload on its own thread, behind the jobs queued before it (all cancelled by then).
+// `what` names the C function ("sk_asr_unload").
 template <class Handle>
 class UnloadJob : public Job {
 public:
@@ -71,24 +94,38 @@ private:
     ModelLifecycle *life_;
 };
 
-// A member of the model object. JS thread only.
+// A member of the model object. JS thread only. Never moved or copied: every UnloadJob it
+// queues points back at it.
 class ModelLifecycle {
 public:
+    ModelLifecycle() = default;
+    ModelLifecycle(const ModelLifecycle &) = delete;
+    ModelLifecycle &operator=(const ModelLifecycle &) = delete;
+    ModelLifecycle(ModelLifecycle &&) = delete;
+    ModelLifecycle &operator=(ModelLifecycle &&) = delete;
+
     // The owner's constructor, once its arguments are checked: starts the model's worker thread.
-    void Start(napi_env env) { worker_ = std::make_unique<HandleWorker>(env); }
+    // `label` names the owner in the warning of a collected, never-unloaded model, e.g.
+    // "AsrModel(/models/whisper-tiny.gguf)".
+    void Start(napi_env env, std::string label) {
+        label_ = std::move(label);
+        worker_ = std::make_unique<HandleWorker>(env);
+    }
 
     // The model's worker. Only while !Unloading(): it is gone once the unload has settled.
     HandleWorker &worker() { return *worker_; }
 
     bool Unloading() const { return !unloading_.IsEmpty(); }
 
-    // unload() → Promise<void>. Idempotent: every call returns the first call's promise. Jobs
-    // queued before it still run; then, on the model's own thread, `handle` is unloaded and the
-    // thread ends. `owner` (the model object) is kept alive until the unload settles.
+    // unload() → Promise<void>. Idempotent: every call returns the first call's promise. Cancels
+    // the jobs queued so far and the running one, then, on the model's own thread, `handle` is
+    // unloaded and the thread ends. `owner` (the model object) is kept alive until the unload
+    // settles.
     template <class Handle>
     Napi::Promise Unload(Napi::Env env, Napi::Object owner, const char *what, std::shared_ptr<Handle> handle) {
         if (Unloading()) return unloading_.Value();
         auto job = std::make_unique<UnloadJob<Handle>>(what, std::move(handle), this);
+        worker_->cancelAll();   // before the unload is queued: it must run
         Napi::Promise p = Submit(env, *worker_, std::move(job), owner);
         worker_->requestStop();
         unloading_ = Napi::Persistent(p);
@@ -101,21 +138,42 @@ public:
         worker_.reset();
     }
 
-    // The owner's destructor: collected without unload(), or the environment is going away.
-    // Every job holds the owner object until it settles, so outside teardown nothing is queued
-    // here and the join is short.
+    // The owner's destructor.
+    //  - unload() finished: nothing is left.
+    //  - The environment is ending: its cleanup hook has stopped and joined the thread already,
+    //    so freeing the model here waits for nobody.
+    //  - Collected while loaded, nobody called unload(): warn, then let the model's own thread
+    //    free it (a 0.6B LLM takes 200-250 ms, a larger one longer: not on the JS thread). Every
+    //    job holds the owner object until it settles, so nothing of the owner's is queued.
     template <class Handle>
     void Teardown(const std::shared_ptr<Handle> &handle) {
-        if (worker_) {
-            worker_->cancelAll();
-            worker_->stopAndJoin();
+        if (!worker_) return;
+        if (worker_->finished()) {
+            worker_.reset();
+            handle->Unload();
+            return;
         }
-        if (handle) handle->Unload();
+        try {
+            LogWarning(label_ + " was collected without unload(); unloading it now. Call unload() to free the model when you choose.");
+            worker_->cancelAll();
+            worker_->post(std::make_unique<ReleaseJob<Handle>>(handle));
+            worker_->requestStop();
+            HandleWorker::Retire(std::move(worker_));
+        } catch (...) {
+            // Out of memory: stop and free it here instead.
+            if (worker_) {
+                worker_->cancelAll();
+                worker_->stopAndJoin();
+                worker_.reset();
+            }
+            handle->Unload();
+        }
     }
 
 private:
     std::unique_ptr<HandleWorker> worker_;      // null once unloaded
     Napi::Reference<Napi::Promise> unloading_;  // what every unload() returns; set by the first
+    std::string label_;
 };
 
 template <class Handle>

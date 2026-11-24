@@ -122,6 +122,14 @@ void InstallLogSink(Napi::Env env, Napi::Function fn) {
     s.owner = env;
 }
 
+}  // namespace
+
+void LogWarning(const std::string &message) {
+    LogToJs(2, message.c_str(), nullptr);
+}
+
+namespace {
+
 // ---- helpers ------------------------------------------------------------------------------
 
 const char *KindName(int32_t kind) {
@@ -242,6 +250,7 @@ Napi::Value Init(const Napi::CallbackInfo &info) {
     o.log_user = nullptr;
     const sk_status status = sk_init(&o);
     if (status != SK_OK) ThrowStatus(env, "sk_init", status);
+    InstallExitHandler();   // after sk_init: it has loaded the backend modules (worker.h)
     s.initialised.store(true);
     return InitResult(env);
 }

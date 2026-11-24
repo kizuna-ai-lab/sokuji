@@ -36,6 +36,7 @@ using TtsHandle = NativeHandle<sk_tts, sk_tts_unload>;
 struct LoadedTts {
     std::shared_ptr<TtsHandle> handle;
     sk_tts_caps caps{};
+    std::string path;   // what was loaded, for the finalizer's warning
 };
 
 // { streaming, clones, transcriptRequired, sampleRate }, frozen, as the Python binding's
@@ -241,6 +242,7 @@ public:
         st = sk_tts_capabilities(t, &loaded_.caps);
         if (st != SK_OK) return Fail("sk_tts_capabilities", st);   // `handle` unloads it
         loaded_.handle = std::move(handle);
+        loaded_.path = path_;
     }
 
     void settle(Napi::Env env) override {
@@ -273,7 +275,7 @@ Tts::Tts(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Tts>(info) {
     if (info.Length() != 1 || !info[0].IsExternal()) throw Napi::TypeError::New(env, "Tts: use ttsLoad()");
     LoadedTts *loaded = info[0].As<Napi::External<LoadedTts>>().Data();
     caps_ = Napi::Persistent(CapsObject(env, loaded->caps));
-    life_.Start(env);
+    life_.Start(env, "Tts(" + loaded->path + ")");
     handle_ = loaded->handle;
 }
 
@@ -337,9 +339,10 @@ Napi::Value Tts::Synth(const Napi::CallbackInfo &info) {
     return Submit(env, life_.worker(), std::move(job), Value(), opts.callback, opts.signal);
 }
 
-// unload() → Promise<void>. Idempotent: every call returns the first call's promise. Jobs
-// queued before it still run; then, on the model's own thread, the model is freed and the
-// thread ends. Later calls reject: model is unloaded.
+// unload() → Promise<void>. Idempotent: every call returns the first call's promise. Queued
+// jobs are cancelled and the running one stops at its next chunk (an offline synth runs to its
+// end); then, on the model's own thread, the model is freed and the thread ends. Later calls
+// reject: model is unloaded.
 Napi::Value Tts::Unload(const Napi::CallbackInfo &info) {
     return life_.Unload(info.Env(), Value(), "sk_tts_unload", handle_);
 }

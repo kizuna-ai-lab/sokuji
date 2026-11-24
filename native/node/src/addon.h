@@ -3,6 +3,8 @@
 
 #include <napi.h>
 
+#include <string>
+
 namespace sk_node {
 
 // Set as the environment's instance data at module init; freed with the environment.
@@ -14,6 +16,10 @@ struct AddonData {
 };
 
 AddonData &Data(Napi::Env env);
+
+// A warning (level 2) through the library's log path: the sink given to init(), and stderr.
+// Any thread; never throws except for running out of memory.
+void LogWarning(const std::string &message);   // common.cpp
 
 void RegisterCommon(Napi::Env env, Napi::Object exports);      // common.cpp
 void RegisterAsr(Napi::Env env, Napi::Object exports);         // asr.cpp

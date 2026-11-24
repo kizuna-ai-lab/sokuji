@@ -4,7 +4,7 @@
 //   SOKUJI_NATIVE_DIR    the directory holding the libraries, backend modules and
 //                        contract.json (default: the addon's own directory)
 //   SK_TEST_SAMPLE_WAV   jfk.wav (16 kHz mono 16-bit PCM), for jfk()
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -100,4 +100,13 @@ export function snrDb(a, b) {
     noise += d * d;
   }
   return 10 * Math.log10(signal / noise);
+}
+
+/** The number of threads of this process (Linux: /proc/self/task); null where that is not readable. */
+export function threadCount() {
+  try {
+    return readdirSync('/proc/self/task').length;
+  } catch {
+    return null;
+  }
 }

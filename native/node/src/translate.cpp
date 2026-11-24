@@ -27,6 +27,12 @@ namespace {
 // The translator handle, shared by the Translator object and the jobs queued for it (model.h).
 using TranslateHandle = NativeHandle<sk_translate, sk_translate_unload>;
 
+// What translateLoad hands the Translator constructor, through an External.
+struct LoadedTranslator {
+    std::shared_ptr<TranslateHandle> handle;
+    std::string path;   // what was loaded, for the finalizer's warning
+};
+
 // ---- Translator ---------------------------------------------------------------------------------
 
 class Translator : public Napi::ObjectWrap<Translator> {
@@ -146,19 +152,20 @@ public:
         const sk_status st = sk_translate_load(path_.c_str(), device_ ? &dev : nullptr, &opts_, &t);
         if (st != SK_OK) return Fail("sk_translate_load", st);
         handle->Adopt(t);
-        handle_ = std::move(handle);
+        loaded_.handle = std::move(handle);
+        loaded_.path = path_;
     }
 
     void settle(Napi::Env env) override {
         if (failed()) return RejectStatus(env);
-        Resolve(Data(env).translator.New({Napi::External<std::shared_ptr<TranslateHandle>>::New(env, &handle_)}));
+        Resolve(Data(env).translator.New({Napi::External<LoadedTranslator>::New(env, &loaded_)}));
     }
 
 private:
     std::string path_;
     std::optional<int32_t> device_;
     sk_translate_options opts_;
-    std::shared_ptr<TranslateHandle> handle_;
+    LoadedTranslator loaded_;
 };
 
 Napi::Function Translator::Define(Napi::Env env) {
@@ -173,8 +180,9 @@ Napi::Function Translator::Define(Napi::Env env) {
 Translator::Translator(const Napi::CallbackInfo &info) : Napi::ObjectWrap<Translator>(info) {
     Napi::Env env = info.Env();
     if (info.Length() != 1 || !info[0].IsExternal()) throw Napi::TypeError::New(env, "Translator: use translateLoad()");
-    life_.Start(env);
-    handle_ = *info[0].As<Napi::External<std::shared_ptr<TranslateHandle>>>().Data();
+    LoadedTranslator *loaded = info[0].As<Napi::External<LoadedTranslator>>().Data();
+    life_.Start(env, "Translator(" + loaded->path + ")");
+    handle_ = loaded->handle;
 }
 
 // Collected without unload(), or the environment is going away (ModelLifecycle::Teardown).
@@ -226,9 +234,9 @@ Napi::Value Translator::Complete(const Napi::CallbackInfo &info) {
     return Submit(env, life_.worker(), std::move(job), Value(), opts.callback, opts.signal);
 }
 
-// unload() → Promise<void>. Idempotent: every call returns the first call's promise. Jobs
-// queued before it still run; then, on the translator's own thread, the model is freed and
-// the thread ends. Later calls reject: model is unloaded.
+// unload() → Promise<void>. Idempotent: every call returns the first call's promise. Queued
+// jobs are cancelled and the running one stops at its next token; then, on the translator's
+// own thread, the model is freed and the thread ends. Later calls reject: model is unloaded.
 Napi::Value Translator::Unload(const Napi::CallbackInfo &info) {
     return life_.Unload(info.Env(), Value(), "sk_translate_unload", handle_);
 }
