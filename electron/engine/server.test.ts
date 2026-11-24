@@ -246,6 +246,38 @@ describe('the server', () => {
     for (const e of engines.splice(0)) await e.close();
   });
 
+  it('close() resolves only after every connection has been torn down', async () => {
+    delete process.env.SOKUJI_WIRE_STRICT;
+    const state = createState();
+    let freed = false;
+    register(state, 'hold', async (_s, msg, _b, conn) => {
+      conn.onClose(async () => { await new Promise((r) => setTimeout(r, 100)); freed = true; });   // a model unload
+      return [{ type: 'held', id: msg.id }, null];
+    });
+    const srv = await serve(state, { allowedOrigins: [], log: quiet });
+    const ws = await openWs(srv.port);
+    ws.send(JSON.stringify({ type: 'hold', id: 1 }));
+    await nextJson(ws);
+    await srv.close();
+    expect(freed).toBe(true);
+  });
+
+  it('close() does not wait forever for a teardown that never ends', async () => {
+    delete process.env.SOKUJI_WIRE_STRICT;
+    const state = createState();
+    register(state, 'stuck', async (_s, msg, _b, conn) => {
+      conn.onClose(() => new Promise<void>(() => {}));
+      return [{ type: 'held', id: msg.id }, null];
+    });
+    const srv = await serve(state, { allowedOrigins: [], log: quiet, teardownDeadlineMs: 150 });
+    const ws = await openWs(srv.port);
+    ws.send(JSON.stringify({ type: 'stuck', id: 1 }));
+    await nextJson(ws);
+    const t0 = Date.now();
+    await srv.close();
+    expect(Date.now() - t0).toBeLessThan(2000);
+  });
+
   it('accepts a binary frame larger than 1 MiB', async () => {
     // A synthetic probe type: a pure transport test opts out of the strict contract.
     delete process.env.SOKUJI_WIRE_STRICT;

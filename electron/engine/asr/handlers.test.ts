@@ -183,6 +183,52 @@ describe('closing the connection', () => {
   });
 });
 
+describe('one engine, several connections', () => {
+  const connect = (state: EngineState) => {
+    const socket = new FakeSocket();
+    return { socket, h: attach(state, socket, () => {}) };
+  };
+
+  it('a connection whose model a later init replaced does not free the new one when it closes', async () => {
+    const state = createState();
+    let gen = 0;
+    let closed = 0;
+    state.asr_engine = { get generation() { return gen; }, init: async () => { gen++; return 1; }, feed: () => [], close: () => { closed++; } };
+    register(state);
+    const a = connect(state);
+    const b = connect(state);
+    a.socket.message(msg({ type: 'asr_init', id: 1 }));
+    await a.h.settled();
+    b.socket.message(msg({ type: 'asr_init', id: 1 }));                 // a window reload: the new socket loads first
+    await b.h.settled();
+    a.socket.close();
+    await a.h.done;
+    expect(closed).toBe(0);                                             // the old socket's cleanup leaves the new model alone
+    b.socket.close();
+    await b.h.done;
+    expect(closed).toBe(1);
+  });
+
+  it('two inits at once load one after the other', async () => {
+    const state = createState();
+    let running = 0;
+    let maxRunning = 0;
+    state.asr_engine = {
+      generation: 0, feed: () => [], close: () => {},
+      init: async () => { running++; maxRunning = Math.max(maxRunning, running); await new Promise((r) => setTimeout(r, 30)); running--; return 1; },
+    };
+    register(state);
+    const a = connect(state);
+    const b = connect(state);
+    a.socket.message(msg({ type: 'asr_init', id: 1 }));
+    b.socket.message(msg({ type: 'asr_init', id: 1 }));
+    await Promise.all([a.h.settled(), b.h.settled()]);
+    expect(maxRunning).toBe(1);
+    a.socket.close(); b.socket.close();
+    await Promise.all([a.h.done, b.h.done]);
+  });
+});
+
 describe('a real engine on one connection', () => {
   const REF = 'handy-computer/SenseVoiceSmall-gguf/SenseVoiceSmall-Q8_0.gguf';
   let fake: FakeNative;

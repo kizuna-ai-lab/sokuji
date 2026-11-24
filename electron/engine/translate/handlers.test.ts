@@ -164,6 +164,17 @@ describe('teardown', () => {
   });
 });
 
+describe('concurrent inits', () => {
+  it('two translate_inits at once load one after the other', async () => {
+    let running = 0;
+    let maxRunning = 0;
+    const eng = { generation: 0, resolved: null, translate: async (): Promise<[string, number]> => ['', 0], init: async () => { running++; maxRunning = Math.max(maxRunning, running); await new Promise((r) => setTimeout(r, 30)); running--; return 1; } };
+    const state = stateWith(eng);
+    await Promise.all([call(state, { type: 'translate_init', id: 1 }), call(state, { type: 'translate_init', id: 2 })]);
+    expect(maxRunning).toBe(1);
+  });
+});
+
 describe('connections', () => {
   const GGUF_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'translate-conn-'));
   const gguf = path.join(GGUF_DIR, 'w.gguf');

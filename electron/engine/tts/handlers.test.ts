@@ -325,14 +325,16 @@ describe('teardown', () => {
     expect([eng.backend === b2, b2.unloads]).toEqual([true, 0]);
   });
 
-  it('the generation is taken when the init starts, not when it ends', async () => {
+  it('a later init queues behind a running one; each keeps its own generation, and the older teardown is stale', async () => {
     const backendA = oneShotBackend();
     const backendB = oneShotBackend();
     let releaseA!: () => void;
+    let aLoading = false;
     const aGate = new Promise<void>((r) => { releaseA = r; });
     engineSeams.resolveTts = async (model) => [plan(model === 'model-a' ? 'blocking-a' : 'fast-b')];
     engineSeams.loadMeasured = async (plans) => {
       if (plans[0].backend === 'blocking-a') {
+        aLoading = true;
         await aGate;
         return [backendA, plans[0], null, null];
       }
@@ -344,11 +346,14 @@ describe('teardown', () => {
     const a = connOf();
     const b = connOf();
     const initA = call(state, { type: 'tts_init', id: 1, model: 'model-a' }, a.conn);
+    await vi.waitFor(() => expect(aLoading).toBe(true));
     const genA = eng.generation;
-    await call(state, { type: 'tts_init', id: 2, model: 'model-b' }, b.conn);
-    const genB = eng.generation;
+    const initB = call(state, { type: 'tts_init', id: 2, model: 'model-b' }, b.conn);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(eng.generation).toBe(genA);                                // B has not started: A is still loading
     releaseA();
-    await initA;
+    await Promise.all([initA, initB]);
+    const genB = eng.generation;
     expect(genA).toBeLessThan(genB);
     await ttsTeardown(state, a.conn, genA);
     expect(eng.isLoaded).toBe(true);                                  // A's teardown is stale
@@ -374,6 +379,17 @@ describe('teardown', () => {
     await h.done;
     expect(socket.sent.length).toBe(sentAtClose);                     // nothing more reaches a closed connection
     expect((state.tts_engine as TtsEngine).isLoaded).toBe(false);     // the owner's teardown freed the model
+  });
+});
+
+describe('concurrent inits', () => {
+  it('two tts_inits at once load one after the other', async () => {
+    let running = 0;
+    let maxRunning = 0;
+    const eng = { sampleRate: 24000, generation: 0, nextGeneration() { return ++this.generation; }, resolved: null, init: async () => { running++; maxRunning = Math.max(maxRunning, running); await new Promise((r) => setTimeout(r, 30)); running--; return 1; }, close: () => {} };
+    const state = stateWith(eng);
+    await Promise.all([call(state, { type: 'tts_init', id: 1 }, connOf().conn), call(state, { type: 'tts_init', id: 2 }, connOf().conn)]);
+    expect(maxRunning).toBe(1);
   });
 });
 

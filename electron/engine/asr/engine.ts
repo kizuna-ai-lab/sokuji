@@ -130,10 +130,17 @@ export class AsrEngine {
   stop = false;
   audioQ: AudioQueue | null = null;
   private closing = false;
+  private gen = 0;
+
+  /** Counts inits: a teardown captured by an earlier init can tell it has been replaced. */
+  get generation(): number {
+    return this.gen;
+  }
   private loop: Promise<void> | null = null;
 
   async init(modelId: string | null = null, language = '', sampleRate = SRC_RATE, device = 'auto', pin: string | null = null): Promise<number> {
     const t0 = engineSeams.now();
+    this.gen += 1;                       // before close(): a teardown of the previous init is now stale
     await this.close();                  // free the previous model before loading the next (one engine per process)
     this.srcRate = Math.trunc(Number(sampleRate));
     this.streaming = false;
@@ -287,6 +294,7 @@ export class AsrEngine {
   }
 
   async initStreaming(modelId: string | null = null, language = '', sampleRate = SRC_RATE, device = 'auto', pin: string | null = null): Promise<void> {
+    this.gen += 1;
     await this.close();
     this.srcRate = Math.trunc(Number(sampleRate));
     this.inSpeech = false;

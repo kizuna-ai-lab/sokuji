@@ -9,7 +9,7 @@
 import { ledgerEffectiveReserve } from '../accel/ledger';
 import { seams } from '../accel/seams';
 import type { Conn } from '../conn';
-import { register as registerHandler, type EngineState, type Handler } from '../server';
+import { exclusive, register as registerHandler, type EngineState, type Handler } from '../server';
 import { TranslateEngine } from './engine';
 
 /** What the handlers drive: the engine's public surface (a test can stand in a fake). */
@@ -48,7 +48,9 @@ export async function translateTeardown(state: EngineState, generation?: number)
   }
 }
 
-export const translateInitHandler: Handler = async (state, msg, _binary, conn) => {
+export const translateInitHandler: Handler = (state, msg, binary, conn) => exclusive(state, 'translate', () => initTranslate(state, msg, binary, conn));
+
+const initTranslate: Handler = async (state, msg, _binary, conn) => {
   const eng = translateEngineOf(state);
   // A stage already loaded reserves nothing (its memory is out of every free reading); one not loaded yet reserves
   // its download size.

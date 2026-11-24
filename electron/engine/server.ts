@@ -33,6 +33,21 @@ export function createState(): EngineState {
   return { handlers: new Map() };
 }
 
+/**
+ * Runs `fn` after every earlier call with the same key has finished. Connections are served concurrently, but a stage's
+ * engine is one per process: two inits at once would each free the other's half-loaded model.
+ */
+export function exclusive<T>(state: EngineState, key: string, fn: () => Promise<T>): Promise<T> {
+  let chains = state.exclusiveChains as Map<string, Promise<void>> | undefined;
+  if (!chains) {
+    chains = new Map();
+    state.exclusiveChains = chains;
+  }
+  const run = (chains.get(key) ?? Promise.resolve()).then(fn);
+  chains.set(key, run.then(() => {}, () => {}));
+  return run;
+}
+
 /** Registers the handler for one message type. */
 export function register(state: EngineState, type: string, handler: Handler): void {
   state.handlers.set(type, handler);
@@ -139,6 +154,8 @@ export interface ServeOptions {
   log: Log;
   host?: string;
   port?: number;
+  /** How long close() waits, in total, for the connections' cleanups (model unloads) before it gives up on them. */
+  teardownDeadlineMs?: number;
 }
 
 /** Serves `state` on 127.0.0.1 (a free port unless one is given). */
@@ -159,6 +176,8 @@ export function serve(state: EngineState, opts: ServeOptions): Promise<{ port: n
         cb(true);
       },
     });
+    /** Each open connection's `done`: resolves once its cleanups (model unloads) have run. */
+    const live = new Set<Promise<void>>();
     wss.once('error', reject);
     wss.once('listening', () => {
       wss.off('error', reject);
@@ -166,15 +185,25 @@ export function serve(state: EngineState, opts: ServeOptions): Promise<{ port: n
         // An oversize frame or a broken socket is the socket's own error: it closes (1009 for a frame over the
         // limit) and the connection's cleanups run; the engine goes on.
         socket.on('error', (e) => opts.log('warn', `[server] socket error: ${e.message}`));
-        attach(state, socket as unknown as EventSocket, opts.log);
+        const { done } = attach(state, socket as unknown as EventSocket, opts.log);
+        live.add(done);
+        void done.finally(() => live.delete(done));
       });
       const { port } = wss.address() as AddressInfo;
       resolve({
         port,
-        close: () => new Promise<void>((done) => {
+        // A polite stop closes the sockets and waits for the models to be unloaded (within the deadline), so a caller
+        // that exits next does not cut an unload short.
+        close: async () => {
           for (const client of wss.clients) client.terminate();
-          wss.close(() => done());
-        }),
+          await new Promise<void>((done) => wss.close(() => done()));
+          let timer: NodeJS.Timeout | undefined;
+          await Promise.race([
+            Promise.allSettled([...live]),
+            new Promise<void>((r) => { timer = setTimeout(r, opts.teardownDeadlineMs ?? 15_000); }),
+          ]);
+          clearTimeout(timer);
+        },
       });
     });
   });

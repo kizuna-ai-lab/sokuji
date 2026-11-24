@@ -8,7 +8,7 @@
  * once cancelled. A new tts_generate supersedes the running one; the owner disconnecting stops it at once.
  */
 import type { Conn } from '../conn';
-import { register as registerHandler, type EngineState, type Handler } from '../server';
+import { exclusive, register as registerHandler, type EngineState, type Handler } from '../server';
 import { TtsEngine } from './engine';
 import { listBuiltinVoices, type VoicesEngine } from './voices';
 
@@ -70,7 +70,9 @@ export async function ttsTeardown(state: EngineState, conn: Conn | null, generat
   }
 }
 
-export const ttsInitHandler: Handler = async (state, msg, _binary, conn) => {
+export const ttsInitHandler: Handler = (state, msg, binary, conn) => exclusive(state, 'tts', () => initTts(state, msg, binary, conn));
+
+const initTts: Handler = async (state, msg, _binary, conn) => {
   const eng = ttsEngineOf(state);
   const generation = eng.nextGeneration?.();                          // taken before the load, as Python's M5b does
   const ms = await eng.init!(typeof msg.model === 'string' ? msg.model : null, str(msg.device, 'auto'), str(msg.language), typeof msg.variant === 'string' ? msg.variant : null, generation);

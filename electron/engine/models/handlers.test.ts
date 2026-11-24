@@ -112,19 +112,17 @@ describe('model_download', () => {
     await vi.waitFor(() => expect(downloadsOf(state).has('m')).toBe(false));
   });
 
-  it('a second download of the same model does not lose the first one\'s bookkeeping race', async () => {
-    const releases: Array<() => void> = [];
-    handlerSeams.downloadModel = () => new Promise((resolve) => releases.push(() => resolve('ready')));
+  it('a second download of the same model on the same connection is refused, and the first cleans up after itself', async () => {
+    let release!: () => void;
+    handlerSeams.downloadModel = () => new Promise((resolve) => { release = () => resolve('ready'); });
     const { state, call } = setup();
     await call({ type: 'model_download', id: 1, model: 'm' });
     const first = downloadsOf(state).get('m')!;
-    await call({ type: 'model_download', id: 2, model: 'm' });
-    const second = downloadsOf(state).get('m')!;
-    releases[0]();
+    const [reply] = await call({ type: 'model_download', id: 2, model: 'm' });
+    expect(reply).toMatchObject({ type: 'error', id: 2, model: 'm' });
+    expect(downloadsOf(state).get('m')).toBe(first);
+    release();
     await first.task;
-    expect(downloadsOf(state).get('m')).toBe(second);       // the first one's cleanup leaves the second's entry
-    releases[1]();
-    await second.task;
     expect(downloadsOf(state).has('m')).toBe(false);
   });
 
@@ -133,5 +131,56 @@ describe('model_download', () => {
     register(state);
     const [reply] = await handleMessage(state, JSON.stringify({ type: 'model_download', id: 3, model: 'm' }));
     expect(reply).toEqual({ type: 'error', id: 3, message: 'no connection' });
+  });
+});
+
+describe('a download and its connection', () => {
+  const twoConns = () => {
+    const state = createState();
+    register(state);
+    const mk = () => { const socket = new FakeSocket(); const conn = new Conn(socket); return { socket, conn, call: (m: Record<string, unknown>) => handleMessage(state, JSON.stringify(m), null, conn) }; };
+    return { state, a: mk(), b: mk() };
+  };
+
+  it('is aborted when its connection closes', async () => {
+    let signal: AbortSignal | undefined;
+    handlerSeams.downloadModel = (_m, _s, opts) => new Promise((resolve) => {
+      signal = opts?.signal;
+      opts?.signal?.addEventListener('abort', () => resolve('cancelled'));
+    });
+    const { state, a } = twoConns();
+    await a.call({ type: 'model_download', id: 1, model: 'm' });
+    a.conn.markClosed();
+    await vi.waitFor(() => expect(signal?.aborted).toBe(true), { timeout: 200 });
+    await downloadsOf(state).get('m')?.task;
+  });
+
+  it('a second request for a model already downloading on a live connection is refused', async () => {
+    let calls = 0;
+    handlerSeams.downloadModel = () => { calls++; return new Promise(() => {}); };
+    const { b, a } = twoConns();
+    await a.call({ type: 'model_download', id: 1, model: 'm' });
+    const [reply] = await b.call({ type: 'model_download', id: 2, model: 'm' });
+    expect(reply).toMatchObject({ type: 'error', id: 2, model: 'm' });
+    expect(String(reply?.message)).toMatch(/already/);
+    expect(calls).toBe(1);
+  });
+
+  it('a request after the old connection closed waits for the old download to stop', async () => {
+    const order: string[] = [];
+    let n = 0;
+    handlerSeams.downloadModel = (_m, _s, opts) => {
+      const mine = ++n;
+      if (mine === 2) { order.push('second-started'); return Promise.resolve('ready'); }
+      return new Promise((resolve) => {
+        opts?.signal?.addEventListener('abort', () => setTimeout(() => { order.push('first-stopped'); resolve('cancelled'); }, 50));
+      });
+    };
+    const { state, a, b } = twoConns();
+    await a.call({ type: 'model_download', id: 1, model: 'm' });
+    a.conn.markClosed();
+    await b.call({ type: 'model_download', id: 2, model: 'm' });
+    await downloadsOf(state).get('m')?.task;
+    expect(order).toEqual(['first-stopped', 'second-started']);
   });
 });

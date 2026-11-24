@@ -18,6 +18,7 @@ export function restoreHandlerSeams(): void {
 
 interface Download {
   readonly controller: AbortController;
+  readonly conn: Conn;
   task: Promise<void>;
 }
 
@@ -42,6 +43,8 @@ export const modelStatusHandler: Handler = async (_state, msg) => {
 };
 
 async function runDownload(state: EngineState, model: string, conn: Conn, repo: string | null, entry: Download): Promise<void> {
+  // A download follows its connection: the client that asked for it is gone, so nobody is left to watch or cancel it.
+  void conn.waitClosed().then(() => entry.controller.abort());
   try {
     const status = await handlerSeams.downloadModel(model, (m) => conn.send(m), { repo, signal: entry.controller.signal });
     await conn.send({ type: 'model_download_done', model, status });
@@ -56,9 +59,18 @@ async function runDownload(state: EngineState, model: string, conn: Conn, repo: 
 export const modelDownloadHandler: Handler = async (state, msg, _binary, conn) => {
   if (!conn) return [{ type: 'error', id: msg.id, message: 'no connection' }, null];
   const model = String(msg.model ?? '');
-  const entry: Download = { controller: new AbortController(), task: Promise.resolve() };
-  downloadsOf(state).set(model, entry);
-  entry.task = runDownload(state, model, conn, str(msg.repo), entry);
+  const downloads = downloadsOf(state);
+  const running = downloads.get(model);
+  if (running) {
+    // Two writers on one .incomplete blob corrupt it: a live download is refused; one whose connection has gone is
+    // stopped and waited for before the new one starts.
+    if (!running.conn.closed) return [{ type: 'error', id: msg.id, model, message: `${model} is already downloading` }, null];
+    running.controller.abort();
+    await running.task;
+  }
+  const entry: Download = { controller: new AbortController(), conn, task: Promise.resolve() };
+  downloads.set(model, entry);
+  entry.task = runDownload(state, model, conn, str(msg.repo), entry).catch(() => {});   // a failed send has nowhere to report
   return [null, null];
 };
 
