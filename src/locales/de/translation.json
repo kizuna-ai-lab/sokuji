@@ -1583,6 +1583,8 @@
     "transcription_failed": "Einige Äußerungen konnten nicht transkribiert werden: {{detail}}",
     "translation_failed": "Eine Übersetzung ist fehlgeschlagen: {{detail}}",
     "translation_unavailable": "Für diese Richtung gibt es kein Übersetzungsmodell: Die Sprache wird nur transkribiert.",
+    "turn_detection_overloaded": "Die Erkennung von Sprechabschnitten kommt auf diesem Gerät nicht hinterher.",
+    "turn_detection_unavailable": "Die Erkennung von Sprechabschnitten konnte nicht gestartet werden: {{detail}}",
     "local_models_missing": "Bitte laden Sie die erforderlichen Modelle in den Einstellungen herunter, um zu starten.",
     "no_microphone": "Konfigurieren Sie die Geräte für diesen Modus, um zu starten.",
     "silent_no_permission": "Von der ausgewählten Quelle ist noch kein Audio angekommen. Wenn sie abspielt und nichts übersetzt wird, erlauben Sie Sokuji unter Systemeinstellungen > Datenschutz & Sicherheit > Nur Systemaudioaufnahme (macOS) und starten Sie die Sitzung erneut.",

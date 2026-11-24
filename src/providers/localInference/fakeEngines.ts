@@ -6,7 +6,10 @@ import type { TranslationResult } from '../../lib/local-inference/engine/Transla
 import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import type { TtsResult } from '../../lib/local-inference/engine/TtsEngine';
 import type { SegmentEnd } from '../../lib/local-inference/types';
-import type { AsrInit, AsrLike, LocalEngines } from './engines';
+import { TurnDetectorError, type TurnDetectorInit } from '../../lib/local-inference/engine/TurnDetector';
+import type { TurnFailureCode } from '../../lib/local-inference/workers/_shared/turn-detector-protocol';
+import type { AsrInit, AsrLike, LocalEngines, TurnDetectorLike } from './engines';
+import type { AsrPartialTag, AsrResult } from '../../lib/local-inference/engine/AsrEngine';
 import type { TranslationLike, TtsLike, TtsReady } from '../../lib/local-inference/sessions/engines';
 import type { LocalInferenceConfig } from './config';
 
@@ -32,8 +35,7 @@ export class FakeAsr implements AsrLike {
   onFatal: AsrLike['onFatal'] = null;
 
   config: LocalInferenceConfig['asr'] | null = null;
-  /** `turnPort`: what the adapter still hands a recognizer for Smart Turn; the real engines no longer read it. */
-  inits: Array<{ modelId: string; options: AsrInit & { turnPort?: MessagePort } }> = [];
+  inits: Array<{ modelId: string; options: AsrInit }> = [];
   /** The epochs `stop` was called with. */
   stops: number[] = [];
   fed: Int16Array[] = [];
@@ -62,8 +64,12 @@ export class FakeAsr implements AsrLike {
   stop(epoch: number): void { this.stops.push(epoch); }
   dispose(): void { this.disposes++; }
 
-  partial(text: string): void { this.onPartialResult?.(text); }
-  final(text: string, end?: SegmentEnd): void { this.onResult?.({ text, durationMs: 1000, recognitionTimeMs: 100, ...end }); }
+  partial(text: string, tag?: AsrPartialTag): void { this.onPartialResult?.(text, tag); }
+  final(text: string, end?: SegmentEnd & Partial<Pick<AsrResult, 'press' | 'epoch'>>): void { this.onResult?.({ text, durationMs: 1000, recognitionTimeMs: 100, ...end }); }
+  /** A result of a detector segment: tagged with its press and the epoch it was cut in. */
+  result(text: string, tag: { press?: number; epoch?: number } = {}, end?: SegmentEnd): void { this.final(text, { ...end, ...tag } as SegmentEnd & Pick<AsrResult, 'press' | 'epoch'>); }
+  /** The recognizer decoded or dropped everything before the drain mark `seq`. */
+  drained(seq = 0): void { this.onDrained?.(seq); }
   speechStart(): void { this.onSpeechStart?.(); }
   /** An error message from the ready worker (one utterance). */
   fail(message: string): void { this.onError?.(message); }
@@ -204,18 +210,64 @@ export class FakeTurn {
   }
 }
 
+/** The turn detector, as the adapter drives it: it records every call, and the test makes it fail or die. */
+export class FakeDetector implements TurnDetectorLike {
+  onSpeechStart: TurnDetectorLike['onSpeechStart'] = null;
+  onFailed: TurnDetectorLike['onFailed'] = null;
+  onFatal: TurnDetectorLike['onFatal'] = null;
+
+  inits: TurnDetectorInit[] = [];
+  /** Every buffer handed over, copied before the transfer. */
+  fed: Int16Array[] = [];
+  begins: number[] = [];
+  drains: Array<number | undefined> = [];
+  cancels: number[] = [];
+  stops: number[] = [];
+  disposes = 0;
+  private loading = deferred<unknown>();
+
+  init(o: TurnDetectorInit): Promise<unknown> {
+    this.inits.push(o);
+    return this.loading.promise;
+  }
+  /** The detector loaded: the pending `init` resolves. */
+  ready(): void { this.loading.resolve({ loadTimeMs: 1 }); }
+  /** Silero could not load: the pending `init` rejects as the real one does. */
+  failInit(code: TurnFailureCode, message: string): void { this.loading.reject(new TurnDetectorError(message, code)); }
+
+  /** Like the real detector, the buffer is transferred to the worker. */
+  feedAudio(pcm: Int16Array): void {
+    const copy = new Int16Array(pcm);
+    structuredClone(pcm.buffer, { transfer: [pcm.buffer] });
+    this.fed.push(copy);
+  }
+  begin(press: number): void { this.begins.push(press); }
+  drain(press?: number): void { this.drains.push(press); }
+  cancel(press: number): void { this.cancels.push(press); }
+  stop(epoch: number): void { this.stops.push(epoch); }
+  dispose(): void { this.disposes++; }
+
+  /** The leg's one failure. */
+  fail(code: TurnFailureCode, message = code === 'turn_detection_overloaded' ? 'Turn detection cannot keep up on this device.' : 'Silero did not load'): void { this.onFailed?.({ code, message }); }
+  /** The worker died after it was ready. */
+  die(message = 'RuntimeError: unreachable'): void { this.onFatal?.(message); }
+  speechStart(): void { this.onSpeechStart?.(); }
+}
+
 /** One of each fake, and the `LocalEngines` that hands them out; `created` lists what the adapter asked for. */
 export function createFakeEngines() {
   const asr = new FakeAsr();
   const translation = new FakeTranslation();
   const tts = new FakeTts();
   const turn = new FakeTurn();
-  const created: Array<'asr' | 'translation' | 'tts'> = [];
+  const detector = new FakeDetector();
+  const created: Array<'asr' | 'translation' | 'tts' | 'detector'> = [];
   const engines: LocalEngines = {
     asr: (config) => { created.push('asr'); asr.config = config; return asr; },
     translation: () => { created.push('translation'); return translation; },
     tts: () => { created.push('tts'); return tts; },
     turn: () => turn.connect(),
+    detector: () => { created.push('detector'); return detector; },
   };
-  return { engines, asr, translation, tts, turn, created };
+  return { engines, asr, translation, tts, turn, detector, created };
 }

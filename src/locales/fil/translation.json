@@ -1583,6 +1583,8 @@
     "transcription_failed": "Hindi na-transcribe ang ilang bahagi ng pagsasalita: {{detail}}",
     "translation_failed": "Nabigo ang isang pagsasalin: {{detail}}",
     "translation_unavailable": "Walang modelo ng pagsasalin para sa direksyong ito: nai-transcribe lang ang pagsasalita nito.",
+    "turn_detection_overloaded": "Hindi makasabay ang pagtukoy ng turn sa device na ito.",
+    "turn_detection_unavailable": "Hindi masimulan ang pagtukoy ng turn: {{detail}}",
     "local_models_missing": "Mangyaring i-download ang mga kinakailangang modelo sa Mga Setting para makapagsimula.",
     "no_microphone": "I-configure ang mga device para sa mode na ito upang magsimula.",
     "silent_no_permission": "Wala pang audio na dumarating mula sa napiling source. Kung tumutugtog ito at walang naisasalin, payagan ang Sokuji sa System Settings > Privacy & Security > System Audio Recording Only (macOS), pagkatapos ay simulan muli ang session.",

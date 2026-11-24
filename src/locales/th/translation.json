@@ -1583,6 +1583,8 @@
     "transcription_failed": "บางส่วนของคำพูดไม่สามารถถอดเป็นข้อความได้: {{detail}}",
     "translation_failed": "การแปลรายการหนึ่งล้มเหลว: {{detail}}",
     "translation_unavailable": "ไม่มีโมเดลการแปลสำหรับทิศทางนี้: คำพูดจะถูกถอดเป็นข้อความเท่านั้น",
+    "turn_detection_overloaded": "การตรวจจับช่วงการพูดตามไม่ทันบนอุปกรณ์นี้",
+    "turn_detection_unavailable": "ไม่สามารถเริ่มการตรวจจับช่วงการพูดได้: {{detail}}",
     "local_models_missing": "กรุณาดาวน์โหลดโมเดลที่จำเป็นในการตั้งค่าเพื่อเริ่มต้นใช้งาน",
     "no_microphone": "กำหนดค่าอุปกรณ์สำหรับโหมดนี้เพื่อเริ่ม",
     "silent_no_permission": "ยังไม่มีเสียงเข้ามาจากแหล่งที่เลือก หากกำลังเล่นอยู่แต่ไม่มีการแปล ให้อนุญาต Sokuji ใน System Settings > Privacy & Security > System Audio Recording Only (macOS) แล้วเริ่มเซสชันใหม่อีกครั้ง",

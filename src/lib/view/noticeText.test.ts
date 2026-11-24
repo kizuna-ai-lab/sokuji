@@ -253,7 +253,7 @@ describe('noticeText', () => {
   });
 
   it("puts the local engines' notices into words", () => {
-    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable']) {
+    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'transcription_failed', 'translation_failed', 'translation_unavailable', 'turn_detection_overloaded', 'turn_detection_unavailable']) {
       expect(NOTICE_WORDS[code]).toBeDefined();
     }
   });

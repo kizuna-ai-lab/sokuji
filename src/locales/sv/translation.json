@@ -1583,6 +1583,8 @@
     "transcription_failed": "En del av talet kunde inte transkriberas: {{detail}}",
     "translation_failed": "En översättning misslyckades: {{detail}}",
     "translation_unavailable": "Ingen översättningsmodell för den här riktningen: talet transkriberas bara.",
+    "turn_detection_overloaded": "Turdetekteringen hinner inte med på den här enheten.",
+    "turn_detection_unavailable": "Turdetekteringen kunde inte startas: {{detail}}",
     "local_models_missing": "Ladda ner de nödvändiga modellerna i Inställningar för att börja.",
     "no_microphone": "Konfigurera enheter för detta läge för att börja.",
     "silent_no_permission": "Inget ljud har kommit från den valda källan ännu. Om den spelar upp och inget översätts, tillåt Sokuji under Systeminställningar > Integritet och säkerhet > Endast inspelning av systemljud (macOS) och starta sessionen igen.",

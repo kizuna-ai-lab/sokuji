@@ -1583,6 +1583,8 @@
     "transcription_failed": "Sebagian ucapan tidak dapat ditranskripsikan: {{detail}}",
     "translation_failed": "Satu terjemahan gagal: {{detail}}",
     "translation_unavailable": "Tidak ada model terjemahan untuk arah ini: ucapannya hanya ditranskripsikan.",
+    "turn_detection_overloaded": "Deteksi giliran bicara tidak dapat mengimbangi di perangkat ini.",
+    "turn_detection_unavailable": "Deteksi giliran bicara tidak dapat dimulai: {{detail}}",
     "local_models_missing": "Silakan unduh model yang diperlukan di Pengaturan untuk memulai.",
     "no_microphone": "Konfigurasikan perangkat untuk mode ini untuk memulai.",
     "silent_no_permission": "Belum ada audio yang masuk dari sumber yang dipilih. Jika sumber sedang diputar tetapi tidak ada yang diterjemahkan, izinkan Sokuji di System Settings > Privacy & Security > System Audio Recording Only (macOS), lalu mulai sesi lagi.",

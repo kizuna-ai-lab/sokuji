@@ -12,7 +12,7 @@ describe('settingsTargetForCode', () => {
   it("sends a missing key to the accounts, a missing model to the provider's options, and no provider to the line-up", () => {
     expect(settingsTargetForCode('credentials_missing')).toBe('provider');
     expect(settingsTargetForCode('no_provider')).toBe('lineup');
-    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing']) {
+    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing', 'turn_detection_overloaded', 'turn_detection_unavailable']) {
       expect(settingsTargetForCode(code), code).toBe('provider-options');
     }
   });

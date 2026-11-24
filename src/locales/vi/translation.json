@@ -1583,6 +1583,8 @@
     "transcription_failed": "Một số lời nói không thể chuyển thành văn bản: {{detail}}",
     "translation_failed": "Một bản dịch không thành công: {{detail}}",
     "translation_unavailable": "Không có mô hình dịch cho hướng này: lời nói chỉ được chuyển thành văn bản.",
+    "turn_detection_overloaded": "Tính năng phát hiện lượt nói không theo kịp trên thiết bị này.",
+    "turn_detection_unavailable": "Không thể khởi động tính năng phát hiện lượt nói: {{detail}}",
     "local_models_missing": "Vui lòng tải xuống các mô hình cần thiết trong Cài đặt để bắt đầu.",
     "no_microphone": "Cấu hình thiết bị cho chế độ này để bắt đầu.",
     "silent_no_permission": "Chưa có âm thanh nào từ nguồn đã chọn. Nếu nguồn đang phát mà không có gì được dịch, hãy cho phép Sokuji trong System Settings > Privacy & Security > System Audio Recording Only (macOS), rồi bắt đầu lại phiên.",

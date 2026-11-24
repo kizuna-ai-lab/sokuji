@@ -237,6 +237,7 @@ async function open(config = aloneConfig(), context = ctx(EN_JA)) {
   const t = begin(config, context);
   await flush();
   if (t.created.includes('asr')) t.asr.ready();
+  if (t.created.includes('detector')) t.detector.ready();
   const session: AdapterSession = await t.starting;
   await flush();
   const of = <K extends AdapterEvent['kind']>(kind: K) => t.log.filter((e) => e.kind === kind).map((e) => e.payload as Extract<AdapterEvent, { kind: K }>['payload']);
@@ -322,10 +323,16 @@ describe('a session of the local transcription unit', () => {
   });
 
   it('Smart Turn runs under automatic turns where the config asks for it, and not under manual ones', async () => {
-    const smart = aloneConfig({ vad: { ...aloneConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
+    // Only a recognizer that decodes the turn detector's segments (`shared`) takes Smart Turn; the port goes to the detector.
+    const smart = aloneConfig({
+      asr: { modelId: 'asr-model', streaming: false, turnDetection: 'shared' },
+      limit: { maxSegmentSamples: 29 * 16000 },
+      vad: { ...aloneConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } },
+    });
     const auto = await open(smart);
     expect(auto.turn.connects).toBe(1);
-    expect(auto.asr.inits[0].options.turnPort).toBe(auto.turn.port);
+    expect(auto.detector.inits[0].turnPort).toBe(auto.turn.port);
+    expect(auto.asr.inits[0].options).not.toHaveProperty('turnPort');
     await auto.session.stop();
     expect(auto.turn.releases).toBe(1);
     const manual = await open(smart, ctx(EN_JA, { turns: 'manual' }));
