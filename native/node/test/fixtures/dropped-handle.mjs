@@ -9,7 +9,7 @@
 // 5 ms timer (the JS thread's stall) over the collection, and the process's thread counts.
 import { writeSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { jfk, loadAddon, nativeDir, threadCount } from '../helpers.mjs';
+import { jfk, loadAddon, nativeDir, threadCount, cpuDevice } from '../helpers.mjs';
 
 const kind = process.argv[2];
 const env = process.env;
@@ -32,9 +32,9 @@ const ticker = setInterval(() => {
 
 // The handle lives only in this function's frame: once it returns, nothing refers to it.
 async function loadAndDrop() {
-  if (kind === 'translate') return void await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, null, { nCtx: 2048 });
+  if (kind === 'translate') return void await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, cpuDevice(), { nCtx: 2048 });
   if (kind === 'tts') return void await sk.ttsLoad(env.SK_TEST_TTS_SUPERTONIC_DIR, cpu, { family: 'supertonic' });
-  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
   if (kind === 'asr-unloaded') await m.unload();
 }
 
@@ -49,7 +49,7 @@ async function collectUntil(done, ms = 20000) {
 
 const result = { kind, baseline };
 if (kind === 'stream') {
-  const m = await sk.asrLoad(env.SK_TEST_ASR_STREAM_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_STREAM_GGUF, cpuDevice());
   await (async () => {
     const s = m.openStream('en');
     await s.feed(jfk().slice(0, 8000));

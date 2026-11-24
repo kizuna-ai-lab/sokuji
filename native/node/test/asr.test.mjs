@@ -8,7 +8,7 @@ import { copyFileSync, linkSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { availableParallelism, tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { after, test } from 'node:test';
-import { jfk, loadAddon, nativeDir } from './helpers.mjs';
+import { jfk, loadAddon, nativeDir, cpuDevice } from './helpers.mjs';
 
 const sk = loadAddon();
 // Half the cores per model: 'two models run at the same time' runs two models at once, and
@@ -23,7 +23,7 @@ const JFK = /ask not what your country can do for you/;
 // One model shared by the tests that do not load their own.
 let shared = null;
 function model() {
-  shared ??= sk.asrLoad(env.SK_TEST_ASR_GGUF, null);
+  shared ??= sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
   return shared;
 }
 after(async () => {
@@ -31,7 +31,7 @@ after(async () => {
 });
 
 test('transcribes JFK', { skip }, async () => {
-  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
   assert.equal(m.capabilities.nativeSampleRate, 16000);
   let polls = 0, ticks = 0; const t = setInterval(() => ticks++, 5);
   const text = await m.run(jfk(), 'en', { onProgress: () => polls++ });
@@ -113,7 +113,7 @@ test('loads a model from a non-ASCII directory', { skip }, async (t) => {
     try { linkSync(env.SK_TEST_ASR_GGUF, path); } catch { copyFileSync(env.SK_TEST_ASR_GGUF, path); }
     let m;
     try {
-      m = await sk.asrLoad(path, null);
+      m = await sk.asrLoad(path, cpuDevice());
     } catch (e) {
       assert.equal(e.name, 'NativeError', String(e));   // a clear error is acceptable; a crash is not
       t.diagnostic(`non-ASCII path: rejected with ${e.message}`);
@@ -128,7 +128,7 @@ test('loads a model from a non-ASCII directory', { skip }, async (t) => {
 });
 
 test('two models run at the same time', { skip }, async () => {
-  const [a, b] = await Promise.all([sk.asrLoad(env.SK_TEST_ASR_GGUF, null), sk.asrLoad(env.SK_TEST_ASR_GGUF, null)]);
+  const [a, b] = await Promise.all([sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice()), sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice())]);
   // Each run's first progress event comes before either run finishes: the two overlapped.
   const first = [], done = [];
   const go = (m, i) => m.run(jfk(), 'en', { onProgress: () => { first[i] ??= performance.now(); } })

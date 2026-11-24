@@ -11,7 +11,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { Worker } from 'node:worker_threads';
-import { chunks, jfk, loadAddon, nativeDir, threadCount } from './helpers.mjs';
+import { chunks, jfk, loadAddon, nativeDir, threadCount, cpuDevice } from './helpers.mjs';
 
 const sk = loadAddon();
 const logLines = [];
@@ -35,7 +35,7 @@ const CHILD_TIMEOUT_MS = 120_000;
 // ---- unload ---------------------------------------------------------------------------------
 
 test('unload is idempotent and later calls reject with NOT_INITIALISED', { skip: skipAsr }, async () => {
-  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
   const u = m.unload();
   assert.equal(m.unload(), u);
   await u;
@@ -45,7 +45,7 @@ test('unload is idempotent and later calls reject with NOT_INITIALISED', { skip:
 });
 
 test('unload cancels queued runs', { skip: skipAsr }, async () => {
-  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
   const a = m.run(jfk(), 'en'), b = m.run(jfk(), 'en');
   const u = m.unload();
   const [ra, rb] = await Promise.allSettled([a, b]);
@@ -60,7 +60,7 @@ test('unload cancels queued runs', { skip: skipAsr }, async () => {
 });
 
 test('unload stops the running run at its next callback', { skip: skipAsr }, async () => {
-  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
   let started;
   const running = new Promise((resolve) => { started = resolve; });
   const run = m.run(jfk(), 'en', { onProgress: () => started() });
@@ -72,7 +72,7 @@ test('unload stops the running run at its next callback', { skip: skipAsr }, asy
 });
 
 test('unload with a stream open and its feeds queued settles every call', { skip: skipStream }, async () => {
-  const m = await sk.asrLoad(env.SK_TEST_ASR_STREAM_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_STREAM_GGUF, cpuDevice());
   const s = m.openStream('en');
   const feeds = chunks(jfk(), 8000).map((c) => s.feed(c));   // all queued at once
   const u = m.unload();
@@ -86,7 +86,7 @@ test('unload with a stream open and its feeds queued settles every call', { skip
 });
 
 test('unload stops a running translation at its next token', { skip: skipTranslate }, async () => {
-  const t = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, null, { nCtx: 2048 });
+  const t = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, cpuDevice(), { nCtx: 2048 });
   let started;
   const running = new Promise((resolve) => { started = resolve; });
   const chat = t.chat([{ role: 'user', content: 'Write a long story about a lighthouse.' }], { maxTokens: 512 },

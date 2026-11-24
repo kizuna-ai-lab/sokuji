@@ -6,7 +6,7 @@
 // Tests that need them are skipped when they are unset.
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
-import { chunks, jfk, loadAddon, nativeDir } from './helpers.mjs';
+import { chunks, jfk, loadAddon, nativeDir, cpuDevice } from './helpers.mjs';
 
 const sk = loadAddon();
 // Two threads: node --test runs the test files in parallel, and asr.test.mjs runs two models
@@ -24,14 +24,14 @@ const JFK = /ask not what your country/;
 // The model the tests share. 'unload closes an open stream' unloads it, so it comes last.
 let m = null;
 before(async () => {
-  if (!skip) m = await sk.asrLoad(env.SK_TEST_ASR_STREAM_GGUF, null);
+  if (!skip) m = await sk.asrLoad(env.SK_TEST_ASR_STREAM_GGUF, cpuDevice());
 });
 after(async () => {
   if (m) await m.unload();
 });
 
 test('streams JFK in 0.5 s chunks', { skip }, async () => {
-  const m = await sk.asrLoad(env.SK_TEST_ASR_STREAM_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_STREAM_GGUF, cpuDevice());
   assert.ok(m.capabilities.supportsStreaming);
   const s = m.openStream('en'); let last = { committed: '', tentative: '' };
   for (const chunk of chunks(jfk(), 8000)) last = await s.feed(chunk);
@@ -104,7 +104,7 @@ test('finalize with an aborted signal rejects -5 and still closes the stream', {
 });
 
 test('openStream on a batch-only model throws NativeError -1', { skip: skipBatch }, async () => {
-  const w = await sk.asrLoad(env.SK_TEST_ASR_GGUF, null);
+  const w = await sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
   try {
     assert.equal(w.capabilities.supportsStreaming, false);
     assert.throws(() => w.openStream('en'), (e) => e.name === 'NativeError' && e.status === -1 &&

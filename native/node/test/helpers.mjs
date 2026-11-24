@@ -110,3 +110,15 @@ export function threadCount() {
     return null;
   }
 }
+
+/**
+ * The index of the CPU device. Model-backed tests load on it explicitly instead of passing
+ * `null` (auto): auto picks a GPU where there is one, and the CI runners' virtualized GPUs
+ * (Metal on macOS, whose ASR output was garbage) are not what these tests are about.
+ * Call it after init().
+ */
+export function cpuDevice() {
+  const cpu = loadAddon().devices().find((d) => d.kind === 'cpu');
+  if (!cpu) throw new Error('no CPU device');
+  return cpu.index;
+}

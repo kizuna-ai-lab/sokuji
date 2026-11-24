@@ -8,7 +8,7 @@
 //   callback   exit from inside the call's first progress / token / audio callback
 // Writes "exiting" to stdout just before it exits.
 import { writeSync } from 'node:fs';
-import { jfk, loadAddon, nativeDir } from '../helpers.mjs';
+import { jfk, loadAddon, nativeDir, cpuDevice } from '../helpers.mjs';
 
 const [kind, mode, code = '0'] = process.argv.slice(2);
 const env = process.env;
@@ -25,12 +25,12 @@ const onCallback = () => { if (mode === 'callback') exit(); };
 const LONG = 'Hello from the parity gate. '.repeat(14);
 
 if (kind === 'asr') {
-  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, null);
+  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
   const one = jfk(), long = new Float32Array(480000);   // 30 s
   for (let i = 0; i < long.length; i += one.length) long.set(one.subarray(0, Math.min(one.length, long.length - i)), i);
   m.run(long, 'en', { onProgress: onCallback }).catch(() => {});
 } else if (kind === 'translate') {
-  const t = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, null, { nCtx: 2048 });
+  const t = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, cpuDevice(), { nCtx: 2048 });
   t.chat([{ role: 'user', content: 'Write a long story about a lighthouse.' }], { maxTokens: 512 },
          { onToken: onCallback }).catch(() => {});
 } else if (kind === 'tts') {

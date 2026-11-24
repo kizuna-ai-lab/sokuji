@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { after, before, test } from 'node:test';
-import { loadAddon, nativeDir } from './helpers.mjs';
+import { loadAddon, nativeDir, cpuDevice } from './helpers.mjs';
 
 const sk = loadAddon();
 // Two threads: node --test runs the test files in parallel, and asr.test.mjs runs two models
@@ -23,14 +23,14 @@ const noop = () => {};
 // The translator the tests share. 'unload is idempotent ...' unloads it, so it comes last.
 let tr = null;
 before(async () => {
-  if (!skip) tr = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, null, { nCtx: 2048 });
+  if (!skip) tr = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, cpuDevice(), { nCtx: 2048 });
 });
 after(async () => {
   if (tr) await tr.unload();
 });
 
 test('chat produces text', { skip }, async () => {
-  const tr = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, null, {});
+  const tr = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, cpuDevice(), {});
   try {
     const dec = new TextDecoder('utf-8', { fatal: false }); let out = '';
     await tr.chat([{ role: 'user', content: 'Translate to French: Good morning' }], { maxTokens: 32, assistantPrefill: PREFILL },
@@ -143,7 +143,7 @@ test('nCtx and flashAttn reach the library; both default to 0', { skip }, async 
   // disabled"); n_ctx 0 is the library's 4096 and flash_attn 0 llama.cpp's own default, auto.
   const contextOf = async (...args) => {
     const from = logLines.length;
-    const t = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, null, ...args);
+    const t = await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, cpuDevice(), ...args);
     try {
       const value = (re) => logLines.slice(from).map((l) => re.exec(l)?.[1]).find((v) => v !== undefined);
       // The log lines travel on their own thread-safe function: they may land after the load.
