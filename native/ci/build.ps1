@@ -56,7 +56,8 @@ if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Copy-Item -Recurse "$Build\stage" "$Root\python\sokuji_native\_native"
 # The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
 # against whatever sokuji_native happens to be installed in this interpreter.
-& $Python -m pip install -q pytest numpy soundfile
+# zstandard: make_app_archive.py and its test (tests\test_make_app_archive.py).
+& $Python -m pip install -q pytest numpy soundfile zstandard
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 $env:PYTHONPATH = "$Root\python"
 $env:SOKUJI_NATIVE_DIR = "$Build\stage"
@@ -64,9 +65,30 @@ $env:SK_TEST_SAMPLE_WAV = "$Build\_deps\transcribe-src\samples\jfk.wav"
 # -s mirrors build.sh: keep native abort messages out of pytest's capture buffer.
 # -rs likewise: print every skip's reason, so an opt-in test that vanished because a model
 # dir or a device is missing says so instead of hiding in a bare "N skipped".
-& $Python -m pytest "$Root\python\tests" "$Root\tests\parity" -q -s -rs
+& $Python -m pytest "$Root\python\tests" "$Root\tests\parity" "$Root\tests\test_make_app_archive.py" -q -s -rs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Remove-Item Env:PYTHONPATH, Env:SOKUJI_NATIVE_DIR, Env:SK_TEST_SAMPLE_WAV
+# The app archive: the same stage plus the Node addon and NOTICES.txt, packed as
+# sokuji-native-<sku>-v<version>.tar.zst for the app to unpack (make_app_archive.py's docstring
+# has the layout). Only when SOKUJI_SKU names the platform (CI sets it from the matrix), so a
+# developer's build.ps1 run stays wheel-only unless asked. Its own stage: the wheel's stays as is.
+# The addon itself was already tested by ctest (test_node_addon) against the build tree; the
+# workflow loads the unpacked archive under Electron.
+if ($env:SOKUJI_SKU) {
+    $AppStage = "$Build\app-stage"
+    $ArchiveDir = "$Root\build\archive"
+    $VersionLine = Select-String -Path "$Root\CMakeLists.txt" -Pattern '^project\(sokuji_native VERSION ([0-9.]+)' | Select-Object -First 1
+    if (-not $VersionLine) { Write-Host "ci/build.ps1: cannot read the project version from CMakeLists.txt"; exit 1 }
+    $AppVersion = $VersionLine.Matches[0].Groups[1].Value
+    Remove-Item -Recurse -Force $AppStage -ErrorAction SilentlyContinue
+    cmake --install $Build --config Release --prefix $AppStage --component sokuji
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    cmake --install $Build --config Release --prefix $AppStage --component sokuji_node
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    & $Python "$Root\ci\make_app_archive.py" $AppStage $env:SOKUJI_SKU $AppVersion $ArchiveDir
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    Get-ChildItem $ArchiveDir
+}
 Push-Location "$Root\python"
 Remove-Item -Recurse -Force dist -ErrorAction SilentlyContinue
 $env:SOKUJI_NATIVE_PLAT = $Plat

@@ -27,6 +27,10 @@ const skipTts = have('SK_TEST_TTS_SUPERTONIC_DIR');
 const skipMoss = have('SK_TEST_TTS_MOSS_DIR');
 const fixture = (name) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
 const noop = () => {};
+// A child that hangs (a worker that never joins, a native call that never returns) must fail
+// its test, not the CI job's six-hour limit. Generous: the slowest child waits out a ~12 s
+// offline synth under ASan on a loaded runner.
+const CHILD_TIMEOUT_MS = 120_000;
 
 // ---- unload ---------------------------------------------------------------------------------
 
@@ -116,8 +120,8 @@ test('unload stops a streaming synth at its next chunk', { skip: skipTts }, asyn
 
 /** Runs a fixture under --expose-gc and returns its one JSON line. */
 function runDropped(kind) {
-  const r = spawnSync(process.execPath, ['--expose-gc', fixture('dropped-handle.mjs'), kind], { env, encoding: 'utf8' });
-  assert.equal(r.status, 0, r.stderr);
+  const r = spawnSync(process.execPath, ['--expose-gc', fixture('dropped-handle.mjs'), kind], { env, encoding: 'utf8', timeout: CHILD_TIMEOUT_MS });
+  assert.equal(r.status, 0, `status ${r.status}, signal ${r.signal}${r.error ? `, ${r.error.message}` : ''}: ${r.stderr}`);
   return { ...JSON.parse(r.stdout.trim().split('\n').at(-1)), stderr: r.stderr };
 }
 
@@ -191,7 +195,7 @@ for (const [kind, label, skip] of [
 /** Runs exit-mid-run.mjs; returns the child's result and how long it took. */
 function exitMidRun(kind, mode, code = 0) {
   const t0 = performance.now();
-  const r = spawnSync(process.execPath, [fixture('exit-mid-run.mjs'), kind, mode, String(code)], { env, encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [fixture('exit-mid-run.mjs'), kind, mode, String(code)], { env, encoding: 'utf8', timeout: CHILD_TIMEOUT_MS });
   return { r, ms: performance.now() - t0 };
 }
 

@@ -34,7 +34,8 @@ set_source_files_properties(third_party/speexdsp/resample.c src/resample.cpp PRO
 
 # One std::thread per loaded model (src/worker.cpp).
 find_package(Threads REQUIRED)
-target_link_libraries(sokuji_native_node PRIVATE sokuji_native Threads::Threads)
+# CMAKE_DL_LIBS: the addon calls dlopen/dladdr itself (empty on Windows, a no-op on glibc >= 2.34).
+target_link_libraries(sokuji_native_node PRIVATE sokuji_native Threads::Threads ${CMAKE_DL_LIBS})
 
 if(WIN32)
     # The Node-API lives in the host executable. Link an import library that names it
@@ -85,3 +86,20 @@ add_dependencies(sokuji_native_node sokuji_native_node_contract)
 install(TARGETS sokuji_native_node
         LIBRARY DESTINATION . COMPONENT sokuji_node
         RUNTIME DESTINATION . COMPONENT sokuji_node)
+
+# The addon's own suites, when a Node.js is around (test/*.test.mjs; the model-backed ones skip
+# themselves while their SK_TEST_* variable is unset). The files are listed one by one:
+# `node --test <dir>` is not the same thing on every Node (24 refuses a directory), and no
+# shell is involved here to expand a glob. --test-concurrency=1: each file loads models, and
+# files in parallel oversubscribe the cores (the ASR suite ran 10-20x slower).
+find_program(NODE_EXECUTABLE node)
+if(NODE_EXECUTABLE)
+    file(GLOB _node_tests CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/*.test.mjs)
+    add_test(NAME test_node_addon
+             COMMAND ${NODE_EXECUTABLE} --test --test-concurrency=1 ${_node_tests})
+    set_tests_properties(test_node_addon PROPERTIES
+        ENVIRONMENT "SOKUJI_NATIVE_DIR=${CMAKE_LIBRARY_OUTPUT_DIRECTORY};SOKUJI_NATIVE_NODE=$<TARGET_FILE:sokuji_native_node>;SK_TEST_SAMPLE_WAV=${transcribe_SOURCE_DIR}/samples/jfk.wav"
+        TIMEOUT 3600)
+else()
+    message(STATUS "sokuji-native: no node executable found, the addon's test_node_addon test is not registered")
+endif()

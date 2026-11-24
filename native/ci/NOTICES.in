@@ -1,0 +1,19 @@
+# Third-party notices: make_app_archive.py concatenates the license files listed here into the
+# NOTICES.txt shipped in every app archive. One upstream per line:
+#
+#     <name> | <path of its license file>
+#
+# @BUILD@ is the CMake build tree (the FetchContent checkouts live in @BUILD@/_deps/<name>-src;
+# by default the parent of the stage directory) and @SRC@ is native/ (the vendored copies in
+# node/third_party). A listed file that does not exist fails the archive step on purpose: a
+# notice that silently went missing is a license violation nobody would see.
+#
+# Add a line here whenever a new upstream is linked into, or shipped beside, libsokuji_native.
+ggml             | @BUILD@/_deps/ggml-src/LICENSE
+llama.cpp        | @BUILD@/_deps/llama-src/LICENSE
+transcribe.cpp   | @BUILD@/_deps/transcribe-src/LICENSE
+audio.cpp        | @BUILD@/_deps/audiocpp-src/LICENSE
+node-addon-api   | @SRC@/node/third_party/node-addon-api/LICENSE.md
+node-api-headers | @SRC@/node/third_party/node-api-headers/LICENSE
+SpeexDSP         | @SRC@/node/third_party/speexdsp/COPYING
+node-gyp win_delay_load_hook (Windows addon only) | @SRC@/node/third_party/win_delay_load_hook.LICENSE
