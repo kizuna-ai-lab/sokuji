@@ -1,7 +1,8 @@
 {
  "generator": "record_session.py",
- "sidecar_commit": "bbf4cd844f94a42dbc2c5e23680e3b7a8c7a57ee",
+ "sidecar_commit": "35f442de629bb1d56afeb82c7988c28761bed21c",
  "native_version": "1.2.0",
+ "lane": "cpu-vulkan",
  "machine": "Linux-aarch64",
  "sockets": [
   {
@@ -7039,7 +7040,7 @@
      "json": {
       "type": "ready",
       "id": 1,
-      "loadTimeMs": 202,
+      "loadTimeMs": 193,
       "backend": "native_asr",
       "device": "cpu",
       "computeType": "q8_0",
@@ -7508,7 +7509,7 @@
       "text": "And so, my fellow Americans, ask not what your country can do for you. Ask what you can do for your country.",
       "startSample": 0,
       "durationMs": 11000,
-      "recognitionTimeMs": 311
+      "recognitionTimeMs": 308
      }
     }
    ]
@@ -7532,12 +7533,12 @@
      "json": {
       "type": "ready",
       "id": 1,
-      "loadTimeMs": 874,
+      "loadTimeMs": 2193,
       "backend": "native_translate",
       "device": "cpu",
       "computeType": "q8_0",
-      "tokensPerSec": 141.9,
-      "memoryBytes": 1267851264
+      "tokensPerSec": 131.5,
+      "memoryBytes": 1267757056
      }
     },
     {
@@ -7830,7 +7831,7 @@
       "id": 2,
       "sourceText": "And so, my fellow Americans, ask not what your country can do for you. Ask what you can do for your country.",
       "translatedText": "そして、アメリカ合衆国の皆様に、あなたが何をアメリカにできるかを尋ねるのではなく、あなたが何をアメリカにできるかを尋ねる。",
-      "inferenceTimeMs": 267
+      "inferenceTimeMs": 313
      }
     }
    ]
@@ -7853,7 +7854,7 @@
       "type": "ready",
       "id": 1,
       "sampleRate": 24000,
-      "loadTimeMs": 2063,
+      "loadTimeMs": 2033,
       "backend": "native_tts",
       "device": "cpu",
       "computeType": "f16",
@@ -7894,7 +7895,7 @@
       "type": "tts_done",
       "id": 2,
       "totalSamples": 46691,
-      "generationTimeMs": 364
+      "generationTimeMs": 348
      }
     }
    ]

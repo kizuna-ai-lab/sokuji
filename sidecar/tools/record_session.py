@@ -10,7 +10,8 @@ frame from the client in full (base64), so the replay sends exactly the same aud
 models_catalog for each kind and model_status for the three cards; asr_init (canary-180m-flash, en, 24 kHz, cpu), the
 clip resampled to 24 kHz in 100 ms frames between vad_mark start and end; translate_init (qwen2.5-0.5b, en→ja, cpu)
 and the transcript translated; tts_init (supertonic-3, cpu) and "Good morning, everyone." synthesized; then every
-socket closed.
+socket closed. The wheel's lane is recorded too: a replay on another lane sees other GPUs, so only the GPU-dependent
+parts of the model catalog may differ there.
 """
 import argparse
 import asyncio
@@ -139,6 +140,7 @@ def main(argv=None):
     import sokuji_native
     commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=SIDECAR, capture_output=True, text=True).stdout.strip()
     out = {"generator": "record_session.py", "sidecar_commit": commit, "native_version": sokuji_native.version(),
+           "lane": sokuji_native.engine_versions().get("lane", ""),
            "machine": f"{platform.system()}-{platform.machine()}", "sockets": sockets}
     with open(args.out, "w") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
