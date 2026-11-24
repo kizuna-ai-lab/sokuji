@@ -10,8 +10,12 @@ export interface StoredRecord {
   services: string;
   /** `fileBytes` is the size of the recording on disk, or null when the file is not there. */
   tracks: { source: string; file: string; bytes: number; durationMs: number; fileBytes: number | null }[];
-  /** The conversation as the session wrote it, in order: what was heard (`source`) and what it was translated to, with the clock time each began. */
-  segments: { side: 'source' | 'translation'; text: string; openedAt: number }[];
+  /**
+   * The conversation as the session wrote it, in order: what was heard (`source`) and what it was translated to, with the
+   * clock time each began (`openedAt`, ms on the run's clock, which is `Date.now()`). `startMs`/`endMs` are the segment's
+   * timing (the `start_ms`/`end_ms` columns of `segments`), or null where the service gave none.
+   */
+  segments: { side: 'source' | 'translation'; text: string; openedAt: number; startMs: number | null; endMs: number | null }[];
 }
 
 /** What the history database holds, read from disk. Call it after the app has closed: the app owns the file while it runs. */
@@ -32,8 +36,10 @@ export function readHistory(userData: string): StoredRecord[] {
             fileBytes: fs.existsSync(onDisk) ? fs.statSync(onDisk).size : null,
           };
         });
-      const segments = (db.prepare('select side, text, opened_at as openedAt from segments where record_id = ? order by leg, position').all(id) as Record<string, unknown>[])
-        .map((row) => ({ side: row.side as 'source' | 'translation', text: String(row.text), openedAt: Number(row.openedAt) }));
+      const segments = (db.prepare('select side, text, opened_at as openedAt, start_ms as startMs, end_ms as endMs from segments where record_id = ? order by leg, position').all(id) as Record<string, unknown>[])
+        .map((row) => ({ side: row.side as 'source' | 'translation', text: String(row.text), openedAt: Number(row.openedAt),
+          startMs: row.startMs === null ? null : Number(row.startMs), endMs: row.endMs === null ? null : Number(row.endMs),
+        }));
       return { id, state: String(record.state), services: String(record.services), sentences, tracks, segments };
     });
   } finally {
