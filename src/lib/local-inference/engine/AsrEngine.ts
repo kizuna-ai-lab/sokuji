@@ -303,6 +303,8 @@ export class AsrEngine {
    */
   stop(epoch: number): void {
     if (!this.session?.ready) return;
+    // Sherpa's worker answers an unknown message type with an error, so it is never sent one.
+    if ((this.currentModel?.asrWorkerType ?? 'sherpa-onnx') === 'sherpa-onnx') return;
     this.session.post({ type: 'stop', epoch });
   }
 

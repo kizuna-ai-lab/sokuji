@@ -106,6 +106,19 @@ describe('AsrEngine: the turn detector\'s segment port', () => {
     expect(worker.postMessage).toHaveBeenCalledExactlyOnceWith({ type: 'stop', epoch: 3 });
   });
 
+  it('a ready sherpa engine posts nothing on stop: its worker has no stop message', async () => {
+    const engine = new AsrEngine();
+    const initP = engine.init('sensevoice-int8', { minSilenceDuration: 1.4 } as any, 'ja');
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
+    const worker = MockWorker.last();
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+    worker.emit({ type: 'ready', loadTimeMs: 1 });
+    await initP;
+    worker.postMessage.mockClear();
+    engine.stop(1);
+    expect(worker.postMessage).not.toHaveBeenCalled();
+  });
+
   it('press and epoch come with the result and with a partial', async () => {
     const { engine, worker } = await readyEngine('cohere-transcribe-webgpu');
     const onResult = vi.fn();
