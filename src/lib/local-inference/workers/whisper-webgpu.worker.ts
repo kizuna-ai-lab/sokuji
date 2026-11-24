@@ -1,15 +1,15 @@
 /**
  * Whisper WebGPU ASR Worker — Production integration
  *
- * Streaming audio input (Int16@24kHz) → Silero VAD v5 (via vad-web FrameProcessor) → Whisper ASR (WebGPU)
+ * The turn detector's segments (16 kHz Float32 speech) → Whisper ASR (WebGPU)
  * Model files loaded from IndexedDB via customCache bridge.
  *
- * VAD logic delegates to @ricky0123/vad-web's FrameProcessor, which handles
- * dual-threshold hysteresis, pre-speech padding, redemption grace period,
- * and minimum speech duration checks.
+ * This worker runs no VAD and takes no audio. Turn detection lives in turn-detector.worker.ts, which
+ * cuts the turns and sends each segment here on `segmentPort`; SegmentInbox decodes them one at a
+ * time, in arrival order, and answers the detector's drain marks.
  *
- * Input messages:  WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' }
- * Output messages: AsrWorkerOutMessage (ready, status, result, error, disposed)
+ * Input messages:  WhisperAsrInitMessage | AsrStopMessage | AsrDisposeMessage
+ * Output messages: AsrWorkerOutMessage (ready, status, result, drained, error, disposed)
  */
 
 import {
@@ -17,25 +17,18 @@ import {
   env,
   type AutomaticSpeechRecognitionPipeline,
 } from './_shared/transformers-all';
-import {InferenceSession, Tensor, env as ortEnv} from './_shared/onnxruntime-all';
 import {initTransformersEnv} from './_shared/transformers-env';
-import {FrameProcessor, Message} from '@ricky0123/vad-web';
-import {resolveVadThresholds} from './_shared/vad-thresholds';
-import {resolveMaxSpeechFrames} from './_shared/max-speech-frames';
-import {SileroInput, SILERO_INPUT_SAMPLES} from './_shared/silero-input';
-import {openTurnLink, type TurnLink} from './_shared/turn-gate';
-import type {FrameProcessorEvent} from '@ricky0123/vad-web/dist/frame-processor';
+import {VAD_SAMPLE_RATE} from './_shared/max-speech-frames';
+import {SegmentInbox, type DecodeTag} from './_shared/segment-inbox';
 
 import type {
   WhisperAsrInitMessage,
-  AsrAudioMessage,
+  AsrStopMessage,
   AsrDisposeMessage,
   AsrWorkerOutMessage,
-  SegmentEnd,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
 import { whisperLanguage } from './whisperLanguage';
-import { segmentStartSample } from './_shared/segmentStart';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -59,171 +52,30 @@ env.fetch = (input: any, init?: any) => {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type WorkerMessage = WhisperAsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' };
+type WorkerMessage = WhisperAsrInitMessage | AsrStopMessage | AsrDisposeMessage;
 
 function post(msg: AsrWorkerOutMessage) {
   self.postMessage(msg);
 }
 
-// ─── Silero VAD v5 — ORT Session ────────────────────────────────────────────
-// We keep the raw ORT InferenceSession for Silero VAD v5 inference,
-// but delegate all state machine logic to vad-web's FrameProcessor.
+// The longest segment this engine is handed, pre-speech pad included, is the detector's limit for
+// Whisper (29 s, declared in modelManifest.ts): WhisperFeatureExtractor reads the first 480000
+// samples (30 s) and drops the rest, and a window with no zero padding left can cut the
+// no-timestamp decode short. The detector cuts there, so this worker never sees a longer segment.
 
-const VAD_SAMPLE_RATE = 16000;
-const VAD_FRAME_SAMPLES = 512; // 32ms @ 16kHz
-const VAD_FRAME_MS = (VAD_FRAME_SAMPLES / VAD_SAMPLE_RATE) * 1000; // 32ms
-
-interface VadSession {
-  session: InferenceSession;
-  /** Combined LSTM state: [2, 1, 128] */
-  state: Tensor;
-  /** The last 64 samples Silero reads each frame behind */
-  input: SileroInput;
-}
-
-let vadSession: VadSession | null = null;
-let frameProcessor: FrameProcessor | null = null;
-let turnLink: TurnLink | null = null;
-
-// Max speech duration cap (not built into FrameProcessor)
-let maxSpeechFrames = 625; // ~20s at 32ms/frame
-let speechFramesSinceStart = 0;
-
-// The longest segment this engine is handed, pre-speech pad included.
-// WhisperFeatureExtractor reads the first 480000 samples (30 s) and drops the
-// rest with nothing but a console warning, and a window that is completely
-// full — no zero padding left — can also cut the no-timestamp decode short:
-// whisper-small returned 69 characters for a 30.000 s segment it transcribed
-// as 135 at 29.984 s. That was on clips from several speakers concatenated;
-// 11 windows of single-speaker speech lost only the truncated tail. One
-// second under the window rather than one frame, because only whisper-small
-// could be decoded locally. `chunk_length_s` is not the way out: without
-// timestamps its merge is a longest-common-sequence over raw tokens, which
-// dropped or duplicated speech in every language tried and took 1.5-4x as
-// long.
-// Pinned equal to WHISPER_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
-const WHISPER_MAX_SEGMENT_SAMPLES = 29 * VAD_SAMPLE_RATE;
-
-// For startSample tracking in result messages
-let totalSamplesFed = 0;
-
-// ─── VAD Diagnostic Logging ─────────────────────────────────────────────────
+// ─── Diagnostic Logging ─────────────────────────────────────────────────────
 const VAD_DEBUG = false;
 
 function vadLog(...args: unknown[]) {
   if (VAD_DEBUG) console.debug('[whisper-vad]', ...args);
 }
 
-/**
- * Run VAD on a single 512-sample frame.
- * Returns { isSpeech, notSpeech } as expected by vad-web's FrameProcessor.
- */
-async function vadInfer(frame: Float32Array): Promise<{isSpeech: number; notSpeech: number}> {
-  if (!vadSession) return {isSpeech: 0, notSpeech: 1};
-
-  const input = new Tensor('float32', vadSession.input.next(frame), [1, SILERO_INPUT_SAMPLES]);
-  const sr = new Tensor('int64', BigInt64Array.from([BigInt(VAD_SAMPLE_RATE)]), []);
-
-  const result = await vadSession.session.run({
-    input,
-    sr,
-    state: vadSession.state,
-  });
-
-  vadSession.state = result.stateN as Tensor;
-  const prob = (result.output as Tensor).data[0] as number;
-  return {isSpeech: prob, notSpeech: 1 - prob};
-}
-
-/**
- * Reset LSTM states (called by FrameProcessor on reset/endSegment).
- */
-function vadResetStates() {
-  if (!vadSession) return;
-  vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
-  vadSession.input.reset();
-}
-
-async function initVad(config?: WhisperAsrInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
-  const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
-    executionProviders: ['wasm'],
-  });
-
-  vadSession = {
-    session,
-    state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
-    input: new SileroInput(),
-  };
-
-  // Map config values (seconds) to FrameProcessor options (ms).
-  // Defaults match @ricky0123/vad-web for proven reliability.
-  const { positive: positiveSpeechThreshold, negative: negativeSpeechThreshold } = resolveVadThresholds(config);
-  const redemptionMs = (config?.minSilenceDuration ?? 1.4) * 1000;
-  const minSpeechMs = (config?.minSpeechDuration ?? 0.4) * 1000;
-  const preSpeechPadMs = (config?.preSpeechPadDuration ?? 0.8) * 1000;
-
-  maxSpeechFrames = resolveMaxSpeechFrames(config?.maxSpeechDuration, preSpeechPadMs, {
-    maxSegmentSamples: WHISPER_MAX_SEGMENT_SAMPLES,
-  });
-
-  frameProcessor = new FrameProcessor(
-    vadInfer,
-    vadResetStates,
-    {
-      positiveSpeechThreshold,
-      negativeSpeechThreshold,
-      redemptionMs,
-      minSpeechMs,
-      preSpeechPadMs,
-      submitUserSpeechOnPause: false,
-    },
-    VAD_FRAME_MS,
-  );
-  frameProcessor.resume();
-
-  // Reset tracking state
-  totalSamplesFed = 0;
-  speechFramesSinceStart = 0;
-
-  vadLog('INIT posThreshold=', positiveSpeechThreshold,
-    'negThreshold=', negativeSpeechThreshold,
-    'redemptionMs=', redemptionMs, 'minSpeechMs=', minSpeechMs,
-    'preSpeechPadMs=', preSpeechPadMs, 'maxSpeechFrames=', maxSpeechFrames);
-}
-
-// ─── Audio Buffer & Resampling ──────────────────────────────────────────────
-
-/** Circular buffer for accumulating 16kHz audio for VAD frame extraction */
-let audioBuffer = new Float32Array(0);
-
-/**
- * Convert Int16@inputRate to Float32@16kHz via linear interpolation.
- */
-function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Float32Array {
-  const ratio = inputRate / VAD_SAMPLE_RATE;
-  const outLen = Math.floor(samples.length / ratio);
-  const out = new Float32Array(outLen);
-
-  for (let i = 0; i < outLen; i++) {
-    const srcIdx = i * ratio;
-    const lo = Math.floor(srcIdx);
-    const hi = Math.min(lo + 1, samples.length - 1);
-    const frac = srcIdx - lo;
-    // Convert Int16 to Float32 [-1, 1] during interpolation
-    const vLo = samples[lo] / 32768;
-    const vHi = samples[hi] / 32768;
-    out[i] = vLo + (vHi - vLo) * frac;
-  }
-
-  return out;
-}
-
 // ─── Whisper ASR ─────────────────────────────────────────────────────────────
 
 let transcriber: AutomaticSpeechRecognitionPipeline | null = null;
 let currentLanguage: string | undefined;
-let processingVad = false;
-let pendingWhisperDecode: Promise<void> | null = null;
+/** The detector's segments, decoded one at a time in arrival order; exists once the model is ready. */
+let inbox: SegmentInbox | null = null;
 
 /**
  * Patch config.json and generation_config.json blobs for non-standard Whisper
@@ -287,35 +139,10 @@ async function hasWebGPU(): Promise<boolean> {
 // ─── Speech Segment Processing ──────────────────────────────────────────────
 
 /**
- * Queue one speech segment for decoding, serialized behind whatever decode is already running.
- *
- * Callers on the VAD path fire-and-forget this (`void scheduleWhisper(...)`): a decode takes
- * 0.5–2.5 s, and awaiting it inside `feedAudio` would keep `processingVad` true for that long,
- * so every audio message arriving meanwhile would hit the guard and be dropped — on gapless
- * audio that loses the start of the next utterance, and at the 20 s cap it loses words at
- * every boundary (#470). Same pattern as the voxtral-3b and qwen3-asr workers
- * (`currentDecodePromise`). Chaining on the previous promise keeps decodes strictly ordered
- * and never overlapping on the pipeline. The returned promise never rejects:
- * `runWhisperSegment` reports its own errors.
- *
- * Overlapping VAD frames with an in-flight decode is safe only because the VAD runs on its own
- * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
- * put a second session on the model's instance while a decode can be in flight (#469).
+ * Run Whisper on one speech segment the detector cut and post its result. Called by the inbox, one segment at a
+ * time, so decodes never overlap on the pipeline. Reports its own errors.
  */
-function scheduleWhisper(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
-  const previousWhisperDecode = pendingWhisperDecode;
-  const promise = (async () => {
-    if (previousWhisperDecode) {
-      try { await previousWhisperDecode; } catch { /* already reported */ }
-    }
-    await runWhisperSegment(audio, startSample, end);
-  })();
-  pendingWhisperDecode = promise;
-  return promise;
-}
-
-/** Run Whisper on one completed speech segment and post its result. Reports its own errors. */
-async function runWhisperSegment(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
+async function runWhisperSegment(audio: Float32Array, startSample: number, tag: DecodeTag): Promise<void> {
   if (!transcriber) return;
 
   const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
@@ -353,7 +180,7 @@ async function runWhisperSegment(audio: Float32Array, startSample: number, end: 
         startSample,
         durationMs,
         recognitionTimeMs,
-        ...end,
+        ...tag,
       });
     }
   } catch (err: any) {
@@ -361,115 +188,16 @@ async function runWhisperSegment(audio: Float32Array, startSample: number, end: 
   }
 }
 
-// ─── Audio Feed Pipeline ────────────────────────────────────────────────────
-
-/**
- * Process incoming audio chunk: resample → FrameProcessor (VAD) → Whisper
- */
-async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void> {
-  if (!vadSession || !frameProcessor || !transcriber || processingVad) return;
-  processingVad = true;
-
-  try {
-    // Resample to Float32@16kHz
-    const resampled = resampleInt16ToFloat32_16k(samples, sampleRate);
-
-    // Append to audio buffer
-    const newBuf = new Float32Array(audioBuffer.length + resampled.length);
-    newBuf.set(audioBuffer);
-    newBuf.set(resampled, audioBuffer.length);
-    audioBuffer = newBuf;
-
-    // Process complete VAD frames
-    while (audioBuffer.length >= VAD_FRAME_SAMPLES) {
-      const frame = audioBuffer.slice(0, VAD_FRAME_SAMPLES);
-      audioBuffer = audioBuffer.slice(VAD_FRAME_SAMPLES);
-      totalSamplesFed += VAD_FRAME_SAMPLES;
-
-      // Collect events from FrameProcessor (callbacks are synchronous)
-      const events: FrameProcessorEvent[] = [];
-      await frameProcessor.process(frame, (ev) => events.push(ev));
-
-      // Handle events
-      let speechProbability = 0;
-      for (const ev of events) {
-        switch (ev.msg) {
-          case Message.FrameProcessed:
-            speechProbability = ev.probs.isSpeech;
-            break;
-
-          case Message.SpeechStart:
-            speechFramesSinceStart = 0;
-            post({ type: 'speech_start' });
-            vadLog('SPEECH_START');
-            break;
-
-          case Message.SpeechEnd:
-            speechFramesSinceStart = 0;
-            vadLog('SPEECH_END dur=',
-              Math.round((ev.audio.length / VAD_SAMPLE_RATE) * 1000), 'ms');
-            // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
-            // and the guard at the top of this function would drop the audio arriving
-            // meanwhile (#470). `scheduleWhisper` serializes decodes via `pendingWhisperDecode`.
-            void scheduleWhisper(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'silence' });
-            break;
-
-          case Message.VADMisfire: {
-            speechFramesSinceStart = 0;
-            // Kept when it follows a Smart end inside the wait Normal would have spanned.
-            const rescued = turnLink?.rescue();
-            if (rescued) void scheduleWhisper(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
-            vadLog(rescued ? 'VAD_MISFIRE (kept after a Smart end)' : 'VAD_MISFIRE (too short, discarded)');
-            break;
-          }
-        }
-      }
-
-      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
-      if (smartTurnProbability !== null) {
-        const endEvents: FrameProcessorEvent[] = [];
-        frameProcessor.endSegment((ev) => endEvents.push(ev));
-        for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void scheduleWhisper(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'smart', smartTurnProbability });
-        }
-      }
-
-      // Max speech duration cap (not built into FrameProcessor)
-      if (frameProcessor.speaking) {
-        speechFramesSinceStart++;
-        if (speechFramesSinceStart >= maxSpeechFrames) {
-          vadLog('MAX_DURATION flush frames=', speechFramesSinceStart);
-          // See the SpeechEnd case above: fire-and-forget so no audio is dropped at the cap.
-          const endEvents: FrameProcessorEvent[] = [];
-          frameProcessor.endSegment((ev) => endEvents.push(ev));
-          for (const ev of endEvents) {
-            if (ev.msg === Message.SpeechEnd) {
-              void scheduleWhisper(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'cap' });
-            }
-          }
-          turnLink?.reset();
-          speechFramesSinceStart = 0;
-        }
-      } else {
-        speechFramesSinceStart = 0;
-      }
-    }
-  } finally {
-    processingVad = false;
-  }
-}
-
 // ─── Message Handlers ───────────────────────────────────────────────────────
+
+/** A decode threw outside its own reporting (the inbox calls this; the segment was already acknowledged). */
+function reportDecodeError(err: unknown): void {
+  post({type: 'error', error: `Whisper inference failed: ${(err as Error)?.message || err}`});
+}
 
 async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
-
-    // ortEnv wasmPaths must be set before the VAD/whisper InferenceSession; the
-    // transformers env is configured later (after patchWhisperConfigs).
-    if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
-      ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-    }
 
     // 1. Check WebGPU
     const webgpuAvailable = await hasWebGPU();
@@ -477,12 +205,7 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
 
     post({type: 'status', message: `Loading Whisper model (${device})...`});
 
-    // 2. Init Silero VAD + FrameProcessor
-    post({type: 'status', message: 'Loading VAD model...'});
-    await initVad(msg.vadConfig, msg.vadModelUrl);
-    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
-
-    // 3. Fix incompatible configs before Transformers.js loads them.
+    // 2. Fix incompatible configs before Transformers.js loads them.
     // Some ONNX conversions (e.g., lite-whisper-*-ONNX) have custom model_type
     // and architectures that Transformers.js doesn't recognize, plus incomplete
     // generation_config missing multilingual fields. Since the ONNX graph already
@@ -490,10 +213,10 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
     // Whisper to Transformers.js.
     await patchWhisperConfigs(msg.fileUrls, msg.language);
 
-    // 4. Configure Transformers.js for IndexedDB blob URL cache
+    // 3. Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
 
-    // 5. Create ASR pipeline
+    // 4. Create ASR pipeline
     post({type: 'status', message: `Loading Whisper model on ${device}...`});
 
     const dtype = msg.dtype ?? {
@@ -528,8 +251,9 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
       }
     }
 
-    // Reset audio buffer
-    audioBuffer = new Float32Array(0);
+    // 6. Listen to the detector only now the model is ready: nothing it sends is lost, and
+    // nothing is decoded before there is a pipeline to decode on.
+    inbox = new SegmentInbox(msg.segmentPort, runWhisperSegment, post, reportDecodeError);
 
     const loadTimeMs = Math.round(performance.now() - startTime);
     post({type: 'ready', loadTimeMs});
@@ -538,83 +262,24 @@ async function handleInit(msg: WhisperAsrInitMessage): Promise<void> {
   }
 }
 
-/**
- * Force-finalize any pending VAD speech segment (PTT / Push-to-Translate release).
- * The trailing silence tail fed on release (~700ms) is shorter than the VAD
- * redemption window (vadMinSilenceDuration, default 1.4s), so silence alone can't
- * close the segment. Without this the current utterance stays buffered in the
- * FrameProcessor until the next press feeds enough leading silence to complete
- * the redemption window, surfacing the transcription one utterance late.
- *
- * The decode is fired without awaiting and the chain is drained afterwards: `scheduleWhisper`
- * assigns `pendingWhisperDecode` before returning, so the await at the bottom picks up the
- * decode just kicked off (behind anything already queued) and the flush resolves once the
- * utterance's text has been posted. Draining happens even when nothing was speaking, so a
- * flush issued mid-decode still waits for that decode.
- */
-async function handleFlush(): Promise<void> {
-  if (frameProcessor?.speaking) {
-    vadLog('FLUSH finalizing pending speech');
-    const endEvents: FrameProcessorEvent[] = [];
-    frameProcessor.endSegment((ev) => endEvents.push(ev));
-    for (const ev of endEvents) {
-      if (ev.msg === Message.SpeechEnd) {
-        void scheduleWhisper(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'flush' });
-      } else if (ev.msg === Message.VADMisfire) {
-        const rescued = turnLink?.rescue();
-        if (rescued) void scheduleWhisper(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
-      }
-    }
-    turnLink?.reset();
-    speechFramesSinceStart = 0;
-  }
-  if (pendingWhisperDecode) {
-    try { await pendingWhisperDecode; } catch { /* already reported */ }
-  }
-}
-
 async function handleDispose(): Promise<void> {
   // Only reachable when the host waits for `disposed`. In the app, WorkerSession.dispose()
-  // posts `dispose` and terminates this worker on the next line, so the drain below runs in the
-  // worker harness only; Stop is meant to be immediate, and PTT release finishes an utterance
-  // through flush, not dispose.
+  // posts `dispose` and terminates this worker on the next line, so the wait below runs in the
+  // worker harness only; Stop is meant to be immediate.
 
-  // Flush remaining speech; handleFlush waits for that decode to finish.
-  vadLog('DISPOSE flushing remaining speech');
-  await handleFlush();
+  // Stop listening and wait for the decode in flight; what still waits is dropped. Nothing can
+  // then run against the pipeline released below.
+  await inbox?.close();
+  inbox = null;
 
-  // Stop accepting new segments before touching the pipeline: with `transcriber` null,
-  // feedAudio returns early and a queued runWhisperSegment exits at its first line.
   const activeTranscriber = transcriber;
   transcriber = null;
-
-  // A decode may have been queued between the flush's await and the line above; wait for it
-  // so nothing runs against a disposed pipeline. Not redundant with the drain in handleFlush.
-  if (pendingWhisperDecode) {
-    try { await pendingWhisperDecode; } catch { /* already reported */ }
-    pendingWhisperDecode = null;
-  }
-
-  // Dispose FrameProcessor
-  frameProcessor = null;
-  turnLink?.close();
-  turnLink = null;
-  speechFramesSinceStart = 0;
-
-  // Dispose VAD ORT session
-  if (vadSession?.session) {
-    await vadSession.session.release();
-    vadSession = null;
-  }
 
   // Dispose Whisper
   if (activeTranscriber) {
     await (activeTranscriber as any).dispose?.();
     currentLanguage = undefined;
   }
-
-  audioBuffer = new Float32Array(0);
-  processingVad = false;
 
   post({type: 'disposed'});
 }
@@ -625,21 +290,17 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const msg = event.data;
   switch (msg.type) {
     case 'init':
-      await handleInit(msg as WhisperAsrInitMessage);
+      await handleInit(msg);
       break;
-    case 'audio':
-      await feedAudio((msg as AsrAudioMessage).samples, (msg as AsrAudioMessage).sampleRate);
-      break;
-    case 'flush':
-      await handleFlush();
+    case 'stop':
+      inbox?.stop(msg.epoch);
       break;
     case 'dispose':
       await handleDispose();
       break;
     default:
-      // This bug was a silently-dropped 'flush' message. Surface any future
-      // unhandled message type instead of ignoring it, so the same failure
-      // mode (a message the router forgot to handle) is loud, not silent.
+      // Surface any unhandled message type instead of ignoring it, so a message the router
+      // forgot to handle is loud, not silent.
       console.warn('[whisper-worker] Unhandled message type:', (msg as { type?: string }).type);
   }
 };
