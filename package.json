@@ -106,7 +106,8 @@
       "artifactName": "${name}_${version}_${arch}.${ext}",
       "recommends": [
         "pulseaudio-utils",
-        "xwayland"
+        "xwayland",
+        "libvulkan1"
       ],
       "executableArgs": [
         "--ozone-platform=x11"

@@ -120,6 +120,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # The native libraries ship inside the app (resources/native/, copied by both packagers as an extra resource and
+      # signed with the app). The archive is the one package.json's nativeVersion pins, checked against the sha256 in
+      # scripts/native-archives.json; the platform's SKU is detected from the runner.
+      - name: Fetch the native libraries
+        run: npm run fetch:native
+
       # Feature gates decide which providers get compiled into the artifact, and
       # an unset one expands to the empty string, which reads as "off" — silently.
       # v0.36.3 shipped with the whole Kizuna family missing that way. Printing
@@ -233,6 +239,16 @@ jobs:
         if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_AUDIO_HOST_CONFIGURATION_SLUG == ''
         shell: bash
         run: echo "::warning::SIGNPATH_AUDIO_HOST_CONFIGURATION_SLUG is not set, so sokuji-audio-host.exe ships unsigned and Smart App Control will block it."
+
+      - name: Native files' signatures (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Valid once SignPath signs them (SIGNPATH_NATIVE_CONFIGURATION_SLUG); NotSigned is accepted until then.
+          Get-ChildItem resources/native -Include *.dll, *.node -Recurse | ForEach-Object {
+            $s = Get-AuthenticodeSignature $_.FullName
+            "| $($_.Name) | $($s.Status) |" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          }
 
       - name: Build Electron app with Forge
         if: runner.os == 'Windows'
@@ -494,6 +510,20 @@ jobs:
           echo "OK: signed with Developer ID, team 48ST7Q3ACJ."
           codesign --verify --deep --strict "$APP"
           echo "OK: bundle passes strict nested validation."
+
+          # The native libraries and the Node addon, packaged under Resources/resources/native: each is signed by the
+          # same team, or the engine fails to load on a notarized build (library validation).
+          NATIVE="$APP/Contents/Resources/resources/native"
+          [ -f "$NATIVE/sokuji_native_node.node" ] || { echo "FAIL: $NATIVE has no sokuji_native_node.node." >&2; exit 1; }
+          COUNT=0
+          while IFS= read -r -d '' F; do
+            codesign --verify --strict "$F" || { echo "FAIL: $F is not validly signed." >&2; exit 1; }
+            SIG=$(codesign -dvv "$F" 2>&1)
+            grep -Fxq 'TeamIdentifier=48ST7Q3ACJ' <<<"$SIG" || { echo "FAIL: $F is not signed by team 48ST7Q3ACJ." >&2; exit 1; }
+            COUNT=$((COUNT + 1))
+          done < <(find "$NATIVE" -type f \( -name '*.node' -o -name '*.dylib' -o -name '*.so' \) -print0)
+          [ "$COUNT" -ge 3 ] || { echo "FAIL: only $COUNT native files under $NATIVE." >&2; exit 1; }
+          echo "OK: $COUNT native files signed by team 48ST7Q3ACJ."
 
           # Gatekeeper's verdict, from the ticket stapled to the app, so the first
           # open needs no network and no xattr. spctl reports "security disabled"
