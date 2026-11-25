@@ -183,7 +183,12 @@ jobs:
         run: |
           $stage = 'native/build/vulkan/app-stage'
           New-Item -ItemType Directory -Force native/build/to-sign | Out-Null
-          Copy-Item "$stage/*.dll", "$stage/*.node" native/build/to-sign/
+          # The names in native.xml, one by one: any other .dll/.node in the stage (or a missing one) stops the build.
+          $listed = ([xml](Get-Content .signpath/artifact-configurations/native.xml)).SelectNodes('//*[local-name()="pe-file"]') | ForEach-Object { $_.path } | Sort-Object
+          $staged = Get-ChildItem $stage -File | Where-Object { $_.Extension -in '.dll', '.node' } | ForEach-Object Name | Sort-Object
+          $diff = Compare-Object $listed $staged
+          if ($diff) { $diff | Out-String; throw 'the stage and .signpath/artifact-configurations/native.xml list different native files' }
+          foreach ($n in $listed) { Copy-Item "$stage/$n" native/build/to-sign/ }
           Get-ChildItem native/build/to-sign
       - name: Upload the native files for signing (Windows)
         id: upload-native-zip

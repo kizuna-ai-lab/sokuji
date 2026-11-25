@@ -2,11 +2,48 @@
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
   <zip-file>
     <!-- The native libraries and the Node addon, built from source in native-build.yml (win-x64),
-         flat at the zip's root, signed before the app archive is made. -->
-    <pe-file path="*.dll">
+         flat at the zip's root, signed before the app archive is made. Named one by one: a file
+         that is not listed here is not signed, and the workflow fails when the stage and this list differ. -->
+    <pe-file path="ggml-base.dll">
       <authenticode-sign />
     </pe-file>
-    <pe-file path="*.node">
+    <pe-file path="ggml-cpu-alderlake.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-cpu-cannonlake.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-cpu-cascadelake.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-cpu-haswell.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-cpu-icelake.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-cpu-sandybridge.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-cpu-skylakex.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-cpu-sse42.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-cpu-x64.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml-vulkan.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="ggml.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="sokuji_native.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="sokuji_native_node.node">
       <authenticode-sign />
     </pe-file>
   </zip-file>
