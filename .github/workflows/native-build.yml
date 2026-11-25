@@ -12,6 +12,8 @@ name: native-build
 
 permissions:
   contents: read
+  # The SignPath step reads the artifact the build job uploads.
+  actions: read
 
 on:
   workflow_dispatch:
@@ -170,6 +172,71 @@ jobs:
         env:
           SOKUJI_SKU: ${{ matrix.sku }}
         run: native\ci\build.ps1 -Lane ${{ matrix.lane }} -Plat ${{ matrix.plat }}
+      # Windows native files: signed through SignPath on a native-v* tag, then the archive is made
+      # again from the signed stage (build.ps1 left native/build/vulkan/app-stage in place). The
+      # artifact configuration is .signpath/artifact-configurations/native.xml; until the variable
+      # SIGNPATH_NATIVE_CONFIGURATION_SLUG is set, a release ships these files unsigned, with a warning.
+      - name: Collect the native files for signing (Windows)
+        id: upload-native-files
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/native-v') && github.repository == 'kizuna-ai-lab/sokuji' && vars.SIGNPATH_NATIVE_CONFIGURATION_SLUG != ''
+        shell: pwsh
+        run: |
+          $stage = 'native/build/vulkan/app-stage'
+          New-Item -ItemType Directory -Force native/build/to-sign | Out-Null
+          Copy-Item "$stage/*.dll", "$stage/*.node" native/build/to-sign/
+          Get-ChildItem native/build/to-sign
+      - name: Upload the native files for signing (Windows)
+        id: upload-native-zip
+        if: steps.upload-native-files.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-native-unsigned
+          path: native/build/to-sign/*
+      - name: Sign the native files (Windows)
+        if: steps.upload-native-zip.outcome == 'success'
+        # Pinned: this step hands it the SignPath API token.
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_NATIVE_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-native-zip.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: native-signed/
+          wait-for-completion-timeout-in-seconds: 3600
+      - name: Remake the archive from the signed files (Windows)
+        if: steps.upload-native-zip.outcome == 'success'
+        shell: pwsh
+        run: |
+          $stage = 'native/build/vulkan/app-stage'
+          Copy-Item native-signed/* $stage -Force
+          $v = (Select-String -Path native/CMakeLists.txt -Pattern '^project\(sokuji_native VERSION ([0-9.]+)').Matches[0].Groups[1].Value
+          python native/ci/make_app_archive.py $stage ${{ matrix.sku }} $v native/build/archive
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Every native file in the archive is signed (Windows)
+        if: steps.upload-native-zip.outcome == 'success'
+        shell: pwsh
+        run: |
+          $dir = 'native/build/check'
+          Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory $dir | Out-Null
+          python - (Get-ChildItem native/build/archive/*.tar.zst).FullName $dir <<'PY'
+          import sys, tarfile, zstandard
+          with open(sys.argv[1], 'rb') as f, zstandard.ZstdDecompressor().stream_reader(f) as r:
+              with tarfile.open(fileobj=r, mode='r|') as t:
+                  t.extractall(sys.argv[2], filter='data')
+          PY
+          $bad = Get-ChildItem $dir -Recurse -Include *.dll, *.node | ForEach-Object {
+            $s = Get-AuthenticodeSignature $_.FullName
+            if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch '(^|, )CN=SignPath Foundation(,|$)') { "$($_.Name): $($s.Status)" }
+          }
+          if ($bad) { $bad; throw 'unsigned or wrongly signed native files in the archive' }
+      - name: Warn that the native files ship unsigned (Windows)
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/native-v') && vars.SIGNPATH_NATIVE_CONFIGURATION_SLUG == ''
+        shell: bash
+        run: echo "::warning::SIGNPATH_NATIVE_CONFIGURATION_SLUG is not set, so the Windows native files ship unsigned."
       - name: Wheel and archive sizes
         shell: bash
         run: |

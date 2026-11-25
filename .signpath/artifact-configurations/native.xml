@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <!-- The native libraries and the Node addon, built from source in native-build.yml (win-x64),
+         flat at the zip's root, signed before the app archive is made. -->
+    <pe-file path="*.dll">
+      <authenticode-sign />
+    </pe-file>
+    <pe-file path="*.node">
+      <authenticode-sign />
+    </pe-file>
+  </zip-file>
+</artifact-configuration>
