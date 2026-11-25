@@ -125,7 +125,8 @@
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.8.9",
     "fzstd": "^0.1.1",
-    "tar-stream": "^3.2.0"
+    "tar-stream": "^3.2.0",
+    "ws": "^8.19.0"
   },
   "overrides": {
     "onnxruntime-node": "npm:empty-npm-package@1.0.0",
@@ -194,7 +195,6 @@
     "vite-plugin-electron-renderer": "^1.0.0",
     "vitest": "^4.1.11",
     "web-vitals": "^2.1.4",
-    "ws": "^8.19.0",
     "zustand": "^5.0.8"
   },
   "scripts": {

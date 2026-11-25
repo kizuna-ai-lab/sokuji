@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import { BackendLoadError, registerBackend } from '../backends';
 import { splitArtifact } from '../catalog';
+import { LOAD_MS, guarded, translateMs } from '../deadline';
 import { cachedFilePath } from '../models/hfCache';
 import * as native from '../native';
 import type { PlanConfig } from '../planner';
@@ -72,7 +73,7 @@ export class NativeTranslateBackend {
       this.config = config ?? DEFAULT_CONFIG;
       // An unknown or missing family takes the qwen shape: plain system + user messages.
       this.strategy = STRATEGIES[this.config.promptFamily || 'qwen'] ?? STRATEGIES.qwen;
-      this.t = await native.module().translateLoad(path, dev.index);
+      this.t = await guarded(native.module().translateLoad(path, dev.index), LOAD_MS, 'translate_load');
     } catch (e) {
       await this.unload();
       throw e instanceof BackendLoadError ? e : new BackendLoadError(message(e));
@@ -117,17 +118,17 @@ export class NativeTranslateBackend {
       try {
         if (built.mode === 'chat') {
           try {
-            await t.chat(built.payload, { maxTokens: this.strategy.maxTokens, ...(built.prefill !== null ? { assistantPrefill: built.prefill } : {}) }, run);
+            await guarded(t.chat(built.payload, { maxTokens: this.strategy.maxTokens, ...(built.prefill !== null ? { assistantPrefill: built.prefill } : {}) }, run), translateMs(this.strategy.maxTokens), 'translate');
           } catch (e) {
             if (controller.signal.aborted || !message(e).includes('chat template not supported')) throw e;
             // The library checks the template before the first token, so nothing was streamed yet.
             decoder = new TextDecoder('utf-8');
             acc = '';
             n = 0;
-            await t.complete(chatmlFallback(built.payload, built.prefill), { maxTokens: this.strategy.maxTokens }, run);
+            await guarded(t.complete(chatmlFallback(built.payload, built.prefill), { maxTokens: this.strategy.maxTokens }, run), translateMs(this.strategy.maxTokens), 'translate');
           }
         } else {
-          await t.complete(built.payload, { maxTokens: this.strategy.maxTokens }, run);
+          await guarded(t.complete(built.payload, { maxTokens: this.strategy.maxTokens }, run), translateMs(this.strategy.maxTokens), 'translate');
         }
       } catch (e) {
         if (controller.signal.aborted) return [cleanOutput(acc), n];

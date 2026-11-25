@@ -5,6 +5,7 @@
  */
 import { AsrResult, BackendLoadError, registerBackend } from '../backends';
 import { splitArtifact } from '../catalog';
+import { FEED_MS, LOAD_MS, asrRunMs, guarded } from '../deadline';
 import { cachedFilePath } from '../models/hfCache';
 import * as native from '../native';
 
@@ -40,7 +41,7 @@ export class NativeAsrBackend {
       if (path === null) throw new BackendLoadError(`${modelRef} is not in the model cache`);
       const kind = DEVICE_KIND[device];
       if (kind === undefined) throw new BackendLoadError(`unknown device for native_asr: '${device}'`);
-      this.model = await native.module().asrLoad(path, native.deviceFor(kind).index);
+      this.model = await guarded(native.module().asrLoad(path, native.deviceFor(kind).index), LOAD_MS, 'asr_load');
     } catch (e) {
       // A missing addon or file, no such device, a NativeError: the resolver falls back to the next plan.
       await this.unload();
@@ -68,7 +69,7 @@ export class NativeAsrBackend {
     if (samples.length === 0) return new AsrResult('', language);
     let text: string;
     try {
-      text = await this.model.run(samples, this.matchLanguage(language));
+      text = await guarded(this.model.run(samples, this.matchLanguage(language)), asrRunMs(samples.length / 16000), 'asr_run');
     } catch (e) {
       throw new BackendLoadError(message(e));
     }
@@ -111,7 +112,7 @@ export class NativeStream implements AsrStreamLike {
   async feed(samples: Float32Array): Promise<void> {
     if (samples.length === 0 || this.done) return;
     try {
-      this.committed = (await this.raw.feed(samples)).committed || '';
+      this.committed = (await guarded(this.raw.feed(samples), FEED_MS, 'asr_feed')).committed || '';
     } catch (e) {
       this.error = e;
       this.aborted = true;

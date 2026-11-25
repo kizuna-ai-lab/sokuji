@@ -15,6 +15,7 @@
 import { seams } from '../accel/seams';
 import { BackendLoadError, registerBackend } from '../backends';
 import { VOICE_REQUIRED_FAMILIES, splitArtifact } from '../catalog';
+import { LOAD_MS, guarded, ttsMs } from '../deadline';
 import { snapshotPath } from '../models/hfCache';
 import * as native from '../native';
 import type { PlanConfig } from '../planner';
@@ -81,7 +82,7 @@ export class NativeTtsBackend {
         await stageForNative(repo, rev, rel, `${snap}/${rel}`);
       }
       const dev = native.deviceFor(device);
-      const model = await native.module().ttsLoad(path, dev.index, { family, language: config?.ttsLanguage || null });
+      const model = await guarded(native.module().ttsLoad(path, dev.index, { family, language: config?.ttsLanguage || null }), LOAD_MS, 'tts_load');
       if (epoch !== this.epoch) {                         // unloaded while the library was loading it
         await model.unload().catch(() => {});
         return;
@@ -147,10 +148,10 @@ export class NativeTtsBackend {
     let channels = 1;
     try {
       const t0 = performance.now();
-      await model.synth(text, this.language, speed, {
+      await guarded(model.synth(text, this.language, speed, {
         signal: controller.signal,
         onAudio: (pcm, sr, ch) => { parts.push(pcm); rate = sr; channels = ch; },
-      });
+      }), ttsMs(text.length), 'tts_synth');
       const samples = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
       let at = 0;
       for (const p of parts) {
@@ -173,12 +174,12 @@ export class NativeTtsBackend {
     this.ensureVoiceReady();
     const { controller, finish } = this.begin(signal);
     try {
-      await model.synth(text, this.language, speed, {
+      await guarded(model.synth(text, this.language, speed, {
         signal: controller.signal,
         onAudio: (pcm, sr, ch) => {
           if (!controller.signal.aborted) onChunk(pcm, Math.trunc(sr), ch);
         },
-      });
+      }), ttsMs(text.length), 'tts_synth');
     } catch (e) {
       if (!controller.signal.aborted) throw e;
     } finally {
