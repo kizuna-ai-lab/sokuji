@@ -140,7 +140,7 @@ describe('(a) Local Native transcribes, the fake translator translates, the fake
   it('what the engine hears is a source, translated by the fake and read by its voice; typed text too', async () => {
     const h = leg(LINE_UP);
     h.fakes.asr.ready();
-    h.fakes.vad.ready();
+    h.fakes.turns.ready();
     const session = await h.starting;
     await flush();
     expect(h.fakes.asr.inits).toEqual([expect.objectContaining({ modelId: 'asr-en', language: 'en' })]);
@@ -271,7 +271,7 @@ describe('(a) through the runner', () => {
       const starting = runner.start().finally(() => { done = true; });
       while (!done) {
         fakes.asr.ready();
-        fakes.vad.ready();
+        fakes.turns.ready();
         await flush();
       }
       await starting;

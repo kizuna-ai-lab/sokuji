@@ -5,9 +5,26 @@ import type { NativeModelInfo } from '../../lib/local-inference/native/nativePro
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
 import type { NativeDevice } from '../../lib/local-inference/native/nativeCatalog';
 import type { NativeHost, NativeModels } from '../../lib/local-inference/native/nativeModels';
+import type { VadWebConfig } from '../../lib/local-inference/types';
+import type { SegmentLimit } from '../../lib/local-inference/workers/_shared/max-speech-frames';
+import { TURN_DETECTION_DEFAULTS, vadConfigOf } from '../../lib/turn/turnDetectionSettings';
 import type { TtsUnavailableCode } from '../../lib/local-inference/sessions/speech';
 import type { ProviderRefusal, SharedSettings } from '../../lib/run/types';
 import type { LocalNativeSettings } from './settings';
+
+/**
+ * The longest speech one segment runs. Not the client's to raise on this path: the sidecar never receives the cap and
+ * keeps backstops of its own, 30 s of ring + segment on offline cards and 20 s of in-speech audio on streaming ones
+ * (asr_engine.py). Whichever fires first owns the cut, and when the sidecar wins, whatever arrives before the client's
+ * own mark is transcribed as a segment of its own (whisper-tiny turned a 0.7 s remainder into a 300-450 character
+ * invented paragraph).
+ *
+ * So this sits strictly BELOW both backstops. At 20 the client and the streaming backstop both cut at 320000
+ * in-speech samples, and their sample counters differ by a rounding step per 4096-sample chunk (24 kHz resampled to
+ * 2730 samples on one side, 2731 on the other): the sidecar won 3 of 21 simulated forced cuts. 19 puts the client
+ * about a second ahead, which covered an end mark up to 6 chunks late in replay.
+ */
+export const NATIVE_LIMIT: SegmentLimit = { maxSpeechSeconds: 19 };
 
 /** One sidecar stage: the model, its pinned quant, and the device the settings ask for. */
 export interface NativeStageConfig {
@@ -26,7 +43,10 @@ export interface NativeStageConfig {
  */
 export interface LocalNativeConfig {
   asr: NativeStageConfig;
-  vad: { threshold: number; minSilenceDuration: number; minSpeechDuration: number };
+  /** The app's turn detection (`settings.turnDetection.*`), as the detector reads it. */
+  vad: VadWebConfig;
+  /** The longest speech one segment runs: {@link NATIVE_LIMIT}. */
+  limit: SegmentLimit;
   /** Null: no translation model resolved, so the leg is transcription only. */
   translation: (NativeStageConfig & { instructions: string; wrapTranscript: boolean }) | null;
   /** Set only where the leg speaks. `capability`: the catalog's voice capability for the model; null while the catalog does not list it (the adapter then reads the init reply's `clones`, as the old client did). */
@@ -116,7 +136,8 @@ export function buildLocalNative(
   const asr = stage(resolved.asr, s.asrDevice);
   const config: LocalNativeConfig = {
     asr,
-    vad: { threshold: s.vadThreshold, minSilenceDuration: s.vadMinSilenceDuration, minSpeechDuration: s.vadMinSpeechDuration },
+    vad: vadConfigOf(shared.turnDetection ?? TURN_DETECTION_DEFAULTS, true),
+    limit: NATIVE_LIMIT,
     translation,
     asrFirst: asrLoadsFirst(asr.modelId, translation?.modelId, facts.catalog(), facts.sizes()),
     host: facts,

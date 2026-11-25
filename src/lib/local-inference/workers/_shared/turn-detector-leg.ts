@@ -51,6 +51,8 @@ export class DetectorLeg {
         if (this.failed) return;
         this.assembler?.trace(event);
         this.relay?.trace(event);
+        // The relay has flushed what the drain held: this one goes out behind it, so the consumer knows it has it all.
+        if (event.kind === 'drained' && this.relay) o.post({ type: 'drained' }, []);
       },
       notify: (notice) => this.notice(notice),
     });

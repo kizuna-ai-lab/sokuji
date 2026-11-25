@@ -56,7 +56,9 @@ describe('buildLocalNative', () => {
     expect(c.asr).toEqual({ modelId: 'asr-a', device: 'gpu' });
     expect(c.translation).toMatchObject({ modelId: 'mt-a', device: 'cpu' });
     expect(c.tts).toEqual({ modelId: 'tts-a', device: 'auto', speed: 1.2, voice: 'builtin:Bella', capability: { builtin: 'named', custom: 'clip' } });
-    expect(c.vad).toEqual({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 });
+    // The app's turn detection (`settings.turnDetection.*`), as the detector reads it, and the sidecar's cap below its backstops.
+    expect(c.vad).toEqual({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 });
+    expect(c.limit).toEqual({ maxSpeechSeconds: 19 });
   });
 
   it('resolves through the native models the run hands it, and hands its session their host', () => {

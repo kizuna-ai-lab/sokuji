@@ -268,11 +268,13 @@ export function TurnDetectionControls({ scope, disabled = false }: { scope: Turn
         tooltip={t('settings.vadMinSpeechDurationTooltip', 'Minimum speech duration to consider as valid speech. Filters out very short sounds like clicks or coughs.')}
         field="minSpeech" value={td.minSpeech} shown={`${td.minSpeech.toFixed(2)}s`} disabled={disabled}
       />
-      <Slider
-        label={t('settings.vadPreSpeechPadDuration', 'Pre-Speech Padding')}
-        tooltip={t('settings.vadPreSpeechPadDurationTooltip', 'Audio kept from just before speech is detected, so the first sound of a sentence is not cut off. Longer values also pass more of the noise before you speak to recognition.')}
-        field="prePad" value={td.prePad} shown={`${td.prePad.toFixed(2)}s`} disabled={disabled}
-      />
+      {scope.prePadApplies !== false && (
+        <Slider
+          label={t('settings.vadPreSpeechPadDuration', 'Pre-Speech Padding')}
+          tooltip={t('settings.vadPreSpeechPadDurationTooltip', 'Audio kept from just before speech is detected, so the first sound of a sentence is not cut off. Longer values also pass more of the noise before you speak to recognition.')}
+          field="prePad" value={td.prePad} shown={`${td.prePad.toFixed(2)}s`} disabled={disabled}
+        />
+      )}
       {/* Whole seconds: this dial is tens of seconds wide, and "30.00s" reads as false precision. 40, not 60: past it the
           slider would only promise what no engine delivers (workers/_shared/max-speech-frames.ts). */}
       <Slider

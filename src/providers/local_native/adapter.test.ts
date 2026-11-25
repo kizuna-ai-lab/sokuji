@@ -17,6 +17,7 @@ function config(over: Partial<LocalNativeConfig> = {}): LocalNativeConfig {
   return {
     asr: { modelId: 'asr-a', device: 'auto' },
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 },
+    limit: { maxSpeechSeconds: 19 },
     translation: { modelId: 'mt-a', device: 'auto', instructions: 'Translate ja to en.', wrapTranscript: true },
     asrFirst: true,
     host: createFakeNativeHost(),
@@ -43,7 +44,7 @@ async function open(c = config(), context = silent, host?: NativeHost) {
   t.asr.ready();
   t.translation.ready();
   t.tts.ready();
-  t.vad.ready();
+  t.turns.ready();
   const session: AdapterSession = await t.starting;
   await settle();
   return { ...t, session };
@@ -77,13 +78,13 @@ describe('opening', () => {
     conformant(t.log, silent);
   });
 
-  it("loads in the builder's order, ASR and translation first, then TTS, then the VAD (#578 ruling 15)", async () => {
+  it("loads in the builder's order, ASR and translation first, then TTS, then the turn detector (#578 ruling 15)", async () => {
     const a = await open(config({ tts: TTS }), speaking);
-    expect(a.calls).toEqual(['asr', 'translation', 'tts', 'vad']);
+    expect(a.calls).toEqual(['asr', 'translation', 'tts', 'turns']);
     const b = await open(config({ tts: TTS, asrFirst: false }), speaking);
-    expect(b.calls).toEqual(['translation', 'asr', 'tts', 'vad']);
+    expect(b.calls).toEqual(['translation', 'asr', 'tts', 'turns']);
     expect(b.translation.inits[0]).toEqual({ sourceLang: 'ja', targetLang: 'en', modelId: 'mt-a', device: 'auto', variant: undefined, asrModel: 'asr-a', ttsModel: 'tts-a' });
-    expect(a.vad.inits[0]).toEqual({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 });
+    expect(a.turns.inits[0]).toEqual({ turns: 'auto', vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 }, limit: { maxSpeechSeconds: 19 } });
     conformant(a.log, speaking);
     conformant(b.log, speaking);
   });
@@ -103,7 +104,7 @@ describe('opening', () => {
     const t = begin();
     t.asr.failInit('no such model');
     await expect(t.starting).rejects.toThrow('ASR engine init failed: no such model');
-    expect([t.asr.disposes, t.translation.disposes, t.vad.disposes]).toEqual([1, 1, 1]);
+    expect([t.asr.disposes, t.translation.disposes, t.turns.disposes]).toEqual([1, 1, 1]);
     conformant(t.log, silent);
   });
 
@@ -116,34 +117,34 @@ describe('opening', () => {
     conformant(t.log, silent);
   });
 
-  it('a VAD that never loads fails the start after its timeout', async () => {
+  it('a turn detector that never loads fails the start after its timeout', async () => {
     const t = begin();
     t.asr.ready();
     t.translation.ready();
     await settle();
     t.clock.advance(VAD_INIT_TIMEOUT_MS);
-    await expect(t.starting).rejects.toThrow('VAD worker init timeout');
+    await expect(t.starting).rejects.toThrow('Turn detector init timeout');
     conformant(t.log, silent);
   });
 
-  it('a VAD that fails to load rejects the start and ends every seam', async () => {
+  it('a turn detector that fails to load rejects the start and ends every seam', async () => {
     const t = begin();
     t.asr.ready();
     t.translation.ready();
-    t.vad.failInit('model missing');
+    t.turns.failInit('model missing');
     await expect(t.starting).rejects.toThrow('model missing');
-    expect([t.asr.disposes, t.translation.disposes, t.vad.disposes]).toEqual([1, 1, 1]);
+    expect([t.asr.disposes, t.translation.disposes, t.turns.disposes]).toEqual([1, 1, 1]);
     conformant(t.log, silent);
   });
 
-  it('a VAD that cannot even be created rejects the start before any other seam is made (nothing throws outside the promise)', async () => {
+  it('a turn detector that cannot even be created rejects the start before any other seam is made (nothing throws outside the promise)', async () => {
     const fakes = createFakeNativeEngines();
     const made: string[] = [];
     const engines: LocalNativeEngines = {
       asr: () => { made.push('asr'); return fakes.asr; },
       translation: () => { made.push('translation'); return fakes.translation; },
       tts: () => { made.push('tts'); return fakes.tts; },
-      vad: () => { throw new Error('no worker'); },
+      turns: () => { throw new Error('no worker'); },
     };
     const recorder = recordConformance();
     const starting = createLocalNativeAdapter(engines).start(
@@ -160,7 +161,7 @@ describe('opening', () => {
     t.asr.ready();
     t.translation.ready();
     t.tts.failInit('out of memory');
-    t.vad.ready();
+    t.turns.ready();
     await t.starting;
     await settle();
     expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'tts_degraded' })]);
@@ -199,7 +200,7 @@ describe('opening', () => {
 
   it('a transcription-only session says so once', async () => {
     const t = await open(config({ translation: null }));
-    expect(t.calls).toEqual(['asr', 'vad']);
+    expect(t.calls).toEqual(['asr', 'turns']);
     expect(ofKind(t.log, 'degraded')).toEqual([expect.objectContaining({ code: 'translation_unavailable' })]);
     conformant(t.log, silent);
   });
@@ -264,29 +265,142 @@ describe('speech in, text out', () => {
     conformant(t.log, silent);
   });
 
-  it('VAD edges become sidecar marks, and audio goes to both', async () => {
+  it('the leg\'s audio goes to the turn detector alone, and what comes back goes to the sidecar in order, marks between the samples', async () => {
     const t = await open();
-    t.session.appendAudio(new Int16Array([1, 2]));
-    t.vad.start();
-    t.vad.end();
-    t.vad.cancel();
-    expect(t.asr.fed).toEqual([new Int16Array([1, 2])]);
-    expect(t.vad.fed).toEqual([new Int16Array([1, 2])]);
+    const input = new Int16Array([1, 2]);
+    t.session.appendAudio(input);
+    // The detector takes a copy: the runner reuses its array.
+    expect(t.turns.fed).toEqual([new Int16Array([1, 2])]);
+    expect(t.asr.fed).toEqual([]);
+    t.turns.audio(new Int16Array([1]));
+    t.turns.mark('start');
+    t.turns.audio(new Int16Array([2]));
+    t.turns.mark('end');
+    t.turns.mark('cancel');
+    expect(t.asr.fed).toEqual([new Int16Array([1]), new Int16Array([2])]);
     expect(t.asr.marks).toEqual(['start', 'end', 'cancel']);
+    expect(t.asr.order).toEqual(['audio', 'start', 'audio', 'end', 'cancel']);
     conformant(t.log, silent);
   });
 
-  it("a turn's end feeds a 700 ms silent tail to both, then flushes the VAD and the sidecar; a failed flush is only a frame", async () => {
+  it('a start mark is a Logs line; audio and marks after stop reach nothing', async () => {
     const t = await open();
+    t.turns.mark('start');
+    expect(ofKind(t.log, 'frame').map((f) => f.type)).toContain('local.native.speech_start');
+    void t.session.stop();
+    t.turns.audio(new Int16Array([3]));
+    t.turns.mark('end');
+    expect(t.asr.fed).toEqual([]);
+    expect(t.asr.marks).toEqual(['start']);
+  });
+
+  it('a manual turn: the key down begins a press, the release drains the detector and flushes the sidecar only on its answer; a failed flush is only a frame', async () => {
+    const t = await open(config(), { ...silent, turns: 'manual' });
     t.asr.flushResult = Promise.reject(new Error('flush timed out'));
+    t.session.beginTurn();
     t.session.endTurn();
+    expect(t.turns.begins).toEqual([1]);
+    expect(t.turns.drains).toEqual([1]);
+    // No 700 ms silent tail, and no flush yet: the detector has not delivered the end of the press.
+    expect(t.asr.fed).toEqual([]);
+    expect(t.asr.flushes).toBe(0);
+    t.turns.mark('end');
+    t.turns.drained();
     await settle();
-    expect(t.asr.fed.map((f) => f.length)).toEqual(Array(7).fill(2400));
-    expect(t.vad.fed.length).toBe(7);
-    expect([t.vad.flushes, t.asr.flushes]).toEqual([1, 1]);
+    expect(t.asr.flushes).toBe(1);
     expect(ofKind(t.log, 'frame').map((f) => f.type)).toContain('local.native.asr.flush.error');
     expect(ofKind(t.log, 'failed')).toEqual([]);
     conformant(t.log, silent);
+  });
+
+  it('a drained answer with no release owing it flushes nothing, and two releases are two flushes', async () => {
+    const t = await open(config(), { ...silent, turns: 'manual' });
+    t.turns.drained();
+    expect(t.asr.flushes).toBe(0);
+    t.session.beginTurn(); t.session.endTurn();
+    t.session.beginTurn(); t.session.endTurn();
+    expect(t.turns.drains).toEqual([1, 2]);
+    t.turns.drained();
+    t.turns.drained();
+    t.turns.drained();
+    expect(t.asr.flushes).toBe(2);
+  });
+
+  it('a Smart Turn connection that answers after the wait is released', async () => {
+    const fakes = createFakeNativeEngines();
+    const released: string[] = [];
+    let answer: ((c: unknown) => void) | null = null;
+    const engines: LocalNativeEngines = { ...fakes.engines, turn: () => new Promise((resolve) => { answer = resolve; }) as never };
+    const smart = config({ vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
+    const clock = createVirtualClock();
+    const starting = createLocalNativeAdapter(engines).start({ context: silent, config: smart, credentials: {}, clock, signal: new AbortController().signal }, recordConformance().events);
+    fakes.asr.ready(); fakes.translation.ready();
+    await settle();
+    clock.advance(VAD_INIT_TIMEOUT_MS);
+    await settle();
+    fakes.turns.ready();
+    await starting;
+    expect(fakes.turns.inits[0].turnPort).toBeUndefined();
+    answer!({ port: new MessageChannel().port1, release: () => { released.push('late'); } });
+    await settle();
+    expect(released).toEqual(['late']);
+  });
+
+  it('a release with no press begun flushes the sidecar at once, with no drain', async () => {
+    const t = await open(config(), { ...silent, turns: 'manual' });
+    t.session.endTurn();
+    expect(t.turns.drains).toEqual([]);
+    expect(t.asr.flushes).toBe(1);
+  });
+
+  it('a Smart Turn connection that never answers starts the leg on Normal after the detector\'s wait', async () => {
+    const fakes = createFakeNativeEngines();
+    const engines: LocalNativeEngines = { ...fakes.engines, turn: () => new Promise(() => {}) };
+    const smart = config({ vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
+    const clock = createVirtualClock();
+    const starting = createLocalNativeAdapter(engines).start({ context: silent, config: smart, credentials: {}, clock, signal: new AbortController().signal }, recordConformance().events);
+    fakes.asr.ready(); fakes.translation.ready();
+    await settle();
+    clock.advance(VAD_INIT_TIMEOUT_MS);
+    await settle();
+    fakes.turns.ready();
+    await starting;
+    expect(fakes.turns.inits[0].turnPort).toBeUndefined();
+  });
+
+  it('a cancelled press is a cancel for the detector, which ends in a cancel mark; the sidecar is not flushed', async () => {
+    const t = await open(config(), { ...silent, turns: 'manual' });
+    t.session.beginTurn();
+    t.session.cancelTurn();
+    expect(t.turns.cancels).toEqual([1]);
+    expect(t.asr.flushes).toBe(0);
+    expect(t.turns.drains).toEqual([]);
+  });
+
+  it('Smart Turn: a port is opened for an automatic leg that asked for it, and released at stop; manual turns open none', async () => {
+    const fakes = createFakeNativeEngines();
+    const released: string[] = [];
+    const port = new MessageChannel().port1;
+    const engines: LocalNativeEngines = { ...fakes.engines, turn: async () => ({ port, release: () => { released.push('released'); } }) as never };
+    const smart = config({ vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
+    const recorder = recordConformance();
+    const clock = createVirtualClock();
+    const starting = createLocalNativeAdapter(engines).start({ context: silent, config: smart, credentials: {}, clock, signal: new AbortController().signal }, recorder.events);
+    fakes.asr.ready(); fakes.translation.ready();
+    await settle();
+    fakes.turns.ready();
+    const session = await starting;
+    expect(fakes.turns.inits[0].turnPort).toBe(port);
+    void session.stop();
+    expect(released).toEqual(['released']);
+    port.close();
+
+    const manual = createFakeNativeEngines();
+    const open2 = createLocalNativeAdapter({ ...manual.engines, turn: async () => ({ port, release: () => {} }) as never }).start(
+      { context: { ...silent, turns: 'manual' }, config: smart, credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal }, recordConformance().events);
+    manual.asr.ready(); manual.translation.ready(); manual.turns.ready();
+    await open2;
+    expect(manual.turns.inits[0].turnPort).toBeUndefined();
   });
 });
 
@@ -304,7 +418,7 @@ describe('speech out', () => {
 
   it('a streaming sentence arrives chunk by chunk, and its range is filled in afterwards (#578 ruling 9)', async () => {
     const t = begin(config({ tts: TTS }), speaking);
-    t.asr.ready(); t.translation.ready(); t.tts.ready({ streaming: true }); t.vad.ready();
+    t.asr.ready(); t.translation.ready(); t.tts.ready({ streaming: true }); t.turns.ready();
     await t.starting;
     t.asr.final('こんにちは');
     t.translation.answer('Hello.');
@@ -365,7 +479,7 @@ describe('failing and ending', () => {
     t.asr.ready();
     t.translation.ready();
     t.tts.ready();
-    t.vad.ready();
+    t.turns.ready();
     await settle();
     t.tts.close('native host disconnected');
     listed([]);
@@ -405,19 +519,19 @@ describe('failing and ending', () => {
     conformant(t.log, speaking);
   });
 
-  it('a VAD that fails after it is ready fails the session', async () => {
+  it('a turn detector that fails after it is ready fails the session', async () => {
     const t = await open();
-    t.vad.fail('segmenter died');
-    expect(ofKind(t.log, 'failed')).toEqual([{ message: 'Voice activity detection stopped: segmenter died' }]);
+    t.turns.fail('segmenter died');
+    expect(ofKind(t.log, 'failed')).toEqual([{ message: 'Turn detection stopped: segmenter died' }]);
     conformant(t.log, silent);
   });
 
-  it('a VAD that fails again after the session failed says nothing more', async () => {
+  it('a turn detector that fails again after the session failed says nothing more', async () => {
     const t = await open();
-    t.vad.fail('segmenter died');
-    t.vad.fail('segmenter died again');
+    t.turns.fail('segmenter died');
+    t.turns.fail('segmenter died again');
     t.asr.close();
-    expect(ofKind(t.log, 'failed')).toEqual([{ message: 'Voice activity detection stopped: segmenter died' }]);
+    expect(ofKind(t.log, 'failed')).toEqual([{ message: 'Turn detection stopped: segmenter died' }]);
     conformant(t.log, silent);
   });
 
@@ -425,13 +539,13 @@ describe('failing and ending', () => {
     const t = await open(config({ tts: TTS }), speaking);
     t.mark('stop');
     void t.session.stop();
-    expect([t.asr.disposes, t.translation.disposes, t.tts.disposes, t.vad.disposes]).toEqual([1, 1, 1, 1]);
+    expect([t.asr.disposes, t.translation.disposes, t.tts.disposes, t.turns.disposes]).toEqual([1, 1, 1, 1]);
     conformant(t.log, speaking);
   });
 
   it('stop during a streaming sentence emits nothing after', async () => {
     const t = begin(config({ tts: TTS }), speaking);
-    t.asr.ready(); t.translation.ready(); t.tts.ready({ streaming: true }); t.vad.ready();
+    t.asr.ready(); t.translation.ready(); t.tts.ready({ streaming: true }); t.turns.ready();
     const session = await t.starting;
     t.asr.final('こんにちは');
     t.translation.answer('Hello.');

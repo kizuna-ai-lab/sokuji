@@ -3,11 +3,10 @@
  * pending until the test settles it; `calls` records the order the adapter
  * initialised them in.
  */
-import type { LocalNativeConfig } from './config';
 import type { Clock } from '../../lib/contract/clock';
 import type { NativeHost, NativeInitReport, NativePlan, NativeStage } from '../../lib/local-inference/native/nativeModels';
 import type {
-  LocalNativeEngines, NativeAsrLike, NativeTranslationLike, NativeTtsLike, NativeTtsReady, NativeVadLike,
+  LocalNativeEngines, NativeAsrLike, NativeTranslationLike, NativeTtsLike, NativeTtsReady, NativeTurnsLike,
 } from './engines';
 
 interface Deferred<T> { promise: Promise<T>; resolve(value: T): void; reject(error: unknown): void }
@@ -28,6 +27,8 @@ export class FakeNativeAsr implements NativeAsrLike {
   inits: Array<Parameters<NativeAsrLike['init']>[0]> = [];
   fed: Int16Array[] = [];
   marks: string[] = [];
+  /** What reached the sidecar, in order: `audio`, then each mark's event. */
+  order: string[] = [];
   flushes = 0;
   disposes = 0;
   flushResult: Promise<void> = Promise.resolve();
@@ -36,8 +37,8 @@ export class FakeNativeAsr implements NativeAsrLike {
   init(o: Parameters<NativeAsrLike['init']>[0]) { this.calls.push('asr'); this.inits.push(o); return this.loading.promise; }
   ready(report: NativeInitReport = REPORT) { this.loading.resolve(report); }
   failInit(message: string) { this.loading.reject(new Error(message)); }
-  feedAudio(pcm: Int16Array) { this.fed.push(new Int16Array(pcm)); }
-  sendVadMark(event: 'start' | 'end' | 'cancel') { this.marks.push(event); }
+  feedAudio(pcm: Int16Array) { this.fed.push(new Int16Array(pcm)); this.order.push('audio'); }
+  sendVadMark(event: 'start' | 'end' | 'cancel') { this.marks.push(event); this.order.push(event); }
   flush() { this.flushes++; return this.flushResult; }
   dispose() { this.disposes++; }
   partial(text: string) { this.onPartialResult?.(text); }
@@ -111,26 +112,31 @@ export class FakeNativeTts implements NativeTtsLike {
   close(message = 'native host disconnected') { this.onClosed?.(message); }
 }
 
-export class FakeNativeVad implements NativeVadLike {
-  onSpeechStart: NativeVadLike['onSpeechStart'] = null;
-  onSpeechEnd: NativeVadLike['onSpeechEnd'] = null;
-  onSpeechCancel: NativeVadLike['onSpeechCancel'] = null;
-  onError: NativeVadLike['onError'] = null;
-  inits: Array<LocalNativeConfig['vad']> = [];
+export class FakeNativeTurns implements NativeTurnsLike {
+  onAudio: NativeTurnsLike['onAudio'] = null;
+  onMark: NativeTurnsLike['onMark'] = null;
+  onDrained: NativeTurnsLike['onDrained'] = null;
+  onError: NativeTurnsLike['onError'] = null;
+  inits: Array<Parameters<NativeTurnsLike['init']>[0]> = [];
   fed: Int16Array[] = [];
-  flushes = 0;
+  begins: number[] = [];
+  drains: number[] = [];
+  cancels: number[] = [];
   disposes = 0;
   private loading = deferred<void>();
   constructor(private readonly order: string[]) {}
-  init(config: LocalNativeConfig['vad']) { this.order.push('vad'); this.inits.push(config); return this.loading.promise; }
+  init(o: Parameters<NativeTurnsLike['init']>[0]) { this.order.push('turns'); this.inits.push(o); return this.loading.promise; }
   ready() { this.loading.resolve(); }
   failInit(message: string) { this.loading.reject(new Error(message)); }
   feed(pcm: Int16Array) { this.fed.push(new Int16Array(pcm)); }
-  flush() { this.flushes++; }
+  begin(press: number) { this.begins.push(press); }
+  drain(press: number) { this.drains.push(press); }
+  cancel(press: number) { this.cancels.push(press); }
   dispose() { this.disposes++; }
-  start() { this.onSpeechStart?.(); }
-  end() { this.onSpeechEnd?.(); }
-  cancel() { this.onSpeechCancel?.(); }
+  /** The detector's output, in the order the test calls it. */
+  audio(pcm: Int16Array) { this.onAudio?.(pcm); }
+  mark(event: 'start' | 'end' | 'cancel') { this.onMark?.(event); }
+  drained() { this.onDrained?.(); }
   fail(message: string) { this.onError?.(message); }
 }
 
@@ -139,16 +145,16 @@ export function createFakeNativeEngines() {
   const asr = new FakeNativeAsr(calls);
   const translation = new FakeNativeTranslation(calls);
   const tts = new FakeNativeTts(calls);
-  const vad = new FakeNativeVad(calls);
+  const turns = new FakeNativeTurns(calls);
   // The clock each stage's factory was handed: a seam runs on the run's clock (#578 ruling 23).
   const clocks: Partial<Record<'asr' | 'translation' | 'tts', Clock>> = {};
   const engines: LocalNativeEngines = {
     asr: (clock) => { clocks.asr = clock; return asr; },
     translation: (clock) => { clocks.translation = clock; return translation; },
     tts: (clock) => { clocks.tts = clock; return tts; },
-    vad: () => vad,
+    turns: () => turns,
   };
-  return { engines, asr, translation, tts, vad, calls, clocks };
+  return { engines, asr, translation, tts, turns, calls, clocks };
 }
 
 export function createFakeNativeHost(over: Partial<NativeHost> = {}): NativeHost & { plans: Array<{ stage: NativeStage; plan: NativePlan }> } {

@@ -20,9 +20,6 @@ export interface LocalNativeSettings {
   asrDevice: NativeDevice;
   translationDevice: NativeDevice;
   ttsDevice: NativeDevice;
-  vadThreshold: number;
-  vadMinSilenceDuration: number;
-  vadMinSpeechDuration: number;
   /** true = Simple (default), false = Advanced. */
   useTemplateMode: boolean;
   /** Advanced-mode speaker prompt (default ''). */
@@ -38,9 +35,6 @@ export const LOCAL_NATIVE_DEFAULTS: LocalNativeSettings = {
   asrDevice: 'auto',
   translationDevice: 'auto',
   ttsDevice: 'auto',
-  vadThreshold: 0.3,
-  vadMinSilenceDuration: 1.4,
-  vadMinSpeechDuration: 0.4,
   useTemplateMode: true,
   systemPrompt: '',
   participantSystemPrompt: '',

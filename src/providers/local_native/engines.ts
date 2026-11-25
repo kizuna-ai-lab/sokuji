@@ -1,17 +1,21 @@
 import { SAMPLE_RATE } from '../../lib/contract/adapter';
-import { createNativeVadWorker } from '../../lib/local-inference/native/createNativeVadWorker';
 import { NativeAsrClient } from '../../lib/local-inference/native/NativeAsrClient';
 import { NativeTranslateClient } from '../../lib/local-inference/native/NativeTranslateClient';
 import { NativeTtsClient } from '../../lib/local-inference/native/NativeTtsClient';
 import { SidecarConnection, type ISidecarConnection } from '../../lib/local-inference/native/SidecarConnection';
 import type { Clock } from '../../lib/contract/clock';
+import { TurnDetector } from '../../lib/local-inference/engine/TurnDetector';
+import type { SegmentLimit } from '../../lib/local-inference/workers/_shared/max-speech-frames';
+import type { MarksOutput } from '../../lib/local-inference/workers/_shared/turn-detector-protocol';
+import { turnRuntime, type TurnConnection } from '../../lib/turn/TurnRuntime';
+import type { TurnDetectorLike } from '../localInference/engines';
 import type { NativeDevice } from '../../lib/local-inference/native/nativeCatalog';
 import type { NativeInitReport } from '../../lib/local-inference/native/nativeModels';
 import type { LocalNativeConfig } from './config';
 
 /**
  * The narrow shapes Local Native's adapter drives, over today's sidecar
- * clients (`src/lib/local-inference/native/`) and the renderer VAD worker.
+ * clients (`src/lib/local-inference/native/`) and the app's turn detector.
  * Each stage owns its socket, as the sidecar routes binary frames and frees
  * memory per connection. `onClosed`: the socket went away unasked — the
  * stage will answer nothing more (`dispose()` never fires it). Every socket
@@ -65,16 +69,27 @@ export interface NativeTtsLike {
   onClosed: ((message: string) => void) | null;
 }
 
-export interface NativeVadLike {
-  init(config: LocalNativeConfig['vad']): Promise<void>;
+/**
+ * The leg's turns: the shared turn detector in its audio-and-marks delivery. The leg's audio goes in; the same audio
+ * comes out, in order, with `start`, `end` and `cancel` marks between its samples, so a consumer that acts on a mark
+ * when it receives it cuts at the right position, whatever the detector's delay (spec C1).
+ */
+export interface NativeTurnsLike {
+  init(o: { turns: 'auto' | 'manual'; vad: LocalNativeConfig['vad']; limit: SegmentLimit; turnPort?: MessagePort }): Promise<void>;
+  /** The leg's audio, 24 kHz; the buffer is transferred, so the caller keeps no use of it. */
   feed(pcm: Int16Array): void;
-  /** Ends the open speech segment now (a turn's end). */
-  flush(): void;
+  /** A manual turn: the key went down (`press` numbers it), came up (drain), or the turn was dropped. */
+  begin(press: number): void;
+  drain(press: number): void;
+  cancel(press: number): void;
   dispose(): void;
-  onSpeechStart: (() => void) | null;
-  onSpeechEnd: (() => void) | null;
-  onSpeechCancel: (() => void) | null;
-  /** The ready worker failed: no more edges will come. */
+  /** The leg's audio, relayed in order. */
+  onAudio: ((pcm: Int16Array) => void) | null;
+  /** A turn edge, between the samples it separates. */
+  onMark: ((event: 'start' | 'end' | 'cancel') => void) | null;
+  /** Everything held at a drain has been delivered (audio and marks) before this. */
+  onDrained: (() => void) | null;
+  /** The detector failed or died: no more turns will come. */
   onError: ((message: string) => void) | null;
 }
 
@@ -82,7 +97,9 @@ export interface LocalNativeEngines {
   asr(clock: Clock): NativeAsrLike;
   translation(clock: Clock): NativeTranslationLike;
   tts(clock: Clock): NativeTtsLike;
-  vad(): NativeVadLike;
+  turns(): NativeTurnsLike;
+  /** A connection to the Smart Turn worker; null when it cannot run. */
+  turn?: () => Promise<TurnConnection | null>;
 }
 
 export function nativeAsr(clock: Clock, conn: ISidecarConnection = new SidecarConnection(clock)): NativeAsrLike {
@@ -144,50 +161,49 @@ export function nativeTts(clock: Clock, conn: ISidecarConnection = new SidecarCo
   return tts;
 }
 
-export function nativeVad(factory: () => Worker | null = createNativeVadWorker): NativeVadLike {
-  const worker = factory();
-  let ready = false;
-  const vad: NativeVadLike = {
-    onSpeechStart: null,
-    onSpeechEnd: null,
-    onSpeechCancel: null,
+export function nativeTurns(detector: TurnDetectorLike = new TurnDetector()): NativeTurnsLike {
+  let port: MessagePort | null = null;
+  const turns: NativeTurnsLike = {
+    onAudio: null,
+    onMark: null,
+    onDrained: null,
     onError: null,
-    init: (config) => new Promise<void>((resolve, reject) => {
-      if (!worker) { resolve(); return; }
-      const failed = (message: string) => {
-        if (ready) vad.onError?.(message);
-        else reject(new Error(message));
+    async init({ turns: mode, vad, limit, turnPort }) {
+      const { port1, port2 } = new MessageChannel();
+      port = port2;
+      port2.onmessage = (e: MessageEvent<MarksOutput>) => {
+        const msg = e.data;
+        if (msg.type === 'audio') turns.onAudio?.(msg.pcm);
+        else if (msg.type === 'mark') turns.onMark?.(msg.event);
+        else if (msg.type === 'drained') turns.onDrained?.();
       };
-      worker.onmessage = (e: MessageEvent) => {
-        const m = e.data as { type: string; message?: string };
-        if (m.type === 'ready') { ready = true; resolve(); }
-        else if (m.type === 'speech_start') vad.onSpeechStart?.();
-        else if (m.type === 'speech_end') vad.onSpeechEnd?.();
-        else if (m.type === 'speech_cancel') vad.onSpeechCancel?.();
-        else if (m.type === 'error') failed(m.message ?? 'VAD worker failed');
-      };
-      worker.onerror = (e: ErrorEvent) => failed(e.message || 'VAD worker failed');
-      worker.postMessage({
-        type: 'init',
-        ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
-        vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
-        // Three knobs and no max duration: the worker cuts at 19 s itself, under the sidecar's own backstop.
-        vadConfig: { threshold: config.threshold, minSilenceDuration: config.minSilenceDuration, minSpeechDuration: config.minSpeechDuration },
-      });
-    }),
-    feed: (pcm) => worker?.postMessage({ type: 'audio', pcm, sampleRate: SAMPLE_RATE }),
-    flush: () => worker?.postMessage({ type: 'flush' }),
+      detector.onFailed = ({ message }) => turns.onError?.(message);
+      detector.onFatal = (error) => turns.onError?.(error);
+      try {
+        await detector.init({ turns: mode, vad, limit, delivery: 'marks', output: port1, ...(turnPort ? { turnPort } : {}) });
+      } catch (error) {
+        port1.close();
+        port2.close();
+        port = null;
+        throw error;
+      }
+    },
+    feed: (pcm) => detector.feedAudio(pcm),
+    begin: (press) => detector.begin(press),
+    drain: (press) => detector.drain(press),
+    cancel: (press) => detector.cancel(press),
     dispose: () => {
-      worker?.postMessage({ type: 'dispose' });
-      worker?.terminate();
+      detector.dispose();
+      if (port) { port.onmessage = null; port.close(); port = null; }
     },
   };
-  return vad;
+  return turns;
 }
 
 export const nativeEngines: LocalNativeEngines = {
   asr: (clock) => nativeAsr(clock),
   translation: (clock) => nativeTranslation(clock),
   tts: (clock) => nativeTts(clock),
-  vad: () => nativeVad(),
+  turns: () => nativeTurns(),
+  turn: () => turnRuntime.connect(),
 };

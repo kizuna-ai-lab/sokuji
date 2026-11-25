@@ -3,7 +3,8 @@ import { createVirtualClock, type Clock } from '../../lib/contract/clock';
 import { INIT_REQUEST_TIMEOUT_MS, SidecarTimeoutError } from '../../lib/local-inference/native/SidecarConnection';
 import { FakeSidecarConnection } from '../../lib/local-inference/native/SidecarConnection.fake';
 import type { ServerMsg } from '../../lib/local-inference/native/nativeProtocol';
-import { nativeAsr, nativeTranslation, nativeTts, nativeVad } from './engines';
+import { nativeAsr, nativeTranslation, nativeTts, nativeTurns } from './engines';
+import type { TurnDetectorLike } from '../localInference/engines';
 
 const msg = (m: Record<string, unknown>) => m as unknown as ServerMsg;
 const clock = createVirtualClock(0);
@@ -74,59 +75,80 @@ describe('nativeTts', () => {
   });
 });
 
-describe('nativeVad', () => {
-  function fakeWorker() {
-    const w = { postMessage: vi.fn(), terminate: vi.fn(), onmessage: null as ((e: MessageEvent) => void) | null, onerror: null as ((e: ErrorEvent) => void) | null };
-    return w;
+describe('nativeTurns', () => {
+  class FakeDetector implements TurnDetectorLike {
+    inits: Array<Parameters<TurnDetectorLike['init']>[0]> = [];
+    fed: Int16Array[] = [];
+    calls: string[] = [];
+    disposes = 0;
+    failInit: Error | null = null;
+    onSpeechStart: TurnDetectorLike['onSpeechStart'] = null;
+    onFailed: TurnDetectorLike['onFailed'] = null;
+    onFatal: TurnDetectorLike['onFatal'] = null;
+    async init(o: Parameters<TurnDetectorLike['init']>[0]) { this.inits.push(o); if (this.failInit) throw this.failInit; }
+    feedAudio(pcm: Int16Array) { this.fed.push(pcm); }
+    begin(press: number) { this.calls.push(`begin:${press}`); }
+    drain(press?: number) { this.calls.push(`drain:${press}`); }
+    cancel(press: number) { this.calls.push(`cancel:${press}`); }
+    stop(epoch: number) { this.calls.push(`stop:${epoch}`); }
+    dispose() { this.disposes++; }
   }
-  const say = (w: ReturnType<typeof fakeWorker>, data: Record<string, unknown>) => w.onmessage?.({ data } as MessageEvent);
+  const VAD = { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 };
 
-  it('inits the worker with the three knobs and no max duration, and maps its edges', async () => {
-    const w = fakeWorker();
-    const vad = nativeVad(() => w as unknown as Worker);
-    vad.onSpeechStart = vi.fn();
-    vad.onSpeechEnd = vi.fn();
-    vad.onSpeechCancel = vi.fn();
-    const init = vad.init({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 });
-    const posted = w.postMessage.mock.calls[0][0];
-    expect(posted.type).toBe('init');
-    expect(posted.vadConfig).toEqual({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 });
-    say(w, { type: 'ready' });
-    await init;
-    say(w, { type: 'speech_start' });
-    say(w, { type: 'speech_end' });
-    say(w, { type: 'speech_cancel' });
-    expect(vad.onSpeechStart).toHaveBeenCalledTimes(1);
-    expect(vad.onSpeechEnd).toHaveBeenCalledTimes(1);
-    expect(vad.onSpeechCancel).toHaveBeenCalledTimes(1);
-    vad.feed(new Int16Array([1]));
-    vad.flush();
-    vad.dispose();
-    expect(w.postMessage.mock.calls.map((c) => c[0].type)).toEqual(['init', 'audio', 'flush', 'dispose']);
-    expect(w.terminate).toHaveBeenCalledTimes(1);
+  it('opens the detector for marks over a port pair, and relays its audio and marks to the callbacks in order', async () => {
+    const d = new FakeDetector();
+    const turns = nativeTurns(d);
+    const seen: string[] = [];
+    turns.onAudio = (pcm) => seen.push(`audio:${pcm.length}`);
+    turns.onMark = (event) => seen.push(event);
+    turns.onDrained = () => seen.push('drained');
+    await turns.init({ turns: 'manual', vad: VAD, limit: { maxSpeechSeconds: 19 } });
+    expect(d.inits).toHaveLength(1);
+    expect(d.inits[0]).toMatchObject({ turns: 'manual', vad: VAD, limit: { maxSpeechSeconds: 19 }, delivery: 'marks' });
+    expect(d.inits[0].turnPort).toBeUndefined();
+    // What the detector writes on its end of the port is what the callbacks hear, in the order it was written.
+    d.inits[0].output.postMessage({ type: 'audio', pcm: new Int16Array(3) });
+    d.inits[0].output.postMessage({ type: 'mark', event: 'start' });
+    d.inits[0].output.postMessage({ type: 'audio', pcm: new Int16Array(5) });
+    d.inits[0].output.postMessage({ type: 'mark', event: 'end' });
+    d.inits[0].output.postMessage({ type: 'drained' });
+    await vi.waitFor(() => expect(seen).toHaveLength(5));
+    expect(seen).toEqual(['audio:3', 'start', 'audio:5', 'end', 'drained']);
+    turns.dispose();
   });
 
-  it('an error before ready rejects the init; after ready it is an error', async () => {
-    const w1 = fakeWorker();
-    const first = nativeVad(() => w1 as unknown as Worker);
-    const init = first.init({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 });
-    say(w1, { type: 'error', message: 'model missing' });
-    await expect(init).rejects.toThrow('model missing');
-
-    const w2 = fakeWorker();
-    const second = nativeVad(() => w2 as unknown as Worker);
-    second.onError = vi.fn();
-    const ready = second.init({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 });
-    say(w2, { type: 'ready' });
-    await ready;
-    say(w2, { type: 'error', message: 'segmenter died' });
-    expect(second.onError).toHaveBeenCalledWith('segmenter died');
+  it('hands the Smart Turn port on, and forwards feed, begin, drain and cancel', async () => {
+    const d = new FakeDetector();
+    const turns = nativeTurns(d);
+    const turnPort = new MessageChannel().port1;
+    await turns.init({ turns: 'auto', vad: VAD, limit: {}, turnPort });
+    expect(d.inits[0].turnPort).toBe(turnPort);
+    turns.feed(new Int16Array([1]));
+    turns.begin(1); turns.drain(1); turns.cancel(1);
+    expect(d.fed).toEqual([new Int16Array([1])]);
+    expect(d.calls).toEqual(['begin:1', 'drain:1', 'cancel:1']);
+    turns.dispose();
+    expect(d.disposes).toBe(1);
+    turnPort.close();
   });
 
-  it('with no worker (tests, an unsupported page) it opens and does nothing', async () => {
-    const vad = nativeVad(() => null);
-    await expect(vad.init({ threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 })).resolves.toBeUndefined();
-    expect(() => { vad.feed(new Int16Array(1)); vad.flush(); vad.dispose(); }).not.toThrow();
+  it('a failed init rejects with the detector\'s own error and closes the port pair', async () => {
+    const d = new FakeDetector();
+    d.failInit = new Error('Silero did not load');
+    const turns = nativeTurns(d);
+    await expect(turns.init({ turns: 'auto', vad: VAD, limit: {} })).rejects.toThrow('Silero did not load');
+  });
+
+  it('the detector failing or dying is an error, once it is up', async () => {
+    const d = new FakeDetector();
+    const turns = nativeTurns(d);
+    turns.onError = vi.fn();
+    await turns.init({ turns: 'auto', vad: VAD, limit: {} });
+    d.onFailed?.({ code: 'turn_detection_overloaded', message: 'Turn detection cannot keep up on this device.' });
+    d.onFatal?.('RuntimeError: unreachable');
+    expect(turns.onError).toHaveBeenNthCalledWith(1, 'Turn detection cannot keep up on this device.');
+    expect(turns.onError).toHaveBeenNthCalledWith(2, 'RuntimeError: unreachable');
+    turns.dispose();
   });
 });
 
