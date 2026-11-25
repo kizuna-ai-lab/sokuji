@@ -242,6 +242,16 @@ describe('ProviderEngine', () => {
     expect(seen[0].onInitialSlotConsumed).toBe(onInitialSlotConsumed);
   });
 
+  it("ProviderEngine hands the Engine the app's preview port", () => {
+    useProviderStore.setState({
+      entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },
+    });
+    const seen: EngineProps<FakeSettings>[] = [];
+    const Engine = (props: EngineProps<FakeSettings>) => { seen.push(props); return null; };
+    render(<ProviderEngine providers={[{ ...fakeProvider, Engine }]} />);
+    expect(seen[0].preview).toBe(appVoicePreview);
+  });
+
   it('hands the Engine participantSpeaks: the store\'s switch, unless the provider never speaks the participant', () => {
     useProviderStore.setState({
       entries: { fake: { settings: FAKE_DEFAULTS, credentials: {}, pair: { source: 'auto', target: 'en' } } },

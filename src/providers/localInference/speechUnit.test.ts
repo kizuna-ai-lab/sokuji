@@ -123,7 +123,7 @@ describe("the local provider's speech unit", () => {
 
   it('says what the voice can do', () => {
     expect(localSpeechUnit.capabilities(SETTINGS)).toEqual({
-      speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'silence', textInput: false, faceToFace: true, participantSpeech: true,
+      speech: 'optional', turns: ['auto', 'manual'], boundaries: 'silence', textInput: false, faceToFace: true, participantSpeech: true,
       speaks: expect.any(Function),
     });
   });

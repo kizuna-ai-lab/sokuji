@@ -59,6 +59,14 @@ Neither records a trace or a screenshot, and both delete the page's storage and 
 user-data directory when they end (`forgetSecrets`), passed or failed. Credentials are read from the environment
 only; never put them in a file of the repository.
 
+`real-local-turns.spec.ts` is an opt-in before/after measurement of the local recognizers (Whisper base and Voxtral 4B on
+WebGPU, SenseVoice on WASM) on the eight Japanese sentences, run with the same models, settings and clips on two builds.
+Each run writes how many sentences were heard and translated, each segment's start and end, and the delay from the end of the
+clip to its text; `node scripts/dev/turn-fixtures/compare-runs.mjs <before> <after>` judges the two folders against the before
+side's own run-to-run spread. It runs on a profile you name (`E2E_LOCAL_PROFILE`, never deleted) that holds the downloaded
+models, needs a hardware WebGPU adapter for the WebGPU recognizers, and downloads models in its prepare step. It builds,
+opens windows and downloads, so it is run by hand, never in CI. The spec's header comment is the runbook.
+
 ## The E2E build
 
 `vite build --mode e2e` is the production bundle with a few compile-time
@@ -121,7 +129,10 @@ audio away from any Sokuji already running on the machine.
   `addTranscriptionKey(sokuji)` puts the key in from Settings, as a user does.
 - `e2e/fixtures/audio/` holds a few seconds of the same repository recording in each format a file may come in
   (`make.sh` makes them; the m4a and AC-3 ones were made on macOS). Never use synthesised speech for them.
-- `readHistory(userData)` reads `history/history.db` from disk. Call it after `close()`.
+- `readHistory(userData)` reads `history/history.db` from disk. Call it after `close()`. Segments carry `openedAt` and, where the
+  service gave them, `startMs`/`endMs`.
+- `launchApp({ userData })` on a directory whose name does not start with `sokuji-e2e-` is a profile of your own: the suite never
+  deletes it, so it can keep downloaded models between runs.
 
 ## The microphone
 

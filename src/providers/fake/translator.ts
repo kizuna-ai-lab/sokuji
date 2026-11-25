@@ -44,7 +44,6 @@ const translatorUnit: UnitDefinition<FakeTranslatorSettings, FakeTranslatorCrede
   capabilities: () => ({
     speech: 'never',
     turns: ['auto', 'manual'],
-    turnOwner: 'either',
     boundaries: 'provider',
     textInput: false,
     faceToFace: false,

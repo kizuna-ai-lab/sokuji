@@ -563,13 +563,28 @@ export interface NativeReadinessSelection {
   targetLanguage: string;
 }
 
-/** Everything readiness reads out of settings, resolved in one go. Handed to the
- * facade as a thunk rather than a value: a cold sidecar start is slow, and the
- * user can change the pair / text-only while it runs, so the verdict must be
- * computed from the selection as of AFTER warmup — not a call-site snapshot. */
+/** A stage's compute-device setting: Auto, or pinned to CPU or GPU. */
+export type NativeDevice = 'auto' | 'cpu' | 'gpu';
+
+/** The stages whose model a caller's start would load. */
+export interface NativeNeeds { asr: boolean; translation: boolean }
+
+/** Everything readiness reads, resolved in one go. Handed to the facade as a
+ * thunk rather than a value: a cold sidecar start is slow, and the user can
+ * change the pair / text-only while it runs, so the verdict must be computed
+ * from the selection as of AFTER warmup — not a call-site snapshot. The
+ * caller owns `selections` and `mode` (#578 ruling 6): the facade reads no
+ * settings store and no audio store of its own. */
 export interface NativeReadinessInput {
   selection: NativeReadinessSelection;
+  /** The caller's own model choices, keyed `src→tgt`. */
+  selections: Selections;
+  /** The audio mode a start would run: `participant` alone gates the reverse direction. */
+  mode: 'speaker' | 'participant' | 'both';
   textOnly: boolean;
+  /** The stages whose model the caller's start would load; absent, both. A stage not
+   * needed never blocks (#578 ruling 20). */
+  needs?: NativeNeeds;
 }
 
 export interface NativeReadinessResult {

@@ -19,6 +19,7 @@ import { edgeProvider } from './edge/provider';
 import { geminiProvider } from './gemini/provider';
 import { geminiTextProvider } from './gemini_text/provider';
 import { localInferenceProvider } from './localInference/provider';
+import { localNativeProvider } from './local_native/provider';
 import { openaiProvider } from './openai/provider';
 import { openaiCompatibleProvider } from './openai_compatible/provider';
 import { openaiTextProvider } from './openai_text/provider';
@@ -31,8 +32,8 @@ import { kizunaSonioxProvider } from './soniox/kizuna';
 import { sonioxProvider } from './soniox/provider';
 import { volcengineAst2Provider } from './volcengine_ast2/provider';
 
-/** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6; Stage 2 Gemini, ruling 6; Stage 2 Volcengine AST2, ruling 5; Stage 2 OpenAI Translate, ruling 11; Stage 2 OpenAI Realtime, ruling 18; Stage 2 Palabra, ruling 14; Stage 2 OpenAI Live, ruling 9; Qwen LiveTranslate, spec 2026-10-13 §8; text models, spec 2026-11-22 §2): the managed Kizuna Soniox, the flagged managed Kizuna Qwen, the free LocalInference, Bing (online, free, translation only) and Edge (online, free, speech only), then Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI with your own key, then the text models that translate another provider's transcription (OpenAI's, Gemini's, a compatible service), on the desktop. */
-export const RELEASED = [kizunaSonioxProvider, kizunaQwenProvider, localInferenceProvider, bingProvider, edgeProvider, geminiProvider, volcengineAst2Provider, openaiProvider, openaiTranslateProvider, openaiLiveProvider, sonioxProvider, qwenLiveTranslateProvider, palabraProvider, openaiTextProvider, geminiTextProvider, openaiCompatibleProvider] as const;
+/** Shipped providers, in UI order (Stage 2 Kizuna Soniox, ruling 6; Stage 2 Gemini, ruling 6; Stage 2 Volcengine AST2, ruling 5; Stage 2 OpenAI Translate, ruling 11; Stage 2 OpenAI Realtime, ruling 18; Stage 2 Palabra, ruling 14; Stage 2 OpenAI Live, ruling 9; Qwen LiveTranslate, spec 2026-10-13 §8; text models, spec 2026-11-22 §2): the managed Kizuna Soniox, the flagged managed Kizuna Qwen, the free LocalInference and, flagged, Local Native (#578 ruling 1), Bing (online, free, translation only) and Edge (online, free, speech only), then Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI with your own key, then the text models that translate another provider's transcription (OpenAI's, Gemini's, a compatible service), on the desktop. */
+export const RELEASED = [kizunaSonioxProvider, kizunaQwenProvider, localInferenceProvider, localNativeProvider, bingProvider, edgeProvider, geminiProvider, volcengineAst2Provider, openaiProvider, openaiTranslateProvider, openaiLiveProvider, sonioxProvider, qwenLiveTranslateProvider, palabraProvider, openaiTextProvider, geminiTextProvider, openaiCompatibleProvider] as const;
 /** Compiled into development builds only (D24): the fake, the leased fake that carries the session hooks (Stage 2 foundation, choice 1), the fake voice that only speaks, and the fakes that only transcribe and only translate. */
 export const DEV_ONLY = [fakeProvider, fakeLeasedProvider, fakeVoiceProvider, fakeTranscriberProvider, fakeTranslatorProvider] as const;
 

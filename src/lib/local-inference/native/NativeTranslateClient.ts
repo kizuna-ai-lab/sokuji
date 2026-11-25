@@ -43,8 +43,9 @@ export class NativeTranslateClient {
     return { loadTimeMs: r.loadTimeMs, backend: r.backend, device: r.device, computeType: r.computeType, tokensPerSec: r.tokensPerSec, memoryBytes: r.memoryBytes, fallbackReason: r.fallbackReason };
   }
 
-  async translate(text: string, systemPrompt = '', wrapTranscript = false): Promise<NativeTranslationResult> {
-    const msg = await this.conn.request({ type: 'translate', text, systemPrompt, wrapTranscript }) as Extract<ServerMsg, { type: 'translate_result' }>;
+  /** `timeoutMs`: how long the request waits for its answer; the connection's default when absent. */
+  async translate(text: string, systemPrompt = '', wrapTranscript = false, timeoutMs?: number): Promise<NativeTranslationResult> {
+    const msg = await this.conn.request({ type: 'translate', text, systemPrompt, wrapTranscript }, timeoutMs === undefined ? undefined : { timeoutMs }) as Extract<ServerMsg, { type: 'translate_result' }>;
     return { sourceText: msg.sourceText, translatedText: msg.translatedText, inferenceTimeMs: msg.inferenceTimeMs };
   }
 

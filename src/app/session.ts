@@ -48,6 +48,7 @@ import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { localModels } from '../stores/localModels';
+import { nativeModels } from '../stores/nativeModels';
 import useSettingsStore from '../stores/settingsStore';
 import { getApiUrl, getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
@@ -215,6 +216,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     punctuate: punctuation.punctuate,
     punctuationReady: () => punctuation.ready(),
     localModels,
+    nativeModels,
     newSessionId: options.newSessionId ?? (() => crypto.randomUUID()),
     onRunEnded: async (legs) => {
       // The results of the auto-save are panel notes (spec 2026-10-05 §5): drawn

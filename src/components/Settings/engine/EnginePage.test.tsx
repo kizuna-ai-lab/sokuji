@@ -131,6 +131,15 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     await waitFor(() => expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models-tts'));
   });
 
+  it("a host's onBrowse takes the slot; without one, Browse goes to Models and storage", async () => {
+    useSettingsStore.setState({ settingsNavigationTarget: null });
+    const onBrowse = vi.fn();
+    render(<EngineSurface adapter={adapter()} effectiveMode="speaker" onBrowse={onBrowse} />);
+    fireEvent.change(asrSelect(), { target: { value: '__browse__' } });
+    await waitFor(() => expect(onBrowse).toHaveBeenCalledWith({ dir: 'ja→en', stage: 'asr' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBeNull();
+  });
+
   it('has no library page of its own: no Back, no "Library · …" title', async () => {
     surface();
     fireEvent.change(asrSelect(), { target: { value: '__browse__' } });

@@ -37,6 +37,7 @@ import { localSpeechUnit } from './speechUnit';
 import { localTranscriptionUnit } from './transcriptionUnit';
 import { localTranslationUnit } from './translationUnit';
 import { fakeLocalModels } from '../../lib/local-inference/selection/localModels.testing';
+import { fakeNativeModels } from '../../lib/local-inference/native/nativeModels.testing';
 import { LOCAL_INFERENCE_DEFAULTS } from './settings';
 import { describeLocalInference } from './config';
 import { PROVIDERS, RELEASED } from '../registry';
@@ -133,7 +134,7 @@ describe('localInferenceProvider', () => {
       expect(whole.describe).toBe(describeLocalInference);
       expect(whole.startSpeech).toBeUndefined();
       expect(whole.capabilities(LOCAL_INFERENCE_DEFAULTS)).toEqual({
-        speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
+        speech: 'optional', turns: ['auto', 'manual'], boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
       });
       const context = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' } as any;
       mockBuild.mockReturnValue({ built: true });
@@ -217,16 +218,19 @@ describe('localInferenceProvider', () => {
       expect(shape(compose({ transcription: 'local_inference', translation: 'bing', speech: 'fake_voice' }, input))).toEqual([['local_inference', 'transcription', ['transcription']], ['bing', 'translation', ['translation']], ['fake_voice', 'voice', ['speech']]]);
     });
 
-    it('no line-up that ran changes, and the ones that newly run are this device transcribing for a text model: every triple of the catalog, with and without its recognition unit', () => {
+    it('no line-up that ran changes, and the ones that newly run are this device transcribing for a text model, Bing or Local Native: every triple of the catalog, with and without its recognition unit', () => {
       const released = choiceInput(RELEASED, {});
       const local = released.providers.find((p) => p.id === 'local_inference')!;
       const before = { ...local, units: unitsOf(local).filter((u) => u !== localTranscriptionUnit) } as AnyProvider;
       const without: ComposeInput = { ...released, providers: released.providers.map((p) => (p === local ? before : p)) };
       const shape = (plan: RunPlan | PlanRefusal) => (isRefusal(plan) ? plan : plan.units.map((u) => [u.provider.id, u.unit.id, u.stages]));
       const textModels = ['openai_text', 'gemini_text', 'openai_compatible'];
+      // What translates another unit's transcription: the text models, Bing, and Local Native's translation (#578).
+      const translators = [...textModels, 'bing', 'local_native'];
+      const catalog = allCaps();
       const reworded: string[] = [];
       const newlyRun: string[] = [];
-      for (const t of allCaps()) for (const tl of allCaps()) for (const sp of allCaps()) {
+      for (const t of catalog) for (const tl of catalog) for (const sp of catalog) {
         const lineUp = { transcription: t.id, translation: tl.id, speech: sp.id };
         const label = JSON.stringify(lineUp);
         const now = compose(lineUp, released);
@@ -237,10 +241,10 @@ describe('localInferenceProvider', () => {
           expect(shape(now), label).toEqual(shape(then));
           if (!isRefusal(now)) expect(now.units.some((u) => u.unit === localTranscriptionUnit), label).toBe(false);
         } else if (!isRefusal(now)) {
-          // What newly runs (text models, part B): this device transcribing alone for a text model, which was refused
-          // as this device having no unit for transcription alone.
+          // What newly runs (text models, part B; Local Native, #578): this device transcribing alone for another
+          // translator, which was refused as this device having no unit for transcription alone.
           expect(t.id, label).toBe('local_inference');
-          expect([...textModels, 'bing'], label).toContain(tl.id);
+          expect(translators, label).toContain(tl.id);
           expect(then, label).toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
           expect(now.byStage.transcription.unit, label).toBe(localTranscriptionUnit);
           newlyRun.push(`${tl.id}/${sp.id}`);
@@ -258,15 +262,15 @@ describe('localInferenceProvider', () => {
       }
       // Each end-to-end provider, under each option that speaks (one that does not leaves the line-up incomplete);
       // and each text model, under each end-to-end provider's voice.
-      const endToEnd = allCaps().filter((c) => c.joint?.includes('translation'));
-      const speaking = allCaps().filter((c) => c.stages.includes('speech'));
+      const endToEnd = catalog.filter((c) => c.joint?.includes('translation'));
+      const speaking = catalog.filter((c) => c.stages.includes('speech'));
       expect(reworded.sort()).toEqual([
         ...endToEnd.flatMap((tl) => speaking.map((sp) => `${tl.id}/${sp.id}`)),
-        ...[...textModels, 'bing'].flatMap((tl) => endToEnd.map((sp) => `${tl}/${sp.id}`)),
+        ...translators.flatMap((tl) => endToEnd.map((sp) => `${tl}/${sp.id}`)),
       ].sort());
-      // Each text model, under each voice that stands alone.
-      const alone = allCaps().filter((c) => c.stages.includes('speech') && c.voiceAlone).map((c) => c.id);
-      expect(newlyRun.sort()).toEqual([...textModels, 'bing'].flatMap((model) => alone.map((voice) => `${model}/${voice}`)).sort());
+      // Each translator, under each voice that stands alone.
+      const alone = catalog.filter((c) => c.stages.includes('speech') && c.voiceAlone).map((c) => c.id);
+      expect(newlyRun.sort()).toEqual(translators.flatMap((model) => alone.map((voice) => `${model}/${voice}`)).sort());
     });
 
     it('its translation unit serves translation alone, and translation with speech is two units', () => {
@@ -355,7 +359,7 @@ describe('localInferenceProvider', () => {
     const off = vi.fn();
     const watch = vi.fn(() => off);
     const onChange = vi.fn();
-    expect(localInferenceProvider.watchReadiness?.(onChange, fakeLocalModels({ watch }))).toBe(off);
+    expect(localInferenceProvider.watchReadiness?.(onChange, fakeLocalModels({ watch }), fakeNativeModels())).toBe(off);
     expect(watch).toHaveBeenCalledWith(onChange);
   });
 

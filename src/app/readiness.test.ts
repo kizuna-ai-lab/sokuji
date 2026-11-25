@@ -10,6 +10,7 @@ import { FAKE_DEFAULTS } from '../providers/fake/settings';
 import { useProviderStore } from '../stores/providerStore';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { localModels } from '../stores/localModels';
+import { nativeModels } from '../stores/nativeModels';
 import { runsOn } from '../stores/lineUpStore.testing';
 import { driveReadiness, NETWORK_READINESS_DELAY_MS, READINESS_DELAY_MS } from './readiness';
 import { readinessPlan } from './session';
@@ -120,7 +121,7 @@ describe('driveReadiness', () => {
     setupStore(provider);
     const detach = driveReadiness({ runner: idleRunner(), providers: () => [provider], plan: readinessPlan, auth: () => auth, clock: createVirtualClock(0) });
     await flush();
-    expect(watch).toHaveBeenCalledWith(expect.any(Function), localModels);
+    expect(watch).toHaveBeenCalledWith(expect.any(Function), localModels, nativeModels);
     detach();
   });
 

@@ -26,6 +26,14 @@ describe('NativeTranslateClient', () => {
     await expect(p).resolves.toEqual({ sourceText: 'hello', translatedText: 'こんにちは', inferenceTimeMs: 12 });
   });
 
+  it('translate() waits as long as it is told, and the default without one', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeTranslateClient(conn);
+    void c.translate('x', '', false, 60_000);
+    void c.translate('y');
+    expect(conn.requestOpts.map((o) => o?.timeoutMs)).toEqual([60_000, undefined]);
+  });
+
   it('translate() rejects on an error reply', async () => {
     const conn = new FakeSidecarConnection();
     const c = new NativeTranslateClient(conn);

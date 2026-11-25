@@ -19,6 +19,7 @@ const mockSettings = {
   asrDevice: 'auto' as const,
   translationDevice: 'auto' as const,
   ttsDevice: 'auto' as const,
+  ttsVoice: '',
   selections: {
     'en→en': {
       asr: { modelId: 'lic-asr' }, translation: { modelId: '' }, tts: { modelId: '' },
@@ -132,11 +133,6 @@ vi.mock('../../Tooltip/Tooltip', () => ({
   ),
 }));
 
-vi.mock('../../../stores/settingsStore', () => ({
-  useLocalNativeSettings: () => mockSettings,
-  useUpdateLocalNative: () => mockUpdate,
-}));
-
 vi.mock('../../../stores/nativeModelStore', () => {
   // Lightweight stand-in for the real selection resolver: an explicit,
   // catalog-known pick resolves; everything else (auto, or an id the mock
@@ -209,7 +205,7 @@ beforeEach(() => {
 
 describe('NativeModelManagementSection — non-commercial license consent gate', () => {
   it('clicking Download on a non-commercial-licensed card opens the consent modal and does NOT download', () => {
-    render(<NativeModelManagementSection />);
+    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const card = screen.getByTestId('model-card-lic-asr');
 
     fireEvent.click(within(card).getByRole('button', { name: /download/i }));
@@ -222,7 +218,7 @@ describe('NativeModelManagementSection — non-commercial license consent gate',
   });
 
   it('accepting downloads exactly once and persists — a second Download click does not re-prompt', () => {
-    render(<NativeModelManagementSection />);
+    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const card = screen.getByTestId('model-card-lic-asr');
 
     fireEvent.click(within(card).getByRole('button', { name: /download/i }));
@@ -241,14 +237,14 @@ describe('NativeModelManagementSection — non-commercial license consent gate',
   });
 
   it('consent survives a remount (persisted to localStorage), so a fresh render does not re-prompt either', () => {
-    const { unmount } = render(<NativeModelManagementSection />);
+    const { unmount } = render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     let card = screen.getByTestId('model-card-lic-asr');
     fireEvent.click(within(card).getByRole('button', { name: /download/i }));
     fireEvent.click(acceptButtonQuery()!);
     expect(mockDownload).toHaveBeenCalledTimes(1);
     unmount();
 
-    render(<NativeModelManagementSection />);
+    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     card = screen.getByTestId('model-card-lic-asr');
     fireEvent.click(within(card).getByRole('button', { name: /download/i }));
     expect(mockDownload).toHaveBeenCalledTimes(2);
@@ -256,7 +252,7 @@ describe('NativeModelManagementSection — non-commercial license consent gate',
   });
 
   it('Cancel closes the modal without downloading', () => {
-    render(<NativeModelManagementSection />);
+    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const card = screen.getByTestId('model-card-lic-asr');
 
     fireEvent.click(within(card).getByRole('button', { name: /download/i }));
@@ -268,7 +264,7 @@ describe('NativeModelManagementSection — non-commercial license consent gate',
   });
 
   it('a restricted (but commercially usable) license still gates, without the non-commercial wording', () => {
-    render(<NativeModelManagementSection />);
+    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const card = screen.getByTestId('model-card-restricted-asr');
 
     fireEvent.click(within(card).getByRole('button', { name: /download/i }));
@@ -280,7 +276,7 @@ describe('NativeModelManagementSection — non-commercial license consent gate',
   });
 
   it('a license descriptor with no requiresConsent field still gates', () => {
-    render(<NativeModelManagementSection />);
+    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const card = screen.getByTestId('model-card-legacy-lic-asr');
 
     fireEvent.click(within(card).getByRole('button', { name: /download/i }));
@@ -290,7 +286,7 @@ describe('NativeModelManagementSection — non-commercial license consent gate',
   });
 
   it('a card with no license downloads immediately — the modal never shows', () => {
-    render(<NativeModelManagementSection />);
+    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const card = screen.getByTestId('model-card-plain-asr');
 
     fireEvent.click(within(card).getByRole('button', { name: /download/i }));
