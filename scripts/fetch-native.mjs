@@ -39,15 +39,21 @@ function extractTarZst(archivePath, destDir) {
       try { active?.destroy(); } catch { /* closing */ }
       reject(err);
     };
+    // tar-stream re-emits next(err) on the entry's own stream as well: without a listener there that is an
+    // unhandled 'error' event, which crashed the process (and failed vitest's run) after the rejection was handled.
+    const refuse = (stream, next, err) => {
+      stream.on('error', () => {});
+      stream.resume();
+      fail(err);
+      next(err);
+    };
     extract.on('entry', (header, stream, next) => {
       const target = path.resolve(destDir, header.name);
       if (path.isAbsolute(header.name) || (target !== root && !target.startsWith(root + path.sep))) {
-        stream.resume();
-        return next(new Error(`unsafe path in archive: ${header.name}`));
+        return refuse(stream, next, new Error(`unsafe path in archive: ${header.name}`));
       }
       if (header.type === 'symlink' || header.type === 'link') {
-        stream.resume();
-        return next(new Error(`unsupported link member in archive: ${header.name}`));
+        return refuse(stream, next, new Error(`unsupported link member in archive: ${header.name}`));
       }
       if (header.type === 'directory') {
         fs.mkdirSync(target, { recursive: true });
