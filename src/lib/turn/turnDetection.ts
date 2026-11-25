@@ -39,12 +39,6 @@ export function detectorDeliveryOf(entry: Entry): DetectorDelivery {
   return entry?.type === 'asr-stream' && entry.asrWorkerType === 'voxtral-webgpu' ? 'marks' : 'segments';
 }
 
-/** Whether the settings panel applies to the model: every 'asr' entry, and an 'asr-stream' one with a worker type (Voxtral 4B). Deleted in step 5, when it equals `turnDetectionOf(e) === 'shared'`. */
-export function takesOurTurnDetection(entry: Entry): boolean {
-  if (!entry) return false;
-  return entry.type === 'asr' || (entry.type === 'asr-stream' && !!entry.asrWorkerType);
-}
-
 export interface TurnDetectionLeg {
   entry: ModelManifestEntry | undefined;
   turns: 'auto' | 'manual';
@@ -64,7 +58,7 @@ export interface TurnDetectionScope {
 const VAD_FRAME_SECONDS = 0.032;
 
 export function turnDetectionScope(legs: readonly TurnDetectionLeg[], td: TurnDetectionSettings): TurnDetectionScope {
-  const shownLegs = legs.filter((l) => takesOurTurnDetection(l.entry));
+  const shownLegs = legs.filter((l) => turnDetectionOf(l.entry) === 'shared');
   const scope: TurnDetectionScope = {
     shown: shownLegs.length > 0,
     smartOffered: legs.some((l) => l.turns === 'auto' && turnDetectionOf(l.entry) === 'shared'),

@@ -17,7 +17,7 @@ import type { TranslationLike, TtsLike } from '../../lib/local-inference/session
  */
 
 export interface AsrInit {
-  /** What the recognizer's own VAD reads: sherpa-onnx and Voxtral 4B. The WebGPU recognizers run none. */
+  /** Voxtral 4B reads one thing of it: `preSpeechPadDuration`, how much audio before a turn's start mark it keeps while idle. No other recognizer reads it. */
   vadConfig?: VadWebConfig;
   /** The source language hint. */
   language: string;
@@ -93,11 +93,12 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
       if (engine instanceof StreamingAsrEngine) {
         await engine.init(modelId, { language, vadConfig, punctuationEndpoint: punctuationEndpoint ?? true, segmentPort });
       } else {
-        await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined, segmentPort);
+        await engine.init(modelId, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined, segmentPort);
       }
     },
-    feedAudio: (samples, sampleRate) => engine.feedAudio(samples, sampleRate),
-    flush: () => engine.flush(),
+    // A recognizer on the detector is fed segments, not audio: only an own-turns (streaming) engine takes either.
+    feedAudio: (samples, sampleRate) => { if (engine instanceof StreamingAsrEngine) engine.feedAudio(samples, sampleRate); },
+    flush: () => { if (engine instanceof StreamingAsrEngine) engine.flush(); },
     // Only a recognizer that decodes the detector's segments has an epoch.
     stop: (epoch) => { if (engine instanceof AsrEngine) engine.stop(epoch); },
     dispose: () => engine.dispose(),
@@ -106,7 +107,7 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
   engine.onPartialResult = (text: string, tag?: AsrPartialTag) => asr.onPartialResult?.(text, tag);
   if (engine instanceof AsrEngine) engine.onDrained = (seq) => asr.onDrained?.(seq);
   engine.onResult = (result: AsrResult) => asr.onResult?.(result);
-  engine.onSpeechStart = () => asr.onSpeechStart?.();
+  if (engine instanceof StreamingAsrEngine) engine.onSpeechStart = () => asr.onSpeechStart?.();
   // Two failures, kept apart by the engine's own hook: a ready worker's
   // `error` message is one chunk (the streaming worker resets and goes on);
   // the worker dying is the end of it.

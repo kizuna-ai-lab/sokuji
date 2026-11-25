@@ -48,10 +48,8 @@ export interface AsrInitMessage {
   fileUrls: Record<string, string>;
   /** ASR engine type — determines which config builder the worker uses */
   asrEngine: string;
-  /** Optional VAD configuration to override defaults */
-  vadConfig?: SherpaOnnxVadConfig;
-  /** The turn detector's segments: given, the worker runs no VAD and decodes what arrives on it. */
-  segmentPort?: MessagePort;
+  /** The turn detector's segments: the worker runs no VAD and decodes what arrives on it. */
+  segmentPort: MessagePort;
   /** Base URL for bundled ASR runtime (JS/WASM shared across all models) */
   runtimeBaseUrl: string;
   /** Emscripten loadPackage metadata (file offsets/sizes from package-metadata.json) */
@@ -197,23 +195,20 @@ export interface VoxtralAsrInitMessage {
   hfModelId: string;
   /** Source language hint (optional, for future use) */
   language?: string;
-  /** VAD configuration overrides */
+  /** Only `preSpeechPadDuration` is read: how much audio before a turn's start mark is kept while idle. */
   vadConfig?: VadWebConfig;
   /** ONNX dtype config — 'q4f16' or 'q4', or per-component mapping */
   dtype: string | Record<string, string>;
-  /** Resolved absolute URL for bundled VAD model */
-  vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
-  /** Finalize a result on terminal punctuation instead of waiting for the VAD
-   *  endpoint. Absent means true — the worker's historical behaviour. */
+  /** Finalize a result on terminal punctuation instead of waiting for the turn's end.
+   *  Absent means true — the worker's historical behaviour. */
   punctuationEndpoint?: boolean;
   /**
-   * The turn detector's audio-and-marks port. Given, the worker runs no VAD: it feeds the audio it receives
-   * (24 kHz Int16, in order) to the model and acts on each `start`, `end` and `cancel` mark where it arrives.
-   * `vadConfig` then only says how much pre-roll to keep (`preSpeechPadDuration`).
+   * The turn detector's audio-and-marks port: the worker feeds the audio it receives (24 kHz Int16, in order) to the
+   * model and acts on each `start`, `end` and `cancel` mark where it arrives (spec C1).
    */
-  segmentPort?: MessagePort;
+  segmentPort: MessagePort;
 }
 
 export interface CohereTranscribeAsrInitMessage {

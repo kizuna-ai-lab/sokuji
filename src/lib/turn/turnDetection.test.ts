@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getManifestEntry, type ModelManifestEntry } from '../local-inference/modelManifest';
 import { TURN_DETECTION_DEFAULTS } from './turnDetectionSettings';
-import { DETECTOR_WORKER_TYPES, detectorDeliveryOf, nativeTurnDetectionScope, takesOurTurnDetection, turnDetectionOf, turnDetectionScope, type TurnDetectionLeg } from './turnDetection';
+import { DETECTOR_WORKER_TYPES, detectorDeliveryOf, nativeTurnDetectionScope, turnDetectionOf, turnDetectionScope, type TurnDetectionLeg } from './turnDetection';
 
 /** Compile-time: every detector worker type is a worker type the manifest has. */
 const _typesExist: readonly NonNullable<ModelManifestEntry['asrWorkerType']>[] = DETECTOR_WORKER_TYPES;
@@ -23,12 +23,10 @@ describe('turnDetectionOf', () => {
 
   it('a streaming sherpa model is own and takes none', () => {
     expect(turnDetectionOf(getManifestEntry('stream-en-kroko'))).toBe('own');
-    expect(takesOurTurnDetection(getManifestEntry('stream-en-kroko'))).toBe(false);
   });
 
   it('an unknown model is own and takes none', () => {
     expect(turnDetectionOf(undefined)).toBe('own');
-    expect(takesOurTurnDetection(undefined)).toBe(false);
   });
 });
 

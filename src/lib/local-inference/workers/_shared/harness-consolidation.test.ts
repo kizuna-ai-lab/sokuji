@@ -40,10 +40,9 @@ describe('worker harness consolidation', () => {
 // The shared harness (initTransformersEnv) does not manage ortEnv.wasm.wasmPaths
 // for the VAD InferenceSession — each worker that still runs a Silero session must keep
 // setting it directly. A future edit could drop this silently since the guard above
-// wouldn't catch it. The five transformers.js recognizers run no VAD any more (the
-// detector does, in turn-detector.worker.ts); Voxtral 4B still does, until step 3.
+// wouldn't catch it. Only the turn detector's worker runs a Silero session now (every recognizer
+// takes its turns from it); the old Local Native client's native-vad worker is the old path's.
 const SILERO_WORKERS = [
-  'voxtral-webgpu.worker.ts',
   'turn-detector.worker.ts',
 ];
 
@@ -68,33 +67,15 @@ describe('Silero worker ortEnv wasmPaths', () => {
   });
 });
 
-// PTT / Push-to-Translate release finalizes the current utterance by posting
-// {type:'flush'} (MainPanel.createResponse → AsrEngine.flush → session.post).
-// The trailing silence tail fed on release (~700ms) is shorter than the default
-// VAD redemption window (vadMinSilenceDuration 1.4s → 1400ms), so silence alone
-// can NEVER close the segment — the worker MUST honor the flush message. A worker
-// that silently drops 'flush' leaks the pending utterance into the next press,
-// surfacing it one utterance late (the original whisper-webgpu regression: no
-// 'flush' case at all).
-//
-// Only Voxtral 4B still cuts its own segments and so still takes a flush: the five detector-type
-// workers get the release from the detector (an ended press is a segment, a drain is a mark).
-//
-// Guard the ROUTING chain — 'flush' must reach a defined handleFlush() — rather
-// than any specific finalization mechanism: workers finalize differently
-// (frameProcessor.endSegment for VAD-segmented ASR, stopGenerate for the streaming
-// generate-loop voxtral worker), so asserting `endSegment` in the flush path would
-// wrongly fail voxtral-webgpu. `endSegment` also appears in every worker's dispose
-// path, so an "endSegment appears somewhere" assertion is a false positive.
-const FLUSH_WORKERS = ['voxtral-webgpu.worker.ts'];
+// PTT / Push-to-Translate release: no recognizer worker takes a `flush` message any more. The detector turns the
+// release into a segment (a drained press) or a mark (`end`), and the worker decodes or finalizes what it is sent.
+const NO_FLUSH_WORKERS = ['voxtral-webgpu.worker.ts', 'whisper-webgpu.worker.ts', 'cohere-transcribe-webgpu.worker.ts', 'granite-speech-webgpu.worker.ts', 'qwen3-asr-webgpu.worker.ts', 'voxtral-3b-webgpu.worker.ts'];
 
-describe('ASR worker flush handling (PTT finalization)', () => {
-  it.each(FLUSH_WORKERS)('%s routes the flush message to a defined handleFlush()', (name) => {
+describe('ASR workers take no flush message', () => {
+  it.each(NO_FLUSH_WORKERS)('%s has no flush case and no handleFlush()', (name) => {
     const src = read(name);
-    expect(src, `${name}: message router drops 'flush' instead of routing it to handleFlush()`)
-      .toMatch(/case\s+['"]flush['"]\s*:\s*(?:await\s+)?handleFlush\(/);
-    expect(src, `${name}: router calls handleFlush() but the function is never defined`)
-      .toMatch(/(?:async\s+)?function\s+handleFlush\b/);
+    expect(src, `${name}: still routes 'flush'`).not.toMatch(/case\s+['"]flush['"]/);
+    expect(src, `${name}: still defines handleFlush()`).not.toMatch(/function\s+handleFlush\b/);
   });
 });
 

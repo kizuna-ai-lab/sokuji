@@ -49,34 +49,51 @@ describe('defaultEngines over the real engine classes', () => {
   afterEach(() => { restore(); vi.restoreAllMocks(); vi.unstubAllGlobals(); URL.createObjectURL = createObjectURL; });
 
   it('ASR: an error message from the ready worker is recoverable; the worker dying is fatal, and not also an error', async () => {
-    const asr = defaultEngines.asr({ modelId: 'sensevoice-int8', streaming: false, turnDetection: 'own' });
+    const asr = defaultEngines.asr({ modelId: 'sensevoice-int8', streaming: false, turnDetection: 'shared' });
     const heard = listen(asr);
-    const worker = await ready(asr.init('sensevoice-int8', { vadConfig: vad, language: 'ja' }));
+    const { port1, port2 } = new MessageChannel();
+    const worker = await ready(asr.init('sensevoice-int8', { language: 'ja', segmentPort: port1 }));
     worker.emit({ type: 'partial', text: 'こん' });
     worker.emit({ type: 'result', text: 'こんにちは', durationMs: 1, recognitionTimeMs: 1 });
     worker.emit({ type: 'error', error: 'decode failed' });
     worker.emitError('RuntimeError: unreachable');
     expect(heard).toEqual({ errors: ['decode failed'], fatal: ['RuntimeError: unreachable'], partials: ['こん'], finals: ['こんにちは'] });
-    expect(initMessage(worker).vadConfig).toEqual(vad);
+    expect(initMessage(worker)).toMatchObject({ segmentPort: port1 });
+    expect(initMessage(worker)).not.toHaveProperty('vadConfig');
+    port1.close();
+    port2.close();
   });
 
-  it('ASR: the streaming engine for a streaming model, its worker told the language, the VAD and to keep its own endpoint', async () => {
-    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'own' });
+  it('ASR: the streaming engine for Voxtral 4B, its worker told the language, the pre-roll config, the port and to keep its own endpoint', async () => {
+    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'shared' });
     const heard = listen(asr);
-    const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en' }));
-    expect(initMessage(worker)).toMatchObject({ language: 'en', vadConfig: vad, punctuationEndpoint: true });
+    const { port1, port2 } = new MessageChannel();
+    const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en', segmentPort: port1 }));
+    expect(initMessage(worker)).toMatchObject({ language: 'en', vadConfig: vad, punctuationEndpoint: true, segmentPort: port1 });
     worker.emitError('device hung');
     expect(heard.fatal).toEqual(['device hung']);
     expect(heard.errors).toEqual([]);
+    port1.close();
+    port2.close();
+  });
+
+  it('ASR: a streaming sherpa engine (its own turns) is fed audio and flushed', async () => {
+    const asr = defaultEngines.asr({ modelId: 'stream-en-kroko', streaming: true, turnDetection: 'own' });
+    const worker = await ready(asr.init('stream-en-kroko', { language: 'en' }));
     const samples = new Int16Array([1, 2]);
     asr.feedAudio(samples, 24000);
     expect(worker.postMessage).toHaveBeenCalledWith({ type: 'audio', samples, sampleRate: 24000 }, [samples.buffer]);
+    asr.flush();
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'flush' });
   });
 
   it('ASR: an explicit punctuationEndpoint: false reaches the streaming worker as false (the adapter sealing its own stream)', async () => {
-    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'own' });
-    const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en', punctuationEndpoint: false }));
+    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'shared' });
+    const { port1, port2 } = new MessageChannel();
+    const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en', punctuationEndpoint: false, segmentPort: port1 }));
     expect(initMessage(worker)).toMatchObject({ punctuationEndpoint: false });
+    port1.close();
+    port2.close();
   });
 
   it('ASR: AST asks the offline engine to translate into the target', async () => {
@@ -106,8 +123,8 @@ describe('defaultEngines over the real engine classes', () => {
   describe("the engines' public onFatal hook", () => {
     type Engine = { onError: ((e: string) => void) | null; onFatal: ((e: string) => void) | null };
     const cases: Array<[string, () => Engine & { load: () => Promise<unknown> }]> = [
-      ['AsrEngine', () => { const e = new AsrEngine(); return Object.assign(e, { load: () => e.init('sensevoice-int8', vad, 'ja') }); }],
-      ['StreamingAsrEngine', () => { const e = new StreamingAsrEngine(); return Object.assign(e, { load: () => e.init('voxtral-mini-4b-webgpu') }); }],
+      ['AsrEngine', () => { const e = new AsrEngine(); return Object.assign(e, { load: () => e.init('sensevoice-int8', 'ja', undefined, new MessageChannel().port1) }); }],
+      ['StreamingAsrEngine', () => { const e = new StreamingAsrEngine(); return Object.assign(e, { load: () => e.init('voxtral-mini-4b-webgpu', { segmentPort: new MessageChannel().port1 }) }); }],
       ['TtsEngine', () => { const e = new TtsEngine(); return Object.assign(e, { load: () => e.init('supertonic-3') }); }],
     ];
 
@@ -183,15 +200,18 @@ describe('defaultEngines over the real engine classes', () => {
   });
 
   it('ASR: the streaming engine\'s stop is a no-op and its partials carry no tag', async () => {
-    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'own' });
+    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'shared' });
     const partials: Array<[string, unknown]> = [];
     asr.onPartialResult = (text, tag) => partials.push([text, tag]);
-    const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en' }));
+    const { port1, port2 } = new MessageChannel();
+    const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en', segmentPort: port1 }));
     worker.postMessage.mockClear();
     asr.stop(2);
     expect(worker.postMessage).not.toHaveBeenCalled();
     worker.emit({ type: 'partial', text: 'hi' });
     expect(partials).toEqual([['hi', undefined]]);
+    port1.close();
+    port2.close();
   });
 
   it('the detector is a TurnDetector', () => {

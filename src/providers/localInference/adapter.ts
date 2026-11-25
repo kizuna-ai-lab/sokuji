@@ -56,10 +56,9 @@ interface Job {
 }
 
 /**
- * An own leg's manual turn release: 700 ms of silence at 24 kHz, then a flush. One buffer, not seven: a worker drops audio that
- * arrives while its VAD is still busy with the last buffer, and a burst of seven would lose most of them — leaving the
- * audio it counted behind what `fed` counted, and every later result's time early. It serves `own` legs only: a shared
- * leg's release is a drain of the turn detector (step 5 removes this with the last own recognizers).
+ * An own leg's manual turn release: 700 ms of silence at 24 kHz, then a flush. One buffer, not seven, so what `fed`
+ * counted is what the worker was given. Only a streaming sherpa model is an `own` leg now, and its own endpointing
+ * needs the trailing silence to close the turn; a shared leg's release is a drain of the turn detector.
  */
 const FLUSH_SAMPLES = (SAMPLE_RATE * 7) / 10;
 
@@ -252,8 +251,8 @@ class LocalSession implements AdapterSession {
           // Exactly one layer may cut (ruling 10): the worker's own sentence endpoint stays on unless the stream shape seals.
           punctuationEndpoint: this.cut === null,
         };
-        // An own recognizer cuts its own turns with its own VAD; no engine reads a Smart Turn port any more, so none is opened.
-        if (!this.detector) return this.asr.init(config.asr.modelId, { ...options, vadConfig: config.vad });
+        // An own recognizer (a streaming sherpa model) cuts its own turns with its own endpointing: it reads no turn detection settings, and no Smart Turn port is opened.
+        if (!this.detector) return this.asr.init(config.asr.modelId, options);
         return this.loadShared(this.detector, options);
       },
       dispose: () => { this.asr.dispose(); this.detector?.dispose(); },
