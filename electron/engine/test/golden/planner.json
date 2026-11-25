@@ -1,0 +1,1135 @@
+{
+  "cases": [
+    {
+      "id": "largest_fitting_wins",
+      "params": {
+        "budget": 25,
+        "downloaded": null,
+        "expected": "q8",
+        "sized": {
+          "q4": 10,
+          "q8": 20
+        }
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "skips_too_big_falls_to_next",
+      "params": {
+        "budget": 15,
+        "downloaded": null,
+        "expected": "q4",
+        "sized": {
+          "q4": 10,
+          "q8": 20
+        }
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "nothing_fits_returns_none",
+      "params": {
+        "budget": 5,
+        "downloaded": null,
+        "expected": null,
+        "sized": {
+          "q4": 10,
+          "q8": 20
+        }
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "empty_sized_returns_none",
+      "params": {
+        "budget": 100,
+        "downloaded": null,
+        "expected": null,
+        "sized": {}
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "exact_boundary_fits",
+      "params": {
+        "budget": 20,
+        "downloaded": null,
+        "expected": "q8",
+        "sized": {
+          "q4": 10,
+          "q8": 20
+        }
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "downloaded_restricts_candidate_set",
+      "params": {
+        "budget": 100,
+        "downloaded": [
+          "q4"
+        ],
+        "expected": "q4",
+        "sized": {
+          "q16": 40,
+          "q4": 10,
+          "q8": 20
+        }
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "empty_downloaded_set_is_no_restriction",
+      "params": {
+        "budget": 100,
+        "downloaded": [],
+        "expected": "q16",
+        "sized": {
+          "q16": 40,
+          "q4": 10,
+          "q8": 20
+        }
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "downloaded_with_no_overlap_falls_back_to_full_set",
+      "params": {
+        "budget": 100,
+        "downloaded": [
+          "nonexistent"
+        ],
+        "expected": "q16",
+        "sized": {
+          "q16": 40,
+          "q4": 10,
+          "q8": 20
+        }
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "none_downloaded_is_no_restriction",
+      "params": {
+        "budget": 100,
+        "downloaded": null,
+        "expected": "q16",
+        "sized": {
+          "q16": 40,
+          "q4": 10,
+          "q8": 20
+        }
+      },
+      "test": "test_fit_walk"
+    },
+    {
+      "id": "gpu_present_vulkan_first",
+      "params": {
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 16,
+          "devices": [],
+          "fingerprint": "p-cuda12",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12884901888
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "override": "auto"
+      },
+      "test": "test_resolve_whisper_base_tier_and_override"
+    },
+    {
+      "id": "gpu_present_24gb_vulkan_first",
+      "params": {
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 32,
+          "devices": [],
+          "fingerprint": "p-cuda24",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4090",
+              25769803776
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "override": "auto"
+      },
+      "test": "test_resolve_whisper_base_tier_and_override"
+    },
+    {
+      "id": "cpu_only_drops_gpu_plan",
+      "params": {
+        "expected_devices": [
+          "cpu"
+        ],
+        "expected_quant": null,
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-cpu",
+          "generation": "",
+          "gpus": [],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "cpu"
+          ]
+        },
+        "override": "auto"
+      },
+      "test": "test_resolve_whisper_base_tier_and_override"
+    },
+    {
+      "id": "override_pins_cpu_on_nvidia",
+      "params": {
+        "expected_devices": [
+          "cpu",
+          "vulkan"
+        ],
+        "expected_quant": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 16,
+          "devices": [],
+          "fingerprint": "p-cuda12",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12884901888
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "override": "cpu"
+      },
+      "test": "test_resolve_whisper_base_tier_and_override"
+    },
+    {
+      "id": "granite-speech-4.1-2b",
+      "params": {
+        "model_id": "granite-speech-4.1-2b"
+      },
+      "test": "test_resolve_speech_llm_family_vulkan_then_cpu_on_nvidia"
+    },
+    {
+      "id": "qwen3-asr-1.7b",
+      "params": {
+        "model_id": "qwen3-asr-1.7b"
+      },
+      "test": "test_resolve_speech_llm_family_vulkan_then_cpu_on_nvidia"
+    },
+    {
+      "id": "voxtral-mini-4b-realtime",
+      "params": {
+        "model_id": "voxtral-mini-4b-realtime"
+      },
+      "test": "test_resolve_speech_llm_family_vulkan_then_cpu_on_nvidia"
+    },
+    {
+      "id": "cohere-transcribe-03-2026",
+      "params": {
+        "model_id": "cohere-transcribe-03-2026"
+      },
+      "test": "test_resolve_speech_llm_family_vulkan_then_cpu_on_nvidia"
+    },
+    {
+      "id": "fun-asr-mlt-nano",
+      "params": {
+        "model_id": "fun-asr-mlt-nano"
+      },
+      "test": "test_resolve_speech_llm_family_vulkan_then_cpu_on_nvidia"
+    },
+    {
+      "id": "gpu_roomy_budget_curated_upgrade",
+      "params": {
+        "downloaded": null,
+        "expected": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "gpu_tight_budget_keeps_default",
+      "params": {
+        "downloaded": null,
+        "expected": "q4_k_m",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-2048",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              2147483648
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "cpu_only_smallest_wins_ignores_budget",
+      "params": {
+        "downloaded": null,
+        "expected": "q4_k_m",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-cpu",
+          "generation": "",
+          "gpus": [],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "unknown_memory_keeps_default_on_gpu",
+      "params": {
+        "downloaded": null,
+        "expected": "q4_k_m",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-0",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              0
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "pin_overrides_ladder_even_if_it_would_not_fit",
+      "params": {
+        "downloaded": null,
+        "expected": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-2048",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              2147483648
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": "q8_0"
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "pin_listed_only_quant_honored",
+      "params": {
+        "downloaded": null,
+        "expected": "f16",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": "f16"
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "downloaded_listed_only_quant_wins",
+      "params": {
+        "downloaded": [
+          "f16"
+        ],
+        "expected": "f16",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "fresh_recommendation_never_listed_only",
+      "params": {
+        "downloaded": null,
+        "expected": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-24564",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              25757220864
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "downloaded_restricts_to_cached_quant",
+      "params": {
+        "downloaded": [
+          "q4_k_m"
+        ],
+        "expected": "q4_k_m",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "ignores_download_state_when_nothing_cached",
+      "params": {
+        "downloaded": [],
+        "expected": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_tc_pick_quant_direct"
+    },
+    {
+      "id": "roomy_budget_upgrades_to_q8",
+      "params": {
+        "downloaded": [],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "tight_budget_keeps_default",
+      "params": {
+        "downloaded": [],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q4_k_m",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-2048",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              2147483648
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "cpu_only_prefers_smallest_quant",
+      "params": {
+        "downloaded": [],
+        "expected_devices": [
+          "cpu"
+        ],
+        "expected_quant": "q4_k_m",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-cpu",
+          "generation": "",
+          "gpus": [],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "unknown_memory_keeps_default_on_gpu",
+      "params": {
+        "downloaded": [],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q4_k_m",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-0",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              0
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "pin_narrows_ladder",
+      "params": {
+        "downloaded": [],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-2048",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              2147483648
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": "q8_0"
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "pin_listed_only_quant_honored",
+      "params": {
+        "downloaded": [],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "f16",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": "f16"
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "downloaded_listed_only_quant_loads",
+      "params": {
+        "downloaded": [
+          "f16"
+        ],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "f16",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "fresh_recommendation_never_listed_only",
+      "params": {
+        "downloaded": [],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-24564",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              25757220864
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "quant_pick_prefers_downloaded",
+      "params": {
+        "downloaded": [
+          "q4_k_m"
+        ],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q4_k_m",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "quant_pick_ignores_download_state_when_nothing_cached",
+      "params": {
+        "downloaded": [],
+        "expected_devices": [
+          "vulkan",
+          "cpu"
+        ],
+        "expected_quant": "q8_0",
+        "machine": {
+          "apple_silicon": false,
+          "arch": "x86_64",
+          "cpu_cores": 8,
+          "devices": [],
+          "fingerprint": "p-nv-12282",
+          "generation": "",
+          "gpus": [
+            [
+              "vulkan",
+              "NVIDIA GeForce RTX 4070",
+              12878610432
+            ]
+          ],
+          "installed": [
+            "native_asr",
+            "native_asr_stream",
+            "native_translate",
+            "native_tts"
+          ],
+          "os": "Linux",
+          "tc_kinds": [
+            "vulkan",
+            "cpu"
+          ]
+        },
+        "pin": null
+      },
+      "test": "test_resolve_cohere_quant_ladder_end_to_end"
+    },
+    {
+      "id": "fp8_1_5x_factor_too_big_at_12gib",
+      "params": {
+        "expected_ct": null,
+        "expected_tier": "cpu",
+        "vram_gb": 12
+      },
+      "test": "test_select_variant_fp8_weight_factor_larger_than_bf16"
+    },
+    {
+      "id": "fp8_1_5x_factor_fits_at_16gib",
+      "params": {
+        "expected_ct": "fp8",
+        "expected_tier": "gpu-vulkan",
+        "vram_gb": 16
+      },
+      "test": "test_select_variant_fp8_weight_factor_larger_than_bf16"
+    },
+    {
+      "id": "plenty_of_budget_picks_largest_quant",
+      "params": {
+        "budget_bytes": 10737418240,
+        "expected_ct": "q8_0",
+        "expected_tier": "gpu-vulkan",
+        "pin": null,
+        "reserved_bytes": 0
+      },
+      "test": "test_select_variant_llamacpp_budget_walk"
+    },
+    {
+      "id": "tight_budget_steps_down_to_default",
+      "params": {
+        "budget_bytes": 3221225472,
+        "expected_ct": "q4_k_m",
+        "expected_tier": "gpu-vulkan",
+        "pin": null,
+        "reserved_bytes": 0
+      },
+      "test": "test_select_variant_llamacpp_budget_walk"
+    },
+    {
+      "id": "half_fits_keeps_gpu_via_fit",
+      "params": {
+        "budget_bytes": 1610612736,
+        "expected_ct": "q4_k_m",
+        "expected_tier": "gpu-vulkan",
+        "pin": null,
+        "reserved_bytes": 0
+      },
+      "test": "test_select_variant_llamacpp_budget_walk"
+    },
+    {
+      "id": "starved_budget_goes_cpu",
+      "params": {
+        "budget_bytes": 536870912,
+        "expected_ct": "q4_k_m",
+        "expected_tier": "cpu",
+        "pin": null,
+        "reserved_bytes": 0
+      },
+      "test": "test_select_variant_llamacpp_budget_walk"
+    },
+    {
+      "id": "pin_beats_budget",
+      "params": {
+        "budget_bytes": 536870912,
+        "expected_ct": "q8_0",
+        "expected_tier": "gpu-vulkan",
+        "pin": "q8_0",
+        "reserved_bytes": 0
+      },
+      "test": "test_select_variant_llamacpp_budget_walk"
+    },
+    {
+      "id": "no_budget_reading_keeps_rank_default",
+      "params": {
+        "budget_bytes": null,
+        "expected_ct": "q4_k_m",
+        "expected_tier": "gpu-vulkan",
+        "pin": null,
+        "reserved_bytes": 0
+      },
+      "test": "test_select_variant_llamacpp_budget_walk"
+    },
+    {
+      "id": "reserved_subtracts_from_budget",
+      "params": {
+        "budget_bytes": 10737418240,
+        "expected_ct": "q4_k_m",
+        "expected_tier": "gpu-vulkan",
+        "pin": null,
+        "reserved_bytes": 7516192768
+      },
+      "test": "test_select_variant_llamacpp_budget_walk"
+    }
+  ],
+  "generator": "export_goldens.py",
+  "sidecar_commit": "353f3e026f523dde35a09da2e091a42905c05a47"
+}

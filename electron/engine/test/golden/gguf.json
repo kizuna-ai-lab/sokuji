@@ -1,0 +1,175 @@
+{
+  "cases": [
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAAAAAAAHF3ZW4zFQAAAAAAAAB0b2tlbml6ZXIuZ2dtbC50b2tlbnMJAAAACAAAAAIAAAAAAAAAAQAAAAAAAABhAQAAAAAAAABiEQAAAAAAAAB0b2tlbl9lbWJkLndlaWdodAIAAAAEAAAAAAAAAAQAAAAAAAAACAAAAAAAAAAAAAAAEwAAAAAAAABibGsuMC5hdHRuX3Eud2VpZ2h0AgAAAAQAAAAAAAAABAAAAAAAAAAMAAAAAAAAAAAAAAARAAAAAAAAAGJsay4wLm5vcm0ud2VpZ2h0AgAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAANAAAAAAAAAG91dHB1dC53ZWlnaHQCAAAABAAAAAAAAAAEAAAAAAAAAB4AAAAAAAAAAAAAAA==",
+      "name": "toy-v3",
+      "result": {
+        "architecture": "qwen3",
+        "n_tensors": 4,
+        "tensor_types": [
+          "bf16",
+          "f32",
+          "q4_K",
+          "q8_0"
+        ]
+      }
+    },
+    {
+      "bytes": "R0dVRgIAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAAAAAAAHF3ZW4zFQAAAAAAAAB0b2tlbml6ZXIuZ2dtbC50b2tlbnMJAAAACAAAAAIAAAAAAAAAAQAAAAAAAABhAQAAAAAAAABiEQAAAAAAAAB0b2tlbl9lbWJkLndlaWdodAIAAAAEAAAAAAAAAAQAAAAAAAAACAAAAAAAAAAAAAAAEwAAAAAAAABibGsuMC5hdHRuX3Eud2VpZ2h0AgAAAAQAAAAAAAAABAAAAAAAAAAMAAAAAAAAAAAAAAARAAAAAAAAAGJsay4wLm5vcm0ud2VpZ2h0AgAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAANAAAAAAAAAG91dHB1dC53ZWlnaHQCAAAABAAAAAAAAAAEAAAAAAAAAB4AAAAAAAAAAAAAAA==",
+      "name": "toy-v2",
+      "result": {
+        "architecture": "qwen3",
+        "n_tensors": 4,
+        "tensor_types": [
+          "bf16",
+          "f32",
+          "q4_K",
+          "q8_0"
+        ]
+      }
+    },
+    {
+      "bytes": "R0dVRgEAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAAAAAAAHF3ZW4zFQAAAAAAAAB0b2tlbml6ZXIuZ2dtbC50b2tlbnMJAAAACAAAAAIAAAAAAAAAAQAAAAAAAABhAQAAAAAAAABiEQAAAAAAAAB0b2tlbl9lbWJkLndlaWdodAIAAAAEAAAAAAAAAAQAAAAAAAAACAAAAAAAAAAAAAAAEwAAAAAAAABibGsuMC5hdHRuX3Eud2VpZ2h0AgAAAAQAAAAAAAAABAAAAAAAAAAMAAAAAAAAAAAAAAARAAAAAAAAAGJsay4wLm5vcm0ud2VpZ2h0AgAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAANAAAAAAAAAG91dHB1dC53ZWlnaHQCAAAABAAAAAAAAAAEAAAAAAAAAB4AAAAAAAAAAAAAAA==",
+      "name": "toy-v1",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: unsupported GGUF version 1"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAACAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAAAAAAAHF3ZW4zFQAAAAAAAAB0b2tlbml6ZXIuZ2dtbC50b2tlbnMJAAAACAAAAAIAAAAAAAAAAQAAAAAAAABhAQAAAAAAAABiCAAAAAAAAABhLndlaWdodAIAAAAEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAABiLndlaWdodAIAAAAEAAAAAAAAAAQAAAAAAAAA+gAAAAAAAAAAAAAA",
+      "name": "toy-unknown-dtype",
+      "result": {
+        "architecture": "qwen3",
+        "n_tensors": 2,
+        "tensor_types": [
+          "f32",
+          "unknown"
+        ]
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAAAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAAAAAAAHF3ZW4zFQAAAAAAAAB0b2tlbml6ZXIuZ2dtbC50b2tlbnMJAAAACAAAAAIAAAAAAAAAAQAAAAAAAABhAQAAAAAAAABi",
+      "name": "toy-no-tensors",
+      "result": {
+        "architecture": "qwen3",
+        "n_tensors": 0,
+        "tensor_types": []
+      }
+    },
+    {
+      "bytes": "Tk9QRQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+      "name": "not-gguf",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: not a GGUF file"
+      }
+    },
+    {
+      "bytes": "R0dVRg==",
+      "name": "bare-magic",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 4 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAAAAAAAAAAAAEAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAQJwAAAAAAAHNob3J0",
+      "name": "bad-string-length",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (string of length 10000 truncated to 5 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAAAAAAAAAAAAEAAAAAAAAAAQAAAAAAAAB4TQAAAA==",
+      "name": "unknown-kv-type",
+      "result": {
+        "error": "GgufError",
+        "message": "unknown KV value type 77"
+      }
+    },
+    {
+      "bytes": "R0dVRgM=",
+      "name": "toy-v3-cut-5",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 4 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAA=",
+      "name": "toy-v3-cut-8",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 8 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAA==",
+      "name": "toy-v3-cut-16",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 8 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAAIAAAAAAAAA",
+      "name": "toy-v3-cut-24",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 8 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAA",
+      "name": "toy-v3-cut-30",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 8 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLg==",
+      "name": "toy-v3-cut-40",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (string of length 20 truncated to 8 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAA",
+      "name": "toy-v3-cut-60",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 8 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAAAAAAAHF3ZW4zFQAAAAAAAAB0b2tlbml6ZXIuZ2dt",
+      "name": "toy-v3-cut-90",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (string of length 21 truncated to 13 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAAAAAAAHF3ZW4zFQAAAAAAAAB0b2tlbml6ZXIuZ2dtbC50b2tlbnMJAAAACAAAAAIAAAAAAAAAAQAAAAAA",
+      "name": "toy-v3-cut-120",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 8 bytes)"
+      }
+    },
+    {
+      "bytes": "R0dVRgMAAAAEAAAAAAAAAAIAAAAAAAAAFAAAAAAAAABnZW5lcmFsLmFyY2hpdGVjdHVyZQgAAAAFAAAAAAAAAHF3ZW4zFQAAAAAAAAB0b2tlbml6ZXIuZ2dtbC50b2tlbnMJAAAACAAAAAIAAAAAAAAAAQAAAAAAAABhAQAAAAAAAABiEQAAAAAAAAB0b2tlbl9lbWJkLndlaWdodAIAAAAEAAAAAAAAAAQAAAAAAAAACAAAAAAAAAAAAAAAEwAAAAAAAABibGsuMC5hdHRuX3Eud2VpZ2h0AgAAAAQAAAAAAAAABAAAAAAAAAAMAAAAAAAAAAAAAAARAAAAAAAAAGJsay4wLm5vcm0ud2VpZ2h0AgAAAAQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAANAAAAAAAAAG91dHB1dC53ZWlnaHQCAAAABAAAAAAAAAAEAAAAAAAAAB4AAAAAAAAAAAAA",
+      "name": "toy-v3-cut-357",
+      "result": {
+        "error": "GgufError",
+        "message": "<path>: truncated or malformed GGUF header (unpack requires a buffer of 8 bytes)"
+      }
+    }
+  ],
+  "generator": "export_goldens.py",
+  "sidecar_commit": "353f3e026f523dde35a09da2e091a42905c05a47"
+}

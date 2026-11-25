@@ -1,0 +1,1298 @@
+{
+  "cases": [
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/cohere-transcribe-03-2026-gguf",
+            "cohere-transcribe-03-2026-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "cohere-transcribe-03-2026",
+      "model_size": 1558162944
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/granite-speech-4.1-2b-nar-gguf",
+            "granite-speech-4.1-2b-nar-Q5_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "granite-speech-4.1-2b-nar",
+      "model_size": 1782089344
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/gigaam-v3-e2e-rnnt-gguf",
+            "gigaam-v3-e2e-rnnt-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "gigaam-v3-e2e-rnnt",
+      "model_size": 273724832
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/gigaam-v3-rnnt-gguf",
+            "gigaam-v3-rnnt-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "gigaam-v3-rnnt",
+      "model_size": 273022880
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/gigaam-v3-e2e-ctc-gguf",
+            "gigaam-v3-e2e-ctc-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "gigaam-v3-e2e-ctc",
+      "model_size": 272151136
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/gigaam-v3-ctc-gguf",
+            "gigaam-v3-ctc-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "gigaam-v3-ctc",
+      "model_size": 271803328
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/granite-speech-4.1-2b-gguf",
+            "granite-speech-4.1-2b-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "granite-speech-4.1-2b",
+      "model_size": 1602904800
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/granite-speech-5.0-470m-turboctc-gguf",
+            "granite-speech-5.0-470m-turboctc-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "granite-speech-5.0-470m-turboctc",
+      "model_size": 505606496
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-tdt-1.1b-gguf",
+            "parakeet-tdt-1.1b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-tdt-1.1b",
+      "model_size": 1267288736
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-rnnt-1.1b-gguf",
+            "parakeet-rnnt-1.1b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-rnnt-1.1b",
+      "model_size": 1267285248
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/granite-4.0-1b-speech-gguf",
+            "granite-4.0-1b-speech-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "granite-4.0-1b-speech",
+      "model_size": 1602904800
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/granite-speech-4.1-2b-plus-gguf",
+            "granite-speech-4.1-2b-plus-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "granite-speech-4.1-2b-plus",
+      "model_size": 1489663424
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/Voxtral-Small-24B-2507-gguf",
+            "Voxtral-Small-24B-2507-Q5_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "voxtral-small-24b",
+      "model_size": 17138659808
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-unified-en-0.6b-gguf",
+            "parakeet-unified-en-0.6b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-unified-en-0.6b",
+      "model_size": 731357568
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-rnnt-0.6b-gguf",
+            "parakeet-rnnt-0.6b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-rnnt-0.6b",
+      "model_size": 729687456
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/canary-1b-flash-gguf",
+            "canary-1b-flash-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "canary-1b-flash",
+      "model_size": 677141280
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/Qwen3-ASR-1.7B-gguf",
+            "Qwen3-ASR-1.7B-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen3-asr-1.7b",
+      "model_size": 1319830496
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/canary-qwen-2.5b-gguf",
+            "canary-qwen-2.5b-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "canary-qwen-2.5b",
+      "model_size": 1737575808
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-tdt-0.6b-v2-gguf",
+            "parakeet-tdt-0.6b-v2-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-tdt-0.6b-v2",
+      "model_size": 729574912
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/Fun-ASR-MLT-Nano-2512-gguf",
+            "Fun-ASR-MLT-Nano-2512-Q6_K.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "fun-asr-mlt-nano",
+      "model_size": 690744384
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/Fun-ASR-Nano-2512-gguf",
+            "Fun-ASR-Nano-2512-Q6_K.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "fun-asr-nano",
+      "model_size": 690744064
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-large-v3-gguf",
+            "whisper-large-v3-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-large-v3",
+      "model_size": 1668741440
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-ctc-0.6b-gguf",
+            "parakeet-ctc-0.6b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-ctc-0.6b",
+      "model_size": 722271424
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-ctc-1.1b-gguf",
+            "parakeet-ctc-1.1b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-ctc-1.1b",
+      "model_size": 1259869216
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-tdt_ctc-1.1b-gguf",
+            "parakeet-tdt_ctc-1.1b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-tdt_ctc-1.1b",
+      "model_size": 1267288320
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/Voxtral-Mini-3B-2507-gguf",
+            "Voxtral-Mini-3B-2507-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "voxtral-mini-3b",
+      "model_size": 2984721056
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/canary-180m-flash-gguf",
+            "canary-180m-flash-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "canary-180m-flash",
+      "model_size": 218447552
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/canary-1b-v2-gguf",
+            "canary-1b-v2-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "canary-1b-v2",
+      "model_size": 1144290016
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-tdt-0.6b-v3-gguf",
+            "parakeet-tdt-0.6b-v3-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-tdt-0.6b-v3",
+      "model_size": 739508576
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-primeline-gguf",
+            "parakeet-primeline-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-primeline",
+      "model_size": 739508640
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moss-transcribe-diarize-gguf",
+            "MOSS-Transcribe-Diarize-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moss-transcribe-diarize",
+      "model_size": 986899616
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-large-v3-turbo-gguf",
+            "whisper-large-v3-turbo-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-large-v3-turbo",
+      "model_size": 886381760
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/Voxtral-Mini-4B-Realtime-2602-gguf",
+            "Voxtral-Mini-4B-Realtime-2602-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "voxtral-mini-4b-realtime",
+      "model_size": 2830493984
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/Qwen3-ASR-0.6B-gguf",
+            "Qwen3-ASR-0.6B-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen3-asr-0.6b",
+      "model_size": 850423456
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-streaming-medium-gguf",
+            "moonshine-streaming-medium-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-streaming-medium",
+      "model_size": 295793568
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/multitalker-parakeet-streaming-0.6b-v1-gguf",
+            "multitalker-parakeet-streaming-0.6b-v1-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "multitalker-parakeet-streaming-0.6b-v1",
+      "model_size": 734123712
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/Breeze-ASR-25-gguf",
+            "Breeze-ASR-25-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "breeze-asr-25",
+      "model_size": 996526080
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/nemotron-speech-streaming-en-0.6b-gguf",
+            "nemotron-speech-streaming-en-0.6b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "nemotron-speech-streaming-en",
+      "model_size": 729650176
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/parakeet-tdt_ctc-110m-gguf",
+            "parakeet-tdt_ctc-110m-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "parakeet-tdt_ctc-110m",
+      "model_size": 135373280
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-large-v2-gguf",
+            "whisper-large-v2-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-large-v2",
+      "model_size": 1667964224
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-streaming-small-gguf",
+            "moonshine-streaming-small-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-streaming-small",
+      "model_size": 198506848
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-medium-gguf",
+            "whisper-medium-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-medium",
+      "model_size": 831538144
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-large-gguf",
+            "whisper-large-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-large",
+      "model_size": 1667964192
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-medium.en-gguf",
+            "whisper-medium.en-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-medium.en",
+      "model_size": 831460928
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-small.en-gguf",
+            "whisper-small.en-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-small.en",
+      "model_size": 269674144
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/nemotron-3.5-asr-streaming-0.6b-gguf",
+            "nemotron-3.5-asr-streaming-0.6b-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "nemotron-3.5-asr-streaming",
+      "model_size": 751094240
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/SenseVoiceSmall-gguf",
+            "SenseVoiceSmall-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "sense-voice",
+      "model_size": 252684608
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-base-gguf",
+            "moonshine-base-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-base",
+      "model_size": 77476480
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-small-gguf",
+            "whisper-small-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-small",
+      "model_size": 269751136
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-base.en-gguf",
+            "whisper-base.en-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-base.en",
+      "model_size": 84886208
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-streaming-tiny-gguf",
+            "moonshine-streaming-tiny-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-streaming-tiny",
+      "model_size": 50462816
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-tiny-gguf",
+            "moonshine-tiny-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-tiny",
+      "model_size": 35466912
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-base-gguf",
+            "whisper-base-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-base",
+      "model_size": 84962880
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-tiny.en-gguf",
+            "whisper-tiny.en-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-tiny.en",
+      "model_size": 45904544
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/whisper-tiny-gguf",
+            "whisper-tiny-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "whisper-tiny",
+      "model_size": 45981088
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-base-ar-gguf",
+            "moonshine-base-ar-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-base-ar",
+      "model_size": 77476480
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-base-ja-gguf",
+            "moonshine-base-ja-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-base-ja",
+      "model_size": 77476480
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-base-ko-gguf",
+            "moonshine-base-ko-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-base-ko",
+      "model_size": 77476480
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-base-uk-gguf",
+            "moonshine-base-uk-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-base-uk",
+      "model_size": 77476512
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-base-vi-gguf",
+            "moonshine-base-vi-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-base-vi",
+      "model_size": 77476512
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-base-zh-gguf",
+            "moonshine-base-zh-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-base-zh",
+      "model_size": 77476480
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-tiny-ar-gguf",
+            "moonshine-tiny-ar-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-tiny-ar",
+      "model_size": 35466944
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-tiny-ja-gguf",
+            "moonshine-tiny-ja-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-tiny-ja",
+      "model_size": 35466944
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-tiny-ko-gguf",
+            "moonshine-tiny-ko-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-tiny-ko",
+      "model_size": 35466944
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-tiny-uk-gguf",
+            "moonshine-tiny-uk-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-tiny-uk",
+      "model_size": 35466944
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-tiny-vi-gguf",
+            "moonshine-tiny-vi-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-tiny-vi",
+      "model_size": 35466944
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "handy-computer/moonshine-tiny-zh-gguf",
+            "moonshine-tiny-zh-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moonshine-tiny-zh",
+      "model_size": 35466944
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
+            "qwen2.5-0.5b-instruct-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen2.5-0.5b",
+      "model_size": 675710816
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "Qwen/Qwen3-0.6B-GGUF",
+            "Qwen3-0.6B-Q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen3-0.6b",
+      "model_size": 639446688
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "unsloth/Qwen3.5-0.8B-GGUF",
+            "Qwen3.5-0.8B-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen3.5-0.8b",
+      "model_size": 532517120
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "unsloth/Qwen3.5-2B-GGUF",
+            "Qwen3.5-2B-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen3.5-2b",
+      "model_size": 1280835840
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "unsloth/Qwen3.5-4B-GGUF",
+            "Qwen3.5-4B-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen3.5-4b",
+      "model_size": 2740937888
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "mradermacher/translategemma-4b-it-GGUF",
+            "translategemma-4b-it.Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "translategemma-4b",
+      "model_size": 2489909760
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "mradermacher/EuroLLM-1.7B-Instruct-GGUF",
+            "EuroLLM-1.7B-Instruct.Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "eurollm-1.7b",
+      "model_size": 1045157088
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "tencent/Hy-MT2-1.8B-GGUF",
+            "Hy-MT2-1.8B-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "hy-mt2-1.8b",
+      "model_size": 1133080448
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "tencent/Hy-MT2-7B-GGUF",
+            "Hy-MT2-7B-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "hy-mt2-7b",
+      "model_size": 4624648896
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "tencent/HY-MT1.5-1.8B-GGUF",
+            "HY-MT1.5-1.8B-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "hy-mt15-1.8b",
+      "model_size": 1133080512
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "tencent/HY-MT1.5-7B-GGUF",
+            "HY-MT1.5-7B-Q4_K_M.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "hy-mt15-7b",
+      "model_size": 4624649312
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "MOSS-TTS-Nano-100M-GGUF/moss-tts-nano-100m-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "moss-tts-nano",
+      "model_size": 193337984
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "Supertonic-3-GGUF/supertonic-3-f16.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "supertonic-3",
+      "model_size": 312784196
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "Qwen3-TTS-12Hz-0.6B-Base-GGUF/qwen3-tts-12hz-0.6b-base-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen3-tts-0.6b",
+      "model_size": 1991211136
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "Qwen3-TTS-12Hz-1.7B-Base-GGUF/qwen3-tts-12hz-1.7b-base-q8_0_v2.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "qwen3-tts-1.7b",
+      "model_size": 2695175104
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "OmniVoice-GGUF/omnivoice-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "omnivoice-0.6b",
+      "model_size": 1350288416
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "PocketTTS-GGUF/english/pocket-tts-english-q8_0.gguf"
+          ],
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "PocketTTS-GGUF/english/embeddings/alba.safetensors"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "pocket-tts-en",
+      "model_size": 134051128
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "PocketTTS-GGUF/german/pocket-tts-german-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "pocket-tts-de",
+      "model_size": 127857184
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "PocketTTS-GGUF/spanish/pocket-tts-spanish-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "pocket-tts-es",
+      "model_size": 127858240
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "PocketTTS-GGUF/italian/pocket-tts-italian-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "pocket-tts-it",
+      "model_size": 127857440
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "PocketTTS-GGUF/portuguese/pocket-tts-portuguese-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "pocket-tts-pt",
+      "model_size": 127858368
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "VoxCPM1-GGUF/voxcpm-0.5b-q8_0-audiovae-f16.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "voxcpm1-0.5b",
+      "model_size": 847888032
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "VoxCPM2-GGUF/voxcpm2-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "voxcpm2",
+      "model_size": 2955000480
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "Irodori-TTS-v4-Small-GGUF/irodori-tts-v4-small-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "irodori-tts-v4-small",
+      "model_size": 1368991360
+    },
+    {
+      "download_specs": {
+        "files": [
+          [
+            "audio-cpp/audio.cpp-gguf",
+            "IndexTTS2.5-GGUF/index-tts2_5-q8_0.gguf"
+          ]
+        ],
+        "repos": [],
+        "urls": []
+      },
+      "id": "index-tts2.5",
+      "model_size": 3502955328
+    }
+  ],
+  "generator": "export_goldens.py",
+  "sidecar_commit": "353f3e026f523dde35a09da2e091a42905c05a47"
+}
