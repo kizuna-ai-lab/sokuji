@@ -4,6 +4,8 @@ import path from 'node:path';
 
 export interface StoredRecord {
   id: string;
+  /** When the record started, on `Date.now()`'s clock: the origin of the `heard` spans' `startMs`/`endMs`. */
+  startedAt: number;
   state: string;
   sentences: number;
   /** The record's services as stored (JSON). */
@@ -50,7 +52,7 @@ export function readHistory(userData: string): StoredRecord[] {
         }));
       const heard = (db.prepare("select s.text as text, s.start_ms as startMs, s.end_ms as endMs, s.time_kind as timeKind from sentences s join transcripts t on t.id = s.transcript_id where t.record_id = ? and t.text_kind = 'original' order by t.id, s.start_ms").all(id) as Record<string, unknown>[])
         .map((row) => ({ text: String(row.text), startMs: Number(row.startMs), endMs: Number(row.endMs), timeKind: String(row.timeKind) }));
-      return { id, state: String(record.state), services: String(record.services), sentences, tracks, segments, heard };
+      return { id, startedAt: Number(record.started_at), state: String(record.state), services: String(record.services), sentences, tracks, segments, heard };
     });
   } finally {
     db.close();

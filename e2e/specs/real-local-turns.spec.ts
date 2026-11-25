@@ -206,21 +206,24 @@ for (let run = 1; run <= RUNS; run++) {
       expect(segment.openedAt).toBeLessThan(runEndedAt + 5 * 60_000);
     }
 
+    // The spans are in ms from the record's start, which is when the session began starting; the clips begin once the
+    // recognizer has loaded. Exported boundaries are measured from the run's start, so load time never shifts them.
+    const loadMs = runStartedAt - fresh[0].startedAt;
     const sources = segments.filter((segment) => segment.side === 'source');
     const heardText = sources.map((segment) => segment.text).join('\n');
     const saidText = segments.filter((segment) => segment.side === 'translation').map((segment) => segment.text).join('\n');
     const sentences: Measured[] = SENTENCES.map((sentence, i) => {
       // The first source segment that carries the sentence's word and opened once its clip had begun.
       const segment = sources.find((candidate) => candidate.openedAt >= clipStartedAt[i] && sentence.heard.test(candidate.text));
-      const spoken = fresh[0].heard.find((candidate) => candidate.startMs >= clipStartedAt[i] - runStartedAt - 3000 && sentence.heard.test(candidate.text));
+      const spoken = fresh[0].heard.find((candidate) => candidate.startMs - loadMs >= clipStartedAt[i] - runStartedAt - 3000 && sentence.heard.test(candidate.text));
       return {
         file: sentence.file,
         heard: sentence.heard.test(heardText),
         translated: sentence.said.test(saidText),
         // The turn boundaries are the sentence the session cut for this clip (a local recognizer's segments carry no timing).
         // Only a span the audio gave (`given`) is a boundary; one estimated from where the sentence arrived is not.
-        startMs: spoken?.timeKind === 'given' ? spoken.startMs : null,
-        endMs: spoken?.timeKind === 'given' ? spoken.endMs : null,
+        startMs: spoken?.timeKind === 'given' ? spoken.startMs - loadMs : null,
+        endMs: spoken?.timeKind === 'given' ? spoken.endMs - loadMs : null,
         latencyMs: segment ? segment.openedAt - clipEndedAt[i] : null,
       };
     });
