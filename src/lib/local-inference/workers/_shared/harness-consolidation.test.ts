@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { DETECTOR_WORKER_TYPES } from '../../../turn/turnDetection';
 
 // Every transformers.js worker must route through the shared harness — no
 // re-inlined createBlobUrlCache, no hand-written env block. Guards against drift.
@@ -37,19 +38,16 @@ describe('worker harness consolidation', () => {
 });
 
 // The shared harness (initTransformersEnv) does not manage ortEnv.wasm.wasmPaths
-// for the VAD InferenceSession — each ASR worker must keep setting it directly.
-// A future edit could drop this silently since the guard above wouldn't catch it.
-const ASR_WORKERS = [
-  'whisper-webgpu.worker.ts',
-  'cohere-transcribe-webgpu.worker.ts',
-  'voxtral-3b-webgpu.worker.ts',
-  'voxtral-webgpu.worker.ts',
-  'granite-speech-webgpu.worker.ts',
-  'qwen3-asr-webgpu.worker.ts',
+// for the VAD InferenceSession — each worker that still runs a Silero session must keep
+// setting it directly. A future edit could drop this silently since the guard above
+// wouldn't catch it. Only the turn detector's worker runs a Silero session now (every recognizer
+// takes its turns from it); the old Local Native client's native-vad worker is the old path's.
+const SILERO_WORKERS = [
+  'turn-detector.worker.ts',
 ];
 
-describe('ASR worker ortEnv wasmPaths', () => {
-  it.each(ASR_WORKERS)('%s still sets ortEnv.wasm.wasmPaths', (name) => {
+describe('Silero worker ortEnv wasmPaths', () => {
+  it.each(SILERO_WORKERS)('%s still sets ortEnv.wasm.wasmPaths', (name) => {
     const src = read(name);
     expect(src, `${name} no longer assigns ortEnv.wasm.wasmPaths`).toMatch(/ortEnv\.wasm\.wasmPaths\s*=/);
   });
@@ -59,7 +57,7 @@ describe('ASR worker ortEnv wasmPaths', () => {
   // alone wouldn't catch a regression that moves it after the initVad() call.
   // Anchor on the call site (`await initVad(`), not the top-level `async function
   // initVad(` definition.
-  it.each(ASR_WORKERS)('%s sets ortEnv.wasm.wasmPaths before the initVad() call', (name) => {
+  it.each(SILERO_WORKERS)('%s sets ortEnv.wasm.wasmPaths before the initVad() call', (name) => {
     const src = read(name);
     const assignIdx = src.search(/ortEnv\.wasm\.wasmPaths\s*=/);
     const vadCallIdx = src.indexOf('await initVad(');
@@ -69,52 +67,26 @@ describe('ASR worker ortEnv wasmPaths', () => {
   });
 });
 
-// PTT / Push-to-Translate release finalizes the current utterance by posting
-// {type:'flush'} (MainPanel.createResponse → AsrEngine.flush → session.post).
-// The trailing silence tail fed on release (~700ms) is shorter than the default
-// VAD redemption window (vadMinSilenceDuration 1.4s → 1400ms), so silence alone
-// can NEVER close the segment — the worker MUST honor the flush message. A worker
-// that silently drops 'flush' leaks the pending utterance into the next press,
-// surfacing it one utterance late (the original whisper-webgpu regression: no
-// 'flush' case at all).
-//
-// Guard the ROUTING chain — 'flush' must reach a defined handleFlush() — rather
-// than any specific finalization mechanism: workers finalize differently
-// (frameProcessor.endSegment for VAD-segmented ASR, stopGenerate for the streaming
-// generate-loop voxtral worker), so asserting `endSegment` in the flush path would
-// wrongly fail voxtral-webgpu. `endSegment` also appears in every worker's dispose
-// path, so an "endSegment appears somewhere" assertion is a false positive.
-describe('ASR worker flush handling (PTT finalization)', () => {
-  it.each(ASR_WORKERS)('%s routes the flush message to a defined handleFlush()', (name) => {
+// PTT / Push-to-Translate release: no recognizer worker takes a `flush` message any more. The detector turns the
+// release into a segment (a drained press) or a mark (`end`), and the worker decodes or finalizes what it is sent.
+const NO_FLUSH_WORKERS = ['voxtral-webgpu.worker.ts', 'whisper-webgpu.worker.ts', 'cohere-transcribe-webgpu.worker.ts', 'granite-speech-webgpu.worker.ts', 'qwen3-asr-webgpu.worker.ts', 'voxtral-3b-webgpu.worker.ts'];
+
+describe('ASR workers take no flush message', () => {
+  it.each(NO_FLUSH_WORKERS)('%s has no flush case and no handleFlush()', (name) => {
     const src = read(name);
-    expect(src, `${name}: message router drops 'flush' instead of routing it to handleFlush()`)
-      .toMatch(/case\s+['"]flush['"]\s*:\s*(?:await\s+)?handleFlush\(/);
-    expect(src, `${name}: router calls handleFlush() but the function is never defined`)
-      .toMatch(/(?:async\s+)?function\s+handleFlush\b/);
+    expect(src, `${name}: still routes 'flush'`).not.toMatch(/case\s+['"]flush['"]/);
+    expect(src, `${name}: still defines handleFlush()`).not.toMatch(/function\s+handleFlush\b/);
   });
 });
 
-// #470: an ASR worker must never `await` its model decode from inside feedAudio. Awaiting
-// there holds `processingVad` for the whole decode (0.5–2.5 s on the fleet GPUs), and the guard
-// at the top of feedAudio then drops every audio message arriving meanwhile — on gapless audio
-// that is the first words of the next utterance, and on the 20 s max-speech cap it is words at
-// every boundary. Decodes are fire-and-forget (`void schedule(...)`) on SpeechEnd, on the cap
-// and on flush, serialized behind a worker-local promise that handleFlush drains. voxtral-3b
-// and qwen3-asr established the pattern (#469); whisper, cohere and granite adopted it in #497.
-//
-// Each path gets a positive AND a negative assertion on its own slice, with every anchor
-// required to exist: the first version of this guard anchored the cap slice on a comment that
-// in whisper first appears on the `maxSpeechFrames` declaration and used a section header
-// cohere does not have, so `indexOf` widened the slice until it contained a sibling's `void`
-// and the cap-path assertion passed vacuously for two of the three workers.
-const NON_BLOCKING_DECODE_WORKERS = [
-  ['whisper-webgpu.worker.ts', 'scheduleWhisper', 'pendingWhisperDecode'],
-  ['cohere-transcribe-webgpu.worker.ts', 'scheduleTranscription', 'currentTranscriptionPromise'],
-  ['granite-speech-webgpu.worker.ts', 'scheduleGraniteInference', 'pendingGraniteDecode'],
-  ['qwen3-asr-webgpu.worker.ts', 'transcribe', 'currentDecodePromise'],
-  ['voxtral-3b-webgpu.worker.ts', 'runVoxtral3B', 'currentDecodePromise'],
-] as const;
-
+// #470: an ASR worker must never `await` its model decode from inside the audio handler. Awaiting
+// there held `processingVad` for the whole decode (0.5–2.5 s on the fleet GPUs), and the guard at
+// the top of feedAudio then dropped every audio message arriving meanwhile — on gapless audio that
+// was the first words of the next utterance, and on the 20 s max-speech cap it was words at every
+// boundary. The five detector-type workers now take no audio at all: the detector worker cuts the
+// turns, and each recognizer decodes the segments that arrive on its port through SegmentInbox,
+// which runs them one at a time in arrival order. So the guard is structural: no audio handler to
+// block, no `processingVad` to hold.
 /**
  * `src.slice(from, to)` with both anchors required, in order. A missing anchor must fail the
  * test loudly — `indexOf` returning -1 silently turns a slice into "the rest of the file".
@@ -128,24 +100,20 @@ function sliceBetween(src: string, name: string, from: string, to: string): stri
   return src.slice(a, b);
 }
 
-describe('ASR worker VAD decode handoff (#470)', () => {
-  it.each(NON_BLOCKING_DECODE_WORKERS)('%s fires %s without awaiting it on every segment-closing path', (name, schedule, pending) => {
+// sherpa-onnx's worker (a classic script) and Voxtral 4B's (audio and marks) are covered by workers/turnDetection.consistency.test.ts.
+const OWN_SCRIPT = new Set<string>(['sherpa-onnx', 'voxtral-webgpu']);
+const DETECTOR_WORKERS = DETECTOR_WORKER_TYPES.filter((type) => !OWN_SCRIPT.has(type)).map((type) => `${type}.worker.ts`);
+
+describe('each detector-type worker decodes through SegmentInbox, never from an audio handler (#470)', () => {
+  it('lists the five', () => {
+    expect(DETECTOR_WORKERS).toHaveLength(5);
+  });
+
+  it.each(DETECTOR_WORKERS)('%s', (name) => {
     const src = read(name);
-    const paths: Array<[string, string]> = [
-      ['SpeechEnd', sliceBetween(src, name, 'case Message.SpeechEnd:', 'case Message.VADMisfire:')],
-      ['max-speech cap', sliceBetween(src, name, 'speechFramesSinceStart >= maxSpeechFrames', 'speechFramesSinceStart = 0;')],
-      ['flush', sliceBetween(src, name, 'async function handleFlush', 'async function handleDispose')],
-      ['Smart Turn', sliceBetween(src, name, 'turnLink?.afterFrame(', '// Max speech duration cap')],
-    ];
-    const voidCall = new RegExp(`\\bvoid\\s+${schedule}\\(`);
-    const awaitCall = new RegExp(`\\bawait\\s+${schedule}\\(`);
-    for (const [label, slice] of paths) {
-      expect(slice, `${name}: the ${label} path must fire-and-forget ${schedule}()`).toMatch(voidCall);
-      expect(slice, `${name}: the ${label} path must not await ${schedule}() (holds processingVad, drops audio)`).not.toMatch(awaitCall);
-    }
-    const [, flush] = paths[2];
-    expect(flush, `${name}: handleFlush must drain ${pending} so PTT release resolves after the utterance's text is posted`)
-      .toMatch(new RegExp(`await\\s+${pending}\\b`));
+    expect(src, `${name}: decodes must arrive through the segment inbox`).toMatch(/new SegmentInbox\(/);
+    expect(src, `${name}: must not take audio, so no handler can await a decode`).not.toMatch(/case\s+['"]audio['"]/);
+    expect(src, `${name}: must not hold a processingVad guard`).not.toMatch(/processingVad/);
   });
 });
 
@@ -160,7 +128,7 @@ describe('ASR worker VAD decode handoff (#470)', () => {
 describe('ASR worker decode body holds its model in a local', () => {
   it('granite-speech-webgpu.worker.ts never dereferences the module globals after capturing them', () => {
     const src = read('granite-speech-webgpu.worker.ts');
-    const body = sliceBetween(src, 'granite', 'async function runGraniteInferenceSegment', '// ─── Audio Feed Pipeline');
+    const body = sliceBetween(src, 'granite', 'async function runGraniteInferenceSegment', '// ─── Message Handlers');
     expect(body, 'capture `model` into a local before the first await').toMatch(/= model;/);
     expect(body, 'capture `processor` into a local before the first await').toMatch(/= processor;/);
     // Presence is not enough: a capture placed after the first awaited call would reintroduce

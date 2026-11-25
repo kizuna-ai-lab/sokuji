@@ -15,6 +15,7 @@ import { localTranscriptionStagesOf } from '../../lib/lineup/localStages';
 import { TR } from '../../lib/lineup/types';
 import { sameStages } from '../../lib/plan/types';
 import type { ProviderRefusal, UnitDefinition } from '../../lib/run/types';
+import { TURN_DETECTION_DEFAULTS } from '../../lib/turn/turnDetectionSettings';
 import { createLocalInferenceAdapter, type LocalCredentials } from './adapter';
 import { fitsBudget, localModelsOf, localRecognition, noAsr, resolveLocal, type LocalInferenceConfig } from './config';
 import { defaultEngines, type LocalEngines } from './engines';
@@ -43,7 +44,7 @@ export function buildLocalTranscription(
 ): LocalInferenceConfig | ProviderRefusal {
   const resolved = resolveLocal(context.direction, s, localTranscriptionStagesOf(shared.lineUp ?? null), localModelsOf(shared));
   if (!resolved.asr) return noAsr(context.direction.source);
-  return { ...localRecognition(s, resolved.asr.modelId), translation: { kind: 'none' }, transcribesAlone: true };
+  return { ...localRecognition(shared.turnDetection ?? TURN_DETECTION_DEFAULTS, resolved.asr.modelId, { language: context.direction.source, task: 'transcribe' }), translation: { kind: 'none' }, transcribesAlone: true };
 }
 
 /**
@@ -70,7 +71,6 @@ export function createLocalTranscriptionUnit(deps: LocalTranscriptionUnitDeps = 
     capabilities: () => ({
       speech: 'never',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'provider',
       textInput: true,
       // The whole local session has none either: one connection per leg, and each leg's translation is its own.

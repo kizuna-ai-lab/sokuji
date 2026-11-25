@@ -28,6 +28,7 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import { useRoutingStore } from '../../stores/routingStore';
 import { getEnvironment } from '../../utils/environment';
 import { buildSharedSettings } from './shared';
+import { useTurnDetectionStore } from '../../stores/turnDetectionStore';
 import { gate, participantSpeechInput, planRefusalFor, speakFor, type GateInput, type Refusal, type Speaking, type SpeechInputs } from './shape';
 import type { RunShape } from './types';
 
@@ -228,6 +229,7 @@ export function readShapeFromStores(auth: AuthContext): RunShape | null {
       { mode: st.segmentationMode, sentencesPerRow: st.sentenceSegmentationChunkSentences },
       faceToFace,
       { entries: useWordList.getState().entries, background: useWordList.getState().background },
+      useTurnDetectionStore.getState().settings,
     ),
     auth,
     account,

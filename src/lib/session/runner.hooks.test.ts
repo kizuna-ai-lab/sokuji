@@ -16,6 +16,7 @@ import { createFakeSource, type FakeSource } from '../../providers/fake/source';
 import { FAKE_DEFAULTS } from '../../providers/fake/settings';
 import { DEGRADED_DEDUPE_MS } from '../conversation/Conversation';
 import { fakeLocalModels } from '../local-inference/selection/localModels.testing';
+import { fakeNativeModels } from '../local-inference/native/nativeModels.testing';
 import type { FramePort, RunnerDeps } from './ports';
 import { createRunner } from './runner';
 import { SourceOpenError, type Source } from './source';
@@ -119,6 +120,15 @@ describe('runner — admit', () => {
     const models = fakeLocalModels();
     await setup(withHooks({ admit }), ['speaker', 'participant'], undefined, undefined, undefined, { localModels: models }).runner.start();
     expect(admit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ models: [], localModels: models }));
+  });
+
+  it("hands every builder and admit this device's native models", async () => {
+    const admit = vi.fn(() => true as const);
+    const build = vi.fn(buildFake);
+    const native = fakeNativeModels();
+    await setup(withHooks({ admit }, { build }), ['speaker'], undefined, undefined, undefined, { nativeModels: native }).runner.start();
+    expect(build.mock.calls[0][2].nativeModels).toBe(native);
+    expect(admit).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ nativeModels: native }));
   });
 
   it("hands every builder this device's local models, and none when the runner has none", async () => {

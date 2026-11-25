@@ -70,7 +70,7 @@ describe("Soniox's speech unit", () => {
   });
 
   it('says what the voice can do; whether the participant speaks is its definition\'s to say', () => {
-    const can = { speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: false, faceToFace: true, speaks: sonioxSpeaks };
+    const can = { speech: 'optional', turns: ['auto', 'manual'], boundaries: 'provider', textInput: false, faceToFace: true, speaks: sonioxSpeaks };
     expect(sonioxTtsUnit.capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: true });
     expect(sonioxTtsUnitFor({ participantSpeech: true }).capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: true });
     expect(sonioxTtsUnitFor({ participantSpeech: false }).capabilities(SONIOX_DEFAULTS)).toEqual({ ...can, participantSpeech: false });

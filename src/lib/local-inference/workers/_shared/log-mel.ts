@@ -26,6 +26,8 @@ export interface LogMel {
 const N_FFT = 400;
 const HOP = 160;
 const N_FREQS = N_FFT / 2 + 1; // 201
+/** The mel's reflect padding is half a window on each side: an input of this many samples or fewer reads past its edges and yields NaN. */
+export const MIN_MEL_INPUT_SAMPLES = N_FFT / 2;
 
 let tables: { cos: Float32Array; sin: Float32Array; window: Float32Array } | null = null;
 

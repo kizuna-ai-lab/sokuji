@@ -8,7 +8,7 @@ Worktree directory: `.claude/worktrees/` (gitignored)
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar's engine, runs on the same provider structure, flagged while it is tested.
 
 ## Development Commands
 
@@ -99,14 +99,20 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      that only a pick writes (each provider shows it within what it offers); a load never writes
    - The runner (`src/lib/session/`, `src/app/`) runs the legs; L1
      (`src/lib/conversation/Conversation.ts`) folds each leg's events into segments
-   - Local Native is the exception until kizuna-ai-lab/sokuji#578: `LocalNativeClient`
-     implements the old `IClient` (`src/services/interfaces/IClient.ts`), registered as
-     `LocalNativeProviderConfig` in `ProviderConfigFactory`, built through `ClientFactory`;
-     `src/providers/oldPath.consistency.test.ts` keeps every other file off that path.
-     Its folders (`src/services/{clients,providers,interfaces}/`) also hold four shared
-     leaves the new code takes — `ProviderConfig` (`LanguageOption`, `VoiceOption`),
-     `astGuard`, `tutorialUrls` and `ISettingsService`, the guard's `SHARED` set — which
-     stay or move when #578 lands; they are not Local Native's to delete
+   - Local Native (`src/providers/local_native/`) runs on this structure: flagged, Electron
+     only, offered by its tester switch `debug:local-native` or `VITE_ENABLED_PROVIDERS=local_native`.
+     Like LocalInference it has four units (its whole session, its recognition, its
+     translation, its voice), so any stage of it combines with another provider's. It reads
+     this device's native facts through `NativeModels` (`src/stores/nativeModels.ts`), handed
+     to its builders, its admit and its check as LocalInference's models are. Its old path —
+     `LocalNativeClient` on the old `IClient` (`src/services/interfaces/IClient.ts`),
+     `LocalNativeProviderConfig` in `ProviderConfigFactory`, `ClientFactory` — stays compiled
+     and unreachable until the owner's live test, then is deleted (until then
+     kizuna-ai-lab/sokuji#578); `src/providers/oldPath.consistency.test.ts` keeps every other
+     file off it. Its folders (`src/services/{clients,providers,interfaces}/`) also hold four
+     shared leaves the new code takes — `ProviderConfig` (`LanguageOption`, `VoiceOption`),
+     `astGuard`, `tutorialUrls` and `ISettingsService`, the guard's `SHARED` set — which stay
+     or move when the old path is deleted; they are not Local Native's to delete
 
 3. **Audio Processing Pipeline**
    ```
@@ -252,6 +258,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      install-order race in the sidecar's native-backend singleton (last `load()` wins); every
      sidecar bundle built before `sidecar-v0.2.0` shipped hollow — no `sokuji_native` wheel
      installed inside at all.
+   - **Renderer clients** (`src/lib/local-inference/native/`): `SidecarConnection` and
+     `NativeTtsClient` take a clock; Local Native's seams (`src/providers/local_native/engines.ts`)
+     hand them the run's, so every timeout of a session runs on the request's clock.
 
 7. **LAN caption sharing** (spec: `docs/superpowers/specs/2026-10-04-lan-caption-sharing-design.md`)
    - Desktop only. `src/lib/share/publisher.ts` mirrors the conversation view (reset by
@@ -295,9 +304,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 - `src/lib/contract/`, `src/lib/provider/`, `src/lib/session/` - The client contract, the
   definition's types, the runner
 - `src/services/` - The settings service; Local Native's old client and descriptor
-  (`clients/`, `providers/`, `interfaces/`) until kizuna-ai-lab/sokuji#578, beside four
-  shared leaves the new code takes (`ProviderConfig`, `astGuard`, `tutorialUrls`,
-  `ISettingsService`), which stay or move when #578 lands
+  (`clients/`, `providers/`, `interfaces/`), compiled and unreachable until kizuna-ai-lab/sokuji#578's
+  live test, beside four shared leaves the new code takes (`ProviderConfig`, `astGuard`,
+  `tutorialUrls`, `ISettingsService`), which stay or move when the old path is deleted
 - `src/lib/audio/` - The runner's sources (`capture/`) and the page's playback
 - `src/lib/modern-audio/` - The recorders (`ModernAudioRecorder`, the participant recorders)
   and the echo monitor
@@ -356,8 +365,8 @@ reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.mi
   `src/providers/sessionSide.consistency.test.ts` holds every adapter's session side
   off the stores and the reporter, and its timers on the request's clock;
   `src/lib/diagnostics/consoleLedger.consistency.test.ts` holds `src/providers` to no
-  `console.error` / `console.warn`. Local Native's old `IClient` (until
-  kizuna-ai-lab/sokuji#578) keeps the same rule through `handlers.onError`,
+  `console.error` / `console.warn`. Local Native's old `IClient`, unreachable and kept
+  until kizuna-ai-lab/sokuji#578's live test, keeps the same rule through `handlers.onError`,
   `handlers.onDiagnostic` and `handlers.onRealtimeEvent`.
 - **Hot paths** (per-audio-chunk, per-frame, per-poll-tick) never log per
   occurrence: return silently, or report the ok → failing transition. Bursts pass
@@ -445,12 +454,12 @@ useSettingsStore.subscribe(
 - `VITE_ENABLED_PROVIDERS`: the comma-separated ids of the `flagged` providers a release
   offers (`enabledProviderIds` in `src/utils/environment.ts`, read by `isPresent`);
   development builds offer every flagged provider regardless, and a definition's tester
-  switch offers it on one device. No provider is flagged today
-- `VITE_ENABLE_LOCAL_NATIVE`: Register the Local Native (Electron sidecar) provider in
-  production builds; unset in releases. Temporary run-time alternative for testers on a
-  packaged Electron build: DevTools → `localStorage.setItem('debug:local-native', '1')` →
-  restart; `localStorage.removeItem('debug:local-native')` + restart hides it again. Remove the
-  switch with the gate when Local Native ships.
+  switch offers it on one device. Local Native (`local_native`) is flagged today: on a
+  packaged Electron build its tester switch is DevTools →
+  `localStorage.setItem('debug:local-native', '1')` → restart;
+  `localStorage.removeItem('debug:local-native')` + restart hides it again
+- `VITE_ENABLE_LOCAL_NATIVE`: gates only Local Native's old path (its descriptor in
+  `ProviderConfigFactory`); unset in releases. It goes with the old path.
 - Environment detection via `src/utils/environment.ts`
 
 ### TypeScript Configuration
@@ -510,9 +519,9 @@ What the spec's "What adding a provider then touches" lists
 4. The extension manifest, when it uses a host the manifest does not list yet: MV3
    declares hosts statically (`host_permissions`, and the CSP's `connect-src`).
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
-`registry.test.ts`'s invariants fail loudly on anything missed. Local Native is the
-exception until kizuna-ai-lab/sokuji#578: it still runs the old path (`src/services/`,
-`ProviderConfigFactory`).
+`registry.test.ts`'s invariants fail loudly on anything missed. Local Native is registered
+here like every other provider; only its old path (`src/services/`, `ProviderConfigFactory`)
+waits for deletion after kizuna-ai-lab/sokuji#578's live test.
 
 ### Adding a native model or TTS family
 

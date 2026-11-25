@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ALL_STAGES, SP, TL, TR, TR_TL } from '../lib/lineup/types';
 import { sonioxProvider } from './soniox/provider';
+import { localNativeProvider } from './local_native/provider';
 import { kizunaSonioxProvider } from './soniox/kizuna';
 import { geminiProvider } from './gemini/provider';
 import { openaiProvider } from './openai/provider';
@@ -39,6 +40,7 @@ const CASES: Array<[string, { settingsStages?: readonly (readonly unknown[])[] }
   ['edge', edgeProvider, src('providers/edge/EdgeSettings.tsx')],
   // The local engine's slots are transcription, translation and speech; its settings add to them.
   ['local_inference', localInferenceProvider, src('providers/localInference/LocalInferenceSettings.tsx') + '<StagePart stages={TR}><StagePart stages={TL}><StagePart stages={SP}>'],
+  ['local_native', localNativeProvider, src('providers/local_native/LocalNativeSettings.tsx') + '<StagePart stages={TR}><StagePart stages={TL}><StagePart stages={SP}>'],
 ];
 
 describe('settingsStages', () => {

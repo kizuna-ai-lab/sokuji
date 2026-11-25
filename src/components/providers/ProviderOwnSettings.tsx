@@ -112,6 +112,7 @@ export function ProviderEngine({ providers, disabled, initialSlot, onInitialSlot
       speakerSpeaks={speakerSpeaks}
       initialSlot={initialSlot}
       onInitialSlotConsumed={onInitialSlotConsumed}
+      preview={appVoicePreview}
     />
   );
 }

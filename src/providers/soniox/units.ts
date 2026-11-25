@@ -38,7 +38,6 @@ export function sonioxSttUnitFor({ start, participantSpeech }: SonioxSttUnitPart
     capabilities: () => ({
       speech: 'never',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'provider',
       textInput: false,
       faceToFace: true,
@@ -67,7 +66,6 @@ export function sonioxTranscriptionUnitFor({ start, participantSpeech }: SonioxS
     capabilities: () => ({
       speech: 'never',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'provider',
       textInput: false,
       faceToFace: false,

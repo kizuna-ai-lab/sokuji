@@ -6,7 +6,7 @@ import { countSkeleton } from '../../lib/segmentation/sealCursor';
 
 // Worker is not available in jsdom — stub the module that creates it. Tests
 // that need a real (fake) worker instance inject one via deps.vadWorker instead.
-vi.mock('./createNativeVadWorker', () => ({ createNativeVadWorker: () => null }));
+vi.mock('../../lib/local-inference/native/createNativeVadWorker', () => ({ createNativeVadWorker: () => null }));
 
 const LOCAL_NATIVE_CONFIG: any = {
   provider: 'local_native', model: 'native', sourceLanguage: 'es', targetLanguage: 'en',

@@ -58,7 +58,6 @@ export function createLocalSpeechUnit(deps: LocalSpeechUnitDeps = {}): LocalSpee
       // Whether a leg is read aloud is the user's switch to say, as it is for the local provider as a whole.
       speech: 'optional',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'silence',
       textInput: false,
       faceToFace: true,

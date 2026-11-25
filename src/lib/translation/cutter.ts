@@ -6,7 +6,7 @@
 // while the source is open, and the rest when the source closes. Pure state
 // per origin; no model, no timer.
 //
-// It stands beside local inference's `SentenceCut`, and shares the sentence
+// It stands beside `SentenceCut` (`src/lib/segmentation/sentenceCut.ts`), and shares the sentence
 // rule with it (`sentenceEnds`). `SentenceCut` cuts a recognizer's own
 // hypotheses, which are rewritten as they grow, with a punctuation model and
 // a cursor counted in letters; and its cuts are the source rows. This cutter

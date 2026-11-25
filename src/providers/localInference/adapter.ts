@@ -15,15 +15,18 @@ import { framePayload } from '../../lib/contract/framePayload';
 import { fillIn, type Punctuator } from '../../lib/conversation/fillIn';
 import type { ClientDiagnosticCode } from '../../lib/diagnostics/clientDiagnostics';
 import { describeCause } from '../../lib/diagnostics/describeCause';
+import { TurnDetectorError } from '../../lib/local-inference/engine/TurnDetector';
+import type { AsrPartialTag } from '../../lib/local-inference/engine/AsrEngine';
 import type { TranslationResult } from '../../lib/local-inference/engine/TranslationEngine';
+import { INITIAL_EPOCH, type TurnFailureCode } from '../../lib/local-inference/workers/_shared/turn-detector-protocol';
 import { countSkeleton } from '../../lib/segmentation/sealCursor';
 import { gateChars, type SealedChunk } from '../../lib/segmentation/SentenceStream';
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 import { GPU_OUT_OF_MEMORY, humanizeTranslationError, isDeviceLost, isGpuOutOfMemory } from '../../lib/local-inference/sessions/errors';
 import type { TranslationLike, TtsLike, TtsReady } from '../../lib/local-inference/sessions/engines';
-import { defaultEngines, type AsrInit, type AsrLike, type AsrResult, type LocalEngines } from './engines';
-import { SentenceCut, runtimeOver } from './sentenceCut';
+import { defaultEngines, type AsrInit, type AsrLike, type AsrResult, type LocalEngines, type TurnDetectorLike } from './engines';
+import { SentenceCut, runtimeOver } from '../../lib/segmentation/sentenceCut';
 import { speakTranslation, ttsLoadFailed, ttsMissing, ttsStopped, voiceFallback } from '../../lib/local-inference/sessions/speech';
 import type { LocalInferenceConfig, TtsUnavailableCode } from './config';
 
@@ -53,13 +56,19 @@ interface Job {
 }
 
 /**
- * A manual turn's release: 700 ms of silence at 24 kHz, then a flush. One buffer, not seven: a worker drops audio that
- * arrives while its VAD is still busy with the last buffer, and a burst of seven would lose most of them — leaving the
- * audio it counted behind what `fed` counted, and every later result's time early.
+ * An own leg's manual turn release: 700 ms of silence at 24 kHz, then a flush. One buffer, not seven, so what `fed`
+ * counted is what the worker was given. Only a streaming sherpa model is an `own` leg now, and its own endpointing
+ * needs the trailing silence to close the turn; a shared leg's release is a drain of the turn detector.
  */
 const FLUSH_SAMPLES = (SAMPLE_RATE * 7) / 10;
 
-/** The recognizers count the audio they were fed at their VAD's 16 kHz: a result's `startSample` is in those samples. */
+/** How long a drain may wait for the recognizer's answer before a frame says it timed out; nothing waits on it. */
+const DRAIN_TIMEOUT_MS = 60_000;
+
+/** A manual turn's drain, until the recognizer says it decoded or dropped everything the press sent. */
+interface PendingDrain { press: number; since: number; timedOut: boolean; cancelTimer: () => void }
+
+/** The recognizers count the audio at the detector's (or, on an own leg, their VAD's) 16 kHz timeline: a result's `startSample` is in those samples. */
 const ASR_SAMPLE_RATE = 16000;
 
 const CJK_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
@@ -134,6 +143,10 @@ class LocalSession implements AdapterSession {
 
   private readonly config: LocalInferenceConfig;
   private readonly asr: AsrLike;
+  /** The turn detector of a leg whose recognizer takes our turn detection (`shared`); null for an `own` leg. */
+  private readonly detector: TurnDetectorLike | null;
+  /** `shared`: the leg's turns are cut by the detector and the recognizer decodes its segments. */
+  private readonly shared: boolean;
   private readonly translation: TranslationLike | null;
   private tts: TtsLike | null;
   private readonly connectTurn: LocalEngines['turn'];
@@ -174,6 +187,14 @@ class LocalSession implements AdapterSession {
   private readonly fed: SentClock;
   /** The stream shape: the utterance whose final is being sealed, so each chunk it seals is given its part of the span. */
   private sealing: HeardSpan | null = null;
+  /** Raised by `stop()`: a result of another epoch belongs to a run that is over. */
+  private epoch = INITIAL_EPOCH;
+  /** The last manual press begun; the detector and the recognizer tag a result with the press it came from. */
+  private presses = 0;
+  /** The presses the user cancelled: nothing of theirs is published after the cancel. */
+  private readonly cancelled = new Set<number>();
+  /** The drains asked and not yet answered, oldest first: the recognizer answers them in the order they were sent. */
+  private readonly drains: PendingDrain[] = [];
 
   constructor(
     private readonly request: StartRequest<LocalInferenceConfig, LocalCredentials>,
@@ -183,6 +204,8 @@ class LocalSession implements AdapterSession {
     this.config = request.config;
     this.fed = createSentClock(request.clock);
     this.asr = engines.asr(this.config.asr);
+    this.shared = this.config.asr.turnDetection === 'shared';
+    this.detector = this.shared ? engines.detector?.() ?? null : null;
     this.connectTurn = engines.turn;
     this.translation = this.config.translation.kind === 'engine' ? engines.translation() : null;
     this.tts = this.config.tts ? engines.tts() : null;
@@ -211,27 +234,28 @@ class LocalSession implements AdapterSession {
     const { source, target } = request.context.direction;
     const inits: Array<{ stage: Stage; model: string; load: () => Promise<unknown>; dispose: () => void; loaded: (result: unknown) => void }> = [];
 
+    // A shared leg needs its detector: without one there is no way to cut its turns.
+    if (this.shared && !this.detector) {
+      this.ended = true;
+      this.disposeEngines();
+      return Promise.reject(new Error('This build has no turn detector for a recognizer that takes one.'));
+    }
+
     inits.push({
       stage: 'asr',
       model: config.asr.modelId,
       load: () => {
         const options: AsrInit = {
-          vadConfig: config.vad,
           language: source,
           translateTo: config.translation.kind === 'ast' ? target : undefined,
           // Exactly one layer may cut (ruling 10): the worker's own sentence endpoint stays on unless the stream shape seals.
           punctuationEndpoint: this.cut === null,
         };
-        // Under manual turns the held key ends the turn.
-        if (!config.vad.smartTurn || request.context.turns !== 'auto' || !this.connectTurn) {
-          return this.asr.init(config.asr.modelId, options);
-        }
-        return this.openTurn(this.connectTurn).then((turnPort) => {
-          if (this.ended) throw new Error('ended');
-          return this.asr.init(config.asr.modelId, turnPort ? { ...options, turnPort } : options);
-        });
+        // An own recognizer (a streaming sherpa model) cuts its own turns with its own endpointing: it reads no turn detection settings, and no Smart Turn port is opened.
+        if (!this.detector) return this.asr.init(config.asr.modelId, options);
+        return this.loadShared(this.detector, options);
       },
-      dispose: () => this.asr.dispose(),
+      dispose: () => { this.asr.dispose(); this.detector?.dispose(); },
       loaded: () => this.listenToAsr(),
     });
     const { translation } = this;
@@ -325,6 +349,8 @@ class LocalSession implements AdapterSession {
               settled(init.stage);
               return;
             }
+            // The turn detector's own refusal (Silero did not load) already says what it is.
+            if (error instanceof AdapterStartError) { fail(error); return; }
             if (isGpuOutOfMemory(message)) {
               fail(new AdapterStartError(GPU_OUT_OF_MEMORY, 'gpu_out_of_memory', undefined, { cause: error }));
               return;
@@ -373,6 +399,11 @@ class LocalSession implements AdapterSession {
   appendAudio(pcm: Int16Array): void {
     if (this.ended) return;
     // The engine transfers the buffer to its worker, and the runner hands this same array to others.
+    if (this.detector) {
+      this.fed.sent(pcm.length, SAMPLE_RATE);
+      this.detector.feedAudio(pcm.slice());
+      return;
+    }
     this.feedAsr(pcm.slice());
   }
 
@@ -407,10 +438,54 @@ class LocalSession implements AdapterSession {
     this.asr.feedAudio(pcm, SAMPLE_RATE);
   }
 
-  beginTurn(): void {}
-  /** No worker can discard a VAD segment or acknowledge a flush (ruling 5): both end a turn the same way. */
-  endTurn(): void { this.flushTurn(); }
-  cancelTurn(): void { this.flushTurn(); }
+  /** A shared leg numbers the press and tells the detector, which cuts the held key's audio. An own leg's worker has no press to begin. */
+  beginTurn(): void {
+    if (this.ended || !this.detector) return;
+    this.detector.begin(++this.presses);
+  }
+
+  /**
+   * A shared leg's release is a drain: the detector emits what the press holds and a mark, and the recognizer answers
+   * the mark once it has decoded it all. Its result is published whenever it comes, even after the next press began.
+   * An own leg's worker can neither discard a VAD segment nor acknowledge a flush (ruling 5): it flushes.
+   */
+  endTurn(): void {
+    if (this.ended) return;
+    if (!this.detector) { this.flushTurn(); return; }
+    this.drainPress(this.presses, this.detector);
+  }
+
+  /** A shared leg's cancelled press publishes nothing more; what its partials showed before stays. An own leg's worker cannot discard: it flushes. */
+  cancelTurn(): void {
+    if (this.ended) return;
+    if (!this.detector) { this.flushTurn(); return; }
+    this.cancelled.add(this.presses);
+    this.detector.cancel(this.presses);
+  }
+
+  /** Asks the detector to drain `press`, and waits for the recognizer's answer only in a log: nothing blocks on it. */
+  private drainPress(press: number, detector: TurnDetectorLike): void {
+    // A recognizer taking audio and marks has nothing to answer: its `end` mark is the release, and it decodes on its own clock.
+    if (this.config.asr.streaming) { detector.drain(press); return; }
+    const { clock } = this.request;
+    const pending: PendingDrain = { press, since: clock.now(), timedOut: false, cancelTimer: () => {} };
+    pending.cancelTimer = clock.setTimeout(() => {
+      // Kept in the queue: the answer, late, is still this press's, and the next answers are the next presses'.
+      pending.timedOut = true;
+      this.frame('in', 'local.turn.drain_timeout', { press });
+    }, DRAIN_TIMEOUT_MS);
+    this.drains.push(pending);
+    detector.drain(press);
+  }
+
+  /** The recognizer answered the oldest drain it was asked, the answers coming in the order of the marks. */
+  private drainAnswered(): void {
+    const pending = this.drains.shift();
+    if (!pending) return;
+    pending.cancelTimer();
+    if (pending.timedOut) return;
+    this.frame('in', 'local.turn.drained', { press: pending.press, ms: this.request.clock.now() - pending.since });
+  }
 
   /** The manual-turn release: a 700 ms zero tail at 24 kHz, as one buffer (`FLUSH_SAMPLES`), then flush. */
   private flushTurn(): void {
@@ -425,10 +500,16 @@ class LocalSession implements AdapterSession {
     this.ended = true;
     this.jobs = [];
     this.cut?.reset(); // a model answer landing later seals nothing
+    // Everything of the epoch that ends here is dropped on both sides; sherpa, which has no epoch, ignores the stop.
+    this.epoch++;
+    this.detector?.stop(this.epoch);
+    this.asr.stop(this.epoch);
+    for (const pending of this.drains.splice(0)) pending.cancelTimer();
     this.disposeEngines();
   }
 
   private disposeEngines(): void {
+    this.detector?.dispose();
     this.asr.dispose();
     this.translation?.dispose();
     this.tts?.dispose();
@@ -436,7 +517,58 @@ class LocalSession implements AdapterSession {
     this.turn = null;
   }
 
-  /** A Smart Turn port for the ASR, or none: the run is then Normal. */
+  /**
+   * A shared leg's recognizer and its detector, loaded together over one pair of ports: the detector writes its
+   * segments to one and the recognizer reads them from the other. Smart Turn's port, when the leg asks for it under
+   * Auto turns and the runtime has one, goes to the detector. Silero failing to load rejects the start in its own words.
+   */
+  private async loadShared(detector: TurnDetectorLike, options: AsrInit): Promise<void> {
+    const { config, request } = this;
+    // Under manual turns the held key ends the turn.
+    const turnPort = config.vad.smartTurn && request.context.turns === 'auto' && this.connectTurn
+      ? await this.openTurn(this.connectTurn)
+      : undefined;
+    if (this.ended) throw new Error('ended');
+    const { port1, port2 } = new MessageChannel();
+    // Voxtral 4B holds the audio itself: it takes it with marks, and needs the pre-roll length (the only part of the VAD config it reads).
+    const marks = config.asr.streaming;
+    // The detector may be ready long before a large recognizer finishes loading: a crash in between must not be lost.
+    this.listenToDetectorFailures(detector);
+    // The recognizer may be ready long before the detector is: its crash in between must not be lost either. The
+    // handler goes in once its init resolves, not before: a failure while loading rejects init, so the start
+    // classifier sees it (out of GPU memory and the like) instead of a plain fatal error.
+    const asr = this.asr;
+    const watchRecognizer = () => {
+      asr.onFatal = (error) => {
+        this.frame('in', 'local.asr.error', { error });
+        this.fatal(`Speech recognition stopped: ${error}`);
+      };
+    };
+    try {
+      await Promise.all([
+        detector.init({
+          turns: request.context.turns,
+          vad: config.vad,
+          limit: config.limit ?? {},
+          ...(marks ? { delivery: 'marks' as const } : {}),
+          output: port1,
+          ...(turnPort ? { turnPort } : {}),
+        }),
+        asr.init(config.asr.modelId, { ...options, segmentPort: port2, ...(marks ? { vadConfig: config.vad } : {}) }).then((loaded) => {
+          watchRecognizer();
+          return loaded;
+        }),
+      ]);
+    } catch (error) {
+      // Ports a worker never took are closed here; one it took is detached on this side, and closing it does nothing.
+      port1.close();
+      port2.close();
+      if (error instanceof TurnDetectorError) throw new AdapterStartError(error.message, error.code, undefined, { cause: error });
+      throw error;
+    }
+  }
+
+  /** A Smart Turn port for the turn detector, or none: the run is then Normal. */
   private async openTurn(connect: () => Promise<TurnConnection | null>): Promise<MessagePort | undefined> {
     const turn = await connect().catch(() => null);
     if (this.ended) {
@@ -448,11 +580,27 @@ class LocalSession implements AdapterSession {
     return turn?.port;
   }
 
+  private listenToDetectorFailures(detector: TurnDetectorLike): void {
+    detector.onFailed = ({ code, message }) => this.fatal(message, code);
+    detector.onFatal = (error) => {
+      this.frame('in', 'local.turn.error', { error });
+      this.fatal(`Turn detection stopped: ${error}`);
+    };
+  }
+
   /** ASR's callbacks, once its engine loaded: before that, its errors reject the start instead. */
   private listenToAsr(): void {
-    const { asr } = this;
-    asr.onSpeechStart = () => this.frame('in', 'local.asr.start', { modelId: this.config.asr.modelId });
-    asr.onPartialResult = (text) => this.partial(text);
+    const { asr, detector } = this;
+    const speechStart = () => this.frame('in', 'local.asr.start', { modelId: this.config.asr.modelId });
+    if (detector) {
+      // The detector hears the speech; the recognizer decodes what it is sent.
+      detector.onSpeechStart = speechStart;
+      this.listenToDetectorFailures(detector);
+      asr.onDrained = () => this.drainAnswered();
+    } else {
+      asr.onSpeechStart = speechStart;
+    }
+    asr.onPartialResult = (text, tag) => this.partial(text, tag);
     asr.onResult = (result) => this.final(result);
     asr.onError = (error) => {
       this.frame('in', 'local.asr.error', { error });
@@ -477,9 +625,11 @@ class LocalSession implements AdapterSession {
    * (raw — its cursor ignores whitespace) and the segment shows what is
    * not sealed yet.
    */
-  private partial(raw: string): void {
+  private partial(raw: string, tag?: AsrPartialTag): void {
+    if (this.ended) return;
+    if (this.voided(tag)) { this.frame('in', 'local.asr.voided', this.voidedPayload(tag, false)); return; }
     this.frame('in', 'local.asr.partial', { text: raw });
-    if (this.ended || this.config.translation.kind === 'ast') return;
+    if (this.config.translation.kind === 'ast') return;
     if (this.cut) this.cut.partial(raw);
     else this.show(raw);
   }
@@ -560,6 +710,13 @@ class LocalSession implements AdapterSession {
    */
   private final(result: AsrResult): void {
     if (this.ended) return;
+    if (this.voided(result)) {
+      // Nobody wants the words, but a segment the press's earlier partials opened closes as it stands, with no job.
+      this.frame('in', 'local.asr.voided', this.voidedPayload(result, true));
+      this.cut?.reset();
+      this.abandonUtterance();
+      return;
+    }
     const text = result.text.trim();
     if (!text) {
       this.cut?.reset();
@@ -611,6 +768,19 @@ class LocalSession implements AdapterSession {
     if (text !== segment.text || heard) this.emit('segmentText', { ref: segment.ref, text, ...(heard ? { heard } : {}) });
     this.emit('segmentClosed', { ref: segment.ref, origin: segment.origin });
     if (kind === 'engine') this.enqueue({ text, origin: segment.origin, fill });
+  }
+
+  /**
+   * Whether a result or partial is no longer wanted: its press was cancelled, or it was cut in another epoch. A
+   * recognizer that cuts its own turns (sherpa-onnx, Voxtral 4B) tags nothing, and an untagged one is never voided.
+   */
+  private voided(tag: { press?: number; epoch?: number } | undefined): boolean {
+    if (tag?.press !== undefined && this.cancelled.has(tag.press)) return true;
+    return tag?.epoch !== undefined && tag.epoch !== this.epoch;
+  }
+
+  private voidedPayload(tag: { press?: number; epoch?: number } | undefined, final: boolean): Record<string, unknown> {
+    return { final, ...(tag?.press !== undefined ? { press: tag.press } : {}), ...(tag?.epoch !== undefined ? { epoch: tag.epoch } : {}) };
   }
 
   /** Closes the open source segment with the text it has, and queues nothing for it. */
@@ -797,15 +967,18 @@ class LocalSession implements AdapterSession {
     else this.notices.push(notice);
   }
 
-  /** The session can no longer work: while opening, the start rejects; after, `failed`, and nothing more. */
-  private fatal(message: string): void {
+  /**
+   * The session can no longer work: while opening, the start rejects; after, `failed`, and nothing more. `code` names
+   * the failure for the user in words (`turn_detection_overloaded`).
+   */
+  private fatal(message: string, code?: TurnFailureCode): void {
     if (this.ended) return;
     this.cut?.reset();
     if (!this.live) {
-      this.failOpening?.(new Error(message));
+      this.failOpening?.(code ? new AdapterStartError(message, code) : new Error(message));
       return;
     }
-    this.emit('failed', { message });
+    this.emit('failed', code ? { message, code } : { message });
     this.ended = true;
   }
 

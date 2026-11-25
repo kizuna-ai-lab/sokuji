@@ -11,7 +11,9 @@ import type { TranslationEvents, TranslationSession, TranslationStartRequest } f
 import type { LegName } from '../conversation/types';
 import type { RunStage, StageIds } from '../lineup/types';
 import type { LocalModels } from '../local-inference/selection/types';
+import type { NativeModels } from '../local-inference/native/nativeModels';
 import type { WordEntry } from '../words/list';
+import type { TurnDetectionSettings } from '../turn/turnDetectionSettings';
 
 export interface LanguagePair { source: string; target: string }
 
@@ -56,6 +58,8 @@ export interface SharedSettings {
   bothLegs?: boolean;
   /** The models this run's own readiness check found (F2): the list its settings component was shown, for the same effective-model function. */
   models: readonly ModelOption[];
+  /** Turn detection as stored, read at start; absent: the defaults. */
+  turnDetection?: TurnDetectionSettings;
   /** The app's word list and session background, read at start (spec §9): each builder sends what `wordsFor` gives its service. Absent: none. */
   words?: SessionWords;
   /**
@@ -70,6 +74,11 @@ export interface SharedSettings {
    * absent where the caller is not a run.
    */
   localModels?: LocalModels;
+  /**
+   * This device's native facts (`NativeModels`): what a Local Native builder resolves through and hands its session
+   * (`config.host`). Set by the run when its deps have them; absent where the caller is not a run.
+   */
+  nativeModels?: NativeModels;
 }
 
 /** The word list as a run reads it at start. */
@@ -94,8 +103,6 @@ export interface ProviderRefusal {
 export interface UnitCapabilities {
   speech: 'always' | 'optional' | 'never';
   turns: ReadonlyArray<'auto' | 'manual'>;
-  /** Who may decide the end of a turn (spec §9). Every unit answers 'either' in step 1. */
-  turnOwner: 'unit' | 'external' | 'either';
   boundaries: 'provider' | 'silence';
   textInput: boolean;
   faceToFace: boolean;

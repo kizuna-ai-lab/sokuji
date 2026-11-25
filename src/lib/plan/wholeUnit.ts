@@ -59,7 +59,6 @@ export function wholeUnitOf<S, K, C>(parts: WholeUnitParts<S, K, C>): UnitDefini
     capabilities: s => ({
       speech: parts.speech,
       get turns() { return parts.turns(s); },
-      turnOwner: 'either',
       get boundaries() { return parts.boundaries(s); },
       get textInput() { return parts.textInput(s); },
       faceToFace: parts.faceToFace === true,

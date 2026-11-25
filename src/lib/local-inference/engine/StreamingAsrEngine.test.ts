@@ -19,7 +19,7 @@ describe('StreamingAsrEngine (characterization)', () => {
 
   it('resolves init on ready and revokes blob URLs once', async () => {
     const engine = new StreamingAsrEngine();
-    const initP = engine.init('voxtral-mini-4b-webgpu');
+    const initP = engine.init('voxtral-mini-4b-webgpu', { segmentPort: new MessageChannel().port1 });
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
@@ -29,11 +29,33 @@ describe('StreamingAsrEngine (characterization)', () => {
     expect(revokeSpy).toHaveBeenCalledTimes(1);
   });
 
+  it('Voxtral 4B given the detector\'s port gets it, transferred, with the pre-roll config; without one it does not start', async () => {
+    const channel = new MessageChannel();
+    const withPort = new StreamingAsrEngine();
+    withPort.init('voxtral-mini-4b-webgpu', { vadConfig: { preSpeechPadDuration: 0.5 }, segmentPort: channel.port1 }).catch(() => {});
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
+    const worker = MockWorker.last();
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+    const [message, transfer] = worker.postMessage.mock.calls[0] as [Record<string, unknown>, Transferable[]?];
+    expect(message.segmentPort).toBe(channel.port1);
+    expect(transfer).toEqual([channel.port1]);
+    expect(message.vadConfig).toEqual({ preSpeechPadDuration: 0.5 });
+    withPort.dispose();
+    channel.port1.close();
+    channel.port2.close();
+
+    // Without one it cannot start: no worker is made.
+    MockWorker.instances.length = 0;
+    const without = new StreamingAsrEngine();
+    await expect(without.init('voxtral-mini-4b-webgpu')).rejects.toThrow(/takes its turns from a turn detector: no port/);
+    expect(MockWorker.instances).toHaveLength(0);
+  });
+
   it('delivers partial and final results via callbacks', async () => {
     const engine = new StreamingAsrEngine();
     const onPartial = vi.fn(); const onResult = vi.fn();
     engine.onPartialResult = onPartial; engine.onResult = onResult;
-    const initP = engine.init('voxtral-mini-4b-webgpu');
+    const initP = engine.init('voxtral-mini-4b-webgpu', { segmentPort: new MessageChannel().port1 });
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     worker.emit({ type: 'ready', loadTimeMs: 1 });
@@ -47,7 +69,7 @@ describe('StreamingAsrEngine (characterization)', () => {
   it('rejects init and revokes on a pre-ready error', async () => {
     const engine = new StreamingAsrEngine();
     const onError = vi.fn(); engine.onError = onError;
-    const initP = engine.init('voxtral-mini-4b-webgpu');
+    const initP = engine.init('voxtral-mini-4b-webgpu', { segmentPort: new MessageChannel().port1 });
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     // Wait for postMessage: the cleanup-revoking onmessage wrapper is only
@@ -65,7 +87,7 @@ describe('StreamingAsrEngine (characterization)', () => {
 
   it('feedAudio and flush post only when ready', async () => {
     const engine = new StreamingAsrEngine();
-    const initP = engine.init('voxtral-mini-4b-webgpu');
+    const initP = engine.init('voxtral-mini-4b-webgpu', { segmentPort: new MessageChannel().port1 });
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
 
@@ -89,7 +111,7 @@ describe('StreamingAsrEngine (characterization)', () => {
 
   it('dispose posts dispose, terminates, resets ready', async () => {
     const engine = new StreamingAsrEngine();
-    const initP = engine.init('voxtral-mini-4b-webgpu');
+    const initP = engine.init('voxtral-mini-4b-webgpu', { segmentPort: new MessageChannel().port1 });
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     worker.emit({ type: 'ready', loadTimeMs: 1 });
