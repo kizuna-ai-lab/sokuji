@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { loadAddon, nativeDir, tempContractDir } from './helpers.mjs';
+import { cpuModuleDir, loadAddon, nativeDir, tempContractDir } from './helpers.mjs';
 
 const sk = loadAddon();
 
@@ -57,8 +57,9 @@ test('the log sink gets the init line and does not keep the process alive', () =
   // A fresh process: init is once per process, and the one above installed no sink.
   // The child exits on its own only if the sink's thread-safe function is unref'd.
   const helpers = new URL('./helpers.mjs', import.meta.url).href;
+  const moduleDir = cpuModuleDir();   // these tests are about the log sink, not a GPU backend's init
   const child = `
-    import { loadAddon, nativeDir } from ${JSON.stringify(helpers)};
+    import { loadAddon } from ${JSON.stringify(helpers)};
     const lines = [];
     const t0 = Date.now();
     const mark = (what) => process.stderr.write('[child +' + (Date.now() - t0) + 'ms] ' + what + '\\n');
@@ -68,7 +69,7 @@ test('the log sink gets the init line and does not keep the process alive', () =
     mark('helpers imported');
     const addon = loadAddon();
     mark('addon loaded');
-    addon.init({ moduleDir: nativeDir(), onLog: (level, message) => {
+    addon.init({ moduleDir: ${JSON.stringify(moduleDir)}, onLog: (level, message) => {
       lines.push({ level, message });
       if (message.startsWith('sk_init: ')) { clearTimeout(timer); report(); }
     } });
@@ -85,9 +86,10 @@ test('with a sink set, warnings and errors still reach stderr at once', () => {
   // with the process. ggml's GGML_BACKEND_PATH load is never silent: a missing file there
   // logs a level-3 line during sk_init, and init still succeeds.
   const helpers = new URL('./helpers.mjs', import.meta.url).href;
+  const moduleDir = cpuModuleDir();   // these tests are about the log sink, not a GPU backend's init
   const missing = join(tempContractDir({ abi: 2 }), 'no-such-backend.so');
   const child = `
-    import { loadAddon, nativeDir } from ${JSON.stringify(helpers)};
+    import { loadAddon } from ${JSON.stringify(helpers)};
     const lines = [];
     const t0 = Date.now();
     const mark = (what) => process.stderr.write('[child +' + (Date.now() - t0) + 'ms] ' + what + '\\n');
@@ -97,7 +99,7 @@ test('with a sink set, warnings and errors still reach stderr at once', () => {
     mark('helpers imported');
     const addon = loadAddon();
     mark('addon loaded');
-    addon.init({ moduleDir: nativeDir(), onLog: (level, message) => {
+    addon.init({ moduleDir: ${JSON.stringify(moduleDir)}, onLog: (level, message) => {
       lines.push({ level, message });
       if (message.startsWith('sk_init: ')) { clearTimeout(timer); report(); }
     } });

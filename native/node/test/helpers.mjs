@@ -4,7 +4,7 @@
 //   SOKUJI_NATIVE_DIR    the directory holding the libraries, backend modules and
 //                        contract.json (default: the addon's own directory)
 //   SK_TEST_SAMPLE_WAV   jfk.wav (16 kHz mono 16-bit PCM), for jfk()
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -39,6 +39,23 @@ export function tempContractDir(contract) {
   const dir = mkdtempSync(join(tmpdir(), 'sokuji-contract-'));
   tempDirs.push(dir);
   writeFileSync(join(dir, 'contract.json'), JSON.stringify(contract));
+  return dir;
+}
+
+/**
+ * A module dir like nativeDir() but with the CPU backend only (contract.json + libggml-base/libggml/cpu modules,
+ * symlinked; the GPU modules left out). For tests that exercise init itself, not a device: on a CI Mac the Metal
+ * backend compiles its shaders through the system compiler service at init, which can stall for minutes.
+ */
+export function cpuModuleDir() {
+  const dir = tempContractDir({ abi: 2 });
+  const src = nativeDir();
+  rmSync(join(dir, 'contract.json'));
+  for (const name of readdirSync(src)) {
+    if (name === 'contract.json' || /^(lib)?ggml(-base|-cpu.*)?\.(so|dylib|dll)/.test(name)) {
+      symlinkSync(join(src, name), join(dir, name));
+    }
+  }
   return dir;
 }
 
