@@ -1,4 +1,4 @@
-"""Gate for the Linux wheels: what the staged shared objects may depend on.
+"""Gate for the Linux wheels and app archives: what the staged shared objects may depend on.
 
 usage: check_linux_deps.py <stage_dir> <wheel platform tag>
 
@@ -6,7 +6,9 @@ The wheels are tagged manylinux_2_<N>_* (the glibc floor of the runner that buil
 them). Two things would make that tag a lie, and neither is visible from a green
 build: a DT_NEEDED on a library that is not on every glibc-2.<N> system, or a
 versioned glibc symbol newer than 2.<N>. This checks both with readelf, on the
-staged tree, before the wheel is built.
+staged tree, before the wheel is built. The same check runs on the app archive's stage, where
+sokuji_native_node.node (the Node addon: a shared object that does not have `.so` in its name)
+is held to the same floor.
 
 The Vulkan loader (libvulkan.so.1) is allowed: ggml's Vulkan backend links it, as
 every Vulkan program does, and a machine without it simply gets no Vulkan device
@@ -43,6 +45,12 @@ CXX_CEILINGS = {
 }
 
 
+def is_elf_candidate(name: str) -> bool:
+    """The shared objects of a stage: libraries and backend modules (.so, .so.N) and the Node
+    addon (.node, an ELF shared object under another name)."""
+    return ".so" in name or name.endswith(".node")
+
+
 def readelf(*args: str) -> str:
     return subprocess.run(["readelf", "-W", *args], check=True, capture_output=True, text=True).stdout
 
@@ -56,7 +64,7 @@ def main() -> int:
         return 0
     floor = (int(m.group(1)), int(m.group(2)))
 
-    elves = sorted(p for p in stage.rglob("*") if p.is_file() and ".so" in p.name)
+    elves = sorted(p for p in stage.rglob("*") if p.is_file() and is_elf_candidate(p.name))
     shipped = {p.name for p in elves}
     problems: list[str] = []
     for path in elves:

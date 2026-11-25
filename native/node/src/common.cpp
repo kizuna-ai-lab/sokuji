@@ -1,5 +1,10 @@
-// Process-wide calls: abi, version, engineVersions, contract, init, devices.
+// Process-wide calls: abi, version, engineVersions, contract, init, devices, deviceFreeMem,
+// deviceProfiles, deviceSupportsOps, audioFamilies.
+#include "addon.h"
+#include "args.h"
 #include "errors.h"
+#include "job.h"
+#include "worker.h"
 
 #include <napi.h>
 #include <sokuji_native.h>
@@ -8,6 +13,8 @@
 #include <atomic>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -63,6 +70,10 @@ State &state() {
 
 // The sk_log_cb handed to sk_init; `user` is unused.
 bool LogToJs(int32_t level, const char *message, void *) {
+    // Once a sink is set the library stops printing warnings and errors itself, and the line
+    // naming an unsupported op comes right before GGML_ABORT: queued for JS, it would die with
+    // the process. So level >= 2 also goes to stderr now, as the library prints it with no sink.
+    if (level >= 2) std::fprintf(stderr, "[sokuji_native] %s\n", message ? message : "");
     try {
         State &s = state();
         std::lock_guard<std::mutex> lock(s.mu);
@@ -111,6 +122,14 @@ void InstallLogSink(Napi::Env env, Napi::Function fn) {
     s.owner = env;
 }
 
+}  // namespace
+
+void LogWarning(const std::string &message) {
+    LogToJs(2, message.c_str(), nullptr);
+}
+
+namespace {
+
 // ---- helpers ------------------------------------------------------------------------------
 
 const char *KindName(int32_t kind) {
@@ -125,13 +144,6 @@ const char *KindName(int32_t kind) {
 // A fixed-size char field: NUL-terminated by the library, but never read past its size.
 Napi::String FieldString(Napi::Env env, const char *field, size_t size) {
     return Napi::String::New(env, field, static_cast<size_t>(std::find(field, field + size, '\0') - field));
-}
-
-std::string StringArg(const Napi::CallbackInfo &info, size_t i, const char *what) {
-    if (info.Length() <= i || !info[i].IsString()) {
-        throw Napi::TypeError::New(info.Env(), std::string(what) + " must be a string");
-    }
-    return info[i].As<Napi::String>().Utf8Value();
 }
 
 // Reads <dir>/contract.json and refuses one whose ABI is not this binding's.
@@ -238,6 +250,7 @@ Napi::Value Init(const Napi::CallbackInfo &info) {
     o.log_user = nullptr;
     const sk_status status = sk_init(&o);
     if (status != SK_OK) ThrowStatus(env, "sk_init", status);
+    InstallExitHandler();   // after sk_init: it has loaded the backend modules (worker.h)
     s.initialised.store(true);
     return InitResult(env);
 }
@@ -262,6 +275,136 @@ Napi::Value Devices(const Napi::CallbackInfo &info) {
     return out;
 }
 
+Napi::Value DeviceFreeMem(const Napi::CallbackInfo &info) {
+    Napi::Env env = info.Env();
+    const int32_t index = IndexArg(info, 0, "deviceFreeMem: index");
+    uint64_t bytes = 0;
+    const sk_status status = sk_device_free_mem(index, &bytes);
+    if (status != SK_OK) ThrowStatus(env, "sk_device_free_mem", status);
+    return Napi::Number::New(env, static_cast<double>(bytes));
+}
+
+// sk_feature bit → name; the Python binding's FEATURE_BITS, in bit order.
+constexpr struct { uint32_t bit; const char *name; } kFeatureBits[] = {
+    {SK_FEAT_VK_SHADER_FLOAT16, "vk_shader_float16"},
+    {SK_FEAT_VK_SHADER_BFLOAT16, "vk_shader_bfloat16"},
+    {SK_FEAT_VK_INTEGER_DOT, "vk_integer_dot"},
+    {SK_FEAT_VK_COOPMAT, "vk_coopmat"},
+    {SK_FEAT_VK_COOPMAT2, "vk_coopmat2"},
+    {SK_FEAT_MTL_SIMDGROUP_REDUCTION, "mtl_simdgroup_reduction"},
+    {SK_FEAT_MTL_BFLOAT, "mtl_bfloat"},
+    {SK_FEAT_UMA, "uma"},
+};
+
+// One profile per devices() entry, same order and index. known=false → features [] and
+// the strings as the library left them (empty); a failing call is an error, as in Python.
+Napi::Value DeviceProfiles(const Napi::CallbackInfo &info) {
+    Napi::Env env = info.Env();
+    std::vector<sk_device> devs(32);
+    const int32_t n = sk_devices(devs.data(), static_cast<int32_t>(devs.size()));
+    Napi::Array out = Napi::Array::New(env, n > 0 ? static_cast<size_t>(n) : 0);
+    for (int32_t i = 0; i < n; ++i) {
+        const sk_device &d = devs[i];
+        auto raw = std::make_unique<sk_device_profile>();
+        std::memset(raw.get(), 0, sizeof *raw);
+        const sk_status status = sk_device_profile_get(d.index, raw.get());
+        if (status != SK_OK) ThrowStatus(env, "sk_device_profile_get", status);
+        Napi::Array features = Napi::Array::New(env);
+        if (raw->known) {
+            uint32_t k = 0;
+            for (const auto &f : kFeatureBits) {
+                if (raw->features & f.bit) features.Set(k++, Napi::String::New(env, f.name));
+            }
+        }
+        Napi::Object o = Napi::Object::New(env);
+        o.Set("index", Napi::Number::New(env, d.index));
+        o.Set("kind", Napi::String::New(env, KindName(d.kind)));
+        o.Set("name", FieldString(env, d.name, sizeof d.name));
+        o.Set("description", FieldString(env, d.description, sizeof d.description));
+        o.Set("memTotal", Napi::Number::New(env, static_cast<double>(d.mem_total)));
+        o.Set("known", Napi::Boolean::New(env, raw->known != 0));
+        o.Set("features", features);
+        o.Set("driverName", FieldString(env, raw->driver_name, sizeof raw->driver_name));
+        o.Set("driverVersion", FieldString(env, raw->driver_version, sizeof raw->driver_version));
+        o.Set("deviceUuid", FieldString(env, raw->device_uuid, sizeof raw->device_uuid));
+        o.Set("cpuFeatures", FieldString(env, raw->cpu_features, sizeof raw->cpu_features));
+        out.Set(static_cast<uint32_t>(i), o);
+    }
+    return out;
+}
+
+// sk_device_supports_ops on the misc worker (the check builds and probes backend graphs, so
+// it stays off the JS thread). sk_op_coverage (~140 KB) lives on the heap.
+class OpsJob : public Job {
+public:
+    OpsJob(int32_t index, std::string stage, std::string family, std::vector<std::string> dtypes)
+        : Job("sk_device_supports_ops"), index_(index), stage_(std::move(stage)), family_(std::move(family)),
+          dtypes_(std::move(dtypes)), cov_(new sk_op_coverage()) {}
+
+    void execute() override {
+        std::vector<const char *> names;
+        for (const std::string &d : dtypes_) names.push_back(d.c_str());
+        names.push_back(nullptr);   // never an empty array; n stays dtypes_.size()
+        std::memset(cov_.get(), 0, sizeof *cov_);
+        const sk_status st = sk_device_supports_ops(index_, stage_.c_str(), family_.c_str(), names.data(),
+                                                    static_cast<int32_t>(dtypes_.size()), cov_.get());
+        if (st != SK_OK) Fail("sk_device_supports_ops", st);
+    }
+
+    void settle(Napi::Env env) override {
+        if (failed()) return RejectStatus(env);
+        Napi::Array unsupported = Napi::Array::New(env);
+        Napi::Array checked = Napi::Array::New(env);
+        uint32_t nu = 0;
+        const int32_t n = std::min(cov_->n_ops, static_cast<int32_t>(SK_OP_COVERAGE_MAX));
+        for (int32_t i = 0; i < n; ++i) {
+            Napi::String name = FieldString(env, cov_->ops[i].name, sizeof cov_->ops[i].name);
+            checked.Set(static_cast<uint32_t>(i), name);
+            if (!cov_->ops[i].supported) unsupported.Set(nu++, name);
+        }
+        Napi::Object o = Napi::Object::New(env);
+        o.Set("allSupported", Napi::Boolean::New(env, cov_->all_supported != 0));
+        o.Set("unsupported", unsupported);
+        o.Set("checked", checked);
+        Resolve(o);
+    }
+
+private:
+    int32_t index_;
+    std::string stage_, family_;
+    std::vector<std::string> dtypes_;
+    std::unique_ptr<sk_op_coverage> cov_;
+};
+
+Napi::Value DeviceSupportsOps(const Napi::CallbackInfo &info) {
+    Napi::Env env = info.Env();
+    const int32_t index = IndexArg(info, 0, "deviceSupportsOps: index");
+    std::string stage = StringArg(info, 1, "deviceSupportsOps: stage");
+    std::string family = StringArg(info, 2, "deviceSupportsOps: family");
+    if (info.Length() < 4 || !info[3].IsArray()) {
+        throw Napi::TypeError::New(env, "deviceSupportsOps: weightDtypes must be an array of strings");
+    }
+    Napi::Array arr = info[3].As<Napi::Array>();
+    std::vector<std::string> dtypes;
+    for (uint32_t i = 0; i < arr.Length(); ++i) {
+        Napi::Value v = arr.Get(i);
+        if (!v.IsString()) throw Napi::TypeError::New(env, "deviceSupportsOps: weightDtypes must be an array of strings");
+        dtypes.push_back(v.As<Napi::String>().Utf8Value());
+    }
+    return Submit(env, MiscWorker(),
+                  std::make_unique<OpsJob>(index, std::move(stage), std::move(family), std::move(dtypes)));
+}
+
+// Compile-time data, sorted by the library; usable before init.
+Napi::Value AudioFamilies(const Napi::CallbackInfo &info) {
+    Napi::Env env = info.Env();
+    const char *buf[64] = {};
+    const int32_t n = sk_audio_families(buf, 64);
+    Napi::Array out = Napi::Array::New(env);
+    for (int32_t i = 0; i < n && i < 64; ++i) out.Set(static_cast<uint32_t>(i), Napi::String::New(env, buf[i]));
+    return out;
+}
+
 }  // namespace
 
 void RegisterCommon(Napi::Env env, Napi::Object exports) {
@@ -271,6 +414,10 @@ void RegisterCommon(Napi::Env env, Napi::Object exports) {
     exports.Set("contract", Napi::Function::New(env, Contract, "contract"));
     exports.Set("init", Napi::Function::New(env, Init, "init"));
     exports.Set("devices", Napi::Function::New(env, Devices, "devices"));
+    exports.Set("deviceFreeMem", Napi::Function::New(env, DeviceFreeMem, "deviceFreeMem"));
+    exports.Set("deviceProfiles", Napi::Function::New(env, DeviceProfiles, "deviceProfiles"));
+    exports.Set("deviceSupportsOps", Napi::Function::New(env, DeviceSupportsOps, "deviceSupportsOps"));
+    exports.Set("audioFamilies", Napi::Function::New(env, AudioFamilies, "audioFamilies"));
 }
 
 }  // namespace sk_node

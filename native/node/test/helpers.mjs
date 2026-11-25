@@ -4,17 +4,19 @@
 //   SOKUJI_NATIVE_DIR    the directory holding the libraries, backend modules and
 //                        contract.json (default: the addon's own directory)
 //   SK_TEST_SAMPLE_WAV   jfk.wav (16 kHz mono 16-bit PCM), for jfk()
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
 function addonPath() {
-  return process.env.SOKUJI_NATIVE_NODE || join(here, '..', '..', 'build', 'cpu', 'lib', 'sokuji_native_node.node');
+  // resolve(): require() takes a relative path without ./ for a package name.
+  const env = process.env.SOKUJI_NATIVE_NODE;
+  return env ? resolve(env) : join(here, '..', '..', 'build', 'cpu', 'lib', 'sokuji_native_node.node');
 }
 
 export function loadAddon() {
@@ -37,6 +39,23 @@ export function tempContractDir(contract) {
   const dir = mkdtempSync(join(tmpdir(), 'sokuji-contract-'));
   tempDirs.push(dir);
   writeFileSync(join(dir, 'contract.json'), JSON.stringify(contract));
+  return dir;
+}
+
+/**
+ * A module dir like nativeDir() but with the CPU backend only (contract.json + libggml-base/libggml/cpu modules,
+ * symlinked; the GPU modules left out). For tests that exercise init itself, not a device: on a CI Mac the Metal
+ * backend compiles its shaders through the system compiler service at init, which can stall for minutes.
+ */
+export function cpuModuleDir() {
+  const dir = tempContractDir({ abi: 2 });
+  const src = nativeDir();
+  rmSync(join(dir, 'contract.json'));
+  for (const name of readdirSync(src)) {
+    if (name === 'contract.json' || /^(lib)?ggml(-base|-cpu.*)?\.(so|dylib|dll)/.test(name)) {
+      symlinkSync(join(src, name), join(dir, name));
+    }
+  }
   return dir;
 }
 
@@ -98,4 +117,25 @@ export function snrDb(a, b) {
     noise += d * d;
   }
   return 10 * Math.log10(signal / noise);
+}
+
+/** The number of threads of this process (Linux: /proc/self/task); null where that is not readable. */
+export function threadCount() {
+  try {
+    return readdirSync('/proc/self/task').length;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The index of the CPU device. Model-backed tests load on it explicitly instead of passing
+ * `null` (auto): auto picks a GPU where there is one, and the CI runners' virtualized GPUs
+ * (Metal on macOS, whose ASR output was garbage) are not what these tests are about.
+ * Call it after init().
+ */
+export function cpuDevice() {
+  const cpu = loadAddon().devices().find((d) => d.kind === 'cpu');
+  if (!cpu) throw new Error('no CPU device');
+  return cpu.index;
 }

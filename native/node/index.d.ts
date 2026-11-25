@@ -19,6 +19,16 @@ export function deviceSupportsOps(index: number, stage: 'asr' | 'translate' | 't
 export function audioFamilies(): string[];
 export function resample(pcm: Float32Array, channels: number, fromRate: number, toRate: number): Float32Array;
 
+// Lifetimes, the same for AsrModel, Translator and Tts:
+//  - unload() resolves once the model is freed, on the handle's own thread. Calls still queued
+//    reject with status -5 ("cancelled before it started"); the call running stops at its next
+//    native callback and rejects with -5 as well. One that cannot be interrupted (an ASR encoder
+//    pass, an offline synth) runs to its end first. Every unload() returns the same promise.
+//  - A call made once unload() has been called rejects with status -2, "<fn>: model is unloaded".
+//  - Call unload(). A handle garbage-collected without it is unloaded by its finalizer (on its
+//    own thread, not the JS thread), and a warning naming it goes to onLog and to stderr.
+//  - process.exit() stops every handle's thread before the process ends, so it waits for a call
+//    that cannot be interrupted. The same holds when a worker_threads Worker is terminated.
 export interface AsrCaps { languages: string[]; supportsStreaming: boolean; supportsLanguageDetect: boolean; nativeSampleRate: number; arch: string }
 export interface StreamText { committed: string; tentative: string }
 export interface AsrStream {
