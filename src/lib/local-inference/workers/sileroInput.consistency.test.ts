@@ -30,6 +30,7 @@ describe('Silero VAD input', () => {
       'granite-speech-webgpu.worker.ts',
       'native-vad.worker.ts',
       'qwen3-asr-webgpu.worker.ts',
+      'turn-detector.worker.ts',
       'voxtral-3b-webgpu.worker.ts',
       'voxtral-webgpu.worker.ts',
       'whisper-webgpu.worker.ts',

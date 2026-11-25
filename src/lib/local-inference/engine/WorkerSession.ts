@@ -100,7 +100,10 @@ export class WorkerSession {
       this.settled = true;
       this.revokeOnce();
       this.opts.onFatalError?.(msg.error);
-      this.rejectReady?.(new Error(msg.error));
+      // A worker's `code` (a typed failure) rides on the rejection for the engine to map.
+      const err: Error & { code?: unknown } = new Error(msg.error);
+      if (msg.code !== undefined) err.code = msg.code;
+      this.rejectReady?.(err);
       this.tearDownDeadWorker();
       return;
     }
