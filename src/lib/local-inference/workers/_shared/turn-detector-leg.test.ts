@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { DetectorLeg } from './turn-detector-leg';
-import type { DetectorNotice, DetectorOutput } from './turn-detector-protocol';
+import type { DetectorNotice, DetectorOutput, MarksOutput } from './turn-detector-protocol';
 
 const pcm = (n: number) => new Int16Array(n).fill(1000);
 
@@ -10,7 +10,7 @@ function leg() {
   const notices: DetectorNotice[] = [];
   const l = new DetectorLeg({
     core: { turns: 'manual', vad: {}, limit: {} },
-    post: (msg) => posted.push(msg),
+    post: (msg) => posted.push(msg as DetectorOutput),
     notify: (n) => notices.push(n),
   });
   const press = async (id: number, samples = 2400) => {
@@ -96,7 +96,7 @@ function autoLeg(infer: (frame: Float32Array) => Promise<number>) {
   const notices: DetectorNotice[] = [];
   const l = new DetectorLeg({
     core: { turns: 'auto', vad: {}, limit: {}, infer, resetModel: () => {} },
-    post: (msg) => posted.push(msg),
+    post: (msg) => posted.push(msg as DetectorOutput),
     notify: (n) => notices.push(n),
   });
   /** One second of speech, drained: a segment, which nobody takes. */
@@ -167,5 +167,85 @@ describe('DetectorLeg after a failure, with Silero in the loop', () => {
     l.stop(2);
     await utterance();
     expect(notices).toHaveLength(count);
+  });
+});
+
+/** A manual leg that delivers audio and marks: what Voxtral 4B and Local Native take. */
+function marksLeg() {
+  const posted: Array<MarksOutput & { transfer: Transferable[] }> = [];
+  const notices: DetectorNotice[] = [];
+  const l = new DetectorLeg({
+    core: { turns: 'manual', vad: {}, limit: {} },
+    delivery: 'marks',
+    post: (msg, transfer) => posted.push({ ...(msg as MarksOutput), transfer }),
+    notify: (n) => notices.push(n),
+  });
+  /** The leg's output as one list: `mark:start`, then the sample counts between marks. */
+  const trace = () => {
+    const out: string[] = [];
+    for (const m of posted) {
+      if (m.type === 'mark') out.push(`mark:${m.event}`);
+      else if (out.length && /^\d+$/.test(out[out.length - 1])) out[out.length - 1] = String(Number(out[out.length - 1]) + m.pcm.length);
+      else out.push(String(m.pcm.length));
+    }
+    return out;
+  };
+  return { l, posted, notices, trace };
+}
+
+describe('DetectorLeg with the marks delivery', () => {
+  it('a press is audio, a start mark where the press began, the held key\'s audio, and an end mark where it ended', async () => {
+    const { l, trace } = marksLeg();
+    l.push(pcm(768));            // before the press: relayed as it came
+    await l.core.idle();
+    l.begin(1);
+    l.push(pcm(1536));
+    l.drain();
+    await l.core.idle();
+    await Promise.resolve();
+    const t = trace();
+    expect(t.indexOf('mark:start')).toBeGreaterThan(-1);
+    expect(t.indexOf('mark:end')).toBeGreaterThan(t.indexOf('mark:start'));
+    // Every sample that went in comes out once, in order: nothing is held back, copied twice or lost.
+    const total = t.filter((x) => /^\d+$/.test(x)).reduce((a, x) => a + Number(x), 0);
+    expect(total).toBe(768 + 1536);
+  });
+
+  it('a cancel of the open press is a cancel mark, and no segment is ever posted', async () => {
+    const { l, posted, trace } = marksLeg();
+    l.begin(1);
+    l.push(pcm(1536));
+    await l.core.idle();
+    l.cancel(1);
+    await l.core.idle();
+    expect(trace()).toContain('mark:cancel');
+    expect(posted.some((m) => (m as { type: string }).type === 'segment')).toBe(false);
+  });
+
+  it('hands over a copy of each chunk, transferred: the relay keeps views into the frame it holds', async () => {
+    const { l, posted } = marksLeg();
+    l.begin(1);
+    l.push(pcm(1536));
+    l.drain();
+    await l.core.idle();
+    await Promise.resolve();
+    const audio = posted.filter((m) => m.type === 'audio');
+    expect(audio.length).toBeGreaterThan(0);
+    for (const m of audio) {
+      const a = m as { pcm: Int16Array; transfer: Transferable[] };
+      expect(a.transfer).toEqual([a.pcm.buffer]);
+      expect(a.pcm.byteOffset).toBe(0);
+      expect(a.pcm.buffer.byteLength).toBe(a.pcm.byteLength);
+    }
+  });
+
+  it('a taken acknowledgement is ignored: there are no segments to free', async () => {
+    const { l, notices } = marksLeg();
+    l.begin(1);
+    l.push(pcm(1536));
+    l.drain();
+    await l.core.idle();
+    expect(() => l.taken({ type: 'taken', epoch: 1, seq: 1 })).not.toThrow();
+    expect(notices).toEqual([]);
   });
 });

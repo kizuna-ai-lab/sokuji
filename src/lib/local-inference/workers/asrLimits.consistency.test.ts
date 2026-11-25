@@ -4,6 +4,8 @@ import { join } from 'node:path';
 import { getManifestEntry, segmentLimitFor } from '../modelManifest';
 import { DETECTOR_WORKER_TYPES } from '../../turn/turnDetection';
 
+// sherpa-onnx's (a classic script) and Voxtral 4B's (audio and marks) workers have tests of their own: workers/turnDetection.consistency.test.ts.
+const OWN_SCRIPT = new Set<string>(['sherpa-onnx', 'voxtral-webgpu']);
 const read = (path: string) => readFileSync(join(__dirname, path), 'utf8');
 const voxtralRt = read('voxtral-webgpu.worker.ts');
 const sherpa = readFileSync(join(__dirname, '../../../../public/workers/sherpa-onnx-asr.worker.js'), 'utf8');
@@ -16,7 +18,7 @@ const limit = (id: string, task: 'transcribe' | 'translate' = 'transcribe', lang
 // constant left in a recognizer would be a second copy that nothing reads and the manifest test cannot see.
 describe('the five recognizers on the detector declare no limit of their own', () => {
   const LIMIT_CONSTANT = /\b(?:WHISPER_MAX_SEGMENT_SAMPLES|VOXTRAL_3B_MAX_SEGMENT_SAMPLES|GRANITE_(?:TRANSLATE_)?MAX_SPEECH_SECONDS|QWEN3_ASR_(?:DEFAULT_)?MAX_SPEECH_SECONDS)\b/;
-  it.each(DETECTOR_WORKER_TYPES.filter((type) => type !== 'sherpa-onnx').map((type) => `${type}.worker.ts`))('%s', (name) => {
+  it.each(DETECTOR_WORKER_TYPES.filter((type) => !OWN_SCRIPT.has(type)).map((type) => `${type}.worker.ts`))('%s', (name) => {
     expect(read(name)).not.toMatch(LIMIT_CONSTANT);
     expect(read(name)).not.toContain('resolveMaxSpeechFrames');
   });

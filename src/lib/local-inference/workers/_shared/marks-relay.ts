@@ -27,10 +27,18 @@ export class MarksRelay {
   private lastCloseTo: number | null = null;
   /** The press open in this view: a cancel names it, or is stale. */
   private openPress: number | null = null;
+  private stopped = false;
 
   constructor(private readonly post: (o: RelayOutput) => void) {}
 
+  /** The leg stopped: what is held is dropped, and nothing more is relayed, including the flush a microtask has queued. */
+  stop(): void {
+    this.stopped = true;
+    this.held = null;
+  }
+
   trace(e: TurnTrace): void {
+    if (this.stopped) return;
     const prevCloseTo = this.lastCloseTo;
     this.lastCloseTo = null;
     switch (e.kind) {

@@ -1,15 +1,17 @@
 /**
  * Voxtral WebGPU Streaming ASR Worker
  *
- * Streaming audio input (Int16@24kHz) → Silero VAD v5 → Voxtral Mini 4B (WebGPU)
+ * Streaming audio input (Int16@24kHz) → Voxtral Mini 4B (WebGPU)
  * Model files loaded from IndexedDB via customCache bridge (same as Whisper WebGPU).
  *
  * Unlike Whisper (batch: VAD → complete utterance → decode), Voxtral runs
  * continuous streaming inference with an async inputFeaturesGenerator.
- * Hybrid endpoint detection: VAD for speech boundaries + optional punctuation
- * splitting for lower translation latency.
+ * The turns come from the app's turn detector: it relays the leg's audio on `segmentPort`, in order, with
+ * `start`, `end` and `cancel` marks between the samples, and this worker acts on each mark where it arrives
+ * (spec C1). Optional punctuation splitting inside a turn gives lower translation latency.
+ * Without a `segmentPort` the worker still runs its own Silero VAD (removed in step 5).
  *
- * Input messages:  VoxtralAsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' }
+ * Input messages:  VoxtralAsrInitMessage | AsrAudioMessage (own VAD only) | AsrDisposeMessage | { type: 'flush' }
  * Output messages: StreamingAsrWorkerOutMessage (ready, status, speech_start, partial, result, error, disposed)
  */
 
@@ -28,6 +30,7 @@ import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processo
 import { resolveVadThresholds } from './_shared/vad-thresholds';
 import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
 import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
+import { DETECTOR_INPUT_SAMPLE_RATE, type MarksOutput } from './_shared/turn-detector-protocol';
 import {
   AudioPositionBudget,
   boundedBatchEndSample,
@@ -112,6 +115,11 @@ let speechFramesSinceStart = 0;
 // Pinned equal to VOXTRAL_REALTIME_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
 const VOXTRAL_REALTIME_MAX_SPEECH_SECONDS = 35;
 let preSpeechPadSamples = Math.ceil(0.8 * VAD_SAMPLE_RATE);
+
+/** The detector's audio-and-marks port; null when this worker runs its own VAD. */
+let marksPort: MessagePort | null = null;
+/** Between a `start` mark and its `end` or `cancel`: the detector says a turn is open. */
+let turnOpen = false;
 
 async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
   if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
@@ -422,6 +430,52 @@ function abortGenerate() {
   if (!isGenerating) audioFeed.clear();
 }
 
+// ─── The turn detector's audio and marks ────────────────────────────────────
+
+/** Keep enough pre-roll for the turn onset and Voxtral's first chunk, but not an unbounded idle backlog. */
+function trimIdleAudio(): void {
+  if (!turnOpen && !isGenerating && !queuedUtterance.pending) {
+    audioFeed.retainLatest(Math.max(preSpeechPadSamples, voxtralProcessor?.num_samples_first_audio_chunk ?? 0));
+  }
+}
+
+/**
+ * One message from the detector, handled the moment it arrives: the port is ordered and nothing here awaits, so
+ * a mark acts on exactly the audio before it (spec C1). `start` starts, or queues behind the run still draining
+ * its tail; `end` finishes on the audio received so far; `cancel` abandons the turn.
+ */
+function onMarksMessage(msg: MarksOutput): void {
+  if (!voxtralModel) return;
+  switch (msg.type) {
+    case 'audio':
+      audioFeed.append(resampleInt16ToFloat32_16k(msg.pcm, DETECTOR_INPUT_SAMPLE_RATE));
+      trimIdleAudio();
+      return;
+    case 'mark':
+      switch (msg.event) {
+        case 'start':
+          turnOpen = true;
+          // Keep accumulated audio: it holds the pre-roll and the onset that opened the turn. The detector
+          // tells the main thread about the speech; this worker does not.
+          if (isGenerating) {
+            // The previous utterance is still draining its padded tail; its run picks this one up when it completes.
+            queuedUtterance.start();
+          } else {
+            void runVoxtralGenerate();
+          }
+          return;
+        case 'end':
+          turnOpen = false;
+          finishGenerate();
+          return;
+        case 'cancel':
+          turnOpen = false;
+          abortGenerate();
+          return;
+      }
+  }
+}
+
 // ─── VAD + Voxtral Audio Feed Pipeline ──────────────────────────────────────
 
 let processingVad = false;
@@ -520,9 +574,16 @@ async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
       ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
     }
 
-    // 1. Init VAD
-    post({ type: 'status', message: 'Loading VAD model...' });
-    await initVad(msg.vadConfig, msg.vadModelUrl);
+    // 1. Init VAD, unless the turn detector cuts the turns: then only the pre-roll length is read from the config.
+    if (msg.segmentPort) {
+      const padMs = (msg.vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
+      preSpeechPadSamples = Math.ceil((padMs / 1000) * VAD_SAMPLE_RATE);
+      // NaN would survive the idle trim's Math.max() and discard the first chunk too.
+      if (!Number.isFinite(preSpeechPadSamples) || preSpeechPadSamples < 0) preSpeechPadSamples = 0;
+    } else {
+      post({ type: 'status', message: 'Loading VAD model...' });
+      await initVad(msg.vadConfig, msg.vadModelUrl);
+    }
 
     // 2. Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
@@ -559,10 +620,20 @@ async function handleInit(msg: VoxtralAsrInitMessage): Promise<void> {
     audioFeed.clear();
     queuedUtterance.clear();
     disposing = false;
+    turnOpen = false;
+
+    // Listen to the detector only now the model is ready: nothing it sent before is acted on against no model.
+    if (msg.segmentPort) {
+      marksPort?.close();
+      marksPort = msg.segmentPort;
+      marksPort.onmessage = (e: MessageEvent<MarksOutput>) => onMarksMessage(e.data);
+    }
 
     const loadTimeMs = Math.round(performance.now() - startTime);
     post({ type: 'ready', loadTimeMs });
   } catch (err: any) {
+    // A port this worker was handed but never listened to: close it, so the detector's relay does not post into a void.
+    if (marksPort !== msg.segmentPort) msg.segmentPort?.close();
     post({ type: 'error', error: err.message || String(err) });
   }
 }
@@ -576,6 +647,13 @@ function handleFlush(): void {
 
 async function handleDispose(): Promise<void> {
   disposing = true;
+  // Stop listening first: a mark arriving mid-teardown must not start a run.
+  if (marksPort) {
+    marksPort.onmessage = null;
+    marksPort.close();
+    marksPort = null;
+  }
+  turnOpen = false;
   // Drop queued utterances first: with one queued, abortGenerate() would only
   // seal it and leave the run that is still draining untouched.
   queuedUtterance.clear();

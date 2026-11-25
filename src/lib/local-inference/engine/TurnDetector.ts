@@ -5,13 +5,15 @@
  */
 import type { VadWebConfig } from '../types';
 import type { SegmentLimit } from '../workers/_shared/max-speech-frames';
-import type { DetectorInbound, DetectorInitMessage, DetectorOutbound, TurnFailureCode } from '../workers/_shared/turn-detector-protocol';
+import { DETECTOR_INPUT_SAMPLE_RATE, type DetectorDelivery, type DetectorInbound, type DetectorInitMessage, type DetectorOutbound, type TurnFailureCode } from '../workers/_shared/turn-detector-protocol';
 import { WorkerSession } from './WorkerSession';
 
 export interface TurnDetectorInit {
   turns: 'auto' | 'manual';
   vad: VadWebConfig;
   limit: SegmentLimit;
+  /** What the recognizer takes: segments (default), or the audio with marks. */
+  delivery?: DetectorDelivery;
   /** To the recognizer; transferred. */
   output: MessagePort;
   /** Smart Turn's port; transferred. */
@@ -27,7 +29,7 @@ export class TurnDetectorError extends Error {
 }
 
 /** The sample rate the leg's audio arrives at; the worker's resampler takes it as input rate. */
-const INPUT_SAMPLE_RATE = 24000;
+const INPUT_SAMPLE_RATE = DETECTOR_INPUT_SAMPLE_RATE;
 
 export class TurnDetector {
   private session: WorkerSession | null = null;
@@ -70,6 +72,7 @@ export class TurnDetector {
       turns: o.turns,
       vad: o.vad,
       limit: o.limit,
+      ...(o.delivery ? { delivery: o.delivery } : {}),
       output: o.output,
       turnPort: o.turnPort,
       ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,

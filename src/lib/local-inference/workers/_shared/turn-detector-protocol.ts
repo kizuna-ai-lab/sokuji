@@ -49,6 +49,17 @@ export type DetectorOutput = DetectorSegment | DetectorCancel | DetectorDrained;
 /** Recognizer → detector, the same port: the recognizer started decoding `seq`. */
 export interface RecognizerTaken { type: 'taken'; epoch: number; seq: number }
 
+/**
+ * What the recognizer takes from the detector: `segments` (one utterance at a time, for the offline recognizers) or
+ * `marks` (the leg's audio relayed in order with `start`, `end` and `cancel` marks between its samples, for a
+ * recognizer that holds the audio itself: Voxtral 4B, Local Native).
+ */
+export type DetectorDelivery = 'segments' | 'marks';
+/** The marks delivery on the output port: the leg's input audio at {@link DETECTOR_INPUT_SAMPLE_RATE}, and marks between its samples. */
+export type MarksOutput = { type: 'audio'; pcm: Int16Array } | { type: 'mark'; event: 'start' | 'end' | 'cancel' };
+/** The rate the leg's audio reaches the detector at, and so the rate of a marks delivery's `audio`. */
+export const DETECTOR_INPUT_SAMPLE_RATE = 24000;
+
 export type TurnFailureCode = 'turn_detection_overloaded' | 'turn_detection_unavailable';
 export type DetectorNotice = { type: 'speech_start' } | { type: 'failed'; code: TurnFailureCode; message: string };
 
@@ -70,6 +81,8 @@ export interface DetectorInitMessage {
   turns: 'auto' | 'manual';
   vad: VadWebConfig;
   limit: SegmentLimit;
+  /** What goes on `output`; segments when absent. */
+  delivery?: DetectorDelivery;
   output: MessagePort;
   turnPort?: MessagePort;
   ortWasmBaseUrl: string;

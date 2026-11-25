@@ -2,15 +2,21 @@
  * Which legs our turn detection serves, decided per leg from the resolved model.
  * `shared`: the app's detector (VAD, and Smart Turn where stored) ends the turn. `own`: the model ends it itself.
  */
+import type { DetectorDelivery } from '../local-inference/workers/_shared/turn-detector-protocol';
 import { segmentLimitFor, type ModelManifestEntry } from '../local-inference/modelManifest';
 import { resolveMaxSpeechFrames } from '../local-inference/workers/_shared/max-speech-frames';
 import type { TurnDetectionSettings } from './turnDetectionSettings';
 
 export type TurnDetection = 'shared' | 'own';
 
-/** The workers that decode the detector's segments (workers/turnDetection.consistency.test.ts). Step 3 adds 'voxtral-webgpu'. An entry with no `asrWorkerType` is sherpa-onnx's. */
+/**
+ * The workers that take the detector's output (workers/turnDetection.consistency.test.ts): the segment recognizers, and
+ * 'voxtral-webgpu' (Voxtral 4B), which takes the audio with marks. An `asr` entry with no `asrWorkerType` is sherpa-onnx's;
+ * an `asr-stream` one with none is sherpa streaming, which cuts its own turns.
+ */
 export const DETECTOR_WORKER_TYPES = [
   'sherpa-onnx',
+  'voxtral-webgpu',
   'whisper-webgpu',
   'cohere-transcribe-webgpu',
   'granite-speech-webgpu',
@@ -21,9 +27,16 @@ export const DETECTOR_WORKER_TYPES = [
 type Entry = Pick<ModelManifestEntry, 'type' | 'asrWorkerType'> | undefined;
 
 export function turnDetectionOf(entry: Entry): TurnDetection {
-  return entry?.type === 'asr' && (DETECTOR_WORKER_TYPES as readonly (string | undefined)[]).includes(entry.asrWorkerType ?? 'sherpa-onnx')
-    ? 'shared'
-    : 'own';
+  if (!entry) return 'own';
+  let worker: string | undefined;
+  if (entry.type === 'asr') worker = entry.asrWorkerType ?? 'sherpa-onnx';
+  else if (entry.type === 'asr-stream') worker = entry.asrWorkerType;
+  return worker !== undefined && (DETECTOR_WORKER_TYPES as readonly string[]).includes(worker) ? 'shared' : 'own';
+}
+
+/** What a `shared` leg's recognizer takes from the detector: Voxtral 4B holds the audio itself and takes it with marks. */
+export function detectorDeliveryOf(entry: Entry): DetectorDelivery {
+  return entry?.type === 'asr-stream' && entry.asrWorkerType === 'voxtral-webgpu' ? 'marks' : 'segments';
 }
 
 /** Whether the settings panel applies to the model: every 'asr' entry, and an 'asr-stream' one with a worker type (Voxtral 4B). Deleted in step 5, when it equals `turnDetectionOf(e) === 'shared'`. */

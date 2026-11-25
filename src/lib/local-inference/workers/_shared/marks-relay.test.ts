@@ -317,3 +317,28 @@ describe('MarksRelay over the core', () => {
     expect(before).toHaveLength(1200);
   });
 });
+
+describe('MarksRelay.stop', () => {
+  const frame = (from: number, to: number): TurnTrace => ({ kind: 'frame', from, to, samples: new Float32Array(to - from), raw: new Int16Array((to - from) * 1.5).fill(1) });
+
+  it('drops the frame it holds, and the flush queued in a microtask posts nothing', async () => {
+    const out: RelayOutput[] = [];
+    const relay = new MarksRelay((o) => out.push(o));
+    relay.trace(frame(0, FRAME));
+    relay.stop();
+    await Promise.resolve();
+    expect(out).toEqual([]);
+  });
+
+  it('ignores every trace after it', async () => {
+    const out: RelayOutput[] = [];
+    const relay = new MarksRelay((o) => out.push(o));
+    relay.stop();
+    relay.trace(frame(0, FRAME));
+    relay.trace({ kind: 'open', at: 0 });
+    relay.trace({ kind: 'close', from: 0, to: FRAME, endedBy: 'silence' });
+    relay.trace({ kind: 'drained' });
+    await Promise.resolve();
+    expect(out).toEqual([]);
+  });
+});
