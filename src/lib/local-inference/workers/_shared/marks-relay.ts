@@ -27,6 +27,11 @@ export class MarksRelay {
   private lastCloseTo: number | null = null;
   /** The press open in this view: a cancel names it, or is stale. */
   private openPress: number | null = null;
+  /**
+   * The press released last, until anything opens after it: a cancel that names it came after its `end` mark, so the
+   * consumer is told too (it may still be finishing that press, and the press's result must not be published).
+   */
+  private lastClosedPress: number | null = null;
   private stopped = false;
 
   constructor(private readonly post: (o: RelayOutput) => void) {}
@@ -54,10 +59,12 @@ export class MarksRelay {
         this.mark('start');
         if (detecting) this.flush();
         this.openPress = e.press ?? null;
+        this.lastClosedPress = null;
         return;
       }
       case 'close':
         this.boundary(e.to, 'end');
+        this.lastClosedPress = e.press ?? null;
         this.openPress = null;
         this.lastCloseTo = e.to;
         return;
@@ -70,6 +77,9 @@ export class MarksRelay {
         if (this.openPress === e.press) {
           this.mark('cancel');
           this.openPress = null;
+        } else if (this.lastClosedPress === e.press) {
+          this.mark('cancel');
+          this.lastClosedPress = null;
         }
         return;
       case 'drained':

@@ -215,6 +215,8 @@ let voxtralProcessor: any = null;
 let punctuationEndpointEnabled = true;
 
 let isGenerating = false;
+/** The turn that is generating was cancelled: its un-emitted text is dropped, not published. */
+let discardRun = false;
 /** An utterance that arrived while the previous run was still draining its tail. */
 const queuedUtterance = new QueuedUtterance();
 /** Teardown in progress — un-emitted tokens are dropped instead of flushed. */
@@ -254,6 +256,7 @@ function waitUntil(condition: () => boolean): Promise<void> {
 async function runVoxtralGenerate(): Promise<void> {
   if (!voxtralModel || !voxtralProcessor || isGenerating) return;
   isGenerating = true;
+  discardRun = false;
 
   const startTime = performance.now();
   const audio = () => audioFeed.audio;
@@ -367,7 +370,7 @@ async function runVoxtralGenerate(): Promise<void> {
       end() {
         // Flush, don't drop: tokens decoded but not yet emitted are real
         // transcription. Only teardown discards them.
-        accumulator!.end({ discard: disposing });
+        accumulator!.end({ discard: disposing || discardRun });
         isPrompt = true;
       }
     })();
@@ -385,8 +388,9 @@ async function runVoxtralGenerate(): Promise<void> {
     }
   } finally {
     // Safety net: generate() throwing skips the streamer's end().
-    accumulator?.end({ discard: disposing });
+    accumulator?.end({ discard: disposing || discardRun });
     isGenerating = false;
+    discardRun = false;
     // Audio staged during the finish belongs to the next utterance.
     audioFeed.complete();
     const next = disposing ? null : promoteQueued(audioFeed, queuedUtterance);
@@ -420,12 +424,17 @@ function finishGenerate() {
   audioFeed.requestFinish(utterancePadSamples());
 }
 
-/** Abandon the current utterance without decoding its tail. */
-function abortGenerate() {
+/**
+ * Abandon the current utterance without decoding its tail. `discardText`: also drop what it has decoded but not yet
+ * emitted (a cancelled press publishes nothing); a queued utterance is the one cancelled, if there is one, and the run
+ * still draining is the turn before it, which keeps its text.
+ */
+function abortGenerate(discardText = false) {
   if (queuedUtterance.stop()) {
     audioFeed.sealStaged();
     return;
   }
+  if (discardText && isGenerating) discardRun = true;
   audioFeed.requestStop();
   if (!isGenerating) audioFeed.clear();
 }
@@ -470,7 +479,7 @@ function onMarksMessage(msg: MarksOutput): void {
           return;
         case 'cancel':
           turnOpen = false;
-          abortGenerate();
+          abortGenerate(true);
           return;
       }
   }

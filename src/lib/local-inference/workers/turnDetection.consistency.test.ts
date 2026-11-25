@@ -131,7 +131,15 @@ describe('voxtral-webgpu.worker.ts (audio and marks)', () => {
     expect(handler).not.toMatch(/\bawait\b/);
     expect(handler).toMatch(/case 'start':[\s\S]*?queuedUtterance\.start\(\)[\s\S]*?runVoxtralGenerate\(\)/);
     expect(handler).toMatch(/case 'end':[\s\S]*?finishGenerate\(\)/);
-    expect(handler).toMatch(/case 'cancel':[\s\S]*?abortGenerate\(\)/);
+    expect(handler).toMatch(/case 'cancel':[\s\S]*?abortGenerate\(true\)/);
+  });
+
+  it('a cancel drops the text the turn has decoded and not yet emitted: both places that end the accumulator honour it', () => {
+    expect(source).toMatch(/accumulator!\.end\(\{ discard: disposing \|\| discardRun \}\)/);
+    expect(source).toMatch(/accumulator\?\.end\(\{ discard: disposing \|\| discardRun \}\)/);
+    // Reset when a run starts and when it ends, so one cancelled turn cannot discard the next.
+    expect(source).toMatch(/isGenerating = true;\s*discardRun = false;/);
+    expect(source).toMatch(/isGenerating = false;\s*discardRun = false;/);
   });
 
   it('does not announce the speech itself: the detector does', () => {

@@ -153,6 +153,28 @@ describe('MarksRelay on hand-written traces', () => {
     expect(r.tokens()).toEqual(['start', '[0,768)', 'end', 'start', '[768,1536)', '[1536,2304)', 'end']);
   });
 
+  it('a cancel of the press released last, with nothing opened since, is a cancel mark after its end mark (the consumer may still be finishing it)', () => {
+    const r = rig();
+    r.trace({ kind: 'open', at: 0, press: 1 });
+    r.frames(0, 1);
+    r.trace({ kind: 'close', from: 0, to: FRAME, endedBy: 'release', press: 1 });
+    r.trace({ kind: 'cancel', press: 1 });
+    r.trace({ kind: 'cancel', press: 1 });
+    expect(r.tokens()).toEqual(['start', '[0,768)', 'end', 'cancel']);
+  });
+
+  it('a cancel naming an older released press makes no mark', () => {
+    const r = rig();
+    r.trace({ kind: 'open', at: 0, press: 1 });
+    r.frames(0, 1);
+    r.trace({ kind: 'close', from: 0, to: FRAME, endedBy: 'release', press: 1 });
+    r.trace({ kind: 'open', at: FRAME, press: 2 });
+    r.frames(FRAME, 1);
+    r.trace({ kind: 'close', from: FRAME, to: 2 * FRAME, endedBy: 'release', press: 2 });
+    r.trace({ kind: 'cancel', press: 1 });
+    expect(r.tokens()).toEqual(['start', '[0,768)', 'end', 'start', '[768,1536)', 'end']);
+  });
+
   it('a cancel naming the open press is a cancel mark, after the audio so far; the press then ends no more', () => {
     const r = rig();
     r.trace({ kind: 'open', at: 0, press: 3 });
