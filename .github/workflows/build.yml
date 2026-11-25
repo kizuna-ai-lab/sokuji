@@ -10,6 +10,8 @@ on:
       - 'v*'
   pull_request:
     branches: [main, master, mobile]
+  # A manual run of a branch (the engine switch's five-platform gate): builds and checks, publishes nothing.
+  workflow_dispatch:
 
 permissions:
   contents: write
