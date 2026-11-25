@@ -502,5 +502,5 @@ transcribe.cpp's v0.2.4 tag was re-pointed twice upstream on 2026-09-25 (CI/pack
 commits), so that pin alone is the release commit `7d37cea2` fetched WITHOUT
 `GIT_SHALLOW`; the other three pins stay shallow. `sk_asr` leaves PnC/ITN at `DEFAULT`
 (unchanged); transcribe.cpp 0.2.4 turns `DEFAULT` on for sensevoice/canary (#157), so those
-two now output cased, punctuated text by default. Current native version is 1.2.0 (ABI
+two now output cased, punctuated text by default. Current native version is 1.3.0 (1.3.0 adds the Node-API addon and the app archives; the engine libraries are unchanged from 1.2.0) (ABI
 unchanged at 2).
