@@ -3,7 +3,7 @@
 // without running Silero. Node only:  node scripts/dev/turn-fixtures/silero-probs.mjs
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const FRAME = 512;
@@ -44,7 +44,7 @@ const join = (parts) => {
 };
 const pause = (i) => new Float32Array(Math.round((PAUSES_MS[i] / 1000) * RATE));
 
-const ort = await import(path.join(repo, 'node_modules/onnxruntime-web/dist/ort.node.min.mjs'));
+const ort = await import(pathToFileURL(path.join(repo, 'node_modules/onnxruntime-web/dist/ort.node.min.mjs')).href);
 ort.env.wasm.numThreads = 1;
 ort.env.wasm.wasmPaths = path.join(repo, 'node_modules/onnxruntime-web/dist') + '/';
 const session = await ort.InferenceSession.create(fs.readFileSync(path.join(repo, 'public/wasm/vad/silero_vad_v5.onnx')), { executionProviders: ['wasm'] });

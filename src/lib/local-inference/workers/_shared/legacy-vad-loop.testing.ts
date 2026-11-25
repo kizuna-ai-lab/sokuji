@@ -39,7 +39,7 @@ export interface LegacyVadLoopOptions {
 }
 
 /** Int16@inputRate to Float32@16 kHz, linear: the worker's `resampleInt16ToFloat32_16k`. */
-function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Float32Array {
+export function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Float32Array {
   const ratio = inputRate / VAD_SAMPLE_RATE;
   const outLen = Math.floor(samples.length / ratio);
   const out = new Float32Array(outLen);

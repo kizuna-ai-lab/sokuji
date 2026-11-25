@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import type { VadWebConfig } from '../../types';
 import { VAD_FRAME_SAMPLES, type SegmentLimit } from './max-speech-frames';
 import fixture from './__fixtures__/ja-sentences.silero.json';
-import { legacyVadLoop, type LegacySegment } from './legacy-vad-loop.testing';
+import { legacyVadLoop, resampleInt16ToFloat32_16k, type LegacySegment } from './legacy-vad-loop.testing';
 import { DetectorLeg } from './turn-detector-leg';
 import type { DetectorNotice, DetectorOutput, DetectorSegment } from './turn-detector-protocol';
 import { openTurnLink } from './turn-gate';
@@ -247,6 +247,14 @@ describe('the detector cuts the recorded Japanese sentences as the worker VAD di
     const scenario: Scenario = { ...NORMAL, smart: 0.9, vad: { ...VAD, minSpeechDuration: 2 } };
     const before = await worker(scenario);
     const after = await detector(scenario);
+    // The 16 kHz timeline the worker's frames were cut from: each chunk resampled as the worker does.
+    const timeline = new Float32Array(scenario.chunks.reduce((n, c) => n + Math.floor(c.length / 1.5), 0) + FRAME);
+    let at = 0;
+    for (const chunk of scenario.chunks) {
+      const resampled = resampleInt16ToFloat32_16k(chunk, 24000);
+      timeline.set(resampled, at);
+      at += resampled.length;
+    }
     expect(after.notices.filter((n) => n.type === 'failed')).toEqual([]);
     expect(before.filter((c) => c.endedBy === 'kept').length).toBeGreaterThanOrEqual(1);
     expect(after.cuts).toHaveLength(before.length);
@@ -265,6 +273,8 @@ describe('the detector cuts the recorded Japanese sentences as the worker VAD di
       expect(c.end).toBe(w.end + FRAME);
       expect(c.audio.length).toBe(w.audio.length + FRAME);
       expect(difference(c.audio.subarray(0, w.audio.length), w.audio)).toBeNull();
+      // The extra frame is the real frame that follows on the timeline, not padding.
+      expect(difference(c.audio.subarray(w.audio.length), timeline.subarray(c.end - FRAME, c.end))).toBeNull();
       // Ruling T11-2: the worker's literal label is one frame after the start of its own audio, which the detector has.
       expect(w.literalStart).toBe(c.start + FRAME);
     });
