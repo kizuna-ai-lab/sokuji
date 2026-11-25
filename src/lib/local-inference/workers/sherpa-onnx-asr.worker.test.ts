@@ -95,9 +95,9 @@ const settle = () => new Promise<void>((r) => setTimeout(r, 20));
 const results = (h: Harness) => h.posted.filter((m) => m.type === 'result');
 const taken = (p: FakePort) => p.sent.map((m: any) => m.seq);
 
-async function ready(port: FakePort | null, decodeText?: (n: number) => string): Promise<Harness> {
+async function ready(port: FakePort, decodeText?: (n: number) => string): Promise<Harness> {
   const h = load(decodeText);
-  h.send(port ? { ...INIT, segmentPort: port } : INIT);
+  h.send({ ...INIT, segmentPort: port });
   h.runtimeReady();
   await settle();
   return h;
@@ -213,12 +213,12 @@ describe('sherpa-onnx worker, with a segment port', () => {
     expect(taken(port)).toEqual([1, 2]);
   });
 
-  it('ignores audio and flush: the detector has the audio', async () => {
+  it('takes no audio or flush: the detector has the audio', async () => {
     const h = await ready(port);
     h.send({ type: 'audio', samples: new Int16Array(480), sampleRate: 24000 });
     h.send({ type: 'flush' });
     await settle();
-    expect(h.posted.filter((m) => m.type === 'error')).toEqual([]);
+    expect(h.posted.filter((m) => m.type === 'error').map((m) => m.error)).toEqual(['Unknown message type: audio', 'Unknown message type: flush']);
     expect(h.calls.decodes).toEqual([]);
   });
 
@@ -246,12 +246,13 @@ describe('sherpa-onnx worker, with a segment port', () => {
   });
 });
 
-describe('sherpa-onnx worker, without a port (its own VAD, until step 5)', () => {
-  it('creates its VAD, and a stop is ignored', async () => {
-    const h = await ready(null);
-    expect(h.calls.createVad).toBe(1);
-    h.send({ type: 'stop', epoch: 2 });
+describe('sherpa-onnx worker, without a port', () => {
+  it('cannot start: it says so, and creates no recognizer', async () => {
+    const h = load();
+    h.send(INIT);
     await settle();
-    expect(h.posted.filter((m) => m.type === 'error')).toEqual([]);
+    expect(h.posted.find((m) => m.type === 'error')?.error).toMatch(/segmentPort is required/);
+    expect(h.posted.some((m) => m.type === 'ready')).toBe(false);
+    expect(h.calls.createVad).toBe(0);
   });
 });

@@ -295,11 +295,11 @@ describe('the LocalInference adapter — turns (an own leg)', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('opens no detector, hands the recognizer its own VAD config, and sends the detector no audio', async () => {
+  it('opens no detector, hands the recognizer no turn detection settings or port, and sends the detector no audio', async () => {
     const t = await open();
     expect(t.created).not.toContain('detector');
     expect(t.detector.inits).toEqual([]);
-    expect(t.asr.inits[0].options.vadConfig).toEqual(makeConfig().vad);
+    expect(t.asr.inits[0].options.vadConfig).toBeUndefined();
     expect(t.asr.inits[0].options.segmentPort).toBeUndefined();
     t.session.appendAudio(new Int16Array(4));
     t.session.beginTurn();
@@ -1175,11 +1175,11 @@ describe('the LocalInference adapter — loading', () => {
     expectConformant(t.log, t.context);
   });
 
-  it('inits ASR with its VAD config and the source language, and translation with the pair and model', async () => {
+  it('inits ASR with the source language, and translation with the pair and model', async () => {
     const config = makeConfig();
     const t = await open(config);
     expect(t.asr.config).toEqual(config.asr);
-    expect(t.asr.inits).toEqual([{ modelId: 'asr-model', options: { vadConfig: config.vad, language: 'ja', punctuationEndpoint: true } }]);
+    expect(t.asr.inits).toEqual([{ modelId: 'asr-model', options: { language: 'ja', punctuationEndpoint: true } }]);
     expect(t.translation.inits).toEqual([{ sourceLang: 'ja', targetLang: 'en', modelId: 'mt-model' }]);
     expectConformant(t.log, t.context);
   });

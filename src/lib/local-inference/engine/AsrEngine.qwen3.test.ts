@@ -35,7 +35,7 @@ describe('AsrEngine — qwen3-asr-webgpu routing', () => {
   it('constructs the qwen3 module worker and posts the variant key and language in the init message', async () => {
     const engine = new AsrEngine();
     const { port1, port2 } = new MessageChannel();
-    const initP = engine.init('qwen3-asr-0.6b-webgpu', undefined, 'ja', undefined, port1);
+    const initP = engine.init('qwen3-asr-0.6b-webgpu', 'ja', undefined, port1);
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     expect(String(worker.url)).toContain('qwen3-asr-webgpu.worker');
@@ -70,7 +70,7 @@ describe('AsrEngine — qwen3-asr-webgpu routing', () => {
     const onResult = vi.fn();
     engine.onResult = onResult;
     const { port1, port2 } = new MessageChannel();
-    const initP = engine.init('qwen3-asr-0.6b-webgpu', undefined, undefined, undefined, port1);
+    const initP = engine.init('qwen3-asr-0.6b-webgpu', undefined, undefined, port1);
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     worker.emit({ type: 'ready', loadTimeMs: 1 });

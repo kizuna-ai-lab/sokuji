@@ -10,7 +10,7 @@
  *   results, partials and drained marks, and the epoch's `stop`.
  */
 
-import type { AsrWorkerOutMessage, SegmentEnd, StreamingAsrWorkerOutMessage, VadWebConfig } from '../types';
+import type { AsrWorkerOutMessage, SegmentEnd, StreamingAsrWorkerOutMessage } from '../types';
 import {
   getManifestEntry,
   getManifestByType,
@@ -47,12 +47,9 @@ export class AsrEngine {
   /** Set by `dispose()`: an `init()` still awaiting its model files stops
    *  before it creates a worker (a load aborted mid-way). */
   private disposed = false;
-  /** The loaded recognizer decodes the detector's segments (every WebGPU one; sherpa when given a port) and so has epochs. */
-  private segmented = false;
 
   onResult: ResultCallback | null = null;
   onPartialResult: PartialResultCallback | null = null;
-  onSpeechStart: (() => void) | null = null;
   /** The recognizer decoded or dropped everything the detector sent before its drain mark `seq`. */
   onDrained: ((seq: number) => void) | null = null;
   onStatus: StatusCallback | null = null;
@@ -62,14 +59,13 @@ export class AsrEngine {
 
   /**
    * Initialize the ASR engine with a specific model.
-   * Downloads WASM and model data, creates VAD + OfflineRecognizer.
+   * Downloads WASM and model data, creates the recognizer, which then decodes the turn detector's segments from `segmentPort`.
    *
    * @param modelId - Model identifier (e.g. 'sensevoice-int8', 'moonshine-tiny-en-quant')
-   * @param vadConfig - sherpa-onnx's VAD config; the other workers run no VAD and ignore it
    * @param segmentPort - The turn detector's segments for a WebGPU recognizer, transferred with its init message
    * @returns Promise that resolves with load time when ready
    */
-  async init(modelId: string, vadConfig?: VadWebConfig, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }, segmentPort?: MessagePort): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, language?: string, taskConfig?: { task: 'transcribe' | 'translate'; targetLanguage?: string }, segmentPort?: MessagePort): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr') {
       const available = getManifestByType('asr').map(m => m.id).join(', ');
@@ -78,8 +74,8 @@ export class AsrEngine {
 
     const workerType = model.asrWorkerType || 'sherpa-onnx';
 
-    // Every WebGPU recognizer decodes the detector's segments and cannot start without them.
-    if (workerType !== 'sherpa-onnx' && !segmentPort) {
+    // Every recognizer here decodes the detector's segments and cannot start without them.
+    if (!segmentPort) {
       throw new Error(`${model.name} takes its segments from a turn detector: no segment port`);
     }
 
@@ -191,10 +187,6 @@ export class AsrEngine {
             this.onStatus?.(msg.message);
             break;
 
-          case 'speech_start':
-            this.onSpeechStart?.();
-            break;
-
           case 'partial':
             this.onPartialResult?.(msg.text, {
               ...(msg.press !== undefined ? { press: msg.press } : {}),
@@ -243,7 +235,7 @@ export class AsrEngine {
         dtype,
         ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
         segmentPort,
-      }, [segmentPort!]);
+      }, [segmentPort]);
     } else if (workerType === 'granite-speech-webgpu') {
       ready = await session.start({
         type: 'init',
@@ -255,7 +247,7 @@ export class AsrEngine {
         dtype,
         ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
         segmentPort,
-      }, [segmentPort!]);
+      }, [segmentPort]);
     } else {
       // sherpa-onnx: dataFileUrls/dataPackageMetadata were loaded above,
       // before the WorkerSession was constructed.
@@ -265,51 +257,20 @@ export class AsrEngine {
         asrEngine: model.asrEngine,
         runtimeBaseUrl: new URL(ASR_BUNDLED_RUNTIME_PATH, window.location.href).href,
         dataPackageMetadata,
-        // With a port the worker runs no VAD of its own and decodes the detector's segments; without one it cuts its own.
-        ...(segmentPort ? { segmentPort } : { vadConfig }),
-      }, segmentPort ? [segmentPort] : []);
+        segmentPort,
+      }, [segmentPort]);
     }
-    this.segmented = workerType !== 'sherpa-onnx' || !!segmentPort;
 
     this.currentModel = model;
     return { loadTimeMs: ready.loadTimeMs };
   }
 
   /**
-   * Feed audio samples to the ASR engine.
-   * Audio is processed through VAD → OfflineRecognizer.
-   * Results arrive asynchronously via onResult callback.
-   *
-   * @param samples - Int16Array audio samples
-   * @param sampleRate - Sample rate of the input audio (e.g. 24000)
-   */
-  feedAudio(samples: Int16Array, sampleRate: number): void {
-    if (!this.session?.ready) return;
-
-    // Transfer the buffer for zero-copy performance
-    this.session.post(
-      { type: 'audio', samples, sampleRate },
-      [samples.buffer]
-    );
-  }
-
-  /**
-   * Flush any pending VAD speech segment through ASR.
-   * Used on PTT release to force recognition without waiting for silence detection.
-   */
-  flush(): void {
-    if (!this.session?.ready) return;
-    this.session.post({ type: 'flush' });
-  }
-
-  /**
    * Raise the recognizer's epoch: the older epoch's queued segments are dropped and its
-   * drained marks are never answered. Only a recognizer that decodes the detector's segments has an epoch; sherpa on its own VAD has none.
+   * drained marks are never answered. Every recognizer here decodes the detector's segments, so each has an epoch.
    */
   stop(epoch: number): void {
     if (!this.session?.ready) return;
-    // A sherpa worker on its own VAD answers an unknown message type with an error, so it is never sent one.
-    if (!this.segmented) return;
     this.session.post({ type: 'stop', epoch });
   }
 
@@ -333,6 +294,5 @@ export class AsrEngine {
     this.session?.dispose();
     this.session = null;
     this.currentModel = null;
-    this.segmented = false;
   }
 }

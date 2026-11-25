@@ -28,7 +28,6 @@ describe('Silero VAD input', () => {
     expect(sileroWorkers.map(w => w.name).sort()).toEqual([
       'native-vad.worker.ts',
       'turn-detector.worker.ts',
-      'voxtral-webgpu.worker.ts',
     ]);
   });
 

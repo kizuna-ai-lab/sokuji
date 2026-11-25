@@ -9,7 +9,6 @@ const SHARED_DIR = join(WORKERS_DIR, '_shared');
 /** Workers that still run a FrameProcessor of their own, and why. */
 const EXEMPT: Record<string, string> = {
   'native-vad.worker.ts': "the old LocalNativeClient's (the new Local Native provider takes the detector's marks), until the old path goes",
-  'voxtral-webgpu.worker.ts': "Voxtral 4B's, until step 3",
 };
 
 const read = (dir: string, name: string) => readFileSync(join(dir, name), 'utf8');
@@ -86,12 +85,19 @@ describe('sherpa-onnx-asr.worker.js (a classic script)', () => {
   });
 
   it("takes the detector's segments from its init message's port", () => {
-    expect(source).toMatch(/var segmentPort = msg\.segmentPort \|\| null;/);
-    expect(source).toMatch(/if \(segmentPort\) inbox = createSegmentInbox\(segmentPort\);/);
+    expect(source).toMatch(/var segmentPort = msg\.segmentPort;/);
+    expect(source).toMatch(/inbox = createSegmentInbox\(segmentPort\);/);
   });
 
-  it('creates no VAD and no audio buffer when it has a port', () => {
-    expect(source).toMatch(/if \(!segmentPort\) \{[\s\S]*?createVad\([\s\S]*?new CircularBuffer\([\s\S]*?\n      \}/);
+  it('runs no VAD and no audio buffer, and takes no audio or flush message', () => {
+    expect(source).not.toMatch(/createVad\(/);
+    expect(source).not.toMatch(/new CircularBuffer\(/);
+    expect(source).not.toMatch(/case 'audio':/);
+    expect(source).not.toMatch(/case 'flush':/);
+  });
+
+  it('cannot start without the port', () => {
+    expect(source).toMatch(/if \(!segmentPort\) \{\s*postMessage\(\{ type: 'error'/);
   });
 
   it('routes stop to the inbox and closes it first on dispose', () => {
@@ -107,7 +113,7 @@ describe('sherpa-onnx-asr.worker.js (a classic script)', () => {
 });
 
 // Voxtral 4B holds the audio itself: the detector relays it with start/end/cancel marks, and the worker acts on each mark
-// where it arrives. It keeps its own VAD path for a load with no port, until step 5.
+// where it arrives. It runs no VAD and cannot start without the port.
 describe('voxtral-webgpu.worker.ts (audio and marks)', () => {
   const source = read(WORKERS_DIR, 'voxtral-webgpu.worker.ts');
 
@@ -122,12 +128,21 @@ describe('voxtral-webgpu.worker.ts (audio and marks)', () => {
     expect(dispose.indexOf('marksPort.close()')).toBeLessThan(dispose.indexOf('abortGenerate()'));
   });
 
-  it('loads no Silero model when it has a port', () => {
-    expect(source).toMatch(/if \(msg\.segmentPort\) \{[\s\S]*?\} else \{[\s\S]*?await initVad\(/);
+  it('runs no VAD: no Silero model, no FrameProcessor, no audio or flush message', () => {
+    expect(source).not.toContain('@ricky0123/vad-web');
+    expect(source).not.toContain('silero_vad');
+    expect(source).not.toContain('processingVad');
+    const router = source.slice(source.indexOf('self.onmessage'));
+    expect(router).not.toMatch(/case 'audio':/);
+    expect(router).not.toMatch(/case 'flush':/);
+  });
+
+  it('cannot start without the port', () => {
+    expect(source).toMatch(/if \(!msg\.segmentPort\) throw new Error\('segmentPort is required/);
   });
 
   it('acts on each mark synchronously, in arrival order: nothing in the handler awaits', () => {
-    const handler = source.slice(source.indexOf('function onMarksMessage'), source.indexOf('// ─── VAD + Voxtral Audio Feed Pipeline'));
+    const handler = source.slice(source.indexOf('function onMarksMessage'), source.indexOf('// ─── Init Handler'));
     expect(handler).not.toMatch(/\bawait\b/);
     expect(handler).toMatch(/case 'start':[\s\S]*?queuedUtterance\.start\(\)[\s\S]*?runVoxtralGenerate\(\)/);
     expect(handler).toMatch(/case 'end':[\s\S]*?finishGenerate\(\)/);
@@ -149,7 +164,7 @@ describe('voxtral-webgpu.worker.ts (audio and marks)', () => {
   });
 
   it('does not announce the speech itself: the detector does', () => {
-    const handler = source.slice(source.indexOf('function onMarksMessage'), source.indexOf('// ─── VAD + Voxtral Audio Feed Pipeline'));
+    const handler = source.slice(source.indexOf('function onMarksMessage'), source.indexOf('// ─── Init Handler'));
     expect(handler).not.toContain('speech_start');
   });
 });

@@ -91,11 +91,6 @@ describe('resolveMaxSpeechFrames', () => {
 // the manifest; turn-detector-core.test.ts pins the arithmetic.
 const CAPPING_WORKERS: Array<{ name: string; limit: RegExp | null; constant?: RegExp }> = [
   {
-    name: 'voxtral-webgpu.worker.ts',
-    limit: /maxSpeechSeconds:\s*VOXTRAL_REALTIME_MAX_SPEECH_SECONDS/,
-    constant: /VOXTRAL_REALTIME_MAX_SPEECH_SECONDS\s*=\s*35\b/,
-  },
-  {
     name: 'native-vad.worker.ts',
     limit: /maxSpeechSeconds:\s*NATIVE_MAX_SPEECH_SECONDS/,
     constant: /NATIVE_MAX_SPEECH_SECONDS\s*=\s*19\b/,

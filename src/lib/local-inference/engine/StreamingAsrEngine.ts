@@ -4,7 +4,7 @@
  *
  * Supports multiple worker backends:
  * - sherpa-onnx (classic Worker): OnlineRecognizer with built-in endpoint detection
- * - voxtral-webgpu (module Worker): Voxtral Mini 4B with VAD + punctuation endpoints
+ * - voxtral-webgpu (module Worker): Voxtral Mini 4B on the turn detector's audio and marks, with punctuation endpoints
  *
  * Unlike AsrEngine (offline VAD + batch recognition), streaming engines emit
  * partial (interim) results as speech is being recognized and final results
@@ -55,6 +55,14 @@ export class StreamingAsrEngine {
       throw new Error(`Unknown streaming ASR model: ${modelId}. Available: ${available}`);
     }
 
+    // Voxtral 4B takes the turn detector's audio and marks and cannot start without them (sherpa streaming cuts its own
+    // turns): refused before anything loaded is disposed.
+    const workerType = model.asrWorkerType || 'sherpa-onnx';
+    const segmentPort = options?.segmentPort;
+    if (workerType === 'voxtral-webgpu' && !segmentPort) {
+      throw new Error(`${model.name} takes its turns from a turn detector: no port`);
+    }
+
     // If already loaded with same model, skip
     if (this.session?.ready && this.currentModel?.id === modelId) {
       return { loadTimeMs: 0 };
@@ -68,7 +76,6 @@ export class StreamingAsrEngine {
     this.disposed = false;
 
     const manager = ModelManager.getInstance();
-    const workerType = model.asrWorkerType || 'sherpa-onnx';
 
     // Load model file blob URLs (and any worker-specific metadata) before
     // creating the worker, so the WorkerSession can be constructed
@@ -187,10 +194,9 @@ export class StreamingAsrEngine {
           vadConfig: options?.vadConfig,
           punctuationEndpoint: options?.punctuationEndpoint,
           dtype,
-          vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
           ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
-          ...(options?.segmentPort ? { segmentPort: options.segmentPort } : {}),
-        }, options?.segmentPort ? [options.segmentPort] : undefined)
+          segmentPort,
+        }, [segmentPort as MessagePort])
       : await session.start({
           type: 'init',
           fileUrls: dataFileUrls,

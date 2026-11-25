@@ -37,8 +37,8 @@ describe('engine init aborted by dispose()', () => {
   afterEach(() => { restore(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
   const cases: Array<[string, () => { dispose(): void; init: () => Promise<unknown> }]> = [
-    ['AsrEngine', () => { const e = new AsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('sensevoice-int8', undefined, 'ja') }; }],
-    ['StreamingAsrEngine', () => { const e = new StreamingAsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('voxtral-mini-4b-webgpu') }; }],
+    ['AsrEngine', () => { const e = new AsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('sensevoice-int8', 'ja', undefined, new MessageChannel().port1) }; }],
+    ['StreamingAsrEngine', () => { const e = new StreamingAsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('voxtral-mini-4b-webgpu', { segmentPort: new MessageChannel().port1 }) }; }],
     ['TranslationEngine', () => { const e = new TranslationEngine(); return { dispose: () => e.dispose(), init: () => e.init('ja', 'en', 'opus-mt-ja-en') }; }],
     ['TtsEngine', () => { const e = new TtsEngine(); return { dispose: () => e.dispose(), init: () => e.init('supertonic-3') }; }],
   ];
@@ -62,7 +62,7 @@ describe('engine init aborted by dispose()', () => {
   // The later checks: a dispose landing while the sherpa package metadata is
   // still being read, after the model files were already handed out.
   const metadataCases: Array<[string, () => { dispose(): void; init: () => Promise<unknown> }]> = [
-    ['AsrEngine', () => { const e = new AsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('sensevoice-int8', undefined, 'ja') }; }],
+    ['AsrEngine', () => { const e = new AsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('sensevoice-int8', 'ja', undefined, new MessageChannel().port1) }; }],
     ['StreamingAsrEngine', () => { const e = new StreamingAsrEngine(); return { dispose: () => e.dispose(), init: () => e.init('stream-en-kroko') }; }],
   ];
 
