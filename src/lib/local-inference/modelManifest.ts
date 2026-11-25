@@ -638,9 +638,10 @@ const VOXTRAL_REALTIME_LIMIT: AsrLengthLimit = { kind: 'speech', seconds: 35 };
  * bundled wasm cannot catch the C++ exception, so the whole
  * segment comes back as "ASR processing error" and one error
  * bubble. Executed on moonshine-tiny-ja-quant through the sherpa-onnx worker: 8 s fine, 12 s throws, twice. Nine seconds is the
- * largest safe multiple of a second.
+ * largest safe multiple of a second. It is a whole-segment limit: the turn detector's pre-speech pad is part of what the
+ * model is handed, so a 9 s speech cap with the default 0.8 s pad (9.8 s) would cross it.
  */
-const MOONSHINE_V2_LIMIT: AsrLengthLimit = { kind: 'speech', seconds: 9 };
+const MOONSHINE_V2_LIMIT: AsrLengthLimit = { kind: 'segment', seconds: 9 };
 
 /** Every other sherpa-onnx offline engine keeps the 20 s that worker has always used. */
 const SHERPA_OFFLINE_LIMIT: AsrLengthLimit = { kind: 'speech', seconds: 20 };

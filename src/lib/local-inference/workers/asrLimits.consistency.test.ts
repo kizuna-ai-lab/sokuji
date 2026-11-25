@@ -32,9 +32,9 @@ describe('the manifest limit equals the one still in the worker', () => {
 });
 
 describe('sherpa-onnx worker', () => {
-  it("cuts Moonshine v2 at 9 s and everything else at 20 s, as the manifest says", () => {
+  it("still cuts Moonshine v2 at 9 s and everything else at 20 s for a load with no port; the manifest says it as a 9 s segment, the pad included, and 20 s of speech", () => {
     expect(sherpa).toContain("asrEngine === 'moonshine-v2' ? 9 : 20");
-    expect(limit('moonshine-base-zh-quant')).toEqual({ maxSpeechSeconds: 9 });
+    expect(limit('moonshine-base-zh-quant')).toEqual({ maxSegmentSamples: 9 * 16000 });
     expect(limit('sensevoice-int8')).toEqual({ maxSpeechSeconds: 20 });
   });
 });

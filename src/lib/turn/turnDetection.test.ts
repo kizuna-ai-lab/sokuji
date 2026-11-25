@@ -52,7 +52,7 @@ describe('turnDetectionScope', () => {
   });
 
   it('takes the smallest limit over the legs shown', () => {
-    expect(turnDetectionScope([leg('whisper-base-webgpu', 'auto'), leg('moonshine-tiny-ja-quant', 'auto')], td).limitSeconds).toBe(9);
+    expect(turnDetectionScope([leg('whisper-base-webgpu', 'auto'), leg('moonshine-tiny-ja-quant', 'auto')], td).limitSeconds).toBe(8.2); // 9 s of segment less the 0.8 s pad
   });
 
   it('a model with no limit sets none', () => {
