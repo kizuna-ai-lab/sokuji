@@ -6,7 +6,7 @@
  */
 import { SegmentAssembler } from './segment-assembler';
 import { TurnDetectorCore, type TurnDetectorCoreOptions } from './turn-detector-core';
-import type { DetectorNotice, DetectorOutput, RecognizerTaken } from './turn-detector-protocol';
+import { INITIAL_EPOCH, type DetectorNotice, type DetectorOutput, type RecognizerTaken } from './turn-detector-protocol';
 
 export interface DetectorLegOptions {
   core: Omit<TurnDetectorCoreOptions, 'trace' | 'notify'>;
@@ -21,8 +21,11 @@ export class DetectorLeg {
   readonly core: TurnDetectorCore;
   private readonly assembler: SegmentAssembler;
   private failed = false;
+  /** The epoch the leg is in; a stop that does not raise it changes nothing, on either end (it starts where the recognizer's does). */
+  private epoch: number;
 
   constructor(private readonly o: DetectorLegOptions) {
+    this.epoch = o.epoch ?? INITIAL_EPOCH;
     this.assembler = new SegmentAssembler({
       post: (msg, transfer) => { if (!this.failed) o.post(msg, transfer); },
       notify: (notice) => this.notice(notice),
@@ -38,11 +41,14 @@ export class DetectorLeg {
 
   /** Once the leg has failed these reach nothing: the core takes no more input and Silero is not asked again. */
   push(pcm: Int16Array): void { if (!this.failed) this.core.push(pcm); }
-  drain(): void { if (!this.failed) this.core.drain(); }
+  drain(press?: number): void { if (!this.failed) this.core.drain(press); }
   begin(press: number): void { if (!this.failed) this.core.begin(press); }
   cancel(press: number): void { if (!this.failed) this.core.cancel(press); }
   taken(msg: RecognizerTaken): void { this.assembler.taken(msg); }
   stop(epoch: number): void {
+    // Not a raise: the turn in hand is not lost (the segment inbox and the assembler ignore it as well).
+    if (epoch <= this.epoch) return;
+    this.epoch = epoch;
     this.core.stop();
     this.assembler.stop(epoch);
   }

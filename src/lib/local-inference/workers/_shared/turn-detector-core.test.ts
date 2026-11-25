@@ -1002,6 +1002,56 @@ describe('TurnDetectorCore — bounds, stop', () => {
     expect(gate.calls()).toBe(Math.floor((16000 * 2) / FRAME));
   });
 
+  it('counts the input actually received: one sample, then 47 999, is exactly 2 s at 24 kHz and passes; one more fails', async () => {
+    const gate = held();
+    const h = harness([], { infer: gate.infer });
+    h.push(new Int16Array(1));
+    h.push(new Int16Array(47999));
+    expect(h.notices).toEqual([]);
+    h.push(new Int16Array(1));
+    expect(h.notices).toEqual([overloaded]);
+    await gate.release();
+    await h.core.idle();
+  });
+
+  it('an overload, then the rejection of the inference held at that moment: still one notice, the overload', async () => {
+    let reject: ((e: Error) => void) | null = null;
+    const h = harness([], { infer: () => new Promise<number>((_, rej) => { reject = rej; }) });
+    h.push(new Int16Array(12000)); // the first frame's inference starts and is held
+    h.push(new Int16Array(24000 * 1.7)); // the unprocessed total passes 2 s
+    expect(h.notices).toEqual([overloaded]);
+    reject!(new Error('late failure'));
+    await h.core.idle();
+    expect(h.notices).toEqual([overloaded]);
+  });
+
+  it('the rejection of an inference that stop() ended is not the new turn\'s failure: the leg goes on with what queued behind it', async () => {
+    let calls = 0;
+    let rejectFirst: ((e: Error) => void) | null = null;
+    const h = harness([], {
+      infer: () => {
+        calls++;
+        if (calls === 1) return new Promise<number>((_, rej) => { rejectFirst = rej; });
+        return Promise.resolve(SILENCE);
+      },
+    });
+    h.push(h.noise(IN_FRAME));
+    h.core.stop();
+    h.push(h.noise(IN_FRAME));
+    rejectFirst!(new Error('session lost while stopped'));
+    await h.core.idle();
+    expect(h.notices).toEqual([]);
+    expect(calls).toBe(2);
+    expect(h.trace.some((e) => e.kind === 'frame')).toBe(true);
+  });
+
+  it('a rejection of the active generation still fails the leg', async () => {
+    const h = harness([], { infer: async () => { throw new Error('boom'); } });
+    h.push(h.noise(IN_FRAME));
+    await h.core.idle();
+    expect(h.notices).toEqual([{ type: 'failed', code: 'turn_detection_unavailable', message: 'Turn detection failed: boom' }]);
+  });
+
   it('stop with a backlog returns at once: queued input dropped, nothing more posted, late taken ignored', async () => {
     const gate = held();
     const h = harness([], { infer: gate.infer });
@@ -1038,5 +1088,80 @@ describe('TurnDetectorCore — bounds, stop', () => {
     h.push(h.noise(IN_FRAME * 2));
     await h.core.idle();
     expect(h.notices).toEqual([{ type: 'failed', code: 'turn_detection_unavailable', message: 'Turn detection failed: boom' }]);
+  });
+});
+
+describe('TurnDetectorCore — the engine limit alone cuts a press; the pad fits the limit', () => {
+  it('a press is not shortened by the automatic Max speech setting: 6 frames under a 0.032 s setting and an 8-frame limit are one segment', async () => {
+    const m = manual({ maxSpeech: 0.032, limit: { maxSegmentSamples: 8 * FRAME } });
+    m.core.begin(1);
+    await m.push(FRAME * 6);
+    m.core.drain();
+    await m.settle();
+    expect(m.segments().map((s) => [s.start, s.end, s.endedBy])).toEqual([[0, FRAME * 6, 'release']]);
+  });
+
+  it('a press is still cut where it reaches the engine limit, and goes on as the same press', async () => {
+    const m = manual({ maxSpeech: 0.032, limit: { maxSegmentSamples: 8 * FRAME } });
+    m.core.begin(1);
+    await m.push(FRAME * 10);
+    m.core.drain();
+    await m.settle();
+    expect(m.segments().map((s) => [s.press, s.start, s.end, s.endedBy])).toEqual([[1, 0, FRAME * 8, 'cap'], [1, FRAME * 8, FRAME * 10, 'release']]);
+  });
+
+  it('with no engine limit a press is never cut', async () => {
+    const m = manual({ maxSpeech: 0.032 });
+    m.core.begin(1);
+    await m.push(FRAME * 100);
+    m.core.drain();
+    await m.settle();
+    expect(m.segments()).toHaveLength(1);
+  });
+
+  it('an automatic pre-pad that leaves no room for speech inside the engine\'s limit is shortened: no segment passes it', async () => {
+    const h = harness([...run(40, SILENCE), ...run(3, SPEECH), ...run(40, SILENCE)], {
+      vad: { preSpeechPadDuration: 1, minSpeechDuration: 0.032 },
+      limit: { maxSegmentSamples: 16000 },
+    });
+    await h.feed(83);
+    h.core.drain();
+    await h.core.idle();
+    const segs = h.segments();
+    expect(segs.length).toBeGreaterThanOrEqual(1);
+    for (const s of segs) expect(s.audio.length).toBeLessThanOrEqual(16000);
+  });
+});
+
+describe('TurnDetectorCore — a release names its press', () => {
+  it('begin(1), cancel(1), begin(2), audio, drain(1): the late release of press 1 ends nothing; press 2 goes on and ends at its own release', async () => {
+    const m = manual();
+    m.core.begin(1);
+    await m.push(FRAME * 2);
+    m.core.cancel(1);
+    m.core.begin(2);
+    await m.push(FRAME * 3);
+    m.core.drain(1);
+    await m.settle();
+    expect(m.segments()).toEqual([]);
+    await m.push(FRAME * 2);
+    m.core.drain(2);
+    await m.settle();
+    const segs = m.segments();
+    expect(segs).toHaveLength(1);
+    expect(segs[0]).toMatchObject({ press: 2, endedBy: 'release' });
+    expect(segs[0].end - segs[0].start).toBe(FRAME * 5);
+  });
+
+  it('a release that names the open press, or none, ends it', async () => {
+    const m = manual();
+    m.core.begin(1);
+    await m.push(FRAME * 2);
+    m.core.drain(1);
+    m.core.begin(2);
+    await m.push(FRAME * 2);
+    m.core.drain();
+    await m.settle();
+    expect(m.segments().map((s) => s.press)).toEqual([1, 2]);
   });
 });

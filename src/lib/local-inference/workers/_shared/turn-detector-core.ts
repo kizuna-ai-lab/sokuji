@@ -51,7 +51,7 @@ export interface TurnDetectorCoreOptions {
 
 type Op =
   | { kind: 'push'; pcm: Int16Array }
-  | { kind: 'drain' }
+  | { kind: 'drain'; press?: number }
   | { kind: 'begin'; press: number }
   | { kind: 'cancel'; press: number };
 
@@ -101,7 +101,7 @@ export class TurnDetectorCore {
   private held: number[] = [];
   /** The processor's buffer was emptied during the frame in hand. */
   private emptied = false;
-  /** Manual turns: the engine's limit in samples, computed with no pad; a press is cut here and nowhere else. */
+  /** Manual turns: the engine's limit in samples (none: Infinity), computed with no pad; a press is cut here and nowhere else. */
   private readonly pressCapSamples: number;
   /** Frames since the processor's SpeechStart, counted as the workers count them for the cap. */
   private speechFrames = 0;
@@ -110,7 +110,8 @@ export class TurnDetectorCore {
     this.resampler = new TimelineResampler(o.inputRate);
     this.inputRate = o.inputRate ?? 24000;
     this.vad = o.turns === 'auto' ? this.createVad() : null;
-    this.pressCapSamples = resolveMaxSpeechFrames(o.vad.maxSpeechDuration, 0, o.limit) * VAD_FRAME_SAMPLES;
+    // A press runs to the engine's limit and no sooner: the automatic Max speech setting does not shorten a held key.
+    this.pressCapSamples = resolveMaxSpeechFrames(Number.POSITIVE_INFINITY, 0, o.limit) * VAD_FRAME_SAMPLES;
   }
 
   /**
@@ -126,9 +127,13 @@ export class TurnDetectorCore {
     this.enqueue({ kind: 'push', pcm });
   }
 
-  /** Processes what has arrived, the last partial frame included, closes the open segment (`flush`), then `drained`. */
-  drain(): void {
-    this.enqueue({ kind: 'drain' });
+  /**
+   * Processes what has arrived, the last partial frame included, closes the open segment (`flush`), then `drained`.
+   * Under manual turns a release that names a press which is no longer the open one (released, cancelled, or
+   * replaced by the next press) ends nothing: it only settles the timeline and answers.
+   */
+  drain(press?: number): void {
+    this.enqueue({ kind: 'drain', press });
   }
 
   /**
@@ -178,7 +183,13 @@ export class TurnDetectorCore {
     if (!infer) throw new Error('TurnDetectorCore: automatic turns need infer');
     // As the vad-web workers' initVad built it.
     const { positive, negative } = resolveVadThresholds(vad);
-    const preSpeechPadMs = (vad.preSpeechPadDuration ?? 0.8) * 1000;
+    let preSpeechPadMs = (vad.preSpeechPadDuration ?? 0.8) * 1000;
+    // The pad counts against an engine's whole-segment limit: a pad that leaves no room for one frame of speech is
+    // shortened to what fits, and a configuration that already fits keeps its pad.
+    if (limit.maxSegmentSamples !== undefined) {
+      const fitFrames = Math.max(0, Math.floor(limit.maxSegmentSamples / VAD_FRAME_SAMPLES) - 1);
+      preSpeechPadMs = Math.min(preSpeechPadMs, fitFrames * VAD_FRAME_MS);
+    }
     const processor = new FrameProcessor(
       async (frame) => {
         const isSpeech = await infer(frame);
@@ -205,11 +216,11 @@ export class TurnDetectorCore {
     };
   }
 
-  /** Input-rate samples that arrived and are not processed yet. */
+  /** Input-rate samples that arrived and are not processed yet: queued chunks, and the input held for frames not yet traced. */
   private unprocessedInput(): number {
-    let n = 0;
+    let n = this.rawBuf.length;
     for (const op of this.queue) if (op.kind === 'push') n += op.pcm.length;
-    return n + ((this.pending.length + this.inFlight) * this.inputRate) / VAD_SAMPLE_RATE;
+    return n;
   }
 
   /** The leg fails: nothing more is accepted or processed, and the frame in hand is discarded. */
@@ -241,10 +252,17 @@ export class TurnDetectorCore {
 
   private async run(): Promise<void> {
     for (let op = this.queue.shift(); op; op = this.queue.shift()) {
+      const generation = this.generation;
       try {
-        await this.apply(op, this.generation);
+        await this.apply(op, generation);
       } catch (err) {
         if (this.failed) break;
+        // The op belonged to a turn that stop() ended while it was awaiting Silero: its rejection is not the new
+        // turn's failure. The turn state is reset, and what queued behind it goes on.
+        if (generation !== this.generation) {
+          this.resetTurn();
+          continue;
+        }
         const reason = err instanceof Error ? err.message : String(err);
         this.fail({ type: 'failed', code: 'turn_detection_unavailable', message: `Turn detection failed: ${reason}` });
         break;
@@ -275,7 +293,7 @@ export class TurnDetectorCore {
       case 'drain':
         await this.settle(generation);
         if (generation !== this.generation) return;
-        if (this.open) {
+        if (this.open && !(!this.vad && op.press !== undefined && this.open.press !== op.press)) {
           if (this.vad) this.flushOpen(this.vad);
           else this.releasePress();
         }

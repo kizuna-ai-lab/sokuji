@@ -232,7 +232,11 @@ describe('the detector cuts the recorded Japanese sentences as the worker VAD di
     // The worker dropped the tail after a cap that was shorter than minSpeech; the detector continues the turn and
     // emits it, starting exactly at the cut. Those are the only extras allowed, and with them removed the lists agree.
     const capEnds = new Set(after.cuts.filter((c) => c.endedBy === 'cap').map((c) => c.end));
-    const extras = after.cuts.filter((c, i) => i > 0 && capEnds.has(c.start) && !before.some((b) => b.start === c.start && b.end === c.end && b.endedBy === c.endedBy));
+    // A tail is shorter than minSpeech (the speech the worker dropped), plus the redemption that closes it; a longer
+    // segment that merely starts at a cut, or one that ends at another cap, is not one and stays in the exact comparison.
+    const tailMax = Math.ceil((VAD.minSpeechDuration! + VAD.minSilenceDuration!) * 16000);
+    const extras = after.cuts.filter((c, i) => i > 0 && capEnds.has(c.start) && c.end - c.start <= tailMax && c.endedBy !== 'cap'
+      && !before.some((b) => b.start === c.start && b.end === c.end && b.endedBy === c.endedBy));
     const rest = after.cuts.filter((c) => !extras.includes(c));
     expect(spans(rest)).toEqual(spans(before));
     rest.forEach((c, i) => expect(difference(c.audio, before[i].audio)).toBeNull());

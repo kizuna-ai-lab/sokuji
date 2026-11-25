@@ -127,7 +127,7 @@ self.onmessage = async (e: MessageEvent<DetectorInbound>) => {
       leg?.begin(msg.press);
       break;
     case 'drain':
-      leg?.drain();
+      leg?.drain(msg.press);
       break;
     case 'cancel':
       leg?.cancel(msg.press);

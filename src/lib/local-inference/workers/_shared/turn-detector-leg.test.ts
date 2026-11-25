@@ -24,6 +24,28 @@ function leg() {
 }
 
 describe('DetectorLeg', () => {
+  it('a stop that does not raise the epoch changes nothing: the press in hand is not lost', async () => {
+    const { l, segments, press } = leg();
+    l.begin(1);
+    l.push(pcm(2400));
+    l.stop(1); // INITIAL_EPOCH: not a raise
+    l.push(pcm(2400));
+    l.drain();
+    await l.core.idle();
+    expect(segments().map((m) => (m as { press?: number }).press)).toEqual([1]);
+    void press;
+  });
+
+  it('a stop that raises it drops the press in hand', async () => {
+    const { l, segments } = leg();
+    l.begin(1);
+    l.push(pcm(2400));
+    l.stop(2);
+    l.drain();
+    await l.core.idle();
+    expect(segments()).toEqual([]);
+  });
+
   it('a decode-queue failure followed by an input overload posts one notice', async () => {
     const { l, notices, press, segments } = leg();
     for (let p = 1; p <= 6; p++) await press(p); // nobody takes: the sixth waits behind five
