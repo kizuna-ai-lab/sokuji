@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import fixture from './log-mel.fixture.json';
-import { logMel, type MelFilterbank } from './log-mel';
+import { logMel, MIN_MEL_INPUT_SAMPLES, type MelFilterbank } from './log-mel';
 
 // The fixture holds a 0.25 s chirp, a 4-filter toy bank and reference values computed with the
 // export pipeline's torch.stft recipe (see `_generator` inside the JSON).
@@ -31,5 +31,20 @@ describe('logMel', () => {
       if (v < min) min = v;
     }
     expect(min).toBeGreaterThanOrEqual(max - 2 - 1e-6);
+  });
+});
+
+describe('logMel on a very short input', () => {
+  const noise = (n: number) => Float32Array.from({ length: n }, (_, i) => Math.sin(i * 0.3));
+  const hasNaN = (n: number) => logMel(noise(n), filters).data.some((v) => Number.isNaN(v));
+
+  it('an input of MIN_MEL_INPUT_SAMPLES or fewer reads past its reflect padding and holds NaN: callers must not send it', () => {
+    expect(MIN_MEL_INPUT_SAMPLES).toBe(200);
+    expect(hasNaN(160)).toBe(true);
+    expect(hasNaN(MIN_MEL_INPUT_SAMPLES)).toBe(true);
+  });
+
+  it('one sample more is clean', () => {
+    expect(hasNaN(MIN_MEL_INPUT_SAMPLES + 1)).toBe(false);
   });
 });

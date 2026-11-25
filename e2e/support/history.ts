@@ -19,9 +19,11 @@ export interface StoredRecord {
   /**
    * What was heard, as the sentences the session cut it into (the `original` transcript), in order, with the span each
    * covers in ms from the record's start. A local recognizer gives its segments no timing (`startMs`/`endMs` above stay
-   * null); these spans are where its turn boundaries are kept.
+   * null); these spans are where its turn boundaries are kept. `timeKind` says what the span is: `given` is audio-based
+   * (the recognizer's heard pieces overlap the sentence), `estimated` is where the sentence arrived, which is not a
+   * boundary of the audio.
    */
-  heard: { text: string; startMs: number; endMs: number }[];
+  heard: { text: string; startMs: number; endMs: number; timeKind: string }[];
 }
 
 /** What the history database holds, read from disk. Call it after the app has closed: the app owns the file while it runs. */
@@ -46,8 +48,8 @@ export function readHistory(userData: string): StoredRecord[] {
         .map((row) => ({ side: row.side as 'source' | 'translation', text: String(row.text), openedAt: Number(row.openedAt),
           startMs: row.startMs === null ? null : Number(row.startMs), endMs: row.endMs === null ? null : Number(row.endMs),
         }));
-      const heard = (db.prepare("select s.text as text, s.start_ms as startMs, s.end_ms as endMs from sentences s join transcripts t on t.id = s.transcript_id where t.record_id = ? and t.text_kind = 'original' order by t.id, s.start_ms").all(id) as Record<string, unknown>[])
-        .map((row) => ({ text: String(row.text), startMs: Number(row.startMs), endMs: Number(row.endMs) }));
+      const heard = (db.prepare("select s.text as text, s.start_ms as startMs, s.end_ms as endMs, s.time_kind as timeKind from sentences s join transcripts t on t.id = s.transcript_id where t.record_id = ? and t.text_kind = 'original' order by t.id, s.start_ms").all(id) as Record<string, unknown>[])
+        .map((row) => ({ text: String(row.text), startMs: Number(row.startMs), endMs: Number(row.endMs), timeKind: String(row.timeKind) }));
       return { id, state: String(record.state), services: String(record.services), sentences, tracks, segments, heard };
     });
   } finally {

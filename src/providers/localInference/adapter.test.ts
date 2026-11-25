@@ -374,9 +374,11 @@ describe('the LocalInference adapter — turns (a shared leg)', () => {
     t.translation.ready();
     t.asr.failInit('out of memory');
     t.detector.ready();
-    const error = await t.starting.then(() => null, (e: Error) => e);
-    expect(error).not.toBeNull();
-    expect(String(error?.message)).toMatch(/out of memory/);
+    const error = await t.starting.then(() => null, (e: unknown) => e);
+    // Classified at the start: the surface words a `gpu_out_of_memory` code, a plain Error it cannot.
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect(error).toMatchObject({ code: 'gpu_out_of_memory' });
+    expect((error as { cause?: unknown }).cause).toMatchObject({ message: 'out of memory' });
   });
 
   it('a shared leg without a detector in the engines rejects the start', async () => {

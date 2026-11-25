@@ -22,7 +22,7 @@
 import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-webgpu';
 import { VAD_SAMPLE_RATE } from './_shared/max-speech-frames';
 import { SegmentInbox, type DecodeTag } from './_shared/segment-inbox';
-import { logMel, type MelFilterbank } from './_shared/log-mel';
+import { logMel, MIN_MEL_INPUT_SAMPLES, type MelFilterbank } from './_shared/log-mel';
 import { createBpeDecoder, type BpeDecoder } from './_shared/bpe-decoder';
 import {
   audioTokenCount,
@@ -132,9 +132,10 @@ async function transcribeSegment(audio: Float32Array, startSample: number, tag: 
   const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
   const startTime = performance.now();
 
-  // A tail shorter than one mel hop (160 samples, 10 ms) has no feature frames: nothing to recognize, and the
-  // encoder must not be handed zero frames.
-  if (audio.length < 160) return;
+  // A tail of up to half an FFT window (200 samples, 12.5 ms) has no real feature frame: the mel's reflect padding
+  // reads past such an input and its one frame would hold NaN. Nothing to recognize, and the encoder must not be
+  // handed it.
+  if (audio.length <= MIN_MEL_INPUT_SAMPLES) return;
 
   try {
     const mel = logMel(audio, m.filters);

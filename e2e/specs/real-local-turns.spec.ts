@@ -218,8 +218,9 @@ for (let run = 1; run <= RUNS; run++) {
         heard: sentence.heard.test(heardText),
         translated: sentence.said.test(saidText),
         // The turn boundaries are the sentence the session cut for this clip (a local recognizer's segments carry no timing).
-        startMs: spoken?.startMs ?? null,
-        endMs: spoken?.endMs ?? null,
+        // Only a span the audio gave (`given`) is a boundary; one estimated from where the sentence arrived is not.
+        startMs: spoken?.timeKind === 'given' ? spoken.startMs : null,
+        endMs: spoken?.timeKind === 'given' ? spoken.endMs : null,
         latencyMs: segment ? segment.openedAt - clipEndedAt[i] : null,
       };
     });
