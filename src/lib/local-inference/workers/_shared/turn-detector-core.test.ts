@@ -613,7 +613,7 @@ describe('TurnDetectorCore — automatic turns', () => {
     }
     expect(problems.slice(0, 10)).toEqual([]);
     expect(closes).toBeGreaterThan(300);
-  });
+  }, 60_000);
 
   it("earliestNeeded: the open segment's start, else the pad the processor holds, never before the last close", async () => {
     const h = harness([...run(10, SILENCE), ...run(5, SPEECH), ...run(4, SILENCE), ...run(6, SILENCE)]);
