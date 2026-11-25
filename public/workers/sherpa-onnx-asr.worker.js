@@ -2,20 +2,30 @@
  * ASR Worker — Classic Web Worker (not ES module) for sherpa-onnx WASM.
  *
  * Uses importScripts() to load Emscripten glue code + sherpa-onnx JS API wrappers.
- * Handles VAD + OfflineRecognizer for non-streaming speech recognition.
+ * Runs the OfflineRecognizer for non-streaming speech recognition. Two modes, chosen by the init message:
+ *
+ *   segmentPort given: the app's turn detector cuts the turns and sends each segment on that port; this worker
+ *     runs no VAD and decodes the segments one at a time in arrival order (createSegmentInbox below, the same
+ *     rules as SegmentInbox in workers/_shared/segment-inbox.ts: epochs, `taken` acks, `drained` marks).
+ *   no segmentPort: sherpa's own C++ Silero VAD cuts the turns here (removed in step 5 of shared turn detection).
  *
  * Protocol:
  *   Main → Worker:
- *     { type: 'init', fileUrls, asrEngine, vadConfig?, runtimeBaseUrl, dataPackageMetadata }
- *     { type: 'audio', samples: Int16Array, sampleRate: number }
- *     { type: 'flush' }
+ *     { type: 'init', fileUrls, asrEngine, vadConfig?, segmentPort?, runtimeBaseUrl, dataPackageMetadata }
+ *     { type: 'audio', samples: Int16Array, sampleRate: number }   (own VAD only)
+ *     { type: 'flush' }                                            (own VAD only)
+ *     { type: 'stop', epoch: number }                              (segmentPort only)
  *     { type: 'dispose' }
+ *
+ *   Detector → Worker, on segmentPort: segment | cancel | drained (workers/_shared/turn-detector-protocol.ts)
+ *   Worker → Detector, on segmentPort: { type: 'taken', epoch, seq }
  *
  *   Worker → Main:
  *     { type: 'ready', loadTimeMs: number }
  *     { type: 'status', message: string }
- *     { type: 'speech_start' }
- *     { type: 'result', text, startSample, durationMs, recognitionTimeMs }
+ *     { type: 'speech_start' }                                     (own VAD only)
+ *     { type: 'result', text, startSample, durationMs, recognitionTimeMs, epoch?, seq?, press?, endedBy?, smartTurnProbability? }
+ *     { type: 'drained', epoch, seq }                              (segmentPort only)
  *     { type: 'error', error: string }
  *     { type: 'disposed' }
  */
@@ -29,6 +39,7 @@ var buffer = null;
 var recognizer = null;
 var isReady = false;
 var isSpeaking = false;
+var inbox = null;
 
 // ─── Audio Conversion ────────────────────────────────────────────────────────
 
@@ -215,6 +226,7 @@ function handleInit(msg) {
   var vadConfig = msg.vadConfig;
   var runtimeBaseUrl = msg.runtimeBaseUrl;
   var dataPackageMetadata = msg.dataPackageMetadata;
+  var segmentPort = msg.segmentPort || null;
 
   if (!fileUrls) {
     postMessage({ type: 'error', error: 'fileUrls is required — model must be downloaded first' });
@@ -261,48 +273,54 @@ function handleInit(msg) {
 
   Module.onRuntimeInitialized = function() {
     try {
-      postMessage({ type: 'status', message: 'Creating VAD...' });
+      // With a segment port the turn detector cuts the turns: no VAD and no audio buffer here.
+      if (!segmentPort) {
+        postMessage({ type: 'status', message: 'Creating VAD...' });
 
-      // createVad is defined in sherpa-onnx-vad.js, uses Silero VAD model
-      // pre-loaded into the virtual filesystem via the .data file
-      if (vadConfig) {
-        var customVadConfig = {
-          sileroVad: {
-            model: './silero_vad.onnx',
-            threshold: vadConfig.threshold || 0.50,
-            minSilenceDuration: vadConfig.minSilenceDuration || 0.50,
-            minSpeechDuration: vadConfig.minSpeechDuration || 0.25,
-            // Pinned equal to MOONSHINE_V2_LIMIT and SHERPA_OFFLINE_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts).
-            // moonshine-v2 throws on any segment past ~9.3 s: its decoder's
-            // mask shape does not match the encoder past 384 frames, and the
-            // bundled wasm cannot catch the C++ exception, so the whole
-            // segment comes back as "ASR processing error" and one error
-            // bubble. Executed on moonshine-tiny-ja-quant through this
-            // worker: 8 s fine, 12 s throws, twice. Nine seconds is the
-            // largest safe multiple of a second. Every other engine here
-            // keeps the 20 s this worker has always used — the Max Speech
-            // Duration setting does not reach sherpa-onnx at all.
-            maxSpeechDuration: asrEngine === 'moonshine-v2' ? 9 : 20,
-            windowSize: 512,
-          },
-          sampleRate: 16000,
-          numThreads: 1,
-          provider: 'cpu',
-          debug: 1,
-          bufferSizeInSeconds: 30,
-        };
-        vad = createVad(Module, customVadConfig);
-      } else {
-        vad = createVad(Module);
+        // createVad is defined in sherpa-onnx-vad.js, uses Silero VAD model
+        // pre-loaded into the virtual filesystem via the .data file
+        if (vadConfig) {
+          var customVadConfig = {
+            sileroVad: {
+              model: './silero_vad.onnx',
+              threshold: vadConfig.threshold || 0.50,
+              minSilenceDuration: vadConfig.minSilenceDuration || 0.50,
+              minSpeechDuration: vadConfig.minSpeechDuration || 0.25,
+              // Pinned equal to MOONSHINE_V2_LIMIT and SHERPA_OFFLINE_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts).
+              // moonshine-v2 throws on any segment past ~9.3 s: its decoder's
+              // mask shape does not match the encoder past 384 frames, and the
+              // bundled wasm cannot catch the C++ exception, so the whole
+              // segment comes back as "ASR processing error" and one error
+              // bubble. Executed on moonshine-tiny-ja-quant through this
+              // worker: 8 s fine, 12 s throws, twice. Nine seconds is the
+              // largest safe multiple of a second. Every other engine here
+              // keeps the 20 s this worker has always used — the Max Speech
+              // Duration setting does not reach sherpa-onnx at all.
+              maxSpeechDuration: asrEngine === 'moonshine-v2' ? 9 : 20,
+              windowSize: 512,
+            },
+            sampleRate: 16000,
+            numThreads: 1,
+            provider: 'cpu',
+            debug: 1,
+            bufferSizeInSeconds: 30,
+          };
+          vad = createVad(Module, customVadConfig);
+        } else {
+          vad = createVad(Module);
+        }
+
+        // Circular buffer: 30 seconds of audio at 16kHz
+        buffer = new CircularBuffer(30 * EXPECTED_SAMPLE_RATE, Module);
       }
-
-      // Circular buffer: 30 seconds of audio at 16kHz
-      buffer = new CircularBuffer(30 * EXPECTED_SAMPLE_RATE, Module);
 
       postMessage({ type: 'status', message: 'Creating recognizer (' + asrEngine + ')...' });
 
       // Build engine-specific config and create OfflineRecognizer
       recognizer = new OfflineRecognizer(buildAsrConfig(asrEngine), Module);
+
+      // Listen to the detector only now the recognizer exists: nothing it sends is lost, and nothing is decoded before.
+      if (segmentPort) inbox = createSegmentInbox(segmentPort);
 
       isReady = true;
       var elapsed = Math.round(performance.now() - startTime);
@@ -333,7 +351,52 @@ function handleInit(msg) {
   }
 }
 
-// ─── Audio Processing ────────────────────────────────────────────────────────
+// ─── Decoding ────────────────────────────────────────────────────────────────
+
+/**
+ * Decode one speech segment (Float32 @ 16 kHz). Returns what the result message carries, or null when the
+ * recognizer heard no text. Both turn sources (the own VAD below, the detector's inbox) go through here.
+ */
+function decodeSpeech(speechSamples) {
+  var recognitionStart = performance.now();
+
+  // Create a stream, feed the speech segment, decode
+  var stream = recognizer.createStream();
+  stream.acceptWaveform(EXPECTED_SAMPLE_RATE, speechSamples);
+  recognizer.decode(stream);
+  var result = recognizer.getResult(stream);
+  stream.free();
+
+  var recognitionTimeMs = Math.round(performance.now() - recognitionStart);
+  var durationMs = Math.round((speechSamples.length / EXPECTED_SAMPLE_RATE) * 1000);
+
+  var text = (result.text || '').trim();
+  // Remove spaces between CJK characters (common with Moonshine zh/ja/ko models)
+  text = text.replace(/([　-鿿豈-﫿])\s+(?=[　-鿿豈-﫿])/g, '$1');
+  if (!text) return null;
+  return { text: text, durationMs: durationMs, recognitionTimeMs: recognitionTimeMs };
+}
+
+/** Decode the segments the own VAD has finished and post their results. */
+function drainVadSegments() {
+  while (!vad.isEmpty()) {
+    var speechSegment = vad.front();
+    var decoded = decodeSpeech(speechSegment.samples);
+    if (decoded) {
+      postMessage({
+        type: 'result',
+        text: decoded.text,
+        startSample: speechSegment.start,
+        durationMs: decoded.durationMs,
+        recognitionTimeMs: decoded.recognitionTimeMs,
+      });
+    }
+    vad.pop();
+    isSpeaking = false;
+  }
+}
+
+// ─── Own VAD (no segment port) ───────────────────────────────────────────────
 
 /**
  * Process incoming audio chunk through VAD → ASR pipeline.
@@ -341,7 +404,7 @@ function handleInit(msg) {
  */
 function handleAudio(msg) {
   if (!isReady || !vad || !buffer || !recognizer) {
-    return; // Silently drop if not initialized
+    return; // Silently drop if not initialized (and always, with a segment port: the detector has the audio)
   }
 
   try {
@@ -367,40 +430,7 @@ function handleAudio(msg) {
       }
     }
 
-    // Process completed speech segments through ASR
-    while (!vad.isEmpty()) {
-      var speechSegment = vad.front();
-      var speechSamples = speechSegment.samples;
-      var startSample = speechSegment.start;
-
-      var recognitionStart = performance.now();
-
-      // Create a stream, feed the speech segment, decode
-      var stream = recognizer.createStream();
-      stream.acceptWaveform(EXPECTED_SAMPLE_RATE, speechSamples);
-      recognizer.decode(stream);
-      var result = recognizer.getResult(stream);
-      stream.free();
-
-      var recognitionTimeMs = Math.round(performance.now() - recognitionStart);
-      var durationMs = Math.round((speechSamples.length / EXPECTED_SAMPLE_RATE) * 1000);
-
-      var text = (result.text || '').trim();
-      // Remove spaces between CJK characters (common with Moonshine zh/ja/ko models)
-      text = text.replace(/([\u3000-\u9fff\uF900-\uFAFF])\s+(?=[\u3000-\u9fff\uF900-\uFAFF])/g, '$1');
-      if (text) {
-        postMessage({
-          type: 'result',
-          text: text,
-          startSample: startSample,
-          durationMs: durationMs,
-          recognitionTimeMs: recognitionTimeMs,
-        });
-      }
-
-      vad.pop();
-      isSpeaking = false;
-    }
+    drainVadSegments();
   } catch (e) {
     isSpeaking = false;
     postMessage({ type: 'error', error: 'ASR processing error: ' + (e.message || e) });
@@ -408,8 +438,6 @@ function handleAudio(msg) {
     try { while (!vad.isEmpty()) { vad.pop(); } } catch (_) {}
   }
 }
-
-// ─── Flush (PTT release) ─────────────────────────────────────────────────────
 
 /**
  * Force VAD to emit any pending speech segment and run it through ASR.
@@ -419,40 +447,8 @@ function handleFlush() {
   if (!isReady || !vad || !recognizer) return;
 
   try {
-    // Force VAD to emit any pending speech segment
     vad.flush();
-
-    // Process any segments that were flushed
-    while (!vad.isEmpty()) {
-      var speechSegment = vad.front();
-      var speechSamples = speechSegment.samples;
-      var startSample = speechSegment.start;
-
-      var recognitionStart = performance.now();
-      var stream = recognizer.createStream();
-      stream.acceptWaveform(EXPECTED_SAMPLE_RATE, speechSamples);
-      recognizer.decode(stream);
-      var result = recognizer.getResult(stream);
-      stream.free();
-
-      var recognitionTimeMs = Math.round(performance.now() - recognitionStart);
-      var durationMs = Math.round((speechSamples.length / EXPECTED_SAMPLE_RATE) * 1000);
-      var text = (result.text || '').trim();
-      text = text.replace(/([\u3000-\u9fff\uF900-\uFAFF])\s+(?=[\u3000-\u9fff\uF900-\uFAFF])/g, '$1');
-
-      if (text) {
-        postMessage({
-          type: 'result',
-          text: text,
-          startSample: startSample,
-          durationMs: durationMs,
-          recognitionTimeMs: recognitionTimeMs,
-        });
-      }
-
-      vad.pop();
-      isSpeaking = false;
-    }
+    drainVadSegments();
   } catch (e) {
     isSpeaking = false;
     postMessage({ type: 'error', error: 'ASR flush error: ' + (e.message || e) });
@@ -460,9 +456,131 @@ function handleFlush() {
   }
 }
 
+// ─── The detector's segments (segment port) ──────────────────────────────────
+
+/** Gives queued port messages (a `stop`, a `cancel`) a turn between two synchronous decodes. */
+function yieldToPort() {
+  return new Promise(function (resolve) { setTimeout(resolve, 0); });
+}
+
+/**
+ * The recognizer's end of the detector's port, the plain-JS twin of SegmentInbox (workers/_shared/segment-inbox.ts;
+ * this worker is a classic script and cannot import it). Segments are decoded one at a time in arrival order, each
+ * acknowledged `taken` when its decode starts or when it is dropped, so the detector's decode-queue bound frees it.
+ * A stop raises the epoch and drops the older one's queued segments; a cancel drops that press's segments not yet
+ * started; a drain mark is answered once everything before it is decoded or dropped.
+ */
+function createSegmentInbox(port) {
+  const INITIAL_EPOCH = 1;
+  let queue = [];
+  let epoch = INITIAL_EPOCH;
+  let pumping = null;
+  let closed = false;
+
+  function ack(item) {
+    if (closed) return;
+    port.postMessage({ type: 'taken', epoch: item.epoch, seq: item.seq });
+  }
+
+  function decodeOne(item) {
+    const decoded = decodeSpeech(item.audio);
+    if (!decoded) return;
+    const result = {
+      type: 'result',
+      text: decoded.text,
+      startSample: item.start,
+      durationMs: decoded.durationMs,
+      recognitionTimeMs: decoded.recognitionTimeMs,
+      epoch: item.epoch,
+      seq: item.seq,
+      endedBy: item.endedBy,
+    };
+    if (item.press !== undefined) result.press = item.press;
+    if (item.smartTurnProbability !== undefined) result.smartTurnProbability = item.smartTurnProbability;
+    postMessage(result);
+  }
+
+  async function pump() {
+    let item;
+    while (!closed && (item = queue.shift())) {
+      if (item.epoch < epoch) {
+        if (item.type === 'segment') ack(item);
+        continue;
+      }
+      if (item.type === 'drained') {
+        try { postMessage({ type: 'drained', epoch: item.epoch, seq: item.seq }); } catch (_) { /* best-effort */ }
+        continue;
+      }
+      ack(item);
+      try {
+        decodeOne(item);
+      } catch (e) {
+        // The segment was acked before it started, so the detector is not wedged; the ones behind it still run.
+        try { postMessage({ type: 'error', error: 'ASR processing error: ' + (e.message || e) }); } catch (_) { /* best-effort */ }
+      }
+      await yieldToPort();
+    }
+  }
+
+  function receive(msg) {
+    if (closed) return;
+    switch (msg.type) {
+      case 'segment':
+        if (msg.epoch < epoch) { ack(msg); return; }
+        queue.push(msg);
+        break;
+      case 'drained':
+        queue.push(msg);
+        break;
+      case 'cancel':
+        if (msg.epoch < epoch) return;
+        queue = queue.filter(function (item) {
+          if (item.type !== 'segment' || item.epoch !== msg.epoch || item.press !== msg.press) return true;
+          ack(item);
+          return false;
+        });
+        return;
+      default:
+        return;
+    }
+    if (!pumping) pumping = pump().then(function () { pumping = null; }, function () { pumping = null; });
+  }
+
+  port.onmessage = function (e) { receive(e.data); };
+
+  return {
+    /** Segments of an older epoch are dropped (and acked); their drained marks stay unanswered. */
+    stop: function (next) {
+      if (next <= epoch) return;
+      epoch = next;
+      queue = queue.filter(function (item) {
+        if (item.epoch >= next) return true;
+        if (item.type === 'segment') ack(item);
+        return false;
+      });
+    },
+    /** Stops listening; resolves when the decode in flight has finished. Whatever still waits is dropped. */
+    close: function () {
+      closed = true;
+      port.onmessage = null;
+      queue = [];
+      port.close();
+      return pumping || Promise.resolve();
+    },
+  };
+}
+
 // ─── Dispose ─────────────────────────────────────────────────────────────────
 
-function handleDispose() {
+async function handleDispose() {
+  // Stop listening and wait for the decode in flight: nothing can then run against the recognizer freed below.
+  isReady = false; // from here audio and stop are ignored, whatever arrives during the awaits below
+  if (inbox) {
+    const closing = inbox;
+    inbox = null;
+    // A port that will not close must not leave the recognizer unfreed or `disposed` unsaid.
+    try { await closing.close(); } catch (_) { /* freed below regardless */ }
+  }
   if (recognizer) {
     recognizer.free();
     recognizer = null;
@@ -492,6 +610,9 @@ self.onmessage = function(event) {
       break;
     case 'flush':
       handleFlush();
+      break;
+    case 'stop':
+      if (inbox) inbox.stop(msg.epoch);
       break;
     case 'dispose':
       handleDispose();

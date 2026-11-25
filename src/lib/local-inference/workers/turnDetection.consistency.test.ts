@@ -24,7 +24,7 @@ const frameProcessorUsers = [...sources(WORKERS_DIR, ''), ...sources(SHARED_DIR,
   .filter(({ source }) => source.includes('new FrameProcessor('))
   .map(({ path }) => path);
 
-const detectorWorkers = DETECTOR_WORKER_TYPES.map((type) => ({ name: `${type}.worker.ts`, source: read(WORKERS_DIR, `${type}.worker.ts`) }));
+const detectorWorkers = DETECTOR_WORKER_TYPES.filter((type) => type !== 'sherpa-onnx').map((type) => ({ name: `${type}.worker.ts`, source: read(WORKERS_DIR, `${type}.worker.ts`) }));
 
 describe('who runs a FrameProcessor', () => {
   it('is the detector core, the legacy loop kept for the replay, and the two exempt workers', () => {
@@ -72,6 +72,36 @@ describe('the detector-type workers decode the detector\'s segments and run no V
       });
     });
   }
+});
+
+// The classic script: it cannot import SegmentInbox, so it carries a plain-JS twin. Until step 5 it still has its own VAD
+// path for a load with no segment port.
+describe('sherpa-onnx-asr.worker.js (a classic script)', () => {
+  const source = readFileSync(join(WORKERS_DIR, '../../../../public/workers/sherpa-onnx-asr.worker.js'), 'utf8');
+
+  it('is the one worker of the sherpa-onnx type in the detector list', () => {
+    expect(DETECTOR_WORKER_TYPES).toContain('sherpa-onnx');
+  });
+
+  it("takes the detector's segments from its init message's port", () => {
+    expect(source).toMatch(/var segmentPort = msg\.segmentPort \|\| null;/);
+    expect(source).toMatch(/if \(segmentPort\) inbox = createSegmentInbox\(segmentPort\);/);
+  });
+
+  it('creates no VAD and no audio buffer when it has a port', () => {
+    expect(source).toMatch(/if \(!segmentPort\) \{[\s\S]*?createVad\([\s\S]*?new CircularBuffer\([\s\S]*?\n      \}/);
+  });
+
+  it('routes stop to the inbox and closes it first on dispose', () => {
+    expect(source).toMatch(/case 'stop':\s*if \(inbox\) inbox\.stop\(msg\.epoch\)/);
+    const dispose = source.slice(source.indexOf('async function handleDispose'));
+    expect(dispose.indexOf('await closing.close()')).toBeGreaterThan(0);
+    expect(dispose.indexOf('await closing.close()')).toBeLessThan(dispose.indexOf('recognizer.free()'));
+  });
+
+  it('decodes in one place, for both turn sources', () => {
+    expect(source.match(/recognizer\.decode\(/g)).toHaveLength(1);
+  });
 });
 
 describe('turn-detector.worker.ts', () => {

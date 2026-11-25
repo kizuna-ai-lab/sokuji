@@ -144,7 +144,7 @@ describe('LocalInferenceTurnDetection shows nothing when no leg takes our settin
 
 describe('LocalInferenceTurnDetection legs', () => {
   it('shows all six sliders for a model that cuts its own turns', () => {
-    mockAsrEntry = { type: 'asr', asrWorkerType: 'sherpa-onnx' };
+    mockAsrEntry = { type: 'asr-stream', asrWorkerType: 'voxtral-webgpu' };
     const { container } = render(<LocalInferenceTurnDetectionControls {...props} />);
     expect(container.querySelectorAll('input[type="range"]')).toHaveLength(6);
     expect(screen.queryByRole('button', { name: 'Smart' })).toBeNull();
@@ -157,7 +157,7 @@ describe('LocalInferenceTurnDetection legs', () => {
   });
 
   it('offers it through the participant leg alone when the speaker is on a model of its own', () => {
-    mockAsrEntry = { type: 'asr', asrWorkerType: 'sherpa-onnx' };
+    mockAsrEntry = { type: 'asr-stream', asrWorkerType: 'voxtral-webgpu' };
     mockReverseEntry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
     mockLegs = ['speaker', 'participant'];
     render(<LocalInferenceTurnDetectionControls {...props} />);
@@ -165,7 +165,7 @@ describe('LocalInferenceTurnDetection legs', () => {
   });
 
   it('offers no choice for the participant when no participant leg runs', () => {
-    mockAsrEntry = { type: 'asr', asrWorkerType: 'sherpa-onnx' };
+    mockAsrEntry = { type: 'asr-stream', asrWorkerType: 'voxtral-webgpu' };
     mockReverseEntry = { type: 'asr', asrWorkerType: 'whisper-webgpu' };
     render(<LocalInferenceTurnDetectionControls {...props} />);
     expect(screen.queryByRole('button', { name: 'Smart' })).toBeNull();
