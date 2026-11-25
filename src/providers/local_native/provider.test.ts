@@ -22,6 +22,7 @@ const host = createFakeNativeHost();
 const WHOLE: LocalNativeConfig = {
   asr: { modelId: 'asr-a', device: 'auto' },
   vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 },
+  limit: { maxSpeechSeconds: 19 },
   translation: { modelId: 'mt-a', device: 'auto', instructions: '', wrapTranscript: true },
   asrFirst: true,
   host,

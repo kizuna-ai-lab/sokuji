@@ -31,6 +31,7 @@ function aloneConfig(over: Partial<LocalNativeConfig> = {}): LocalNativeConfig {
   return {
     asr: { modelId: 'asr-a', device: 'auto' },
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 },
+    limit: { maxSpeechSeconds: 19 },
     translation: null,
     asrFirst: true,
     transcribesAlone: true,
@@ -50,7 +51,7 @@ async function open(config = aloneConfig()) {
     { context, config, credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal }, recorder.events,
   );
   fakes.asr.ready();
-  fakes.vad.ready();
+  fakes.turns.ready();
   const session: AdapterSession = await starting;
   await settle();
   return { ...fakes, ...recorder, session };
@@ -79,7 +80,8 @@ describe('the config it builds', () => {
     const c = buildNativeTranscription(context, { ...LOCAL_NATIVE_DEFAULTS, asrDevice: 'gpu' }, s) as LocalNativeConfig;
     expect(c).toEqual({
       asr: { modelId: 'asr-a', device: 'gpu' },
-      vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4 },
+      vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
+      limit: { maxSpeechSeconds: 19 },
       translation: null,
       asrFirst: true,
       transcribesAlone: true,

@@ -1,5 +1,4 @@
 import {
-  SAMPLE_RATE,
   type Adapter,
   type AdapterEventKind,
   type AdapterEvents,
@@ -17,28 +16,28 @@ import { gateChars, type SealedChunk } from '../../lib/segmentation/SentenceStre
 import { DEFAULT_CHUNK_SENTENCES } from '../../lib/segmentation/segmentationMode';
 import type { LocalNativeConfig } from './config';
 import type { NativeHost, NativeInitReport, NativeStage } from '../../lib/local-inference/native/nativeModels';
-import { nativeEngines, type LocalNativeEngines, type NativeAsrLike, type NativeTranslationLike, type NativeTtsLike, type NativeTtsReady, type NativeVadLike } from './engines';
+import { nativeEngines, type LocalNativeEngines, type NativeAsrLike, type NativeTranslationLike, type NativeTtsLike, type NativeTtsReady, type NativeTurnsLike } from './engines';
 import { speakNative } from './speech';
 import { ttsMissing } from '../../lib/local-inference/sessions/speech';
 import { applyVoice, voiceClipMissing } from './voice';
+import type { TurnConnection } from '../../lib/turn/TurnRuntime';
 
 /**
  * Local Native on the new contract (spec: "L0 — the client contract"): ASR,
- * translation and TTS in the Electron sidecar, VAD in a renderer worker,
- * ported from `LocalNativeClient` without its display bookkeeping. Audio goes
- * to the sidecar and the VAD as it arrives (#578 ruling 2); the VAD's edges
- * become the sidecar's marks; source segments come from the sidecar's
+ * translation and TTS in the Electron sidecar, turns from the app's turn
+ * detector (the shared one, in its audio-and-marks delivery), ported from
+ * `LocalNativeClient` without its display bookkeeping. The leg's audio goes to
+ * the detector, which gives it back in order with its turn edges between the
+ * samples; both are forwarded to the sidecar as they arrive, so the sidecar's
+ * "cut when the mark arrives" is the cut at the position. Source segments come from the sidecar's
  * partials and finals; translation jobs run one at a time, each streaming
  * into its own segment and spoken before the next starts.
  */
 
 export type LocalNativeCredentials = Record<string, never>;
 
-/** The VAD worker's model load: past this, the start fails (the old client's). */
+/** The turn detector's model load: past this, the start fails (the old VAD worker's). */
 export const VAD_INIT_TIMEOUT_MS = 15_000;
-/** A manual turn's release: 700 ms of silence, seven 100 ms frames, before the flush (the old shell's `pttFinalization`). */
-const TAIL_FRAMES = 7;
-const FRAME_SAMPLES = SAMPLE_RATE / 10;
 
 interface Job {
   text: string;
@@ -78,7 +77,14 @@ class NativeSession implements AdapterSession {
   private ttsReady: NativeTtsReady | null = null;
   /** The voice applied at load, for the Logs panel. */
   private voiceLabel = '';
-  private readonly vad: NativeVadLike;
+  private readonly turns: NativeTurnsLike;
+  private readonly connectTurn: (() => Promise<TurnConnection | null>) | undefined;
+  /** The Smart Turn worker's connection, when the leg asked for Smart and the runtime had it. */
+  private turn: TurnConnection | null = null;
+  /** The last manual press begun. */
+  private presses = 0;
+  /** Releases whose drain the detector has not yet answered: each owes the sidecar one flush. */
+  private flushesOwed = 0;
 
   /** Set by `stop()`, `failed`, or a start that did not open: nothing is emitted after it. */
   private ended = false;
@@ -108,8 +114,9 @@ class NativeSession implements AdapterSession {
   ) {
     this.config = request.config;
     this.host = request.config.host;
-    // The VAD first: its worker factory can throw, and nothing is made yet that the throw would leave unended.
-    this.vad = engines.vad();
+    // The turns first: its factory can throw, and nothing is made yet that the throw would leave unended.
+    this.turns = engines.turns();
+    this.connectTurn = engines.turn;
     this.asr = engines.asr(request.clock);
     this.translation = this.config.translation ? engines.translation(request.clock) : null;
     this.tts = this.config.tts ? engines.tts(request.clock) : null;
@@ -129,7 +136,7 @@ class NativeSession implements AdapterSession {
 
   /**
    * Loads ASR and translation in the builder's order (#578 ruling 15), then
-   * TTS, then the VAD. ASR, translation or the VAD failing rejects the start,
+   * TTS, then the turn detector. ASR, translation or the detector failing rejects the start,
    * every seam ended first; TTS failing leaves the session without speech
    * (#578 ruling 10). The start's signal ends every seam and rejects at once.
    */
@@ -205,7 +212,7 @@ class NativeSession implements AdapterSession {
         else { await loadTranslation(); await loadAsr(); }
         await this.loadTts(loaded);
         alive();
-        await this.loadVad();
+        await this.loadTurns();
         alive();
       };
       steps().then(() => {
@@ -287,29 +294,50 @@ class NativeSession implements AdapterSession {
     loaded('tts');
   }
 
-  /** The VAD worker, bounded by the request's clock; its edges become the sidecar's marks. */
-  private loadVad(): Promise<void> {
-    const { vad, request } = this;
-    vad.onSpeechStart = () => {
+  /** The turn detector, bounded by the request's clock; its audio and its edges go to the sidecar as they come. */
+  private async loadTurns(): Promise<void> {
+    const { turns, request, config } = this;
+    turns.onAudio = (pcm) => { if (!this.ended) this.asr.feedAudio(pcm); };
+    turns.onMark = (event) => {
       if (this.ended) return;
-      this.asr.sendVadMark('start');
-      this.frame('out', 'local.native.speech_start', {});
+      this.asr.sendVadMark(event);
+      if (event === 'start') this.frame('out', 'local.native.speech_start', {});
     };
-    vad.onSpeechEnd = () => { if (!this.ended) this.asr.sendVadMark('end'); };
-    vad.onSpeechCancel = () => { if (!this.ended) this.asr.sendVadMark('cancel'); };
-    vad.onError = (message) => this.fatal(`Voice activity detection stopped: ${message}`);
+    turns.onDrained = () => this.flushSidecar();
+    turns.onError = (message) => this.fatal(`Turn detection stopped: ${message}`);
+    // Under manual turns the held key ends the turn.
+    const turnPort = config.vad.smartTurn && request.context.turns === 'auto' && this.connectTurn
+      ? await this.openTurn(this.connectTurn)
+      : undefined;
+    if (this.ended) throw new Error('ended');
     return new Promise<void>((resolve, reject) => {
       let settled = false;
       const cancel = request.clock.setTimeout(() => {
         if (settled) return;
         settled = true;
-        reject(new Error('VAD worker init timeout'));
+        reject(new Error('Turn detector init timeout'));
       }, VAD_INIT_TIMEOUT_MS);
-      vad.init(this.config.vad).then(
+      turns.init({ turns: request.context.turns, vad: config.vad, limit: config.limit, ...(turnPort ? { turnPort } : {}) }).then(
         () => { if (settled) return; settled = true; cancel(); resolve(); },
         (error: unknown) => { if (settled) return; settled = true; cancel(); reject(error); },
       );
     });
+  }
+
+  /** A Smart Turn port for the turn detector, or none: the run is then Normal. */
+  private async openTurn(connect: () => Promise<TurnConnection | null>): Promise<MessagePort | undefined> {
+    // A connection that never answers is no Smart Turn: the leg starts on Normal after the same wait the detector's load gets.
+    let cancel = () => {};
+    const timeout = new Promise<null>((resolve) => { cancel = this.request.clock.setTimeout(() => resolve(null), VAD_INIT_TIMEOUT_MS); });
+    const turn = await Promise.race([connect().catch(() => null), timeout]);
+    cancel();
+    if (this.ended) {
+      turn?.release();
+      throw new Error('ended');
+    }
+    this.turn = turn;
+    this.frame('out', 'local.native.turn', { smart: turn !== null });
+    return turn?.port;
   }
 
   /** A machine snapshot for the Logs panel, never on the start's path. */
@@ -348,9 +376,8 @@ class NativeSession implements AdapterSession {
 
   appendAudio(pcm: Int16Array): void {
     if (this.ended) return;
-    // Both copy what they are handed (the socket, the worker's structured clone): the runner may reuse the array.
-    this.asr.feedAudio(pcm);
-    this.vad.feed(pcm);
+    // The detector takes the buffer (it is transferred to its worker), and the runner hands this same array to others.
+    this.turns.feed(pcm.slice());
   }
 
   /** As LocalInference's: a source segment with exactly the typed text, then a job with its trimmed text. */
@@ -365,20 +392,31 @@ class NativeSession implements AdapterSession {
     else if (!this.config.transcribesAlone) this.announceTranslationUnavailable();
   }
 
-  beginTurn(): void {}
-  /** Neither the VAD nor the sidecar can discard a segment: both end a turn the same way. */
-  endTurn(): void { this.flushTurn(); }
-  cancelTurn(): void { this.flushTurn(); }
-
-  /** The silent tail, then the VAD's flush and the sidecar's (the old `createResponse`); a failed flush costs nothing but a Logs line. */
-  private flushTurn(): void {
+  /** A manual turn: the held key is a press the detector cuts, from where it went down to where it came up. */
+  beginTurn(): void {
     if (this.ended) return;
-    const silence = new Int16Array(FRAME_SAMPLES);
-    for (let i = 0; i < TAIL_FRAMES; i++) {
-      this.asr.feedAudio(silence);
-      this.vad.feed(silence);
-    }
-    this.vad.flush();
+    this.turns.begin(++this.presses);
+  }
+
+  /** The release drains the detector (its audio and its `end` mark reach the sidecar first); the sidecar's flush follows the drain's answer. */
+  endTurn(): void {
+    if (this.ended) return;
+    this.flushesOwed++;
+    // A release with no press begun has nothing in the detector to wait for: the sidecar is flushed at once.
+    if (this.presses === 0) { this.flushSidecar(); return; }
+    this.turns.drain(this.presses);
+  }
+
+  /** A cancelled press ends in a `cancel` mark: the sidecar drops what it holds of it. */
+  cancelTurn(): void {
+    if (this.ended) return;
+    this.turns.cancel(this.presses);
+  }
+
+  /** The detector delivered everything of a release: now the sidecar's flush; a failed one costs nothing but a Logs line. */
+  private flushSidecar(): void {
+    if (this.ended || this.flushesOwed === 0) return;
+    this.flushesOwed--;
     this.asr.flush().catch((error: unknown) => this.frame('in', 'local.native.asr.flush.error', { error: describeCause(error) }));
   }
 
@@ -390,7 +428,9 @@ class NativeSession implements AdapterSession {
   }
 
   private endSeams(): void {
-    this.vad.dispose();
+    this.turns.dispose();
+    this.turn?.release();
+    this.turn = null;
     this.asr.dispose();
     this.translation?.dispose();
     this.tts?.dispose();

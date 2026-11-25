@@ -185,6 +185,7 @@ function marksLeg() {
     const out: string[] = [];
     for (const m of posted) {
       if (m.type === 'mark') out.push(`mark:${m.event}`);
+      else if (m.type === 'drained') out.push('drained');
       else if (out.length && /^\d+$/.test(out[out.length - 1])) out[out.length - 1] = String(Number(out[out.length - 1]) + m.pcm.length);
       else out.push(String(m.pcm.length));
     }
@@ -206,6 +207,8 @@ describe('DetectorLeg with the marks delivery', () => {
     const t = trace();
     expect(t.indexOf('mark:start')).toBeGreaterThan(-1);
     expect(t.indexOf('mark:end')).toBeGreaterThan(t.indexOf('mark:start'));
+    // The drain's answer comes last: the consumer then has every sample and the end mark.
+    expect(t[t.length - 1]).toBe('drained');
     // Every sample that went in comes out once, in order: nothing is held back, copied twice or lost.
     const total = t.filter((x) => /^\d+$/.test(x)).reduce((a, x) => a + Number(x), 0);
     expect(total).toBe(768 + 1536);
@@ -232,7 +235,7 @@ describe('DetectorLeg with the marks delivery', () => {
     const audio = posted.filter((m) => m.type === 'audio');
     expect(audio.length).toBeGreaterThan(0);
     for (const m of audio) {
-      const a = m as { pcm: Int16Array; transfer: Transferable[] };
+      const a = m as { type: 'audio'; pcm: Int16Array; transfer: Transferable[] };
       expect(a.transfer).toEqual([a.pcm.buffer]);
       expect(a.pcm.byteOffset).toBe(0);
       expect(a.pcm.buffer.byteLength).toBe(a.pcm.byteLength);

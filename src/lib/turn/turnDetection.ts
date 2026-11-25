@@ -74,3 +74,14 @@ export function turnDetectionScope(legs: readonly TurnDetectionLeg[], td: TurnDe
   }
   return scope;
 }
+
+/**
+ * Local Native's scope: its sidecar's models are not manifest entries, so the legs say only whether their turns are
+ * automatic. Every leg takes the app's turn detection; Smart is offered through an automatic one; `capSeconds` is the
+ * longest speech the sidecar's backstops allow a segment.
+ */
+export function nativeTurnDetectionScope(turns: readonly ('auto' | 'manual')[], td: TurnDetectionSettings, capSeconds: number): TurnDetectionScope {
+  const scope: TurnDetectionScope = { shown: turns.length > 0, smartOffered: turns.includes('auto') };
+  if (turns.length > 0 && capSeconds < td.maxSpeech) scope.limitSeconds = capSeconds;
+  return scope;
+}

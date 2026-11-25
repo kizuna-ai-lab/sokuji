@@ -56,7 +56,11 @@ export interface RecognizerTaken { type: 'taken'; epoch: number; seq: number }
  */
 export type DetectorDelivery = 'segments' | 'marks';
 /** The marks delivery on the output port: the leg's input audio at {@link DETECTOR_INPUT_SAMPLE_RATE}, and marks between its samples. */
-export type MarksOutput = { type: 'audio'; pcm: Int16Array } | { type: 'mark'; event: 'start' | 'end' | 'cancel' };
+export type MarksOutput =
+  | { type: 'audio'; pcm: Int16Array }
+  | { type: 'mark'; event: 'start' | 'end' | 'cancel' }
+  /** A drain: everything the leg held at the drain (audio and marks) has been delivered, in order, before this. */
+  | { type: 'drained' };
 /** The rate the leg's audio reaches the detector at, and so the rate of a marks delivery's `audio`. */
 export const DETECTOR_INPUT_SAMPLE_RATE = 24000;
 

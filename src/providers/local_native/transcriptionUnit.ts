@@ -13,7 +13,8 @@ import { TR } from '../../lib/lineup/types';
 import { sameStages } from '../../lib/plan/types';
 import type { ProviderRefusal, UnitDefinition } from '../../lib/run/types';
 import { createLocalNativeAdapter, type LocalNativeCredentials } from './adapter';
-import { nativeModelsOf, noAsr, oneSideAtATime, type LocalNativeConfig } from './config';
+import { nativeModelsOf, NATIVE_LIMIT, noAsr, oneSideAtATime, type LocalNativeConfig } from './config';
+import { TURN_DETECTION_DEFAULTS, vadConfigOf } from '../../lib/turn/turnDetectionSettings';
 import { nativeEngines, type LocalNativeEngines } from './engines';
 import type { LocalNativeSettings } from './settings';
 
@@ -34,7 +35,8 @@ export function buildNativeTranscription(
   if (!resolved.asr) return noAsr(source);
   return {
     asr: { modelId: resolved.asr.modelId, ...(resolved.asr.variant ? { variant: resolved.asr.variant } : {}), device: s.asrDevice },
-    vad: { threshold: s.vadThreshold, minSilenceDuration: s.vadMinSilenceDuration, minSpeechDuration: s.vadMinSpeechDuration },
+    vad: vadConfigOf(shared.turnDetection ?? TURN_DETECTION_DEFAULTS, true),
+    limit: NATIVE_LIMIT,
     translation: null,
     asrFirst: true,
     transcribesAlone: true,
@@ -50,7 +52,7 @@ function refusalOf(config: LocalNativeConfig): string | null {
 
 /**
  * Local Native's recognition unit: transcription, and only when asked for exactly that. The whole session's adapter
- * runs it, so its recognizer, its VAD, a manual turn's flush and its hardware probe are the whole session's. Typed
+ * runs it, so its recognizer, its turn detector, a manual turn's flush and its hardware probe are the whole session's. Typed
  * text is shown as a source, and the unit that translates translates it.
  */
 export function createNativeTranscriptionUnit(deps: { engines?: LocalNativeEngines } = {}): NativeTranscriptionUnit {

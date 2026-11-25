@@ -8,7 +8,7 @@ const SHARED_DIR = join(WORKERS_DIR, '_shared');
 
 /** Workers that still run a FrameProcessor of their own, and why. */
 const EXEMPT: Record<string, string> = {
-  'native-vad.worker.ts': "Local Native's, until step 4",
+  'native-vad.worker.ts': "the old LocalNativeClient's (the new Local Native provider takes the detector's marks), until the old path goes",
   'voxtral-webgpu.worker.ts': "Voxtral 4B's, until step 3",
 };
 

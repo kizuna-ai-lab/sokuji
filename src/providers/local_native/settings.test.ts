@@ -4,10 +4,10 @@ import { LOCAL_NATIVE_DEFAULTS, localNativeLanguages } from './settings';
 
 describe('Local Native settings', () => {
   // The old slice's fields (`LocalNativeProviderConfig.ts`, `defaultLocalNativeSettings`),
-  // less the three the global pair and turn mode own: each stored value is read under
+  // less the ones the global pair, the turn mode and the app's turn detection own: each stored value is read under
   // the same `settings.localNative.<field>` key, as it is (#578 ruling 7).
   const OLD_SLICE_FIELDS = [
-    'selections', 'ttsSpeed', 'vadThreshold', 'vadMinSilenceDuration', 'vadMinSpeechDuration',
+    'selections', 'ttsSpeed',
     'useTemplateMode', 'systemPrompt', 'asrDevice', 'translationDevice', 'ttsDevice', 'ttsVoice',
   ];
 
@@ -19,7 +19,6 @@ describe('Local Native settings', () => {
     expect(LOCAL_NATIVE_DEFAULTS).toEqual({
       selections: {}, ttsSpeed: 1.0, ttsVoice: '',
       asrDevice: 'auto', translationDevice: 'auto', ttsDevice: 'auto',
-      vadThreshold: 0.3, vadMinSilenceDuration: 1.4, vadMinSpeechDuration: 0.4,
       useTemplateMode: true, systemPrompt: '', participantSystemPrompt: '',
     });
   });
