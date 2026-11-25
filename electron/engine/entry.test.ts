@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import { guarded } from './deadline';
 import { runEntry } from './entry';
+import type { EngineOptions } from './main';
 
 class FakePort extends EventEmitter {
   posted: Array<Record<string, unknown>> = [];
@@ -15,7 +16,7 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 describe('runEntry', () => {
   it('posts ready with the port and hands the engine its directory and origins', async () => {
     const port = new FakePort();
-    const start = vi.fn(async () => ({ port: 4321, close: async () => {} }));
+    const start = vi.fn(async (_o: EngineOptions) => ({ port: 4321, close: async () => {} }));
     await runEntry({ port, env: { SOKUJI_NATIVE_DIR: '/n', SOKUJI_ENGINE_ORIGINS: 'file://,http://localhost:5173' }, exit: () => {}, start });
     expect(port.posted).toContainEqual({ type: 'ready', port: 4321 });
     expect(start.mock.calls[0][0]).toMatchObject({ nativeDir: '/n', allowedOrigins: ['file://', 'http://localhost:5173'] });
@@ -23,7 +24,7 @@ describe('runEntry', () => {
 
   it('never allows the null origin', async () => {
     const port = new FakePort();
-    const start = vi.fn(async () => ({ port: 1, close: async () => {} }));
+    const start = vi.fn(async (_o: EngineOptions) => ({ port: 1, close: async () => {} }));
     await runEntry({ port, env: { SOKUJI_NATIVE_DIR: '/n', SOKUJI_ENGINE_ORIGINS: 'null,file://' }, exit: () => {}, start });
     expect(start.mock.calls[0][0].allowedOrigins).toEqual(['file://']);
   });
@@ -74,7 +75,7 @@ describe('runEntry', () => {
 
   it('forwards engine log lines to the host', async () => {
     const port = new FakePort();
-    const start = async (o: { log: (l: string, m: string) => void }) => { o.log('warn', 'hello'); return { port: 1, close: async () => {} }; };
+    const start = async (o: EngineOptions) => { o.log('warn', 'hello'); return { port: 1, close: async () => {} }; };
     await runEntry({ port, env: { SOKUJI_NATIVE_DIR: '/n' }, exit: () => {}, start });
     expect(port.posted).toContainEqual({ type: 'log', level: 'warn', message: 'hello' });
   });

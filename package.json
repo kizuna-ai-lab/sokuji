@@ -3,7 +3,6 @@
   "productName": "Sokuji",
   "version": "0.51.2",
   "nativeVersion": "1.2.0",
-  "sidecarVersion": "0.4.0",
   "private": true,
   "main": "dist-electron/main.js",
   "homepage": "./",
