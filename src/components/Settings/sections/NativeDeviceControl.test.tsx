@@ -1,6 +1,7 @@
 /**
  * Tests for NativeDeviceControl — the per-stage Auto/CPU/GPU segmented
- * control: Auto / CPU / GPU per stage, writing 'gpu' for GPU.
+ * control over the value its host hands it: Auto / CPU / GPU per stage,
+ * reporting 'gpu' for GPU.
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -17,12 +18,7 @@ vi.mock('../../Tooltip/Tooltip', () => ({
 let mockSettings: { asrDevice: 'auto' | 'cpu' | 'gpu'; translationDevice: 'auto' | 'cpu' | 'gpu'; ttsDevice: 'auto' | 'cpu' | 'gpu' } = {
   asrDevice: 'auto', translationDevice: 'auto', ttsDevice: 'auto',
 };
-const mockUpdate = vi.fn();
-
-vi.mock('../../../stores/settingsStore', () => ({
-  useLocalNativeSettings: () => mockSettings,
-  useUpdateLocalNative: () => mockUpdate,
-}));
+const mockUpdateDevice = vi.fn();
 
 // A catalog with one model reporting an available non-cpu tier is enough for
 // gpuTierAvailable() (the real implementation, not mocked) to light the GPU
@@ -41,39 +37,46 @@ vi.mock('../../../stores/nativeModelStore', () => ({
 }));
 
 beforeEach(() => {
-  mockUpdate.mockClear();
+  mockUpdateDevice.mockClear();
   mockSettings = { asrDevice: 'auto', translationDevice: 'auto', ttsDevice: 'auto' };
   mockCatalog = gpuAvailableCatalog;
 });
 
 describe('NativeDeviceControl — gpu override value', () => {
-  it('writes asrDevice: gpu when GPU is clicked for the asr stage', () => {
-    render(<NativeDeviceControl stage="asr" />);
+  it('reports gpu through onChange when GPU is clicked for the asr stage', () => {
+    render(<NativeDeviceControl stage="asr" value={mockSettings.asrDevice} onChange={mockUpdateDevice} />);
     fireEvent.click(screen.getByText('GPU'));
-    expect(mockUpdate).toHaveBeenCalledWith({ asrDevice: 'gpu' });
+    expect(mockUpdateDevice).toHaveBeenCalledWith('gpu');
   });
 
-  it('writes translationDevice: gpu for the translation stage', () => {
-    render(<NativeDeviceControl stage="translation" />);
+  it('reports gpu through onChange for the translation stage', () => {
+    render(<NativeDeviceControl stage="translation" value={mockSettings.translationDevice} onChange={mockUpdateDevice} />);
     fireEvent.click(screen.getByText('GPU'));
-    expect(mockUpdate).toHaveBeenCalledWith({ translationDevice: 'gpu' });
+    expect(mockUpdateDevice).toHaveBeenCalledWith('gpu');
   });
 
-  it('writes ttsDevice: gpu for the tts stage', () => {
-    render(<NativeDeviceControl stage="tts" />);
+  it('reports gpu through onChange for the tts stage', () => {
+    render(<NativeDeviceControl stage="tts" value={mockSettings.ttsDevice} onChange={mockUpdateDevice} />);
     fireEvent.click(screen.getByText('GPU'));
-    expect(mockUpdate).toHaveBeenCalledWith({ ttsDevice: 'gpu' });
+    expect(mockUpdateDevice).toHaveBeenCalledWith('gpu');
   });
 
-  it('marks the GPU option active when the stored value is already gpu', () => {
+  it('marks the GPU option active when the value it is handed is already gpu', () => {
     mockSettings = { ...mockSettings, asrDevice: 'gpu' };
-    render(<NativeDeviceControl stage="asr" />);
+    render(<NativeDeviceControl stage="asr" value={mockSettings.asrDevice} onChange={mockUpdateDevice} />);
     expect(screen.getByText('GPU').className).toContain('active');
+  });
+
+  it('does not report the mode it already shows', () => {
+    mockSettings = { ...mockSettings, asrDevice: 'cpu' };
+    render(<NativeDeviceControl stage="asr" value={mockSettings.asrDevice} onChange={mockUpdateDevice} />);
+    fireEvent.click(screen.getByText('CPU'));
+    expect(mockUpdateDevice).not.toHaveBeenCalled();
   });
 
   it('does not offer a GPU option when no GPU tier is available on this machine', () => {
     mockCatalog = {};
-    render(<NativeDeviceControl stage="asr" />);
+    render(<NativeDeviceControl stage="asr" value={mockSettings.asrDevice} onChange={mockUpdateDevice} />);
     expect(screen.queryByText('GPU')).toBeNull();
   });
 });

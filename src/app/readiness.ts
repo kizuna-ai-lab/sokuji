@@ -31,6 +31,7 @@ import type { AuthContext } from '../lib/run/types';
 import type { Runner } from '../lib/session/runner';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { localModels } from '../stores/localModels';
+import { nativeModels } from '../stores/nativeModels';
 import { useProviderStore } from '../stores/providerStore';
 
 export const READINESS_DELAY_MS = 150;
@@ -130,7 +131,7 @@ export function driveReadiness({ runner, providers, plan, auth, clock, watchSign
     for (const id of [...stale]) if (!ids.has(id)) stale.delete(id);
     for (const id of [...read.keys()]) if (!ids.has(id)) read.delete(id);
     // Each provider's watch is handed this device's models; only LocalInference reads them (its downloads).
-    for (const p of ps) if (!watched.has(p.id)) watched.set(p.id, p.watchReadiness?.(() => inputsChanged(p.id), localModels) ?? (() => {}));
+    for (const p of ps) if (!watched.has(p.id)) watched.set(p.id, p.watchReadiness?.(() => inputsChanged(p.id), localModels, nativeModels) ?? (() => {}));
     if (!ps.length) {
       // No plan has loaded: whichever provider comes next has just joined, even the last one.
       seen = new Set();

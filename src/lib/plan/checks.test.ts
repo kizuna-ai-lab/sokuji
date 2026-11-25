@@ -20,11 +20,11 @@ registerReleasedCatalog();
 const options = (transcription: string, speech: string, translation = transcription) => ({ transcription: caps(transcription)!, translation: caps(translation)!, speech: caps(speech)! });
 
 describe('the catalog says which voices stand alone and which text sides take another voice', () => {
-  it("a voice alone: Kizuna AI's Soniox, Soniox with an own key, Edge and this device", () => {
-    expect(allCaps().filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'soniox']);
+  it("a voice alone: Kizuna AI's Soniox, Soniox with an own key, Edge, this device and Local Native", () => {
+    expect(allCaps().filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'local_native', 'soniox']);
   });
   it("another voice is taken by Kizuna AI's Soniox, Soniox and this device (Bing only translates, so it is never asked)", () => {
-    expect(allCaps().filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'local_inference', 'soniox']);
+    expect(allCaps().filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'local_inference', 'local_native', 'soniox']);
   });
 });
 

@@ -1,11 +1,11 @@
 /**
  * Voxtral Mini 3B 2507 WebGPU ASR Worker
  *
- * Streaming audio input (Int16@24kHz) → Silero VAD v5 → Voxtral Mini 3B (WebGPU)
+ * The turn detector's segments (16 kHz Float32 speech) → Voxtral Mini 3B (WebGPU)
  * Model files loaded from IndexedDB via customCache bridge.
  *
  * Unlike Voxtral 4B Realtime (continuous streaming inference), 3B is an
- * offline/batch model decoded on complete VAD-gated utterances. Token-level
+ * offline/batch model decoded on complete utterances. Token-level
  * streaming is provided by TextStreamer during each batch inference.
  *
  * Key feature over 4B: explicit language hint injected into the processor
@@ -13,8 +13,12 @@
  * (en, es, fr, pt, hi, de, nl, it). Falls back to bare `[TRANSCRIBE]` for
  * unsupported codes (auto-detect).
  *
- * Input messages:  Voxtral3BAsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' }
- * Output messages: StreamingAsrWorkerOutMessage (ready, status, speech_start, partial, result, error, disposed)
+ * This worker runs no VAD and takes no audio. Turn detection lives in turn-detector.worker.ts, which
+ * cuts the turns and sends each segment here on `segmentPort`; SegmentInbox decodes them one at a
+ * time, in arrival order, and answers the detector's drain marks.
+ *
+ * Input messages:  Voxtral3BAsrInitMessage | AsrStopMessage | AsrDisposeMessage
+ * Output messages: StreamingAsrWorkerOutMessage (ready, status, partial, result, drained, error, disposed)
  */
 
 import {
@@ -24,21 +28,15 @@ import {
   env,
   type ProgressInfo,
 } from './_shared/transformers-all';
-import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
 import { initTransformersEnv } from './_shared/transformers-env';
-import { FrameProcessor, Message } from '@ricky0123/vad-web';
-import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
-import { resolveVadThresholds } from './_shared/vad-thresholds';
-import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
-import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
-import { openTurnLink, type TurnLink } from './_shared/turn-gate';
+import { VAD_SAMPLE_RATE } from './_shared/max-speech-frames';
+import { SegmentInbox, type DecodeTag } from './_shared/segment-inbox';
 
 import type {
   Voxtral3BAsrInitMessage,
-  AsrAudioMessage,
+  AsrStopMessage,
   AsrDisposeMessage,
   StreamingAsrWorkerOutMessage,
-  SegmentEnd,
 } from '../types';
 import { bindCheckedWebGpuAdapter } from './shaderF16Gate';
 
@@ -62,117 +60,25 @@ env.fetch = (input: any, init?: any) => {
 
 // ─── Types & Helpers ─────────────────────────────────────────────────────────
 
-type WorkerMessage = Voxtral3BAsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' };
+type WorkerMessage = Voxtral3BAsrInitMessage | AsrStopMessage | AsrDisposeMessage;
 
 function post(msg: StreamingAsrWorkerOutMessage) {
   self.postMessage(msg);
 }
 
-// ─── Silero VAD v5 ──────────────────────────────────────────────────────────
-
-const VAD_SAMPLE_RATE = 16000;
-const VAD_FRAME_SAMPLES = 512; // 32ms @ 16kHz
-const VAD_FRAME_MS = (VAD_FRAME_SAMPLES / VAD_SAMPLE_RATE) * 1000;
-
-interface VadSession {
-  session: InferenceSession;
-  state: Tensor;
-  input: SileroInput;
-}
-
-let vadSession: VadSession | null = null;
-let frameProcessor: FrameProcessor | null = null;
-let turnLink: TurnLink | null = null;
-let maxSpeechFrames = 625; // ~20s at 32ms/frame
-let speechFramesSinceStart = 0;
-
-// The longest segment this engine is handed, pre-speech pad included: one
-// 30 s encoder chunk. Nothing is lost past it — transformers.js splits a
-// longer segment into 30 s chunks — but a 30 s cap makes a segment of 30.016
-// to 30.816 s, so every capped segment would pay a second encoder pass and
-// 375 more prefill tokens for the 16 to 816 ms that overflow (16 to 176 ms
-// for most of them, since only a segment that follows silence carries the
-// full pre-speech pad), on a multi-chunk WebGPU path this app has never run
-// (the old 20 s cap never reached it).
-const VOXTRAL_3B_MAX_SEGMENT_SAMPLES = 30 * VAD_SAMPLE_RATE;
-
-async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
-  if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
-  const input = new Tensor('float32', vadSession.input.next(frame), [1, SILERO_INPUT_SAMPLES]);
-  const sr = new Tensor('int64', BigInt64Array.from([BigInt(VAD_SAMPLE_RATE)]), []);
-  const result = await vadSession.session.run({ input, sr, state: vadSession.state });
-  vadSession.state = result.stateN as Tensor;
-  const prob = (result.output as Tensor).data[0] as number;
-  return { isSpeech: prob, notSpeech: 1 - prob };
-}
-
-function vadResetStates() {
-  if (!vadSession) return;
-  vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
-  vadSession.input.reset();
-}
-
-async function initVad(vadConfig?: Voxtral3BAsrInitMessage['vadConfig'], vadModelUrl?: string): Promise<void> {
-  const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
-    executionProviders: ['wasm'],
-  });
-  vadSession = {
-    session,
-    state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
-    input: new SileroInput(),
-  };
-
-  const { positive: positiveSpeechThreshold, negative: negativeSpeechThreshold } = resolveVadThresholds(vadConfig);
-  const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
-  const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
-  const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-
-  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, {
-    maxSegmentSamples: VOXTRAL_3B_MAX_SEGMENT_SAMPLES,
-  });
-
-  frameProcessor = new FrameProcessor(
-    vadInfer,
-    vadResetStates,
-    {
-      positiveSpeechThreshold,
-      negativeSpeechThreshold,
-      redemptionMs,
-      minSpeechMs,
-      preSpeechPadMs,
-      submitUserSpeechOnPause: false,
-    },
-    VAD_FRAME_MS,
-  );
-  frameProcessor.resume();
-  speechFramesSinceStart = 0;
-}
-
-// ─── Audio Buffer & Resampling ──────────────────────────────────────────────
-
-let vadAudioBuffer = new Float32Array(0);
-
-function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Float32Array {
-  const ratio = inputRate / VAD_SAMPLE_RATE;
-  const outLen = Math.floor(samples.length / ratio);
-  const out = new Float32Array(outLen);
-  for (let i = 0; i < outLen; i++) {
-    const srcIdx = i * ratio;
-    const lo = Math.floor(srcIdx);
-    const hi = Math.min(lo + 1, samples.length - 1);
-    const frac = srcIdx - lo;
-    out[i] = samples[lo] / 32768 + ((samples[hi] / 32768) - (samples[lo] / 32768)) * frac;
-  }
-  return out;
-}
+// The longest segment this engine is handed, pre-speech pad included, is the detector's limit for
+// Voxtral 3B (30 s, declared in modelManifest.ts): one 30 s encoder chunk. Nothing is lost past it —
+// transformers.js splits a longer segment into 30 s chunks — but a segment just over 30 s would pay a
+// second encoder pass and 375 more prefill tokens for the few hundred ms that overflow. The detector
+// cuts there, so this worker never sees a longer segment.
 
 // ─── Voxtral 3B Model State ─────────────────────────────────────────────────
 
 let model: any = null;            // VoxtralForConditionalGeneration instance
 let processor: any = null;        // VoxtralProcessor instance
 let currentLanguage: string | undefined;
-let processingVad = false;
-let currentDecodePromise: Promise<void> | null = null;
+/** The detector's segments, decoded one at a time in arrival order; exists once the model is ready. */
+let inbox: SegmentInbox | null = null;
 
 // 8 languages natively supported by Voxtral 3B 2507
 const SUPPORTED_LANGS = new Set(['en', 'es', 'fr', 'pt', 'hi', 'de', 'nl', 'it']);
@@ -186,183 +92,92 @@ function normalizeToIso639_1(lang: string | undefined): string {
 // ─── Batch Speech Segment Processing ────────────────────────────────────────
 
 /**
- * Run Voxtral 3B inference on a completed speech segment.
+ * Run Voxtral 3B inference on a speech segment the detector cut.
  * Builds a chat-template prompt with optional `lang:XX [TRANSCRIBE]` hint,
- * uses TextStreamer for token-level partial results, and emits a final
- * `result` message when decoding completes.
+ * uses TextStreamer for token-level partial results (tagged with the segment's press and epoch),
+ * and emits a final `result` message when decoding completes.
  *
- * Serializes decode calls via currentDecodePromise to prevent overlapping
- * generate() invocations if VAD end-events arrive back-to-back.
+ * Called by the inbox, one segment at a time, so generate() calls never overlap.
  */
-function runVoxtral3B(audio: Float32Array, end: SegmentEnd): Promise<void> {
-  const promise = (async () => {
-    if (currentDecodePromise) {
-      try { await currentDecodePromise; } catch { /* already reported */ }
-    }
-    if (!model || !processor) return;
+async function runVoxtral3B(audio: Float32Array, startSample: number, tag: DecodeTag): Promise<void> {
+  if (!model || !processor) return;
 
-    const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
-    const startTime = performance.now();
-    let accumulatedText = '';
-
-    try {
-      // 1. Build chat-template prompt with optional language hint
-      const langCode = normalizeToIso639_1(currentLanguage);
-      const hintedText = SUPPORTED_LANGS.has(langCode)
-        ? `lang:${langCode} [TRANSCRIBE]`
-        : '[TRANSCRIBE]';
-
-      const conversation = [
-        {
-          role: 'user',
-          content: [
-            { type: 'audio' },
-            { type: 'text', text: hintedText },
-          ],
-        },
-      ];
-      const promptText = processor.apply_chat_template(conversation, { tokenize: false });
-
-      // 2. Processor builds mel features + input_ids from prompt + audio
-      const inputs = await processor(promptText, audio);
-
-      // 3. TextStreamer streams decoded tokens as partials
-      const streamer = new TextStreamer(processor.tokenizer, {
-        skip_prompt: true,
-        skip_special_tokens: true,
-        callback_function: (token: string) => {
-          accumulatedText += token;
-          post({ type: 'partial', text: accumulatedText });
-        },
-      });
-
-      // 4. Generate (batch decode, not streaming input like 4B)
-      const outputs = await model.generate({
-        ...inputs,
-        max_new_tokens: 500,
-        streamer,
-      });
-
-      // 5. Canonical final decode: slice prompt tokens, then batch_decode.
-      //    Falls back to `accumulatedText` if slice/decode is unavailable in this
-      //    transformers.js version (defensive; should not happen on ≥3.7).
-      let finalText = accumulatedText.trim();
-      try {
-        const promptLen = inputs.input_ids.dims.at(-1)!;
-        const generated = outputs.slice(null, [promptLen, null]);
-        const decoded = processor.batch_decode(generated, { skip_special_tokens: true });
-        const candidate = Array.isArray(decoded) ? decoded[0] : decoded;
-        if (candidate && typeof candidate === 'string' && candidate.trim()) {
-          finalText = candidate.trim();
-        }
-      } catch {
-        // Keep accumulatedText as finalText
-      }
-
-      if (finalText) {
-        post({
-          type: 'result',
-          text: finalText,
-          durationMs,
-          recognitionTimeMs: Math.round(performance.now() - startTime),
-          ...end,
-        });
-      }
-    } catch (err: any) {
-      post({ type: 'error', error: `Voxtral 3B inference failed: ${err?.message || err}` });
-    }
-  })();
-
-  currentDecodePromise = promise;
-  return promise;
-}
-
-// ─── VAD + Audio Feed Pipeline ──────────────────────────────────────────────
-
-async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void> {
-  if (!vadSession || !frameProcessor || !model || processingVad) return;
-  processingVad = true;
+  const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
+  const startTime = performance.now();
+  let accumulatedText = '';
 
   try {
-    const resampled = resampleInt16ToFloat32_16k(samples, sampleRate);
+    // 1. Build chat-template prompt with optional language hint
+    const langCode = normalizeToIso639_1(currentLanguage);
+    const hintedText = SUPPORTED_LANGS.has(langCode)
+      ? `lang:${langCode} [TRANSCRIBE]`
+      : '[TRANSCRIBE]';
 
-    // Append to VAD audio buffer
-    const newBuf = new Float32Array(vadAudioBuffer.length + resampled.length);
-    newBuf.set(vadAudioBuffer);
-    newBuf.set(resampled, vadAudioBuffer.length);
-    vadAudioBuffer = newBuf;
+    const conversation = [
+      {
+        role: 'user',
+        content: [
+          { type: 'audio' },
+          { type: 'text', text: hintedText },
+        ],
+      },
+    ];
+    const promptText = processor.apply_chat_template(conversation, { tokenize: false });
 
-    // Process complete VAD frames
-    while (vadAudioBuffer.length >= VAD_FRAME_SAMPLES) {
-      const frame = vadAudioBuffer.slice(0, VAD_FRAME_SAMPLES);
-      vadAudioBuffer = vadAudioBuffer.slice(VAD_FRAME_SAMPLES);
+    // 2. Processor builds mel features + input_ids from prompt + audio
+    const inputs = await processor(promptText, audio);
 
-      const events: FrameProcessorEvent[] = [];
-      await frameProcessor.process(frame, (ev) => events.push(ev));
+    // 3. TextStreamer streams decoded tokens as partials
+    const streamer = new TextStreamer(processor.tokenizer, {
+      skip_prompt: true,
+      skip_special_tokens: true,
+      callback_function: (token: string) => {
+        accumulatedText += token;
+        post({ type: 'partial', text: accumulatedText, press: tag.press, epoch: tag.epoch });
+      },
+    });
 
-      let speechProbability = 0;
-      for (const ev of events) {
-        switch (ev.msg) {
-          case Message.FrameProcessed:
-            speechProbability = ev.probs.isSpeech;
-            break;
+    // 4. Generate (batch decode, not streaming input like 4B)
+    const outputs = await model.generate({
+      ...inputs,
+      max_new_tokens: 500,
+      streamer,
+    });
 
-          case Message.SpeechStart:
-            speechFramesSinceStart = 0;
-            post({ type: 'speech_start' });
-            break;
-
-          case Message.SpeechEnd:
-            speechFramesSinceStart = 0;
-            // Fire-and-forget: decodes take seconds on 3B. If we awaited here,
-            // `processingVad` would stay true for the full decode duration and
-            // incoming audio messages would be dropped by the guard at the top
-            // of this function. `runVoxtral3B` self-serializes via
-            // `currentDecodePromise` so overlapping calls queue correctly.
-            void runVoxtral3B(ev.audio, { endedBy: 'silence' });
-            break;
-
-          case Message.VADMisfire: {
-            speechFramesSinceStart = 0;
-            // Kept when it follows a Smart end inside the wait Normal would have spanned.
-            const rescued = turnLink?.rescue();
-            if (rescued) void runVoxtral3B(rescued, { endedBy: 'kept' });
-            break;
-          }
-        }
+    // 5. Canonical final decode: slice prompt tokens, then batch_decode.
+    //    Falls back to `accumulatedText` if slice/decode is unavailable in this
+    //    transformers.js version (defensive; should not happen on ≥3.7).
+    let finalText = accumulatedText.trim();
+    try {
+      const promptLen = inputs.input_ids.dims.at(-1)!;
+      const generated = outputs.slice(null, [promptLen, null]);
+      const decoded = processor.batch_decode(generated, { skip_special_tokens: true });
+      const candidate = Array.isArray(decoded) ? decoded[0] : decoded;
+      if (candidate && typeof candidate === 'string' && candidate.trim()) {
+        finalText = candidate.trim();
       }
-
-      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
-      if (smartTurnProbability !== null) {
-        const endEvents: FrameProcessorEvent[] = [];
-        frameProcessor.endSegment((ev) => endEvents.push(ev));
-        for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void runVoxtral3B(ev.audio, { endedBy: 'smart', smartTurnProbability });
-        }
-      }
-
-      // Max speech duration cap — force-finalize if speech runs too long
-      if (frameProcessor.speaking) {
-        speechFramesSinceStart++;
-        if (speechFramesSinceStart >= maxSpeechFrames) {
-          const endEvents: FrameProcessorEvent[] = [];
-          frameProcessor.endSegment((ev) => endEvents.push(ev));
-          for (const ev of endEvents) {
-            if (ev.msg === Message.SpeechEnd) {
-              // See SpeechEnd comment above: fire-and-forget to avoid dropping audio.
-              void runVoxtral3B(ev.audio, { endedBy: 'cap' });
-            }
-          }
-          turnLink?.reset();
-          speechFramesSinceStart = 0;
-        }
-      } else {
-        speechFramesSinceStart = 0;
-      }
+    } catch {
+      // Keep accumulatedText as finalText
     }
-  } finally {
-    processingVad = false;
+
+    if (finalText) {
+      post({
+        type: 'result',
+        text: finalText,
+        startSample,
+        durationMs,
+        recognitionTimeMs: Math.round(performance.now() - startTime),
+        ...tag,
+      });
+    }
+  } catch (err: any) {
+    post({ type: 'error', error: `Voxtral 3B inference failed: ${err?.message || err}` });
   }
+}
+
+/** A decode threw outside its own reporting (the inbox calls this; the segment was already acknowledged). */
+function reportDecodeError(err: unknown): void {
+  post({type: 'error', error: `Voxtral 3B inference failed: ${(err as Error)?.message || err}`});
 }
 
 // ─── Init Handler ───────────────────────────────────────────────────────────
@@ -371,25 +186,14 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
 
-    // ortEnv wasmPaths must be set before initVad's InferenceSession; the
-    // transformers env is configured later via initTransformersEnv.
-    if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
-      ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-    }
-
-    // 1. Init VAD
-    post({ type: 'status', message: 'Loading VAD model...' });
-    await initVad(msg.vadConfig, msg.vadModelUrl);
-    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
-
-    // 2. Configure Transformers.js for IndexedDB blob URL cache
+    // 1. Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
 
-    // 3. Load processor
+    // 2. Load processor
     post({ type: 'status', message: 'Loading Voxtral 3B processor...' });
     processor = await VoxtralProcessor.from_pretrained(msg.hfModelId);
 
-    // 4. Load model (WebGPU)
+    // 3. Load model (WebGPU)
     post({ type: 'status', message: 'Loading Voxtral 3B model (WebGPU)...' });
     await bindCheckedWebGpuAdapter(env.backends.onnx, msg.dtype, 'Voxtral 3B');
     model = await VoxtralForConditionalGeneration.from_pretrained(msg.hfModelId, {
@@ -405,7 +209,7 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
 
     currentLanguage = msg.language;
 
-    // 5. Log chosen language hint for operator visibility
+    // 4. Log chosen language hint for operator visibility
     const langCode = normalizeToIso639_1(currentLanguage);
     if (SUPPORTED_LANGS.has(langCode)) {
       post({ type: 'status', message: `Voxtral 3B language hint: lang:${langCode} [TRANSCRIBE]` });
@@ -413,9 +217,9 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
       post({ type: 'status', message: `Voxtral 3B: source language '${currentLanguage}' not in supported set; using auto-detect` });
     }
 
-    // 6. WebGPU warmup — compile shaders with a tiny dummy inference so the
+    // 5. WebGPU warmup — compile shaders with a tiny dummy inference so the
     //    first real utterance doesn't pay the compilation cost. Matches the
-    //    Cohere worker's pattern (cohere-transcribe-webgpu.worker.ts:344-354).
+    //    Cohere worker's pattern (cohere-transcribe-webgpu.worker.ts).
     post({ type: 'status', message: 'Warming up WebGPU shaders...' });
     try {
       const warmupAudio = new Float32Array(VAD_SAMPLE_RATE); // 1s of silence
@@ -435,8 +239,9 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
       // Warmup failures are non-fatal — first real utterance may be slightly slower
     }
 
-    // Reset buffers
-    vadAudioBuffer = new Float32Array(0);
+    // 6. Listen to the detector only now the model is ready: nothing it sends is lost, and
+    // nothing is decoded before there is a model to decode on.
+    inbox = new SegmentInbox(msg.segmentPort, runVoxtral3B, post, reportDecodeError);
 
     const loadTimeMs = Math.round(performance.now() - startTime);
     post({ type: 'ready', loadTimeMs });
@@ -445,67 +250,17 @@ async function handleInit(msg: Voxtral3BAsrInitMessage): Promise<void> {
   }
 }
 
-// ─── Flush & Dispose ────────────────────────────────────────────────────────
-
-async function handleFlush(): Promise<void> {
-  // Force-finalize any pending speech via FrameProcessor (PTT release path).
-  // Fire-and-forget because `runVoxtral3B` assigns `currentDecodePromise`
-  // before returning; the `await currentDecodePromise` below will pick up
-  // whatever decode we just kicked off.
-  if (frameProcessor?.speaking) {
-    const endEvents: FrameProcessorEvent[] = [];
-    frameProcessor.endSegment((ev) => endEvents.push(ev));
-    for (const ev of endEvents) {
-      if (ev.msg === Message.SpeechEnd) {
-        void runVoxtral3B(ev.audio, { endedBy: 'flush' });
-      } else if (ev.msg === Message.VADMisfire) {
-        const rescued = turnLink?.rescue();
-        if (rescued) void runVoxtral3B(rescued, { endedBy: 'kept' });
-      }
-    }
-    turnLink?.reset();
-  }
-  // Wait for any in-flight decode to complete
-  if (currentDecodePromise) {
-    try { await currentDecodePromise; } catch { /* already reported */ }
-  }
-}
+// ─── Dispose ────────────────────────────────────────────────────────────────
 
 async function handleDispose(): Promise<void> {
   // Only reachable when the host waits for `disposed`. In the app, WorkerSession.dispose()
-  // posts `dispose` and terminates this worker on the next line, so the drain below runs in the
-  // worker harness only; Stop is meant to be immediate, and PTT release finishes an utterance
-  // through flush, not dispose.
+  // posts `dispose` and terminates this worker on the next line, so the wait below runs in the
+  // worker harness only; Stop is meant to be immediate.
 
-  // Flush remaining speech. Fire-and-forget; the `await currentDecodePromise`
-  // below picks up the just-kicked decode before we dispose the model.
-  if (frameProcessor?.speaking) {
-    const endEvents: FrameProcessorEvent[] = [];
-    frameProcessor.endSegment((ev) => endEvents.push(ev));
-    for (const ev of endEvents) {
-      if (ev.msg === Message.SpeechEnd) {
-        void runVoxtral3B(ev.audio, { endedBy: 'flush' });
-      }
-    }
-  }
-
-  // Wait for any in-flight decode to complete before disposing
-  if (currentDecodePromise) {
-    try { await currentDecodePromise; } catch { /* already reported */ }
-    currentDecodePromise = null;
-  }
-
-  // Dispose FrameProcessor
-  frameProcessor = null;
-  turnLink?.close();
-  turnLink = null;
-  speechFramesSinceStart = 0;
-
-  // Dispose VAD
-  if (vadSession?.session) {
-    await vadSession.session.release();
-    vadSession = null;
-  }
+  // Stop listening and wait for the decode in flight; what still waits is dropped. Nothing can
+  // then run against the model released below.
+  await inbox?.close();
+  inbox = null;
 
   // Dispose model and processor
   if (model) {
@@ -514,9 +269,6 @@ async function handleDispose(): Promise<void> {
   }
   processor = null;
   currentLanguage = undefined;
-
-  vadAudioBuffer = new Float32Array(0);
-  processingVad = false;
 
   post({ type: 'disposed' });
 }
@@ -527,13 +279,10 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const msg = event.data;
   switch (msg.type) {
     case 'init':
-      await handleInit(msg as Voxtral3BAsrInitMessage);
+      await handleInit(msg);
       break;
-    case 'audio':
-      await feedAudio((msg as AsrAudioMessage).samples, (msg as AsrAudioMessage).sampleRate);
-      break;
-    case 'flush':
-      await handleFlush();
+    case 'stop':
+      inbox?.stop(msg.epoch);
       break;
     case 'dispose':
       await handleDispose();

@@ -20,6 +20,7 @@ import { namingProvider } from '../lib/session/codes';
 import { persistSetting } from '../services/persistSetting';
 import { ServiceFactory } from '../services/ServiceFactory';
 import { localModels } from './localModels';
+import { nativeModels } from './nativeModels';
 
 /** One provider's saved state. */
 export interface ProviderEntry {
@@ -458,7 +459,7 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       try {
         // This device's models go to a local provider's check alone: another kind's context is as it was.
         const result = await p.check(credentials, inputs.settings, {
-          pair: inputs.pair, legs: inputs.legs, ...(inputs.stages ? { stages: inputs.stages } : {}), ...(p.kind === 'local' ? { localModels } : {}), signal,
+          pair: inputs.pair, legs: inputs.legs, ...(inputs.stages ? { stages: inputs.stages } : {}), ...(p.kind === 'local' ? { localModels, nativeModels } : {}), signal,
         });
         if (signal?.aborted) return cancelled();
         answer = result.ok

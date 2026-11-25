@@ -35,7 +35,6 @@ export const edgeSpeechUnit: UnitDefinition<EdgeSettings, EdgeCredentials, Local
     // Whether a leg is read aloud is the user's switch to say, as it is for the local provider.
     speech: 'optional',
     turns: ['auto', 'manual'],
-    turnOwner: 'either',
     boundaries: 'silence',
     textInput: false,
     faceToFace: true,

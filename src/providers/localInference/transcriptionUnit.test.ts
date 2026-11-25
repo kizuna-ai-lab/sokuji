@@ -53,19 +53,21 @@ import { areLocalTranslationConfigs } from './translationUnit';
 import {
   admitLocalTranscription, areLocalTranscriptionConfigs, buildLocalTranscription, createLocalTranscriptionUnit, LOCAL_TRANSCRIPTION_UNIT, localTranscriptionUnit,
 } from './transcriptionUnit';
+import { TURN_DETECTION_DEFAULTS, type TurnDetectionSettings } from '../../lib/turn/turnDetectionSettings';
 
 const EN_JA = { source: 'en', target: 'ja' };
 const JA_EN = { source: 'ja', target: 'en' };
 const ctx = (direction: SessionContext['direction'], o: { speech?: boolean; turns?: SessionContext['turns'] } = {}): SessionContext => ({ direction, speech: o.speech ?? false, turns: o.turns ?? 'auto' });
 /** This device's models as a run hands them: resolved by `resolve`, with no GPU feature. */
 const models = fakeLocalModels({ resolve, deviceFeatures: () => [] });
-const shared = (over: { reversed?: boolean; lineUp?: StageIds; sentences?: boolean } = {}): SharedSettings => ({
+const shared = (over: { reversed?: boolean; lineUp?: StageIds; sentences?: boolean; turnDetection?: TurnDetectionSettings } = {}): SharedSettings => ({
   pauses: { sourceSeconds: 0, translationSeconds: 0 },
   reversed: () => over.reversed ?? false,
   segmentation: over.sentences ? { mode: 'sentences', sentencesPerRow: 1 } : { mode: 'off', sentencesPerRow: 0 },
   models: [],
   localModels: models,
   ...(over.lineUp ? { lineUp: over.lineUp } : {}),
+  ...(over.turnDetection ? { turnDetection: over.turnDetection } : {}),
 });
 const SETTINGS: LocalInferenceSettings = LOCAL_INFERENCE_DEFAULTS;
 /** This device transcribes; another provider translates and a third speaks. */
@@ -74,7 +76,7 @@ const APART: StageIds = { transcription: 'local_inference', translation: 'soniox
 /** A config of this unit, as `buildLocalTranscription` makes one, over a recognition model the test names. */
 function aloneConfig(over: Partial<LocalInferenceConfig> = {}): LocalInferenceConfig {
   return {
-    asr: { modelId: 'asr-model', streaming: true },
+    asr: { modelId: 'asr-model', streaming: true, turnDetection: 'own' },
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
     translation: { kind: 'none' },
     transcribesAlone: true,
@@ -105,7 +107,7 @@ describe('what the local transcription unit declares', () => {
 
   it('never speaks, takes typed text, keeps both turn modes and its own boundaries, and has no face-to-face', () => {
     expect(localTranscriptionUnit.capabilities(SETTINGS)).toEqual({
-      speech: 'never', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
+      speech: 'never', turns: ['auto', 'manual'], boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
     });
   });
 
@@ -119,7 +121,8 @@ describe('the config it builds', () => {
     mockTable = { 'en>ja': { asr: 'sensevoice-int8', translation: 'opus-mt-en-jap', tts: 'tts-ja' } };
     const built = buildLocalTranscription(ctx(EN_JA, { speech: true }), SETTINGS, shared({ lineUp: APART }));
     expect(built).toEqual({
-      asr: { modelId: 'sensevoice-int8', streaming: false },
+      asr: { modelId: 'sensevoice-int8', streaming: false, turnDetection: 'shared' },
+      limit: { maxSpeechSeconds: 20 },
       vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
       translation: { kind: 'none' },
       transcribesAlone: true,
@@ -140,19 +143,29 @@ describe('the config it builds', () => {
   });
 
   it('the recognition and its VAD are what the whole session builds for the same settings, Smart Turn and the streaming flag included', () => {
-    const settings: LocalInferenceSettings = { ...SETTINGS, vadEndOfTurn: 'smart', vadNegativeThreshold: 0.2 };
+    const turnDetection: TurnDetectionSettings = { ...TURN_DETECTION_DEFAULTS, endOfTurn: 'smart', negativeThreshold: 0.2 };
     for (const asr of ['granite-speech', 'stream-en-kroko', 'sensevoice-int8']) {
       mockTable = { 'en>ja': { asr, translation: 'opus-mt-en-jap' } };
-      const whole = buildLocalInference(ctx(EN_JA), settings, shared()) as LocalInferenceConfig;
-      const alone = buildLocalTranscription(ctx(EN_JA), settings, shared()) as LocalInferenceConfig;
+      const whole = buildLocalInference(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig;
+      const alone = buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig;
       expect(alone.asr).toEqual(whole.asr);
       expect(alone.vad).toEqual(whole.vad);
     }
-    // Granite takes Smart Turn and SenseVoice does not; Kroko streams.
+    // Granite takes Smart Turn and a streaming sherpa model (its own endpoint) does not; Kroko streams.
     mockTable = { 'en>ja': { asr: 'granite-speech' } };
-    expect((buildLocalTranscription(ctx(EN_JA), settings, shared()) as LocalInferenceConfig).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
+    expect((buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
     mockTable = { 'en>ja': { asr: 'stream-en-kroko' } };
-    expect((buildLocalTranscription(ctx(EN_JA), settings, shared()) as LocalInferenceConfig).asr.streaming).toBe(true);
+    expect((buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig).asr.streaming).toBe(true);
+  });
+
+  it('the transcription-only unit decides per leg the same way', () => {
+    const turnDetection: TurnDetectionSettings = { ...TURN_DETECTION_DEFAULTS, endOfTurn: 'smart' };
+    mockTable = { 'en>ja': { asr: 'whisper-base-webgpu' }, 'ja>en': { asr: 'stream-en-kroko' } };
+    const speaker = buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig;
+    const participant = buildLocalTranscription(ctx(JA_EN), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig;
+    expect([speaker.asr.turnDetection, participant.asr.turnDetection]).toEqual(['shared', 'own']);
+    expect(speaker.vad).toHaveProperty('smartTurn');
+    expect(participant.vad).not.toHaveProperty('smartTurn');
   });
 
   it('no job cut and no voice, whatever the display and the leg ask for', () => {
@@ -198,7 +211,7 @@ describe('admission', () => {
 
   it('counts its recognition models only, one per leg', () => {
     mockSizes = { 'asr-en': 1000, 'asr-ja': 1000 };
-    const legs = { speaker: aloneConfig({ asr: { modelId: 'asr-en', streaming: false } }), participant: aloneConfig({ asr: { modelId: 'asr-ja', streaming: false } }) };
+    const legs = { speaker: aloneConfig({ asr: { modelId: 'asr-en', streaming: false, turnDetection: 'own' } }), participant: aloneConfig({ asr: { modelId: 'asr-ja', streaming: false, turnDetection: 'own' } }) };
     vi.stubGlobal('navigator', { deviceMemory: 4 });
     try {
       expect(admitLocalTranscription(legs, [])).toBe(true);
@@ -225,6 +238,7 @@ async function open(config = aloneConfig(), context = ctx(EN_JA)) {
   const t = begin(config, context);
   await flush();
   if (t.created.includes('asr')) t.asr.ready();
+  if (t.created.includes('detector')) t.detector.ready();
   const session: AdapterSession = await t.starting;
   await flush();
   const of = <K extends AdapterEvent['kind']>(kind: K) => t.log.filter((e) => e.kind === kind).map((e) => e.payload as Extract<AdapterEvent, { kind: K }>['payload']);
@@ -276,7 +290,7 @@ describe('a session of the local transcription unit', () => {
     expect(t.of('segmentText').map((e) => e.heard)).toEqual([undefined, { pieces: [], stableLen: 11 }]);
     await t.session.stop();
     // An offline recognizer that says where the utterance began: its pieces, and all of it stable.
-    const o = await open(aloneConfig({ asr: { modelId: 'asr-model', streaming: false } }));
+    const o = await open(aloneConfig({ asr: { modelId: 'asr-model', streaming: false, turnDetection: 'own' } }));
     o.session.appendAudio(new Int16Array(24000));
     o.asr.onResult?.({ text: 'Hi.', durationMs: 500, recognitionTimeMs: 10, startSample: 0 });
     const heard = o.of('segmentText')[0].heard!;
@@ -310,10 +324,16 @@ describe('a session of the local transcription unit', () => {
   });
 
   it('Smart Turn runs under automatic turns where the config asks for it, and not under manual ones', async () => {
-    const smart = aloneConfig({ vad: { ...aloneConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
+    // Only a recognizer that decodes the turn detector's segments (`shared`) takes Smart Turn; the port goes to the detector.
+    const smart = aloneConfig({
+      asr: { modelId: 'asr-model', streaming: false, turnDetection: 'shared' },
+      limit: { maxSegmentSamples: 29 * 16000 },
+      vad: { ...aloneConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } },
+    });
     const auto = await open(smart);
     expect(auto.turn.connects).toBe(1);
-    expect(auto.asr.inits[0].options.turnPort).toBe(auto.turn.port);
+    expect(auto.detector.inits[0].turnPort).toBe(auto.turn.port);
+    expect(auto.asr.inits[0].options).not.toHaveProperty('turnPort');
     await auto.session.stop();
     expect(auto.turn.releases).toBe(1);
     const manual = await open(smart, ctx(EN_JA, { turns: 'manual' }));

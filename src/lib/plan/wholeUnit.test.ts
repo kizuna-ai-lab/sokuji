@@ -44,7 +44,7 @@ describe('wholeUnitOf', () => {
 
   it("answers its parts' capabilities", () =>
     expect(wholeUnitOf(p).capabilities(s)).toEqual({
-      speech: p.speech, turns: p.turns(s), turnOwner: 'either', boundaries: p.boundaries(s),
+      speech: p.speech, turns: p.turns(s), boundaries: p.boundaries(s),
       textInput: p.textInput(s), faceToFace: p.faceToFace === true, participantSpeech: p.participantSpeech !== false,
     }));
 
@@ -138,7 +138,7 @@ it('reads none of its parts when made: each is read when the unit is used', () =
 });
 
 describe('capabilitiesAlone', () => {
-  const caps = (o: Partial<UnitCapabilities>): UnitCapabilities => ({ speech: 'never', turns: ['auto'], turnOwner: 'either', boundaries: 'provider', textInput: false, faceToFace: false, participantSpeech: true, ...o });
+  const caps = (o: Partial<UnitCapabilities>): UnitCapabilities => ({ speech: 'never', turns: ['auto'], boundaries: 'provider', textInput: false, faceToFace: false, participantSpeech: true, ...o });
   it('is what the unit serving the stage can do in a run on the provider alone, under its default settings', () => {
     const text = { ...occupying('text', ...TR_TL), capabilities: vi.fn(() => caps({ faceToFace: true })) };
     const voice = { ...occupying('voice', 'speech'), capabilities: vi.fn(() => caps({ speech: 'optional', participantSpeech: false })) };

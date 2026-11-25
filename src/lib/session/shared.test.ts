@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildSharedSettings } from './shared';
+import { TURN_DETECTION_DEFAULTS } from '../turn/turnDetectionSettings';
 
 /** The participant's direction for the pair en → ja, as `reversedPair` gives it by the plain swap. */
 const participant = { source: 'ja', target: 'en' };
@@ -36,5 +37,11 @@ describe('buildSharedSettings', () => {
     expect(buildSharedSettings(participant, pauses, segmentation, false, words).words).toEqual(words);
     expect(buildSharedSettings(participant, pauses, segmentation, false, { entries: [], background: ' ' })).not.toHaveProperty('words');
     expect(buildSharedSettings(participant, pauses, segmentation)).not.toHaveProperty('words');
+  });
+
+  it('copies turn detection when given, and leaves it out otherwise', () => {
+    const td = { ...TURN_DETECTION_DEFAULTS, threshold: 0.45 };
+    expect(buildSharedSettings(participant, pauses, segmentation, false, undefined, td).turnDetection).toEqual(td);
+    expect(buildSharedSettings(participant, pauses, segmentation)).not.toHaveProperty('turnDetection');
   });
 });

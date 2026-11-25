@@ -2,6 +2,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { NativeTtsClient } from './NativeTtsClient';
 import { FakeSidecarConnection } from './SidecarConnection.fake';
+import { SidecarTimeoutError } from './SidecarConnection';
+import { createVirtualClock } from '../../contract/clock';
 
 async function initClient(conn: FakeSidecarConnection, streaming: boolean) {
   const c = new NativeTtsClient(conn);
@@ -83,6 +85,28 @@ describe('NativeTtsClient streaming', () => {
     const res = await genP;
     expect(chunks).toEqual([0, 1, 2]);
     expect(res.generationTimeMs).toBe(20);
+  });
+
+  it("a stream's first-chunk budget and inactivity bound run on the clock it was given (#578 ruling 23)", async () => {
+    const clock = createVirtualClock(0);
+    const conn = new FakeSidecarConnection();
+    const c = new NativeTtsClient(conn, clock);
+    const ip = c.init('moss', 'cpu');
+    conn.emit({ type: 'ready', id: conn.sent[0].id, sampleRate: 24000, loadTimeMs: 5, device: 'cpu', backend: 'moss_onnx', rtf: 0.44, streaming: true, clones: true });
+    await ip;
+    let settled = false;
+    const genP = c.generate('hi', 1.0, () => {});
+    genP.then(() => { settled = true; }, () => { settled = true; });
+    await Promise.resolve();
+    const id = conn.sent.find((m) => m.type === 'tts_generate').id;
+    clock.advance(29_999); await Promise.resolve();       // just inside the 30 s minimum synthesis budget
+    expect(settled).toBe(false);
+    conn.emitBinary(new Int16Array([1, 2, 3]).buffer);
+    conn.emit({ type: 'tts_chunk', id, seq: 0 });          // back to the 30 s inactivity bound
+    clock.advance(29_999); await Promise.resolve();
+    expect(settled).toBe(false);
+    clock.advance(1);
+    await expect(genP).rejects.toBeInstanceOf(SidecarTimeoutError);
   });
 
   it('streaming generate() rejects if the socket closes mid-stream', async () => {

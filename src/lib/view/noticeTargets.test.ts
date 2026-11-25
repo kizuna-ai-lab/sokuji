@@ -12,7 +12,7 @@ describe('settingsTargetForCode', () => {
   it("sends a missing key to the accounts, a missing model to the provider's options, and no provider to the line-up", () => {
     expect(settingsTargetForCode('credentials_missing')).toBe('provider');
     expect(settingsTargetForCode('no_provider')).toBe('lineup');
-    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing']) {
+    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing', 'turn_detection_overloaded', 'turn_detection_unavailable']) {
       expect(settingsTargetForCode(code), code).toBe('provider-options');
     }
   });
@@ -37,6 +37,12 @@ describe('settingsTargetForCode', () => {
 
   it("sends an unsupported participant pair to the languages section", () => {
     expect(settingsTargetForCode('participant_unsupported')).toBe('languages');
+  });
+
+  it("Local Native's six readiness codes lead to the provider's options (#578 ruling 5)", () => {
+    for (const code of ['native_engine_update_required', 'native_engine_required', 'native_unavailable', 'native_starting', 'native_asr_missing', 'native_translation_missing']) {
+      expect(settingsTargetForCode(code), code).toBe('provider-options');
+    }
   });
 
   it('has no target for a code with no fix in Settings, or no code at all', () => {

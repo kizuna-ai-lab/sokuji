@@ -60,7 +60,7 @@ describe('the fake voice provider', () => {
 
   it('says what a voice can do', () => {
     const can = unit.capabilities({});
-    expect({ ...can }).toEqual({ speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'silence', textInput: false, faceToFace: true, participantSpeech: true, speaks: expect.any(Function) });
+    expect({ ...can }).toEqual({ speech: 'optional', turns: ['auto', 'manual'], boundaries: 'silence', textInput: false, faceToFace: true, participantSpeech: true, speaks: expect.any(Function) });
   });
 
   it('builds and describes its one voice', () => {

@@ -50,7 +50,10 @@ export function baseStorage(provider = 'fake'): Record<string, string> {
   };
 }
 
-/** What a test's user-data directory is named by: nothing is deleted from a directory not named so. */
+/**
+ * What a test's user-data directory is named by: nothing is deleted from a directory not named so. A directory a
+ * caller names itself (`launch`'s `userData`, for a profile that is kept between runs) must not start with this.
+ */
 const USER_DATA_PREFIX = 'sokuji-e2e-';
 const isTestUserData = (userData: string) => path.basename(userData).startsWith(USER_DATA_PREFIX);
 
@@ -68,6 +71,10 @@ export function removeUserData(userData: string): void {
  * passing the directory of an app that was closed (or killed) is a restart on the same state.
  */
 export async function launch(options: {
+  /**
+   * A directory to start on. One whose name does not start with `sokuji-e2e-` is the caller's own (a profile kept
+   * between runs, such as one holding downloaded models): this suite never deletes it, whatever happens.
+   */
   userData?: string;
   seed?: Seed;
   /** The services the main process calls are answered by the test's fakes (e2e/support/main/fake-services.cjs). */

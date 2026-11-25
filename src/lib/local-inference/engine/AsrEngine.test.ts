@@ -23,7 +23,7 @@ describe('AsrEngine (characterization)', () => {
 
   it('resolves init with loadTimeMs on ready and revokes blob URLs once', async () => {
     const engine = new AsrEngine();
-    const initP = engine.init('sensevoice-int8');
+    const initP = engine.init('sensevoice-int8', 'ja', undefined, new MessageChannel().port1);
     // Let the pre-worker awaits (isModelReady, getModelBlobUrls, metadata fetch) settle.
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
@@ -34,24 +34,22 @@ describe('AsrEngine (characterization)', () => {
     expect(revokeSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('delivers status/speech_start/partial/result via callbacks after ready', async () => {
+  it('delivers status/partial/result via callbacks after ready', async () => {
     const engine = new AsrEngine();
-    const onStatus = vi.fn(); const onSpeechStart = vi.fn();
+    const onStatus = vi.fn();
     const onPartial = vi.fn(); const onResult = vi.fn();
-    engine.onStatus = onStatus; engine.onSpeechStart = onSpeechStart;
+    engine.onStatus = onStatus;
     engine.onPartialResult = onPartial; engine.onResult = onResult;
-    const initP = engine.init('sensevoice-int8');
+    const initP = engine.init('sensevoice-int8', 'ja', undefined, new MessageChannel().port1);
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     worker.emit({ type: 'ready', loadTimeMs: 1 });
     await initP;
     worker.emit({ type: 'status', message: 'loading' });
-    worker.emit({ type: 'speech_start' });
     worker.emit({ type: 'partial', text: 'he' });
     worker.emit({ type: 'result', text: 'hello', durationMs: 10, recognitionTimeMs: 5 });
     expect(onStatus).toHaveBeenCalledWith('loading');
-    expect(onSpeechStart).toHaveBeenCalledTimes(1);
-    expect(onPartial).toHaveBeenCalledWith('he');
+    expect(onPartial).toHaveBeenCalledWith('he', {});
     expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ text: 'hello', durationMs: 10, recognitionTimeMs: 5 }));
     expect(onResult.mock.calls[0][0]).not.toHaveProperty('endedBy');
     worker.emit({ type: 'result', text: 'done', durationMs: 10, recognitionTimeMs: 5, endedBy: 'smart', smartTurnProbability: 0.8 });
@@ -61,7 +59,7 @@ describe('AsrEngine (characterization)', () => {
   it('rejects init and revokes on a pre-ready error, firing onError', async () => {
     const engine = new AsrEngine();
     const onError = vi.fn(); engine.onError = onError;
-    const initP = engine.init('sensevoice-int8');
+    const initP = engine.init('sensevoice-int8', 'ja', undefined, new MessageChannel().port1);
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     MockWorker.last().emit({ type: 'error', error: 'bad model' });
     await expect(initP).rejects.toThrow('bad model');
@@ -69,31 +67,15 @@ describe('AsrEngine (characterization)', () => {
     expect(revokeSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('feedAudio posts an audio message (transferring the buffer) only when ready', async () => {
+  it('cannot start without the turn detector\'s segment port, and creates no worker', async () => {
     const engine = new AsrEngine();
-    const initP = engine.init('sensevoice-int8');
-    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
-    const worker = MockWorker.last();
-    const before = new Int16Array([1, 2, 3]);
-    engine.feedAudio(before, 24000);            // not ready yet → ignored
-    const audioCallsBeforeReady = worker.postMessage.mock.calls.filter(
-      ([msg]: [{ type: string }]) => msg?.type === 'audio',
-    ).length;
-    expect(audioCallsBeforeReady).toBe(0);
-    worker.emit({ type: 'ready', loadTimeMs: 1 });
-    await initP;
-    worker.postMessage.mockClear();
-    const samples = new Int16Array([4, 5, 6]);
-    engine.feedAudio(samples, 24000);
-    expect(worker.postMessage).toHaveBeenCalledWith(
-      { type: 'audio', samples, sampleRate: 24000 },
-      [samples.buffer],
-    );
+    await expect(engine.init('sensevoice-int8', 'ja')).rejects.toThrow(/takes its segments from a turn detector: no segment port/);
+    expect(MockWorker.instances).toHaveLength(0);
   });
 
   it('dispose posts dispose, terminates, and resets ready', async () => {
     const engine = new AsrEngine();
-    const initP = engine.init('sensevoice-int8');
+    const initP = engine.init('sensevoice-int8', 'ja', undefined, new MessageChannel().port1);
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     worker.emit({ type: 'ready', loadTimeMs: 1 });
