@@ -109,6 +109,22 @@ export class QueuedUtterance {
     return this.setLatestOpenEndpoint('stop');
   }
 
+  /**
+   * Cancel the latest queued utterance that is not already stopped, whether its press is still open or has ended.
+   * Returns the state it was in, or null when none is queued. An ended ('finish') entry already owns a sealed
+   * segment, which promoteQueued drops with the 'stop' entry.
+   */
+  cancel(): Exclude<QueuedUtteranceState, 'stop'> | null {
+    for (let i = this.queue.length - 1; i >= 0; i--) {
+      const state = this.queue[i];
+      if (state !== 'stop') {
+        this.queue[i] = 'stop';
+        return state;
+      }
+    }
+    return null;
+  }
+
   take(): QueuedUtteranceState | null {
     return this.queue.shift() ?? null;
   }

@@ -142,6 +142,12 @@ describe('voxtral-webgpu.worker.ts (audio and marks)', () => {
     expect(source).toMatch(/isGenerating = false;\s*discardRun = false;/);
   });
 
+  it('a cancelled run ends with an empty result, which closes the segment its partials opened; a cancelled queued turn does not', () => {
+    expect(source).toMatch(/if \(discardRun && !disposing\) \{\s*post\(\{ type: 'result', text: '', durationMs: 0, recognitionTimeMs: 0 \}\);/);
+    // The cancel of a queued turn (open or ended) is the queue's, so it never sets discardRun for the draining run.
+    expect(source).toMatch(/const queued = queuedUtterance\.cancel\(\);[\s\S]*?return;[\s\S]*?if \(discardText && isGenerating\) discardRun = true;/);
+  });
+
   it('does not announce the speech itself: the detector does', () => {
     const handler = source.slice(source.indexOf('function onMarksMessage'), source.indexOf('// ─── VAD + Voxtral Audio Feed Pipeline'));
     expect(handler).not.toContain('speech_start');

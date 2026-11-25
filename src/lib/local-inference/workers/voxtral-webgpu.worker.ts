@@ -389,6 +389,11 @@ async function runVoxtralGenerate(): Promise<void> {
   } finally {
     // Safety net: generate() throwing skips the streamer's end().
     accumulator?.end({ discard: disposing || discardRun });
+    // A cancelled press's run publishes no text, but the source segment its partials opened is still open on the main
+    // thread. An empty result closes it, with no job, and so the next press opens a segment of its own.
+    if (discardRun && !disposing) {
+      post({ type: 'result', text: '', durationMs: 0, recognitionTimeMs: 0 });
+    }
     isGenerating = false;
     discardRun = false;
     // Audio staged during the finish belongs to the next utterance.
@@ -430,7 +435,15 @@ function finishGenerate() {
  * still draining is the turn before it, which keeps its text.
  */
 function abortGenerate(discardText = false) {
-  if (queuedUtterance.stop()) {
+  if (discardText) {
+    // A cancelled press may be queued still open or already ended; either way it is the one cancelled, and the run
+    // draining ahead of it keeps its text. An ended one already owns a sealed segment; only an open one seals now.
+    const queued = queuedUtterance.cancel();
+    if (queued !== null) {
+      if (queued === 'open') audioFeed.sealStaged();
+      return;
+    }
+  } else if (queuedUtterance.stop()) {
     audioFeed.sealStaged();
     return;
   }
