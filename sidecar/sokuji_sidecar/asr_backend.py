@@ -35,7 +35,9 @@ class NativeAsrBackend:
             repo, fname = split_artifact(model_ref)
             if not fname:
                 raise BackendLoadError(f"native_asr needs an 'org/repo/file.gguf' artifact, got {model_ref!r}")
-            path = hf_hub_download(repo, fname, local_files_only=True)
+            rev = getattr(config, "revision", None)
+            dl_kw = {"revision": rev} if rev else {}
+            path = hf_hub_download(repo, fname, local_files_only=True, **dl_kw)
             kind = _DEVICE_KIND.get(device)
             if kind is None:
                 raise BackendLoadError(f"unknown device for native_asr: {device!r}")

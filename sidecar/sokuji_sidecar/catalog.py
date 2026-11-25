@@ -26,6 +26,29 @@ class Deployment:
 
 
 @dataclass(frozen=True)
+class License:
+    """Non-standard license terms attached to a model card (e.g. CC-BY-NC).
+    Generic DATA, not hardcoded UI: most cards carry no restriction and leave
+    license as None; only a card that needs it (OmniVoice, issue #351, or an
+    opt-in CC-BY-NC ASR card) sets one, and the download gate reads this
+    rather than special-casing a model id."""
+    spdx: str             # SPDX identifier ("CC-BY-NC-4.0"), or a LicenseRef-* for a
+                          # vendor licence with no SPDX id of its own
+    name: str             # human-readable license name
+    url: str              # license text URL
+    non_commercial: bool  # True gates commercial use
+    source_repo: str      # upstream repo this license traces back to
+    attribution: str      # required attribution string (author/project)
+    # Whether the download gate must show an acknowledgement before this card is
+    # fetched. Separate from `non_commercial` on purpose: a licence can be
+    # restrictive enough to need acknowledging while still permitting commercial use
+    # (IndexTTS 2.5's bilibili Model Use License allows it below a MAU/revenue
+    # threshold), and calling that "non-commercial" in the UI would be a lie. The
+    # renderer gates on THIS flag and picks its wording from `non_commercial`.
+    requires_consent: bool = True
+
+
+@dataclass(frozen=True)
 class _ModelBase:
     """Shared shape for AsrModel/TranslateModel/TtsModel rows. Every construction
     passes id/name/languages/deployments positionally and everything else by
@@ -44,6 +67,8 @@ class _ModelBase:
     # for translate, audio.cpp's family for TTS. Not a prompt strategy (that is
     # TranslateModel.prompt_family).
     graph_family: str = ""
+    license: License | None = None    # non-standard license terms; None = no restriction
+    revision: str | None = None       # optional pinned HF commit SHA; None = default branch
 
 
 @dataclass(frozen=True)
@@ -106,7 +131,8 @@ WEIGHT_CAPABLE_DTYPES: frozenset[str] = frozenset({"f32", "f16", "bf16"}) | froz
 
 
 def _tc_row(mid, name, langs, repo, base, order, quants, default,
-            recommended=False, backend="native_asr", tiers=_TC_TIERS, arch=""):
+            recommended=False, backend="native_asr", tiers=_TC_TIERS, arch="",
+            license=None, revision=None):
     """One transcribe.cpp ASR card with its FULL quant ladder. `quants` maps
     QUANT (filename token, e.g. "Q8_0") -> size_bytes; `default` names the
     curated default. The same GGUF serves every tier. Deployments are ordered
@@ -132,7 +158,8 @@ def _tc_row(mid, name, langs, repo, base, order, quants, default,
         deps += [Deployment(backend, tier, quant, f"{repo}/{base}-{q}.gguf", rank,
                             est_bytes=quants[q]) for tier in tiers]
     return AsrModel(mid, name, langs, tuple(deps), recommended=recommended,
-                    sort_order=order, size_bytes=quants[default], graph_family=arch)
+                    sort_order=order, size_bytes=quants[default], graph_family=arch,
+                    license=license, revision=revision)
 
 
 # Curated ASR roster (2026-07-05 re-pick from the full transcribe.cpp family).
@@ -197,6 +224,24 @@ ASR_MODELS: list[AsrModel] = [
             40, {"F16": 4091390944, "Q8_0": 2185030624, "Q6_K": 1692554208,
                  "Q5_K_M": 1517290464, "Q4_K_M": 1319830496},
             default="Q4_K_M", recommended=True, arch="qwen3_asr"),
+    # Opt-in English-only Qwen3-ASR 1.7B fine-tune (Oruk AI, CC-BY-NC-4.0 —
+    # non-commercial only, gated behind the download consent dialog via License).
+    # Single-file Q8_0 GGUF (transcribe.cpp qwen3_asr architecture, tied
+    # embeddings, pinned to revision 8bcce21695e4ba13569c48de6cedffcb8a7576f5).
+    # Slotted behind its qwen3-asr-1.7b base (40) and existing 41/42 cards.
+    _tc_row("oruk-fourier-2b", "Oruk Fourier 2B", ("en",),
+            "oruk/oruk-fourier-2b", "Fourier-2B",
+            43, {"Q8_0": 2185030848}, default="Q8_0", recommended=False,
+            arch="qwen3_asr",
+            revision="8bcce21695e4ba13569c48de6cedffcb8a7576f5",
+            license=License(
+                spdx="CC-BY-NC-4.0",
+                name="Creative Commons Attribution-NonCommercial 4.0 International",
+                url="https://creativecommons.org/licenses/by-nc/4.0/",
+                non_commercial=True,
+                source_repo="oruk/oruk-fourier-2b",
+                attribution="Oruk AI",
+                requires_consent=True)),
     # WER 1.69 (q6_k beats bf16 per the author's table) — 31-language coverage king.
     _tc_row("fun-asr-mlt-nano", "Fun-ASR MLT Nano",
             ("zh", "en", "yue", "ja", "ko", "vi", "id", "th", "ms", "fil", "ar",
@@ -649,29 +694,6 @@ def translate_model(model_id: str) -> TranslateModel | None:
 
 
 @dataclass(frozen=True)
-class License:
-    """Non-standard license terms attached to a model card (e.g. CC-BY-NC).
-    Generic DATA, not hardcoded UI: most cards carry no restriction and leave
-    TtsModel.license as None; only a card that needs it (OmniVoice, issue
-    #351) sets one, and the download gate (Task 2) reads this rather than
-    special-casing a model id."""
-    spdx: str             # SPDX identifier ("CC-BY-NC-4.0"), or a LicenseRef-* for a
-                          # vendor licence with no SPDX id of its own
-    name: str             # human-readable license name
-    url: str              # license text URL
-    non_commercial: bool  # True gates commercial use
-    source_repo: str      # upstream repo this license traces back to
-    attribution: str      # required attribution string (author/project)
-    # Whether the download gate must show an acknowledgement before this card is
-    # fetched. Separate from `non_commercial` on purpose: a licence can be
-    # restrictive enough to need acknowledging while still permitting commercial use
-    # (IndexTTS 2.5's bilibili Model Use License allows it below a MAU/revenue
-    # threshold), and calling that "non-commercial" in the UI would be a lie. The
-    # renderer gates on THIS flag and picks its wording from `non_commercial`.
-    requires_consent: bool = True
-
-
-@dataclass(frozen=True)
 class TtsModel(_ModelBase):
     family: str = ""                  # sk_tts_load's family_hint: moss_tts_nano | qwen3_tts | omnivoice |
                                       # pocket_tts | supertonic | voxcpm1 | voxcpm2 | irodori_tts | index_tts2
@@ -681,7 +703,6 @@ class TtsModel(_ModelBase):
     sample_rate: int = 24000          # audio.cpp's native rate for this family
     named_voices: bool = False        # sk_tts_presets returns a non-empty, curated list (dropdown)
     transcript_required: bool = False  # sk_tts_set_voice's ref_text is mandatory (omnivoice, qwen3_tts -- R15(s4))
-    license: License | None = None    # non-standard license terms; None = no restriction
     # (relative-to-artifact-dir filename, size_bytes) sidecar assets sk_tts_presets
     # discovers next to the loaded gguf (pocket-tts-en's embeddings/alba.safetensors);
     # () for every other card (single self-sufficient GGUF — see native/README.md's
@@ -747,8 +768,8 @@ def voice_capability(model: "TtsModel") -> dict:
     return out
 
 
-def license_dict(model: "TtsModel") -> dict | None:
-    """Wire-format (camelCase) serialization of TtsModel.license, or None when
+def license_dict(model: "_ModelBase") -> dict | None:
+    """Wire-format (camelCase) serialization of a card's license, or None when
     the card carries no non-standard license terms."""
     lic = model.license
     if lic is None:

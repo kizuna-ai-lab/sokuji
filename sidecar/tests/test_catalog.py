@@ -43,7 +43,9 @@ def test_every_asr_row_is_native_asr_gguf():
         for d in m.deployments:
             assert d.backend in ("native_asr", "native_asr_stream")
             repo, fname = catalog.split_artifact(d.artifact)
-            assert repo.startswith("handy-computer/") and fname.endswith(".gguf")
+            allowed_repo = (repo.startswith("handy-computer/")
+                            or (m.id == "oruk-fourier-2b" and repo == "oruk/oruk-fourier-2b"))
+            assert allowed_repo and fname.endswith(".gguf"), (m.id, d.artifact)
 
 
 def test_sense_voice_row_native_asr_q8():
@@ -73,6 +75,42 @@ def test_qwen3_asr_row():
     assert (d.backend, d.tier, d.compute_type, d.artifact) == \
         ("native_asr", "gpu-vulkan", "q4_k_m",
          "handy-computer/Qwen3-ASR-1.7B-gguf/Qwen3-ASR-1.7B-Q4_K_M.gguf")
+
+
+def test_oruk_fourier_2b_row():
+    m = catalog.asr_model("oruk-fourier-2b")
+    assert m is not None
+    assert m.name == "Oruk Fourier 2B"
+    assert m.languages == ("en",)
+    assert m.recommended is False
+    assert m.sort_order == 43
+    assert m.graph_family == "qwen3_asr"
+    assert m.size_bytes == 2_185_030_848
+    assert m.revision == "8bcce21695e4ba13569c48de6cedffcb8a7576f5"
+    assert {d.compute_type for d in m.deployments} == {"q8_0"}
+    assert {d.tier for d in m.deployments} == {"gpu-vulkan", "gpu-metal", "cpu"}
+    d = m.deployments[0]
+    assert (d.backend, d.tier, d.compute_type, d.artifact, d.rank, d.est_bytes) == (
+        "native_asr", "gpu-vulkan", "q8_0",
+        "oruk/oruk-fourier-2b/Fourier-2B-Q8_0.gguf", 2.0, 2_185_030_848)
+    lic = m.license
+    assert lic is not None
+    assert lic.spdx == "CC-BY-NC-4.0"
+    assert lic.non_commercial is True
+    assert lic.requires_consent is True
+    assert lic.source_repo == "oruk/oruk-fourier-2b"
+    assert lic.attribution == "Oruk AI"
+    assert catalog.license_dict(m) == {
+        "spdx": "CC-BY-NC-4.0",
+        "name": "Creative Commons Attribution-NonCommercial 4.0 International",
+        "url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "nonCommercial": True,
+        "requiresConsent": True,
+        "sourceRepo": "oruk/oruk-fourier-2b",
+        "attribution": "Oruk AI",
+    }
+    assert catalog.asr_model("qwen3-asr-1.7b").license is None
+    assert catalog.license_dict(catalog.asr_model("qwen3-asr-1.7b")) is None
 
 
 def test_granite_speech_5_turboctc_row():
@@ -117,7 +155,7 @@ def test_cohere_asr_row():
 def test_roster_is_wer_ranked():
     ids = [m.id for m in catalog.asr_models()]
     assert ids[0] == "cohere-transcribe-03-2026"           # WER 1.25, benchmark best
-    assert len(ids) == 67
+    assert len(ids) == 68
     orders = [m.sort_order for m in catalog.asr_models()]
     assert orders == sorted(orders)                        # rows stay rank-ordered
     assert sum(1 for m in catalog.asr_models() if m.recommended) == 7
@@ -800,6 +838,7 @@ def test_translate_graph_family_matches_gguf_header():
     ("granite-speech-4.1-2b-nar-Q4_K_M.gguf", "granite-speech-4.1-2b-nar"),
     # transcribe.cpp 0.2.4's granite5_ctc directory reports Arch::name granite_speech5_ctc.
     ("granite-speech-5.0-470m-turboctc-Q8_0.gguf", "granite-speech-5.0-470m-turboctc"),
+    ("Fourier-2B-Q8_0.gguf", "oruk-fourier-2b"),
 ])
 def test_asr_graph_family_matches_native_arch(gguf, card_id):
     """sk_asr_caps.arch for the cached file equals the card's graph_family — the string the

@@ -256,6 +256,8 @@ def _downloaded_quants(model) -> set:
     back to pure budget logic and the readiness gate drives the download."""
     from . import catalog as _cat
     from huggingface_hub import hf_hub_download
+    rev = getattr(model, "revision", None)
+    dl_kw = {"revision": rev} if rev else {}
     out = set()
     seen = set()
     for d in model.deployments:
@@ -266,7 +268,7 @@ def _downloaded_quants(model) -> set:
         if not fname:
             continue
         try:
-            hf_hub_download(repo, fname, local_files_only=True)
+            hf_hub_download(repo, fname, local_files_only=True, **dl_kw)
             out.add(d.compute_type)
         except Exception:
             pass
@@ -277,6 +279,8 @@ def _artifact_path(model, compute_type: str):
     """Local path of the rung's GGUF if it is in the HF cache, else None."""
     from . import catalog as _cat
     from huggingface_hub import hf_hub_download
+    rev = getattr(model, "revision", None)
+    dl_kw = {"revision": rev} if rev else {}
     for d in model.deployments:
         if d.compute_type != compute_type:
             continue
@@ -284,7 +288,7 @@ def _artifact_path(model, compute_type: str):
         if not fname:
             return None
         try:
-            return hf_hub_download(repo, fname, local_files_only=True)
+            return hf_hub_download(repo, fname, local_files_only=True, **dl_kw)
         except Exception:
             return None
     return None
@@ -1065,9 +1069,9 @@ async def _h_models_catalog(state, msg, _b, conn=None):
             entry["clones"] = mdl.clones
             entry["streaming"] = mdl.streaming
             entry["voice"] = catalog.voice_capability(mdl)
-            lic = catalog.license_dict(mdl)
-            if lic:
-                entry["license"] = lic
+        lic = catalog.license_dict(mdl)
+        if lic:
+            entry["license"] = lic
         seen_cts = []
         sizes_by_ct = {}
         artifact_by_ct = {}

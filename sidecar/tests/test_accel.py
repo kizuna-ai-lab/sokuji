@@ -1659,3 +1659,58 @@ def test_models_catalog_tier_unavailable_when_every_rung_is_refused(monkeypatch,
     out = asyncio.run(_call(accel._h_models_catalog, {"type": "models_catalog", "id": 3, "kind": "tts", "models": ["voxcpm2"]}))
     assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "gpu-vulkan")["available"] is False
     assert next(t for t in out["models"][0]["tiers"] if t["tier"] == "cpu")["available"] is True
+
+
+def test_models_catalog_asr_emits_license_for_oruk_fourier_2b(monkeypatch):
+    m = _known_gpu_machine()
+    monkeypatch.setattr(accel, "probe", lambda force=False: m)
+    out = asyncio.run(_call(
+        accel._h_models_catalog,
+        {"type": "models_catalog", "id": 11, "kind": "asr",
+         "models": ["oruk-fourier-2b", "qwen3-asr-1.7b"]}))
+    from sokuji_sidecar import wire
+    wire.validate_outbound(out)
+    by_id = {entry["id"]: entry for entry in out["models"]}
+    fourier = by_id["oruk-fourier-2b"]
+    assert fourier["name"] == "Oruk Fourier 2B"
+    assert fourier["languages"] == ["en"]
+    assert fourier["recommended"] is False
+    assert fourier["repo"] == "oruk/oruk-fourier-2b/Fourier-2B-Q8_0.gguf"
+    assert fourier["sizeBytes"] == 2_185_030_848
+    assert "variantIds" not in fourier and "variants" not in fourier
+    assert fourier["license"] == {
+        "spdx": "CC-BY-NC-4.0",
+        "name": "Creative Commons Attribution-NonCommercial 4.0 International",
+        "url": "https://creativecommons.org/licenses/by-nc/4.0/",
+        "nonCommercial": True,
+        "requiresConsent": True,
+        "sourceRepo": "oruk/oruk-fourier-2b",
+        "attribution": "Oruk AI",
+    }
+    assert "license" not in by_id["qwen3-asr-1.7b"]
+
+
+def test_downloaded_quants_and_artifact_path_pass_pinned_revision(monkeypatch, tmp_path):
+    calls = []
+    gguf = tmp_path / "Fourier-2B-Q8_0.gguf"
+    gguf.write_bytes(b"GGUF")
+
+    def fake_hf_hub_download(repo, fname, local_files_only=False, **kw):
+        calls.append((repo, fname, local_files_only, kw))
+        return str(gguf)
+
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", fake_hf_hub_download)
+    fourier = catalog.asr_model("oruk-fourier-2b")
+    assert accel._downloaded_quants(fourier) == {"q8_0"}
+    assert accel._artifact_path(fourier, "q8_0") == str(gguf)
+    assert calls == [
+        ("oruk/oruk-fourier-2b", "Fourier-2B-Q8_0.gguf", True,
+         {"revision": "8bcce21695e4ba13569c48de6cedffcb8a7576f5"}),
+        ("oruk/oruk-fourier-2b", "Fourier-2B-Q8_0.gguf", True,
+         {"revision": "8bcce21695e4ba13569c48de6cedffcb8a7576f5"}),
+    ]
+
+    calls.clear()
+    qwen = catalog.asr_model("qwen3-asr-1.7b")
+    assert accel._artifact_path(qwen, "q4_k_m") == str(gguf)
+    assert calls == [("handy-computer/Qwen3-ASR-1.7B-gguf", "Qwen3-ASR-1.7B-Q4_K_M.gguf", True, {})]

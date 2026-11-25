@@ -52,6 +52,7 @@ class PlanConfig:
     tts_family: str = ""
     tts_language: str = ""
     tts_extra_files: tuple[tuple[str, int], ...] = ()
+    revision: str | None = None
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,7 @@ def _plan_config(model) -> PlanConfig:
         tts_family=getattr(model, "family", ""),
         tts_language=getattr(model, "load_language", ""),
         tts_extra_files=getattr(model, "extra_files", ()),
+        revision=getattr(model, "revision", None),
     )
 
 
