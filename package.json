@@ -2,6 +2,7 @@
   "name": "sokuji",
   "productName": "Sokuji",
   "version": "0.51.2",
+  "nativeVersion": "1.2.0",
   "sidecarVersion": "0.4.0",
   "private": true,
   "main": "dist-electron/main.js",
@@ -218,7 +219,8 @@
     "e2e:build": "vite build --mode e2e",
     "e2e": "playwright test -c e2e/playwright.config.ts --grep-invert \"@long|@real\"",
     "e2e:long": "playwright test -c e2e/playwright.config.ts --grep @long",
-    "e2e:real": "playwright test -c e2e/playwright.config.ts --grep @real"
+    "e2e:real": "playwright test -c e2e/playwright.config.ts --grep @real",
+    "fetch:native": "node scripts/fetch-native.mjs"
   },
   "eslintConfig": {
     "extends": [
