@@ -48,7 +48,7 @@ describe('defaultEngines over the real engine classes', () => {
   afterEach(() => { restore(); vi.restoreAllMocks(); vi.unstubAllGlobals(); URL.createObjectURL = createObjectURL; });
 
   it('ASR: an error message from the ready worker is recoverable; the worker dying is fatal, and not also an error', async () => {
-    const asr = defaultEngines.asr({ modelId: 'sensevoice-int8', streaming: false });
+    const asr = defaultEngines.asr({ modelId: 'sensevoice-int8', streaming: false, turnDetection: 'own' });
     const heard = listen(asr);
     const worker = await ready(asr.init('sensevoice-int8', { vadConfig: vad, language: 'ja' }));
     worker.emit({ type: 'partial', text: 'こん' });
@@ -60,7 +60,7 @@ describe('defaultEngines over the real engine classes', () => {
   });
 
   it('ASR: the streaming engine for a streaming model, its worker told the language, the VAD and to keep its own endpoint', async () => {
-    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true });
+    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'own' });
     const heard = listen(asr);
     const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en' }));
     expect(initMessage(worker)).toMatchObject({ language: 'en', vadConfig: vad, punctuationEndpoint: true });
@@ -73,13 +73,13 @@ describe('defaultEngines over the real engine classes', () => {
   });
 
   it('ASR: an explicit punctuationEndpoint: false reaches the streaming worker as false (the adapter sealing its own stream)', async () => {
-    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true });
+    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'own' });
     const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en', punctuationEndpoint: false }));
     expect(initMessage(worker)).toMatchObject({ punctuationEndpoint: false });
   });
 
   it('ASR: AST asks the offline engine to translate into the target', async () => {
-    const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false });
+    const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false, turnDetection: 'own' });
     const worker = await ready(asr.init('granite-speech', { vadConfig: vad, language: 'ja', translateTo: 'en' }));
     expect(initMessage(worker)).toMatchObject({ task: 'translate', targetLanguage: 'en', language: 'ja' });
   });
@@ -140,7 +140,7 @@ describe('defaultEngines over the real engine classes', () => {
   });
 
   it('ASR: a Smart Turn port reaches the vad-web worker in its init message, transferred', async () => {
-    const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false });
+    const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false, turnDetection: 'own' });
     const { port1, port2 } = new MessageChannel();
     const worker = await ready(asr.init('granite-speech', { vadConfig: vad, language: 'ja', turnPort: port1 }));
     const call = worker.postMessage.mock.calls.find((c) => (c[0] as { type?: string }).type === 'init')!;

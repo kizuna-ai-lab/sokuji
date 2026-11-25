@@ -20,6 +20,7 @@ import { useProviderStore } from '../stores/providerStore';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { useRoutingStore } from '../stores/routingStore';
 import { useSegmentationStore } from '../stores/segmentationStore';
+import { loadTurnDetection } from '../stores/turnDetectionStore';
 import { PUSH_KEY, useTurnModeStore } from '../stores/turnModeStore';
 import { storedPushKey } from '../lib/turn/pushKey';
 
@@ -107,6 +108,7 @@ export async function loadSessionStores(): Promise<void> {
   watchLineUpProviders(offered);
   const loads: Array<[string, () => Promise<void>]> = [
     ['turn mode', () => loadTurnMode(service)],
+    ['turn detection', () => loadTurnDetection(service)],
     ['routing switches', () => useRoutingStore.getState().load()],
     ['punctuation pack', () => useSegmentationStore.getState().refresh()],
     // The line-up says what runs; when none is stored it is worked out from the stored provider (the one

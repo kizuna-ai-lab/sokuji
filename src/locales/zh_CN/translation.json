@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "分割语音段的最小静音时长。较短的值会更快地分割句子，较长的值会等待更自然的停顿。",
     "vadMaxSpeechDuration": "最大语音时长",
     "vadMaxSpeechDurationTooltip": "单个语音片段被切分前可持续的最长时间。部分模型会更早切分，切在它能准确转写的最长长度上。",
+    "turnDetectionLimitNote": "此模型会拆分超过 {{seconds}} 秒的语句。",
     "vadPreSpeechPadDuration": "语音前缓冲",
     "vadPreSpeechPadDurationTooltip": "保留检测到语音之前的一小段音频，避免句子开头的音被截掉。值越大，说话前的噪声也会更多地送去识别。",
     "smartTurn": "智能",

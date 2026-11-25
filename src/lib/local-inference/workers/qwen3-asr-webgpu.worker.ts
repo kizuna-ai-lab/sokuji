@@ -92,6 +92,7 @@ let speechFramesSinceStart = 0;
 // Raising the budget instead needs a repetition stop first: given 400 tokens,
 // the 1.7B model looped "doctor, doctor, ..." on clean English until they
 // ran out.
+// Pinned equal to QWEN3_ASR_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
 const QWEN3_ASR_MAX_SPEECH_SECONDS: Record<string, number> = { hi: 15, th: 20 };
 const QWEN3_ASR_DEFAULT_MAX_SPEECH_SECONDS = 40;
 let totalSamplesFed = 0;

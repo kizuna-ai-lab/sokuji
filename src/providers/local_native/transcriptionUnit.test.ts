@@ -67,7 +67,7 @@ describe('what the Local Native transcription unit declares', () => {
 
   it('declares what the whole session declares for transcription, and never speaks', () => {
     expect(nativeTranscriptionUnit.capabilities(LOCAL_NATIVE_DEFAULTS)).toEqual({
-      speech: 'never', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
+      speech: 'never', turns: ['auto', 'manual'], boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
     });
     expect(nativeTranscriptionUnit.describe(aloneConfig())).toEqual({ asrModel: 'asr-a' });
   });

@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Minimum na katahimikan para hatiin ang mga speech segment. Mas maikling halaga ay naghahati ng mga pangungusap nang mas mabilis, mas mahabang halaga ay naghihintay ng mas natural na paghinto.",
     "vadMaxSpeechDuration": "Maks. Tagal ng Pagsasalita",
     "vadMaxSpeechDurationTooltip": "Pinakamahabang tagal ng isang segment ng pagsasalita bago ito hatiin. May mga modelong mas maagang naghahati, sa pinakamahabang segment na tumpak nilang naisusulat.",
+    "turnDetectionLimitNote": "Hinahati ng modelong ito ang mga pagbigkas na mas mahaba sa {{seconds}} s.",
     "vadPreSpeechPadDuration": "Palugit Bago Magsalita",
     "vadPreSpeechPadDurationTooltip": "Itinatabi rin ang audio bago pa ma-detect ang pagsasalita, para hindi maputol ang unang tunog ng pangungusap. Ang mas mataas na halaga ay nagpapadala rin sa pagkilala ng mas maraming ingay bago ka magsalita.",
     "smartTurn": "Matalino",

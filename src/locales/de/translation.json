@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Minimale Stille zum Aufteilen von Sprachsegmenten. Kürzere Werte teilen Sätze schneller auf, längere Werte warten auf natürlichere Pausen.",
     "vadMaxSpeechDuration": "Max. Sprechdauer",
     "vadMaxSpeechDurationTooltip": "Längste Dauer, die ein einzelnes Sprachsegment laufen kann, bevor es geteilt wird. Manche Modelle teilen früher, bei der längsten Dauer, die sie korrekt transkribieren.",
+    "turnDetectionLimitNote": "Dieses Modell teilt Äußerungen, die länger als {{seconds}} s sind.",
     "vadPreSpeechPadDuration": "Vorlauf vor Sprache",
     "vadPreSpeechPadDurationTooltip": "Audio unmittelbar vor erkannter Sprache wird mit übernommen, damit der erste Laut eines Satzes nicht abgeschnitten wird. Höhere Werte geben auch mehr Geräusche vor dem Sprechen an die Erkennung weiter.",
     "smartTurn": "Smart",

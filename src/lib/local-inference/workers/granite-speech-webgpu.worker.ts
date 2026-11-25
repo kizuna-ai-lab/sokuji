@@ -97,6 +97,7 @@ let speechFramesSinceStart = 0;
 // speaker changes. No length above 30 s was reliably complete. Translate mode
 // stays at the old 20 s: at 30.8 s it returned untranslated English as the
 // translation in one window of three and dropped the last third of another.
+// Pinned equal to GRANITE_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
 const GRANITE_MAX_SPEECH_SECONDS = 30;
 const GRANITE_TRANSLATE_MAX_SPEECH_SECONDS = 20;
 

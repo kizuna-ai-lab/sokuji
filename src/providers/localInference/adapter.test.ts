@@ -18,7 +18,7 @@ const enSource: SessionContext = { direction: { source: 'en', target: 'ja' }, sp
 
 function makeConfig(over: Partial<LocalInferenceConfig> = {}): LocalInferenceConfig {
   return {
-    asr: { modelId: 'asr-model', streaming: true },
+    asr: { modelId: 'asr-model', streaming: true, turnDetection: 'own' },
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
     translation: { kind: 'engine', modelId: 'mt-model', instructions: 'Translate ja to en.', wrapTranscript: true },
     ...over,
@@ -134,7 +134,7 @@ describe('the LocalInference adapter — segments and jobs', () => {
   });
 
   it('opens and closes the source segment at the final when the engine sends no partials', async () => {
-    const t = await open(makeConfig({ asr: { modelId: 'whisper', streaming: false } }));
+    const t = await open(makeConfig({ asr: { modelId: 'whisper', streaming: false, turnDetection: 'own' } }));
     t.asr.final('  hello  ');
     t.translation.answer('こんにちは');
     await settle();
@@ -192,7 +192,7 @@ describe('the LocalInference adapter — segments and jobs', () => {
   });
 
   it('AST: a final becomes a translation segment with no source segment', async () => {
-    const t = await open(makeConfig({ asr: { modelId: 'granite', streaming: false }, translation: { kind: 'ast' } }));
+    const t = await open(makeConfig({ asr: { modelId: 'granite', streaming: false, turnDetection: 'own' }, translation: { kind: 'ast' } }));
     expect(t.created).toEqual(['asr']);
     expect(t.asr.inits[0].options).toMatchObject({ language: 'ja', translateTo: 'en' });
     t.asr.final('Good morning.');
@@ -312,7 +312,7 @@ describe('the LocalInference adapter — typed text', () => {
   });
 
   it('an AST session answers typed text with its source segment only, and says once that typed text is not translated', async () => {
-    const t = await open(makeConfig({ asr: { modelId: 'granite', streaming: false }, translation: { kind: 'ast' } }));
+    const t = await open(makeConfig({ asr: { modelId: 'granite', streaming: false, turnDetection: 'own' }, translation: { kind: 'ast' } }));
     expect(ofKind(t.log, 'degraded')).toEqual([]); // its speech is translated: nothing to say at the start
     t.mark('appendText', 'hi');
     t.session.appendText('hi');
@@ -484,7 +484,7 @@ describe('the LocalInference adapter — sentence-cut jobs (the stream shape)', 
   });
 
   it('AST: the endpoint stays on, and partials open nothing', async () => {
-    const t = await open(streamConfig({ asr: { modelId: 'granite', streaming: false }, translation: { kind: 'ast' } }), en, noAnswer);
+    const t = await open(streamConfig({ asr: { modelId: 'granite', streaming: false, turnDetection: 'own' }, translation: { kind: 'ast' } }), en, noAnswer);
     expect(t.asr.inits[0].options.punctuationEndpoint).toBe(true);
     t.asr.partial(P1);
     t.asr.partial(P2);
@@ -537,7 +537,7 @@ describe('the LocalInference adapter — sentence-cut jobs (the stream shape)', 
   });
 
   it('an offline final (no partials) at N=3: two source segments and two jobs, distinct origins', async () => {
-    const t = await open(streamConfig({ asr: { modelId: 'whisper', streaming: false }, jobSentences: 3 }), en, noAnswer);
+    const t = await open(streamConfig({ asr: { modelId: 'whisper', streaming: false, turnDetection: 'own' }, jobSentences: 3 }), en, noAnswer);
     t.asr.final('One is done. Two is done. Three is done. Four is done. Five is done. Six is done and finished well.');
     expect(segments(t.log, 'source')).toEqual([
       { origin: 'u1', text: 'One is done. Two is done. Three is done.', closed: true },
@@ -562,7 +562,7 @@ describe('the LocalInference adapter — sentence-cut jobs (the stream shape)', 
     const log: ConformanceLog = [];
     const fakes = createFakeEngines();
     const starting = createLocalInferenceAdapter(fakes.engines).start(
-      { context: en, config: streamConfig({ asr: { modelId: 'whisper', streaming: false } }), credentials: {}, clock, signal: new AbortController().signal, punctuate: noAnswer },
+      { context: en, config: streamConfig({ asr: { modelId: 'whisper', streaming: false, turnDetection: 'own' } }), credentials: {}, clock, signal: new AbortController().signal, punctuate: noAnswer },
       eventsFrom((e) => { log.push(e); conversation.apply(e); }),
     );
     fakes.asr.ready();
@@ -644,7 +644,7 @@ describe('the LocalInference adapter — sentence-cut jobs (the stream shape)', 
     expect(TAIL.length).toBeGreaterThanOrEqual(160);
     expect(TAIL.length).toBeGreaterThan(gateChars('en', DEFAULT_CHUNK_SENTENCES));
     const endsWithPeriod: Punctuator = async (_lang, text) => (text.endsWith('.') ? text : `${text}.`);
-    const t = await open(streamConfig({ asr: { modelId: 'whisper', streaming: false } }), en, endsWithPeriod);
+    const t = await open(streamConfig({ asr: { modelId: 'whisper', streaming: false, turnDetection: 'own' } }), en, endsWithPeriod);
     t.asr.final(`Sentence one is done. ${TAIL}`);
     t.translation.answer('Un.');
     await settle();
@@ -1415,7 +1415,7 @@ describe('the LocalInference adapter — when an utterance was heard', () => {
     }
   }
   const heardOf = (log: ConformanceLog) => last(ofKind(log, 'segmentText'))?.heard;
-  const offline = () => makeConfig({ asr: { modelId: 'whisper', streaming: false } });
+  const offline = () => makeConfig({ asr: { modelId: 'whisper', streaming: false, turnDetection: 'own' } });
 
   // An offline recognizer gives a whole utterance at once, after it was said: the time its text arrives is the
   // utterance's end, so History stamped every sentence of it at that end (#132). The result says where in the audio
@@ -1466,7 +1466,7 @@ describe('the LocalInference adapter — when an utterance was heard', () => {
   it('a streaming recognizer without a start sample says nothing of when: its partials arrived as the words were said', async () => {
     // Its workers' timers run from their last reset, idle time included: a user who waited 10 s, then spoke 5 s, gets
     // 15 s in durationMs (and recognitionTimeMs the same, or the run's).
-    const t = await open(makeConfig({ asr: { modelId: 'streaming-zipformer', streaming: true } }));
+    const t = await open(makeConfig({ asr: { modelId: 'streaming-zipformer', streaming: true, turnDetection: 'own' } }));
     t.clock.advance(15_000);
     t.asr.partial('晴');
     t.asr.onResult?.({ text: '晴れ', durationMs: 15_000, recognitionTimeMs: 15_000 });
@@ -1495,7 +1495,7 @@ describe('the LocalInference adapter — when an utterance was heard', () => {
   });
 
   it('in the stream shape, each chunk the final seals gets its own part of the span', async () => {
-    const t = await open(makeConfig({ asr: { modelId: 'whisper', streaming: false }, jobSentences: 1 }), enSource, async () => null);
+    const t = await open(makeConfig({ asr: { modelId: 'whisper', streaming: false, turnDetection: 'own' }, jobSentences: 1 }), enSource, async () => null);
     feedSecond(t);
     t.asr.onResult?.({ text: 'One is done. Two is done and over.', startSample: 0, durationMs: 900, recognitionTimeMs: 0 });
     const byRef = new Map<number, { startAt: number; endAt: number }[]>();

@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Tempoh senyap minimum untuk memisahkan segmen pertuturan. Nilai lebih pendek memisahkan ayat lebih cepat, nilai lebih panjang menunggu jeda yang lebih semula jadi.",
     "vadMaxSpeechDuration": "Tempoh Pertuturan Maksimum",
     "vadMaxSpeechDurationTooltip": "Tempoh terpanjang satu segmen pertuturan sebelum dipecahkan. Sesetengah model memecah lebih awal, pada segmen terpanjang yang ditranskripsi dengan betul.",
+    "turnDetectionLimitNote": "Model ini memecahkan ujaran yang lebih panjang daripada {{seconds}} s.",
     "vadPreSpeechPadDuration": "Penimbal Sebelum Pertuturan",
     "vadPreSpeechPadDurationTooltip": "Menyimpan audio sejurus sebelum pertuturan dikesan, supaya bunyi pertama ayat tidak terpotong. Nilai yang lebih besar turut menghantar lebih banyak hingar sebelum anda bercakap kepada pengecaman.",
     "smartTurn": "Pintar",

@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Thời gian im lặng tối thiểu để chia đoạn giọng nói. Giá trị ngắn hơn chia câu nhanh hơn, giá trị dài hơn chờ ngắt nghỉ tự nhiên hơn.",
     "vadMaxSpeechDuration": "Thời gian nói tối đa",
     "vadMaxSpeechDurationTooltip": "Thời lượng tối đa của một đoạn lời nói trước khi bị cắt. Một số mô hình cắt sớm hơn, ở đoạn dài nhất mà chúng phiên âm chính xác.",
+    "turnDetectionLimitNote": "Mô hình này chia nhỏ các câu nói dài hơn {{seconds}} giây.",
     "vadPreSpeechPadDuration": "Đệm trước lời nói",
     "vadPreSpeechPadDurationTooltip": "Giữ lại đoạn âm thanh ngay trước khi phát hiện lời nói, để âm đầu tiên của câu không bị cắt mất. Giá trị lớn hơn cũng gửi thêm tiếng ồn trước khi bạn nói vào nhận dạng.",
     "smartTurn": "Thông minh",

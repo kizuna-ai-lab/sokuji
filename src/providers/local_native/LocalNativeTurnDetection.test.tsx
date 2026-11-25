@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { LocalNativeTurnDetectionControls, LocalNativeTurnDetectionSummary } from './LocalNativeTurnDetection';
 import { LOCAL_NATIVE_DEFAULTS } from './settings';
 
@@ -15,5 +15,11 @@ describe('LocalNativeTurnDetection', () => {
   it('draws the three knobs the native VAD takes', () => {
     const { container } = render(<LocalNativeTurnDetectionControls settings={LOCAL_NATIVE_DEFAULTS} update={vi.fn()} />);
     expect(container.querySelectorAll('input[type="range"]')).toHaveLength(3);
+  });
+  it('names each slider by its visible label', () => {
+    render(<LocalNativeTurnDetectionControls settings={LOCAL_NATIVE_DEFAULTS} update={vi.fn()} />);
+    for (const name of ['Speech Threshold', 'Min Silence Duration', 'Min Speech Duration']) {
+      expect(screen.getByRole('slider', { name })).toBeTruthy();
+    }
   });
 });

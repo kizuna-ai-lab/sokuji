@@ -89,7 +89,6 @@ const voiceUnit: UnitDefinition<FakeVoiceSettings, FakeVoiceCredentials, FakeVoi
     // The user's switch says whether a leg is read aloud: with 'always' a text-only session would be read anyway.
     speech: 'optional',
     turns: ['auto', 'manual'],
-    turnOwner: 'either',
     boundaries: 'silence',
     textInput: false,
     faceToFace: true,

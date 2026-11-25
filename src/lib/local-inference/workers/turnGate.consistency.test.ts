@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { SMART_TURN_WORKER_TYPES } from '../../turn/smartTurn';
+import { DETECTOR_WORKER_TYPES } from '../../turn/turnDetection';
 
 const WORKERS_DIR = __dirname;
 
@@ -26,7 +26,7 @@ function between(source: string, from: string, to: string): string {
 describe('Smart Turn gate wiring', () => {
   it('finds the vad-web workers', () => {
     expect(vadWorkers.map((w) => w.name).sort()).toEqual(
-      [...SMART_TURN_WORKER_TYPES.map((type) => `${type}.worker.ts`), ...Object.keys(EXEMPT)].sort(),
+      [...DETECTOR_WORKER_TYPES.map((type) => `${type}.worker.ts`), ...Object.keys(EXEMPT)].sort(),
     );
   });
 

@@ -109,6 +109,7 @@ let speechFramesSinceStart = 0;
 // against the 1.2-2.65 s measured on the GB10. Latency only,
 // no text lost, and the same at any cap; trimming the staged buffer is a
 // separate change.
+// Pinned equal to VOXTRAL_REALTIME_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
 const VOXTRAL_REALTIME_MAX_SPEECH_SECONDS = 35;
 let preSpeechPadSamples = Math.ceil(0.8 * VAD_SAMPLE_RATE);
 

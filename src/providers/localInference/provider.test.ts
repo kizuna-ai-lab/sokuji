@@ -134,7 +134,7 @@ describe('localInferenceProvider', () => {
       expect(whole.describe).toBe(describeLocalInference);
       expect(whole.startSpeech).toBeUndefined();
       expect(whole.capabilities(LOCAL_INFERENCE_DEFAULTS)).toEqual({
-        speech: 'optional', turns: ['auto', 'manual'], turnOwner: 'either', boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
+        speech: 'optional', turns: ['auto', 'manual'], boundaries: 'provider', textInput: true, faceToFace: false, participantSpeech: true,
       });
       const context = { direction: { source: 'ja', target: 'en' }, speech: true, turns: 'auto' } as any;
       mockBuild.mockReturnValue({ built: true });

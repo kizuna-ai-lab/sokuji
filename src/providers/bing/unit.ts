@@ -22,7 +22,6 @@ export const bingTranslationUnit: UnitDefinition<BingSettings, BingCredentials, 
   capabilities: () => ({
     speech: 'never',
     turns: ['auto', 'manual'],
-    turnOwner: 'either',
     boundaries: 'provider',
     textInput: false,
     // One direction per session: a connection that carries both directions has no translator here.

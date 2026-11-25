@@ -3,6 +3,7 @@ import { directionKey, type DirectionResult, type Selections } from '../../lib/l
 import type { SessionContext } from '../../lib/contract/adapter';
 import type { SharedSettings } from '../../lib/run/types';
 import { buildDefaultLocalPrompt } from '../../lib/local-inference/prompts';
+import { TURN_DETECTION_DEFAULTS, type TurnDetectionSettings } from '../../lib/turn/turnDetectionSettings';
 
 /** One direction's table entry: an id per stage, or absent/null for "does not
  *  resolve". `autoTranslation` is what the translation stage resolves to once
@@ -29,7 +30,7 @@ const mockResolve = vi.fn((src: string, tgt: string, selections: Selections): Di
 
 /** Per-model manifest stub: only the fields `build`/`admit` read. Absent id: a
  *  plain offline ASR entry, no AST capability. */
-let mockManifest: Record<string, { type?: string; asrEngine?: string; astLanguages?: unknown; asrWorkerType?: string; ttsConfig?: { defaultSid?: number } }> = {};
+let mockManifest: Record<string, { type?: string; asrLimit?: unknown; asrEngine?: string; astLanguages?: unknown; asrWorkerType?: string; ttsConfig?: { defaultSid?: number } }> = {};
 /** Per-model memory size in MB, summed by the mocked `estimateModelMemoryByDevice`. */
 let mockSizes: Record<string, number> = {};
 
@@ -42,7 +43,8 @@ const estimate = vi.hoisted(() => vi.fn((ids: ReadonlyArray<string | undefined |
   return { vramMb: 0, ramMb };
 }));
 
-vi.mock('../../lib/local-inference/modelManifest', () => ({
+vi.mock('../../lib/local-inference/modelManifest', async (importActual) => ({
+  segmentLimitFor: (await importActual<typeof import('../../lib/local-inference/modelManifest')>()).segmentLimitFor,
   getManifestEntry: (id: string) => mockManifest[id] ?? { type: 'asr' },
   estimateModelMemoryByDevice: estimate,
 }));
@@ -70,7 +72,7 @@ function settings(overrides: Partial<LocalInferenceSettings> = {}): LocalInferen
   return { ...LOCAL_INFERENCE_DEFAULTS, ...overrides };
 }
 
-function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['segmentation']; words?: SharedSettings['words']; lineUp?: SharedSettings['lineUp'] } = {}): SharedSettings {
+function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['segmentation']; words?: SharedSettings['words']; lineUp?: SharedSettings['lineUp']; turnDetection?: Partial<TurnDetectionSettings> } = {}): SharedSettings {
   return {
     pauses: { sourceSeconds: 0, translationSeconds: 0 },
     reversed: () => overrides.reversed ?? false,
@@ -79,6 +81,7 @@ function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['
     localModels: models,
     ...(overrides.words ? { words: overrides.words } : {}),
     ...(overrides.lineUp ? { lineUp: overrides.lineUp } : {}),
+    ...(overrides.turnDetection ? { turnDetection: { ...TURN_DETECTION_DEFAULTS, ...overrides.turnDetection } } : {}),
   };
 }
 
@@ -86,7 +89,7 @@ function shared(overrides: { reversed?: boolean; segmentation?: SharedSettings['
  *  `describe`/`admit` tests, which only care about the ids each config carries. */
 function cfg(ids: { asr: string; translation?: string; tts?: string }): LocalInferenceConfig {
   return {
-    asr: { modelId: ids.asr, streaming: false },
+    asr: { modelId: ids.asr, streaming: false, turnDetection: 'own' },
     vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
     translation: ids.translation ? { kind: 'engine', modelId: ids.translation, instructions: '', wrapTranscript: false } : { kind: 'none' },
     ...(ids.tts ? { tts: { modelId: ids.tts, speakerId: 0, speed: 1 } } : {}),
@@ -214,21 +217,28 @@ describe('buildLocalInference', () => {
   it('marks an asr-stream model streaming, and any other ASR model not', () => {
     mockManifest = { 'stream-asr': { type: 'asr-stream' } };
     resolved({ 'ja>en': { asr: 'stream-asr', translation: 't' }, 'en>ja': { asr: 'offline-asr', translation: 't' } });
-    expect((buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'stream-asr', streaming: true });
-    expect((buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'offline-asr', streaming: false });
+    expect((buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'stream-asr', streaming: true, turnDetection: 'own' });
+    expect((buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig).asr).toEqual({ modelId: 'offline-asr', streaming: false, turnDetection: 'own' });
   });
 
   it('carries a set VAD negative threshold into vad.negativeThreshold, and leaves it out when unset', () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
-    const withIt = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ vadNegativeThreshold: 0.15 }), shared()) as LocalInferenceConfig;
+    const withIt = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ turnDetection: { negativeThreshold: 0.15 } })) as LocalInferenceConfig;
     expect(withIt.vad).toEqual({ threshold: 0.3, negativeThreshold: 0.15, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 });
     const without = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig;
     expect(without.vad).not.toHaveProperty('negativeThreshold');
   });
 
+  it('the leg reads turn detection from shared.turnDetection, the defaults without it', () => {
+    resolved({ 'ja>en': { asr: 'a', translation: 't' } });
+    const built = (sh: SharedSettings) => buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), sh) as LocalInferenceConfig;
+    expect(built(shared({ turnDetection: { threshold: 0.45 } })).vad.threshold).toBe(0.45);
+    expect(built(shared()).vad.threshold).toBe(0.3);
+  });
+
   it('carries the pre-speech padding into vad.preSpeechPadDuration', () => {
     resolved({ 'ja>en': { asr: 'a', translation: 't' } });
-    const set = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings({ vadPreSpeechPadDuration: 0.3 }), shared()) as LocalInferenceConfig;
+    const set = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ turnDetection: { prePad: 0.3 } })) as LocalInferenceConfig;
     expect(set.vad.preSpeechPadDuration).toBe(0.3);
     const byDefault = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared()) as LocalInferenceConfig;
     expect(byDefault.vad.preSpeechPadDuration).toBe(0.8);
@@ -279,11 +289,11 @@ describe('buildLocalInference', () => {
       resolved({ 'ja>en': { asr: 'a', translation: 't' } });
     });
 
-    const build = (over: Partial<LocalInferenceSettings>) =>
-      buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(over), shared()) as LocalInferenceConfig;
+    const build = (over: Partial<TurnDetectionSettings>) =>
+      buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), shared({ turnDetection: over })) as LocalInferenceConfig;
 
     it('carries Smart Turn into vad.smartTurn', () => {
-      expect(build({ vadEndOfTurn: 'smart' }).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
+      expect(build({ endOfTurn: 'smart' }).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
     });
 
     it('leaves it out under Normal', () => {
@@ -292,17 +302,55 @@ describe('buildLocalInference', () => {
 
     it.each(['sherpa-onnx', 'voxtral-webgpu', undefined])('leaves it out for an ASR whose worker is %s', (asrWorkerType) => {
       mockManifest = { a: { type: 'asr', asrWorkerType } };
-      expect(build({ vadEndOfTurn: 'smart' }).vad).not.toHaveProperty('smartTurn');
+      expect(build({ endOfTurn: 'smart' }).vad).not.toHaveProperty('smartTurn');
+    });
+
+    it('a Whisper leg is shared and gets Smart when stored; a SenseVoice leg is own and never does', () => {
+      const shared1 = build({ endOfTurn: 'smart' });
+      expect(shared1.asr.turnDetection).toBe('shared');
+      expect(shared1.vad).toHaveProperty('smartTurn');
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
+      const own = build({ endOfTurn: 'smart' });
+      expect(own.asr.turnDetection).toBe('own');
+      expect(own.vad).not.toHaveProperty('smartTurn');
+    });
+
+    it('two legs on different models decide apart', () => {
+      mockManifest = { w: { type: 'asr', asrWorkerType: 'whisper-webgpu' }, s: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
+      resolved({ 'ja>en': { asr: 'w', translation: 't' }, 'en>ja': { asr: 's', translation: 't' } });
+      const sh = shared({ turnDetection: { endOfTurn: 'smart' } });
+      const speaker = buildLocalInference(ctx({ source: 'ja', target: 'en' }), settings(), sh) as LocalInferenceConfig;
+      const participant = buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), sh) as LocalInferenceConfig;
+      expect([speaker.asr.turnDetection, participant.asr.turnDetection]).toEqual(['shared', 'own']);
+      expect(speaker.vad).toHaveProperty('smartTurn');
+      expect(participant.vad).not.toHaveProperty('smartTurn');
+    });
+
+    it('the same direction built twice with the model changed between the builds changes the decision', () => {
+      expect(build({ endOfTurn: 'smart' }).asr.turnDetection).toBe('shared');
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
+      expect(build({ endOfTurn: 'smart' }).asr.turnDetection).toBe('own');
+    });
+
+    it('a shared leg carries its limit for its task and language; an own leg none', () => {
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'granite-speech-webgpu', asrEngine: 'granite-speech', asrLimit: { kind: 'speech', seconds: 30, byTask: { translate: 20 } }, astLanguages: { en: ['ja'] } } };
+      resolved({ 'en>ja': { asr: 'a', translation: 'a' } });
+      const built = () => buildLocalInference(ctx({ source: 'en', target: 'ja' }), settings(), shared()) as LocalInferenceConfig;
+      expect(built().limit).toEqual({ maxSpeechSeconds: 20 });
+      resolved({ 'en>ja': { asr: 'a', translation: 't' } });
+      expect(built().limit).toEqual({ maxSpeechSeconds: 30 });
+      mockManifest = { a: { type: 'asr', asrWorkerType: 'sherpa-onnx' } };
+      expect(built()).not.toHaveProperty('limit');
     });
 
     it('holds Turn Check After 0.2 s under Max Wait', () => {
-      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.4, smartTurnCheckAfter: 0.5 }).vad.smartTurn)
+      expect(build({ endOfTurn: 'smart', minSilence: 0.4, smartTurnCheckAfter: 0.5 }).vad.smartTurn)
         .toEqual({ checkAfter: 0.2, threshold: 0.5 });
     });
 
     it('drops Smart when Max Wait leaves under 0.10 s for it', () => {
-      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.25 }).vad).not.toHaveProperty('smartTurn');
-      expect(build({ vadEndOfTurn: 'smart', vadMinSilenceDuration: 0.3 }).vad.smartTurn).toEqual({ checkAfter: 0.1, threshold: 0.5 });
+      expect(build({ endOfTurn: 'smart', minSilence: 0.25 }).vad).not.toHaveProperty('smartTurn');
+      expect(build({ endOfTurn: 'smart', minSilence: 0.3 }).vad.smartTurn).toEqual({ checkAfter: 0.1, threshold: 0.5 });
     });
   });
 });

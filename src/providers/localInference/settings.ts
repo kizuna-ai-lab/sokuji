@@ -2,7 +2,6 @@ import { identityWire } from '../../lib/language/wire';
 import type { Provider } from '../../lib/provider/types';
 import type { Selections } from '../../lib/local-inference/selection/types';
 import { getLocalInferenceLanguages, getLocalInferenceTargetLanguages } from '../../lib/local-inference/modelManifest';
-import type { VadEndOfTurn } from '../../lib/turn/smartTurn';
 
 /**
  * One direction's voice (#619): a speaker id for Supertonic and the multi-speaker local models. A stored entry may
@@ -33,16 +32,6 @@ export interface LocalInferenceSettings {
    */
   voices: Record<string, DirectionVoice>;
   ttsSpeed: number;
-  vadThreshold: number;
-  vadNegativeThreshold: number;
-  vadMinSilenceDuration: number;
-  vadMinSpeechDuration: number;
-  vadMaxSpeechDuration: number;
-  vadPreSpeechPadDuration: number;
-  /** 'smart': Smart Turn may end a segment after a short pause; vad-web workers in its scope, Auto turns only. */
-  vadEndOfTurn: VadEndOfTurn;
-  smartTurnCheckAfter: number;
-  smartTurnThreshold: number;
   /** true = Simple (default), false = Advanced. */
   useTemplateMode: boolean;
   /** Advanced-mode speaker prompt (default ''). */
@@ -55,15 +44,6 @@ export const LOCAL_INFERENCE_DEFAULTS: LocalInferenceSettings = {
   selections: {},
   voices: {},
   ttsSpeed: 1.0,
-  vadThreshold: 0.3,
-  vadNegativeThreshold: 0,
-  vadMinSilenceDuration: 1.4,
-  vadMinSpeechDuration: 0.4,
-  vadMaxSpeechDuration: 30,
-  vadPreSpeechPadDuration: 0.8,
-  vadEndOfTurn: 'normal',
-  smartTurnCheckAfter: 0.3,
-  smartTurnThreshold: 0.5,
   useTemplateMode: true,
   systemPrompt: '',
   participantSystemPrompt: '',

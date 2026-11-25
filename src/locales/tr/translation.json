@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Konuşma segmentlerini ayırmak için minimum sessizlik. Daha kısa değerler cümleleri daha hızlı ayırır, daha uzun değerler daha doğal duraklamaları bekler.",
     "vadMaxSpeechDuration": "Maks. Konuşma Süresi",
     "vadMaxSpeechDurationTooltip": "Tek bir konuşma bölümünün bölünmeden önce sürebileceği en uzun süre. Bazı modeller daha erken böler; doğru yazıya döktükleri en uzun bölümde.",
+    "turnDetectionLimitNote": "Bu model, {{seconds}} sn'den uzun konuşmaları böler.",
     "vadPreSpeechPadDuration": "Konuşma Öncesi Pay",
     "vadPreSpeechPadDurationTooltip": "Konuşma algılanmadan hemen önceki sesi de tutar, böylece cümlenin ilk sesi kesilmez. Daha yüksek değerler, konuşmaya başlamadan önceki gürültüyü de tanımaya daha çok iletir.",
     "smartTurn": "Akıllı",

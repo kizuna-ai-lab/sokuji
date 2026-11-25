@@ -101,6 +101,7 @@ let speechFramesSinceStart = 0;
 // timestamps its merge is a longest-common-sequence over raw tokens, which
 // dropped or duplicated speech in every language tried and took 1.5-4x as
 // long.
+// Pinned equal to WHISPER_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
 const WHISPER_MAX_SEGMENT_SAMPLES = 29 * VAD_SAMPLE_RATE;
 
 // For startSample tracking in result messages

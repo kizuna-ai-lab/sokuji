@@ -171,6 +171,7 @@
     "vadMinSilenceDurationTooltip": "Duração mínima de silêncio para dividir segmentos de fala. Valores mais curtos dividem frases mais rápido, valores mais longos aguardam pausas mais naturais.",
     "vadMaxSpeechDuration": "Duração máx. de fala",
     "vadMaxSpeechDurationTooltip": "Duração máxima de um segmento de fala antes de ser dividido. Alguns modelos dividem antes, no segmento mais longo que transcrevem corretamente.",
+    "turnDetectionLimitNote": "Este modelo divide falas com mais de {{seconds}} s.",
     "vadPreSpeechPadDuration": "Margem antes da fala",
     "vadPreSpeechPadDurationTooltip": "Mantém o áudio imediatamente antes de a fala ser detetada, para que o primeiro som da frase não seja cortado. Valores maiores também enviam para o reconhecimento mais ruído de antes de começar a falar.",
     "smartTurn": "Inteligente",
