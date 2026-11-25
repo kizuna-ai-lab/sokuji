@@ -16,7 +16,15 @@ function spawnSampled(args, opts) {
   }
   const r = spawnSync(process.execPath, args, opts);
   let sampled = '';
-  try { sampled = readFileSync(out, 'utf8').slice(0, 6000); } catch {}
+  try {
+    // The node frames above the addon fill the first thousands of characters; keep the part that matters:
+    // everything from the addon's callback down (all threads), and the "top of stack" summary at the end.
+    const text = readFileSync(out, 'utf8').split('\n').map((l) => l.slice(0, 240)).join('\n');
+    const at = text.indexOf('CallbackData');
+    const body = at >= 0 ? text.slice(Math.max(0, text.lastIndexOf('\n', at))) : text;
+    const top = text.indexOf('Sort by top of stack');
+    sampled = body.slice(0, 14000) + (top >= 0 ? '\n...\n' + text.slice(top, top + 4000) : '');
+  } catch {}
   r.sampled = sampled;
   return r;
 }
