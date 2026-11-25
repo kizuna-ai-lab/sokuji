@@ -29,7 +29,7 @@ describe('segmentLimitFor', () => {
     ['voxtral-mini-3b-webgpu', { maxSegmentSamples: 480000 }],
     ['cohere-transcribe-webgpu', {}],
     ['voxtral-mini-4b-webgpu', { maxSpeechSeconds: 35 }],
-    ['moonshine-tiny-ja-quant', { maxSpeechSeconds: 9 }],
+    ['moonshine-tiny-ja-quant', { maxSegmentSamples: 9 * 16000 }],
     ['sensevoice-int8', { maxSpeechSeconds: 20 }],
   ])('%s', (id, limit) => {
     expect(segmentLimitFor(entry(id), transcribe('ja'))).toEqual(limit);
@@ -48,10 +48,10 @@ describe('segmentLimitFor', () => {
 });
 
 describe('asrLimitOf', () => {
-  it('the nine Moonshine v2 entries declare 9 s of speech', () => {
+  it('the nine Moonshine v2 entries declare a 9 s segment, the pad included', () => {
     const moonshine = MODEL_MANIFEST.filter((e) => e.asrEngine === 'moonshine-v2');
     expect(moonshine).toHaveLength(9);
-    for (const e of moonshine) expect(asrLimitOf(e)).toEqual({ kind: 'speech', seconds: 9 });
+    for (const e of moonshine) expect(asrLimitOf(e)).toEqual({ kind: 'segment', seconds: 9 });
   });
 
   it('a sherpa offline entry falls back to the 20 s the worker always used; a streaming one has none', () => {

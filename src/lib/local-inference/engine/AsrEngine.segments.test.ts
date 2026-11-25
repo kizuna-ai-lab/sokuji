@@ -88,6 +88,37 @@ describe('AsrEngine: the turn detector\'s segment port', () => {
     engine.dispose();
   });
 
+  it('sherpa-onnx given a port gets it, transferred, and no VAD config: its worker then runs no VAD', async () => {
+    const engine = new AsrEngine();
+    const [message, transfer] = await initMessage(engine, 'sensevoice-int8', channel.port1);
+    expect(message.segmentPort).toBe(channel.port1);
+    expect(transfer).toEqual([channel.port1]);
+    expect(message).not.toHaveProperty('vadConfig');
+    expect(message.asrEngine).toBe('sensevoice');
+    engine.dispose();
+  });
+
+  it("a ready sherpa-onnx engine given a port posts {type:'stop', epoch}; the answers reach onDrained and onResult", async () => {
+    const engine = new AsrEngine();
+    const initP = engine.init('sensevoice-int8', undefined, 'ja', undefined, channel.port1);
+    await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
+    const worker = MockWorker.last();
+    await vi.waitFor(() => expect(worker.postMessage).toHaveBeenCalled());
+    worker.emit({ type: 'ready', loadTimeMs: 1 });
+    await initP;
+    worker.postMessage.mockClear();
+    engine.stop(2);
+    expect(worker.postMessage).toHaveBeenCalledExactlyOnceWith({ type: 'stop', epoch: 2 });
+    const onDrained = vi.fn();
+    const onResult = vi.fn();
+    engine.onDrained = onDrained;
+    engine.onResult = onResult;
+    worker.emit({ type: 'drained', epoch: 2, seq: 5 });
+    worker.emit({ type: 'result', text: 'こんにちは', startSample: 160, durationMs: 900, recognitionTimeMs: 12, endedBy: 'silence', epoch: 2, seq: 4 });
+    expect(onDrained).toHaveBeenCalledExactlyOnceWith(5);
+    expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ text: 'こんにちは', startSample: 160, endedBy: 'silence', epoch: 2 }));
+  });
+
   it('drained reaches onDrained with its seq', async () => {
     const { engine, worker } = await readyEngine();
     const onDrained = vi.fn();

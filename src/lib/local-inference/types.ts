@@ -50,6 +50,8 @@ export interface AsrInitMessage {
   asrEngine: string;
   /** Optional VAD configuration to override defaults */
   vadConfig?: SherpaOnnxVadConfig;
+  /** The turn detector's segments: given, the worker runs no VAD and decodes what arrives on it. */
+  segmentPort?: MessagePort;
   /** Base URL for bundled ASR runtime (JS/WASM shared across all models) */
   runtimeBaseUrl: string;
   /** Emscripten loadPackage metadata (file offsets/sizes from package-metadata.json) */

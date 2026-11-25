@@ -121,7 +121,8 @@ describe('the config it builds', () => {
     mockTable = { 'en>ja': { asr: 'sensevoice-int8', translation: 'opus-mt-en-jap', tts: 'tts-ja' } };
     const built = buildLocalTranscription(ctx(EN_JA, { speech: true }), SETTINGS, shared({ lineUp: APART }));
     expect(built).toEqual({
-      asr: { modelId: 'sensevoice-int8', streaming: false, turnDetection: 'own' },
+      asr: { modelId: 'sensevoice-int8', streaming: false, turnDetection: 'shared' },
+      limit: { maxSpeechSeconds: 20 },
       vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30, preSpeechPadDuration: 0.8 },
       translation: { kind: 'none' },
       transcribesAlone: true,
@@ -150,7 +151,7 @@ describe('the config it builds', () => {
       expect(alone.asr).toEqual(whole.asr);
       expect(alone.vad).toEqual(whole.vad);
     }
-    // Granite takes Smart Turn and SenseVoice does not; Kroko streams.
+    // Granite takes Smart Turn and Voxtral 4B (own turns until step 3) does not; Kroko streams.
     mockTable = { 'en>ja': { asr: 'granite-speech' } };
     expect((buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig).vad.smartTurn).toEqual({ checkAfter: 0.3, threshold: 0.5 });
     mockTable = { 'en>ja': { asr: 'stream-en-kroko' } };
@@ -159,7 +160,7 @@ describe('the config it builds', () => {
 
   it('the transcription-only unit decides per leg the same way', () => {
     const turnDetection: TurnDetectionSettings = { ...TURN_DETECTION_DEFAULTS, endOfTurn: 'smart' };
-    mockTable = { 'en>ja': { asr: 'whisper-base-webgpu' }, 'ja>en': { asr: 'sensevoice-int8' } };
+    mockTable = { 'en>ja': { asr: 'whisper-base-webgpu' }, 'ja>en': { asr: 'voxtral-mini-4b-webgpu' } };
     const speaker = buildLocalTranscription(ctx(EN_JA), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig;
     const participant = buildLocalTranscription(ctx(JA_EN), SETTINGS, shared({ turnDetection })) as LocalInferenceConfig;
     expect([speaker.asr.turnDetection, participant.asr.turnDetection]).toEqual(['shared', 'own']);

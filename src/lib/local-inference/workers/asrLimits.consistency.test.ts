@@ -16,13 +16,14 @@ const limit = (id: string, task: 'transcribe' | 'translate' = 'transcribe', lang
 // constant left in a recognizer would be a second copy that nothing reads and the manifest test cannot see.
 describe('the five recognizers on the detector declare no limit of their own', () => {
   const LIMIT_CONSTANT = /\b(?:WHISPER_MAX_SEGMENT_SAMPLES|VOXTRAL_3B_MAX_SEGMENT_SAMPLES|GRANITE_(?:TRANSLATE_)?MAX_SPEECH_SECONDS|QWEN3_ASR_(?:DEFAULT_)?MAX_SPEECH_SECONDS)\b/;
-  it.each(DETECTOR_WORKER_TYPES.map((type) => `${type}.worker.ts`))('%s', (name) => {
+  it.each(DETECTOR_WORKER_TYPES.filter((type) => type !== 'sherpa-onnx').map((type) => `${type}.worker.ts`))('%s', (name) => {
     expect(read(name)).not.toMatch(LIMIT_CONSTANT);
     expect(read(name)).not.toContain('resolveMaxSpeechFrames');
   });
 });
 
-// Voxtral 4B and sherpa-onnx still cut their own segments until steps 3 and 2, so their constants stay, pinned.
+// Voxtral 4B still cuts its own segments until step 3, so its constant stays, pinned. The sherpa-onnx worker keeps its
+// own VAD (and its 9 s / 20 s) for a load with no segment port, until step 5; the detector's cut comes from the manifest.
 describe('the manifest limit equals the one still in the worker', () => {
   it('Voxtral Realtime: 35 s', () => {
     expect(voxtralRt).toContain('const VOXTRAL_REALTIME_MAX_SPEECH_SECONDS = 35;');
@@ -31,9 +32,9 @@ describe('the manifest limit equals the one still in the worker', () => {
 });
 
 describe('sherpa-onnx worker', () => {
-  it("cuts Moonshine v2 at 9 s and everything else at 20 s, as the manifest says", () => {
+  it("still cuts Moonshine v2 at 9 s and everything else at 20 s for a load with no port; the manifest says it as a 9 s segment, the pad included, and 20 s of speech", () => {
     expect(sherpa).toContain("asrEngine === 'moonshine-v2' ? 9 : 20");
-    expect(limit('moonshine-base-zh-quant')).toEqual({ maxSpeechSeconds: 9 });
+    expect(limit('moonshine-base-zh-quant')).toEqual({ maxSegmentSamples: 9 * 16000 });
     expect(limit('sensevoice-int8')).toEqual({ maxSpeechSeconds: 20 });
   });
 });

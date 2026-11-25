@@ -8,8 +8,9 @@ import type { TurnDetectionSettings } from './turnDetectionSettings';
 
 export type TurnDetection = 'shared' | 'own';
 
-/** The workers that decode the detector's segments (workers/turnDetection.consistency.test.ts). Step 2 adds 'sherpa-onnx' for `type: 'asr'`; step 3 'voxtral-webgpu'. */
+/** The workers that decode the detector's segments (workers/turnDetection.consistency.test.ts). Step 3 adds 'voxtral-webgpu'. An entry with no `asrWorkerType` is sherpa-onnx's. */
 export const DETECTOR_WORKER_TYPES = [
+  'sherpa-onnx',
   'whisper-webgpu',
   'cohere-transcribe-webgpu',
   'granite-speech-webgpu',
@@ -20,7 +21,7 @@ export const DETECTOR_WORKER_TYPES = [
 type Entry = Pick<ModelManifestEntry, 'type' | 'asrWorkerType'> | undefined;
 
 export function turnDetectionOf(entry: Entry): TurnDetection {
-  return entry?.type === 'asr' && (DETECTOR_WORKER_TYPES as readonly (string | undefined)[]).includes(entry.asrWorkerType)
+  return entry?.type === 'asr' && (DETECTOR_WORKER_TYPES as readonly (string | undefined)[]).includes(entry.asrWorkerType ?? 'sherpa-onnx')
     ? 'shared'
     : 'own';
 }

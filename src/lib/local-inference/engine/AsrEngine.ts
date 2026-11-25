@@ -47,6 +47,8 @@ export class AsrEngine {
   /** Set by `dispose()`: an `init()` still awaiting its model files stops
    *  before it creates a worker (a load aborted mid-way). */
   private disposed = false;
+  /** The loaded recognizer decodes the detector's segments (every WebGPU one; sherpa when given a port) and so has epochs. */
+  private segmented = false;
 
   onResult: ResultCallback | null = null;
   onPartialResult: PartialResultCallback | null = null;
@@ -261,11 +263,13 @@ export class AsrEngine {
         type: 'init',
         fileUrls: dataFileUrls,
         asrEngine: model.asrEngine,
-        vadConfig,
         runtimeBaseUrl: new URL(ASR_BUNDLED_RUNTIME_PATH, window.location.href).href,
         dataPackageMetadata,
-      });
+        // With a port the worker runs no VAD of its own and decodes the detector's segments; without one it cuts its own.
+        ...(segmentPort ? { segmentPort } : { vadConfig }),
+      }, segmentPort ? [segmentPort] : []);
     }
+    this.segmented = workerType !== 'sherpa-onnx' || !!segmentPort;
 
     this.currentModel = model;
     return { loadTimeMs: ready.loadTimeMs };
@@ -300,12 +304,12 @@ export class AsrEngine {
 
   /**
    * Raise the recognizer's epoch: the older epoch's queued segments are dropped and its
-   * drained marks are never answered. Only a segment recognizer has an epoch; sherpa has none.
+   * drained marks are never answered. Only a recognizer that decodes the detector's segments has an epoch; sherpa on its own VAD has none.
    */
   stop(epoch: number): void {
     if (!this.session?.ready) return;
-    // Sherpa's worker answers an unknown message type with an error, so it is never sent one.
-    if ((this.currentModel?.asrWorkerType ?? 'sherpa-onnx') === 'sherpa-onnx') return;
+    // A sherpa worker on its own VAD answers an unknown message type with an error, so it is never sent one.
+    if (!this.segmented) return;
     this.session.post({ type: 'stop', epoch });
   }
 
@@ -329,5 +333,6 @@ export class AsrEngine {
     this.session?.dispose();
     this.session = null;
     this.currentModel = null;
+    this.segmented = false;
   }
 }

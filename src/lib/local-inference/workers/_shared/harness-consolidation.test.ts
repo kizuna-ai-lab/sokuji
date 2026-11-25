@@ -119,7 +119,8 @@ function sliceBetween(src: string, name: string, from: string, to: string): stri
   return src.slice(a, b);
 }
 
-const DETECTOR_WORKERS = DETECTOR_WORKER_TYPES.map((type) => `${type}.worker.ts`);
+// sherpa-onnx's worker is a classic script (public/workers/sherpa-onnx-asr.worker.js): workers/turnDetection.consistency.test.ts covers it.
+const DETECTOR_WORKERS = DETECTOR_WORKER_TYPES.filter((type) => type !== 'sherpa-onnx').map((type) => `${type}.worker.ts`);
 
 describe('each detector-type worker decodes through SegmentInbox, never from an audio handler (#470)', () => {
   it('lists the five', () => {
