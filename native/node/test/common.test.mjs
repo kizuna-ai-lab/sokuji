@@ -42,12 +42,15 @@ test('the log sink gets the init line and does not keep the process alive', () =
     const report = () => { process.stdout.write(JSON.stringify(lines)); mark('reported'); };
     const timer = setTimeout(() => { mark('timer fired: no sk_init line'); report(); }, 10000);
     process.on('exit', () => mark('exit event'));
-    loadAddon().init({ moduleDir: nativeDir(), onLog: (level, message) => {
+    mark('helpers imported');
+    const addon = loadAddon();
+    mark('addon loaded');
+    addon.init({ moduleDir: nativeDir(), onLog: (level, message) => {
       lines.push({ level, message });
       if (message.startsWith('sk_init: ')) { clearTimeout(timer); report(); }
     } });
     mark('init returned');`;
-  const r = spawnSync(process.execPath, ['--input-type=module', '-e', child], { encoding: 'utf8', timeout: 30000 });
+  const r = spawnSync(process.execPath, ['--input-type=module', '-e', child], { encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'pipe'] });
   assert.equal(r.status, 0, `status ${r.status}, signal ${r.signal}\nstdout: ${r.stdout}\nstderr: ${r.stderr}`);
   const lines = JSON.parse(r.stdout);
   assert.ok(lines.some((l) => l.level === 1 && /^sk_init: \d+ device\(s\)/.test(l.message)), r.stdout);
@@ -68,13 +71,16 @@ test('with a sink set, warnings and errors still reach stderr at once', () => {
     const report = () => { process.stdout.write(JSON.stringify(lines)); mark('reported'); };
     const timer = setTimeout(() => { mark('timer fired: no sk_init line'); report(); }, 10000);
     process.on('exit', () => mark('exit event'));
-    loadAddon().init({ moduleDir: nativeDir(), onLog: (level, message) => {
+    mark('helpers imported');
+    const addon = loadAddon();
+    mark('addon loaded');
+    addon.init({ moduleDir: nativeDir(), onLog: (level, message) => {
       lines.push({ level, message });
       if (message.startsWith('sk_init: ')) { clearTimeout(timer); report(); }
     } });
     mark('init returned');`;
   const r = spawnSync(process.execPath, ['--input-type=module', '-e', child], {
-    encoding: 'utf8', timeout: 30000, env: { ...process.env, GGML_BACKEND_PATH: missing },
+    encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GGML_BACKEND_PATH: missing },
   });
   assert.equal(r.status, 0, `status ${r.status}, signal ${r.signal}\nstdout: ${r.stdout}\nstderr: ${r.stderr}`);
   const line = `load_backend: failed to load ${missing}`;
