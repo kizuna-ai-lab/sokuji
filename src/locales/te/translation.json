@@ -1583,6 +1583,8 @@
     "transcription_failed": "కొంత వాక్‌ను లిప్యంతరీకరించలేకపోయాం: {{detail}}",
     "translation_failed": "ఒక అనువాదం విఫలమైంది: {{detail}}",
     "translation_unavailable": "ఈ దిశకు అనువాద మోడల్ లేదు: దాని వాక్ మాత్రమే లిప్యంతరీకరించబడుతుంది.",
+    "turn_detection_overloaded": "ఈ పరికరంలో టర్న్ డిటెక్షన్ వేగాన్ని అందుకోలేకపోతోంది.",
+    "turn_detection_unavailable": "టర్న్ డిటెక్షన్ ప్రారంభం కాలేదు: {{detail}}",
     "local_models_missing": "ప్రారంభించడానికి సెట్టింగ్‌లలో అవసరమైన మోడల్‌లను డౌన్‌లోడ్ చేయండి.",
     "no_microphone": "ప్రారంభించడానికి ఈ మోడ్ కోసం పరికరాలను కాన్ఫిగర్ చేయండి.",
     "silent_no_permission": "ఎంచుకున్న మూలం నుండి ఇంకా ఆడియో రాలేదు. అది ప్లే అవుతున్నా ఏమీ అనువదించబడకపోతే, System Settings > Privacy & Security > System Audio Recording Only లో Sokuji ని అనుమతించి (macOS), ఆపై సెషన్‌ను మళ్లీ ప్రారంభించండి.",

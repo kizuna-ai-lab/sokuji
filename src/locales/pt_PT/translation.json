@@ -1583,6 +1583,8 @@
     "transcription_failed": "Parte da fala não pôde ser transcrita: {{detail}}",
     "translation_failed": "Uma tradução falhou: {{detail}}",
     "translation_unavailable": "Não há modelo de tradução para esta direção: a sua fala é apenas transcrita.",
+    "turn_detection_overloaded": "A deteção de turnos de fala não consegue acompanhar neste dispositivo.",
+    "turn_detection_unavailable": "Não foi possível iniciar a deteção de turnos de fala: {{detail}}",
     "local_models_missing": "Por favor, descarregue os modelos necessários em Definições para começar.",
     "no_microphone": "Configure os dispositivos para este modo para começar.",
     "silent_no_permission": "Ainda não chegou áudio da fonte selecionada. Se estiver a reproduzir e nada for traduzido, permita o Sokuji em Definições do Sistema > Privacidade e Segurança > Apenas gravação de áudio do sistema (macOS) e inicie a sessão novamente.",

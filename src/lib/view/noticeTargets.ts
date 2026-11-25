@@ -50,6 +50,9 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   native_starting: 'provider-options',
   native_asr_missing: 'provider-options',
   native_translation_missing: 'provider-options',
+  // The leg's turn detection is tuned among the provider's options; a device that cannot keep up picks a lighter model there.
+  turn_detection_overloaded: 'provider-options',
+  turn_detection_unavailable: 'provider-options',
   turn_mode_unsupported: 'turn-detection',
   participant_unsupported: 'languages',
   // Gemini's and OpenAI's model codes say the key lists no model: the fix is another key, in "Accounts and keys".

@@ -138,6 +138,9 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   transcription_failed: 'Some speech could not be transcribed: {{detail}}',
   translation_failed: 'A translation failed: {{detail}}',
   translation_unavailable: 'No translation model for this direction: its speech is transcribed only.',
+  // The turn detector a local recognizer shares (spec 2026-11-23): it fell behind the audio, or Silero would not load.
+  turn_detection_overloaded: 'Turn detection cannot keep up on this device.',
+  turn_detection_unavailable: 'Turn detection could not start: {{detail}}',
   // A leg that should speak but cannot (#619).
   speaker_tts_missing: 'Translation the other side hears is text only: no speech model speaks {{target}}.',
   participant_tts_missing: 'Translation I hear is text only: no speech model speaks {{target}}.',

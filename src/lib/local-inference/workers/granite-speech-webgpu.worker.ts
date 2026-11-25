@@ -1,15 +1,19 @@
 /**
  * Granite Speech WebGPU ASR/AST Worker
  *
- * Streaming audio input (Int16@24kHz) -> Silero VAD v5 -> Granite Speech (WebGPU)
+ * The turn detector's segments (16 kHz Float32 speech) -> Granite Speech (WebGPU)
  * Model files loaded from IndexedDB via customCache bridge.
  *
  * Supports two tasks via prompt switching:
  * - 'transcribe': ASR (speech-to-text)
  * - 'translate':  AST (speech-to-translated-text)
  *
- * Input messages:  GraniteSpeechInitMessage | AsrAudioMessage | AsrDisposeMessage
- * Output messages: AsrWorkerOutMessage (ready, status, speech_start, result, error, disposed)
+ * This worker runs no VAD and takes no audio. Turn detection lives in turn-detector.worker.ts, which
+ * cuts the turns and sends each segment here on `segmentPort`; SegmentInbox decodes them one at a
+ * time, in arrival order, and answers the detector's drain marks.
+ *
+ * Input messages:  GraniteSpeechInitMessage | AsrStopMessage | AsrDisposeMessage
+ * Output messages: AsrWorkerOutMessage (ready, status, result, drained, error, disposed)
  */
 
 import {
@@ -18,24 +22,17 @@ import {
   TextStreamer,
   env,
 } from './_shared/transformers-all';
-import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-all';
 import { initTransformersEnv } from './_shared/transformers-env';
-import { FrameProcessor, Message } from '@ricky0123/vad-web';
-import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
-import { resolveVadThresholds } from './_shared/vad-thresholds';
-import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
-import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
-import { openTurnLink, type TurnLink } from './_shared/turn-gate';
+import { VAD_SAMPLE_RATE } from './_shared/max-speech-frames';
+import { SegmentInbox, type DecodeTag } from './_shared/segment-inbox';
 
 import type {
   GraniteSpeechInitMessage,
-  AsrAudioMessage,
+  AsrStopMessage,
   AsrDisposeMessage,
   AsrWorkerOutMessage,
-  SegmentEnd,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
-import { segmentStartSample } from './_shared/segmentStart';
 
 // ─── ORT / Transformers.js env setup ─────────────────────────────────────────
 
@@ -57,7 +54,7 @@ env.fetch = (input: any, init?: any) => {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type WorkerMessage = GraniteSpeechInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' };
+type WorkerMessage = GraniteSpeechInitMessage | AsrStopMessage | AsrDisposeMessage;
 
 function post(msg: AsrWorkerOutMessage) {
   self.postMessage(msg);
@@ -70,36 +67,11 @@ const LANGUAGE_NAMES: Record<string, string> = {
   pt: 'Portuguese', ja: 'Japanese', it: 'Italian', zh: 'Mandarin Chinese',
 };
 
-// ─── Silero VAD v5 ──────────────────────────────────────────────────────────
-
-const VAD_SAMPLE_RATE = 16000;
-const VAD_FRAME_SAMPLES = 512; // 32ms @ 16kHz
-const VAD_FRAME_MS = (VAD_FRAME_SAMPLES / VAD_SAMPLE_RATE) * 1000;
-
-interface VadSession {
-  session: InferenceSession;
-  state: Tensor;
-  input: SileroInput;
-}
-
-let vadSession: VadSession | null = null;
-let frameProcessor: FrameProcessor | null = null;
-let turnLink: TurnLink | null = null;
-
-let maxSpeechFrames = 625; // ~20s at 32ms/frame
-let speechFramesSinceStart = 0;
-
-// The longest speech this engine is handed. There is no audio-side limit, and
-// the decode budget below removes the other one, so what is left is the model
-// itself: it ends the transcript early at a sentence or speaker boundary,
-// and what it drops grows with the segment: up to 6.7 s of a 20.8 s segment,
-// 8.7 s of 30.8 s, 11.7 s of 35.8 s, and 41.6 s of a 60.8 s one with two
-// speaker changes. No length above 30 s was reliably complete. Translate mode
-// stays at the old 20 s: at 30.8 s it returned untranslated English as the
-// translation in one window of three and dropped the last third of another.
-// Pinned equal to GRANITE_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
-const GRANITE_MAX_SPEECH_SECONDS = 30;
-const GRANITE_TRANSLATE_MAX_SPEECH_SECONDS = 20;
+// The longest speech this engine is handed is the detector's limit for Granite (30 s, 20 s when
+// translating; declared in modelManifest.ts): there is no audio-side limit, and the decode budget
+// below removes the other one, so what is left is the model itself, which ends the transcript early
+// at a sentence or speaker boundary. The limit counts speech only: the detector adds its pre-pad (0.8 s by
+// default, up to 2 s) in front, so a segment can be that much longer than the limit.
 
 // Output tokens budgeted per second of audio. The budget used to be a fixed
 // 256, which real Japanese speakers (8.0-10.2 tokens/s) exhaust at about
@@ -109,93 +81,6 @@ const GRANITE_TRANSLATE_MAX_SPEECH_SECONDS = 20;
 // 1024 in every paired run.
 const GRANITE_TOKENS_PER_SECOND = 14;
 const GRANITE_MIN_NEW_TOKENS = 256;
-let totalSamplesFed = 0;
-
-async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
-  if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
-
-  const input = new Tensor('float32', vadSession.input.next(frame), [1, SILERO_INPUT_SAMPLES]);
-  const sr = new Tensor('int64', BigInt64Array.from([BigInt(VAD_SAMPLE_RATE)]), []);
-
-  const result = await vadSession.session.run({
-    input,
-    sr,
-    state: vadSession.state,
-  });
-
-  vadSession.state = result.stateN as Tensor;
-  const prob = (result.output as Tensor).data[0] as number;
-  return { isSpeech: prob, notSpeech: 1 - prob };
-}
-
-function vadResetStates() {
-  if (!vadSession) return;
-  vadSession.state = new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
-  vadSession.input.reset();
-}
-
-async function initVad(
-  vadConfig: GraniteSpeechInitMessage['vadConfig'] | undefined,
-  vadModelUrl: string | undefined,
-  maxSpeechSeconds: number,
-): Promise<void> {
-  const session = await InferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
-    executionProviders: ['wasm'],
-  });
-
-  vadSession = {
-    session,
-    state: new Tensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
-    input: new SileroInput(),
-  };
-
-  const { positive: positiveSpeechThreshold, negative: negativeSpeechThreshold } = resolveVadThresholds(vadConfig);
-  const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
-  const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
-  const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-
-  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, { maxSpeechSeconds });
-
-  frameProcessor = new FrameProcessor(
-    vadInfer,
-    vadResetStates,
-    {
-      positiveSpeechThreshold,
-      negativeSpeechThreshold,
-      redemptionMs,
-      minSpeechMs,
-      preSpeechPadMs,
-      submitUserSpeechOnPause: false,
-    },
-    VAD_FRAME_MS,
-  );
-  frameProcessor.resume();
-
-  totalSamplesFed = 0;
-  speechFramesSinceStart = 0;
-}
-
-// ─── Audio Buffer & Resampling ──────────────────────────────────────────────
-
-let audioBuffer = new Float32Array(0);
-
-function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Float32Array {
-  const ratio = inputRate / VAD_SAMPLE_RATE;
-  const outLen = Math.floor(samples.length / ratio);
-  const out = new Float32Array(outLen);
-
-  for (let i = 0; i < outLen; i++) {
-    const srcIdx = i * ratio;
-    const lo = Math.floor(srcIdx);
-    const hi = Math.min(lo + 1, samples.length - 1);
-    const frac = srcIdx - lo;
-    const vLo = samples[lo] / 32768;
-    const vHi = samples[hi] / 32768;
-    out[i] = vLo + (vHi - vLo) * frac;
-  }
-
-  return out;
-}
 
 // ─── Granite Speech Model ───────────────────────────────────────────────────
 
@@ -203,8 +88,8 @@ let processor: any = null;
 let model: any = null;
 let currentTask: 'transcribe' | 'translate' = 'transcribe';
 let currentTargetLanguage: string | undefined;
-let processingVad = false;
-let pendingGraniteDecode: Promise<void> | null = null;
+/** The detector's segments, decoded one at a time in arrival order; exists once the model is ready. */
+let inbox: SegmentInbox | null = null;
 
 function buildPrompt(): string {
   if (currentTask === 'translate' && currentTargetLanguage) {
@@ -227,38 +112,13 @@ async function hasWebGPU(): Promise<boolean> {
 // ─── Speech Segment Processing ──────────────────────────────────────────────
 
 /**
- * Queue one speech segment for decoding, serialized behind whatever decode is already running.
- *
- * Callers on the VAD path fire-and-forget this (`void scheduleGraniteInference(...)`): a decode
- * takes 0.5–2.5 s, and awaiting it inside `feedAudio` would keep `processingVad` true for that
- * long, so every audio message arriving meanwhile would hit the guard and be dropped — on
- * gapless audio that loses the start of the next utterance, and at the 20 s cap it loses words
- * at every boundary (#470). Same pattern as the voxtral-3b and qwen3-asr workers
- * (`currentDecodePromise`). Chaining on the previous promise keeps decodes strictly ordered and
- * never overlapping on the model. The returned promise never rejects:
- * `runGraniteInferenceSegment` reports its own errors.
- *
- * Overlapping VAD frames with an in-flight decode is safe only because the VAD runs on its own
- * ORT instance (`_shared/onnxruntime-all`) while the model runs on Transformers.js's — never
- * put a second session on the model's instance while a decode can be in flight (#469).
+ * Run Granite on one speech segment the detector cut. Called by the inbox, one segment at a time, so
+ * decodes never overlap on the model. Reports its own errors.
  */
-function scheduleGraniteInference(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
-  const previousGraniteDecode = pendingGraniteDecode;
-  const promise = (async () => {
-    if (previousGraniteDecode) {
-      try { await previousGraniteDecode; } catch { /* already reported */ }
-    }
-    await runGraniteInferenceSegment(audio, startSample, end);
-  })();
-  pendingGraniteDecode = promise;
-  return promise;
-}
-
-async function runGraniteInferenceSegment(audio: Float32Array, startSample: number, end: SegmentEnd): Promise<void> {
-  // Capture both references before the first await: handleDispose nulls the module globals
-  // and only then drains the decode chain, so a decode already past this guard must not read
-  // `model` / `processor` again once it has suspended — it would throw and post a spurious
-  // error. The guard in harness-consolidation.test.ts pins the captures above the first await.
+async function runGraniteInferenceSegment(audio: Float32Array, startSample: number, tag: DecodeTag): Promise<void> {
+  // Capture both references before the first await, so the body never reads the module globals
+  // once it has suspended, whatever order dispose releases them in. The guard in
+  // harness-consolidation.test.ts pins the captures above the first await.
   const p = processor;
   const m = model;
   if (!p || !m) return;
@@ -330,7 +190,7 @@ async function runGraniteInferenceSegment(audio: Float32Array, startSample: numb
         startSample,
         durationMs,
         recognitionTimeMs,
-        ...end,
+        ...tag,
       });
     }
   } catch (err: any) {
@@ -338,115 +198,22 @@ async function runGraniteInferenceSegment(audio: Float32Array, startSample: numb
   }
 }
 
-// ─── Audio Feed Pipeline ────────────────────────────────────────────────────
-
-async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void> {
-  if (!vadSession || !frameProcessor || !model || processingVad) return;
-  processingVad = true;
-
-  try {
-    const resampled = resampleInt16ToFloat32_16k(samples, sampleRate);
-
-    const newBuf = new Float32Array(audioBuffer.length + resampled.length);
-    newBuf.set(audioBuffer);
-    newBuf.set(resampled, audioBuffer.length);
-    audioBuffer = newBuf;
-
-    while (audioBuffer.length >= VAD_FRAME_SAMPLES) {
-      const frame = audioBuffer.slice(0, VAD_FRAME_SAMPLES);
-      audioBuffer = audioBuffer.slice(VAD_FRAME_SAMPLES);
-      totalSamplesFed += VAD_FRAME_SAMPLES;
-
-      const events: FrameProcessorEvent[] = [];
-      await frameProcessor.process(frame, (ev) => events.push(ev));
-
-      let speechProbability = 0;
-      for (const ev of events) {
-        switch (ev.msg) {
-          case Message.FrameProcessed:
-            speechProbability = ev.probs.isSpeech;
-            break;
-
-          case Message.SpeechStart:
-            speechFramesSinceStart = 0;
-            post({ type: 'speech_start' });
-            break;
-          case Message.SpeechEnd:
-            speechFramesSinceStart = 0;
-            // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
-            // and the guard at the top of this function would drop the audio arriving
-            // meanwhile (#470). `scheduleGraniteInference` serializes decodes via
-            // `pendingGraniteDecode`.
-            void scheduleGraniteInference(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'silence' });
-            break;
-          case Message.VADMisfire: {
-            speechFramesSinceStart = 0;
-            // Kept when it follows a Smart end inside the wait Normal would have spanned.
-            const rescued = turnLink?.rescue();
-            if (rescued) void scheduleGraniteInference(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
-            break;
-          }
-        }
-      }
-
-      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
-      if (smartTurnProbability !== null) {
-        const endEvents: FrameProcessorEvent[] = [];
-        frameProcessor.endSegment((ev) => endEvents.push(ev));
-        for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void scheduleGraniteInference(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'smart', smartTurnProbability });
-        }
-      }
-
-      // Max speech duration cap
-      if (frameProcessor.speaking) {
-        speechFramesSinceStart++;
-        if (speechFramesSinceStart >= maxSpeechFrames) {
-          // See the SpeechEnd case above: fire-and-forget so no audio is dropped at the cap.
-          const endEvents: FrameProcessorEvent[] = [];
-          frameProcessor.endSegment((ev) => endEvents.push(ev));
-          for (const ev of endEvents) {
-            if (ev.msg === Message.SpeechEnd) {
-              void scheduleGraniteInference(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'cap' });
-            }
-          }
-          turnLink?.reset();
-          speechFramesSinceStart = 0;
-        }
-      } else {
-        speechFramesSinceStart = 0;
-      }
-    }
-  } finally {
-    processingVad = false;
-  }
-}
-
 // ─── Message Handlers ───────────────────────────────────────────────────────
+
+/** A decode threw outside its own reporting (the inbox calls this; the segment was already acknowledged). */
+function reportDecodeError(err: unknown): void {
+  post({type: 'error', error: `Granite inference failed: ${(err as Error)?.message || err}`});
+}
 
 async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
-
-    // ortEnv wasmPaths must be set before initVad's InferenceSession; the
-    // transformers env is configured later via initTransformersEnv.
-    if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
-      ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-    }
 
     const webgpuAvailable = await hasWebGPU();
     if (!webgpuAvailable) {
       post({ type: 'error', error: 'WebGPU is not available. Granite Speech requires WebGPU.' });
       return;
     }
-
-    post({ type: 'status', message: 'Loading VAD model...' });
-    await initVad(
-      msg.vadConfig,
-      msg.vadModelUrl,
-      msg.task === 'translate' ? GRANITE_TRANSLATE_MAX_SPEECH_SECONDS : GRANITE_MAX_SPEECH_SECONDS,
-    );
-    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
 
     // Configure Transformers.js for IndexedDB blob URL cache
     initTransformersEnv(env, msg);
@@ -480,7 +247,9 @@ async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
       console.warn('[granite-worker] Warmup failed, first inference may be slower');
     }
 
-    audioBuffer = new Float32Array(0);
+    // Listen to the detector only now the model is ready: nothing it sends is lost, and
+    // nothing is decoded before there is a model to decode on.
+    inbox = new SegmentInbox(msg.segmentPort, runGraniteInferenceSegment, post, reportDecodeError);
 
     const loadTimeMs = Math.round(performance.now() - startTime);
     post({ type: 'ready', loadTimeMs });
@@ -489,59 +258,18 @@ async function handleInit(msg: GraniteSpeechInitMessage): Promise<void> {
   }
 }
 
-async function handleFlush(): Promise<void> {
-  if (frameProcessor?.speaking) {
-    const endEvents: FrameProcessorEvent[] = [];
-    frameProcessor.endSegment((ev) => endEvents.push(ev));
-    for (const ev of endEvents) {
-      if (ev.msg === Message.SpeechEnd) {
-        void scheduleGraniteInference(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'flush' });
-      } else if (ev.msg === Message.VADMisfire) {
-        const rescued = turnLink?.rescue();
-        if (rescued) void scheduleGraniteInference(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
-      }
-    }
-    turnLink?.reset();
-  }
-  // Drain the chain: `scheduleGraniteInference` assigns `pendingGraniteDecode` before
-  // returning, so this picks up the decode just kicked off (behind anything already queued)
-  // and the flush resolves once the utterance's text has been posted. Runs even when nothing
-  // was speaking, so a flush issued mid-decode still waits for that decode.
-  if (pendingGraniteDecode) {
-    try { await pendingGraniteDecode; } catch { /* already reported */ }
-  }
-}
-
 async function handleDispose(): Promise<void> {
   // Only reachable when the host waits for `disposed`. In the app, WorkerSession.dispose()
-  // posts `dispose` and terminates this worker on the next line, so the drain below runs in the
-  // worker harness only; Stop is meant to be immediate, and PTT release finishes an utterance
-  // through flush, not dispose.
+  // posts `dispose` and terminates this worker on the next line, so the wait below runs in the
+  // worker harness only; Stop is meant to be immediate.
 
-  // Flush remaining speech; handleFlush waits for that decode to finish.
-  await handleFlush();
+  // Stop listening and wait for the decode in flight; what still waits is dropped. Nothing can
+  // then run against the model released below.
+  await inbox?.close();
+  inbox = null;
 
-  // Stop accepting new segments before touching the model: with `model` null, feedAudio
-  // returns early and a queued runGraniteInferenceSegment exits at its guard.
   const activeModel = model;
   model = null;
-
-  // A decode may have been queued between the flush's await and the line above; wait for it
-  // so nothing runs against a disposed model. Not redundant with the drain in handleFlush.
-  if (pendingGraniteDecode) {
-    try { await pendingGraniteDecode; } catch { /* already reported */ }
-    pendingGraniteDecode = null;
-  }
-
-  frameProcessor = null;
-  turnLink?.close();
-  turnLink = null;
-  speechFramesSinceStart = 0;
-
-  if (vadSession?.session) {
-    await vadSession.session.release();
-    vadSession = null;
-  }
 
   if (activeModel) {
     await activeModel.dispose?.();
@@ -549,9 +277,6 @@ async function handleDispose(): Promise<void> {
   processor = null;
   currentTask = 'transcribe';
   currentTargetLanguage = undefined;
-
-  audioBuffer = new Float32Array(0);
-  processingVad = false;
 
   post({ type: 'disposed' });
 }
@@ -562,13 +287,10 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const msg = event.data;
   switch (msg.type) {
     case 'init':
-      await handleInit(msg as GraniteSpeechInitMessage);
+      await handleInit(msg);
       break;
-    case 'audio':
-      await feedAudio((msg as AsrAudioMessage).samples, (msg as AsrAudioMessage).sampleRate);
-      break;
-    case 'flush':
-      await handleFlush();
+    case 'stop':
+      inbox?.stop(msg.epoch);
       break;
     case 'dispose':
       await handleDispose();

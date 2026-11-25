@@ -6,7 +6,7 @@
 
 /**
  * VAD config for vad-web FrameProcessor (Silero VAD v5 + @ricky0123/vad-web).
- * Used by whisper, cohere, granite, and voxtral workers.
+ * Read by the turn detector (every recognizer it serves) and by the Voxtral 4B worker.
  * All durations in seconds. All fields optional — workers use vad-web defaults.
  *
  * NOTE: sherpa-onnx workers use a different VAD engine (C++ Silero via Emscripten)
@@ -68,6 +68,15 @@ export interface AsrDisposeMessage {
   type: 'dispose';
 }
 
+/**
+ * A stop raises the recognizer's epoch: the older epoch's queued segments are dropped and acknowledged, and its
+ * drained marks are never answered. A stop that does not exceed the current epoch changes nothing.
+ */
+export interface AsrStopMessage {
+  type: 'stop';
+  epoch: number;
+}
+
 export interface WhisperAsrInitMessage {
   type: 'init';
   /** Map of filename → blob URL for model files from IndexedDB */
@@ -76,16 +85,12 @@ export interface WhisperAsrInitMessage {
   hfModelId: string;
   /** Source language for Whisper (e.g. 'ja', 'en') or undefined for auto-detect */
   language?: string;
-  /** VAD configuration overrides (durations in seconds). Defaults match @ricky0123/vad-web. */
-  vadConfig?: VadWebConfig;
   /** ONNX dtype config for WebGPU models */
   dtype?: string | Record<string, string>;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
-  /** Resolved absolute URL for bundled VAD model */
-  vadModelUrl?: string;
-  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
-  turnPort?: MessagePort;
+  /** The turn detector's segments for this recognizer (transferred): one ordered port, the worker's `SegmentInbox`. */
+  segmentPort: MessagePort;
 }
 
 /**
@@ -96,7 +101,7 @@ export interface WhisperAsrInitMessage {
  */
 export type Qwen3AsrInitMessage = WhisperAsrInitMessage;
 
-export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | Voxtral3BAsrInitMessage | CohereTranscribeAsrInitMessage | GraniteSpeechInitMessage | AsrAudioMessage | AsrDisposeMessage;
+export type AsrWorkerInMessage = AsrInitMessage | WhisperAsrInitMessage | VoxtralAsrInitMessage | Voxtral3BAsrInitMessage | CohereTranscribeAsrInitMessage | GraniteSpeechInitMessage | AsrAudioMessage | AsrStopMessage | AsrDisposeMessage;
 
 // ─── ASR Worker Messages (Worker → Main) ─────────────────────────────────────
 
@@ -114,7 +119,7 @@ export interface AsrStatusMessage {
  * How a speech segment ended, for the Logs panel: `silence`, the
  * FrameProcessor's silence rule; `smart`, Smart Turn; `cap`, the max-speech
  * cap; `release`, a press's release; `flush`, an automatic leg's drain (and,
- * while the vad-web workers still cut their own segments, push-to-talk release
+ * while Voxtral 4B still cuts its own segments, push-to-talk release
  * and session end); `kept`, a short reply after a Smart end that the processor
  * dropped and Smart Turn's gate handed back.
  */
@@ -133,6 +138,10 @@ export interface AsrResultMessage extends Partial<SegmentEnd> {
   durationMs: number;
   /** Time taken for recognition in milliseconds */
   recognitionTimeMs: number;
+  /** The press this segment belongs to (manual turns), as the detector tagged it. */
+  press?: number;
+  /** The detector's epoch the segment was cut in. */
+  epoch?: number;
 }
 
 export interface AsrErrorMessage {
@@ -148,11 +157,19 @@ export interface AsrSpeechStartMessage {
   type: 'speech_start';
 }
 
+/** Everything the detector sent before its drain mark `seq` (epoch `epoch`) is decoded or dropped. */
+export interface AsrDrainedMessage {
+  type: 'drained';
+  epoch: number;
+  seq: number;
+}
+
 export type AsrWorkerOutMessage =
   | AsrReadyMessage
   | AsrStatusMessage
   | AsrSpeechStartMessage
   | AsrResultMessage
+  | AsrDrainedMessage
   | AsrErrorMessage
   | AsrDisposedMessage;
 
@@ -201,14 +218,10 @@ export interface CohereTranscribeAsrInitMessage {
   language?: string;
   /** ONNX dtype config — 'q4f16' or 'q4', or per-component mapping */
   dtype: string | Record<string, string>;
-  /** VAD configuration overrides from user settings */
-  vadConfig?: VadWebConfig;
-  /** Resolved absolute URL for bundled VAD model */
-  vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
-  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
-  turnPort?: MessagePort;
+  /** The turn detector's segments for this recognizer (transferred). */
+  segmentPort: MessagePort;
 }
 
 export interface Voxtral3BAsrInitMessage {
@@ -221,14 +234,10 @@ export interface Voxtral3BAsrInitMessage {
   language?: string;
   /** ONNX dtype config — per-component mapping (audio_encoder, embed_tokens, decoder_model_merged) */
   dtype: string | Record<string, string>;
-  /** VAD configuration overrides from user settings */
-  vadConfig?: VadWebConfig;
-  /** Resolved absolute URL for bundled VAD model */
-  vadModelUrl: string;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
-  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
-  turnPort?: MessagePort;
+  /** The turn detector's segments for this recognizer (transferred). */
+  segmentPort: MessagePort;
 }
 
 export interface GraniteSpeechInitMessage {
@@ -239,8 +248,6 @@ export interface GraniteSpeechInitMessage {
   hfModelId: string;
   /** Source language hint (e.g. 'ja', 'en') */
   language?: string;
-  /** Optional VAD configuration to override defaults */
-  vadConfig?: VadWebConfig;
   /** Task: 'transcribe' for ASR, 'translate' for AST (speech translation) */
   task: 'transcribe' | 'translate';
   /** Target language for AST (only when task === 'translate') */
@@ -249,10 +256,8 @@ export interface GraniteSpeechInitMessage {
   dtype: string | Record<string, string>;
   /** Resolved absolute URL for bundled ORT WASM files */
   ortWasmBaseUrl?: string;
-  /** Resolved absolute URL for bundled VAD model */
-  vadModelUrl?: string;
-  /** Smart Turn's port (transferred); with `vadConfig.smartTurn` it turns the gate on. */
-  turnPort?: MessagePort;
+  /** The turn detector's segments for this recognizer (transferred). */
+  segmentPort: MessagePort;
 }
 
 // ─── Streaming ASR Worker Messages (Worker → Main) ──────────────────────────
@@ -262,14 +267,21 @@ export interface GraniteSpeechInitMessage {
 export interface StreamingAsrPartialMessage {
   type: 'partial';
   text: string;
+  /** The segment's press and epoch, when the worker decodes the detector's segments (Cohere, Voxtral 3B). */
+  press?: number;
+  epoch?: number;
 }
 
 /** Streaming ASR: final result (at endpoint) */
 export interface StreamingAsrResultMessage extends Partial<SegmentEnd> {
   type: 'result';
   text: string;
+  /** Where the segment starts on the leg's timeline; posted by the workers that decode the detector's segments (Cohere, Voxtral 3B). */
+  startSample?: number;
   durationMs: number;
   recognitionTimeMs: number;
+  press?: number;
+  epoch?: number;
 }
 
 export type StreamingAsrWorkerOutMessage =
@@ -278,6 +290,7 @@ export type StreamingAsrWorkerOutMessage =
   | AsrSpeechStartMessage
   | StreamingAsrPartialMessage
   | StreamingAsrResultMessage
+  | AsrDrainedMessage
   | AsrErrorMessage
   | AsrDisposedMessage;
 

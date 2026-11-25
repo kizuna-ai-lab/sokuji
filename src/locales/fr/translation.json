@@ -1583,6 +1583,8 @@
     "transcription_failed": "Une partie de la parole n'a pas pu être transcrite : {{detail}}",
     "translation_failed": "Une traduction a échoué : {{detail}}",
     "translation_unavailable": "Aucun modèle de traduction pour ce sens : sa parole est seulement transcrite.",
+    "turn_detection_overloaded": "La détection des tours de parole ne parvient pas à suivre sur cet appareil.",
+    "turn_detection_unavailable": "La détection des tours de parole n'a pas pu démarrer : {{detail}}",
     "local_models_missing": "Veuillez télécharger les modèles requis dans les Paramètres pour commencer.",
     "no_microphone": "Configurez les périphériques de ce mode pour démarrer.",
     "silent_no_permission": "Aucun audio n'est encore arrivé de la source sélectionnée. Si elle est en lecture et que rien n'est traduit, autorisez Sokuji dans Réglages Système > Confidentialité et sécurité > Enregistrement audio du système uniquement (macOS), puis relancez la session.",

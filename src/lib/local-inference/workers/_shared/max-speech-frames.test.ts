@@ -76,7 +76,7 @@ describe('resolveMaxSpeechFrames', () => {
   });
 });
 
-// Every worker that force-ends a segment must get its frame cap from the
+// Every worker that still force-ends a segment itself must get its frame cap from the
 // helper above — a hand-written Math.ceil(ms / VAD_FRAME_MS) is how a worker
 // ends up honouring a slider value its engine cannot transcribe — and must
 // pass the limit its engine was measured at. Each `limit` below is matched
@@ -85,33 +85,15 @@ describe('resolveMaxSpeechFrames', () => {
 // against the file. An earlier version of this test asserted the call's
 // prefix alone, and dropping whisper's limit (the regression the commit
 // exists to prevent) passed it.
+//
+// The five transformers.js recognizers on the turn detector are not here: they cut nothing, and
+// declare no limit (workers/asrLimits.consistency.test.ts). The detector reads the limit from
+// the manifest; turn-detector-core.test.ts pins the arithmetic.
 const CAPPING_WORKERS: Array<{ name: string; limit: RegExp | null; constant?: RegExp }> = [
-  {
-    name: 'whisper-webgpu.worker.ts',
-    limit: /maxSegmentSamples:\s*WHISPER_MAX_SEGMENT_SAMPLES/,
-    constant: /WHISPER_MAX_SEGMENT_SAMPLES\s*=\s*29\s*\*\s*VAD_SAMPLE_RATE/,
-  },
-  // No limit: it splits a long segment itself, at the quietest point.
-  { name: 'cohere-transcribe-webgpu.worker.ts', limit: null },
-  {
-    name: 'voxtral-3b-webgpu.worker.ts',
-    limit: /maxSegmentSamples:\s*VOXTRAL_3B_MAX_SEGMENT_SAMPLES/,
-    constant: /VOXTRAL_3B_MAX_SEGMENT_SAMPLES\s*=\s*30\s*\*\s*VAD_SAMPLE_RATE/,
-  },
   {
     name: 'voxtral-webgpu.worker.ts',
     limit: /maxSpeechSeconds:\s*VOXTRAL_REALTIME_MAX_SPEECH_SECONDS/,
     constant: /VOXTRAL_REALTIME_MAX_SPEECH_SECONDS\s*=\s*35\b/,
-  },
-  {
-    name: 'granite-speech-webgpu.worker.ts',
-    limit: /\{\s*maxSpeechSeconds\s*\}/,
-    constant: /GRANITE_MAX_SPEECH_SECONDS\s*=\s*30\b[\s\S]*GRANITE_TRANSLATE_MAX_SPEECH_SECONDS\s*=\s*20\b/,
-  },
-  {
-    name: 'qwen3-asr-webgpu.worker.ts',
-    limit: /maxSpeechSeconds:\s*QWEN3_ASR_MAX_SPEECH_SECONDS\[/,
-    constant: /QWEN3_ASR_MAX_SPEECH_SECONDS[^=]*=\s*\{\s*hi:\s*15,\s*th:\s*20\s*\}/,
   },
   {
     name: 'native-vad.worker.ts',

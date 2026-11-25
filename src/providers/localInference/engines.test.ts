@@ -6,6 +6,7 @@ import { StreamingAsrEngine } from '../../lib/local-inference/engine/StreamingAs
 import { TranslationEngine } from '../../lib/local-inference/engine/TranslationEngine';
 import { TtsEngine } from '../../lib/local-inference/engine/TtsEngine';
 import * as voiceStorage from '../../lib/local-inference/voiceStorage';
+import { TurnDetector } from '../../lib/local-inference/engine/TurnDetector';
 import { defaultEngines, type AsrLike } from './engines';
 
 const vad = { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, maxSpeechDuration: 30 };
@@ -80,8 +81,11 @@ describe('defaultEngines over the real engine classes', () => {
 
   it('ASR: AST asks the offline engine to translate into the target', async () => {
     const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false, turnDetection: 'own' });
-    const worker = await ready(asr.init('granite-speech', { vadConfig: vad, language: 'ja', translateTo: 'en' }));
-    expect(initMessage(worker)).toMatchObject({ task: 'translate', targetLanguage: 'en', language: 'ja' });
+    const { port1, port2 } = new MessageChannel();
+    const worker = await ready(asr.init('granite-speech', { language: 'ja', translateTo: 'en', segmentPort: port1 }));
+    expect(initMessage(worker)).toMatchObject({ task: 'translate', targetLanguage: 'en', language: 'ja', segmentPort: port1 });
+    port1.close();
+    port2.close();
   });
 
   it('TTS: the ready worker dying is fatal', async () => {
@@ -139,14 +143,60 @@ describe('defaultEngines over the real engine classes', () => {
     });
   });
 
-  it('ASR: a Smart Turn port reaches the vad-web worker in its init message, transferred', async () => {
-    const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false, turnDetection: 'own' });
+  it('ASR: the segment port reaches a WebGPU recognizer in its init message, transferred, with no VAD config', async () => {
+    const asr = defaultEngines.asr({ modelId: 'granite-speech', streaming: false, turnDetection: 'shared' } as any);
     const { port1, port2 } = new MessageChannel();
-    const worker = await ready(asr.init('granite-speech', { vadConfig: vad, language: 'ja', turnPort: port1 }));
+    const worker = await ready(asr.init('granite-speech', { vadConfig: vad, language: 'ja', segmentPort: port1 }));
     const call = worker.postMessage.mock.calls.find((c) => (c[0] as { type?: string }).type === 'init')!;
-    expect((call[0] as { turnPort?: MessagePort }).turnPort).toBe(port1);
+    expect((call[0] as { segmentPort?: MessagePort }).segmentPort).toBe(port1);
+    expect(call[0]).not.toHaveProperty('vadConfig');
     expect(call[1]).toEqual([port1]);
     port1.close();
     port2.close();
+  });
+
+  it('ASR: a WebGPU recognizer without a segment port does not start', async () => {
+    const asr = defaultEngines.asr({ modelId: 'whisper-base-webgpu', streaming: false, turnDetection: 'shared' } as any);
+    await expect(asr.init('whisper-base-webgpu', { language: 'ja' })).rejects.toThrow(/no segment port/);
+  });
+
+  it("ASR: drained, stop and the partial's tag pass through the offline engine", async () => {
+    const asr = defaultEngines.asr({ modelId: 'cohere-transcribe-webgpu', streaming: false, turnDetection: 'shared' } as any);
+    const { port1, port2 } = new MessageChannel();
+    const drained: number[] = [];
+    const partials: Array<[string, unknown]> = [];
+    const results: Array<{ press?: number; epoch?: number }> = [];
+    asr.onDrained = (seq) => drained.push(seq);
+    asr.onPartialResult = (text, tag) => partials.push([text, tag]);
+    asr.onResult = (r) => results.push(r);
+    const worker = await ready(asr.init('cohere-transcribe-webgpu', { language: 'ja', segmentPort: port1 }));
+    worker.emit({ type: 'drained', epoch: 1, seq: 4 });
+    worker.emit({ type: 'partial', text: 'a', press: 2, epoch: 1 });
+    worker.emit({ type: 'result', text: 'ab', durationMs: 1, recognitionTimeMs: 1, press: 2, epoch: 1 });
+    asr.stop(5);
+    expect(drained).toEqual([4]);
+    expect(partials).toEqual([['a', { press: 2, epoch: 1 }]]);
+    expect(results[0]).toMatchObject({ press: 2, epoch: 1 });
+    expect(worker.postMessage).toHaveBeenCalledWith({ type: 'stop', epoch: 5 });
+    port1.close();
+    port2.close();
+  });
+
+  it('ASR: the streaming engine\'s stop is a no-op and its partials carry no tag', async () => {
+    const asr = defaultEngines.asr({ modelId: 'voxtral-mini-4b-webgpu', streaming: true, turnDetection: 'own' });
+    const partials: Array<[string, unknown]> = [];
+    asr.onPartialResult = (text, tag) => partials.push([text, tag]);
+    const worker = await ready(asr.init('voxtral-mini-4b-webgpu', { vadConfig: vad, language: 'en' }));
+    worker.postMessage.mockClear();
+    asr.stop(2);
+    expect(worker.postMessage).not.toHaveBeenCalled();
+    worker.emit({ type: 'partial', text: 'hi' });
+    expect(partials).toEqual([['hi', undefined]]);
+  });
+
+  it('the detector is a TurnDetector', () => {
+    const detector = defaultEngines.detector!();
+    expect(detector).toBeInstanceOf(TurnDetector);
+    detector.dispose();
   });
 });

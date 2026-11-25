@@ -27,6 +27,14 @@ function makeConfig(over: Partial<LocalInferenceConfig> = {}): LocalInferenceCon
 
 const TTS = { modelId: 'tts-model', speakerId: 0, speed: 1 };
 
+/** A Whisper leg: its recognizer decodes the turn detector's segments, so the leg is `shared`. */
+const whisper = (over: Partial<LocalInferenceConfig> = {}) => makeConfig({
+  asr: { modelId: 'whisper', streaming: false, turnDetection: 'shared' },
+  limit: { maxSegmentSamples: 29 * 16000 },
+  ...over,
+});
+const manual: SessionContext = { ...auto, turns: 'manual' };
+
 /** Lets every pending promise continuation run. */
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -55,6 +63,7 @@ async function open(
 ) {
   const t = begin(config, context, undefined, punctuate);
   if (t.created.includes('asr')) t.asr.ready();
+  if (t.created.includes('detector')) t.detector.ready();
   if (t.created.includes('translation')) t.translation.ready();
   if (t.created.includes('tts')) t.tts.ready();
   const session: AdapterSession = await t.starting;
@@ -250,7 +259,7 @@ describe('the LocalInference adapter — segments and jobs', () => {
   });
 });
 
-describe('the LocalInference adapter — turns', () => {
+describe('the LocalInference adapter — turns (an own leg)', () => {
   it('endTurn feeds 700 ms of silence at 24 kHz as one buffer, then flushes', async () => {
     // One buffer: a worker drops audio arriving while its VAD is busy, so a burst would lose most of it.
     const t = await open();
@@ -278,6 +287,344 @@ describe('the LocalInference adapter — turns', () => {
     expect(t.asr.fed).toEqual([]);
     expect(t.asr.flushes).toBe(0);
     expectConformant(t.log, t.context);
+  });
+
+  it('opens no detector, hands the recognizer its own VAD config, and sends the detector no audio', async () => {
+    const t = await open();
+    expect(t.created).not.toContain('detector');
+    expect(t.detector.inits).toEqual([]);
+    expect(t.asr.inits[0].options.vadConfig).toEqual(makeConfig().vad);
+    expect(t.asr.inits[0].options.segmentPort).toBeUndefined();
+    t.session.appendAudio(new Int16Array(4));
+    t.session.beginTurn();
+    expect(t.detector.fed).toEqual([]);
+    expect(t.detector.begins).toEqual([]);
+    expect(t.asr.fed).toHaveLength(1);
+  });
+
+  it('never voids a result or partial that carries no press or epoch: an own leg tags nothing', async () => {
+    const t = await open();
+    t.asr.partial('今日', {});
+    t.asr.partial('今日は', undefined);
+    t.asr.final('今日は');
+    expect(segments(t.log, 'source')).toEqual([{ origin: 'u1', text: '今日は', closed: true }]);
+    expect(ofKind(t.log, 'frame').filter((f) => f.type === 'local.asr.voided')).toEqual([]);
+  });
+});
+
+describe('the LocalInference adapter — turns (a shared leg)', () => {
+  const voided = (log: ConformanceLog) => ofKind(log, 'frame').filter((f) => f.type === 'local.asr.voided');
+  const framesOf = (log: ConformanceLog, type: string) => ofKind(log, 'frame').filter((f) => f.type === type).map((f) => f.payload);
+
+  it('opens a detector for a shared leg and none for an own one', async () => {
+    const shared = await open(whisper());
+    expect(shared.created).toContain('detector');
+    expect(shared.detector.inits).toHaveLength(1);
+    const own = await open(makeConfig());
+    expect(own.created).not.toContain('detector');
+    expect(own.detector.inits).toEqual([]);
+  });
+
+  it('loads the detector and the recognizer together, joined by one port pair, the detector given the leg\'s settings', async () => {
+    const config = whisper();
+    const t = begin(config);
+    // Both started before either one finished.
+    expect(t.detector.inits).toHaveLength(1);
+    expect(t.asr.inits).toHaveLength(1);
+    const [init] = t.detector.inits;
+    expect(init).toMatchObject({ turns: 'auto', vad: config.vad, limit: { maxSegmentSamples: 29 * 16000 } });
+    const { segmentPort, vadConfig } = t.asr.inits[0].options;
+    expect(init.output).toBeDefined();
+    expect(segmentPort).toBeDefined();
+    expect(segmentPort).not.toBe(init.output);
+    expect(vadConfig).toBeUndefined();
+    // Only after both are ready is the session running.
+    t.asr.ready();
+    t.translation.ready();
+    let opened = false;
+    void t.starting.then(() => { opened = true; });
+    await settle();
+    expect(opened).toBe(false);
+    t.detector.ready();
+    await t.starting;
+  });
+
+  it('the detector dying while the recognizer is still loading fails the start, not a deaf leg', async () => {
+    const t = begin(whisper());
+    t.translation.ready();
+    t.detector.ready();
+    t.detector.die('RuntimeError: unreachable');
+    t.asr.ready();
+    await expect(t.starting).rejects.toThrow(/Turn detection stopped/);
+  });
+
+  it('the recognizer dying while the detector is still loading fails the start', async () => {
+    const t = begin(whisper());
+    t.translation.ready();
+    t.asr.ready();
+    await Promise.resolve(); // a crash after ready arrives as a message of its own, after the init answer was handled
+    await Promise.resolve();
+    t.asr.die();
+    t.detector.ready();
+    await expect(t.starting).rejects.toThrow(/Speech recognition stopped/);
+  });
+
+  it('the recognizer failing while it loads rejects its init, so the start classifier sees it', async () => {
+    const t = begin(whisper());
+    t.translation.ready();
+    t.asr.failInit('out of memory');
+    t.detector.ready();
+    const error = await t.starting.then(() => null, (e: unknown) => e);
+    // Classified at the start: the surface words a `gpu_out_of_memory` code, a plain Error it cannot.
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect(error).toMatchObject({ code: 'gpu_out_of_memory' });
+    expect((error as { cause?: unknown }).cause).toMatchObject({ message: 'out of memory' });
+  });
+
+  it('a shared leg without a detector in the engines rejects the start', async () => {
+    const fakes = createFakeEngines();
+    delete fakes.engines.detector;
+    const starting = createLocalInferenceAdapter(fakes.engines).start(
+      { context: auto, config: whisper(), credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal },
+      recordConformance().events,
+    );
+    await expect(starting).rejects.toThrow(/turn detector/i);
+    expect(fakes.asr.disposes).toBeGreaterThan(0);
+  });
+
+  it('audio goes to the detector only, as a copy, and the recognizer is fed nothing', async () => {
+    const t = await open(whisper());
+    const pcm = Int16Array.of(1, 2, 3, 4);
+    t.session.appendAudio(pcm);
+    expect(t.detector.fed).toEqual([Int16Array.of(1, 2, 3, 4)]);
+    expect(Array.from(pcm)).toEqual([1, 2, 3, 4]);
+    expect(t.asr.fed).toEqual([]);
+    expectConformant(t.log, t.context);
+  });
+
+  it('keeps the audio it fed in `fed`, so a result\'s start sample finds when it was heard', async () => {
+    const t = await open(whisper({ translation: { kind: 'none' } }));
+    t.clock.advance(1000);
+    t.session.appendAudio(new Int16Array(24000));
+    t.asr.onResult?.({ text: '晴れ', startSample: 0, durationMs: 1000, recognitionTimeMs: 100, epoch: 1 });
+    const heard = last(ofKind(t.log, 'segmentText'))?.heard;
+    expect(heard?.pieces[0].startAt).toBe(0);
+    expect(heard?.pieces[(heard?.pieces.length ?? 1) - 1].endAt).toBe(1000);
+  });
+
+  it('beginTurn numbers the press and tells the detector; endTurn drains it — no 700 ms pad, no flush', async () => {
+    const t = await open(whisper(), manual);
+    t.session.beginTurn();
+    t.session.endTurn();
+    t.session.beginTurn();
+    t.session.endTurn();
+    expect(t.detector.begins).toEqual([1, 2]);
+    expect(t.detector.drains).toEqual([1, 2]);
+    expect(t.asr.fed).toEqual([]);
+    expect(t.detector.fed).toEqual([]);
+    expect(t.asr.flushes).toBe(0);
+    expectConformant(t.log, t.context);
+  });
+
+  it('after a cancel no new result of that press is published', async () => {
+    const t = await open(whisper(), manual);
+    t.session.beginTurn();
+    t.session.cancelTurn();
+    expect(t.detector.cancels).toEqual([1]);
+    t.asr.result('取り消した言葉', { press: 1, epoch: 1 });
+    await settle();
+    expect(segments(t.log, 'source')).toEqual([]);
+    expect(t.translation.calls).toEqual([]);
+    expect(voided(t.log)).toHaveLength(1);
+    expectConformant(t.log, t.context);
+  });
+
+  it('after a cancel no partial of that press is shown; one shown before the cancel stays, closed with no job', async () => {
+    const t = await open(whisper(), manual);
+    t.session.beginTurn();
+    t.asr.partial('こんに', { press: 1, epoch: 1 });
+    t.session.cancelTurn();
+    t.asr.partial('こんにちは', { press: 1, epoch: 1 });
+    expect(segments(t.log, 'source')).toEqual([{ origin: 'u1', text: 'こんに', closed: false }]);
+    t.asr.result('こんにちは', { press: 1, epoch: 1 });
+    await settle();
+    expect(segments(t.log, 'source')).toEqual([{ origin: 'u1', text: 'こんに', closed: true }]);
+    expect(t.translation.calls).toEqual([]);
+    expect(voided(t.log)).toHaveLength(2);
+    expectConformant(t.log, t.context);
+  });
+
+  it("a released press's late result is published after the next press began, and stays the first press's", async () => {
+    const t = await open(whisper(), manual);
+    t.session.beginTurn();
+    t.asr.partial('今日', { press: 1, epoch: 1 });
+    t.session.endTurn();
+    t.session.beginTurn();
+    t.asr.result('今日は晴れ', { press: 1, epoch: 1 });
+    expect(segments(t.log, 'source')).toEqual([{ origin: 'u1', text: '今日は晴れ', closed: true }]);
+    expect(t.translation.calls.map((c) => c.text)).toEqual(['今日は晴れ']);
+    // The second press's own words open the next segment.
+    t.asr.partial('次', { press: 2, epoch: 1 });
+    expect(segments(t.log, 'source').map((x) => x.origin)).toEqual(['u1', 'u2']);
+    expect(voided(t.log)).toEqual([]);
+  });
+
+  it('a result tagged with no press or epoch is never voided, and one of another epoch always is', async () => {
+    const t = await open(whisper(), manual);
+    t.session.beginTurn();
+    t.session.cancelTurn();
+    t.asr.partial('a', {});
+    t.asr.partial('ab', undefined);
+    t.asr.final('abc');
+    expect(segments(t.log, 'source')).toEqual([{ origin: 'u1', text: 'abc', closed: true }]);
+    expect(voided(t.log)).toEqual([]);
+    t.asr.result('stale', { epoch: 7 });
+    t.asr.partial('stale', { epoch: 0 });
+    expect(segments(t.log, 'source')).toHaveLength(1);
+    expect(voided(t.log)).toHaveLength(2);
+  });
+
+  it('stop raises the epoch on both the detector and the recognizer, then disposes the detector', async () => {
+    const t = await open(whisper());
+    await t.session.stop();
+    expect(t.detector.stops).toEqual([2]);
+    expect(t.asr.stops).toEqual([2]);
+    expect(t.detector.disposes).toBe(1);
+    expect(t.asr.disposes).toBe(1);
+  });
+
+  it('results of an older epoch are ignored after stop', async () => {
+    const t = await open(whisper());
+    t.asr.partial('途中', { epoch: 1 });
+    await t.session.stop();
+    const before = t.log.length;
+    t.asr.result('遅い', { epoch: 1 });
+    t.asr.partial('遅い', { epoch: 1 });
+    t.detector.speechStart();
+    await settle();
+    expect(t.log.length).toBe(before);
+    t.session.appendAudio(new Int16Array(4));
+    t.session.endTurn();
+    expect(t.detector.fed).toEqual([]);
+    expect(t.detector.drains).toEqual([]);
+  });
+
+  it('the detector hearing speech says so in a frame', async () => {
+    const t = await open(whisper());
+    t.detector.speechStart();
+    expect(framesOf(t.log, 'local.asr.start')).toEqual([{ modelId: 'whisper' }]);
+  });
+
+  it('drained answers in order settle the pending drains and log local.turn.drained', async () => {
+    const t = await open(whisper(), manual);
+    t.session.beginTurn();
+    t.session.endTurn();
+    t.clock.advance(100);
+    t.session.beginTurn();
+    t.session.endTurn();
+    t.clock.advance(150);
+    t.asr.drained(1);
+    t.clock.advance(50);
+    t.asr.drained(2);
+    t.asr.drained(3); // nothing pending: nothing said
+    expect(framesOf(t.log, 'local.turn.drained')).toEqual([{ press: 1, ms: 250 }, { press: 2, ms: 200 }]);
+    expect(framesOf(t.log, 'local.turn.drain_timeout')).toEqual([]);
+  });
+
+  it('a drain nobody answers within 60 s logs local.turn.drain_timeout, blocks nothing, and its late answer says nothing', async () => {
+    const t = await open(whisper(), manual);
+    t.session.beginTurn();
+    t.session.endTurn();
+    t.clock.advance(59_999);
+    expect(framesOf(t.log, 'local.turn.drain_timeout')).toEqual([]);
+    t.clock.advance(1);
+    expect(framesOf(t.log, 'local.turn.drain_timeout')).toEqual([{ press: 1 }]);
+    t.session.beginTurn();
+    t.session.endTurn();
+    t.asr.drained(1); // the first press's own, late
+    expect(framesOf(t.log, 'local.turn.drained')).toEqual([]);
+    t.asr.drained(2);
+    expect(framesOf(t.log, 'local.turn.drained').map((f) => (f as { press: number }).press)).toEqual([2]);
+  });
+
+  it('the detector failing overloaded fails the leg with turn_detection_overloaded', async () => {
+    const t = await open(whisper());
+    t.detector.fail('turn_detection_overloaded');
+    expect(last(events(t.log))).toEqual({
+      kind: 'failed',
+      payload: { message: 'Turn detection cannot keep up on this device.', code: 'turn_detection_overloaded' },
+    });
+    t.asr.final('遅い', { epoch: 1 } as never);
+    t.session.appendAudio(new Int16Array(4));
+    expect(ofKind(t.log, 'failed')).toHaveLength(1);
+    expect(ofKind(t.log, 'segmentOpened')).toEqual([]);
+  });
+
+  it('the detector dying fails the leg: failed once, nothing more emitted', async () => {
+    const t = await open(whisper());
+    t.detector.die();
+    t.detector.die();
+    t.asr.partial('途中', { epoch: 1 });
+    await settle();
+    expect(ofKind(t.log, 'failed')).toEqual([{ message: expect.stringContaining('Turn detection stopped: RuntimeError: unreachable') }]);
+    expect(ofKind(t.log, 'segmentText')).toEqual([]);
+  });
+
+  it('Silero not loading rejects the start with turn_detection_unavailable', async () => {
+    const t = begin(whisper());
+    t.asr.ready();
+    t.translation.ready();
+    t.detector.failInit('turn_detection_unavailable', 'Silero did not load');
+    const error = await t.starting.then(() => null, (e: unknown) => e);
+    expect(error).toBeInstanceOf(AdapterStartError);
+    expect(error).toMatchObject({ code: 'turn_detection_unavailable', message: 'Silero did not load' });
+    expect(t.detector.disposes).toBeGreaterThan(0);
+    expect(t.asr.disposes).toBeGreaterThan(0);
+  });
+
+  it('an ordinary recognizer init failure still rejects with the ASR error, the detector disposed too', async () => {
+    const t = begin(whisper());
+    t.asr.failInit('boom');
+    await expect(t.starting).rejects.toThrow('ASR engine init failed: boom');
+    expect(t.detector.disposes).toBeGreaterThan(0);
+  });
+
+  it('aborted while loading: the detector is disposed, and a late init of it does not revive the session', async () => {
+    const controller = new AbortController();
+    const t = begin(whisper(), auto, controller.signal);
+    controller.abort(new Error('cancelled'));
+    await expect(t.starting).rejects.toThrow('cancelled');
+    expect(t.detector.disposes).toBeGreaterThan(0);
+    t.detector.ready();
+    t.asr.ready();
+    await settle();
+    expect(ofKind(t.log, 'loading')).toEqual([]);
+  });
+
+  it('two legs each have their own detector; a cancel on one touches nothing of the other', async () => {
+    const one = createFakeEngines();
+    const two = createFakeEngines();
+    const start = async (f: ReturnType<typeof createFakeEngines>) => {
+      const recorder = recordConformance();
+      const starting = createLocalInferenceAdapter(f.engines).start(
+        { context: manual, config: whisper(), credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal },
+        recorder.events,
+      );
+      f.asr.ready(); f.detector.ready(); f.translation.ready();
+      return { session: await starting, log: recorder.log };
+    };
+    const a = await start(one);
+    const b = await start(two);
+    a.session.beginTurn();
+    b.session.beginTurn();
+    a.session.cancelTurn();
+    expect(one.detector.cancels).toEqual([1]);
+    expect(two.detector.cancels).toEqual([]);
+    // The other leg's press 1 is its own.
+    two.asr.result('生きている', { press: 1, epoch: 1 });
+    expect(segments(b.log, 'source')).toEqual([{ origin: 'u1', text: '生きている', closed: true }]);
+    one.asr.result('取り消した', { press: 1, epoch: 1 });
+    expect(segments(a.log, 'source')).toEqual([]);
   });
 });
 
@@ -962,31 +1309,41 @@ describe('the LocalInference adapter — a leg that should speak but cannot (#61
 });
 
 describe('the LocalInference adapter — Smart Turn', () => {
-  const smart = () => makeConfig({ vad: { ...makeConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
+  const smart = () => whisper({ vad: { ...makeConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
   const turnFrames = (log: ConformanceLog) => ofKind(log, 'frame').filter((f) => f.type === 'local.turn').map((f) => f.payload);
 
-  it('hands the ASR a Smart Turn port under Auto turns', async () => {
+  it('Smart under Auto: the Smart Turn port goes to the detector, never to the recognizer', async () => {
     const t = await open(smart());
     expect(t.turn.connects).toBe(1);
-    expect(t.asr.inits[0].options.turnPort).toBe(t.turn.port);
+    expect(t.detector.inits[0].turnPort).toBe(t.turn.port);
+    expect(t.asr.inits[0].options).not.toHaveProperty('turnPort');
     expect(turnFrames(t.log)).toEqual([{ smart: true }]);
     expectConformant(t.log, t.context);
   });
 
   it('connects nothing under manual turns: the held key ends the turn', async () => {
-    const t = await open(smart(), { ...auto, turns: 'manual' });
+    const t = await open(smart(), manual);
     expect(t.turn.connects).toBe(0);
-    expect(t.asr.inits[0].options.turnPort).toBeUndefined();
+    expect(t.detector.inits[0].turnPort).toBeUndefined();
+    expect(t.detector.inits[0].turns).toBe('manual');
     expect(turnFrames(t.log)).toEqual([]);
   });
 
   it('connects nothing when Smart Turn is off', async () => {
-    const t = await open();
+    const t = await open(whisper());
     expect(t.turn.connects).toBe(0);
+    expect(t.detector.inits[0].turnPort).toBeUndefined();
     expect(turnFrames(t.log)).toEqual([]);
   });
 
-  it('runs Normal when the runtime has no port for it', async () => {
+  it('an own leg opens no Smart Turn port, so none leaks to a recognizer that reads none', async () => {
+    const t = await open(makeConfig({ vad: { ...makeConfig().vad, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } }));
+    expect(t.turn.connects).toBe(0);
+    expect(t.asr.inits[0].options).not.toHaveProperty('turnPort');
+    expect(turnFrames(t.log)).toEqual([]);
+  });
+
+  it('a stored Smart with no Smart Turn model runs Normal: the detector gets no turn port', async () => {
     const fakes = createFakeEngines();
     fakes.turn.available = false;
     const recorder = recordConformance();
@@ -994,10 +1351,13 @@ describe('the LocalInference adapter — Smart Turn', () => {
       { context: auto, config: smart(), credentials: {}, clock: createVirtualClock(), signal: new AbortController().signal },
       recorder.events,
     );
+    await settle();
     fakes.asr.ready();
+    fakes.detector.ready();
     fakes.translation.ready();
     await starting;
-    expect(fakes.asr.inits[0].options.turnPort).toBeUndefined();
+    expect(fakes.detector.inits[0].turnPort).toBeUndefined();
+    expect(fakes.asr.inits[0].options).not.toHaveProperty('turnPort');
     expect(turnFrames(recorder.log)).toEqual([{ smart: false }]);
   });
 
@@ -1023,9 +1383,10 @@ describe('the LocalInference adapter — Smart Turn', () => {
     expect(t.turn.connects).toBe(1);
     expect(t.turn.releases).toBe(1);
     expect(t.asr.inits).toEqual([]);
+    expect(t.detector.inits).toEqual([]);
   });
 
-  it('loads no ASR when the start is cancelled after the connection was made', async () => {
+  it('loads no ASR and no detector when the start is cancelled after the connection was made', async () => {
     const fakes = createFakeEngines();
     const controller = new AbortController();
     let releases = 0;
@@ -1043,6 +1404,7 @@ describe('the LocalInference adapter — Smart Turn', () => {
     await expect(starting).rejects.toThrow('cancelled');
     await settle();
     expect(fakes.asr.inits).toEqual([]);
+    expect(fakes.detector.inits).toEqual([]);
     expect(releases).toBe(1);
   });
 });

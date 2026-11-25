@@ -1583,6 +1583,8 @@
     "transcription_failed": "برخی گفتارها قابل تبدیل به متن نبودند: {{detail}}",
     "translation_failed": "یک ترجمه ناموفق بود: {{detail}}",
     "translation_unavailable": "برای این جهت هیچ مدل ترجمه‌ای وجود ندارد: گفتار آن فقط به متن تبدیل می‌شود.",
+    "turn_detection_overloaded": "تشخیص نوبت گفتار در این دستگاه نمی‌تواند هم‌پای صدا پیش برود.",
+    "turn_detection_unavailable": "تشخیص نوبت گفتار شروع نشد: {{detail}}",
     "local_models_missing": "لطفاً برای شروع مدل‌های مورد نیاز را از تنظیمات دانلود کنید.",
     "no_microphone": "برای شروع، دستگاه‌های این حالت را پیکربندی کنید.",
     "silent_no_permission": "هنوز صدایی از منبع انتخاب‌شده دریافت نشده است. اگر در حال پخش است و چیزی ترجمه نمی‌شود، در System Settings > Privacy & Security > System Audio Recording Only به Sokuji اجازه دهید (macOS) و سپس جلسه را دوباره شروع کنید.",

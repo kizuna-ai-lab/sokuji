@@ -1583,6 +1583,8 @@
     "transcription_failed": "Osaa puheesta ei voitu litteroida: {{detail}}",
     "translation_failed": "Käännös epäonnistui: {{detail}}",
     "translation_unavailable": "Tälle suunnalle ei ole käännösmallia: sen puhe vain litteroidaan.",
+    "turn_detection_overloaded": "Puheenvuorojen tunnistus ei pysy mukana tällä laitteella.",
+    "turn_detection_unavailable": "Puheenvuorojen tunnistusta ei voitu käynnistää: {{detail}}",
     "local_models_missing": "Lataa tarvittavat mallit Asetuksista aloittaaksesi.",
     "no_microphone": "Määritä tämän tilan laitteet aloittaaksesi.",
     "silent_no_permission": "Valitusta lähteestä ei ole vielä tullut ääntä. Jos se toistaa eikä mitään käännetä, salli Sokuji kohdassa Järjestelmäasetukset > Tietosuoja ja turvallisuus > Vain järjestelmän äänen tallennus (macOS) ja aloita istunto uudelleen.",

@@ -1,7 +1,7 @@
 /**
  * Qwen3-ASR WebGPU ASR Worker (raw onnxruntime-web, no Transformers.js model class)
  *
- * Streaming audio input (Int16@24kHz) -> Silero VAD v5 -> Qwen3-ASR-0.6B ONNX (WebGPU)
+ * The turn detector's segments (16 kHz Float32 speech) -> Qwen3-ASR-0.6B ONNX (WebGPU)
  * Model files (layout v2, see prompt_config.json in jiangzhuo9357/Qwen3-ASR-0.6B-ONNX) are
  * read from IndexedDB blob URLs. Per utterance: log-mel -> encoder -> prompt embedding built
  * on the host from the int8 table with the encoder output spliced over the audio pads ->
@@ -11,25 +11,18 @@
  * is appended to the prompt (teacher forcing): it removes a first-token knife edge of the
  * quantized decoder and any language-ID mistake on short utterances.
  *
- * Input messages:  Qwen3AsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' }
- * Output messages: AsrWorkerOutMessage (ready, status, speech_start, result, error, disposed)
+ * This worker runs no VAD and takes no audio. Turn detection lives in turn-detector.worker.ts, which
+ * cuts the turns and sends each segment here on `segmentPort`; SegmentInbox decodes them one at a
+ * time, in arrival order, and answers the detector's drain marks.
+ *
+ * Input messages:  Qwen3AsrInitMessage | AsrStopMessage | AsrDisposeMessage
+ * Output messages: AsrWorkerOutMessage (ready, status, result, drained, error, disposed)
  */
 
 import { InferenceSession, Tensor, env as ortEnv } from './_shared/onnxruntime-webgpu';
-// The VAD deliberately runs on a SEPARATE onnxruntime-web instance (the wasm-only bundle the
-// other workers use for their VAD). The webgpu bundle runs `session.run()` under Emscripten
-// Asyncify, and re-entering that wasm instance while a decode is suspended (which is exactly
-// what a VAD frame arriving mid-decode does) is undefined behaviour — observed as a permanent
-// hang of every later decode. Two instances cannot re-enter each other, so VAD frames and the
-// GPU decode may overlap freely, the same layout voxtral-3b relies on.
-import { InferenceSession as VadInferenceSession, Tensor as VadTensor, env as vadOrtEnv } from './_shared/onnxruntime-all';
-import { FrameProcessor, Message } from '@ricky0123/vad-web';
-import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
-import { resolveVadThresholds } from './_shared/vad-thresholds';
-import { resolveMaxSpeechFrames } from './_shared/max-speech-frames';
-import { SileroInput, SILERO_INPUT_SAMPLES } from './_shared/silero-input';
-import { openTurnLink, type TurnLink } from './_shared/turn-gate';
-import { logMel, type MelFilterbank } from './_shared/log-mel';
+import { VAD_SAMPLE_RATE } from './_shared/max-speech-frames';
+import { SegmentInbox, type DecodeTag } from './_shared/segment-inbox';
+import { logMel, MIN_MEL_INPUT_SAMPLES, type MelFilterbank } from './_shared/log-mel';
 import { createBpeDecoder, type BpeDecoder } from './_shared/bpe-decoder';
 import {
   audioTokenCount,
@@ -39,152 +32,27 @@ import {
   type Qwen3AsrPromptConfig,
 } from './_shared/qwen3-asr-prompt';
 import { f16ToF32, f32ToF16, greedyDecode, type DecodeDeps, type RunnableSession } from './_shared/qwen3-asr-decode';
-
 import type {
   Qwen3AsrInitMessage,
-  AsrAudioMessage,
+  AsrStopMessage,
   AsrDisposeMessage,
   AsrWorkerOutMessage,
-  SegmentEnd,
 } from '../types';
 import { acquireWebGpuAdapter, bindCheckedWebGpuAdapter } from './shaderF16Gate';
-import { segmentStartSample } from './_shared/segmentStart';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type WorkerMessage = Qwen3AsrInitMessage | AsrAudioMessage | AsrDisposeMessage | { type: 'flush' };
+type WorkerMessage = Qwen3AsrInitMessage | AsrStopMessage | AsrDisposeMessage;
 
 function post(msg: AsrWorkerOutMessage) {
   self.postMessage(msg);
 }
 
-// ─── Silero VAD v5 (same scaffold as the other WebGPU ASR workers) ──────────
-
-const VAD_SAMPLE_RATE = 16000;
-const VAD_FRAME_SAMPLES = 512; // 32ms @ 16kHz
-const VAD_FRAME_MS = (VAD_FRAME_SAMPLES / VAD_SAMPLE_RATE) * 1000;
-
-interface VadSession {
-  session: VadInferenceSession;
-  state: VadTensor;
-  input: SileroInput;
-}
-
-let vadSession: VadSession | null = null;
-let frameProcessor: FrameProcessor | null = null;
-let turnLink: TurnLink | null = null;
-
-let maxSpeechFrames = 625; // ~20s at 32ms/frame
-let speechFramesSinceStart = 0;
-
-// The longest speech this engine is handed, by source language. There is no
-// audio-side limit; the limit is the decode budget, prompt_config.json's
-// max_new_tokens = 256, and a transcript that needs more is cut at the tail
-// and posted as an ordinary result. In seconds that depends on how the
-// tokenizer treats the language. Real English and Japanese need 58-78 s to
-// fill it (and at 60 s the decode runs at 0.8-1.3x real time, so the queue
-// never drains). Hindi and Thai are far denser, and both were measured on
-// FLEURS audio through the shipped graphs: at 20.8 s four of six Hindi
-// windows overflowed, losing 3 to 49 characters and sometimes ending in
-// U+FFFD, and at 30.8 s every fast Thai window overflowed, losing 45 to 86.
-// At 15.8 s and 20.8 s respectively they fit, needing 230 and 209 tokens at
-// p99 pace.
-// Raising the budget instead needs a repetition stop first: given 400 tokens,
-// the 1.7B model looped "doctor, doctor, ..." on clean English until they
-// ran out.
-// Pinned equal to QWEN3_ASR_LIMIT in modelManifest.ts (workers/asrLimits.consistency.test.ts), where the length limit is declared.
-const QWEN3_ASR_MAX_SPEECH_SECONDS: Record<string, number> = { hi: 15, th: 20 };
-const QWEN3_ASR_DEFAULT_MAX_SPEECH_SECONDS = 40;
-let totalSamplesFed = 0;
-
-async function vadInfer(frame: Float32Array): Promise<{ isSpeech: number; notSpeech: number }> {
-  if (!vadSession) return { isSpeech: 0, notSpeech: 1 };
-
-  const input = new VadTensor('float32', vadSession.input.next(frame), [1, SILERO_INPUT_SAMPLES]);
-  const sr = new VadTensor('int64', BigInt64Array.from([BigInt(VAD_SAMPLE_RATE)]), []);
-
-  const result = await vadSession.session.run({
-    input,
-    sr,
-    state: vadSession.state,
-  });
-
-  vadSession.state = result.stateN as VadTensor;
-  const prob = (result.output as VadTensor).data[0] as number;
-  return { isSpeech: prob, notSpeech: 1 - prob };
-}
-
-function vadResetStates() {
-  if (!vadSession) return;
-  vadSession.state = new VadTensor('float32', new Float32Array(2 * 128), [2, 1, 128]);
-  vadSession.input.reset();
-}
-
-async function initVad(
-  vadConfig: Qwen3AsrInitMessage['vadConfig'] | undefined,
-  vadModelUrl: string | undefined,
-  language: string | undefined,
-): Promise<void> {
-  const session = await VadInferenceSession.create(vadModelUrl || './wasm/vad/silero_vad_v5.onnx', {
-    executionProviders: ['wasm'],
-  });
-
-  vadSession = {
-    session,
-    state: new VadTensor('float32', new Float32Array(2 * 128), [2, 1, 128]),
-    input: new SileroInput(),
-  };
-
-  const { positive: positiveSpeechThreshold, negative: negativeSpeechThreshold } = resolveVadThresholds(vadConfig);
-  const redemptionMs = (vadConfig?.minSilenceDuration ?? 1.4) * 1000;
-  const minSpeechMs = (vadConfig?.minSpeechDuration ?? 0.4) * 1000;
-  const preSpeechPadMs = (vadConfig?.preSpeechPadDuration ?? 0.8) * 1000;
-
-  const primaryLanguage = (language ?? '').toLowerCase().split(/[-_]/)[0];
-  maxSpeechFrames = resolveMaxSpeechFrames(vadConfig?.maxSpeechDuration, preSpeechPadMs, {
-    maxSpeechSeconds: QWEN3_ASR_MAX_SPEECH_SECONDS[primaryLanguage] ?? QWEN3_ASR_DEFAULT_MAX_SPEECH_SECONDS,
-  });
-
-  frameProcessor = new FrameProcessor(
-    vadInfer,
-    vadResetStates,
-    {
-      positiveSpeechThreshold,
-      negativeSpeechThreshold,
-      redemptionMs,
-      minSpeechMs,
-      preSpeechPadMs,
-      submitUserSpeechOnPause: false,
-    },
-    VAD_FRAME_MS,
-  );
-  frameProcessor.resume();
-
-  totalSamplesFed = 0;
-  speechFramesSinceStart = 0;
-}
-
-// ─── Audio Buffer & Resampling ──────────────────────────────────────────────
-
-let audioBuffer = new Float32Array(0);
-
-function resampleInt16ToFloat32_16k(samples: Int16Array, inputRate: number): Float32Array {
-  const ratio = inputRate / VAD_SAMPLE_RATE;
-  const outLen = Math.floor(samples.length / ratio);
-  const out = new Float32Array(outLen);
-
-  for (let i = 0; i < outLen; i++) {
-    const srcIdx = i * ratio;
-    const lo = Math.floor(srcIdx);
-    const hi = Math.min(lo + 1, samples.length - 1);
-    const frac = srcIdx - lo;
-    const vLo = samples[lo] / 32768;
-    const vHi = samples[hi] / 32768;
-    out[i] = vLo + (vHi - vLo) * frac;
-  }
-
-  return out;
-}
+// The longest speech this engine is handed is the detector's limit for Qwen3-ASR, by source
+// language (40 s; 15 s Hindi, 20 s Thai; declared in modelManifest.ts). The limit is the decode
+// budget, prompt_config.json's max_new_tokens = 256: a transcript that needs more is cut at the
+// tail and posted as an ordinary result, and how many seconds that is depends on how the
+// tokenizer treats the language. This worker never sees a longer segment.
 
 // ─── Qwen3-ASR model state ──────────────────────────────────────────────────
 
@@ -208,9 +76,8 @@ interface LoadedModel {
 }
 
 let model: LoadedModel | null = null;
-let processingVad = false;
-/** The decode currently running or queued; decodes are serialized through it (see transcribe). */
-let currentDecodePromise: Promise<void> | null = null;
+/** The detector's segments, decoded one at a time in arrival order; exists once the model is ready. */
+let inbox: SegmentInbox | null = null;
 
 /**
  * Whether this worker can run on the GPU — and, in the same step, WHICH adapter
@@ -254,34 +121,21 @@ function asRunnable(session: InferenceSession): RunnableSession {
 // ─── Speech Segment Processing ──────────────────────────────────────────────
 
 /**
- * Decode one speech segment, serialized behind whatever decode is already running.
- *
- * Callers on the VAD path fire-and-forget this (`void transcribe(...)`): a decode takes
- * 0.5–2.5 s, and awaiting it inside `feedAudio` would keep `processingVad` true for that
- * long, so every audio message arriving meanwhile would hit the guard and be dropped — on
- * gapless audio that loses the start of the next utterance. Same pattern as the Voxtral 3B
- * worker (`runVoxtral3B` / `currentDecodePromise`). Chaining on the previous promise keeps
- * decodes strictly ordered and never overlapping on the shared sessions and KV buffers.
- * The returned promise never rejects: `transcribeSegment` reports its own errors.
+ * Decode one speech segment the detector cut. Called by the inbox, one segment at a time, so decodes
+ * never overlap on the shared sessions and KV buffers. `tag` is null for the warm-up, which posts
+ * nothing. Reports its own errors.
  */
-function transcribe(audio: Float32Array, startSample: number, end: SegmentEnd | null, warmup = false): Promise<void> {
-  const previous = currentDecodePromise;
-  const promise = (async () => {
-    if (previous) {
-      try { await previous; } catch { /* already reported by its own catch */ }
-    }
-    await transcribeSegment(audio, startSample, end, warmup);
-  })();
-  currentDecodePromise = promise;
-  return promise;
-}
-
-async function transcribeSegment(audio: Float32Array, startSample: number, end: SegmentEnd | null, warmup = false): Promise<void> {
+async function transcribeSegment(audio: Float32Array, startSample: number, tag: DecodeTag | null, warmup = false): Promise<void> {
   const m = model;
   if (!m) return;
 
   const durationMs = Math.round((audio.length / VAD_SAMPLE_RATE) * 1000);
   const startTime = performance.now();
+
+  // A tail of up to half an FFT window (200 samples, 12.5 ms) has no real feature frame: the mel's reflect padding
+  // reads past such an input and its one frame would hold NaN. Nothing to recognize, and the encoder must not be
+  // handed it.
+  if (audio.length <= MIN_MEL_INPUT_SAMPLES) return;
 
   try {
     const mel = logMel(audio, m.filters);
@@ -318,7 +172,7 @@ async function transcribeSegment(audio: Float32Array, startSample: number, end: 
     const recognitionTimeMs = Math.round(performance.now() - startTime);
 
     if (!warmup && text) {
-      post({ type: 'result', text, startSample, durationMs, recognitionTimeMs, ...end });
+      post({ type: 'result', text, startSample, durationMs, recognitionTimeMs, ...tag });
     }
     void forced;
   } catch (err) {
@@ -326,87 +180,9 @@ async function transcribeSegment(audio: Float32Array, startSample: number, end: 
   }
 }
 
-// ─── Audio Feed Pipeline ────────────────────────────────────────────────────
-
-async function feedAudio(samples: Int16Array, sampleRate: number): Promise<void> {
-  if (!vadSession || !frameProcessor || !model || processingVad) return;
-  processingVad = true;
-
-  try {
-    const resampled = resampleInt16ToFloat32_16k(samples, sampleRate);
-
-    const newBuf = new Float32Array(audioBuffer.length + resampled.length);
-    newBuf.set(audioBuffer);
-    newBuf.set(resampled, audioBuffer.length);
-    audioBuffer = newBuf;
-
-    while (audioBuffer.length >= VAD_FRAME_SAMPLES) {
-      const frame = audioBuffer.slice(0, VAD_FRAME_SAMPLES);
-      audioBuffer = audioBuffer.slice(VAD_FRAME_SAMPLES);
-      totalSamplesFed += VAD_FRAME_SAMPLES;
-
-      const events: FrameProcessorEvent[] = [];
-      await frameProcessor.process(frame, (ev) => events.push(ev));
-
-      let speechProbability = 0;
-      for (const ev of events) {
-        switch (ev.msg) {
-          case Message.FrameProcessed:
-            speechProbability = ev.probs.isSpeech;
-            break;
-
-          case Message.SpeechStart:
-            speechFramesSinceStart = 0;
-            post({ type: 'speech_start' });
-            break;
-          case Message.SpeechEnd:
-            speechFramesSinceStart = 0;
-            // Fire-and-forget: awaiting here would hold `processingVad` for the whole decode
-            // and the guard at the top of this function would drop the audio arriving
-            // meanwhile. `transcribe` serializes decodes via `currentDecodePromise`.
-            void transcribe(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'silence' });
-            break;
-          case Message.VADMisfire: {
-            speechFramesSinceStart = 0;
-            // Kept when it follows a Smart end inside the wait Normal would have spanned.
-            const rescued = turnLink?.rescue();
-            if (rescued) void transcribe(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
-            break;
-          }
-        }
-      }
-
-      const smartTurnProbability = turnLink?.afterFrame(frame, speechProbability, frameProcessor.speaking) ?? null;
-      if (smartTurnProbability !== null) {
-        const endEvents: FrameProcessorEvent[] = [];
-        frameProcessor.endSegment((ev) => endEvents.push(ev));
-        for (const ev of endEvents) {
-          if (ev.msg === Message.SpeechEnd) void transcribe(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'smart', smartTurnProbability });
-        }
-      }
-
-      // Max speech duration cap
-      if (frameProcessor.speaking) {
-        speechFramesSinceStart++;
-        if (speechFramesSinceStart >= maxSpeechFrames) {
-          const endEvents: FrameProcessorEvent[] = [];
-          frameProcessor.endSegment((ev) => endEvents.push(ev));
-          for (const ev of endEvents) {
-            if (ev.msg === Message.SpeechEnd) {
-              // See the SpeechEnd comment above: fire-and-forget so no audio is dropped.
-              void transcribe(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'cap' });
-            }
-          }
-          turnLink?.reset();
-          speechFramesSinceStart = 0;
-        }
-      } else {
-        speechFramesSinceStart = 0;
-      }
-    }
-  } finally {
-    processingVad = false;
-  }
+/** A decode threw outside its own reporting (the inbox calls this; the segment was already acknowledged). */
+function reportDecodeError(err: unknown): void {
+  post({type: 'error', error: `Qwen3-ASR inference failed: ${(err as Error)?.message || String(err)}`});
 }
 
 // ─── Message Handlers ───────────────────────────────────────────────────────
@@ -415,11 +191,9 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
   try {
     const startTime = performance.now();
 
-    // wasmPaths must be set on BOTH runtime instances before their first session: the VAD's
-    // wasm-only instance and the model's webgpu instance each load their own binary from there.
-    if (msg.ortWasmBaseUrl) {
-      if (vadOrtEnv?.wasm) vadOrtEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
-      if (ortEnv?.wasm) ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
+    // wasmPaths must be set before the model's first session.
+    if (msg.ortWasmBaseUrl && ortEnv?.wasm) {
+      ortEnv.wasm.wasmPaths = msg.ortWasmBaseUrl;
     }
 
     const webgpuAvailable = await hasWebGPU();
@@ -427,10 +201,6 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
       post({ type: 'error', error: 'WebGPU is not available. Qwen3-ASR requires WebGPU.' });
       return;
     }
-
-    post({ type: 'status', message: 'Loading VAD model...' });
-    await initVad(msg.vadConfig, msg.vadModelUrl, msg.language);
-    turnLink = openTurnLink(msg.turnPort, msg.vadConfig, frameProcessor);
 
     const file = (name: string) => {
       const url = msg.fileUrls[name];
@@ -503,9 +273,11 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
 
     // WebGPU warmup: compile the shaders on 1 s of silence so the first utterance is not slow.
     post({ type: 'status', message: 'Warming up WebGPU shaders...' });
-    await transcribe(new Float32Array(VAD_SAMPLE_RATE), 0, null, true);
+    await transcribeSegment(new Float32Array(VAD_SAMPLE_RATE), 0, null, true);
 
-    audioBuffer = new Float32Array(0);
+    // Listen to the detector only now the model is ready (the warm-up above ran before the inbox
+    // existed): nothing it sends is lost, and nothing is decoded before there is a model to decode on.
+    inbox = new SegmentInbox(msg.segmentPort, transcribeSegment, post, reportDecodeError);
 
     const loadTimeMs = Math.round(performance.now() - startTime);
     post({ type: 'ready', loadTimeMs });
@@ -514,65 +286,22 @@ async function handleInit(msg: Qwen3AsrInitMessage): Promise<void> {
   }
 }
 
-async function handleFlush(): Promise<void> {
-  // Force-finalize any pending speech (PTT release path). Fire-and-forget: `transcribe`
-  // assigns `currentDecodePromise` before returning, so the await below picks up the decode
-  // we just kicked off, and the flush resolves once the utterance's text has been posted.
-  if (frameProcessor?.speaking) {
-    const endEvents: FrameProcessorEvent[] = [];
-    frameProcessor.endSegment((ev) => endEvents.push(ev));
-    for (const ev of endEvents) {
-      if (ev.msg === Message.SpeechEnd) {
-        void transcribe(ev.audio, segmentStartSample(totalSamplesFed, ev.audio), { endedBy: 'flush' });
-      } else if (ev.msg === Message.VADMisfire) {
-        const rescued = turnLink?.rescue();
-        if (rescued) void transcribe(rescued, segmentStartSample(totalSamplesFed, rescued), { endedBy: 'kept' });
-      }
-    }
-    turnLink?.reset();
-  }
-  if (currentDecodePromise) {
-    try { await currentDecodePromise; } catch { /* already reported */ }
-  }
-}
-
 async function handleDispose(): Promise<void> {
   // Only reachable when the host waits for `disposed`. In the app, WorkerSession.dispose()
-  // posts `dispose` and terminates this worker on the next line, so the drain below runs in the
-  // worker harness only; Stop is meant to be immediate, and PTT release finishes an utterance
-  // through flush, not dispose.
+  // posts `dispose` and terminates this worker on the next line, so the wait below runs in the
+  // worker harness only; Stop is meant to be immediate.
 
-  // Flush remaining speech; handleFlush waits for that decode to finish.
-  await handleFlush();
+  // Stop listening and wait for the decode in flight; what still waits is dropped. Nothing can
+  // then run against the sessions released below or dispose their GPU buffers afterwards.
+  await inbox?.close();
+  inbox = null;
 
-  // Stop accepting new segments before touching the sessions: with `model` null, feedAudio
-  // returns early and a queued transcribeSegment exits at its first line.
   const m = model;
   model = null;
-
-  // A decode may have been queued between the flush's await and the line above; wait for it
-  // so nothing runs against released sessions or disposes their GPU buffers afterwards.
-  if (currentDecodePromise) {
-    try { await currentDecodePromise; } catch { /* already reported */ }
-    currentDecodePromise = null;
-  }
-
-  frameProcessor = null;
-  turnLink?.close();
-  turnLink = null;
-  speechFramesSinceStart = 0;
-
-  if (vadSession?.session) {
-    await vadSession.session.release();
-    vadSession = null;
-  }
 
   if (m) {
     await Promise.all([m.encoder.release(), m.decoderInit.release(), m.decoderStep.release()]).catch(() => undefined);
   }
-
-  audioBuffer = new Float32Array(0);
-  processingVad = false;
 
   post({ type: 'disposed' });
 }
@@ -583,13 +312,10 @@ self.onmessage = async (event: MessageEvent<WorkerMessage>) => {
   const msg = event.data;
   switch (msg.type) {
     case 'init':
-      await handleInit(msg as Qwen3AsrInitMessage);
+      await handleInit(msg);
       break;
-    case 'audio':
-      await feedAudio((msg as AsrAudioMessage).samples, (msg as AsrAudioMessage).sampleRate);
-      break;
-    case 'flush':
-      await handleFlush();
+    case 'stop':
+      inbox?.stop(msg.epoch);
       break;
     case 'dispose':
       await handleDispose();

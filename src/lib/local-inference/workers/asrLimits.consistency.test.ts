@@ -2,41 +2,28 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getManifestEntry, segmentLimitFor } from '../modelManifest';
+import { DETECTOR_WORKER_TYPES } from '../../turn/turnDetection';
 
 const read = (path: string) => readFileSync(join(__dirname, path), 'utf8');
-const whisper = read('whisper-webgpu.worker.ts');
-const voxtral3b = read('voxtral-3b-webgpu.worker.ts');
-const granite = read('granite-speech-webgpu.worker.ts');
-const qwen3 = read('qwen3-asr-webgpu.worker.ts');
 const voxtralRt = read('voxtral-webgpu.worker.ts');
 const sherpa = readFileSync(join(__dirname, '../../../../public/workers/sherpa-onnx-asr.worker.js'), 'utf8');
 
 const limit = (id: string, task: 'transcribe' | 'translate' = 'transcribe', language = 'en') =>
   segmentLimitFor(getManifestEntry(id), { task, language });
 
-// Task 13 deletes the five WebGPU workers' constants; the pins for those five go with them.
+// The five WebGPU recognizers on the shared detector take the limit from the manifest, through the
+// detector's init message, and declare none of their own. The detector worker cuts the turns, so a
+// constant left in a recognizer would be a second copy that nothing reads and the manifest test cannot see.
+describe('the five recognizers on the detector declare no limit of their own', () => {
+  const LIMIT_CONSTANT = /\b(?:WHISPER_MAX_SEGMENT_SAMPLES|VOXTRAL_3B_MAX_SEGMENT_SAMPLES|GRANITE_(?:TRANSLATE_)?MAX_SPEECH_SECONDS|QWEN3_ASR_(?:DEFAULT_)?MAX_SPEECH_SECONDS)\b/;
+  it.each(DETECTOR_WORKER_TYPES.map((type) => `${type}.worker.ts`))('%s', (name) => {
+    expect(read(name)).not.toMatch(LIMIT_CONSTANT);
+    expect(read(name)).not.toContain('resolveMaxSpeechFrames');
+  });
+});
+
+// Voxtral 4B and sherpa-onnx still cut their own segments until steps 3 and 2, so their constants stay, pinned.
 describe('the manifest limit equals the one still in the worker', () => {
-  it('Whisper: 29 s segment', () => {
-    expect(whisper).toContain('const WHISPER_MAX_SEGMENT_SAMPLES = 29 * VAD_SAMPLE_RATE;');
-    expect(limit('whisper-small-webgpu')).toEqual({ maxSegmentSamples: 29 * 16000 });
-  });
-  it('Voxtral 3B: 30 s segment', () => {
-    expect(voxtral3b).toContain('const VOXTRAL_3B_MAX_SEGMENT_SAMPLES = 30 * VAD_SAMPLE_RATE;');
-    expect(limit('voxtral-mini-3b-webgpu')).toEqual({ maxSegmentSamples: 30 * 16000 });
-  });
-  it('Granite: 30 s, 20 s translating', () => {
-    expect(granite).toContain('const GRANITE_MAX_SPEECH_SECONDS = 30;');
-    expect(granite).toContain('const GRANITE_TRANSLATE_MAX_SPEECH_SECONDS = 20;');
-    expect(limit('granite-speech')).toEqual({ maxSpeechSeconds: 30 });
-    expect(limit('granite-speech', 'translate')).toEqual({ maxSpeechSeconds: 20 });
-  });
-  it('Qwen3-ASR: 15 s Hindi, 20 s Thai, 40 s otherwise', () => {
-    expect(qwen3).toContain('{ hi: 15, th: 20 }');
-    expect(qwen3).toContain('const QWEN3_ASR_DEFAULT_MAX_SPEECH_SECONDS = 40;');
-    expect(limit('qwen3-asr-1.7b-webgpu', 'transcribe', 'hi')).toEqual({ maxSpeechSeconds: 15 });
-    expect(limit('qwen3-asr-1.7b-webgpu', 'transcribe', 'th')).toEqual({ maxSpeechSeconds: 20 });
-    expect(limit('qwen3-asr-1.7b-webgpu')).toEqual({ maxSpeechSeconds: 40 });
-  });
   it('Voxtral Realtime: 35 s', () => {
     expect(voxtralRt).toContain('const VOXTRAL_REALTIME_MAX_SPEECH_SECONDS = 35;');
     expect(limit('voxtral-mini-4b-webgpu')).toEqual({ maxSpeechSeconds: 35 });
