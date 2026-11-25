@@ -290,3 +290,30 @@ def test_stream_backend_rejects_non_streaming_model(fake_native):
     with pytest.raises(BackendLoadError):
         b.load("handy-computer/x-gguf/x.gguf", "cpu", "q4_k_m")
     assert not b.is_loaded
+
+
+def test_load_passes_pinned_revision_from_plan_config(fake_native, monkeypatch, tmp_path):
+    import huggingface_hub
+    from sokuji_sidecar.planner import PlanConfig
+
+    gguf = tmp_path / "Fourier-2B-Q8_0.gguf"
+    gguf.write_bytes(b"GGUF")
+    calls = []
+
+    def fake_dl(repo, fname, **kw):
+        calls.append((repo, fname, kw))
+        return str(gguf)
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_dl)
+    b = make_backend("native_asr")
+    b.load(
+        "oruk/oruk-fourier-2b/Fourier-2B-Q8_0.gguf", "cpu", "q8_0",
+        PlanConfig(revision="8bcce21695e4ba13569c48de6cedffcb8a7576f5"),
+    )
+    b.load(REF, "cpu", "q8_0", PlanConfig())
+    assert calls == [
+        ("oruk/oruk-fourier-2b", "Fourier-2B-Q8_0.gguf",
+         {"local_files_only": True, "revision": "8bcce21695e4ba13569c48de6cedffcb8a7576f5"}),
+        ("handy-computer/SenseVoiceSmall-gguf", "SenseVoiceSmall-Q8_0.gguf",
+         {"local_files_only": True}),
+    ]

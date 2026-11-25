@@ -1169,3 +1169,13 @@ def test_tier_available_metal_uses_the_structured_bit_when_known():
     assert planner._tier_available("gpu-metal", dataclasses.replace(base, devices=(dev_vm,))) is False              # bit absent
     vm_named = dataclasses.replace(base, gpus=(("metal", "Apple Paravirtual device", 8 << 30),), devices=(dataclasses.replace(dev_ok, description="Apple Paravirtual device"),))
     assert planner._tier_available("gpu-metal", vm_named) is False                                                   # string rule kept
+
+
+def test_resolve_oruk_fourier_2b_threads_pinned_revision():
+    m = _known_gpu_machine()
+    plans = planner.resolve("oruk-fourier-2b", "auto", machine=m, platform="linux", cache={}, downloaded=set())
+    assert [(p.backend, p.tier, p.compute_type, p.artifact) for p in plans] == [
+        ("native_asr", "gpu-vulkan", "q8_0", "oruk/oruk-fourier-2b/Fourier-2B-Q8_0.gguf"),
+        ("native_asr", "cpu", "q8_0", "oruk/oruk-fourier-2b/Fourier-2B-Q8_0.gguf"),
+    ]
+    assert all(p.config.revision == "8bcce21695e4ba13569c48de6cedffcb8a7576f5" for p in plans)

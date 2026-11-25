@@ -5,10 +5,20 @@ fully cached; download fetches them file-by-file with progress. Mirrors
 LOCAL_INFERENCE's manage-before-use UX, but server-side (HF cache).
 """
 import fnmatch
+import functools
 import os
 import shutil
 
 from .catalog import TTS_STAGING_DIRNAME, asr_model as _asr_model, split_artifact
+
+
+def _model_revision(model_id):
+    """Pinned HF revision (commit SHA) declared on a catalog card, or None."""
+    if not model_id:
+        return None
+    from .catalog import translate_model as _translate_model, tts_model as _tts_model
+    m = _asr_model(model_id) or _translate_model(model_id) or _tts_model(model_id)
+    return getattr(m, "revision", None) if m is not None else None
 
 
 def _ignored(filename, patterns):
@@ -218,6 +228,8 @@ def model_status(model_id, repo=None):
     translation runs in-process through sokuji_native, the same wheel ASR and
     TTS already require, so there is no separate runtime binary to install."""
     specs = download_specs(model_id, repo)
+    rev = _model_revision(model_id)
+    dl_kw = {"revision": rev} if rev else {}
     try:
         if not _repos_cached(specs):
             return "absent"
@@ -228,7 +240,7 @@ def model_status(model_id, repo=None):
             def _rung_cached(artifact):
                 r, fname = split_artifact(artifact)
                 try:
-                    hf_hub_download(r, fname, local_files_only=True)
+                    hf_hub_download(r, fname, local_files_only=True, **dl_kw)
                     return True
                 except Exception:
                     return False
@@ -237,7 +249,7 @@ def model_status(model_id, repo=None):
         elif specs.get("files"):
             from huggingface_hub import hf_hub_download
             for r, fname in specs["files"]:
-                hf_hub_download(r, fname, local_files_only=True)
+                hf_hub_download(r, fname, local_files_only=True, **dl_kw)
         if not _extra_files_present(model_id):
             return "absent"
         return "ready"
@@ -640,10 +652,12 @@ async def download(model_id, send, should_cancel=None, repo=None):
         done_units += 1
         return result
 
+    rev = _model_revision(model_id)
+    dl_fn = functools.partial(hf_hub_download, revision=rev) if rev else hf_hub_download
     for i, (r, fname) in enumerate(files):
         if cancelled():
             return "cancelled"
-        await _fetch(hf_hub_download, r, fname, poll_repo=r)
+        await _fetch(dl_fn, r, fname, poll_repo=r)
         await progress(final=i == len(files) - 1)
     return "ready"
 

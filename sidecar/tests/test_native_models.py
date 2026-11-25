@@ -1264,3 +1264,35 @@ def test_model_status_tts_repo_override_requires_the_sidecar_file_too(monkeypatc
     assert native_models.model_status("pocket-tts-en", repo=q8_0) == "absent"
     cached.add("alba.safetensors")
     assert native_models.model_status("pocket-tts-en", repo=q8_0) == "ready"
+
+
+def test_oruk_fourier_2b_download_and_status_pin_revision(monkeypatch, tmp_path):
+    """oruk-fourier-2b pins an exact HF commit SHA; both download() and
+    model_status() must forward that revision to hf_hub_download, while
+    unpinned cards keep omitting it."""
+    import huggingface_hub
+
+    gguf = tmp_path / "Fourier-2B-Q8_0.gguf"
+    gguf.write_bytes(b"GGUF")
+    calls = []
+
+    def fake_hf_download(repo, fname, **kw):
+        calls.append((repo, fname, kw))
+        return str(gguf)
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_hf_download)
+    events = []
+
+    async def send(msg):
+        events.append(msg)
+
+    status = asyncio.run(native_models.download("oruk-fourier-2b", send))
+    assert status == "ready"
+    assert native_models.model_status("oruk-fourier-2b") == "ready"
+    assert native_models._repo_owner_cards("oruk/oruk-fourier-2b") == {"oruk-fourier-2b"}
+    assert calls == [
+        ("oruk/oruk-fourier-2b", "Fourier-2B-Q8_0.gguf",
+         {"revision": "8bcce21695e4ba13569c48de6cedffcb8a7576f5"}),
+        ("oruk/oruk-fourier-2b", "Fourier-2B-Q8_0.gguf",
+         {"local_files_only": True, "revision": "8bcce21695e4ba13569c48de6cedffcb8a7576f5"}),
+    ]

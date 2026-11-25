@@ -656,3 +656,46 @@ describe('supportsCustomPrompt', () => {
     expect(supportsCustomPrompt('some-future-model')).toBe(true);
   });
 });
+
+describe('opt-in licensed English ASR cards (Oruk Fourier 2B shape)', () => {
+  const lic = {
+    spdx: 'CC-BY-NC-4.0',
+    name: 'Creative Commons Attribution-NonCommercial 4.0 International',
+    url: 'https://creativecommons.org/licenses/by-nc/4.0/',
+    nonCommercial: true,
+    requiresConsent: true,
+    sourceRepo: 'oruk/oruk-fourier-2b',
+    attribution: 'Oruk AI',
+  };
+  const cat: Record<string, NativeModelInfo> = {
+    ...FIXTURE_ASR,
+    'oruk-fourier-2b': M('oruk-fourier-2b', 'asr', ['en'], 43, false, {
+      name: 'Oruk Fourier 2B',
+      repo: 'oruk/oruk-fourier-2b/Fourier-2B-Q8_0.gguf',
+      sizeBytes: 2185030848,
+      license: lic,
+    }),
+  };
+
+  it('forwards license on English ASR cards without displacing the recommended default', () => {
+    const enCards = nativeAsrCards('en', cat);
+    expect(enCards[0].selectId).toBe('cohere-transcribe-03-2026');
+    expect(nativeAsrForLanguage('en', '', cat)).toBe('cohere-transcribe-03-2026');
+
+    const fourier = enCards.find((c) => c.selectId === 'oruk-fourier-2b');
+    expect(fourier).toMatchObject({
+      selectId: 'oruk-fourier-2b',
+      downloadId: 'oruk-fourier-2b',
+      name: 'Oruk Fourier 2B',
+      languages: ['en'],
+      recommended: false,
+      license: lic,
+    });
+  });
+
+  it('excludes English-only cards from non-English compatible lists', () => {
+    expect(nativeAsrCards('ja', cat).map((c) => c.selectId)).not.toContain('oruk-fourier-2b');
+    const incompat = nativeAsrIncompatibleCards('ja', cat).find((c) => c.selectId === 'oruk-fourier-2b');
+    expect(incompat?.license).toEqual(lic);
+  });
+});
