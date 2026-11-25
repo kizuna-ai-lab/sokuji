@@ -329,8 +329,11 @@ class NativeSession implements AdapterSession {
     // A connection that never answers is no Smart Turn: the leg starts on Normal after the same wait the detector's load gets.
     let cancel = () => {};
     const timeout = new Promise<null>((resolve) => { cancel = this.request.clock.setTimeout(() => resolve(null), VAD_INIT_TIMEOUT_MS); });
-    const turn = await Promise.race([connect().catch(() => null), timeout]);
+    const connecting = connect().catch(() => null);
+    const turn = await Promise.race([connecting, timeout]);
     cancel();
+    // A connection that answers after the wait is nobody's: it is released, or the shared Smart Turn worker would stay up for it.
+    void connecting.then((late) => { if (late && late !== turn) late.release(); });
     if (this.ended) {
       turn?.release();
       throw new Error('ended');

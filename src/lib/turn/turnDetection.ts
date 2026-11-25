@@ -57,6 +57,8 @@ export interface TurnDetectionScope {
   smartOffered: boolean;
   /** The longest segment, in seconds, the shown legs' recognizers are handed; set only when below Max speech. */
   limitSeconds?: number;
+  /** False where the recognizer keeps a pre-roll of its own that the setting cannot change (Local Native's sidecar): the Pre-Speech Padding control is then not shown. */
+  prePadApplies?: false;
 }
 
 const VAD_FRAME_SECONDS = 0.032;
@@ -81,7 +83,7 @@ export function turnDetectionScope(legs: readonly TurnDetectionLeg[], td: TurnDe
  * longest speech the sidecar's backstops allow a segment.
  */
 export function nativeTurnDetectionScope(turns: readonly ('auto' | 'manual')[], td: TurnDetectionSettings, capSeconds: number): TurnDetectionScope {
-  const scope: TurnDetectionScope = { shown: turns.length > 0, smartOffered: turns.includes('auto') };
+  const scope: TurnDetectionScope = { shown: turns.length > 0, smartOffered: turns.includes('auto'), prePadApplies: false };
   if (turns.length > 0 && capSeconds < td.maxSpeech) scope.limitSeconds = capSeconds;
   return scope;
 }

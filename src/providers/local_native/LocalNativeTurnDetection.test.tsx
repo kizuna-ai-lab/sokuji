@@ -54,9 +54,10 @@ describe('LocalNativeTurnDetection is the app\'s turn detection', () => {
     expect(container.textContent).toBe('VAD Settings · Min Silence Duration: 0.80s');
   });
 
-  it('the Controls are the shared ones: six sliders, and Normal / Smart for an automatic speaker', () => {
+  it('the Controls are the shared ones: five sliders, no Pre-Speech Padding (the sidecar keeps its own pre-roll), and Normal / Smart for an automatic speaker', () => {
     const { container } = render(<LocalNativeTurnDetectionControls {...props} />);
-    expect(container.querySelectorAll('input[type="range"]')).toHaveLength(6);
+    expect(container.querySelectorAll('input[type="range"]')).toHaveLength(5);
+    expect(screen.queryByText('Pre-Speech Padding')).toBeNull();
     expect(screen.getByRole('button', { name: 'Smart' })).toBeTruthy();
   });
 

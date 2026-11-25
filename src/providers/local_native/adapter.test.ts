@@ -326,6 +326,26 @@ describe('speech in, text out', () => {
     expect(t.asr.flushes).toBe(2);
   });
 
+  it('a Smart Turn connection that answers after the wait is released', async () => {
+    const fakes = createFakeNativeEngines();
+    const released: string[] = [];
+    let answer: ((c: unknown) => void) | null = null;
+    const engines: LocalNativeEngines = { ...fakes.engines, turn: () => new Promise((resolve) => { answer = resolve; }) as never };
+    const smart = config({ vad: { threshold: 0.3, minSilenceDuration: 1.4, minSpeechDuration: 0.4, smartTurn: { checkAfter: 0.3, threshold: 0.5 } } });
+    const clock = createVirtualClock();
+    const starting = createLocalNativeAdapter(engines).start({ context: silent, config: smart, credentials: {}, clock, signal: new AbortController().signal }, recordConformance().events);
+    fakes.asr.ready(); fakes.translation.ready();
+    await settle();
+    clock.advance(VAD_INIT_TIMEOUT_MS);
+    await settle();
+    fakes.turns.ready();
+    await starting;
+    expect(fakes.turns.inits[0].turnPort).toBeUndefined();
+    answer!({ port: new MessageChannel().port1, release: () => { released.push('late'); } });
+    await settle();
+    expect(released).toEqual(['late']);
+  });
+
   it('a release with no press begun flushes the sidecar at once, with no drain', async () => {
     const t = await open(config(), { ...silent, turns: 'manual' });
     t.session.endTurn();

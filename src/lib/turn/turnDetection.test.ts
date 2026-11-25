@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { getManifestEntry, type ModelManifestEntry } from '../local-inference/modelManifest';
 import { TURN_DETECTION_DEFAULTS } from './turnDetectionSettings';
-import { DETECTOR_WORKER_TYPES, detectorDeliveryOf, takesOurTurnDetection, turnDetectionOf, turnDetectionScope, type TurnDetectionLeg } from './turnDetection';
+import { DETECTOR_WORKER_TYPES, detectorDeliveryOf, nativeTurnDetectionScope, takesOurTurnDetection, turnDetectionOf, turnDetectionScope, type TurnDetectionLeg } from './turnDetection';
 
 /** Compile-time: every detector worker type is a worker type the manifest has. */
 const _typesExist: readonly NonNullable<ModelManifestEntry['asrWorkerType']>[] = DETECTOR_WORKER_TYPES;
@@ -59,5 +59,23 @@ describe('turnDetectionScope', () => {
 
   it('a model with no limit sets none', () => {
     expect(turnDetectionScope([leg('cohere-transcribe-webgpu', 'auto')], td)).not.toHaveProperty('limitSeconds');
+  });
+});
+
+describe('nativeTurnDetectionScope', () => {
+  const td = TURN_DETECTION_DEFAULTS;
+
+  it('is shown while a leg runs, offers Smart through an automatic one, and does not offer the pad (the sidecar keeps its own pre-roll)', () => {
+    expect(nativeTurnDetectionScope(['auto'], td, 19)).toEqual({ shown: true, smartOffered: true, prePadApplies: false, limitSeconds: 19 });
+    expect(nativeTurnDetectionScope(['manual'], td, 19)).toMatchObject({ shown: true, smartOffered: false, prePadApplies: false });
+    expect(nativeTurnDetectionScope([], td, 19)).toMatchObject({ shown: false });
+  });
+
+  it('notes the cap only below the Max speech setting', () => {
+    expect(nativeTurnDetectionScope(['auto'], { ...td, maxSpeech: 15 }, 19)).not.toHaveProperty('limitSeconds');
+  });
+
+  it('the shared panel of a model on the detector offers the pad', () => {
+    expect(turnDetectionScope([leg('whisper-base-webgpu', 'auto')], td).prePadApplies).toBeUndefined();
   });
 });
