@@ -1,10 +1,25 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { loadAddon, nativeDir, tempContractDir } from './helpers.mjs';
 
 const sk = loadAddon();
+
+// macOS diagnostic: if the child is still running after 8 s, `sample` its stacks so a hang in init shows where.
+function spawnSampled(args, opts) {
+  const out = join(mkdtempSync(join(tmpdir(), 'sk-sample-')), 'sample.txt');
+  if (process.platform === 'darwin') {
+    spawn('sh', ['-c', `sleep 8; for p in $(pgrep -f 'input-type=module'); do sample $p 3 -file ${out} >/dev/null 2>&1; done`], { stdio: 'ignore', detached: true }).unref();
+  }
+  const r = spawnSync(process.execPath, args, opts);
+  let sampled = '';
+  try { sampled = readFileSync(out, 'utf8').slice(0, 6000); } catch {}
+  r.sampled = sampled;
+  return r;
+}
 
 test('reports ABI 2 and the library version', () => {
   assert.equal(sk.abi(), 2);
@@ -50,8 +65,8 @@ test('the log sink gets the init line and does not keep the process alive', () =
       if (message.startsWith('sk_init: ')) { clearTimeout(timer); report(); }
     } });
     mark('init returned');`;
-  const r = spawnSync(process.execPath, ['--input-type=module', '-e', child], { encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'pipe'] });
-  assert.equal(r.status, 0, `status ${r.status}, signal ${r.signal}\nstdout: ${r.stdout}\nstderr: ${r.stderr}`);
+  const r = spawnSampled(['--input-type=module', '-e', child], { encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'pipe'] });
+  assert.equal(r.status, 0, `status ${r.status}, signal ${r.signal}\nstdout: ${r.stdout}\nstderr: ${r.stderr}\nsample: ${r.sampled}`);
   const lines = JSON.parse(r.stdout);
   assert.ok(lines.some((l) => l.level === 1 && /^sk_init: \d+ device\(s\)/.test(l.message)), r.stdout);
 });
@@ -79,10 +94,10 @@ test('with a sink set, warnings and errors still reach stderr at once', () => {
       if (message.startsWith('sk_init: ')) { clearTimeout(timer); report(); }
     } });
     mark('init returned');`;
-  const r = spawnSync(process.execPath, ['--input-type=module', '-e', child], {
+  const r = spawnSampled(['--input-type=module', '-e', child], {
     encoding: 'utf8', timeout: 30000, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, GGML_BACKEND_PATH: missing },
   });
-  assert.equal(r.status, 0, `status ${r.status}, signal ${r.signal}\nstdout: ${r.stdout}\nstderr: ${r.stderr}`);
+  assert.equal(r.status, 0, `status ${r.status}, signal ${r.signal}\nstdout: ${r.stdout}\nstderr: ${r.stderr}\nsample: ${r.sampled}`);
   const line = `load_backend: failed to load ${missing}`;
   assert.ok(r.stderr.split('\n').some((l) => l.startsWith(`[sokuji_native] ${line}`)), r.stderr);
   const lines = JSON.parse(r.stdout);
