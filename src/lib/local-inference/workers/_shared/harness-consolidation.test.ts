@@ -119,8 +119,9 @@ function sliceBetween(src: string, name: string, from: string, to: string): stri
   return src.slice(a, b);
 }
 
-// sherpa-onnx's worker is a classic script (public/workers/sherpa-onnx-asr.worker.js): workers/turnDetection.consistency.test.ts covers it.
-const DETECTOR_WORKERS = DETECTOR_WORKER_TYPES.filter((type) => type !== 'sherpa-onnx').map((type) => `${type}.worker.ts`);
+// sherpa-onnx's worker (a classic script) and Voxtral 4B's (audio and marks) are covered by workers/turnDetection.consistency.test.ts.
+const OWN_SCRIPT = new Set<string>(['sherpa-onnx', 'voxtral-webgpu']);
+const DETECTOR_WORKERS = DETECTOR_WORKER_TYPES.filter((type) => !OWN_SCRIPT.has(type)).map((type) => `${type}.worker.ts`);
 
 describe('each detector-type worker decodes through SegmentInbox, never from an audio handler (#470)', () => {
   it('lists the five', () => {

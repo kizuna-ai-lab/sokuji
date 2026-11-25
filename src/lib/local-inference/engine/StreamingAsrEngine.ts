@@ -48,7 +48,7 @@ export class StreamingAsrEngine {
   /** The worker died (its `onerror`, or a pre-ready `error`); unset, that goes to `onError` as well. */
   onFatal: ErrorCallback | null = null;
 
-  async init(modelId: string, options?: { language?: string; vadConfig?: VadWebConfig; punctuationEndpoint?: boolean }): Promise<{ loadTimeMs: number }> {
+  async init(modelId: string, options?: { language?: string; vadConfig?: VadWebConfig; punctuationEndpoint?: boolean; segmentPort?: MessagePort }): Promise<{ loadTimeMs: number }> {
     const model = getManifestEntry(modelId);
     if (!model || model.type !== 'asr-stream') {
       const available = getManifestByType('asr-stream').map(m => m.id).join(', ');
@@ -189,7 +189,8 @@ export class StreamingAsrEngine {
           dtype,
           vadModelUrl: new URL('./wasm/vad/silero_vad_v5.onnx', window.location.href).href,
           ortWasmBaseUrl: new URL('./wasm/ort/', window.location.href).href,
-        })
+          ...(options?.segmentPort ? { segmentPort: options.segmentPort } : {}),
+        }, options?.segmentPort ? [options.segmentPort] : undefined)
       : await session.start({
           type: 'init',
           fileUrls: dataFileUrls,

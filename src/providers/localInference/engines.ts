@@ -25,7 +25,7 @@ export interface AsrInit {
   translateTo?: string;
   /** The voxtral worker's own sentence endpoint (default on): off only while the adapter's stream shape seals — exactly one layer may cut. */
   punctuationEndpoint?: boolean;
-  /** The turn detector's segments for a WebGPU recognizer; transferred. Required by those, ignored by the rest. */
+  /** The turn detector's port: segments for a segment recognizer (WebGPU, sherpa offline), audio and marks for Voxtral 4B; transferred. Required by the WebGPU ones, ignored by an own-turns one. */
   segmentPort?: MessagePort;
 }
 
@@ -91,7 +91,7 @@ function asrOver(engine: AsrEngine | StreamingAsrEngine): AsrLike {
     onFatal: null,
     async init(modelId, { vadConfig, language, translateTo, punctuationEndpoint, segmentPort }) {
       if (engine instanceof StreamingAsrEngine) {
-        await engine.init(modelId, { language, vadConfig, punctuationEndpoint: punctuationEndpoint ?? true });
+        await engine.init(modelId, { language, vadConfig, punctuationEndpoint: punctuationEndpoint ?? true, segmentPort });
       } else {
         await engine.init(modelId, vadConfig, language, translateTo ? { task: 'translate', targetLanguage: translateTo } : undefined, segmentPort);
       }

@@ -208,6 +208,12 @@ export interface VoxtralAsrInitMessage {
   /** Finalize a result on terminal punctuation instead of waiting for the VAD
    *  endpoint. Absent means true — the worker's historical behaviour. */
   punctuationEndpoint?: boolean;
+  /**
+   * The turn detector's audio-and-marks port. Given, the worker runs no VAD: it feeds the audio it receives
+   * (24 kHz Int16, in order) to the model and acts on each `start`, `end` and `cancel` mark where it arrives.
+   * `vadConfig` then only says how much pre-roll to keep (`preSpeechPadDuration`).
+   */
+  segmentPort?: MessagePort;
 }
 
 export interface CohereTranscribeAsrInitMessage {

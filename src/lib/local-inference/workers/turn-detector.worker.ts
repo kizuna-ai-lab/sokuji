@@ -1,7 +1,8 @@
 /**
  * The turn detector worker: one leg's audio in, the leg's turns out. It runs Silero VAD (the model
  * file silero_vad_v5.onnx) and Smart Turn's gate inside TurnDetectorCore, and the segments go to the
- * recognizer on the `output` port. The main thread hears only `speech_start` and the leg's one
+ * recognizer on the `output` port (or, for a recognizer that holds the audio itself, the leg's audio with
+ * start/end/cancel marks between its samples). The main thread hears only `speech_start` and the leg's one
  * failure (DetectorLeg). Under manual turns Silero is not loaded at all.
  *
  * Failures: Silero failing to load fails init with `turn_detection_unavailable`, before `ready`;
@@ -88,6 +89,7 @@ async function handleInit(msg: DetectorInitMessage): Promise<void> {
       resetModel: vadResetStates,
       smart: (p) => (turnLink = openTurnLink(msg.turnPort, msg.vad, p)),
     },
+    delivery: msg.delivery,
     post: (out, transfer) => port.postMessage(out, transfer),
     notify: (notice) => post(notice),
   });

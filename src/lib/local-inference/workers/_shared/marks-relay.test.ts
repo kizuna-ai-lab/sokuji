@@ -153,6 +153,28 @@ describe('MarksRelay on hand-written traces', () => {
     expect(r.tokens()).toEqual(['start', '[0,768)', 'end', 'start', '[768,1536)', '[1536,2304)', 'end']);
   });
 
+  it('a cancel of the press released last, with nothing opened since, is a cancel mark after its end mark (the consumer may still be finishing it)', () => {
+    const r = rig();
+    r.trace({ kind: 'open', at: 0, press: 1 });
+    r.frames(0, 1);
+    r.trace({ kind: 'close', from: 0, to: FRAME, endedBy: 'release', press: 1 });
+    r.trace({ kind: 'cancel', press: 1 });
+    r.trace({ kind: 'cancel', press: 1 });
+    expect(r.tokens()).toEqual(['start', '[0,768)', 'end', 'cancel']);
+  });
+
+  it('a cancel naming an older released press makes no mark', () => {
+    const r = rig();
+    r.trace({ kind: 'open', at: 0, press: 1 });
+    r.frames(0, 1);
+    r.trace({ kind: 'close', from: 0, to: FRAME, endedBy: 'release', press: 1 });
+    r.trace({ kind: 'open', at: FRAME, press: 2 });
+    r.frames(FRAME, 1);
+    r.trace({ kind: 'close', from: FRAME, to: 2 * FRAME, endedBy: 'release', press: 2 });
+    r.trace({ kind: 'cancel', press: 1 });
+    expect(r.tokens()).toEqual(['start', '[0,768)', 'end', 'start', '[768,1536)', 'end']);
+  });
+
   it('a cancel naming the open press is a cancel mark, after the audio so far; the press then ends no more', () => {
     const r = rig();
     r.trace({ kind: 'open', at: 0, press: 3 });
@@ -315,5 +337,30 @@ describe('MarksRelay over the core', () => {
     const firstEnd = w.out.findIndex((o) => o.type === 'mark' && o.event === 'end');
     const before = w.out.slice(0, firstEnd).flatMap((o) => (o.type === 'audio' ? [...o.pcm] : []));
     expect(before).toHaveLength(1200);
+  });
+});
+
+describe('MarksRelay.stop', () => {
+  const frame = (from: number, to: number): TurnTrace => ({ kind: 'frame', from, to, samples: new Float32Array(to - from), raw: new Int16Array((to - from) * 1.5).fill(1) });
+
+  it('drops the frame it holds, and the flush queued in a microtask posts nothing', async () => {
+    const out: RelayOutput[] = [];
+    const relay = new MarksRelay((o) => out.push(o));
+    relay.trace(frame(0, FRAME));
+    relay.stop();
+    await Promise.resolve();
+    expect(out).toEqual([]);
+  });
+
+  it('ignores every trace after it', async () => {
+    const out: RelayOutput[] = [];
+    const relay = new MarksRelay((o) => out.push(o));
+    relay.stop();
+    relay.trace(frame(0, FRAME));
+    relay.trace({ kind: 'open', at: 0 });
+    relay.trace({ kind: 'close', from: 0, to: FRAME, endedBy: 'silence' });
+    relay.trace({ kind: 'drained' });
+    await Promise.resolve();
+    expect(out).toEqual([]);
   });
 });

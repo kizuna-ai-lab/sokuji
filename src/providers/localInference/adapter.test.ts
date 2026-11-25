@@ -33,6 +33,12 @@ const whisper = (over: Partial<LocalInferenceConfig> = {}) => makeConfig({
   limit: { maxSegmentSamples: 29 * 16000 },
   ...over,
 });
+/** A Voxtral 4B leg: a streaming recognizer that takes the detector's audio with marks, so the leg is `shared`. */
+const voxtral4b = (over: Partial<LocalInferenceConfig> = {}) => makeConfig({
+  asr: { modelId: 'voxtral-4b', streaming: true, turnDetection: 'shared' },
+  limit: { maxSpeechSeconds: 35 },
+  ...over,
+});
 const manual: SessionContext = { ...auto, turns: 'manual' };
 
 /** Lets every pending promise continuation run. */
@@ -347,6 +353,35 @@ describe('the LocalInference adapter — turns (a shared leg)', () => {
     expect(opened).toBe(false);
     t.detector.ready();
     await t.starting;
+  });
+
+  it('a streaming recognizer takes the audio with marks: the detector delivers marks, and the recognizer gets the port and the leg\'s pre-roll config', async () => {
+    const config = voxtral4b();
+    const t = begin(config);
+    const [init] = t.detector.inits;
+    expect(init).toMatchObject({ turns: 'auto', delivery: 'marks', limit: { maxSpeechSeconds: 35 } });
+    const { segmentPort, vadConfig } = t.asr.inits[0].options;
+    expect(segmentPort).toBeDefined();
+    expect(vadConfig).toEqual(config.vad);
+    t.asr.ready();
+    t.translation.ready();
+    t.detector.ready();
+    await t.starting;
+  });
+
+  it('a segment recognizer is given no delivery: segments, as before', async () => {
+    const t = begin(whisper());
+    expect(t.detector.inits[0]).not.toHaveProperty('delivery');
+  });
+
+  it('a marks recognizer\'s release drains the detector and waits for no answer', async () => {
+    const t = await open(voxtral4b(), manual);
+    t.session.beginTurn();
+    t.session.endTurn();
+    expect(t.detector.begins).toEqual([1]);
+    expect(t.detector.drains).toEqual([1]);
+    t.clock.advance(60_000);
+    expect(JSON.stringify(t.log)).not.toContain('drain_timeout');
   });
 
   it('the detector dying while the recognizer is still loading fails the start, not a deaf leg', async () => {

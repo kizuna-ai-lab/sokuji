@@ -466,6 +466,8 @@ class LocalSession implements AdapterSession {
 
   /** Asks the detector to drain `press`, and waits for the recognizer's answer only in a log: nothing blocks on it. */
   private drainPress(press: number, detector: TurnDetectorLike): void {
+    // A recognizer taking audio and marks has nothing to answer: its `end` mark is the release, and it decodes on its own clock.
+    if (this.config.asr.streaming) { detector.drain(press); return; }
     const { clock } = this.request;
     const pending: PendingDrain = { press, since: clock.now(), timedOut: false, cancelTimer: () => {} };
     pending.cancelTimer = clock.setTimeout(() => {
@@ -529,6 +531,8 @@ class LocalSession implements AdapterSession {
       : undefined;
     if (this.ended) throw new Error('ended');
     const { port1, port2 } = new MessageChannel();
+    // Voxtral 4B holds the audio itself: it takes it with marks, and needs the pre-roll length (the only part of the VAD config it reads).
+    const marks = config.asr.streaming;
     // The detector may be ready long before a large recognizer finishes loading: a crash in between must not be lost.
     this.listenToDetectorFailures(detector);
     // The recognizer may be ready long before the detector is: its crash in between must not be lost either. The
@@ -547,10 +551,11 @@ class LocalSession implements AdapterSession {
           turns: request.context.turns,
           vad: config.vad,
           limit: config.limit ?? {},
+          ...(marks ? { delivery: 'marks' as const } : {}),
           output: port1,
           ...(turnPort ? { turnPort } : {}),
         }),
-        asr.init(config.asr.modelId, { ...options, segmentPort: port2 }).then((loaded) => {
+        asr.init(config.asr.modelId, { ...options, segmentPort: port2, ...(marks ? { vadConfig: config.vad } : {}) }).then((loaded) => {
           watchRecognizer();
           return loaded;
         }),

@@ -154,7 +154,7 @@ async function detector(s: Scenario): Promise<{ cuts: Cut[]; notices: DetectorNo
       smart: port ? (processor) => openTurnLink(port as unknown as MessagePort, { smartTurn: { checkAfter: 0.3, threshold: 0.5 } }, processor) : undefined,
     },
     post: (msg) => {
-      outputs.push(msg);
+      outputs.push(msg as DetectorOutput);
       // The recognizer starts every segment as it arrives, so the decode queue stays empty.
       if (msg.type === 'segment') queueMicrotask(() => leg.taken({ type: 'taken', epoch: msg.epoch, seq: msg.seq }));
     },
