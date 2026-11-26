@@ -161,66 +161,72 @@ export async function importModel(modelId: string, paths: readonly string[], sen
 
   // One writer per repo while this import runs (withRepoLocks): another import or a download's last step waits, so a
   // blob this import takes back on failure is one nobody else has started to use.
-  const outcome = await withRepoLocks(wanted.map((w) => w.repo), async (): Promise<'ready' | 'cancelled'> => {
-    // Each file is copied into the repo's blobs under a name of its own while it is hashed, checked, then given its
-    // hash's name; the snapshot links and `main` follow once every file is in, one commit per repo.
-    const placed: Array<{ repo: string; file: string; sha: string; known?: KnownFile }> = [];
-    // What this import put in place, taken back if it fails or is cancelled: only that — a repo may be shared (every
-    // speech card's is), and another card's download may be fetching into it meanwhile (it waits only to finish).
-    const renamed: string[] = [];
-    const touched = new Set<string>();
-    try {
-      for (const w of wanted) {
-        const dir = repoDir(w.repo);
-        touched.add(dir);
-        const blobs = path.join(dir, 'blobs');
-        fs.mkdirSync(blobs, { recursive: true });
-        sweepStaging(blobs);
-        const incomplete = path.join(blobs, `import-${process.pid}-${randomBytes(6).toString('hex')}.incomplete`);
-        let sha: string;
-        try {
-          sha = await copyHashing(w.from!, incomplete, tick, signal);
-          if (signal?.aborted) throw new ImportError('cancelled', 'import_cancelled');
-        } catch (e) {
-          fs.rmSync(incomplete, { force: true });
-          throw e;
-        }
-        const known = knownFile(w.repo, w.file);
-        if (known && known.sha256 !== sha) {
-          fs.rmSync(incomplete, { force: true });
-          throw new ImportError(
-            `${w.name} is not the published file (its sha256 is ${sha.slice(0, 12)}…, expected ${known.sha256.slice(0, 12)}…): download it again`,
-            'import_mismatch', { name: w.name, got: sha.slice(0, 12), expected: known.sha256.slice(0, 12) },
-          );
-        }
-        const blob = path.join(blobs, sha);
-        // Bytes already cached (an earlier download or import) are kept; the copy is dropped.
-        if (fs.existsSync(blob)) fs.rmSync(incomplete, { force: true });
-        else {
-          fs.renameSync(incomplete, blob);
-          renamed.push(blob);
-        }
-        placed.push({ repo: w.repo, file: w.file, sha, known });
-      }
-    } catch (e) {
-      // Best effort: a cleanup that fails (a file held open on Windows) must not hide why the import stopped.
+  let outcome: 'ready' | 'cancelled';
+  try {
+    outcome = await withRepoLocks(wanted.map((w) => w.repo), async (): Promise<'ready' | 'cancelled'> => {
+      // Each file is copied into the repo's blobs under a name of its own while it is hashed, checked, then given its
+      // hash's name; the snapshot links and `main` follow once every file is in, one commit per repo.
+      const placed: Array<{ repo: string; file: string; sha: string; known?: KnownFile }> = [];
+      // What this import put in place, taken back if it fails or is cancelled: only that — a repo may be shared (every
+      // speech card's is), and another card's download may be fetching into it meanwhile (it waits only to finish).
+      const renamed: string[] = [];
+      const touched = new Set<string>();
       try {
-        for (const blob of renamed) fs.rmSync(blob, { force: true });
-        for (const dir of touched) pruneEmpty(dir);
-      } catch {
-        // left for a later import or a delete of the model
+        for (const w of wanted) {
+          const dir = repoDir(w.repo);
+          touched.add(dir);
+          const blobs = path.join(dir, 'blobs');
+          fs.mkdirSync(blobs, { recursive: true });
+          sweepStaging(blobs);
+          const incomplete = path.join(blobs, `import-${process.pid}-${randomBytes(6).toString('hex')}.incomplete`);
+          let sha: string;
+          try {
+            sha = await copyHashing(w.from!, incomplete, tick, signal);
+            if (signal?.aborted) throw new ImportError('cancelled', 'import_cancelled');
+          } catch (e) {
+            fs.rmSync(incomplete, { force: true });
+            throw e;
+          }
+          const known = knownFile(w.repo, w.file);
+          if (known && known.sha256 !== sha) {
+            fs.rmSync(incomplete, { force: true });
+            throw new ImportError(
+              `${w.name} is not the published file (its sha256 is ${sha.slice(0, 12)}…, expected ${known.sha256.slice(0, 12)}…): download it again`,
+              'import_mismatch', { name: w.name, got: sha.slice(0, 12), expected: known.sha256.slice(0, 12) },
+            );
+          }
+          const blob = path.join(blobs, sha);
+          // Bytes already cached (an earlier download or import) are kept; the copy is dropped.
+          if (fs.existsSync(blob)) fs.rmSync(incomplete, { force: true });
+          else {
+            fs.renameSync(incomplete, blob);
+            renamed.push(blob);
+          }
+          placed.push({ repo: w.repo, file: w.file, sha, known });
+        }
+      } catch (e) {
+        // Best effort: a cleanup that fails (a file held open on Windows) must not hide why the import stopped.
+        try {
+          for (const blob of renamed) fs.rmSync(blob, { force: true });
+          for (const dir of touched) pruneEmpty(dir);
+        } catch {
+          // left for a later import or a delete of the model
+        }
+        if (e instanceof ImportError && e.code === 'import_cancelled') return 'cancelled';
+        throw e;
       }
-      if (e instanceof ImportError && e.code === 'import_cancelled') return 'cancelled';
-      throw e;
-    }
-    for (const repo of new Set(placed.map((p) => p.repo))) {
-      const files = placed.filter((p) => p.repo === repo);
-      const commit = commitFor(repo, files);
-      for (const f of files) writeSnapshotLink(repo, commit, f.file, f.sha);
-      writeRef(repo, 'main', commit);
-    }
-    return 'ready';
-  });
+      for (const repo of new Set(placed.map((p) => p.repo))) {
+        const files = placed.filter((p) => p.repo === repo);
+        const commit = commitFor(repo, files);
+        for (const f of files) writeSnapshotLink(repo, commit, f.file, f.sha);
+        writeRef(repo, 'main', commit);
+      }
+      return 'ready';
+    }, signal);
+  } catch (e) {
+    if (signal?.aborted) return 'cancelled';   // cancelled while waiting for the repo
+    throw e;
+  }
   if (outcome === 'cancelled') return 'cancelled';
   await send({ type: 'model_progress', model: modelId, downloaded: total, total });
   return 'ready';

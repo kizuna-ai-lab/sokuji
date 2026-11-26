@@ -53,11 +53,21 @@ async function fetchInto(incomplete: string, meta: FileMetadata, verify: boolean
       append = false;
       hash = verify ? createHash('sha256') : null;
     }
-    const fh = await fs.promises.open(incomplete, append ? 'a' : 'w');
+    // Its folder may have gone since it was made (an import taking back what it had put in a fresh repo): made again.
+    const fh = await fs.promises.open(incomplete, append ? 'a' : 'w').catch((e: NodeJS.ErrnoException) => {
+      if (e.code !== 'ENOENT') throw e;
+      fs.mkdirSync(path.dirname(incomplete), { recursive: true });
+      return fs.promises.open(incomplete, append ? 'a' : 'w');
+    });
     try {
       if (res.body) {
         for await (const chunk of res.body) {
-          await fh.write(chunk);
+          // A write may take only part of the chunk: the rest follows.
+          for (let off = 0; off < chunk.length;) {
+            const { bytesWritten } = await fh.write(chunk, off, chunk.length - off);
+            if (bytesWritten <= 0) throw new Error(`${label}: could not be written to the model cache (no progress)`);
+            off += bytesWritten;
+          }
           hash?.update(chunk);
           opts.onBytes?.(chunk.length);
           if (opts.signal?.aborted) throw abortError(opts.signal);
@@ -97,12 +107,28 @@ export async function downloadFile(repo: string, file: string, opts: DownloadFil
   const pointer = path.join(dir, 'snapshots', meta.commit, ...file.split('/'));
   const blob = path.join(dir, 'blobs', meta.etag);
   const incomplete = `${blob}.incomplete`;
-  // The fetch runs on its own; what the cache then holds — the blob put in place, its link, `main` — is decided under
-  // the repo's lock (withRepoLock), so an import taking back a blob cannot interleave with it. A blob that was there
-  // when looked at and is gone by then is fetched after all.
-  for (let fetched = false; ;) {
+  const fetchBlob = async (): Promise<void> => {
+    fs.mkdirSync(path.dirname(blob), { recursive: true });
+    const digest = await fetchInto(incomplete, meta, SHA256.test(meta.etag), opts, label);
+    const got = fs.statSync(incomplete).size;
+    if (meta.size !== null && got !== meta.size) throw new Error(`${label}: the download stopped at ${got} of ${meta.size} bytes`);
+    if (digest !== null && digest !== meta.etag) {
+      fs.rmSync(incomplete, { force: true });
+      throw new Error(`${label}: sha256 ${digest} does not match the hub's ${meta.etag}`);
+    }
+  };
+  // The fetch runs without the repo's lock (an import may hold it for minutes); what the cache then holds — the blob
+  // put in place, its link, `main` — is decided under it (withRepoLock), so an import taking back a blob cannot
+  // interleave with it. A blob that was there when looked at and is gone by then is fetched after all.
+  let fetched = false;
+  if (!fs.existsSync(pointer) && !fs.existsSync(blob)) {
+    await fetchBlob();
+    fetched = true;
+  }
+  for (;;) {
     const done = await withRepoLock(repo, async () => {
       if (fs.existsSync(pointer)) {
+        if (fetched) fs.rmSync(incomplete, { force: true });   // filed meanwhile by another writer
         writeRef(repo, 'main', meta.commit);
         return true;
       }
@@ -115,18 +141,9 @@ export async function downloadFile(repo: string, file: string, opts: DownloadFil
       writeSnapshotLink(repo, meta.commit, file, meta.etag);
       writeRef(repo, 'main', meta.commit);
       return true;
-    });
+    }, opts.signal);
     if (done) return pointer;
-    fs.mkdirSync(path.dirname(blob), { recursive: true });
-    const digest = await fetchInto(incomplete, meta, SHA256.test(meta.etag), opts, label);
-    const got = fs.statSync(incomplete).size;
-    if (meta.size !== null && got !== meta.size) throw new Error(`${label}: the download stopped at ${got} of ${meta.size} bytes`);
-    if (digest !== null) {
-      if (digest !== meta.etag) {
-        fs.rmSync(incomplete, { force: true });
-        throw new Error(`${label}: sha256 ${digest} does not match the hub's ${meta.etag}`);
-      }
-    }
+    await fetchBlob();
     fetched = true;
   }
 }

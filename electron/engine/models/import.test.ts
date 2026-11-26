@@ -11,7 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { freshHfHome } from '../test/hfFixture';
-import { cachedFilePath, repoDir, resolveRevision, writeRef, writeSnapshotLink } from './hfCache';
+import { cachedFilePath, repoDir, resolveRevision, withRepoLock, writeRef, writeSnapshotLink } from './hfCache';
 import { importModel, knownFile, ImportError } from './import';
 import { downloadSpecs } from './specs';
 import { modelStatus } from './status';
@@ -291,5 +291,17 @@ describe('importModel', () => {
       spy.mockRestore();
     }
     for (const [r, f] of ttsFiles()) expect(fs.existsSync(cachedFilePath(r, f) ?? '/nonexistent')).toBe(true);
+  });
+
+  it('can be cancelled while it waits for another import into the same repo', async () => {
+    let release!: () => void;
+    const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
+    const controller = new AbortController();
+    const importing = importModel(CARD, [put(path.basename(FILE), gguf())], send, { signal: controller.signal });
+    await new Promise((r) => setTimeout(r, 50));
+    controller.abort();
+    expect(await importing).toBe('cancelled');
+    release();
+    await held;
   });
 });

@@ -191,27 +191,47 @@ const repoLocks = new Map<string, Promise<unknown>>();
 /**
  * Runs `fn` while no other caller holds `repo`'s lock in this engine: what goes into a repo's cache — a blob put in
  * place or taken back, its snapshot links, `main` — is decided by one writer at a time, so an import that fails cannot
- * take back a blob another import or a download has just started to use. In-process: the engine is the cache's one writer.
+ * take back a blob another import or a download has just started to use. In-process: the engine is the cache's one
+ * writer. A `signal` that aborts while waiting gives up the wait (the queue behind it carries on).
  */
-export async function withRepoLock<T>(repo: string, fn: () => Promise<T>): Promise<T> {
+export async function withRepoLock<T>(repo: string, fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
   const key = repoDir(repo);
   const before = repoLocks.get(key) ?? Promise.resolve();
   let release!: () => void;
   const mine = new Promise<void>((resolve) => { release = resolve; });
   const tail = before.then(() => mine);
   repoLocks.set(key, tail);
-  await before;
+  const forget = () => { if (repoLocks.get(key) === tail) repoLocks.delete(key); };
+  try {
+    await untilFree(before, signal);
+  } catch (e) {
+    release();                       // whoever waits behind this one waits only for `before`
+    void tail.then(forget);
+    throw e;
+  }
   try {
     return await fn();
   } finally {
     release();
-    if (repoLocks.get(key) === tail) repoLocks.delete(key);
+    forget();
   }
 }
 
+/** Resolves with `p`, or rejects as soon as `signal` aborts. */
+function untilFree(p: Promise<unknown>, signal?: AbortSignal): Promise<void> {
+  if (!signal) return p.then(() => undefined);
+  const reason = () => (signal.reason instanceof Error ? signal.reason : Object.assign(new Error('cancelled'), { name: 'AbortError' }));
+  if (signal.aborted) return Promise.reject(reason());
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => reject(reason());
+    signal.addEventListener('abort', onAbort, { once: true });
+    p.then(() => { signal.removeEventListener('abort', onAbort); resolve(); });
+  });
+}
+
 /** `withRepoLock` over several repos, taken in one order so two callers never wait on each other. */
-export function withRepoLocks<T>(repos: readonly string[], fn: () => Promise<T>): Promise<T> {
+export function withRepoLocks<T>(repos: readonly string[], fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
   const sorted = [...new Set(repos)].sort();
-  const run = (i: number): Promise<T> => (i === sorted.length ? fn() : withRepoLock(sorted[i], () => run(i + 1)));
+  const run = (i: number): Promise<T> => (i === sorted.length ? fn() : withRepoLock(sorted[i], () => run(i + 1), signal));
   return run(0);
 }
