@@ -5,6 +5,7 @@
 // paid by the payer the app has chosen, with the one model the relay writes notes with; or a text model with the
 // user's own key (text models, part C): OpenAI's, Gemini's or a compatible service's, called with the notes model and
 // reasoning chosen on the line-up's Notes card (the provider's `notesModel` and `notesReasoning`).
+import { appTrack } from '../../app/appTrack';
 import {
   COMPATIBLE_NOTES, GEMINI_KEY_HOLDERS, GEMINI_NOTES, KIZUNA_NOTES, notesDefaultsNow, notesProviderOf, notesServiceOf, OPENAI_KEY_HOLDERS, OPENAI_NOTES,
 } from './notesService';
@@ -143,6 +144,7 @@ export function appNotesRunner(): NotesRunner {
     language: notesLanguageOf,
     names: () => useWordList.getState().entries,
     report: (message, cause) => reportError('Notes', message, { cause }),
+    track: appTrack,
   });
   return runner;
 }

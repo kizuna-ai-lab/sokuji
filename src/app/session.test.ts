@@ -1145,6 +1145,51 @@ describe('attach', () => {
       return { made, factory };
     }
 
+    // Which features are used and how they go, never what the notes say: one summary when a session's live notes end.
+    it('sends one summary of the live notes’ updates when the session ends, and none for a session with no update', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive();
+        const { session, clock, track } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        live.made[0].deps.log?.({ sentences: 3, latencyMs: 1000, accepted: true, givenUp: false, unstablePoints: 0 });
+        live.made[0].deps.log?.({ sentences: 2, latencyMs: 3000, accepted: false, givenUp: true, unstablePoints: 0 });
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(track).toHaveBeenCalledWith('live_notes_summary', {
+          service: expect.any(String), updates: 2, accepted: 1, given_up: 1, avg_latency_ms: 2000,
+        }));
+        expect(track.mock.calls.filter(([e]) => e === 'live_notes_summary')).toHaveLength(1);
+      });
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive();
+        const { session, clock, track } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ ended: true }));
+        expect(track.mock.calls.some(([e]) => e === 'live_notes_summary')).toBe(false);
+      });
+    });
+
+    it('ends the live notes even when the analytics callback throws on the summary', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive();
+        const { session, clock, track } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        track.mockImplementation(() => { throw new Error('analytics is broken'); });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        live.made[0].deps.log?.({ sentences: 1, latencyMs: 10, accepted: true, givenUp: false, unstablePoints: 0 });
+        await session.runner.stop();
+        await session.runner.settled();
+        await vi.waitFor(() => expect(useLiveNotes.getState()).toMatchObject({ running: false, ended: true }));
+      });
+    });
+
     it('shows the last update the loop gives at Stop', async () => {
       await withLive(true, 'openai', async () => {
         const live = answeringLive();
