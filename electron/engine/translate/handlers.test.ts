@@ -175,6 +175,25 @@ describe('concurrent inits', () => {
   });
 });
 
+describe('a queued init whose connection has closed', () => {
+  it('loads nothing: no client is left to own the model', async () => {
+    let inits = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const eng = { generation: 0, resolved: null, translate: async (): Promise<[string, number]> => ['', 0], init: async () => { inits++; if (inits === 1) await gate; return 1; } };
+    const state = stateWith(eng);
+    const a = new Conn(new FakeSocket());
+    const b = new Conn(new FakeSocket());
+    const first = call(state, { type: 'translate_init', id: 1 }, a);
+    const second = call(state, { type: 'translate_init', id: 2 }, b);
+    b.markClosed();
+    release();
+    const [, [reply]] = await Promise.all([first, second]);
+    expect(inits).toBe(1);
+    expect(reply).toBeNull();
+  });
+});
+
 describe('connections', () => {
   const GGUF_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'translate-conn-'));
   const gguf = path.join(GGUF_DIR, 'w.gguf');

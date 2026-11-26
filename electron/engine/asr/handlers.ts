@@ -80,6 +80,7 @@ const initAsr: Handler = async (state, msg, _binary, conn) => {
   if (streaming) {
     await eng.initStreaming!(model, language, sampleRate, device, pin);
     generation = eng.generation;
+    conn?.ctx.set('asr_generation', generation);
     if (conn) {
       conn.ctx.set('on_binary', (data: Uint8Array) => (stale() ? [] : eng.feedStream!(data)));
       conn.ctx.set('stream_task', eng.runStream!((m) => conn.send(m)));
@@ -88,6 +89,7 @@ const initAsr: Handler = async (state, msg, _binary, conn) => {
   } else {
     ms = await eng.init(model, language, sampleRate, device, pin);
     generation = eng.generation;
+    conn?.ctx.set('asr_generation', generation);
     if (conn) {
       conn.ctx.set('on_binary', (data: Uint8Array) => {
         if (stale()) return [];                                           // a later init owns the model now
@@ -100,8 +102,15 @@ const initAsr: Handler = async (state, msg, _binary, conn) => {
   return [{ type: 'ready', id: msg.id, loadTimeMs: ms, ...(eng.resolved ?? {}) }, null];
 };
 
+/** False when a later init (another connection's) has replaced the model this connection loaded. */
+function ownsModel(eng: AsrEngineLike, conn: Conn | undefined): boolean {
+  const mine = conn?.ctx.get('asr_generation') as number | undefined;
+  return mine === undefined || eng.generation === undefined || eng.generation === mine;
+}
+
 export const asrFlushHandler: Handler = async (state, msg, _binary, conn) => {
   const eng = asrEngineOf(state);
+  if (!ownsModel(eng, conn)) return [{ type: 'ok', id: msg.id }, null];
   for (const out of await (eng.flush?.() ?? [])) await conn?.send(out);
   return [{ type: 'ok', id: msg.id }, null];
 };
@@ -109,6 +118,7 @@ export const asrFlushHandler: Handler = async (state, msg, _binary, conn) => {
 /** A client VAD edge: no id and no reply; an end mark's result is pushed when its transcription finishes. */
 export const vadMarkHandler: Handler = async (state, msg, _binary, conn) => {
   const eng = asrEngineOf(state);
+  if (!ownsModel(eng, conn)) return [null, null];
   void deliver(conn, eng.mark?.(String(msg.event ?? '')) ?? []);
   return [null, null];
 };

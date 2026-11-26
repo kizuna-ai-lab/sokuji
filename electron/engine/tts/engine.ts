@@ -131,9 +131,12 @@ export class TtsEngine {
       await this.backend!.generateStream!(text, speed, signal, (pcm, rate, channels) => {
         if (signal?.aborted) return;
         const bytes = toInt16_24kMono(pcm, channels, rate);
-        total += bytes.length / 2;
-        const n = seq++;
-        sends = sends.then(() => (signal?.aborted ? undefined : send({ type: 'tts_chunk', id: msgId, seq: n }, bytes)));   // re-checked when its turn comes
+        // Counted and numbered when its turn to send comes, so a chunk dropped by an abort is in neither.
+        sends = sends.then(() => {
+          if (signal?.aborted) return undefined;
+          total += bytes.length / 2;
+          return send({ type: 'tts_chunk', id: msgId, seq: seq++ }, bytes);
+        });
       });
       await sends;
     } catch (e) {

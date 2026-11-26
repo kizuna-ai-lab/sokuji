@@ -229,6 +229,30 @@ describe('one engine, several connections', () => {
     await Promise.all([a.h.done, b.h.done]);
   });
 
+  it('asr_flush and vad_mark from a connection whose model was replaced do nothing', async () => {
+    const state = createState();
+    let gen = 0;
+    const calls: string[] = [];
+    state.asr_engine = {
+      get generation() { return gen; }, init: async () => { gen++; return 1; }, feed: () => [], close: () => {},
+      flush: () => { calls.push('flush'); return []; }, mark: (e: string) => { calls.push(`mark:${e}`); return []; },
+    };
+    register(state);
+    const a = connect(state);
+    const b = connect(state);
+    a.socket.message(msg({ type: 'asr_init', id: 1 }));
+    await a.h.settled();
+    b.socket.message(msg({ type: 'asr_init', id: 1 }));
+    await b.h.settled();
+    a.socket.message(msg({ type: 'asr_flush', id: 5 }));
+    a.socket.message(msg({ type: 'vad_mark', event: 'end' }));
+    b.socket.message(msg({ type: 'asr_flush', id: 6 }));
+    await Promise.all([a.h.settled(), b.h.settled()]);
+    expect(calls).toEqual(['flush']);                                   // only the owner's flush reached the engine
+    a.socket.close(); b.socket.close();
+    await Promise.all([a.h.done, b.h.done]);
+  });
+
   it('two inits at once load one after the other', async () => {
     const state = createState();
     let running = 0;

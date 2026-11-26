@@ -51,6 +51,7 @@ export async function translateTeardown(state: EngineState, generation?: number)
 export const translateInitHandler: Handler = (state, msg, binary, conn) => exclusive(state, 'translate', () => initTranslate(state, msg, binary, conn));
 
 const initTranslate: Handler = async (state, msg, _binary, conn) => {
+  if (conn?.closed) return [null, null];                            // queued behind another init and the client left: nobody to own the model
   const eng = translateEngineOf(state);
   // A stage already loaded reserves nothing (its memory is out of every free reading); one not loaded yet reserves
   // its download size.
