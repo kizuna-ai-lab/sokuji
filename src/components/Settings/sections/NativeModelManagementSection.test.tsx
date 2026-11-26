@@ -314,62 +314,23 @@ beforeEach(() => {
 });
 
 describe('NativeModelManagementSection — HY-MT2 variant card', () => {
-  it('header dropdown is a select whose value is the chosen variant; rows list supported (enabled) and unsupported (disabled) variants', async () => {
+  it('shows the one quant a download fetches, with its size, and no picker', async () => {
     // All statuses absent (default) → pre-download state for hy-mt2-7b.
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const q4SizeLabel = formatMemMb(Math.round(8e9 / 1e6));
-
-    // The compact dropdown in the header is a customizable <select>
-    // (appearance: base-select — this section is Electron-only, Chromium 144);
-    // its value is the chosen variant id, and <selectedcontent> mirrors the
-    // chosen option's label + size into the closed control.
-    const dd = await waitFor(() => {
-      const card = screen.getByTestId('model-card-hy-mt2-7b');
-      return within(card).getByTestId('variant-dd-hy-mt2-7b') as HTMLSelectElement;
-    });
-    expect(dd.value).toBe('q4_k_m');
-
-    // Options live inside the select from the start — the picker is a
-    // top-layer popup, so listing them never grows the card (which is what
-    // the old menu's lazy render existed to prevent).
+    const label = await waitFor(() => within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-label-hy-mt2-7b'));
+    expect(label).toHaveTextContent('Q4_K_M');
+    expect(label).toHaveTextContent(q4SizeLabel);
+    // One quant per model: no select, no rows to choose another.
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
-    const q4Row = within(card7b).getByTestId('variant-row-q4_k_m');
-    expect(q4Row).toHaveTextContent('Q4_K_M');
-    expect(q4Row).toHaveTextContent(q4SizeLabel);
-    expect(within(q4Row).getByText('recommended')).toBeInTheDocument();
-    expect(q4Row).toBeEnabled();
-
-    // q8_0 is unsupported → listed (so the user sees the option) but disabled;
-    // its actual reason is spelled out inline in the row — the old hover
-    // tooltip can't render above the select's top-layer picker, and inline
-    // beats hover-only anyway.
-    const q8Row = within(card7b).getByTestId('variant-row-q8_0');
-    expect(q8Row).toBeDisabled();
-    expect(q8Row).toHaveTextContent('GPU memory');
+    expect(within(card7b).queryByTestId('variant-dd-hy-mt2-7b')).toBeNull();
+    expect(within(card7b).queryByTestId('variant-row-q8_0')).toBeNull();
   });
 
-  it('changing the select to an unsupported variant is a no-op', async () => {
-    // A real picker never lets a disabled option through; this guards the
-    // programmatic/keyboard path — pinning must itself check support, the
-    // way the old menu's click handler no-opped on unsupported rows.
-    // (The positive pin path is covered on the TTS card below, where a
-    // second supported variant exists to change to.)
+  it('HY-MT1.5 cards show their quant too (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    const dd = await waitFor(() =>
-      within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-dd-hy-mt2-7b'));
-
-    fireEvent.change(dd, { target: { value: 'q8_0' } });
-
-    expect(mockUpdate).not.toHaveBeenCalled();
-  });
-
-  it('HY-MT1.5 cards also expose the quant-variant picker (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
-    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    // hy-mt15-7b is a multilingual card always present; its catalog entry carries
-    // variantIds too, so it fetches variants and shows the same Q4_K_M dropdown as hy-mt2.
-    const dd = await waitFor(() =>
-      within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-dd-hy-mt15-7b')) as HTMLSelectElement;
-    expect(dd.value).toBe('q4_k_m');
+    const label = await waitFor(() => within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-label-hy-mt15-7b'));
+    expect(label).toHaveTextContent('Q4_K_M');
   });
 
   it('collapses to resolved variant label after download; no variant chooser buttons', async () => {
@@ -461,7 +422,7 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     // Wait for the variant data to land so the download button knows the chosen repo.
     const card7b = await waitFor(() => {
       const c = screen.getByTestId('model-card-hy-mt2-7b');
-      within(c).getByTestId('variant-dd-hy-mt2-7b'); // throws until variant data lands
+      within(c).getByTestId('variant-label-hy-mt2-7b'); // throws until variant data lands
       return c;
     });
 
@@ -478,60 +439,23 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
   // qwen3-tts-1.7b (mockCatalog) mirrors hy-mt2-7b's shape but with kind:'tts' —
   // this exercises the TTS renderCards call, which previously passed undefined for
   // variantMap/onPin (the picker was translation/ASR-only before this task).
-  it('the picker renders on a multi-variant TTS card (same as ASR/translation)', async () => {
+  it('a multi-variant TTS card shows its one quant too (same as ASR/translation)', async () => {
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const bf16SizeLabel = formatMemMb(Math.round(3.6e9 / 1e6));
-
-    const dd = await waitFor(() => {
-      const card = screen.getByTestId('model-card-qwen3-tts-1.7b');
-      return within(card).getByTestId('variant-dd-qwen3-tts-1.7b') as HTMLSelectElement;
-    });
-    expect(dd.value).toBe('bf16');
-    const bf16Row = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-bf16');
-    expect(bf16Row).toHaveTextContent('BF16');
-    expect(bf16Row).toHaveTextContent(bf16SizeLabel);
-  });
-
-  it('pinning a supported variant on a TTS card writes it into that stage\'s selection', async () => {
-    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    const dd = await waitFor(() =>
-      within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-dd-qwen3-tts-1.7b'));
-
-    fireEvent.change(dd, { target: { value: 'fp32' } });
-
-    // The pin reaches settings on the (direction, stage) selection alongside
-    // its modelId — there is no separate map for it to live in, so pinning a
-    // variant necessarily also makes that card the stage's active pick.
-    expect(mockUpdate).toHaveBeenCalledWith({
-      selections: {
-        'ja→en': {
-          asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'qwen3-tts-1.7b', variant: 'fp32' },
-        },
-      },
-    });
+    const label = await waitFor(() => within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-label-qwen3-tts-1.7b'));
+    expect(label).toHaveTextContent('BF16');
+    expect(label).toHaveTextContent(bf16SizeLabel);
   });
 
   it('downloads the chosen (recommended BF16) variant repo for a TTS card, not the default', async () => {
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const card = await waitFor(() => {
       const c = screen.getByTestId('model-card-qwen3-tts-1.7b');
-      within(c).getByTestId('variant-dd-qwen3-tts-1.7b'); // throws until variant data lands
+      within(c).getByTestId('variant-label-qwen3-tts-1.7b'); // throws until variant data lands
       return c;
     });
-
-    const downloadBtn = within(card).getByRole('button', { name: /Download/i });
-    fireEvent.click(downloadBtn);
-
+    fireEvent.click(within(card).getByRole('button', { name: /Download/i }));
     expect(mockDownload).toHaveBeenCalledWith('qwen3-tts-1.7b', 'org/qwen3-tts-1.7b-bf16');
-  });
-
-  it('renders "runs on CPU here" on an enabled option when the sidecar refused its GPU tier', () => {
-    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    const opt = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-bf16') as HTMLOptionElement;
-    expect(opt.disabled).toBe(false);
-    expect(opt.textContent).toContain('Runs on CPU on this machine');
-    const other = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-int8');
-    expect(other.textContent).not.toContain('Runs on CPU');
   });
 });
 
@@ -819,5 +743,22 @@ describe('NativeModelManagementSection — ModelStorageFooter only on the standa
   it('the standalone (prop-less stageFilter) render keeps the footer', () => {
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     expect(document.querySelector('.model-management__storage')).toBeInTheDocument();
+  });
+});
+
+describe('NativeModelManagementSection — the streaming tag', () => {
+  it('marks a streaming model and no other', async () => {
+    mockCatalogOverride = {
+      ...mockCatalog,
+      'stream-asr': { id: 'stream-asr', name: 'Stream ASR', languages: ['ja'], recommended: true, tiers: [], order: 9, repo: 'stream-asr', kind: 'asr', streaming: true } as NativeModelInfo,
+    };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
+      await screen.findByTestId('model-card-stream-asr');
+      expect(screen.getByTestId('streaming-stream-asr')).toHaveTextContent('Streaming');
+      expect(screen.queryByTestId('streaming-sense-voice')).toBeNull();
+    } finally {
+      mockCatalogOverride = null;
+    }
   });
 });

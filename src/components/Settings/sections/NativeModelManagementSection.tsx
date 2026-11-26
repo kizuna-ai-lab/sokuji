@@ -78,88 +78,6 @@ type VariantCardProps = {
   onPinVariant: (id: string) => void;
 };
 
-/**
- * Compact quant-variant picker shown in a card header (in place of the size).
- * A customizable <select> (appearance: base-select): the closed control mirrors
- * the chosen variant + size (e.g. "FP8 · 8.0 GB") via <selectedcontent>; the
- * picker lists all variants with sizes — unsupported ones disabled with the
- * reason inline (a hover tooltip can't render above the top-layer picker) —
- * plus a "runs on CPU" note when no GPU variant fits.
- *
- * No classic-select fallback: local native models are Electron-only, and the
- * packaged Electron (Chromium 144) always renders base-select.
- */
-const VariantDropdown: React.FC<{
-  variantProps: VariantCardProps;
-  chosenVariant?: VariantInfo;
-  disabled: boolean;
-  selectId: string;
-}> = ({ variantProps, chosenVariant, disabled, selectId }) => {
-  const { t } = useTranslation();
-
-  const gpuFits = variantProps.variants.some((v) => v.supported);
-  const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
-
-  return (
-    // stopPropagation: the surrounding .model-card selects the model on click.
-    <div className="model-card__variant-dd" onClick={(e) => e.stopPropagation()}>
-      <select
-        className="model-card__variant-select"
-        data-testid={`variant-dd-${selectId}`}
-        disabled={disabled}
-        value={chosenVariant ? chosenId : ''}
-        onChange={(e) => {
-          // The picker never lets a disabled option through; this guards the
-          // programmatic/keyboard path the way the old menu's click handler
-          // no-opped on unsupported rows.
-          const v = variantProps.variants.find((x) => x.id === e.target.value);
-          if (v?.supported) variantProps.onPinVariant(v.id);
-        }}
-      >
-        <button type="button"><selectedcontent /></button>
-        {!chosenVariant && (
-          <option value="" disabled hidden>CPU</option>
-        )}
-        {variantProps.variants.map((v) => {
-          const isRec = v.supported && v.id === variantProps.recommendedVariantId;
-          const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
-          return (
-            <option
-              key={v.id}
-              value={v.id}
-              disabled={!v.supported}
-              data-testid={`variant-row-${v.id}`}
-            >
-              <span className="model-card__variant-name">
-                {v.computeType.toUpperCase()}
-                <span className="model-card__variant-size"> · {sizeLabel}</span>
-              </span>
-              {isRec && (
-                <span className="model-card__variant-recommended">{t('models.recommended', 'Recommended').toLowerCase()}</span>
-              )}
-              {!v.supported && (
-                <span className="model-card__variant-reason">{v.reason || t('models.wontFit', "Won't fit on this machine")}</span>
-              )}
-              {v.supported && v.unsupportedTiers && v.unsupportedTiers.length > 0 && (
-                <span className="model-card__variant-reason">{t('models.variantRunsOnCpu', 'Runs on CPU on this machine')}</span>
-              )}
-            </option>
-          );
-        })}
-        {!gpuFits && (
-          // A disabled option, not a bare <span>: the select content model
-          // (and React's nesting validator) only admits option-shaped
-          // children, and a span here would log the very warning class the
-          // dev muffler exists to avoid adding to.
-          <option disabled className="model-card__variant-cpu-note">
-            {t('models.variantNoGpuFits', 'No GPU variant fits — runs on CPU.')}
-          </option>
-        )}
-      </select>
-    </div>
-  );
-};
-
 // One selectable + downloadable card — reuses ModelManagementSection's model-card__* classes.
 const NativeModelCard: React.FC<{
   spec: NativeModelCardSpec;
@@ -279,14 +197,14 @@ const NativeModelCard: React.FC<{
                   {resolvedVariantLabel}
                 </span>
               ) : variantProps && !ready ? (
-                // Pre-download multi-variant card: compact dropdown picker, shown in the
-                // standard header size slot (trigger displays the chosen variant + size).
-                <VariantDropdown
-                  variantProps={variantProps}
-                  chosenVariant={chosenVariant}
-                  disabled={disabled}
-                  selectId={spec.selectId}
-                />
+                // Pre-download multi-variant card: the one quant a download fetches (the recommended one, or the
+                // one an earlier version pinned), named with its size. There is no picker: the list shows one quant
+                // per model (owner, 2026-11-27, as Handy does).
+                chosenVariant && (
+                  <span className="model-card__size" data-testid={`variant-label-${spec.selectId}`}>
+                    {`${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(Math.round((chosenVariant.sizeBytes ?? 0) / 1e6))}`}
+                  </span>
+                )
               ) : (
                 // Normal single-variant card: GB-aware label (formatMemMb switches
                 // to GB at >= 1024 MB) — never a bare four-digit "MB".
@@ -299,6 +217,7 @@ const NativeModelCard: React.FC<{
               <div className="model-card__languages">
                 <LanguageTags languages={spec.languages || []} />
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
+                {spec.streaming && <span className="model-card__lang-tag" data-testid={`streaming-${spec.selectId}`}>{t('models.streaming', 'Streaming')}</span>}
               </div>
               {(() => {
                 // The active card shows the RESOLVED device as a LIVE badge (highlighted,
@@ -383,8 +302,6 @@ const NativeModelCard: React.FC<{
               )}
             </div>
           </div>
-          {/* The quant-variant picker now lives in the header (VariantDropdown). */}
-
           <div className="model-card__actions">
             {noDownload ? null : status === 'downloading' ? (
               <div className="model-card__progress">

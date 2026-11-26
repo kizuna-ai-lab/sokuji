@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Descargado. Elígelo en «Idiomas y combinación» para usarlo en una sesión.",
       "goChoose": "Elegir",
       "dismiss": "Descartar"
-    }
+    },
+    "streaming": "Streaming"
   },
   "notes": {
     "stageAsr": "reconocimiento de voz",

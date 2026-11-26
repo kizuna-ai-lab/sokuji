@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Ladattu. Valitse se kohdassa ”Kielet ja kokoonpano”, jotta voit käyttää sitä istunnossa.",
       "goChoose": "Valitse",
       "dismiss": "Hylkää"
-    }
+    },
+    "streaming": "Suoratoisto"
   },
   "notes": {
     "stageAsr": "puheentunnistus",

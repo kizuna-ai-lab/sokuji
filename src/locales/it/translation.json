@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Scaricato. Sceglilo in «Lingue e composizione» per usarlo in una sessione.",
       "goChoose": "Scegli",
       "dismiss": "Ignora"
-    }
+    },
+    "streaming": "Streaming"
   },
   "notes": {
     "stageAsr": "riconoscimento vocale",

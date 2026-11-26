@@ -949,6 +949,7 @@
     "hwSize": "サイズ",
     "hwRepo": "リポジトリ",
     "computeDevice": "ハードウェアアクセラレーション",
+    "streaming": "ストリーミング",
     "computeDeviceTooltip": "音声認識（ASR）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
     "computeDeviceTooltipTranslation": "翻訳モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
     "computeDeviceTooltipTts": "音声合成（TTS）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",

@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Pobrano. Wybierz go w „Języki i zestaw”, aby użyć w sesji.",
       "goChoose": "Wybierz",
       "dismiss": "Odrzuć"
-    }
+    },
+    "streaming": "Strumieniowe"
   },
   "notes": {
     "stageAsr": "rozpoznawania mowy",

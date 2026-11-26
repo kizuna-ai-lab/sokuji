@@ -1029,7 +1029,8 @@
       "downloadedChoose": "다운로드됨. 세션에서 사용하려면 “언어와 구성”에서 선택하세요.",
       "goChoose": "선택",
       "dismiss": "닫기"
-    }
+    },
+    "streaming": "스트리밍"
   },
   "notes": {
     "stageAsr": "음성 인식",

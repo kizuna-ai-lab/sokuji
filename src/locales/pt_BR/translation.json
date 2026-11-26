@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Baixado. Escolha-o em “Idiomas e composição” para usá-lo em uma sessão.",
       "goChoose": "Escolher",
       "dismiss": "Dispensar"
-    }
+    },
+    "streaming": "Streaming"
   },
   "notes": {
     "stageAsr": "reconhecimento de fala",

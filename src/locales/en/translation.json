@@ -1181,6 +1181,7 @@
     "hwSize": "Size",
     "hwRepo": "Repo",
     "computeDevice": "Hardware acceleration",
+    "streaming": "Streaming",
     "computeDeviceTooltip": "Which device runs the speech model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
     "computeDeviceTooltipTranslation": "Which device runs the translation model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
     "computeDeviceTooltipTts": "Which device runs the speech-synthesis model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",

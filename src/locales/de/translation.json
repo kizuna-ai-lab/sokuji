@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Heruntergeladen. Unter „Sprachen und Aufstellung“ auswählen, um es in einer Sitzung zu verwenden.",
       "goChoose": "Auswählen",
       "dismiss": "Ausblenden"
-    }
+    },
+    "streaming": "Streaming"
   },
   "notes": {
     "stageAsr": "Spracherkennung",

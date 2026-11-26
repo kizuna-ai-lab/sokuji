@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Đã tải xuống. Hãy chọn nó trong “Ngôn ngữ và cách phối hợp” để dùng trong một phiên.",
       "goChoose": "Chọn",
       "dismiss": "Bỏ qua"
-    }
+    },
+    "streaming": "Phát trực tiếp"
   },
   "notes": {
     "stageAsr": "nhận dạng giọng nói",

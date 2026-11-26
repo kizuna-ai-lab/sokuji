@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Gedownload. Kies het in “Talen en opstelling” om het in een sessie te gebruiken.",
       "goChoose": "Kiezen",
       "dismiss": "Sluiten"
-    }
+    },
+    "streaming": "Streaming"
   },
   "notes": {
     "stageAsr": "spraakherkenning",

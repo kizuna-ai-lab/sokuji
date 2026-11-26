@@ -1029,7 +1029,8 @@
       "downloadedChoose": "已下載。請在「語言與工作階段組成」中選擇它，即可在工作階段中使用。",
       "goChoose": "選擇",
       "dismiss": "關閉"
-    }
+    },
+    "streaming": "串流"
   },
   "notes": {
     "stageAsr": "語音辨識",

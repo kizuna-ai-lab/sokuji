@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Transferido. Escolha-o em “Idiomas e composição” para o usar numa sessão.",
       "goChoose": "Escolher",
       "dismiss": "Ignorar"
-    }
+    },
+    "streaming": "Streaming"
   },
   "notes": {
     "stageAsr": "reconhecimento de voz",

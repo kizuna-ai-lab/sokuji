@@ -1029,7 +1029,8 @@
       "downloadedChoose": "Nedladdad. Välj den i ”Språk och uppsättning” för att använda den i en session.",
       "goChoose": "Välj",
       "dismiss": "Avfärda"
-    }
+    },
+    "streaming": "Strömmande"
   },
   "notes": {
     "stageAsr": "taligenkänning",

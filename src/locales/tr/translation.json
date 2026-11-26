@@ -1029,7 +1029,8 @@
       "downloadedChoose": "İndirildi. Bir oturumda kullanmak için “Diller ve düzen” bölümünden seçin.",
       "goChoose": "Seç",
       "dismiss": "Kapat"
-    }
+    },
+    "streaming": "Akışlı"
   },
   "notes": {
     "stageAsr": "konuşma tanıma",
