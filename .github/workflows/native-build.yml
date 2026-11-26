@@ -1,6 +1,6 @@
 # .github/workflows/native-build.yml
 # Build the sokuji-native wheels (spec §4.6): one ggml + transcribe.cpp + llama.cpp +
-# audio.cpp behind the sk_* C ABI, per platform. Two lanes, mirroring sidecar-bundles.yml:
+# audio.cpp behind the sk_* C ABI, per platform. Two lanes:
 #   - workflow_dispatch: dry run — artifacts only.
 #   - native-vX.Y.Z tag push: build all five and publish a PRERELEASE GitHub Release
 #     (prerelease so electron-updater's "latest release" lookup never lands on it).
@@ -46,9 +46,7 @@ jobs:
           # spirv-headers CMake config 22.04's own package lacks, from pinned Khronos/
           # Google sources (R38 — see native/ci/vulkan-toolchain.sh's header for why
           # not an apt repo: LunarG's jammy apt repo has no arm64 index at all, and its
-          # libvulkan-dev ships no headers). sidecar-bundles.yml's Linux runners move
-          # to 22.04 too, though its interpreter is python-build-standalone (portable)
-          # and only this wheel's floor matters there.
+          # libvulkan-dev ships no headers).
           - { sku: linux-x64,   runner: ubuntu-22.04,     lane: vulkan, plat: manylinux_2_35_x86_64 }
           - { sku: linux-arm64, runner: ubuntu-22.04-arm, lane: vulkan, plat: manylinux_2_35_aarch64 }
           - { sku: win-x64,     runner: windows-2022,     lane: vulkan, plat: win_amd64 }
@@ -316,7 +314,7 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: native/ci
-      # Every artifact into one directory: the five wheels, five archives and five .sha256 files.
+      # Every artifact into one directory: the five archives, five .sha256 files and the wheels (not attached).
       - uses: actions/download-artifact@v7
         with:
           path: release
@@ -331,11 +329,10 @@ jobs:
           prerelease: true
           name: ${{ github.ref_name }}
           files: |
-            release/*.whl
             release/*.tar.zst
             release/*.tar.zst.sha256
             release/manifest.json
           body: |
             sokuji-native ${{ github.ref_name }} — one ggml + transcribe.cpp + llama.cpp + audio.cpp behind the sk_* C ABI.
-            Pins: see native/cmake/upstreams.cmake at this tag. Wheels are py3-none-<platform>; install with pip.
+            Pins: see native/cmake/upstreams.cmake at this tag.
             App archives: sokuji-native-<sku>-v<version>.tar.zst (libraries, backend modules, the Node addon, NOTICES.txt) with .sha256 files; manifest.json lists them.

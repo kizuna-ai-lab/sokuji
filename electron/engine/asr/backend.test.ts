@@ -4,8 +4,9 @@
  * hub-cache layout under a temp HF_HOME. A real-model smoke runs with SOKUJI_RUN_NATIVE_ASR=1 and SOKUJI_NATIVE_DIR.
  */
 import '../test/env';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BackendLoadError, makeBackend } from '../backends';
+import { setStuckHandler } from '../deadline';
 import { loadNative, setNativeForTests, useNative } from '../native';
 import { makeFakeNative, type FakeAsrOptions, type FakeNative } from '../test/fakeNative';
 import { cacheArtifact, freshHfHome } from '../test/hfFixture';
@@ -167,6 +168,25 @@ describe('native_asr_stream', () => {
     raw.committed = 'hello world';
     expect(await st.end()).toBe('hello world FINAL');
     expect(raw.closed).toBe(true);
+  });
+
+  it('a finalize that never returns is cut at its deadline and reported as stuck', async () => {
+    const b = await streamBackend();
+    const st = b.openStream();
+    const raw = model().streams.at(-1)!;
+    raw.finalize = () => new Promise<string>(() => {});
+    const stuck: string[] = [];
+    setStuckHandler((j) => stuck.push(j));
+    vi.useFakeTimers();
+    try {
+      const ended = st.end().catch((e: Error) => e.message);
+      await vi.advanceTimersByTimeAsync(30_000);
+      expect(await ended).toMatch(/asr_finalize did not finish within 30 s/);
+      expect(stuck).toEqual(['asr_finalize']);
+    } finally {
+      vi.useRealTimers();
+      setStuckHandler(() => {});
+    }
   });
 
   it('reopens on the same model after an end', async () => {

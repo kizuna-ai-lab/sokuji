@@ -7,7 +7,8 @@
 import '../test/env';
 import fs from 'node:fs';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { setStuckHandler } from '../deadline';
 import { restoreSeams, seams } from '../accel/seams';
 import { BackendLoadError, makeBackend } from '../backends';
 import { VOICE_REQUIRED_FAMILIES } from '../catalog';
@@ -252,6 +253,30 @@ describe('default voices and the warm-up', () => {
     expect(logs.some((l) => l.toLowerCase().includes('warm-up') && l.includes('moss_tts_nano'))).toBe(true);
     expect(synths((await loaded('moss_tts_nano', 'metal')).model)).toEqual([['synth', 'Warm-up.', null, 1]]);
     expect(synths((await loaded('moss_tts_nano', 'cpu')).model)).toEqual([]);
+  });
+
+  it('the warm-up synth is not cut at the ordinary synth deadline: the first GPU compile can take minutes', async () => {
+    useFake({ gateBefore: true });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    const stuck: string[] = [];
+    setStuckHandler((j) => stuck.push(j));
+    try {
+      const b = backend();
+      const loading = b.load(REF, 'vulkan', 'q8_0', cfg('moss_tts_nano'));
+      // Wait, on the real clock, until the warm-up synth is really waiting; the fake clock starts only then.
+      const entered = () => fake.ttsModels.at(-1)?.log.some((e) => (e as unknown[])[0] === 'synth') === true;
+      const until = performance.now() + 20_000;
+      while (!entered() && performance.now() < until) await new Promise((r) => setImmediate(r));
+      expect(entered()).toBe(true);
+      await vi.advanceTimersByTimeAsync(120_000);                // far past the 34 s a short text gets
+      expect(stuck).toEqual([]);
+      fake.ttsModels.at(-1)!.release();
+      await loading;
+      expect(stuck).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+      setStuckHandler(() => {});
+    }
   });
 
   it('supertonic gets no default preset, and on a GPU warms up bare', async () => {

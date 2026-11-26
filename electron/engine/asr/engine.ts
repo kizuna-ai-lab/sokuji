@@ -376,8 +376,9 @@ export class AsrEngine {
         let final = '';
         try {
           final = await this.stream.end();
-        } catch {
+        } catch (e) {
           final = '';
+          await send({ type: 'error', message: e instanceof Error ? e.message : String(e) });
         }
         this.stream = null;
         if (final.trim()) await send(this.resultEvent(final));
@@ -518,8 +519,9 @@ export class AsrEngine {
     let final = '';
     try {
       final = await this.stream!.end();
-    } catch {
-      final = '';                                     // end() failed: drop this final, still recover
+    } catch (e) {
+      final = '';                                     // end() failed: drop this final, still recover — and say so
+      await send({ type: 'error', message: e instanceof Error ? e.message : String(e) });
     }
     if (final.trim()) await send(this.resultEvent(final));
     this.stream = this.openStream();

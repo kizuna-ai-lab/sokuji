@@ -403,6 +403,8 @@ describe('streaming', () => {
     expect(opened.n).toBe(1);
     expect(results(sent)).toEqual([]);
     expect(eng.pending).toBe('');
+    // The client is told why the utterance has no text (a hung finalize is cut by its deadline with this kind of error).
+    expect(sent.filter((m) => m.type === 'error').map((m) => m.message)).toEqual(['generate crashed during flush']);
   });
 
   it('backpressure degrades to per-utterance and keeps the utterance going', async () => {

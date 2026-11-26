@@ -1,6 +1,0 @@
-.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-.hf-cache/
-.models/

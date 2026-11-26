@@ -118,6 +118,32 @@ function crossOriginIsolationHeaders(): Plugin {
 }
 
 // https://vitejs.dev/config/
+// Main-process externals: runtime dependencies and the sibling files that require() each other.
+const mainExternals: Array<string | RegExp> = [
+                  'electron',
+                  // Everything in `dependencies` ships in the asar's
+                  // node_modules and must stay a runtime require. Rollup
+                  // externalized these on its own; rolldown bundles them
+                  // instead — it inlined fzstd and rewrote tar-stream into
+                  // `../node_modules/tar-stream/extract`, reaching past the
+                  // package's exports map. Derived from package.json so the
+                  // list cannot drift from what actually ships.
+                  ...Object.keys(pkg.dependencies ?? {}),
+                  // sidecar-bundle reads `sidecarVersion` from the package.json
+                  // that forge/electron-builder pack into the asar. Left to
+                  // rolldown it gets inlined, baking the whole file — including
+                  // the devDependencies list — into the shipped main process.
+                  '../package.json',
+                  // The main entries `require()` each other (18 sites, and
+                  // windows-audio-utils <-> vb-cable-installer is circular).
+                  // Rollup left those as runtime requires between the emitted
+                  // files; rolldown instead inlines the target entry and leaves
+                  // a re-export stub, which mangles CJS exports — a required
+                  // sibling came back as the wrong module. Marking siblings
+                  // external restores one self-contained file per entry.
+                  /^\.\/[a-z0-9-]+$/,
+                ];
+
 export default defineConfig(({ command, mode }) => {
   // Load env file based on `mode` in the current working directory
   const env = loadEnv(mode, process.cwd(), '')
@@ -148,10 +174,13 @@ export default defineConfig(({ command, mode }) => {
             'distribution-channel': 'electron/distribution-channel.js',
             'macos-audio-utils': 'electron/macos-audio-utils.js',
             'main': 'electron/main.js',
+            'engine': 'electron/engine/entry.ts',
             'main-window-navigation': 'electron/main-window-navigation.js',
-            'native-host-manager': 'electron/native-host-manager.js',
+            'engine-host': 'electron/engine-host.js',
+            'engine-ipc': 'electron/engine-ipc.js',
+            'legacy-sidecar-cleanup': 'electron/legacy-sidecar-cleanup.js',
+            'native-dir': 'electron/native-dir.js',
             'sidecar-sku': 'electron/sidecar-sku.js',
-            'sidecar-bundle': 'electron/sidecar-bundle.js',
             'pulseaudio-utils': 'electron/pulseaudio-utils.js',
             'window-state': 'electron/window-state.js',
             'pipewire-app-audio': 'electron/pipewire-app-audio.js',
@@ -206,30 +235,12 @@ export default defineConfig(({ command, mode }) => {
               // old key bundles electron-updater/electron-conf/the native
               // electron-audio-loopback straight into dist-electron.
               rolldownOptions: {
-                external: [
-                  'electron',
-                  // Everything in `dependencies` ships in the asar's
-                  // node_modules and must stay a runtime require. Rollup
-                  // externalized these on its own; rolldown bundles them
-                  // instead — it inlined fzstd and rewrote tar-stream into
-                  // `../node_modules/tar-stream/extract`, reaching past the
-                  // package's exports map. Derived from package.json so the
-                  // list cannot drift from what actually ships.
-                  ...Object.keys(pkg.dependencies ?? {}),
-                  // sidecar-bundle reads `sidecarVersion` from the package.json
-                  // that forge/electron-builder pack into the asar. Left to
-                  // rolldown it gets inlined, baking the whole file — including
-                  // the devDependencies list — into the shipped main process.
-                  '../package.json',
-                  // The main entries `require()` each other (18 sites, and
-                  // windows-audio-utils <-> vb-cable-installer is circular).
-                  // Rollup left those as runtime requires between the emitted
-                  // files; rolldown instead inlines the target entry and leaves
-                  // a re-export stub, which mangles CJS exports — a required
-                  // sibling came back as the wrong module. Marking siblings
-                  // external restores one self-contained file per entry.
-                  /^\.\/[a-z0-9-]+$/,
-                ],
+                external: (id: string, importer?: string) => {
+                  // The engine is one self-contained bundle: its own ./sibling imports are inlined, unlike the
+                  // main-process files, which require() each other at run time.
+                  if (importer && /[\\/]electron[\\/]engine[\\/]/.test(importer) && /^\.{1,2}\//.test(id)) return false;
+                  return mainExternals.some((m) => (typeof m === 'string' ? m === id : m.test(id)));
+                },
                 output: {
                   entryFileNames: '[name].js'
                 }
