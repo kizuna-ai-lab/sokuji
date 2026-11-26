@@ -64,6 +64,7 @@ async function teardown(state: EngineState, conn: Conn, generation?: number): Pr
 export const asrInitHandler: Handler = (state, msg, binary, conn) => exclusive(state, 'asr', () => initAsr(state, msg, binary, conn));
 
 const initAsr: Handler = async (state, msg, _binary, conn) => {
+  if (conn?.closed) return [null, null];                            // queued behind another init and the client left: no one to own a model
   const eng = asrEngineOf(state);
   const model = typeof msg.model === 'string' ? msg.model : null;
   const device = typeof msg.device === 'string' ? msg.device : 'auto';

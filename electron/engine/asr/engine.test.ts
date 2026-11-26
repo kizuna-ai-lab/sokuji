@@ -543,3 +543,22 @@ describe('streaming', () => {
     expect(eng.stream.aborted).toBe(false);
   });
 });
+
+describe('close() racing a newer session', () => {
+  it('a close still unloading the old model does not clear what the new session has received', async () => {
+    const eng = new AsrEngine();
+    eng.srcRate = 16000;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    eng.backend = { transcribe: async () => new AsrResult('x'), unload: async () => { await gate; } };
+    const closing = eng.close();                       // the old connection's teardown, stuck unloading its model
+    (eng as unknown as { gen: number }).gen += 1;      // a newer init has taken over and loaded its own model
+    const fresh = new EchoBackend();
+    eng.backend = fresh;
+    await eng.feed(pcm(1600, 1));                      // and its client is already sending audio
+    release();
+    await closing;
+    expect(eng.backend).toBe(fresh);
+    expect(eng.ringLen).toBe(1600);
+  });
+});
