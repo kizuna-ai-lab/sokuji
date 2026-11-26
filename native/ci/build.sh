@@ -63,7 +63,8 @@ fi
 cp -r "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
 # The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
 # against whatever sokuji_native happens to be installed in this interpreter.
-"$PYTHON" -m pip install -q pytest numpy soundfile
+# zstandard: make_app_archive.py and its test (tests/test_make_app_archive.py).
+"$PYTHON" -m pip install -q pytest numpy soundfile zstandard
 export SK_TEST_SAMPLE_WAV="$BUILD/_deps/transcribe-src/samples/jfk.wav"
 # -s: keep pytest from capturing stderr — a GGML_ASSERT abort otherwise dies with
 # its message trapped in the capture buffer, unrecoverable from the CI log.
@@ -72,7 +73,31 @@ export SK_TEST_SAMPLE_WAV="$BUILD/_deps/transcribe-src/samples/jfk.wav"
 # runner has no Vulkan device" from "the model cache silently missed" from "the Metal
 # lane hit its paravirtual GPU" — all three are expected on some lane, and only the
 # reasons say which one actually happened.
-PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -m pytest "$ROOT/python/tests" "$ROOT/tests/parity" -q -s -rs
+PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -m pytest "$ROOT/python/tests" "$ROOT/tests/parity" "$ROOT/tests/test_make_app_archive.py" "$ROOT/tests/test_vendored_tree.py" -q -s -rs
+# The app archive: the same stage plus the Node addon and NOTICES.txt, packed as
+# sokuji-native-<sku>-v<version>.tar.zst for the app to unpack (make_app_archive.py's docstring
+# has the layout). Only when SOKUJI_SKU names the platform (CI sets it from the matrix), so a
+# developer's build.sh run stays wheel-only unless asked. Its own stage: the wheel's stays as is.
+# The addon itself was already tested by ctest (test_node_addon) against the build tree; the
+# workflow loads the unpacked archive under Electron.
+if [ -n "${SOKUJI_SKU:-}" ]; then
+    APP_STAGE="$BUILD/app-stage"
+    ARCHIVE_DIR="$ROOT/build/archive"
+    APP_VERSION="$(sed -nE 's/^project\(sokuji_native VERSION ([0-9.]+).*/\1/p' "$ROOT/CMakeLists.txt")"
+    [ -n "$APP_VERSION" ] || { echo "ci/build.sh: cannot read the project version from CMakeLists.txt"; exit 1; }
+    rm -rf "$APP_STAGE"
+    cmake --install "$BUILD" --prefix "$APP_STAGE" --component sokuji
+    cmake --install "$BUILD" --prefix "$APP_STAGE" --component sokuji_node
+    if command -v strip >/dev/null && [ "$(uname -s)" != "Darwin" ]; then
+        find "$APP_STAGE" \( -name '*.so*' -o -name '*.node' \) -exec strip --strip-unneeded {} +
+    fi
+    # The addon is held to the same glibc / libstdc++ floor as the libraries.
+    if [ "$(uname -s)" = "Linux" ]; then
+        "$PYTHON" "$ROOT/ci/check_linux_deps.py" "$APP_STAGE" "$PLAT"
+    fi
+    "$PYTHON" "$ROOT/ci/make_app_archive.py" "$APP_STAGE" "$SOKUJI_SKU" "$APP_VERSION" "$ARCHIVE_DIR"
+    ls -la "$ARCHIVE_DIR"
+fi
 ( cd "$ROOT/python" && rm -rf dist && SOKUJI_NATIVE_PLAT="$PLAT" "$PYTHON" -m pip wheel . --no-deps -w dist )
 ls -la "$ROOT/python/dist"
 # Import the wheel we just built, from a clean interpreter, and print the device table.

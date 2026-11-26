@@ -25,6 +25,16 @@ toolchain `native/ci/vulkan-toolchain.sh` builds (see below); on Windows, the Lu
 Output: a wheel in `native/python/dist/`; the staged binaries in
 `native/build/<lane>/stage/` (`native/build/cpu/stage/` for `none`).
 
+With `SOKUJI_SKU=<linux-x64|linux-arm64|win-x64|mac-arm64|mac-x64>` set (CI sets it from its
+matrix), the script also packs the **app archive**
+`native/build/archive/sokuji-native-<sku>-v<version>.tar.zst` (+ `.sha256`): one top-level
+directory holding the stage, `sokuji_native_node.node` (the Node-API addon, `native/node/`) and
+`NOTICES.txt`, byte-reproducible (`ci/make_app_archive.py`, tested by
+`tests/test_make_app_archive.py`). The release also carries `manifest.json`
+(`{"version", "archives": {"<sku>": {"file", "sha256", "size"}}}`), written by
+`make_app_archive.py --manifest`. A new vendored or fetched upstream gets a line in
+`ci/NOTICES.in`.
+
 **Linux wheel floor (R37): `manylinux_2_35`, built on `ubuntu-22.04`/`ubuntu-22.04-arm`.**
 `pip install` needs glibc ≥ 2.35 (Ubuntu 22.04+, Debian 12+) no matter which symbols are
 actually used — pip enforces the manylinux tag itself, not the object's real references.
@@ -110,7 +120,8 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   `libggml`, `libggml-base`, a CPU backend module, and the Vulkan/Metal module. Those backends
   are dlopen'd, so no `DT_NEEDED` check sees them, and CI runners have no GPU — a missing GPU
   module would otherwise ship green under a Vulkan/Metal wheel name. `build.ps1` is not gated.
-- `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built: every
+- `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built, and again on
+  the app archive's stage (where `sokuji_native_node.node` is checked like the `.so` files): every
   staged shared object may depend only on glibc/libstdc++/libgcc, the system Vulkan loader
   and its siblings, and may reference no glibc symbol newer than the wheel tag's floor.
   (The Vulkan loader is external by design, which is why `auditwheel` is not the gate.)
@@ -491,5 +502,5 @@ transcribe.cpp's v0.2.4 tag was re-pointed twice upstream on 2026-09-25 (CI/pack
 commits), so that pin alone is the release commit `7d37cea2` fetched WITHOUT
 `GIT_SHALLOW`; the other three pins stay shallow. `sk_asr` leaves PnC/ITN at `DEFAULT`
 (unchanged); transcribe.cpp 0.2.4 turns `DEFAULT` on for sensevoice/canary (#157), so those
-two now output cased, punctuated text by default. Current native version is 1.2.0 (ABI
+two now output cased, punctuated text by default. Current native version is 1.3.0 (1.3.0 adds the Node-API addon and the app archives; the engine libraries are unchanged from 1.2.0) (ABI
 unchanged at 2).
