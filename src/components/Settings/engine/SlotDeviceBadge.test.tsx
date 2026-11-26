@@ -2,8 +2,8 @@
  * Tests for SlotDeviceBadge — the Engine page's read-only per-slot
  * compute-device badge drawn inside the slot's select (B'2 decision,
  * 2026-09-03): informational only, never a control. Since the owner's pick
- * of 2026-10-02 it shows only what tells something: a pinned setting
- * (amber), or on Auto the device a run actually used; on Auto with no run
+ * of 2026-10-02 it shows only what tells something: a pinned setting,
+ * or on Auto the device a run actually used; on Auto with no run
  * it is not drawn, so the select holds one "Auto" — the model's.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -76,7 +76,7 @@ describe('SlotDeviceBadge', () => {
     expect(badge(container).className).not.toContain('--pinned');
   });
 
-  it('a pinned cpu setting shows "CPU" alone, amber, whatever ran', () => {
+  it('a pinned cpu setting shows "CPU" alone, whatever ran', () => {
     mockTranslationResolved = { model: 'm', device: 'cpu' };
     const { container } = render(<SlotDeviceBadge stage="translation" modelId="m" id="b" setting="cpu" />);
     expect(setting(container)).toHaveTextContent('CPU');
