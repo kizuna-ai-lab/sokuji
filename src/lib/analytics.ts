@@ -410,7 +410,13 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
   'file_job_finished': { kind: 'import' | 'transcribe'; hosted: boolean; outcome: 'complete' | 'failed' | 'cancelled'; failure?: string; duration_ms: number };
   /** One session's live notes: updates run, kept, given up, and their mean time; never the text. Sent when they end. */
   'live_notes_summary': { service: string; updates: number; accepted: number; given_up: number; avg_latency_ms: number };
-  'top_up_clicked': Record<string, never>;
+  /** Where the Top up was clicked: the account popover, the status line above Start, or a notice row in the conversation. */
+  'top_up_clicked': { source: 'account_popover' | 'status_line' | 'notice' };
+  /**
+   * The status line began saying that the balance keeps Start from starting: `reason` is its code (the gate's
+   * `balance_below_floor`, the server's `insufficient_balance`, or an organization's). Once each time it appears.
+   */
+  'start_blocked': { reason: string };
   'subscription_management_clicked': Record<string, never>;
 
   // Navigation events

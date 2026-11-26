@@ -119,6 +119,13 @@ vi.mock('./panel/replayGate', async (importOriginal) => {
   return { replayBlocked: gate.spy };
 });
 
+vi.mock('../../lib/auth/refreshSession', () => ({ refreshSession: vi.fn() }));
+// The real opener, made replaceable per case (the session-gone case answers a 401 without a network).
+vi.mock('../../lib/auth/openSitePage', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../lib/auth/openSitePage')>();
+  return { ...real, openSitePage: vi.fn(real.openSitePage) };
+});
+
 const env = vi.hoisted(() => ({ extension: false, electron: false }));
 vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
@@ -155,6 +162,8 @@ import { useTurnModeStore } from '../../stores/turnModeStore';
 import type { Sampler, SamplerState } from '../../lib/screen/sampler';
 import { useLiveNotesLayout } from '../../lib/notes/live/livePanel';
 import MainPanel from './MainPanel';
+import { refreshSession } from '../../lib/auth/refreshSession';
+import { openSitePage } from '../../lib/auth/openSitePage';
 
 const clock = createVirtualClock(0);
 // Before any render builds the page's session: the fake source, no microphone needed.
@@ -831,6 +840,84 @@ describe('panel notes (spec 2026-10-05 §5)', () => {
     expect(container.querySelector('.sys-row--info')).not.toBeNull();
     fireEvent.click(container.querySelector('.clear-conversation-btn')!);
     expect(usePanelNotesStore.getState().notes).toEqual([]);
+  });
+});
+
+describe('Top up (spec 2026-11-23: one click to the billing page)', () => {
+  let open: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => { open = vi.spyOn(window, 'open').mockImplementation(() => null); });
+  afterEach(() => { open.mockRestore(); });
+
+  it("opens the billing page from the status line's Top up, not the account popover, and says where it was clicked", async () => {
+    const { container } = await renderPanel();
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'insufficient_balance', message: 'm' } } }, true);
+    });
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:insufficient_balance');
+    const action = container.querySelector<HTMLButtonElement>('.status-line__action')!;
+    expect(action.textContent).toBe('common.topUp');
+    fireEvent.click(action);
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    expect(String(open.mock.calls[0][0])).toMatch(/\/dashboard\/billing$/);
+    expect(trackEvent).toHaveBeenCalledWith('top_up_clicked', { source: 'status_line' });
+    expect(useSettingsStore.getState().accountPopoverRequested).toBe(false);
+  });
+
+  it("re-checks the session when the one-time token says it is gone, as the popover does, and opens nothing", async () => {
+    const { container } = await renderPanel();
+    // The token endpoint's 401, as openSitePage reports it (its own tests cover how it reads one).
+    vi.mocked(openSitePage).mockImplementationOnce(async (_path, deps) => { deps.onSessionExpired(); return 'session-expired'; });
+    vi.mocked(refreshSession).mockClear();
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'insufficient_balance', message: 'm' } } }, true);
+    });
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.status-line__action')!);
+    await vi.waitFor(() => expect(refreshSession).toHaveBeenCalledTimes(1));
+    expect(trackEvent).toHaveBeenCalledWith('session_expired_detected', { source: 'one_time_token' });
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it("opens the organization's wallet on the billing page when an organization's owner tops up", async () => {
+    const { container } = await renderPanel();
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'org_insufficient_balance', message: 'm', params: { organization: 'Acme', role: 'owner' } } } }, true);
+    });
+    fireEvent.click(container.querySelector<HTMLButtonElement>('.status-line__action')!);
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    expect(String(open.mock.calls[0][0])).toMatch(/\/dashboard\/billing\?subject=organization$/);
+  });
+
+  it("opens the billing page from a row's Top up, as a notice", async () => {
+    usePanelNotesStore.getState().add({ severity: 'error', code: 'budget_exhausted', message: 'used up', action: { kind: 'top-up' } });
+    const { container } = await renderPanel();
+    fireEvent.click(container.querySelector('.sys-row')!.querySelector('.sys-row__action')!);
+    await vi.waitFor(() => expect(open).toHaveBeenCalledTimes(1));
+    expect(String(open.mock.calls[0][0])).toMatch(/\/dashboard\/billing$/);
+    expect(trackEvent).toHaveBeenCalledWith('top_up_clicked', { source: 'notice' });
+  });
+
+  it('counts a start the balance blocks, once each time the status line begins saying so', async () => {
+    const { container, rerender } = await renderPanel();
+    expect(trackEvent).not.toHaveBeenCalledWith('start_blocked', expect.anything());
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'insufficient_balance', message: 'm' } } }, true);
+    });
+    expect(container.querySelector('.status-line')?.getAttribute('data-status')).toBe('last-end:insufficient_balance');
+    rerender(<MainPanel />);
+    const blocked = () => trackEvent.mock.calls.filter(([name]) => name === 'start_blocked');
+    expect(blocked()).toEqual([['start_blocked', { reason: 'insufficient_balance' }]]);
+    // The line goes away and comes back: counted again.
+    act(() => { runner().state.setState({ phase: 'idle' }, true); });
+    expect(container.querySelector('.status-line')).toBeNull();
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'refused', notice: { code: 'insufficient_balance', message: 'm' } } }, true);
+    });
+    expect(blocked()).toHaveLength(2);
+    // A refusal that is not about money is not counted.
+    act(() => {
+      runner().state.setState({ phase: 'idle', lastEnd: { reason: 'start-failed', notice: { code: 'no_microphone', message: 'm' } } }, true);
+    });
+    expect(blocked()).toHaveLength(2);
   });
 });
 

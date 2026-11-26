@@ -29,7 +29,7 @@ import { describeCause } from '../../lib/diagnostics/describeCause';
 import { interruptedOutcome, recordNetworkAttempt, type NetworkOutcome } from '../../lib/diagnostics/sessionNetwork';
 import type { RunShape } from '../../lib/session/types';
 import type { LeaseContext, Resources, RunNotice } from '../../lib/run/types';
-import { orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
+import { budgetExhaustedParams, orgNoticeParams, orgRefusalCode } from '../../lib/session/orgNotice';
 import { asSonioxRegion, SONIOX_REGIONS, type SonioxRegion } from '../../lib/soniox/regions';
 import { sonioxSessionCapSeconds } from './kizunaBudget';
 import {
@@ -490,9 +490,11 @@ export function createKizunaLease(deps: KizunaLeaseDeps) {
     // `api_error` (ruling 8), and a message that carried the seconds could
     // not be grouped; the seconds go to the Logs' frame instead. The end
     // at the cap is the normal end of a segment: `expected`, untracked.
+    // An organization's run-out names the organization, so that only its owner is offered Top up.
+    const outParams = budgetExhaustedParams(shape.payer, shape.account);
     const grantEnd: { notice: RunNotice; expected: boolean } = capped
       ? { notice: { code: 'segment_ended', message: 'Session segment ended at the per-session cap' }, expected: true }
-      : { notice: { code: 'budget_exhausted', message: 'Session budget exhausted' }, expected: false };
+      : { notice: { code: 'budget_exhausted', message: 'Session budget exhausted', ...(outParams ? { params: outParams } : {}) }, expected: false };
 
     let ended = false;
     let released = false;

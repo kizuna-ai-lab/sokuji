@@ -86,6 +86,13 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   org_insufficient_balance: "Ask the organization's owner to top up, or use your own balance.",
   org_insufficient_balance_owner: 'Top up {{organization}}, or use your own balance.',
   org_insufficient_balance_owner_unnamed: 'Top up your organization, or use your own balance.',
+  // An organization-paid run that ran out (a lease's `budget_exhausted` with `payer: 'organization'`), by role; the
+  // member's sentence names no organization, so it needs no `_unnamed`. The run's budget was what the organization had
+  // free at Start (its balance less what its members' running sessions hold), so the rest may only be held: the
+  // sentence says both, and offers a retry, not a promise (those sessions may spend what they hold) (the owner's call, 2026-11-23).
+  org_budget_exhausted: "The organization balance this session could use is used up. The rest may be held by other sessions in progress; try again when they end. You can also ask the organization's owner to top up, or use your own balance.",
+  org_budget_exhausted_owner: "The {{organization}} balance this session could use is used up. The rest may be held by other sessions in progress; try again when they end. You can also top up {{organization}}, or use your own balance.",
+  org_budget_exhausted_owner_unnamed: "The organization balance this session could use is used up. The rest may be held by other sessions in progress; try again when they end. You can also top up your organization, or use your own balance.",
   not_org_member: "You're no longer in {{organization}}.",
   not_org_member_unnamed: "You're no longer in your organization.",
   org_wallet_frozen: "{{organization}}'s account is paused. Contact its owner, or use your own balance.",
@@ -232,13 +239,19 @@ function wordsKey(code: string, params: Record<string, string | number> | undefi
   return key;
 }
 
+/** The code a notice is worded by: an organization-paid run that ran out is the organization's row, not the personal sentence. */
+function wordsCode(notice: NoticeWords): string | undefined {
+  return notice.code === 'budget_exhausted' && notice.params?.payer === 'organization' ? 'org_budget_exhausted' : notice.code;
+}
+
 /** The notice in the user's words; the message itself for a code with no words, as today's bubbles show it. */
 export function noticeText(t: TFunction, notice: NoticeWords): string {
-  const alias = notice.code === undefined ? undefined : NOTICE_ALIASES[notice.code];
+  const code = wordsCode(notice);
+  const alias = code === undefined ? undefined : NOTICE_ALIASES[code];
   // A catalog lacking the key shows the diagnostic English, as a code with no words does.
-  if (alias !== undefined) return t(alias, { defaultValue: notice.message, ...named(t, notice.code, notice.params), detail: notice.message });
-  const key = notice.code === undefined ? undefined : wordsKey(notice.code, notice.params);
+  if (alias !== undefined) return t(alias, { defaultValue: notice.message, ...named(t, code, notice.params), detail: notice.message });
+  const key = code === undefined ? undefined : wordsKey(code, notice.params);
   const words = key === undefined ? undefined : NOTICE_WORDS[key];
   if (key === undefined || words === undefined) return notice.message;
-  return t(`notices.${key}`, { defaultValue: words, ...named(t, notice.code, notice.params), detail: notice.message });
+  return t(`notices.${key}`, { defaultValue: words, ...named(t, code, notice.params), detail: notice.message });
 }

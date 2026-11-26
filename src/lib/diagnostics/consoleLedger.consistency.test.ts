@@ -149,7 +149,7 @@ const LEDGER: Record<string, number> = {
   // MainPanel.tsx's row (43) is gone, not lowered to 0: plan 1e-3b-2's switch
   // replaced the old panel with the app session's, which reports through
   // report.ts only.
-  'src/components/Auth/UserAccountInfo.tsx': 5,
+  'src/components/Auth/UserAccountInfo.tsx': 3,
   // `Rename failed:` and `Delete failed:` — the picker takes `onRename`/
   // `onAskDelete` and VoiceDeleteModal takes `onConfirm` as props, so the
   // composition root is what reports a failed commit. The other three calls
