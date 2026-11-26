@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { registerEngineIpc } from './engine-ipc.js';
+import { registerEngineIpc, defaultHfHome } from './engine-ipc.js';
 import { removeLegacySidecar, modelCachePaths } from './legacy-sidecar-cleanup.js';
 
 class FakeChild extends EventEmitter {
@@ -188,6 +188,20 @@ describe('removeLegacySidecar', () => {
     const log = vi.fn();
     await removeLegacySidecar(ud, { log, keep: [path.join(ud, 'sidecar', 'not-yet', 'cache')] });   // would be created inside it
     expect(fs.existsSync(path.join(ud, 'sidecar'))).toBe(true);
+    fs.rmSync(ud, { recursive: true, force: true });
+  });
+
+  it.each([['hf-cache itself', ''], ['hf-cache/hub', 'hub']])('keeps the folder when the default %s the engine adds is a symlink into it', async (_name, sub) => {
+    const ud = tmp();
+    const cache = path.join(ud, 'sidecar', 'cache');
+    fs.mkdirSync(cache, { recursive: true });
+    fs.writeFileSync(path.join(cache, 'model'), 'm');
+    if (sub) { fs.mkdirSync(path.join(ud, 'hf-cache')); fs.symlinkSync(cache, path.join(ud, 'hf-cache', 'hub')); }
+    else fs.symlinkSync(cache, path.join(ud, 'hf-cache'));
+    const env = {};                                                           // the user set no cache variable at all
+    const keep = modelCachePaths({ ...env, HF_HOME: defaultHfHome(env, ud) });   // what the engine will run with
+    await removeLegacySidecar(ud, { log: vi.fn(), keep });
+    expect(fs.existsSync(path.join(cache, 'model'))).toBe(true);
     fs.rmSync(ud, { recursive: true, force: true });
   });
 

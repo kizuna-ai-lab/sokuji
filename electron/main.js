@@ -790,7 +790,7 @@ app.on('activate', function () {
 app.on('will-quit', cleanupAndExit);
 
 // IPC handler for app version
-const { registerEngineIpc } = require('./engine-ipc');
+const { registerEngineIpc, defaultHfHome } = require('./engine-ipc');
 const { removeLegacySidecar, modelCachePaths } = require('./legacy-sidecar-cleanup');
 nativeHost = registerEngineIpc({
   ipcMain,
@@ -802,7 +802,7 @@ nativeHost = registerEngineIpc({
   log: (level, message) => console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](`[Sokuji] ${message}`),
 });
 // The Python sidecar bundle an older build installed; not awaited, never throws.
-app.whenReady().then(() => removeLegacySidecar(app.getPath('userData'), { log: (l, m) => console.log(`[Sokuji] ${m}`), keep: modelCachePaths(process.env) }));
+app.whenReady().then(() => removeLegacySidecar(app.getPath('userData'), { log: (l, m) => console.log(`[Sokuji] ${m}`), keep: modelCachePaths({ ...process.env, HF_HOME: defaultHfHome(process.env, app.getPath('userData')) }) }));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('get-distribution-channel', () => getDistributionChannel());

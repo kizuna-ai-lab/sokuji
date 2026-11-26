@@ -13,13 +13,18 @@ const DEV_ORIGIN = 'http://localhost:5173';
 // Electron 44.11.5). Not Better Auth's `file://sokuji` marker, and never `null`.
 const PACKAGED_PAGE_ORIGIN = 'file://';
 
+/** The model cache the engine will use when none is configured: userData/hf-cache. */
+function defaultHfHome(env, userData) {
+  return env.HF_HOME || path.join(userData, 'hf-cache');
+}
+
 function engineEnv({ env, userData, nativeDir, origins }) {
   return {
     ...env,
     SOKUJI_NATIVE_DIR: nativeDir,
     SOKUJI_ENGINE_ORIGINS: origins.join(','),
     // A pre-set HF_HOME is respected (a shared model cache for manual testing); otherwise the cache lives in userData.
-    HF_HOME: env.HF_HOME || path.join(userData, 'hf-cache'),
+    HF_HOME: defaultHfHome(env, userData),
   };
 }
 
@@ -60,4 +65,4 @@ function registerEngineIpc({ ipcMain, app, detectSku, nativeVersion, repoRoot, e
   return host;
 }
 
-module.exports = { registerEngineIpc, engineEnv, DEV_ORIGIN };
+module.exports = { registerEngineIpc, engineEnv, defaultHfHome, DEV_ORIGIN };
