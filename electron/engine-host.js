@@ -37,6 +37,7 @@ class EngineHost {
     this.crashes = [];
     this.tripped = false;   // the crash limit was hit: stays until the app restarts
     this.dying = null;      // a child that was told to die and may not have exited yet
+    this.epoch = 0;         // bumped by stop()/kill(): a start that began before it is cancelled
   }
 
   status() {
@@ -68,10 +69,14 @@ class EngineHost {
   }
 
   async launch() {
+    const epoch = this.epoch;
     const prev = this.dying;
     if (prev && !prev.__done) {
       await Promise.race([prev.__exit, new Promise((r) => setTimeout(r, EXIT_WAIT_MS))]);
+      // Still alive after the wait: do not fork beside it. The barrier stays until it exits.
+      if (!prev.__done) throw new Error('The previous local engine is still shutting down; try again in a moment');
     }
+    if (epoch !== this.epoch) throw new Error('The local engine start was cancelled');
     return new Promise((resolve, reject) => {
       const child = this.fork(this.enginePath, [], { serviceName: 'Sokuji Engine', stdio: 'pipe', env: this.env });
       this.child = child;
@@ -108,7 +113,7 @@ class EngineHost {
         if (!m || typeof m !== 'object') return;
         switch (m.type) {
           case 'ready':
-            if (settled) return;
+            if (settled || this.child !== child || stopping) return;   // stopped or killed meanwhile: not a start
             this.port = m.port;
             lastPong = this.now();
             pingTimer = setInterval(() => {
@@ -166,6 +171,7 @@ class EngineHost {
 
   /** Ends the engine at once. For the quit paths, which exit the app and cannot wait for a graceful stop. */
   kill() {
+    this.epoch += 1;
     const child = this.child;
     if (!child) return;
     child.__markStopping?.();
@@ -175,6 +181,7 @@ class EngineHost {
   }
 
   stop() {
+    this.epoch += 1;
     const child = this.child;
     if (!child) return Promise.resolve();
     child.__markStopping?.();

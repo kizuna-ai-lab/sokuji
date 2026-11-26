@@ -186,6 +186,45 @@ describe('EngineHost', () => {
     await expect(second).resolves.toEqual({ port: 9 });
   });
 
+  it('when the dying engine has not exited after 5 s, start fails and does not fork a second one', async () => {
+    const { host, children, fork } = setup();
+    await ready(host, children);
+    children[0].kill = function () { this.killed = true; return true; };      // never exits
+    children[0].say({ type: 'stuck', job: 'asr_run' });
+    const first = host.start().catch((e) => e.message);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(await first).toMatch(/still shutting down/);
+    expect(fork).toHaveBeenCalledTimes(1);
+    const again = host.start().catch((e) => e.message);                         // the barrier stays while it lives
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(await again).toMatch(/still shutting down/);
+    expect(fork).toHaveBeenCalledTimes(1);
+  });
+
+  it('a stop while a start waits for the old engine cancels that start', async () => {
+    const { host, children, fork } = setup();
+    await ready(host, children);
+    children[0].kill = function () { this.killed = true; return true; };
+    children[0].say({ type: 'stuck', job: 'asr_run' });
+    const waiting = host.start().catch((e) => e.message);
+    await vi.advanceTimersByTimeAsync(100);
+    await host.stop();
+    children[0].emit('exit', 137);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await waiting).toMatch(/cancelled/);
+    expect(fork).toHaveBeenCalledTimes(1);                                     // nothing was quietly started after the stop
+  });
+
+  it('a ready that arrives after kill() does not make the start succeed', async () => {
+    const { host, children } = setup();
+    const starting = host.start().catch((e) => e.message);
+    host.kill();
+    children[0].say({ type: 'ready', port: 4000 });
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await starting).toMatch(/exited before it was ready|cancelled/);
+    expect(host.status()).toEqual({ running: false, port: null });
+  });
+
   it('kill() ends the engine at once, for the quit paths that cannot wait', async () => {
     const { host, children } = setup();
     await ready(host, children);
