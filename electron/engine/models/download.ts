@@ -7,7 +7,7 @@
 import { createHash, type Hash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { cachedFilePath, checkRepoPath, repoDir, writeRef, writeSnapshotLink } from './hfCache';
+import { cachedFilePath, checkRepoPath, repoDir, withRepoLock, writeRef, writeSnapshotLink } from './hfCache';
 import { HubError, fileMetadata, listRepoTree, type FileMetadata, type HubOptions } from './hub';
 import { downloadSpecs, ignored, modelSizeAsync } from './specs';
 
@@ -96,13 +96,28 @@ export async function downloadFile(repo: string, file: string, opts: DownloadFil
   const dir = repoDir(repo);
   const pointer = path.join(dir, 'snapshots', meta.commit, ...file.split('/'));
   const blob = path.join(dir, 'blobs', meta.etag);
-  if (fs.existsSync(pointer)) {
-    writeRef(repo, 'main', meta.commit);
-    return pointer;
-  }
-  if (!fs.existsSync(blob)) {
+  const incomplete = `${blob}.incomplete`;
+  // The fetch runs on its own; what the cache then holds — the blob put in place, its link, `main` — is decided under
+  // the repo's lock (withRepoLock), so an import taking back a blob cannot interleave with it. A blob that was there
+  // when looked at and is gone by then is fetched after all.
+  for (let fetched = false; ;) {
+    const done = await withRepoLock(repo, async () => {
+      if (fs.existsSync(pointer)) {
+        writeRef(repo, 'main', meta.commit);
+        return true;
+      }
+      if (!fs.existsSync(blob)) {
+        if (!fetched) return false;
+        fs.renameSync(incomplete, blob);
+      } else if (fetched) {
+        fs.rmSync(incomplete, { force: true });
+      }
+      writeSnapshotLink(repo, meta.commit, file, meta.etag);
+      writeRef(repo, 'main', meta.commit);
+      return true;
+    });
+    if (done) return pointer;
     fs.mkdirSync(path.dirname(blob), { recursive: true });
-    const incomplete = `${blob}.incomplete`;
     const digest = await fetchInto(incomplete, meta, SHA256.test(meta.etag), opts, label);
     const got = fs.statSync(incomplete).size;
     if (meta.size !== null && got !== meta.size) throw new Error(`${label}: the download stopped at ${got} of ${meta.size} bytes`);
@@ -112,11 +127,8 @@ export async function downloadFile(repo: string, file: string, opts: DownloadFil
         throw new Error(`${label}: sha256 ${digest} does not match the hub's ${meta.etag}`);
       }
     }
-    fs.renameSync(incomplete, blob);
+    fetched = true;
   }
-  writeSnapshotLink(repo, meta.commit, file, meta.etag);
-  writeRef(repo, 'main', meta.commit);
-  return pointer;
 }
 
 export type Send = (msg: Record<string, unknown>) => Promise<void>;

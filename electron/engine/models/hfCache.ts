@@ -52,12 +52,31 @@ export function resolveRevision(repo: string, revision = 'main'): string | null 
   }
 }
 
-/** The local path of `file` in the revision's snapshot, or null when it is not cached (a dangling link is not cached). */
+/**
+ * The local path of `file` in the revision's snapshot, or null when it is not cached (a dangling link is not cached).
+ * For `main`, a file its snapshot lacks is looked for in the others, newest first: files cached under an earlier commit
+ * (another card's download, an import) stay usable after `main` moves on. Only reading falls back; a download decides
+ * by the pointer under the hub's commit, so it still fetches that commit's own bytes.
+ */
 export function cachedFilePath(repo: string, file: string, revision = 'main'): string | null {
   const commit = resolveRevision(repo, revision);
-  if (commit === null) return null;
-  const p = path.join(repoDir(repo), 'snapshots', commit, ...file.split('/'));
-  return fs.existsSync(p) ? p : null;
+  const rel = file.split('/');
+  const snapshots = path.join(repoDir(repo), 'snapshots');
+  if (commit !== null) {
+    const p = path.join(snapshots, commit, ...rel);
+    if (fs.existsSync(p)) return p;
+  }
+  if (revision !== 'main') return null;
+  let others: string[];
+  try {
+    others = fs.readdirSync(snapshots).filter((c) => c !== commit);
+  } catch {
+    return null;
+  }
+  const found = others.map((c) => path.join(snapshots, c, ...rel)).filter((p) => fs.existsSync(p));
+  if (found.length === 0) return null;
+  const mtime = (p: string) => fs.lstatSync(p).mtimeMs;
+  return found.sort((a, b) => mtime(b) - mtime(a))[0];
 }
 
 /** The revision's snapshot directory, or null when the repo was never fetched. */
@@ -164,32 +183,35 @@ export function writeRef(repo: string, ref: string, commit: string): void {
   } catch {
     // no ref yet
   }
-  if (current === commit) return;
-  // `main` is the one snapshot files are looked up in: moving it to another commit keeps what the old one held and the
-  // new one lacks, or files cached under the old commit (another card's, an import's) would read as absent.
-  if (ref === 'main' && current) carryOver(repo, current.trim(), commit);
-  fs.writeFileSync(p, commit);
+  if (current !== commit) fs.writeFileSync(p, commit);
 }
 
-/** Links into snapshots/<to> every file of snapshots/<from> it does not have (blobs are named by content: safe to share). */
-function carryOver(repo: string, from: string, to: string): void {
-  const src = path.join(repoDir(repo), 'snapshots', from);
-  const dst = path.join(repoDir(repo), 'snapshots', to);
-  if (from === to || !fs.existsSync(src)) return;
-  const walk = (rel: string): void => {
-    for (const entry of fs.readdirSync(path.join(src, rel), { withFileTypes: true })) {
-      const r = path.join(rel, entry.name);
-      const a = path.join(src, r);
-      const b = path.join(dst, r);
-      if (entry.isDirectory()) { walk(r); continue; }
-      if (fs.existsSync(b) || !fs.existsSync(a)) continue;   // the new snapshot's own file wins; a dangling link is dropped
-      fs.mkdirSync(path.dirname(b), { recursive: true });
-      // The same relative link works from the same depth; where links were copies (Windows), a hard link, else a copy.
-      if (entry.isSymbolicLink()) fs.symlinkSync(fs.readlinkSync(a), b);
-      else {
-        try { fs.linkSync(a, b); } catch { fs.copyFileSync(a, b); }
-      }
-    }
-  };
-  walk('');
+const repoLocks = new Map<string, Promise<unknown>>();
+
+/**
+ * Runs `fn` while no other caller holds `repo`'s lock in this engine: what goes into a repo's cache — a blob put in
+ * place or taken back, its snapshot links, `main` — is decided by one writer at a time, so an import that fails cannot
+ * take back a blob another import or a download has just started to use. In-process: the engine is the cache's one writer.
+ */
+export async function withRepoLock<T>(repo: string, fn: () => Promise<T>): Promise<T> {
+  const key = repoDir(repo);
+  const before = repoLocks.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const mine = new Promise<void>((resolve) => { release = resolve; });
+  const tail = before.then(() => mine);
+  repoLocks.set(key, tail);
+  await before;
+  try {
+    return await fn();
+  } finally {
+    release();
+    if (repoLocks.get(key) === tail) repoLocks.delete(key);
+  }
+}
+
+/** `withRepoLock` over several repos, taken in one order so two callers never wait on each other. */
+export function withRepoLocks<T>(repos: readonly string[], fn: () => Promise<T>): Promise<T> {
+  const sorted = [...new Set(repos)].sort();
+  const run = (i: number): Promise<T> => (i === sorted.length ? fn() : withRepoLock(sorted[i], () => run(i + 1)));
+  return run(0);
 }

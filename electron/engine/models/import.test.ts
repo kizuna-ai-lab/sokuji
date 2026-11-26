@@ -214,6 +214,9 @@ describe('importModel', () => {
     for (const [r, f] of ttsFiles()) expect(cachedFilePath(r, f)).not.toBeNull();
     expect(cachedFilePath(repo, 'later.bin')).not.toBeNull();
     expect(modelStatus(TTS)).toBe('ready');
+    // Without filing old files under the new commit (review on #888): a download at that commit must still fetch its own
+    // bytes for a file it lacks, which it decides by the pointer under that commit.
+    for (const [, f] of ttsFiles()) expect(fs.existsSync(path.join(repoDir(repo), 'snapshots', 'c'.repeat(40), ...f.split('/')))).toBe(false);
   });
 
   // Review of the fixes above: a staging file an engine left when it stopped mid-import (several GB) was never removed.
@@ -227,5 +230,66 @@ describe('importModel', () => {
     expect(await importModel(CARD, [put(path.basename(FILE), gguf())], send)).toBe('ready');
     expect(fs.existsSync(dead)).toBe(false);
     expect(fs.existsSync(alive)).toBe(true);
+  });
+
+  // Review on #888: a write may take only part of a chunk; the rest must follow, or the cache holds fewer bytes than
+  // were hashed, under the full file's hash.
+  it('writes every byte of each chunk, even when a write takes only part of it', async () => {
+    const content = gguf(9_000_000);
+    const from = put(path.basename(FILE), content);
+    const open = fs.promises.open;
+    const spy = vi.spyOn(fs.promises, 'open').mockImplementation((async (...args: Parameters<typeof fs.promises.open>) => {
+      const handle = await open(...args);
+      const write = handle.write.bind(handle) as (b: Buffer, o: number, l: number) => Promise<{ bytesWritten: number }>;
+      // At most 1 MB per write, as a disk may do.
+      (handle as unknown as { write: unknown }).write = (b: Buffer, o = 0, l = b.length - o) => write(b, o, Math.min(l, 1 << 20));
+      return handle;
+    }) as typeof fs.promises.open);
+    try {
+      expect(await importModel(CARD, [from], send)).toBe('ready');
+    } finally {
+      spy.mockRestore();
+    }
+    expect(fs.readFileSync(cachedFilePath(REPO, FILE)!).equals(content)).toBe(true);
+  });
+
+  it('fails, leaving nothing, when a write makes no progress', async () => {
+    const from = put(path.basename(FILE), gguf());
+    const open = fs.promises.open;
+    const spy = vi.spyOn(fs.promises, 'open').mockImplementation((async (...args: Parameters<typeof fs.promises.open>) => {
+      const handle = await open(...args);
+      (handle as unknown as { write: unknown }).write = async () => ({ bytesWritten: 0 });
+      return handle;
+    }) as typeof fs.promises.open);
+    try {
+      await expect(importModel(CARD, [from], send)).rejects.toThrow(/no progress|could not be written/);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(fs.existsSync(repoDir(REPO))).toBe(false);
+  });
+
+  // Review on #888: two imports into one repo (the same bytes under two cards) could interleave: the second took the
+  // blob the first had placed, the first then failed and took it back, and the second linked to nothing. Imports into a
+  // repo now run one at a time.
+  it('lets an import that fails take back its blob without leaving another import of the same bytes broken', async () => {
+    const a = new AbortController();
+    const real = fs.renameSync;
+    let first = true;
+    const spy = vi.spyOn(fs, 'renameSync').mockImplementation(((x: fs.PathLike, y: fs.PathLike) => {
+      real(x, y);
+      if (first) { first = false; a.abort(); }   // the first import stops once its first file is in place
+    }) as typeof fs.renameSync);
+    try {
+      const [ra, rb] = await Promise.all([
+        importModel(TTS, putAll(), send, { signal: a.signal }),
+        importModel(TTS, putAll(), send),
+      ]);
+      expect(ra).toBe('cancelled');
+      expect(rb).toBe('ready');
+    } finally {
+      spy.mockRestore();
+    }
+    for (const [r, f] of ttsFiles()) expect(fs.existsSync(cachedFilePath(r, f) ?? '/nonexistent')).toBe(true);
   });
 });

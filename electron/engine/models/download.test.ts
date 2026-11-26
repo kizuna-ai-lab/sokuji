@@ -11,7 +11,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { FakeHub } from '../test/fakeHub';
 import { freshHfHome } from '../test/hfFixture';
-import { cachedFilePath, repoDir } from './hfCache';
+import { cachedFilePath, repoDir, withRepoLock } from './hfCache';
 import { downloadFile, downloadModel, downloadSeams, restoreDownloadSeams } from './download';
 import { modelSize, resetSizeCacheForTests } from './specs';
 
@@ -51,6 +51,24 @@ describe('downloadFile', () => {
     const blobs = path.join(repoDir(REPO), 'blobs');
     expect(fs.readdirSync(blobs)).toEqual([]);      // neither the blob nor a resumable .incomplete
     expect(cachedFilePath(REPO, FILE)).toBeNull();
+  });
+
+  // Review on #888: an import taking back a blob it had put in place must not interleave with a download that found that
+  // blob. The download's last step waits for the repo's writer and, if the blob is gone by then, fetches it after all.
+  it('waits for the repo to be free, and fetches a blob that was taken back meanwhile', async () => {
+    const blobs = path.join(repoDir(REPO), 'blobs');
+    fs.mkdirSync(blobs, { recursive: true });
+    const blob = path.join(blobs, hub.etag(FILE));
+    fs.writeFileSync(blob, content);                // put there by an import still running
+    let release!: () => void;
+    const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
+    const download = downloadFile(REPO, FILE, { endpoint: hub.url });
+    await new Promise((r) => setTimeout(r, 100));   // the download has looked at the hub and waits
+    fs.rmSync(blob);                                // the import fails and takes its blob back
+    release();
+    await held;
+    const p = await download;
+    expect(fs.readFileSync(p).equals(content)).toBe(true);
   });
 
   it('writes the huggingface_hub layout', async () => {
