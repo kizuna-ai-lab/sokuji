@@ -34,6 +34,14 @@ const setup = () => {
 
 afterEach(() => restoreHandlerSeams());
 
+/** One engine state, two client connections to it. */
+const twoConns = () => {
+  const state = createState();
+  register(state);
+  const mk = () => { const socket = new FakeSocket(); const conn = new Conn(socket); return { socket, conn, call: (m: Record<string, unknown>) => handleMessage(state, JSON.stringify(m), null, conn) }; };
+  return { state, a: mk(), b: mk() };
+};
+
 describe('model_status', () => {
   it('answers every asked model', async () => {
     handlerSeams.modelStatus = (m) => (m === 'sense-voice' ? 'ready' : 'absent');
@@ -136,13 +144,6 @@ describe('model_download', () => {
 });
 
 describe('a download and its connection', () => {
-  const twoConns = () => {
-    const state = createState();
-    register(state);
-    const mk = () => { const socket = new FakeSocket(); const conn = new Conn(socket); return { socket, conn, call: (m: Record<string, unknown>) => handleMessage(state, JSON.stringify(m), null, conn) }; };
-    return { state, a: mk(), b: mk() };
-  };
-
   it('is aborted when its connection closes', async () => {
     let signal: AbortSignal | undefined;
     handlerSeams.downloadModel = (_m, _s, opts) => new Promise((resolve) => {
@@ -246,5 +247,24 @@ describe('model_import', () => {
     expect((await call({ type: 'model_import', id: 1, model: 'm', paths: [] }))[0]).toMatchObject({ type: 'error', message: 'no files were chosen' });
     downloadsOf(state).set('m', { controller: new AbortController(), conn, task: Promise.resolve() });
     expect((await call({ type: 'model_import', id: 2, model: 'm', paths: ['/x/a.gguf'] }))[0]).toMatchObject({ type: 'error', message: 'm is already downloading' });
+  });
+
+  // Like a download (review on #888): an import whose connection has gone is stopped and waited for before another of
+  // the same model starts, so two never write that model's files at once.
+  it('a request after the old connection closed waits for the old import or download to stop', async () => {
+    const order: string[] = [];
+    handlerSeams.importModel = (_m, _p, _s, opts) => {
+      if (order.includes('first-started')) { order.push('second-started'); return Promise.resolve('ready'); }
+      order.push('first-started');
+      return new Promise((resolve) => {
+        opts?.signal?.addEventListener('abort', () => setTimeout(() => { order.push('first-stopped'); resolve('cancelled'); }, 50));
+      });
+    };
+    const { state, a, b } = twoConns();
+    await a.call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/a.gguf'] });
+    a.conn.markClosed();
+    await b.call({ type: 'model_import', id: 2, model: 'm', paths: ['/x/a.gguf'] });
+    await downloadsOf(state).get('m')?.task;
+    expect(order).toEqual(['first-started', 'first-stopped', 'second-started']);
   });
 });

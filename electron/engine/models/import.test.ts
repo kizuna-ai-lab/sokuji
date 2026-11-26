@@ -9,9 +9,9 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { freshHfHome } from '../test/hfFixture';
-import { cachedFilePath, repoDir } from './hfCache';
+import { cachedFilePath, repoDir, resolveRevision, writeRef, writeSnapshotLink } from './hfCache';
 import { importModel, knownFile, ImportError } from './import';
 import { downloadSpecs } from './specs';
 import { modelStatus } from './status';
@@ -122,5 +122,54 @@ describe('importModel', () => {
     await importModel(CARD, [from], send);
     expect(fs.statSync(blob).ino).toBe(before);
     expect(modelStatus(CARD)).toBe('ready');
+  });
+
+  // Review on #888: each file of a model got a commit of its own and `main` ended on the last, so the others no longer
+  // resolved. A speech card with a preset is two files of one repo the published catalog does not list.
+  const TTS = 'pocket-tts-en';
+  const ttsFiles = () => downloadSpecs(TTS).files!;
+  const putAll = () => ttsFiles().map(([, file]) => put(path.posix.basename(file), file.endsWith('.gguf') ? gguf() : Buffer.from(`preset ${file}`)));
+
+  it('files every file of one import under one snapshot, so each of them resolves', async () => {
+    expect(ttsFiles().length).toBeGreaterThan(1);
+    expect(await importModel(TTS, putAll(), send)).toBe('ready');
+    for (const [repo, file] of ttsFiles()) expect(cachedFilePath(repo, file)).not.toBeNull();
+    expect(modelStatus(TTS)).toBe('ready');
+  });
+
+  it("adds to the snapshot the repo's main already names, so files already there keep resolving", async () => {
+    const [[repo]] = ttsFiles();
+    const commit = 'a'.repeat(40);
+    const other = Buffer.from('another file of the repo');
+    fs.mkdirSync(path.join(repoDir(repo), 'blobs'), { recursive: true });
+    fs.writeFileSync(path.join(repoDir(repo), 'blobs', sha256(other)), other);
+    writeSnapshotLink(repo, commit, 'other.bin', sha256(other));
+    writeRef(repo, 'main', commit);
+    expect(await importModel(TTS, putAll(), send)).toBe('ready');
+    expect(resolveRevision(repo)).toBe(commit);
+    expect(cachedFilePath(repo, 'other.bin')).not.toBeNull();
+    for (const [r, file] of ttsFiles()) expect(cachedFilePath(r, file)).not.toBeNull();
+  });
+
+  // Review on #888: the file was hashed in one read and copied in another, so bytes changed in between reached the
+  // cache under the name of the bytes checked. The cache must hold the very bytes that were hashed.
+  it('caches the bytes it hashed, even if the file changes while it is imported', async () => {
+    const content = gguf();
+    const from = put(path.basename(FILE), content);
+    const real = fs.createReadStream;
+    const spy = vi.spyOn(fs, 'createReadStream').mockImplementation(((...args: Parameters<typeof fs.createReadStream>) => {
+      const stream = real(...args);
+      // Once a full read of the person's file ends, another program rewrites it.
+      if (args[0] === from) stream.on('end', () => fs.writeFileSync(from, gguf(3000)));
+      return stream;
+    }) as typeof fs.createReadStream);
+    try {
+      expect(await importModel(CARD, [from], send)).toBe('ready');
+    } finally {
+      spy.mockRestore();
+    }
+    const cached = fs.readFileSync(cachedFilePath(REPO, FILE)!);
+    expect(path.basename(fs.realpathSync(cachedFilePath(REPO, FILE)!))).toBe(sha256(cached));
+    expect(cached.equals(content)).toBe(true);
   });
 });

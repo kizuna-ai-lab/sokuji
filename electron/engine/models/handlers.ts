@@ -59,22 +59,30 @@ async function runDownload(state: EngineState, model: string, conn: Conn, repo: 
   }
 }
 
-export const modelDownloadHandler: Handler = async (state, msg, _binary, conn) => {
-  if (!conn) return [{ type: 'error', id: msg.id, message: 'no connection' }, null];
-  const model = String(msg.model ?? '');
+/**
+ * Takes a model's slot for a download or an import, or answers why not. Two writers on one model's files corrupt them:
+ * a live download or import is refused; one whose connection has gone is stopped and waited for before the new one
+ * starts. Looked up again after each wait: another request may have taken the slot while this one was waiting.
+ */
+async function takeSlot(state: EngineState, msg: Record<string, unknown>, model: string, conn: Conn): Promise<Download | Record<string, unknown>> {
   const downloads = downloadsOf(state);
-  // Two writers on one .incomplete blob corrupt it: a live download is refused; one whose connection has gone is
-  // stopped and waited for before the new one starts. Looked up again after each wait: another request may have taken
-  // the slot while this one was waiting.
   for (let running = downloads.get(model); running; running = downloads.get(model)) {
-    if (!running.conn.closed) return [{ type: 'error', id: msg.id, model, message: `${model} is already downloading` }, null];
+    if (!running.conn.closed) return { type: 'error', id: msg.id, model, message: `${model} is already downloading` };
     running.controller.abort();
     await running.task;
     if (downloads.get(model) === running) downloads.delete(model);
   }
   const entry: Download = { controller: new AbortController(), conn, task: Promise.resolve() };
   downloads.set(model, entry);
-  entry.task = runDownload(state, model, conn, str(msg.repo), entry).catch(() => {});   // a failed send has nowhere to report
+  return entry;
+}
+
+export const modelDownloadHandler: Handler = async (state, msg, _binary, conn) => {
+  if (!conn) return [{ type: 'error', id: msg.id, message: 'no connection' }, null];
+  const model = String(msg.model ?? '');
+  const entry = await takeSlot(state, msg, model, conn);
+  if (!('controller' in entry)) return [entry, null];
+  entry.task = runDownload(state, model, conn, str(msg.repo), entry as Download).catch(() => {});   // a failed send has nowhere to report
   return [null, null];
 };
 
@@ -99,11 +107,9 @@ export const modelImportHandler: Handler = async (state, msg, _binary, conn) => 
   const model = String(msg.model ?? '');
   const paths = (Array.isArray(msg.paths) ? msg.paths : []).filter((p): p is string => typeof p === 'string' && p !== '');
   if (paths.length === 0) return [{ type: 'error', id: msg.id, model, message: 'no files were chosen' }, null];
-  const downloads = downloadsOf(state);
-  if (downloads.has(model) && !downloads.get(model)!.conn.closed) return [{ type: 'error', id: msg.id, model, message: `${model} is already downloading` }, null];
-  const entry: Download = { controller: new AbortController(), conn, task: Promise.resolve() };
-  downloads.set(model, entry);
-  entry.task = runImport(state, model, conn, paths, str(msg.repo), entry).catch(() => {});
+  const entry = await takeSlot(state, msg, model, conn);
+  if (!('controller' in entry)) return [entry, null];
+  entry.task = runImport(state, model, conn, paths, str(msg.repo), entry as Download).catch(() => {});
   return [null, null];
 };
 

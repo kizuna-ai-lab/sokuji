@@ -7,11 +7,11 @@
  * published bytes; it is hashed here, so a wrong or truncated file never reaches the cache.
  */
 import { catalog } from '@handy-computer/models';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { GgufError, readHeader } from '../ggufHeader';
-import { checkRepoPath, repoDir, writeRef, writeSnapshotLink } from './hfCache';
+import { checkRepoPath, repoDir, resolveRevision, writeRef, writeSnapshotLink } from './hfCache';
 import { downloadSpecs } from './specs';
 import type { Send } from './download';
 
@@ -51,20 +51,40 @@ async function isGguf(file: string): Promise<boolean> {
   }
 }
 
-/** Streams the file through sha256, reporting each run of bytes. */
-async function sha256Of(file: string, onBytes: (n: number) => void, signal?: AbortSignal): Promise<string> {
+/**
+ * Copies `from` to `to` and returns the sha256 of the bytes written, reporting each run of bytes: one read, so the
+ * bytes hashed are the bytes cached even if the person's file changes meanwhile.
+ */
+async function copyHashing(from: string, to: string, onBytes: (n: number) => void, signal?: AbortSignal): Promise<string> {
   const hash = createHash('sha256');
-  for await (const chunk of fs.createReadStream(file, { highWaterMark: 4 << 20 })) {
-    if (signal?.aborted) throw new ImportError('cancelled', 'import_cancelled');
-    hash.update(chunk as Buffer);
-    onBytes((chunk as Buffer).length);
+  const out = await fs.promises.open(to, 'w');
+  try {
+    for await (const chunk of fs.createReadStream(from, { highWaterMark: 4 << 20 })) {
+      if (signal?.aborted) throw new ImportError('cancelled', 'import_cancelled');
+      const buf = chunk as Buffer;
+      hash.update(buf);
+      await out.write(buf);
+      onBytes(buf.length);
+    }
+  } finally {
+    await out.close();
   }
   return hash.digest('hex');
 }
 
-/** The commit a snapshot is filed under: the catalog's pin where it lists the file, else one made from the bytes. */
-const commitFor = (repo: string, file: string, sha256: string, known?: KnownFile): string =>
-  known?.revision ?? createHash('sha1').update(`${repo}/${file}@${sha256}`).digest('hex');
+/**
+ * The commit one import files a repo's files under — one for all of them, as `main` names one snapshot: the catalog's
+ * pin where it lists one of them; else the commit `main` already names, so files already cached there keep resolving;
+ * else one made from the files' bytes.
+ */
+function commitFor(repo: string, files: ReadonlyArray<{ file: string; sha: string; known?: KnownFile }>): string {
+  const pinned = files.find((f) => f.known)?.known?.revision;
+  if (pinned) return pinned;
+  const current = resolveRevision(repo);
+  if (current) return current;
+  const id = files.map((f) => `${f.file}@${f.sha}`).sort().join('\n');
+  return createHash('sha1').update(`${repo}\n${id}`).digest('hex');
+}
 
 export interface ImportOptions {
   /** The chosen variant's artifact, as a download takes it. */
@@ -92,7 +112,7 @@ export async function importModel(modelId: string, paths: readonly string[], sen
     const st = fs.statSync(w.from!, { throwIfNoEntry: false });
     if (!st?.isFile() || st.size === 0) throw new ImportError(`${w.name} is not a readable file`, 'import_unreadable', { name: w.name });
     if (w.name.endsWith('.gguf') && !(await isGguf(w.from!))) throw new ImportError(`${w.name} is not a GGUF file`, 'import_not_gguf', { name: w.name });
-    total += st.size * 2;   // read to hash it, then read again to copy it
+    total += st.size;
   }
 
   let done = 0;
@@ -105,43 +125,50 @@ export async function importModel(modelId: string, paths: readonly string[], sen
     void send({ type: 'model_progress', model: modelId, downloaded: Math.min(done, total - 1), total }).catch(() => {});
   };
 
+  // Each file is copied into the repo's blobs under a name of its own while it is hashed, checked, then given its
+  // hash's name; the snapshot links and `main` follow once every file is in, one commit per repo.
+  const placed: Array<{ repo: string; file: string; sha: string; known?: KnownFile }> = [];
+  // A repo folder this import made is removed again if it fails or is cancelled: a refused file leaves nothing behind.
+  const made: string[] = [];
   try {
     for (const w of wanted) {
-      const from = w.from!;
-      const sha = await sha256Of(from, tick, signal);
+      const dir = repoDir(w.repo);
+      if (!fs.existsSync(dir)) made.push(dir);
+      const blobs = path.join(dir, 'blobs');
+      fs.mkdirSync(blobs, { recursive: true });
+      const incomplete = path.join(blobs, `import-${process.pid}-${randomBytes(6).toString('hex')}.incomplete`);
+      let sha: string;
+      try {
+        sha = await copyHashing(w.from!, incomplete, tick, signal);
+        if (signal?.aborted) throw new ImportError('cancelled', 'import_cancelled');
+      } catch (e) {
+        fs.rmSync(incomplete, { force: true });
+        throw e;
+      }
       const known = knownFile(w.repo, w.file);
       if (known && known.sha256 !== sha) {
+        fs.rmSync(incomplete, { force: true });
         throw new ImportError(
           `${w.name} is not the published file (its sha256 is ${sha.slice(0, 12)}…, expected ${known.sha256.slice(0, 12)}…): download it again`,
           'import_mismatch', { name: w.name, got: sha.slice(0, 12), expected: known.sha256.slice(0, 12) },
         );
       }
-      const dir = repoDir(w.repo);
-      const blob = path.join(dir, 'blobs', sha);
-      if (!fs.existsSync(blob)) {
-        fs.mkdirSync(path.dirname(blob), { recursive: true });
-        const incomplete = `${blob}.incomplete`;
-        fs.rmSync(incomplete, { force: true });
-        try {
-          await fs.promises.copyFile(from, incomplete, fs.constants.COPYFILE_FICLONE);
-        } catch (e) {
-          fs.rmSync(incomplete, { force: true });
-          throw e;
-        }
-        if (signal?.aborted) {
-          fs.rmSync(incomplete, { force: true });
-          return 'cancelled';
-        }
-        fs.renameSync(incomplete, blob);
-      }
-      tick(fs.statSync(blob).size);
-      const commit = commitFor(w.repo, w.file, sha, known);
-      writeSnapshotLink(w.repo, commit, w.file, sha);
-      writeRef(w.repo, 'main', commit);
+      const blob = path.join(blobs, sha);
+      // Bytes already cached (an earlier download or import) are kept; the copy is dropped.
+      if (fs.existsSync(blob)) fs.rmSync(incomplete, { force: true });
+      else fs.renameSync(incomplete, blob);
+      placed.push({ repo: w.repo, file: w.file, sha, known });
     }
   } catch (e) {
+    for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
     if (e instanceof ImportError && e.code === 'import_cancelled') return 'cancelled';
     throw e;
+  }
+  for (const repo of new Set(placed.map((p) => p.repo))) {
+    const files = placed.filter((p) => p.repo === repo);
+    const commit = commitFor(repo, files);
+    for (const f of files) writeSnapshotLink(repo, commit, f.file, f.sha);
+    writeRef(repo, 'main', commit);
   }
   await send({ type: 'model_progress', model: modelId, downloaded: total, total });
   return 'ready';
