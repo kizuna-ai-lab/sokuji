@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '../src/App';
 import PostHog from 'posthog-js-lite';
+import { attachUsageSharingClient } from '../src/lib/usageSharing';
 import { ANALYTICS_CONFIG, isDevelopment, getPlatform, getEnvironment, isAnalyticsEnabled } from '../src/config/analytics';
 import { setupErrorTracking } from '../src/lib/errorTracking';
 import { AppProviders } from '../src/components/AppProviders';
@@ -94,6 +95,8 @@ const initializePostHog = async (): Promise<PostHog | null> => {
 
   // Initialize PostHog with posthog-js-lite
   const posthog = new PostHog(ANALYTICS_CONFIG.POSTHOG_KEY, options);
+  // The user's "Share usage data" choice (General settings) decides whether this client reports.
+  attachUsageSharingClient(posthog);
   
   // Set Super Properties that will be included with every event
   await posthog.register({

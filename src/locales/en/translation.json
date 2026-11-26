@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Report bugs or get help",
     "diagnosticLogs": "Diagnostic logs",
     "diagnosticLogsTooltip": "Record what the app does, so you can attach it to a bug report. Off by default. While on, a “Logs” button appears in the title bar, and the setting stays on after a restart.",
+    "shareUsageData": "Share usage data",
+    "shareUsageDataLine": "Help us improve Sokuji: records which pages and features you use, never messages or other content.",
     "appearance": "Appearance",
     "appearanceTooltip": "How the app looks. System follows the operating system's light or dark setting.",
     "appearanceMode": {

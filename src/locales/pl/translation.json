@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Zgłoś błędy lub uzyskaj pomoc",
     "diagnosticLogs": "Dzienniki diagnostyczne",
     "diagnosticLogsTooltip": "Rejestruje działanie aplikacji, aby można było dołączyć dziennik do zgłoszenia błędu. Domyślnie wyłączone. Po włączeniu na pasku tytułu pojawia się przycisk „Logi”, a ustawienie pozostaje włączone po ponownym uruchomieniu.",
+    "shareUsageData": "Udostępniaj dane o użytkowaniu",
+    "shareUsageDataLine": "Pomóż nam ulepszać Sokuji: rejestruje, z jakich stron i funkcji korzystasz, nigdy wiadomości ani innych treści.",
     "appearance": "Wygląd",
     "appearanceTooltip": "Wygląd aplikacji. „System” przejmuje jasne lub ciemne ustawienie systemu operacyjnego.",
     "appearanceMode": {

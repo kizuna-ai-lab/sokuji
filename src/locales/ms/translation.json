@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Laporkan pepijat atau dapatkan bantuan",
     "diagnosticLogs": "Log diagnostik",
     "diagnosticLogsTooltip": "Merekod perkara yang dilakukan oleh aplikasi supaya anda boleh melampirkannya pada laporan pepijat. Dimatikan secara lalai. Apabila dihidupkan, butang “Log” muncul di bar tajuk, dan tetapan kekal hidup selepas dimulakan semula.",
+    "shareUsageData": "Kongsi data penggunaan",
+    "shareUsageDataLine": "Bantu kami menambah baik Sokuji: merekod halaman dan ciri yang anda gunakan, tidak pernah mesej atau kandungan lain.",
     "appearance": "Penampilan",
     "appearanceTooltip": "Rupa aplikasi. “Sistem” menggunakan tetapan cerah atau gelap sistem pengendalian.",
     "appearanceMode": {

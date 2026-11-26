@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Laporkan bug atau dapatkan bantuan",
     "diagnosticLogs": "Log diagnostik",
     "diagnosticLogsTooltip": "Mencatat apa yang dilakukan aplikasi agar Anda dapat melampirkannya ke laporan bug. Nonaktif secara default. Saat aktif, tombol “Log” muncul di bilah judul, dan pengaturan tetap aktif setelah dimulai ulang.",
+    "shareUsageData": "Bagikan data penggunaan",
+    "shareUsageDataLine": "Bantu kami meningkatkan Sokuji: mencatat halaman dan fitur apa yang Anda gunakan, tidak pernah pesan atau konten lainnya.",
     "appearance": "Tampilan",
     "appearanceTooltip": "Tampilan aplikasi. “Sistem” memakai pengaturan terang atau gelap dari sistem operasi.",
     "appearanceMode": {

@@ -114,6 +114,8 @@
     "helpEmailTooltip": "报告问题或获取帮助",
     "diagnosticLogs": "诊断日志",
     "diagnosticLogsTooltip": "记录应用的运行情况，方便附在问题反馈里。默认关闭；打开后标题栏会出现“日志”按钮，重启后仍保持打开。",
+    "shareUsageData": "共享使用数据",
+    "shareUsageDataLine": "帮助我们改进 Sokuji：记录你使用了哪些页面和功能，不包含消息或其他内容。",
     "appearance": "外观",
     "appearanceTooltip": "应用的配色。「跟随系统」采用操作系统的浅色或深色设置。",
     "appearanceMode": {
