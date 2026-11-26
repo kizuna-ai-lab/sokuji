@@ -238,7 +238,10 @@ def test_a_stage_that_already_has_notices_fails(tmp_path):
 
 def test_a_symlink_in_the_stage_fails(tmp_path):
     stage = make_stage(tmp_path)
-    (stage / "link.so").symlink_to(stage / "libsokuji_native.so")
+    try:
+        (stage / "link.so").symlink_to(stage / "libsokuji_native.so")
+    except OSError:
+        pytest.skip("this machine cannot create symlinks (Windows without Developer Mode)")
     r = run(stage, SKU, VERSION, tmp_path / "out")
     assert_refused(tmp_path, r, "flat")
 
