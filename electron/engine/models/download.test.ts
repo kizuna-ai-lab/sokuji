@@ -11,7 +11,7 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeHub } from '../test/fakeHub';
 import { freshHfHome } from '../test/hfFixture';
-import { cachedFilePath, repoDir, withRepoLock, writeSnapshotLink } from './hfCache';
+import { cachedFilePath, repoDir, repoLockQueue, withRepoLock, writeSnapshotLink } from './hfCache';
 import { downloadFile, downloadModel, downloadSeams, restoreDownloadSeams } from './download';
 import { modelSize, resetSizeCacheForTests } from './specs';
 
@@ -62,13 +62,18 @@ describe('downloadFile', () => {
     fs.writeFileSync(blob, content);                // put there by an import still running
     let release!: () => void;
     const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
-    const download = downloadFile(REPO, FILE, { endpoint: hub.url });
-    await new Promise((r) => setTimeout(r, 100));   // the download has looked at the hub and waits
-    fs.rmSync(blob);                                // the import fails and takes its blob back
-    release();
-    await held;
-    const p = await download;
-    expect(fs.readFileSync(p).equals(content)).toBe(true);
+    try {
+      const download = downloadFile(REPO, FILE, { endpoint: hub.url });
+      // The download has looked at the hub and waits in the repo's queue, behind the import.
+      await vi.waitFor(() => expect(repoLockQueue(REPO)).toBe(2), { timeout: 5000 });
+      fs.rmSync(blob);                              // the import fails and takes its blob back
+      release();
+      const p = await download;
+      expect(fs.readFileSync(p).equals(content)).toBe(true);
+    } finally {
+      release();
+      await held;
+    }
   });
 
   // Review of the lock: a download must not wait behind a running import (minutes) before it even starts fetching.
@@ -92,13 +97,17 @@ describe('downloadFile', () => {
     fs.writeFileSync(path.join(blobs, hub.etag(FILE)), content);
     let release!: () => void;
     const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
-    const controller = new AbortController();
-    const download = downloadFile(REPO, FILE, { endpoint: hub.url, signal: controller.signal });
-    await new Promise((r) => setTimeout(r, 100));
-    controller.abort();
-    await expect(download).rejects.toThrow();
-    release();
-    await held;
+    try {
+      const controller = new AbortController();
+      const download = downloadFile(REPO, FILE, { endpoint: hub.url, signal: controller.signal });
+      await vi.waitFor(() => expect(repoLockQueue(REPO)).toBe(2), { timeout: 5000 });   // waiting for the repo
+      controller.abort();
+      await expect(download).rejects.toThrow();
+      expect(repoLockQueue(REPO)).toBe(1);        // it left the queue; the holder is still there
+    } finally {
+      release();
+      await held;
+    }
     // The lock still works for whoever comes next.
     expect(await withRepoLock(REPO, async () => 'free')).toBe('free');
   });

@@ -195,15 +195,29 @@ export async function importModel(modelId: string, paths: readonly string[], sen
               'import_mismatch', { name: w.name, got: sha.slice(0, 12), expected: known.sha256.slice(0, 12) },
             );
           }
+          // The bytes copied are the ones checked, not only the file looked at first: it may have been replaced while
+          // the import waited for the repo, and a file the catalog does not list has no published hash to catch that.
+          if (w.name.endsWith('.gguf') && !(await isGguf(incomplete))) {
+            fs.rmSync(incomplete, { force: true });
+            throw new ImportError(`${w.name} is not a GGUF file`, 'import_not_gguf', { name: w.name });
+          }
           const blob = path.join(blobs, sha);
           // Bytes already cached (an earlier download or import) are kept; the copy is dropped.
           if (fs.existsSync(blob)) fs.rmSync(incomplete, { force: true });
           else {
-            fs.renameSync(incomplete, blob);
+            try {
+              fs.renameSync(incomplete, blob);
+            } catch (e) {
+              // The staging copy is this import's until it is the blob: never left behind (its pid keeps it from a sweep).
+              try { fs.rmSync(incomplete, { force: true }); } catch { /* the rename's error is the one to tell */ }
+              throw e;
+            }
             renamed.push(blob);
           }
           placed.push({ repo: w.repo, file: w.file, sha, known });
         }
+        // Cancelled once every file is in place but before any is published: taken back like any other cancel.
+        if (signal?.aborted) throw new ImportError('cancelled', 'import_cancelled');
       } catch (e) {
         // Best effort: a cleanup that fails (a file held open on Windows) must not hide why the import stopped.
         try {

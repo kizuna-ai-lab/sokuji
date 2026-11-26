@@ -187,6 +187,12 @@ export function writeRef(repo: string, ref: string, commit: string): void {
 }
 
 const repoLocks = new Map<string, Promise<unknown>>();
+const queued = new Map<string, number>();
+
+/** How many callers hold or wait for `repo`'s lock: 0 when it is free. For tests, to act once a caller is queued. */
+export function repoLockQueue(repo: string): number {
+  return queued.get(repoDir(repo)) ?? 0;
+}
 
 /**
  * Runs `fn` while no other caller holds `repo`'s lock in this engine: what goes into a repo's cache — a blob put in
@@ -202,11 +208,18 @@ export async function withRepoLock<T>(repo: string, fn: () => Promise<T>, signal
   const tail = before.then(() => mine);
   repoLocks.set(key, tail);
   const forget = () => { if (repoLocks.get(key) === tail) repoLocks.delete(key); };
+  queued.set(key, (queued.get(key) ?? 0) + 1);
+  const leave = () => {
+    const n = (queued.get(key) ?? 1) - 1;
+    if (n > 0) queued.set(key, n);
+    else queued.delete(key);
+  };
   try {
     await untilFree(before, signal);
   } catch (e) {
     release();                       // whoever waits behind this one waits only for `before`
     void tail.then(forget);
+    leave();
     throw e;
   }
   try {
@@ -214,6 +227,7 @@ export async function withRepoLock<T>(repo: string, fn: () => Promise<T>, signal
   } finally {
     release();
     forget();
+    leave();
   }
 }
 

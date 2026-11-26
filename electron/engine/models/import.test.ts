@@ -11,7 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { freshHfHome } from '../test/hfFixture';
-import { cachedFilePath, repoDir, resolveRevision, withRepoLock, writeRef, writeSnapshotLink } from './hfCache';
+import { cachedFilePath, repoDir, repoLockQueue, resolveRevision, withRepoLock, writeRef, writeSnapshotLink } from './hfCache';
 import { importModel, knownFile, ImportError } from './import';
 import { downloadSpecs } from './specs';
 import { modelStatus } from './status';
@@ -296,12 +296,79 @@ describe('importModel', () => {
   it('can be cancelled while it waits for another import into the same repo', async () => {
     let release!: () => void;
     const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
-    const controller = new AbortController();
-    const importing = importModel(CARD, [put(path.basename(FILE), gguf())], send, { signal: controller.signal });
-    await new Promise((r) => setTimeout(r, 50));
-    controller.abort();
-    expect(await importing).toBe('cancelled');
-    release();
-    await held;
+    try {
+      const controller = new AbortController();
+      const importing = importModel(CARD, [put(path.basename(FILE), gguf())], send, { signal: controller.signal });
+      await vi.waitFor(() => expect(repoLockQueue(REPO)).toBe(2), { timeout: 5000 });   // queued behind the holder
+      controller.abort();
+      expect(await importing).toBe('cancelled');
+      expect(repoLockQueue(REPO)).toBe(1);
+    } finally {
+      release();
+      await held;
+    }
+  });
+
+  // Review on #888: two model ids whose files are the same bytes share one blob. The first is cancelled once its blob
+  // is in place; the second, run beside it, must end with its file resolving.
+  it('keeps the shared blob of two models importing the same bytes when the first is cancelled', async () => {
+    const [[repoDe, fileDe]] = downloadSpecs('pocket-tts-de').files!;
+    const [[repoEs, fileEs]] = downloadSpecs('pocket-tts-es').files!;
+    expect(repoDe).toBe(repoEs);
+    const bytes = gguf();
+    const de = put(path.posix.basename(fileDe), bytes);
+    const es = put(path.posix.basename(fileEs), bytes);
+    const a = new AbortController();
+    const real = fs.renameSync;
+    let first = true;
+    const spy = vi.spyOn(fs, 'renameSync').mockImplementation(((x: fs.PathLike, y: fs.PathLike) => {
+      real(x, y);
+      if (first) { first = false; a.abort(); }
+    }) as typeof fs.renameSync);
+    try {
+      const [ra, rb] = await Promise.all([
+        importModel('pocket-tts-de', [de], send, { signal: a.signal }),
+        importModel('pocket-tts-es', [es], send),
+      ]);
+      expect(ra).toBe('cancelled');
+      expect(rb).toBe('ready');
+    } finally {
+      spy.mockRestore();
+    }
+    expect(fs.existsSync(cachedFilePath(repoEs, fileEs) ?? '/nonexistent')).toBe(true);
+    expect(cachedFilePath(repoDe, fileDe)).toBeNull();
+  });
+
+  // Review on #888: the GGUF check ran on the person's file before the wait for the repo; replaced meanwhile, the bytes
+  // copied were never checked (an uncatalogued file has no published hash to catch it).
+  it('checks the bytes it copied are a GGUF, not only the file it looked at first', async () => {
+    const from = put(path.basename(FILE), gguf());
+    let release!: () => void;
+    const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
+    try {
+      const importing = importModel(CARD, [from], send);
+      await vi.waitFor(() => expect(repoLockQueue(REPO)).toBe(2), { timeout: 5000 });
+      fs.writeFileSync(from, Buffer.alloc(4096, 1));   // replaced while the import waits
+      release();
+      await expect(importing).rejects.toMatchObject({ code: 'import_not_gguf' });
+    } finally {
+      release();
+      await held;
+    }
+    expect(cachedFilePath(REPO, FILE)).toBeNull();
+    expect(fs.existsSync(repoDir(REPO))).toBe(false);
+  });
+
+  // Review on #888: when putting the blob in place failed, its staging copy stayed (named by this engine's pid, so
+  // never swept while it runs).
+  it('removes its staging copy when the blob cannot be put in place', async () => {
+    const from = put(path.basename(FILE), gguf());
+    const spy = vi.spyOn(fs, 'renameSync').mockImplementation((() => { throw Object.assign(new Error('EXDEV'), { code: 'EXDEV' }); }) as typeof fs.renameSync);
+    try {
+      await expect(importModel(CARD, [from], send)).rejects.toThrow(/EXDEV/);
+    } finally {
+      spy.mockRestore();
+    }
+    expect(fs.existsSync(repoDir(REPO))).toBe(false);
   });
 });
