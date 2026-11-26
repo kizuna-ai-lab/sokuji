@@ -9,12 +9,45 @@ import { useModelStore } from '../../../stores/modelStore';
 import { formatBytes } from '../../../lib/local-inference/formatBytes';
 import './ModelImportModal.scss';
 
+/**
+ * What the window needs from an engine to import into it: which files the model is made of, which are already stored,
+ * whether a picked file is sane, and how the picked files are stored. The WASM/WebGPU engine's own (the default) reads
+ * its manifest and IndexedDB; the native engine's puts the files in its hub cache (NativeImportModal).
+ */
+export interface ImportBackend {
+  targets(): Promise<{ files: ModelFileTarget[]; repo?: string }> | { files: ModelFileTarget[]; repo?: string };
+  stored(filenames: string[]): Promise<Set<string>>;
+  validate(filename: string, blob: Blob, expectedSizeBytes: number): Promise<void>;
+  /** Stores the picked files; throws ModelImportError when some required file is still missing. */
+  commit(files: NamedBlob[]): Promise<void>;
+  /** The line under the drop area, where the engine's files are not a folder with an onnx/ subfolder. */
+  dropHint?: string;
+  /**
+   * True when the model is taken whole (the native engine): Import waits for every file, and there is no "import some
+   * now, the rest later". Absent: files may be imported a few at a time (the WASM/WebGPU engine's store keeps them).
+   */
+  allAtOnce?: boolean;
+}
+
 interface ModelImportModalProps {
   modelId: string;
   modelName: string;
   isOpen: boolean;
   onClose: () => void;
+  /** Where the files go; the WASM/WebGPU engine's own when absent. */
+  backend?: ImportBackend;
 }
+
+/** English for each way a picked file can be refused (`models.importReason.<code>`), with the numbers filled in. */
+const REASON_TEXT: Record<string, string> = {
+  html: 'received HTML instead of expected content (likely 404 or CDN error)',
+  size: 'size mismatch: expected ~{{expected}} bytes, got {{got}} bytes',
+  magic_wasm: 'missing WASM magic number',
+  magic_onnx: 'missing protobuf prefix',
+  json: 'content is not valid JSON',
+  empty: 'the file is empty',
+  invalid: 'invalid',
+};
 
 type CmdTab = CommandTab;
 type FileState = 'ok' | 'invalid' | 'stored' | 'missing';
@@ -26,9 +59,22 @@ function groupOf(filename: string): 'model' | 'config' {
     : 'config';
 }
 
-export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelImportModalProps) {
+export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend: given }: ModelImportModalProps) {
   const { t } = useTranslation();
   const importModel = useModelStore((s) => s.importModel);
+  const backend = useMemo<ImportBackend>(() => given ?? {
+    targets: () => {
+      const info = ModelManager.getInstance().getModelFileTargets(modelId);
+      return { files: info.files, repo: info.repo };
+    },
+    stored: async (filenames) => {
+      const present = new Set<string>();
+      await Promise.all(filenames.map(async (fn) => { if (await modelStorage.hasFile(modelId, fn)) present.add(fn); }));
+      return present;
+    },
+    validate: validateModelFile,
+    commit: (files) => importModel(modelId, files),
+  }, [given, modelId, importModel]);
 
   const [targets, setTargets] = useState<ModelFileTarget[]>([]);
   const [repo, setRepo] = useState<string | undefined>(undefined);
@@ -61,14 +107,8 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
 
   // ── Load the expected file list + already-stored files when opened ──
   const refreshStored = useCallback(async (filenames: string[]) => {
-    const present = new Set<string>();
-    await Promise.all(
-      filenames.map(async (fn) => {
-        if (await modelStorage.hasFile(modelId, fn)) present.add(fn);
-      }),
-    );
-    setStored(present);
-  }, [modelId]);
+    setStored(await backend.stored(filenames));
+  }, [backend]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -77,17 +117,29 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     setError(null);
     setCopied(false);
     setSource('huggingface');
-    try {
-      const info = ModelManager.getInstance().getModelFileTargets(modelId);
+    let live = true;
+    const show = (info: { files: ModelFileTarget[]; repo?: string }) => {
+      if (!live) return;
       setTargets(info.files);
       setRepo(info.repo);
       setTab(info.repo ? 'hf' : 'curl');
       void refreshStored(info.files.map((f) => f.filename));
-    } catch (err) {
+    };
+    const fail = (err: unknown) => {
+      if (!live) return;
       setTargets([]);
       setError(err instanceof Error ? err.message : String(err));
+    };
+    // A backend that knows its files at once (the WASM/WebGPU engine's manifest) shows them in the same render pass.
+    try {
+      const got = backend.targets();
+      if (got instanceof Promise) got.then(show, fail);
+      else show(got);
+    } catch (err) {
+      fail(err);
     }
-  }, [isOpen, modelId, refreshStored]);
+    return () => { live = false; };
+  }, [isOpen, backend, refreshStored]);
 
   const expectedNames = useMemo(() => targets.map((f) => f.filename), [targets]);
   const sizeByName = useMemo(
@@ -95,7 +147,37 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     [targets],
   );
 
-  // ── Merge newly-picked files, then match + validate for the preview ──
+  // ── Match the picked files against the expected list and validate each for the preview ──
+  const validateSelection = useCallback(async (merged: Map<string, NamedBlob>) => {
+    const match = matchImportedFiles(expectedNames, [...merged.keys()]);
+    const results: Record<string, { ok: boolean; reason?: string }> = {};
+    await Promise.all(
+      Object.entries(match.matched).map(async ([filename, key]) => {
+        const blob = merged.get(key)!;
+        try {
+          await backend.validate(filename, blob, sizeByName[filename] ?? 0);
+          results[filename] = { ok: true };
+        } catch (err) {
+          const reason = err instanceof ModelFileValidationError
+            ? t(`models.importReason.${err.code}`, REASON_TEXT[err.code]
+              ?? err.message.replace(/^Invalid file .*?: /, '').replace(/^Size mismatch.*?: /, 'size mismatch: '), err.params)
+            : t('models.importReason.invalid', 'invalid');
+          results[filename] = { ok: false, reason };
+        }
+      }),
+    );
+    // Only the verdicts on files still picked: one a later pick replaced (same name), or a selection the window has
+    // since dropped, says nothing about what is there now.
+    const current = Object.fromEntries(Object.entries(results).filter(([filename]) => {
+      const key = match.matched[filename];
+      return selectedRef.current.get(key) === merged.get(key);
+    }));
+    // Merge (not overwrite) so results from an earlier, slower validation batch
+    // that resolves out of order aren't dropped.
+    setValidation((prev) => ({ ...prev, ...current }));
+  }, [expectedNames, sizeByName, backend, t]);
+
+  // ── Merge newly-picked files, then validate ──
   const addFiles = useCallback(async (incoming: ArrayLike<NamedBlob>) => {
     setError(null);
     // Read/write the ref (not the render closure) so successive same-tick picks
@@ -105,27 +187,16 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     for (const [k, v] of asMap) merged.set(k, v);
     selectedRef.current = merged;
     setSelected(merged);
+    await validateSelection(merged);
+  }, [validateSelection]);
 
-    const match = matchImportedFiles(expectedNames, [...merged.keys()]);
-    const results: Record<string, { ok: boolean; reason?: string }> = {};
-    await Promise.all(
-      Object.entries(match.matched).map(async ([filename, key]) => {
-        const blob = merged.get(key)!;
-        try {
-          await validateModelFile(filename, blob, sizeByName[filename] ?? 0);
-          results[filename] = { ok: true };
-        } catch (err) {
-          const reason = err instanceof ModelFileValidationError
-            ? err.message.replace(/^Invalid file .*?: /, '').replace(/^Size mismatch.*?: /, 'size mismatch: ')
-            : 'invalid';
-          results[filename] = { ok: false, reason };
-        }
-      }),
-    );
-    // Merge (not overwrite) so results from an earlier, slower validation batch
-    // that resolves out of order aren't dropped.
-    setValidation((prev) => ({ ...prev, ...results }));
-  }, [expectedNames, sizeByName]);
+  // Files picked while the list was still on its way matched nothing then: check them once it is here. Keyed on the
+  // list alone (the check itself is read through a ref): re-checking on every render would loop.
+  const validateRef = useRef(validateSelection);
+  validateRef.current = validateSelection;
+  useEffect(() => {
+    if (expectedNames.length > 0 && selectedRef.current.size > 0) void validateRef.current(selectedRef.current);
+  }, [expectedNames]);
 
   // ── Per-file display state ──
   const stateOf = useCallback((filename: string): FileState => {
@@ -146,13 +217,15 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     return { ready, invalid, pickedOk, total: expectedNames.length };
   }, [expectedNames, stateOf]);
 
-  const canImport = !importing && counts.invalid === 0 && counts.pickedOk > 0;
+  const allAtOnce = backend.allAtOnce === true;
+  const canImport = !importing && counts.invalid === 0 && counts.pickedOk > 0
+    && (!allAtOnce || counts.ready === counts.total);
 
   const handleImport = useCallback(async () => {
     setImporting(true);
     setError(null);
     try {
-      await importModel(modelId, [...selected.values()]);
+      await backend.commit([...selected.values()]);
       onClose();
     } catch (err) {
       if (err instanceof ModelImportError) {
@@ -165,7 +238,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     } finally {
       setImporting(false);
     }
-  }, [importModel, modelId, selected, onClose, t, refreshStored, expectedNames]);
+  }, [backend, selected, onClose, t, refreshStored, expectedNames]);
 
   // The mirror only changes curl/wget commands when the file hosts are on
   // huggingface.co (the hf CLI tab always accepts HF_ENDPOINT). For a
@@ -285,7 +358,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
             >
               <ArrowDownToLine size={24} className="import-drop__icon" />
               <div className="import-drop__lead">{t('models.importDropHint', 'Drag the folder or files here')}</div>
-              <div className="import-drop__sub">{t('models.importDropSub', 'Pick the whole download folder — its onnx/ subfolder is matched automatically')}</div>
+              <div className="import-drop__sub">{backend.dropHint ?? t('models.importDropSub', 'Pick the whole download folder — its onnx/ subfolder is matched automatically')}</div>
               <div className="import-drop__btns">
                 <button className="import-btn import-btn--sm" onClick={() => folderInputRef.current?.click()}>
                   <FolderInput size={13} /> {t('models.importChooseFolder', 'Choose folder')}
@@ -343,7 +416,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
                         {st === 'stored' && (
                           <span className="import-file__tag">{t('models.importAlready', 'already imported')}</span>
                         )}
-                        <span className="import-file__size">{formatBytes(f.sizeBytes)}</span>
+                        {f.sizeBytes > 0 && <span className="import-file__size">{formatBytes(f.sizeBytes)}</span>}
                       </li>
                     );
                   })}
@@ -362,7 +435,9 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
                 : counts.ready === counts.total && counts.total > 0
                   ? t('models.importAllPresent', 'All files present.')
                   : counts.pickedOk > 0
-                    ? t('models.importSomeReady', '{{count}} still missing — import now and add the rest later.', { count: counts.total - counts.ready })
+                    ? allAtOnce
+                      ? t('models.importNeedAll', '{{count}} still missing — add every file to import the model.', { count: counts.total - counts.ready })
+                      : t('models.importSomeReady', '{{count}} still missing — import now and add the rest later.', { count: counts.total - counts.ready })
                     : t('models.importAddToBegin', 'Add the files above to begin.')}
           </span>
           <button className="import-btn" onClick={onClose} disabled={importing}>
@@ -372,7 +447,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
             {importing && <Loader size={13} className="import-spin" />}
             {counts.ready === counts.total && counts.total > 0
               ? t('models.importFinish', 'Import & finish')
-              : counts.pickedOk > 0
+              : counts.pickedOk > 0 && !allAtOnce
                 ? t('models.importNow', 'Import {{count}} now', { count: counts.pickedOk })
                 : t('models.import', 'Import')}
           </button>

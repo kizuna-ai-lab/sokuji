@@ -2,7 +2,7 @@
 //
 // One model as a card: its name and size, its languages, Recommended and In use, and its one action — Download and
 // Import side by side, the progress with Cancel, Downloaded with Delete, or the error with Retry. Out of the old
-// in-panel library; Models and storage draws its session models with it (owner, 2026-11-17: B-20).
+// in-panel library; Local models and storage draws its session models with it (owner, 2026-11-17: B-20).
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Download, Trash2, X, AlertCircle, CheckCircle, AlertTriangle, Zap, Star, FolderInput } from 'lucide-react';
@@ -47,7 +47,7 @@ export function ModelCard({
   onCancel: () => void;
   onDelete: () => void;
   onImport?: () => void;
-  /** False where this computer cannot run the model: no Download, Import or Retry (Models and storage, B-20). */
+  /** False where this computer cannot run the model: no Download, Import or Retry (Local models and storage, B-20). */
   canDownload?: boolean;
   children?: React.ReactNode;
 }) {

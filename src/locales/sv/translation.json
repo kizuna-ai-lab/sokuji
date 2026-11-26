@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Den här enheten",
+      "nameWithNative": "Den här enheten (WASM/WebGPU)",
       "description": "Fungerar när modellerna har laddats ned till den här datorn; första gången krävs en nedladdning på flera GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Gratis · offline"
     },
     "local_native": {
-      "name": "Gratis (Native)",
+      "name": "Den här enheten (Native)",
       "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Minne",
     "hwSize": "Storlek",
     "hwRepo": "Repo",
-    "computeDevice": "Beräkningsenhet",
+    "computeDevice": "Maskinvaruacceleration",
     "computeDeviceTooltip": "Vilken enhet som kör talmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
     "computeDeviceTooltipTranslation": "Vilken enhet som kör översättningsmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
     "computeDeviceTooltipTts": "Vilken enhet som kör talsyntesmodellen. Auto väljer den snabbaste tillgängliga enheten (GPU när den finns); CPU fungerar överallt men är långsammare för stora modeller; GPU använder Vulkan i Windows och Linux samt Metal på Apple silicon.",
@@ -1016,8 +1017,63 @@
       "engineHint": "Skrivbordsmotorn som tidigare versioner laddade ned för att köra modeller på den här datorn. Tjänsten ”Den här enheten” använder den inte längre; ta bort den för att frigöra utrymme.",
       "remove": "Ta bort",
       "engineConfirm": "Ta bort den lokala motorn?",
-      "engineFrees": "Frigör {{size}}."
-    }
+      "engineFrees": "Frigör {{size}}.",
+      "nativeTab": "Nativ motor",
+      "webgpuTab": "WASM/WebGPU-motor",
+      "webgpuTitle": "WASM/WebGPU-motor",
+      "nativeHint": "Följer med appen och körs på den här datorn.",
+      "engineHintNative": "Motorn som de nativa modellerna körs på.",
+      "tabMeta": "{{count}} nedladdade, {{size}}",
+      "tabNone": "Inget nedladdat",
+      "tabs": "Motor",
+      "toHelpers": "Hjälpmodeller",
+      "downloadedChoose": "Nedladdad. Välj den i ”Språk och uppsättning” för att använda den i en session.",
+      "goChoose": "Välj",
+      "dismiss": "Avfärda",
+      "webgpuHintNamed": "Körs i appens eget fönster och använder grafikprocessorn om det finns en. Steg som är inställda på ”{{provider}}” i ”Språk och uppsättning” använder modellerna som laddats ned här.",
+      "otherDirection": "Visar modellerna för {{from}} → {{to}}, riktningen du kom från.",
+      "showDirection": "Visa {{from}} → {{to}}"
+    },
+    "streaming": "Strömmande",
+    "faster": "Snabbare",
+    "gradeNone": "Noggrannheten för {{language}} mättes inte",
+    "speedNone": "Hastigheten mättes inte",
+    "gradeHelp": {
+      "title": "Noggrannhet för {{language}}: {{grade}}",
+      "measured": "Uppmätt felfrekvens: {{error}} %",
+      "below": "under {{to}} %",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}} % eller mer",
+      "subGrades": "A, B och C delas var och en i tre: {{plus}} är {{a}}–{{b}} %, {{plain}} {{b}}–{{c}} %, {{minus}} {{c}}–{{d}} %.",
+      "method": "Felfrekvensen är andelen tal som modellen uppfattar fel på FLEURS testinspelningar, uppmätt på dess Q8_0-version. Din egen röst, mikrofon och bakgrundsljud påverkar resultatet."
+    },
+    "speedHelp": {
+      "title": "Hastighet: {{level}} av {{max}}",
+      "measured": "Uppmätt: {{seconds}} s för att bearbeta inspelningen på 30 sekunder",
+      "within": "inom {{seconds}} s",
+      "over": "över {{seconds}} s",
+      "method": "Tiden det tar för modellen att bearbeta en inspelning på 30 sekunder på katalogens testdator (en AMD Ryzen 4750U-bärbar, med dess GPU). Din dator kan vara snabbare eller långsammare."
+    },
+    "importError": {
+      "import_missing": "Dessa filer saknas: {{names}}. Ladda ner dem och importera igen.",
+      "import_not_gguf": "{{name}} är inte en GGUF-modellfil.",
+      "import_unreadable": "{{name}} kan inte läsas eller är tom.",
+      "import_mismatch": "{{name}} är inte den publicerade filen (dess sha256 börjar med {{got}}, förväntat {{expected}}). Ladda ner den igen.",
+      "import_not_importable": "Den här modellen kan inte importeras manuellt.",
+      "import_failed": "Importen misslyckades."
+    },
+    "importDropSubFile": "Välj de nedladdade filerna. Behåll deras namn som de är.",
+    "importNoPath": "Det gick inte att läsa platsen för en vald fil. Välj filen igen med filväljaren.",
+    "importReason": {
+      "html": "fick HTML i stället för det förväntade innehållet (troligen ett 404- eller CDN-fel)",
+      "size": "storleken stämmer inte: väntade ~{{expected}} byte, fick {{got}} byte",
+      "magic_wasm": "WASM-magiskt tal saknas",
+      "magic_onnx": "protobuf-prefix saknas",
+      "json": "innehållet är inte giltig JSON",
+      "empty": "filen är tom",
+      "invalid": "ogiltig"
+    },
+    "importNeedAll": "{{count}} saknas fortfarande — lägg till alla filer för att importera modellen."
   },
   "notes": {
     "stageAsr": "taligenkänning",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Alla användningsområden",
       "anyStyle": "Alla stilar"
-    }
+    },
+    "noneChosen": "Ingen röst vald",
+    "defaultVoice": "Standardröst"
   },
   "echoNotice": {
     "ttsEcho": "Dina högtalare matar tillbaka Sokujis översatta tal in i mikrofonen.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Skapa konto",
       "signedIn": "Inloggad. Du kan fortsätta.",
       "managedDesc": "Registrera dig med din e-postadress och verifiera den från din inkorg; verifierade konton får en provkredit. Därefter fyller du på ditt saldo och betalar bara för det du använder.",
-      "offlineNotice": "Igenkänningsmodellen laddas ner efter konfigurationen, under Inställningar → Modeller och lagring. Översättningen använder Bing och talet Edge: inget att ladda ner och inget konto; texten som översätts och översättningen som läses upp skickas till Microsoft.",
+      "offlineNotice": "Igenkänningsmodellen laddas ner efter konfigurationen, under Inställningar → Lokala modeller och lagring. Översättningen använder Bing och talet Edge: inget att ladda ner och inget konto; texten som översätts och översättningen som läses upp skickas till Microsoft.",
       "pendingKey": "Du kan lägga till nyckeln senare under Inställningar → Konton och nycklar. Start är låst tills den har validerats.",
       "pendingSignIn": "Du kan logga in senare via kontoknappen. Starta-knappen förblir låst tills dess.",
       "ownKeyDesc": "Den här nyckeln lagras bara på den här enheten, och appen anropar leverantören direkt härifrån — den når aldrig Kizuna AI. Du betalar leverantören för det du använder.",
@@ -1812,7 +1870,7 @@
       "lineup": "Språk och uppsättning",
       "words": "Ordlista och bakgrund",
       "accounts": "Konton och nycklar",
-      "models": "Modeller och lagring",
+      "models": "Lokala modeller och lagring",
       "audio": "Ljud",
       "display": "Visning",
       "history": "Historik och anteckningar",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Inloggad; saldo {{amount}}",
       "localModels": "Körs på den här datorn; {{count}} modeller nedladdade, totalt {{size}}",
       "localNone": "Körs på den här datorn; inga modeller nedladdade ännu",
+      "localNative": "Nativ motor, stöder fler igenkänningsmodeller och presterar bättre. Körs på den här datorn; ingen molnnyckel behövs",
+      "localWebgpu": "Delar en motor med webbläsartillägget och är därför inte lika snabb. Körs på den här datorn; ingen molnnyckel behövs",
       "soniox": {
         "save": "Spara och hitta regionen",
         "finding": "Söker nyckelns region…",

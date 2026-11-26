@@ -24,7 +24,9 @@ export interface NativeModelLicense {
 export interface NativeModelInfo {
   id: string; name: string; languages: string[]; recommended: boolean; tiers: NativeTier[];
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
-  clones?: boolean; streaming?: boolean;   // tts only
+  clones?: boolean;   // tts only
+  /** A speech model that speaks as it generates, or a recognition model run by the streaming backend. */
+  streaming?: boolean;
   /** tts only; native_tts has no style-vector custom voice equivalent.
    *  `required` (catalog.VOICE_REQUIRED_FAMILIES) is its OWN axis, not a shape
    *  inference: moss_tts_nano, voxcpm1, voxcpm2 and irodori_tts all report
@@ -109,7 +111,7 @@ export interface ListVariantsResultMsg {
 }
 export interface OkMsg { type: 'ok'; id: number; }
 export interface TtsGenerateResultMsg { type: 'tts_generate_result'; id: number; sampleRate: number; generationTimeMs: number; samples: number; }
-export interface ErrorMsg { type: 'error'; id?: number; model?: string; message: string; }
+export interface ErrorMsg { type: 'error'; id?: number; model?: string; message: string; code?: string; params?: Record<string, string>; }
 export interface TranslateResultMsg { type: 'translate_result'; id: number; sourceText: string; translatedText: string; inferenceTimeMs: number; }
 /** Id-less push during translate() generation: one per token, each carrying the
  *  cleaned full accumulation so far (not a delta) — same shape choice as AsrPartialMsg. */
@@ -119,6 +121,8 @@ export interface AsrResultMsg { type: 'result'; text: string; startSample?: numb
 export type NativeModelState = 'ready' | 'absent';
 export interface ModelStatusResultMsg { type: 'model_status_result'; id: number; statuses: Record<string, NativeModelState>; }
 export interface ModelDeleteResultMsg { type: 'model_delete_result'; id: number; model: string; freed: number; }
+export interface ModelFileInfo { repo: string; file: string; url: string; /** Bytes, where the published catalog lists the file. */ size?: number; }
+export interface ModelFilesResultMsg { type: 'model_files_result'; id: number; model: string; files: ModelFileInfo[]; }
 export interface ModelProgressMsg { type: 'model_progress'; model: string; downloaded: number; total: number; }
 export type ModelDownloadStatus = 'ready' | 'cancelled';
 export interface ModelDownloadDoneMsg { type: 'model_download_done'; model: string; status: ModelDownloadStatus; }
@@ -127,4 +131,4 @@ export interface TtsDoneMsg { type: 'tts_done'; id: number; totalSamples: number
 /** `voices` is the flat preset-name list the sidecar's tts_voices.list_builtin_voices
  *  returns (sidecar-v0.2.0+); see NativeVoiceInfo for why it is not the descriptor. */
 export interface ListTtsVoicesResultMsg { type: 'list_tts_voices_result'; id: number; voices: string[]; }
-export type ServerMsg = ReadyMsg | OkMsg | TtsGenerateResultMsg | TranslateResultMsg | TranslatePartialMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelDeleteResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg | TtsChunkMsg | TtsDoneMsg | ListTtsVoicesResultMsg;
+export type ServerMsg = ReadyMsg | OkMsg | TtsGenerateResultMsg | TranslateResultMsg | TranslatePartialMsg | AsrPartialMsg | AsrResultMsg | ModelStatusResultMsg | ModelDeleteResultMsg | ModelFilesResultMsg | ModelProgressMsg | ModelDownloadDoneMsg | ErrorMsg | HardwareInfoResultMsg | ModelsCatalogResultMsg | ListVariantsResultMsg | TtsChunkMsg | TtsDoneMsg | ListTtsVoicesResultMsg;

@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Conn } from '../conn';
 import { createState, handleMessage } from '../server';
 import { downloadsOf, handlerSeams, register, restoreHandlerSeams } from './handlers';
+import { ImportError } from './import';
 
 class FakeSocket {
   readyState = 1;
@@ -32,6 +33,14 @@ const setup = () => {
 };
 
 afterEach(() => restoreHandlerSeams());
+
+/** One engine state, two client connections to it. */
+const twoConns = () => {
+  const state = createState();
+  register(state);
+  const mk = () => { const socket = new FakeSocket(); const conn = new Conn(socket); return { socket, conn, call: (m: Record<string, unknown>) => handleMessage(state, JSON.stringify(m), null, conn) }; };
+  return { state, a: mk(), b: mk() };
+};
 
 describe('model_status', () => {
   it('answers every asked model', async () => {
@@ -135,13 +144,6 @@ describe('model_download', () => {
 });
 
 describe('a download and its connection', () => {
-  const twoConns = () => {
-    const state = createState();
-    register(state);
-    const mk = () => { const socket = new FakeSocket(); const conn = new Conn(socket); return { socket, conn, call: (m: Record<string, unknown>) => handleMessage(state, JSON.stringify(m), null, conn) }; };
-    return { state, a: mk(), b: mk() };
-  };
-
   it('is aborted when its connection closes', async () => {
     let signal: AbortSignal | undefined;
     handlerSeams.downloadModel = (_m, _s, opts) => new Promise((resolve) => {
@@ -204,5 +206,65 @@ describe('a download and its connection', () => {
     await b.call({ type: 'model_download', id: 2, model: 'm' });
     await downloadsOf(state).get('m')?.task;
     expect(order).toEqual(['first-stopped', 'second-started']);
+  });
+});
+
+describe('model_import', () => {
+  it('runs in the background like a download: progress, then model_download_done', async () => {
+    const calls: Array<[string, string[], string | null | undefined]> = [];
+    handlerSeams.importModel = async (model, paths, send, opts) => {
+      calls.push([model, [...paths], opts?.repo]);
+      await send({ type: 'model_progress', model, downloaded: 1, total: 1 });
+      return 'ready';
+    };
+    const { state, socket, call } = setup();
+    expect((await call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/a.gguf'], repo: 'org/r/f.gguf' }))[0]).toBeNull();
+    await terminal(socket);
+    expect(calls).toEqual([['m', ['/x/a.gguf'], 'org/r/f.gguf']]);
+    expect(socket.sent.map((m) => m.type)).toEqual(['model_progress', 'model_download_done']);
+    expect(socket.sent[1]).toMatchObject({ model: 'm', status: 'ready' });
+    await vi.waitFor(() => expect(downloadsOf(state).size).toBe(0));
+  });
+
+  it('reports a refused file as an error tagged with the model', async () => {
+    handlerSeams.importModel = async () => { throw new Error('missing: a.gguf'); };
+    const { socket, call } = setup();
+    await call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/b.gguf'] });
+    await terminal(socket);
+    expect(socket.sent.at(-1)).toEqual({ type: 'error', model: 'm', message: 'missing: a.gguf' });
+  });
+
+  it('sends the refusal\'s code and params with its message, for the interface to translate', async () => {
+    handlerSeams.importModel = async () => { throw new ImportError('missing: a.gguf', 'import_missing', { names: 'a.gguf' }); };
+    const { socket, call } = setup();
+    await call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/b.gguf'] });
+    await terminal(socket);
+    expect(socket.sent.at(-1)).toEqual({ type: 'error', model: 'm', message: 'missing: a.gguf', code: 'import_missing', params: { names: 'a.gguf' } });
+  });
+
+  it('asks for files when none were chosen, and does not import over a download in flight', async () => {
+    const { state, conn, call } = setup();
+    expect((await call({ type: 'model_import', id: 1, model: 'm', paths: [] }))[0]).toMatchObject({ type: 'error', message: 'no files were chosen' });
+    downloadsOf(state).set('m', { controller: new AbortController(), conn, task: Promise.resolve() });
+    expect((await call({ type: 'model_import', id: 2, model: 'm', paths: ['/x/a.gguf'] }))[0]).toMatchObject({ type: 'error', message: 'm is already downloading' });
+  });
+
+  // Like a download (review on #888): an import whose connection has gone is stopped and waited for before another of
+  // the same model starts, so two never write that model's files at once.
+  it('a request after the old connection closed waits for the old import or download to stop', async () => {
+    const order: string[] = [];
+    handlerSeams.importModel = (_m, _p, _s, opts) => {
+      if (order.includes('first-started')) { order.push('second-started'); return Promise.resolve('ready'); }
+      order.push('first-started');
+      return new Promise((resolve) => {
+        opts?.signal?.addEventListener('abort', () => setTimeout(() => { order.push('first-stopped'); resolve('cancelled'); }, 50));
+      });
+    };
+    const { state, a, b } = twoConns();
+    await a.call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/a.gguf'] });
+    a.conn.markClosed();
+    await b.call({ type: 'model_import', id: 2, model: 'm', paths: ['/x/a.gguf'] });
+    await downloadsOf(state).get('m')?.task;
+    expect(order).toEqual(['first-started', 'first-stopped', 'second-started']);
   });
 });

@@ -695,7 +695,7 @@
   .speech-card > .ears-hint { margin: 4px 0 8px; font-size: 11.5px; }
 }
 
-// Models and storage, as the mock draws it (v18): a summary line with its two links, then each group under a
+// Local models and storage, as the mock draws it (v18): a summary line with its two links, then each group under a
 // heading and a line about it, its rows in one card — a tag and the name, a line about the model, one button.
 .models-page {
   display: flex;
@@ -722,8 +722,47 @@
     &:disabled { opacity: 0.5; cursor: default; }
     &:focus-visible { @include vars.focus-ring; }
   }
+  &__notice {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 8px 12px;
+    border: 1px solid vars.$border-subtle;
+    border-radius: 8px;
+    background: vars.$bg-surface;
+    font-size: 12.5px;
+    color: vars.$text-secondary;
+  }
   &__confirm { margin-top: 8px; }
   &__import { margin-top: 8px; height: 30px; font-size: 12.5px; }
+}
+
+// The two engines' libraries, one at a time (#578): each tab says what its library holds, so the other one stays in sight.
+.models-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 16px;
+  border-bottom: 1px solid vars.$border-subtle;
+  &__tab {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 14px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: vars.$text-secondary;
+    text-align: left;
+    cursor: pointer;
+    &:hover { color: vars.$text-primary; }
+    &:focus-visible { @include vars.focus-ring; }
+    &--on { border-bottom-color: vars.$color-primary; color: vars.$text-primary; }
+  }
+  &__name { font-size: 13px; font-weight: vars.$weight-semibold; }
+  &__meta { font-size: 11.5px; color: vars.$text-muted; }
 }
 
 .models-group {

@@ -119,7 +119,7 @@ export const EnginePage: React.FC<{
                     const picked = e.target.value;
                     if (picked === BROWSE_OPTION_VALUE) {
                       // An action, not an option: open the slot's stage in
-                      // Models and storage (B-20) and keep the selection where
+                      // Local models and storage (B-20) and keep the selection where
                       // it was (the controlled value snaps the control back on
                       // re-render). Deferred one task, with an explicit blur
                       // first: leaving the page synchronously from inside the

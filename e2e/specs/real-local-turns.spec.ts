@@ -30,7 +30,7 @@ import { expect, test } from '../support/test';
 //      e2e/support/app.ts and scripts/dev/turn-fixtures/compare-runs.mjs in, uncommitted. Run `npm run e2e:build`.
 //   2. Prepare, once per profile and model:
 //        E2E_LOCAL_PREPARE=1 E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
-//      It downloads the recognizer and the ja-en translation model through Models and storage into the profile.
+//      It downloads the recognizer and the ja-en translation model through Local models and storage into the profile.
 //      Roughly 0.3 GB for Whisper base plus Opus-MT ja-en, 0.25 GB for SenseVoice, about 2.8 GB for Voxtral 4B.
 //   3. Measure, five runs per model, on the before build:
 //        E2E_LOCAL_OUT=<before> E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
@@ -146,7 +146,10 @@ test(`@real prepare: downloads the models of ${ASR || 'the chosen recognizer'} i
   await checkAdapter(sokuji, asr);
 
   await page.locator('[data-tour="settings-button"]').click();
-  await page.getByRole('navigation').getByRole('button', { name: /^Models and storage/ }).click();
+  await page.getByRole('navigation').getByRole('button', { name: /^Local models and storage/ }).click();
+  // Where the native engine is offered the page opens on its tab: these models are the WASM/WebGPU engine's.
+  const webgpuTab = page.getByRole('tab', { name: /WASM\/WebGPU engine/ });
+  if (await webgpuTab.count() > 0) await webgpuTab.click();
   for (const { name } of [MODELS[asr], TRANSLATION_MODEL]) {
     // Two catalogue entries carry the translation model's name: both are downloaded (a second or two of clicking, 50 MB more).
     const download = page.getByRole('button', { name: `Download: ${name}` });

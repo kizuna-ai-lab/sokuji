@@ -31,8 +31,8 @@ describe('the wire contract', () => {
   });
 
   it('covers every type, with sane shapes', () => {
-    // 18 ServerMsg members + pong.
-    expect(Object.keys(SCHEMA)).toHaveLength(19);
+    // 19 ServerMsg members + pong.
+    expect(Object.keys(SCHEMA)).toHaveLength(20);
     expect(SCHEMA.pong).toBeDefined();
     for (const [type, spec] of Object.entries(SCHEMA)) {
       expect(Object.keys(spec).sort(), type).toEqual(['optional', 'required']);

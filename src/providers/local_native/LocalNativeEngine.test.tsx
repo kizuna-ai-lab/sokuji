@@ -6,7 +6,6 @@ const seen = vi.hoisted(() => ({
   overrides: [] as unknown[],
   surfaces: [] as Array<{ effectiveMode: string; onBrowse?: (slot: { dir: string; stage: string }) => void; port: unknown }>,
   sections: [] as Array<{ isSessionActive?: boolean }>,
-  libraries: [] as Array<Record<string, unknown>>,
 }));
 // The adapter's gate is the engine card, as the real adapter makes it (useNativeEngineAdapter.ts).
 vi.mock('../../components/Settings/engine/useNativeEngineAdapter', async () => {
@@ -32,18 +31,16 @@ vi.mock('../../components/Settings/engine/EngineSurface', async () => {
 vi.mock('../../components/Settings/sections/EngineSection', () => ({
   EngineSection: (props: { isSessionActive?: boolean }) => { seen.sections.push(props); return null; },
 }));
-vi.mock('../../components/Settings/sections/NativeModelManagementSection', () => ({
-  NativeModelManagementSection: (props: Record<string, unknown>) => { seen.libraries.push(props); return null; },
-}));
 
 import { LocalNativeEngine } from './LocalNativeEngine';
 import { LOCAL_NATIVE_DEFAULTS } from './settings';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
+import { useSettingsStore } from '../../stores/settingsStore';
 
 beforeEach(() => {
   seen.overrides.length = 0;
   seen.surfaces.length = 0;
   seen.sections.length = 0;
-  seen.libraries.length = 0;
 });
 
 describe('LocalNativeEngine', () => {
@@ -61,16 +58,19 @@ describe('LocalNativeEngine', () => {
     expect(seen.overrides[0]).toEqual({ settings: LOCAL_NATIVE_DEFAULTS, update, pair: { source: 'ja', target: 'en' } });
     expect(seen.overrides[1]).toBe(seen.overrides[0]);
     expect(seen.surfaces.map((s) => s.effectiveMode)).toEqual(['participant', 'participant']);
-    expect(seen.libraries).toEqual([]);
   });
 
-  it("a slot's Browse shows that stage of the native library for the slot's direction, under the slots", () => {
-    const update = vi.fn();
-    render(<LocalNativeEngine settings={LOCAL_NATIVE_DEFAULTS} update={update} pair={{ source: 'ja', target: 'en' }} legs={['speaker']} />);
-    act(() => { seen.surfaces[0].onBrowse?.({ dir: 'en→ja', stage: 'tts' }); });
-    expect(seen.libraries[seen.libraries.length - 1]).toEqual({
-      stageFilter: 'tts', direction: 'en→ja', settings: LOCAL_NATIVE_DEFAULTS, update, pair: { source: 'ja', target: 'en' }, isSessionActive: false,
-    });
+  it("a slot's Browse opens that stage of the native library in Local models and storage", () => {
+    const navigate = vi.spyOn(useSettingsStore.getState(), 'navigateToSettings').mockImplementation(() => {});
+    render(<LocalNativeEngine settings={LOCAL_NATIVE_DEFAULTS} update={vi.fn()} pair={{ source: 'ja', target: 'en' }} legs={['speaker']} />);
+    for (const stage of ['asr', 'translation', 'tts']) {
+      act(() => { seen.surfaces[0].onBrowse?.({ dir: 'en→ja', stage }); });
+      expect(navigate).toHaveBeenLastCalledWith(`native-models-${stage}`);
+      // With the slot's direction (review on #888): the reverse direction's models are not the forward pair's.
+      expect(useNativeModelStore.getState().libraryDirection).toBe('en→ja');
+    }
+    navigate.mockRestore();
+    useNativeModelStore.getState().setLibraryDirection(null);
   });
 
   it("hands its voice previews the app's route (#578 ruling 13)", () => {

@@ -35,7 +35,8 @@ function looksLikeErrorPage(head: Uint8Array): boolean {
 
 /** Thrown when a model file fails a structural/size sanity check. */
 export class ModelFileValidationError extends Error {
-  constructor(message: string) {
+  /** `code` and `params` let a window say why in the interface's language; `message` stays English. */
+  constructor(message: string, readonly code: string = 'invalid', readonly params: Record<string, string | number> = {}) {
     super(message);
     this.name = 'ModelFileValidationError';
   }
@@ -68,6 +69,7 @@ export function checkModelFile(params: ModelFileCheck): void {
   if (looksLikeErrorPage(head)) {
     throw new ModelFileValidationError(
       `Invalid file ${filename}: received HTML instead of expected content (likely 404 or CDN error)`,
+      'html',
     );
   }
 
@@ -75,6 +77,7 @@ export function checkModelFile(params: ModelFileCheck): void {
   if (expectedSizeBytes > 0 && Math.abs(size - expectedSizeBytes) / expectedSizeBytes > SIZE_TOLERANCE) {
     throw new ModelFileValidationError(
       `Size mismatch for ${filename}: expected ~${expectedSizeBytes} bytes, got ${size} bytes`,
+      'size', { expected: expectedSizeBytes, got: size },
     );
   }
 
@@ -83,6 +86,7 @@ export function checkModelFile(params: ModelFileCheck): void {
       && !(head[0] === 0x00 && head[1] === 0x61 && head[2] === 0x73 && head[3] === 0x6d)) {
     throw new ModelFileValidationError(
       `Invalid WASM file ${filename}: missing WASM magic number`,
+      'magic_wasm',
     );
   }
 
@@ -90,6 +94,7 @@ export function checkModelFile(params: ModelFileCheck): void {
   if (ext === 'onnx' && head[0] !== 0x08) {
     throw new ModelFileValidationError(
       `Invalid ONNX file ${filename}: missing protobuf prefix`,
+      'magic_onnx',
     );
   }
 
@@ -100,6 +105,7 @@ export function checkModelFile(params: ModelFileCheck): void {
     } catch {
       throw new ModelFileValidationError(
         `Invalid JSON file ${filename}: content is not valid JSON`,
+        'json',
       );
     }
   }

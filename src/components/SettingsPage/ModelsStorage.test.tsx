@@ -1,4 +1,4 @@
-// Models and storage — what is removed stops counting in the space shown.
+// Local models and storage — what is removed stops counting in the space shown.
 // The stores' disk work is faked: each removal changes what the store says is on disk, as the real one does after
 // measuring again (nativeModelStore.removeBundle reads the size again; modelStore.deleteModel recounts the storage).
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';

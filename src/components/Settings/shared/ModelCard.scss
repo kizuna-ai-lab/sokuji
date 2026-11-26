@@ -1,4 +1,4 @@
-// One model as a card (shared/ModelCard.tsx): Models and storage's session models, out of the old in-panel library.
+// One model as a card (shared/ModelCard.tsx): Local models and storage's session models, out of the old in-panel library.
 @use './variables' as vars;
 @use '../../../styles/tokens' as tk;
 
@@ -97,6 +97,12 @@
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
+  }
+  // A card that shows its error under the row (the native engine's) keeps the row as it is.
+  &--error-below &__content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
   }
 
   &__info {
@@ -234,11 +240,69 @@
     color: vars.$text-source;
   }
 
+  // A recognition model's measured facts, between its info and its buttons: one accuracy grade per language in play
+  // and a five-step speed meter (the catalog's, #578).
+  &__bench {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: vars.$text-secondary;
+    font-size: 12px;
+  }
+  &__grade {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    cursor: help;
+  }
+  &__grade-lang { color: vars.$text-muted; font-size: 11px; }
+  &__grade-letter { box-sizing: border-box; min-width: 2.2em; text-align: center; padding: 1px 4px; border-radius: 3px; background: vars.$bg-control; color: vars.$text-primary; font-weight: vars.$weight-semibold; }
+  &__speed {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+    cursor: help;
+    i {
+      width: 3px;
+      border-radius: 1px;
+      background: vars.$border-strong; // an unlit step: the subtle line all but vanished on the dark theme
+      &:nth-child(1) { height: 4px; }
+      &:nth-child(2) { height: 6px; }
+      &:nth-child(3) { height: 8px; }
+      &:nth-child(4) { height: 10px; }
+      &:nth-child(5) { height: 12px; }
+      &.on { background: vars.$color-primary; }
+    }
+  }
+
   &__actions {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+  &__offer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  // A recognition card's buttons: one cell as wide as their widest state (the invisible sizer under them), each state
+  // at its right end, so the grades and speed beside them line up from card to card. A download's progress takes the row.
+  &__actions--aligned {
+    display: grid;
+    justify-items: end;
+    align-items: center;
+    > * { grid-area: 1 / 1; }
+    > .model-card__progress { justify-self: stretch; }
+  }
+  &__actions-sizer {
+    display: grid;
+    justify-items: end;
+    visibility: hidden;
+    pointer-events: none;
+    > * { grid-area: 1 / 1; }
   }
 
   &__btn {
@@ -368,6 +432,7 @@
 
   &__error-message {
     width: 100%;
+    margin-top: 6px;
     font-size: vars.$font-caption;
     color: vars.$color-error;
     opacity: 0.85;

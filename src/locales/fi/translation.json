@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Tämä laite",
+      "nameWithNative": "Tämä laite (WASM/WebGPU)",
       "description": "Toimii, kun mallit on ladattu tälle tietokoneelle; ensimmäisellä kerralla on ladattava useita gigatavuja.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Ilmainen · ilman verkkoa"
     },
     "local_native": {
-      "name": "Ilmainen (Native)",
+      "name": "Tämä laite (Native)",
       "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Muisti",
     "hwSize": "Koko",
     "hwRepo": "Tietovarasto",
-    "computeDevice": "Laskentalaite",
+    "computeDevice": "Laitteistokiihdytys",
     "computeDeviceTooltip": "Mikä laite suorittaa puhemallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
     "computeDeviceTooltipTranslation": "Mikä laite suorittaa käännösmallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
     "computeDeviceTooltipTts": "Mikä laite suorittaa puhesynteesimallin. Auto valitsee nopeimman käytettävissä olevan laitteen (GPU, jos sellainen on); CPU toimii kaikkialla mutta on hitaampi suurilla malleilla; GPU käyttää Vulkania Windowsissa ja Linuxissa sekä Metalia Apple silicon -laitteissa.",
@@ -1016,8 +1017,63 @@
       "engineHint": "Työpöytämoottori, jonka aiemmat versiot latasivat mallien ajamiseen tällä tietokoneella. Palvelu ”Tämä laite” ei enää käytä sitä; poista se vapauttaaksesi tilaa.",
       "remove": "Poista",
       "engineConfirm": "Poistetaanko paikallinen moottori?",
-      "engineFrees": "Vapauttaa {{size}}."
-    }
+      "engineFrees": "Vapauttaa {{size}}.",
+      "nativeTab": "Natiivimoottori",
+      "webgpuTab": "WASM/WebGPU-moottori",
+      "webgpuTitle": "WASM/WebGPU-moottori",
+      "nativeHint": "Tulee sovelluksen mukana ja toimii tällä tietokoneella.",
+      "engineHintNative": "Moottori, jolla natiivimallit toimivat.",
+      "tabMeta": "{{count}} ladattu, {{size}}",
+      "tabNone": "Ei ladattuja",
+      "tabs": "Moottori",
+      "toHelpers": "Apumallit",
+      "downloadedChoose": "Ladattu. Valitse se kohdassa ”Kielet ja kokoonpano”, jotta voit käyttää sitä istunnossa.",
+      "goChoose": "Valitse",
+      "dismiss": "Hylkää",
+      "webgpuHintNamed": "Toimii sovelluksen omassa ikkunassa ja käyttää näytönohjainta, jos sellainen on. Vaiheet, jotka on asetettu kohtaan ”{{provider}}” kohdassa ”Kielet ja kokoonpano”, käyttävät tänne ladattuja malleja.",
+      "otherDirection": "Näytetään kielten {{from}} → {{to}} mallit, eli suunta, josta tulit.",
+      "showDirection": "Näytä {{from}} → {{to}}"
+    },
+    "streaming": "Suoratoisto",
+    "faster": "Nopeampi",
+    "gradeNone": "Tarkkuutta ({{language}}) ei ole mitattu",
+    "speedNone": "Nopeutta ei ole mitattu",
+    "gradeHelp": {
+      "title": "Tarkkuus kielellä {{language}}: {{grade}}",
+      "measured": "Mitattu virheprosentti: {{error}} %",
+      "below": "alle {{to}} %",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}} % tai enemmän",
+      "subGrades": "A, B ja C jakautuvat kukin kolmeen: {{plus}} on {{a}}–{{b}} %, {{plain}} {{b}}–{{c}} %, {{minus}} {{c}}–{{d}} %.",
+      "method": "Virheprosentti kertoo, kuinka suuren osan puheesta malli tunnistaa väärin FLEURS-testiäänitteillä, mitattuna sen Q8_0-versiolla. Oma äänesi, mikrofonisi ja taustamelu muuttavat tulosta."
+    },
+    "speedHelp": {
+      "title": "Nopeus: {{level}} / {{max}}",
+      "measured": "Mitattu: {{seconds}} s 30 sekunnin äänitteen käsittelyyn",
+      "within": "{{seconds}} s sisällä",
+      "over": "yli {{seconds}} s",
+      "method": "Aika, jonka malli tarvitsee 30 sekunnin äänitteen käsittelyyn luettelon testitietokoneella (AMD Ryzen 4750U -kannettava, sen GPU:ta käyttäen). Sinun tietokoneesi voi olla nopeampi tai hitaampi."
+    },
+    "importError": {
+      "import_missing": "Nämä tiedostot puuttuvat: {{names}}. Lataa ne ja tuo uudelleen.",
+      "import_not_gguf": "{{name}} ei ole GGUF-mallitiedosto.",
+      "import_unreadable": "Tiedostoa {{name}} ei voi lukea tai se on tyhjä.",
+      "import_mismatch": "{{name}} ei ole julkaistu tiedosto (sen sha256 alkaa {{got}}, odotettu {{expected}}). Lataa se uudelleen.",
+      "import_not_importable": "Tätä mallia ei voi tuoda käsin.",
+      "import_failed": "Tuonti epäonnistui."
+    },
+    "importDropSubFile": "Valitse ladatut tiedostot. Säilytä niiden nimet ennallaan.",
+    "importNoPath": "Valitun tiedoston sijaintia ei voitu lukea. Valitse tiedosto uudelleen tiedostovalitsimella.",
+    "importReason": {
+      "html": "saatiin HTML odotetun sisällön sijaan (todennäköisesti 404- tai CDN-virhe)",
+      "size": "koko ei täsmää: odotettiin ~{{expected}} tavua, saatiin {{got}} tavua",
+      "magic_wasm": "WASM-taikaluku puuttuu",
+      "magic_onnx": "protobuf-etuliite puuttuu",
+      "json": "sisältö ei ole kelvollista JSON-muotoa",
+      "empty": "tiedosto on tyhjä",
+      "invalid": "virheellinen"
+    },
+    "importNeedAll": "{{count}} puuttuu edelleen — lisää kaikki tiedostot tuodaksesi mallin."
   },
   "notes": {
     "stageAsr": "puheentunnistus",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Kaikki käyttötarkoitukset",
       "anyStyle": "Kaikki tyylit"
-    }
+    },
+    "noneChosen": "Ääntä ei valittu",
+    "defaultVoice": "Oletusääni"
   },
   "echoNotice": {
     "ttsEcho": "Kaiuttimesi syöttävät Sokujin käännetyn puheen takaisin mikrofoniin.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Luo tili",
       "signedIn": "Kirjauduttu sisään. Voit jatkaa.",
       "managedDesc": "Rekisteröidy sähköpostiosoitteellasi ja vahvista se saapuneet-kansiostasi; vahvistetut tilit saavat kokeilusaldoa. Sen jälkeen lataat saldoa ja maksat vain käytöstäsi.",
-      "offlineNotice": "Tunnistusmalli ladataan käyttöönoton jälkeen kohdasta Asetukset → Mallit ja tallennustila. Käännös käyttää Bingiä ja puhe Edgeä: ei ladattavaa eikä tiliä; käännettävä teksti ja luettava käännös lähetetään Microsoftille.",
+      "offlineNotice": "Tunnistusmalli ladataan käyttöönoton jälkeen kohdasta Asetukset → Paikalliset mallit ja tallennustila. Käännös käyttää Bingiä ja puhe Edgeä: ei ladattavaa eikä tiliä; käännettävä teksti ja luettava käännös lähetetään Microsoftille.",
       "pendingKey": "Voit lisätä avaimen myöhemmin kohdassa Asetukset → Tilit ja avaimet. Aloitus pysyy lukittuna, kunnes avain on vahvistettu.",
       "pendingSignIn": "Voit kirjautua sisään myöhemmin tilipainikkeesta. Aloita pysyy lukittuna siihen asti.",
       "ownKeyDesc": "Tämä avain tallennetaan vain tälle laitteelle, ja sovellus ottaa yhteyttä tarjoajaan suoraan täältä — se ei koskaan kulje Kizuna AI:n kautta. Maksat tarjoajalle käytöstäsi.",
@@ -1812,7 +1870,7 @@
       "lineup": "Kielet ja kokoonpano",
       "words": "Sanalista ja tausta",
       "accounts": "Tilit ja avaimet",
-      "models": "Mallit ja tallennustila",
+      "models": "Paikalliset mallit ja tallennustila",
       "audio": "Ääni",
       "display": "Näkymä",
       "history": "Historia ja muistiinpanot",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Kirjautunut; saldo {{amount}}",
       "localModels": "Toimii tällä tietokoneella; {{count}} mallia ladattu, yhteensä {{size}}",
       "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu",
+      "localNative": "Natiivimoottori, tukee useampia tunnistusmalleja ja toimii paremmin. Toimii tällä tietokoneella; pilviavainta ei tarvita",
+      "localWebgpu": "Jakaa yhden moottorin selainlaajennuksen kanssa, joten se ei ole yhtä nopea. Toimii tällä tietokoneella; pilviavainta ei tarvita",
       "soniox": {
         "save": "Tallenna ja etsi alue",
         "finding": "Etsitään avaimen aluetta…",

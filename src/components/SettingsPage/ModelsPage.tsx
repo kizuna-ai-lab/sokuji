@@ -1,25 +1,25 @@
 // src/components/SettingsPage/ModelsPage.tsx
 //
-// "Models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
+// "Local models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
 // "This device" service can use for the current languages, downloaded or not, as the model library's cards — Download
 // and Import side by side, In use, the progress, Delete (B-20; the rest folded under "other languages"); the helper
 // models (Smart Turn, the punctuation models, the
 // Japanese readings dictionary); the imported voices; on the desktop, the on-device engine earlier versions
 // downloaded (B-19), with what it takes and Remove; and a summary line with Clear all.
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   useModelDownloads, useModelStatuses, useDownloadErrors, useStorageUsedMb, useWebGPUAvailable, useDeviceFeatures, useModelStore,
 } from '../../stores/modelStore';
 import { useSmartTurnStore, SMART_TURN_TOTAL_BYTES } from '../../stores/smartTurnStore';
-import { useNativeModelStore } from '../../stores/nativeModelStore';
+import { useNativeModelStore, useNativeModelStatuses, useNativeModelSizes } from '../../stores/nativeModelStore';
+import { useSettingsNavigationTarget } from '../../stores/settingsStore';
 import { isElectron } from '../../utils/environment';
 import { useSegmentationStore, PACK_MODELS, PACK_TOTAL_BYTES } from '../../stores/segmentationStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { stageProviderIn, storedLocalStages, useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
 import { RUN_STAGES } from '../../lib/lineup/types';
-import { MODEL_MANIFEST, deviceReady, getManifestEntry, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
+import { MODEL_MANIFEST, deviceReady, getManifestEntry, getModelSizeMb, type ModelManifestEntry } from '../../lib/local-inference/modelManifest';
 import { wasmCandidates } from '../../lib/local-inference/selection/candidates.wasm';
 import { resolveWasmDirection } from '../../lib/local-inference/selection/resolveWithStages';
 import { directionKey, splitDirection, type DirectionResult, type Stage } from '../../lib/local-inference/selection/types';
@@ -32,7 +32,10 @@ import { presentProviders } from '../../providers/registry';
 import { SMART_TURN_MODEL_ID } from '../../lib/turn/smartTurn';
 import { computeDeleteNotes } from '../Settings/engine/deleteNotes';
 import { ModelImportModal } from '../Settings/sections/ModelImportModal';
+import { providerNameKey } from '../../providers/nameKey';
 import { ModelCard } from '../Settings/shared/ModelCard';
+import { ModelStageList } from '../Settings/shared/ModelStageList';
+import { NativeModelsGroup } from './NativeModelsGroup';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
 import type { LanguagePair } from '../../lib/run/types';
 
@@ -75,9 +78,9 @@ function Confirm({ question, notes = [], onYes, onNo, locked }: { question: stri
   );
 }
 
-function Group({ title, hint, children }: { title: string; hint: string; children: ReactNode }) {
+function Group({ title, hint, children, id }: { title: string; hint: string; children: ReactNode; id?: string }) {
   return (
-    <section className="models-group" aria-label={title}>
+    <section className="models-group" aria-label={title} id={id}>
       <h3 className="models-group__title">{title}</h3>
       <p className="models-group__hint">{hint}</p>
       <div className="models-group__list">{children}</div>
@@ -103,11 +106,33 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const runsHere = useLineUpStore((s) => RUN_STAGES.some((stage) => stageProviderIn(s, stage) === 'local_inference'));
 
   const [asking, setAsking] = useState<string | null>(null);
-  const [open, setOpen] = useState<Partial<Record<Stage, boolean>>>({});
   const [importTarget, setImportTarget] = useState<ModelManifestEntry | null>(null);
   const [dictStored, setDictStored] = useState<boolean | null>(null);
   const [imported, setImported] = useState<voiceStorage.StoredVoice[]>([]);
   const [looks, setLooks] = useState(0);
+
+  // Two engines, two libraries (#578): on the desktop, where the native engine can be offered, the page shows one at a
+  // time under tabs, the native one first. Everywhere else it is the one list it always was.
+  const nativeOffered = useMemo(() => isElectron() && presentProviders().some((p) => p.id === 'local_native'), []);
+  const [tab, setTab] = useState<'native' | 'webgpu'>('native');
+  const tabs = useRef<HTMLDivElement>(null);
+  const navTarget = useSettingsNavigationTarget();
+  const chosen = useRef(false);
+  // A navigation target lands in its engine's library: the anchor must be on the page when the settings page looks for it.
+  // It counts as a choice: the fallback below (no native engine here) does not move the page off the library asked for.
+  useEffect(() => {
+    if (!navTarget) return;
+    if (navTarget.startsWith('native-models-')) { chosen.current = true; setTab('native'); }
+    else if (navTarget.startsWith('models-')) { chosen.current = true; setTab('webgpu'); }
+  }, [navTarget]);
+  const chooseTab = (next: 'native' | 'webgpu') => {
+    chosen.current = true;
+    setTab(next);
+    // The new list starts at its top, not where the other one was scrolled to.
+    tabs.current?.scrollIntoView?.({ block: 'start' });
+  };
+  const nativeStatuses = useNativeModelStatuses();
+  const nativeSizes = useNativeModelSizes();
 
   // What is on disk outside the model store: the dictionary and the imported voices; looked at again after a change.
   useEffect(() => {
@@ -122,6 +147,11 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   // here with what it takes. Read afresh on opening the page: whether it is there, and its size on disk.
   const desktop = isElectron();
   const engineStatus = useNativeModelStore((s) => s.bundleStatus);
+  // Opens on the native engine, unless this computer has none to offer (no engine for its platform): then the one
+  // library it can use, unless the person already chose.
+  useEffect(() => {
+    if (nativeOffered && engineStatus === 'unsupported' && !chosen.current) setTab('webgpu');
+  }, [nativeOffered, engineStatus]);
   const engineVersion = useNativeModelStore((s) => s.bundleVersion);
   const engineBytes = useNativeModelStore((s) => s.bundleUsage);
   useEffect(() => {
@@ -219,7 +249,11 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const dictName = t('models.readingsDictionary', 'Readings dictionary (Japanese)');
 
   const sessionDownloaded = MODEL_MANIFEST.filter((m) => SESSION_TYPES.has(m.type) && !m.isCloudModel && statuses[m.id] === 'downloaded').length;
-  const count = sessionDownloaded + Number(turnPhase === 'ready') + Number(packPhase === 'ready') + Number(dictStored === true) + imported.length;
+  // What each engine's library holds, for its tab and for the page's one summary.
+  const webgpuBytes = MODEL_MANIFEST.reduce((n, m) => n + (SESSION_TYPES.has(m.type) && !m.isCloudModel && statuses[m.id] === 'downloaded' ? getModelSizeMb(m, features) * MB : 0), 0);
+  const nativeReady = nativeOffered ? Object.keys(nativeStatuses).filter((id) => nativeStatuses[id] === 'ready') : [];
+  const nativeBytes = nativeReady.reduce((n, id) => n + (nativeSizes[id] ?? 0), 0);
+  const count = sessionDownloaded + nativeReady.length + Number(turnPhase === 'ready') + Number(packPhase === 'ready') + Number(dictStored === true) + imported.length;
   const anything = count > 0;
 
   const local = useMemo(() => presentProviders().find((p) => p.id === 'local_inference'), []);
@@ -236,6 +270,11 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
 
   const clearAll = async () => {
     setAsking(null);
+    // The native engine's models too: the summary counts them, and the question is "delete all models". Every quant of
+    // each (no repo named: a speech card shares its repo, and a named quant would leave the others); the engine's own
+    // files stay, they are not models.
+    const native = useNativeModelStore.getState();
+    await Promise.all(nativeReady.map((id) => native.deleteModel(id)));
     await useModelStore.getState().deleteAllModels();
     // The clear wipes the whole model storage, the helper models' included: their own stores are told.
     await useSegmentationStore.getState().refresh();
@@ -243,13 +282,65 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
     setLooks((n) => n + 1);
   };
 
+  const webgpuGroup = (
+        <Group title={nativeOffered ? t('models.page.webgpuTitle', 'WASM/WebGPU engine') : t('models.page.sessionTitle', 'Models for the session (the “This device” service)')}
+          hint={nativeOffered
+            // The service named as the line-up names it, now that two engines are on offer (review on #888).
+            ? t('models.page.webgpuHintNamed', 'Runs in the app’s own window and uses the GPU when there is one. Stages set to “{{provider}}” in “Languages and line-up” use the models downloaded here.',
+              { provider: t(providerNameKey('local_inference'), 'This device (WASM/WebGPU)') })
+            : t('models.page.sessionHint', 'Stages set to “This device” in “Languages and line-up” use the models downloaded here.')}>
+          {stageGroups.map(({ stage, shown, rest, others }) => (
+            // Anchored for an engine slot's "Browse library…" (B-20): the page scrolls here and lights the group.
+            <ModelStageList key={stage} title={t(TAGS[stage][0], TAGS[stage][1])} id={`models-${stage}-section`}
+              shown={shown.map(sessionRow)} rest={rest.map(sessionRow)} others={others.map(sessionRow)} />
+          ))}
+        </Group>
+  );
+
+  const engineGroup = engineShown && (() => {
+    const name = t('engine.ready', 'Engine {{version}}', { version: engineVersion ?? '' }).trim();
+    const size = formatBytes(engineBytes);
+    const question = t('models.page.engineConfirm', 'Remove the on-device engine?');
+    return (
+      <Group title={t('models.page.engineTitle', 'On-device engine')}
+        hint={nativeOffered
+          ? t('models.page.engineHintNative', 'The engine the native models run on.')
+          : t('models.page.engineHint', 'The desktop engine earlier versions downloaded to run models on this computer. The “This device” service no longer uses it; remove it to free the space.')}>
+        <ModelRow tag={t('models.page.tag.engine', 'Desktop')} name={name}
+          meta={<span>{t('engine.onDisk', '{{size}} on disk', { size })}</span>}
+          confirm={asking === 'engine' && (
+            <Confirm question={question} locked={locked} notes={[t('models.page.engineFrees', 'Frees {{size}}.', { size })]}
+              onNo={() => setAsking(null)} onYes={() => { setAsking(null); void useNativeModelStore.getState().removeBundle(); }} />
+          )}>
+          <button type="button" className="model-row__btn" disabled={locked || engineStatus === 'installing'}
+            aria-label={`${t('models.page.remove', 'Remove')}: ${name}`} onClick={() => setAsking('engine')}>
+            {t('models.page.remove', 'Remove')}
+          </button>
+        </ModelRow>
+      </Group>
+    );
+  })();
+
+  const tabLabel = (name: string, n: number, bytes: number) => (
+    <>
+      <span className="models-tabs__name">{name}</span>
+      <span className="models-tabs__meta">{n > 0 ? t('models.page.tabMeta', '{{count}} downloaded, {{size}}', { count: n, size: formatBytes(bytes) }) : t('models.page.tabNone', 'None downloaded')}</span>
+    </>
+  );
+
   return (
     <div className="models-page">
       <div className="models-page__summary">
         <span>{anything
-          ? t('models.page.summary', '{{count}} downloaded, {{size}} in all', { count, size: formatBytes(storageMb * MB) })
+          ? t('models.page.summary', '{{count}} downloaded, {{size}} in all', { count, size: formatBytes(storageMb * MB + nativeBytes) })
           : t('models.storageEmpty', 'No models downloaded yet.')}</span>
         <span className="models-page__links">
+          {nativeOffered && (
+            <button type="button" className="models-page__link"
+              onClick={() => document.getElementById('models-helpers-section')?.scrollIntoView?.({ block: 'start' })}>
+              {t('models.page.toHelpers', 'Helper models')}
+            </button>
+          )}
           {anything && (
             <button type="button" className="models-page__link" disabled={locked} onClick={() => setAsking('clear-all')}>{t('models.clearAll', 'Clear all')}</button>
           )}
@@ -262,40 +353,32 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
             onNo={() => setAsking(null)} onYes={() => void clearAll()} />
         </div>
       )}
-      <Group title={t('models.page.sessionTitle', 'Models for the session (the “This device” service)')}
-        hint={t('models.page.sessionHint', 'Stages set to “This device” in “Languages and line-up” use the models downloaded here.')}>
-        {stageGroups.map(({ stage, shown, rest, others }) => {
-          const title = t(TAGS[stage][0], TAGS[stage][1]);
-          const hidden = rest.length + others.length;
-          return (
-            // Anchored for an engine slot's "Browse library…" (B-20): the page scrolls here and lights the group.
-            <div key={stage} className="models-stage" role="group" aria-label={title} id={`models-${stage}-section`}>
-              <h4 className="models-stage__title">{title}</h4>
-              <div className="models-stage__shown">{shown.map(sessionRow)}</div>
-              {hidden > 0 && (
-                <div className="models-group__fold">
-                  <button type="button" className="models-group__fold-btn" aria-expanded={Boolean(open[stage])}
-                    onClick={() => setOpen((o) => ({ ...o, [stage]: !o[stage] }))}>
-                    {open[stage] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    {t('models.page.more', '{{count}} more', { count: hidden })}
-                  </button>
-                  {open[stage] && (
-                    <>
-                      {rest.map(sessionRow)}
-                      {others.length > 0 && (
-                        <p className="models-stage__caption">{t('models.page.otherLanguages', 'Models for other languages ({{count}})', { count: others.length })}</p>
-                      )}
-                      {others.map(sessionRow)}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </Group>
+{nativeOffered ? (
+        <>
+          <div className="models-tabs" role="tablist" ref={tabs} aria-label={t('models.page.tabs', 'Engine')}>
+            <button type="button" role="tab" id="models-tab-native" aria-selected={tab === 'native'} aria-controls="models-panel"
+              className={`models-tabs__tab${tab === 'native' ? ' models-tabs__tab--on' : ''}`} onClick={() => chooseTab('native')}>
+              {tabLabel(t('models.page.nativeTab', 'Native engine'), nativeReady.length, nativeBytes)}
+            </button>
+            <button type="button" role="tab" id="models-tab-webgpu" aria-selected={tab === 'webgpu'} aria-controls="models-panel"
+              className={`models-tabs__tab${tab === 'webgpu' ? ' models-tabs__tab--on' : ''}`} onClick={() => chooseTab('webgpu')}>
+              {tabLabel(t('models.page.webgpuTab', 'WASM/WebGPU engine'), sessionDownloaded, webgpuBytes)}
+            </button>
+          </div>
+          <div role="tabpanel" id="models-panel" aria-labelledby={`models-tab-${tab}`}>
+            {tab === 'native' ? (
+              <>
+                <Group title={t('models.page.nativeTab', 'Native engine')} hint={t('models.page.nativeHint', 'Ships with the app and runs on this computer.')}>
+                  <NativeModelsGroup locked={locked} />
+                </Group>
+                {engineGroup}
+              </>
+            ) : webgpuGroup}
+          </div>
+        </>
+      ) : webgpuGroup}
 
-      <Group title={t('models.page.helpersTitle', 'Helper models')} hint={t('models.page.helpersHint', 'Small models that belong to no one stage.')}>
+      <Group id="models-helpers-section" title={t('models.page.helpersTitle', 'Helper models')} hint={t('models.page.helpersHint', 'Small models that belong to no one stage.')}>
         {turnEntry && (
           <ModelRow tag={t('models.page.tag.turn', 'Turn end')} name={turnEntry.name}
             meta={<><span>{t('models.page.turnMeta', 'Tells when you have finished speaking; turned on in the speech mode options')}</span><span>{formatBytes(SMART_TURN_TOTAL_BYTES)}</span></>}
@@ -348,27 +431,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
         </Group>
       )}
 
-      {engineShown && (() => {
-        const name = t('engine.ready', 'Engine {{version}}', { version: engineVersion ?? '' }).trim();
-        const size = formatBytes(engineBytes);
-        const question = t('models.page.engineConfirm', 'Remove the on-device engine?');
-        return (
-          <Group title={t('models.page.engineTitle', 'On-device engine')}
-            hint={t('models.page.engineHint', 'The desktop engine earlier versions downloaded to run models on this computer. The “This device” service no longer uses it; remove it to free the space.')}>
-            <ModelRow tag={t('models.page.tag.engine', 'Desktop')} name={name}
-              meta={<span>{t('engine.onDisk', '{{size}} on disk', { size })}</span>}
-              confirm={asking === 'engine' && (
-                <Confirm question={question} locked={locked} notes={[t('models.page.engineFrees', 'Frees {{size}}.', { size })]}
-                  onNo={() => setAsking(null)} onYes={() => { setAsking(null); void useNativeModelStore.getState().removeBundle(); }} />
-              )}>
-              <button type="button" className="model-row__btn" disabled={locked || engineStatus === 'installing'}
-                aria-label={`${t('models.page.remove', 'Remove')}: ${name}`} onClick={() => setAsking('engine')}>
-                {t('models.page.remove', 'Remove')}
-              </button>
-            </ModelRow>
-          </Group>
-        );
-      })()}
+      {!nativeOffered && engineGroup}
 
       {importTarget && (
         <ModelImportModal isOpen modelId={importTarget.id} modelName={importTarget.name}

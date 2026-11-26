@@ -8,7 +8,7 @@ import { EnginePage } from './EnginePage';
 import './Engine.scss';
 
 /**
- * Where a slot's "Browse library…" goes (B-20; the owner, 2026-11-17): its stage's models in Models and storage,
+ * Where a slot's "Browse library…" goes (B-20; the owner, 2026-11-17): its stage's models in Local models and storage,
  * which are the model library now — no library page inside the engine any more.
  */
 export const LIBRARY_TARGET: Readonly<Record<SlotId['stage'], string>> = {
@@ -25,7 +25,7 @@ export const EngineSurface: React.FC<{
   onInitialSlotConsumed?: () => void;
   /** Effective audio mode, handed through to EnginePage (see its doc). */
   effectiveMode: AudioMode;
-  /** Where a slot's "Browse library…" goes. Absent: that stage's models in Models and storage (`LIBRARY_TARGET`). */
+  /** Where a slot's "Browse library…" goes. Absent: that stage's models in Local models and storage (`LIBRARY_TARGET`). */
   onBrowse?: (slot: SlotId) => void;
 }> = ({ adapter, initialSlot = null, onInitialSlotConsumed, effectiveMode, onBrowse }) => {
   const { t } = useTranslation();

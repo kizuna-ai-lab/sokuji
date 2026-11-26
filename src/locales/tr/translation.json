@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Bu cihaz",
+      "nameWithNative": "Bu cihaz (WASM/WebGPU)",
       "description": "Modeller bu bilgisayara indirildikten sonra çalışır; ilk seferde birkaç GB indirmek gerekir.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Ücretsiz · çevrimdışı"
     },
     "local_native": {
-      "name": "Ücretsiz (Native)",
+      "name": "Bu cihaz (Native)",
       "description": "Ücretsiz konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Bellek",
     "hwSize": "Boyut",
     "hwRepo": "Depo",
-    "computeDevice": "Hesaplama cihazı",
+    "computeDevice": "Donanım hızlandırma",
     "computeDeviceTooltip": "Konuşma modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
     "computeDeviceTooltipTranslation": "Çeviri modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
     "computeDeviceTooltipTts": "Konuşma sentezi modelini hangi cihazın çalıştıracağı. Otomatik, mevcut en hızlı cihazı seçer (GPU varsa onu); CPU her yerde çalışır ancak büyük modellerde daha yavaştır; GPU, Windows ve Linux'ta Vulkan'ı, Apple silicon'da ise Metal'i kullanır.",
@@ -1016,8 +1017,63 @@
       "engineHint": "Önceki sürümlerin modelleri bu bilgisayarda çalıştırmak için indirdiği masaüstü motoru. “Bu cihaz” hizmeti artık bunu kullanmıyor; yer açmak için kaldırın.",
       "remove": "Kaldır",
       "engineConfirm": "Yerel motor kaldırılsın mı?",
-      "engineFrees": "{{size}} yer açılır."
-    }
+      "engineFrees": "{{size}} yer açılır.",
+      "nativeTab": "Native motor",
+      "webgpuTab": "WASM/WebGPU motoru",
+      "webgpuTitle": "WASM/WebGPU motoru",
+      "nativeHint": "Uygulamayla birlikte gelir ve bu bilgisayarda çalışır.",
+      "engineHintNative": "Native modellerin üzerinde çalıştığı motor.",
+      "tabMeta": "{{count}} indirildi, {{size}}",
+      "tabNone": "Hiçbiri indirilmedi",
+      "tabs": "Motor",
+      "toHelpers": "Yardımcı modeller",
+      "downloadedChoose": "İndirildi. Bir oturumda kullanmak için “Diller ve düzen” bölümünden seçin.",
+      "goChoose": "Seç",
+      "dismiss": "Kapat",
+      "webgpuHintNamed": "Uygulamanın kendi penceresinde çalışır ve varsa GPU’yu kullanır. “Diller ve düzen” bölümünde “{{provider}}” olarak ayarlanan aşamalar buraya indirilen modelleri kullanır.",
+      "otherDirection": "{{from}} → {{to}} modelleri gösteriliyor; geldiğiniz yön bu.",
+      "showDirection": "{{from}} → {{to}} yönünü göster"
+    },
+    "streaming": "Akışlı",
+    "faster": "Daha hızlı",
+    "gradeNone": "{{language}} doğruluğu ölçülmedi",
+    "speedNone": "Hız ölçülmedi",
+    "gradeHelp": {
+      "title": "{{language}} doğruluğu: {{grade}}",
+      "measured": "Ölçülen hata oranı: %{{error}}",
+      "below": "%{{to}} altı",
+      "band": "%{{from}}–{{to}}",
+      "above": "%{{from}} ve üzeri",
+      "subGrades": "A, B ve C'nin her biri üçe bölünür: {{plus}} %{{a}}–{{b}}, {{plain}} %{{b}}–{{c}}, {{minus}} %{{c}}–{{d}} aralığıdır.",
+      "method": "Hata oranı, modelin FLEURS test kayıtlarında yanlış anladığı konuşmanın payıdır ve modelin Q8_0 sürümünde ölçülmüştür. Kendi sesiniz, mikrofonunuz ve gürültü sonucu değiştirecektir."
+    },
+    "speedHelp": {
+      "title": "Hız: {{max}} üzerinden {{level}}",
+      "measured": "Ölçülen: 30 saniyelik kaydı işlemek için {{seconds}} sn",
+      "within": "{{seconds}} sn içinde",
+      "over": "{{seconds}} sn üzeri",
+      "method": "Modelin 30 saniyelik bir kaydı katalogun test bilgisayarında (AMD Ryzen 4750U dizüstü, GPU'su kullanılarak) işlemesi için gereken süre. Sizin bilgisayarınız daha hızlı ya da daha yavaş olabilir."
+    },
+    "importError": {
+      "import_missing": "Bu dosyalar eksik: {{names}}. Bunları indirip yeniden içe aktarın.",
+      "import_not_gguf": "{{name}} bir GGUF model dosyası değil.",
+      "import_unreadable": "{{name}} okunamıyor veya boş.",
+      "import_mismatch": "{{name}} yayımlanan dosya değil (sha256 değeri {{got}} ile başlıyor, beklenen {{expected}}). Lütfen yeniden indirin.",
+      "import_not_importable": "Bu model elle içe aktarılamaz.",
+      "import_failed": "İçe aktarma başarısız oldu."
+    },
+    "importDropSubFile": "İndirdiğiniz dosyaları seçin. Adlarını olduğu gibi bırakın.",
+    "importNoPath": "Seçilen dosyanın konumu okunamadı. Dosyayı dosya seçiciyle yeniden seçin.",
+    "importReason": {
+      "html": "beklenen içerik yerine HTML alındı (büyük olasılıkla 404 veya CDN hatası)",
+      "size": "boyut uyuşmuyor: ~{{expected}} bayt bekleniyordu, {{got}} bayt alındı",
+      "magic_wasm": "WASM sihirli sayısı eksik",
+      "magic_onnx": "protobuf öneki eksik",
+      "json": "içerik geçerli bir JSON değil",
+      "empty": "dosya boş",
+      "invalid": "geçersiz"
+    },
+    "importNeedAll": "{{count}} tanesi hâlâ eksik — modeli içe aktarmak için tüm dosyaları ekleyin."
   },
   "notes": {
     "stageAsr": "konuşma tanıma",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Tüm kullanım amaçları",
       "anyStyle": "Tüm stiller"
-    }
+    },
+    "noneChosen": "Ses seçilmedi",
+    "defaultVoice": "Varsayılan ses"
   },
   "echoNotice": {
     "ttsEcho": "Hoparlörleriniz Sokuji'nin çevrilmiş sesini mikrofona geri besliyor.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Kayıt Ol",
       "signedIn": "Giriş yapıldı. Devam edebilirsiniz.",
       "managedDesc": "E-posta adresinizle kayıt olun ve gelen kutunuzdan doğrulayın; doğrulanmış hesaplar deneme kredisi kazanır. Ardından bakiyenizi yüklersiniz ve yalnızca kullandığınız kadar ödersiniz.",
-      "offlineNotice": "Tanıma modeli kurulumdan sonra Ayarlar → Modeller ve depolama bölümünden indirilir. Çeviri Bing, konuşma Edge kullanır: indirilecek bir şey ve hesap yok; çevrilecek metin ve okunacak çeviri Microsoft’a gönderilir.",
+      "offlineNotice": "Tanıma modeli kurulumdan sonra Ayarlar → Yerel modeller ve depolama bölümünden indirilir. Çeviri Bing, konuşma Edge kullanır: indirilecek bir şey ve hesap yok; çevrilecek metin ve okunacak çeviri Microsoft’a gönderilir.",
       "pendingKey": "Anahtarı daha sonra Ayarlar → Hesaplar ve anahtarlar bölümünden ekleyebilirsiniz. Doğrulanana kadar başlatma kilitli kalır.",
       "pendingSignIn": "Daha sonra hesap düğmesinden giriş yapabilirsiniz. O zamana kadar Başlat kilitli kalır.",
       "ownKeyDesc": "Bu anahtar yalnızca bu cihazda saklanır ve uygulama sağlayıcıyı doğrudan buradan çağırır — Kizuna AI'ye asla ulaşmaz. Kullandığınız için sağlayıcıya ödeme yaparsınız.",
@@ -1812,7 +1870,7 @@
       "lineup": "Diller ve düzen",
       "words": "Kelime listesi ve arka plan",
       "accounts": "Hesaplar ve anahtarlar",
-      "models": "Modeller ve depolama",
+      "models": "Yerel modeller ve depolama",
       "audio": "Ses",
       "display": "Görünüm",
       "history": "Geçmiş ve notlar",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Giriş yapıldı; bakiye {{amount}}",
       "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
       "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi",
+      "localNative": "Native motor, daha fazla tanıma modelini destekler ve daha iyi performans gösterir. Bu bilgisayarda çalışır; bulut anahtarı gerekmez",
+      "localWebgpu": "Tarayıcı uzantısıyla tek bir motoru paylaşır, bu yüzden o kadar hızlı değildir. Bu bilgisayarda çalışır; bulut anahtarı gerekmez",
       "soniox": {
         "save": "Kaydet ve bölgesini bul",
         "finding": "Bu anahtarın bölgesi bulunuyor…",

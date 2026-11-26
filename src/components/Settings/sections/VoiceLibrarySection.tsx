@@ -58,6 +58,8 @@ export interface VoiceLibrarySectionProps {
   voices: VoiceEntry[];
   /** Currently selected voice id (opaque). */
   selectedId: string;
+  /** What the picker says when no listed voice is chosen (VoicePicker's `noneLabel`). */
+  noneLabel?: string;
   /** Called when the user picks a different voice. */
   onSelect: (id: string) => void;
   /** Called after a valid voice file is picked/dropped. Should throw on
@@ -133,6 +135,7 @@ export interface VoiceLibrarySectionProps {
 const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
   voices,
   selectedId,
+  noneLabel,
   onSelect,
   onImport,
   onRecord,
@@ -332,6 +335,7 @@ const VoiceLibrarySection: React.FC<VoiceLibrarySectionProps> = ({
           capability={capability}
           isSessionActive={isSessionActive}
           customQuota={customQuota}
+          noneLabel={noneLabel}
         />
         {(note ?? selectedDescription) && (
           <div className="voice-selected-description">{note ?? selectedDescription}</div>

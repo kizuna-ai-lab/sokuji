@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Este dispositivo",
+      "nameWithNative": "Este dispositivo (WASM/WebGPU)",
       "description": "Funciona una vez descargados los modelos en este ordenador; la primera vez hay que descargar varios GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Gratis · sin conexión"
     },
     "local_native": {
-      "name": "Gratis (Native)",
+      "name": "Este dispositivo (Native)",
       "description": "Reconocimiento de voz gratuito (ASR) + Traducción + Síntesis de voz (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Memoria",
     "hwSize": "Tamaño",
     "hwRepo": "Repo",
-    "computeDevice": "Dispositivo de cómputo",
+    "computeDevice": "Aceleración por hardware",
     "computeDeviceTooltip": "Qué dispositivo ejecuta el modelo de voz. Auto elige el dispositivo más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU usa Vulkan en Windows y Linux, y Metal en chips Apple silicon.",
     "computeDeviceTooltipTranslation": "Qué dispositivo ejecuta el modelo de traducción. Auto elige el dispositivo más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU usa Vulkan en Windows y Linux, y Metal en chips Apple silicon.",
     "computeDeviceTooltipTts": "Qué dispositivo ejecuta el modelo de síntesis de voz. Auto elige el dispositivo más rápido disponible (GPU si la hay); la CPU funciona en todas partes pero es más lenta con modelos grandes; la GPU usa Vulkan en Windows y Linux, y Metal en chips Apple silicon.",
@@ -1016,8 +1017,63 @@
       "engineHint": "El motor de escritorio que versiones anteriores descargaron para ejecutar modelos en este ordenador. El servicio «Este dispositivo» ya no lo usa; quítalo para liberar espacio.",
       "remove": "Quitar",
       "engineConfirm": "¿Quitar el motor local?",
-      "engineFrees": "Libera {{size}}."
-    }
+      "engineFrees": "Libera {{size}}.",
+      "nativeTab": "Motor nativo",
+      "webgpuTab": "Motor WASM/WebGPU",
+      "webgpuTitle": "Motor WASM/WebGPU",
+      "nativeHint": "Se incluye con la aplicación y se ejecuta en este equipo.",
+      "engineHintNative": "El motor en el que se ejecutan los modelos nativos.",
+      "tabMeta": "{{count}} descargados, {{size}}",
+      "tabNone": "Ninguno descargado",
+      "tabs": "Motor",
+      "toHelpers": "Modelos auxiliares",
+      "downloadedChoose": "Descargado. Elígelo en «Idiomas y combinación» para usarlo en una sesión.",
+      "goChoose": "Elegir",
+      "dismiss": "Descartar",
+      "webgpuHintNamed": "Se ejecuta en la propia ventana de la aplicación y usa la GPU si hay una. Las etapas configuradas como «{{provider}}» en «Idiomas y combinación» usan los modelos descargados aquí.",
+      "otherDirection": "Se muestran los modelos de {{from}} → {{to}}, la dirección de la que vienes.",
+      "showDirection": "Mostrar {{from}} → {{to}}"
+    },
+    "streaming": "Streaming",
+    "faster": "Más rápido",
+    "gradeNone": "No se midió la precisión en {{language}}",
+    "speedNone": "No se midió la velocidad",
+    "gradeHelp": {
+      "title": "Precisión en {{language}}: {{grade}}",
+      "measured": "Tasa de error medida: {{error}} %",
+      "below": "menos de {{to}} %",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}} % o más",
+      "subGrades": "A, B y C se dividen cada una en tres: {{plus}} es {{a}}–{{b}} %, {{plain}} {{b}}–{{c}} %, {{minus}} {{c}}–{{d}} %.",
+      "method": "La tasa de error es la proporción de habla que el modelo interpreta mal en las grabaciones de prueba de FLEURS, medida en su versión Q8_0. Tu propia voz, tu micrófono y el ruido cambiarán el resultado."
+    },
+    "speedHelp": {
+      "title": "Velocidad: {{level}} de {{max}}",
+      "measured": "Medido: {{seconds}} s para procesar la grabación de 30 segundos",
+      "within": "en menos de {{seconds}} s",
+      "over": "más de {{seconds}} s",
+      "method": "El tiempo que tarda el modelo en procesar una grabación de 30 segundos en el ordenador de pruebas del catálogo (un portátil AMD Ryzen 4750U, usando su GPU). Tu ordenador puede ser más rápido o más lento."
+    },
+    "importError": {
+      "import_missing": "Faltan estos archivos: {{names}}. Descárgalos y vuelve a importar.",
+      "import_not_gguf": "{{name}} no es un archivo de modelo GGUF.",
+      "import_unreadable": "No se puede leer {{name}} o está vacío.",
+      "import_mismatch": "{{name}} no es el archivo publicado (su sha256 empieza por {{got}}, y se esperaba {{expected}}). Vuelve a descargarlo.",
+      "import_not_importable": "Este modelo no se puede importar manualmente.",
+      "import_failed": "Error al importar."
+    },
+    "importDropSubFile": "Elige los archivos descargados. Conserva sus nombres tal como están.",
+    "importNoPath": "No se pudo leer la ubicación de un archivo elegido. Vuelve a elegir el archivo con el selector de archivos.",
+    "importReason": {
+      "html": "se recibió HTML en lugar del contenido esperado (probablemente un error 404 o de CDN)",
+      "size": "el tamaño no coincide: se esperaban ~{{expected}} bytes y se recibieron {{got}} bytes",
+      "magic_wasm": "falta el número mágico de WASM",
+      "magic_onnx": "falta el prefijo de protobuf",
+      "json": "el contenido no es un JSON válido",
+      "empty": "el archivo está vacío",
+      "invalid": "no válido"
+    },
+    "importNeedAll": "Aún faltan {{count}} — añade todos los archivos para importar el modelo."
   },
   "notes": {
     "stageAsr": "reconocimiento de voz",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Cualquier caso de uso",
       "anyStyle": "Cualquier estilo"
-    }
+    },
+    "noneChosen": "Ninguna voz elegida",
+    "defaultVoice": "Voz predeterminada"
   },
   "echoNotice": {
     "ttsEcho": "Sus altavoces devuelven la voz traducida de Sokuji al micrófono.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Crear cuenta",
       "signedIn": "Sesión iniciada. Puedes continuar.",
       "managedDesc": "Regístrate con tu dirección de correo electrónico y verifícala desde tu bandeja de entrada; las cuentas verificadas reciben un crédito de prueba. Después, recargas tu saldo y pagas solo por lo que uses.",
-      "offlineNotice": "El modelo de reconocimiento se descarga después de la configuración, en Configuración → Modelos y almacenamiento. La traducción usa Bing y la voz usa Edge: nada que descargar y sin cuenta; el texto que se traduce y la traducción que se lee se envían a Microsoft.",
+      "offlineNotice": "El modelo de reconocimiento se descarga después de la configuración, en Configuración → Modelos locales y almacenamiento. La traducción usa Bing y la voz usa Edge: nada que descargar y sin cuenta; el texto que se traduce y la traducción que se lee se envían a Microsoft.",
       "pendingKey": "Puedes añadir la clave más tarde en Configuración → Cuentas y claves. Iniciar seguirá bloqueado hasta que se valide.",
       "pendingSignIn": "Puedes iniciar sesión más tarde desde el botón de cuenta. Iniciar permanece bloqueado hasta entonces.",
       "ownKeyDesc": "Esta clave se guarda solo en este dispositivo, y la app se conecta con el proveedor directamente desde aquí — nunca llega a Kizuna AI. Le pagas al proveedor por lo que uses.",
@@ -1812,7 +1870,7 @@
       "lineup": "Idiomas y combinación",
       "words": "Lista de palabras y contexto",
       "accounts": "Cuentas y claves",
-      "models": "Modelos y almacenamiento",
+      "models": "Modelos locales y almacenamiento",
       "audio": "Audio",
       "display": "Visualización",
       "history": "Historial y notas",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Sesión iniciada; saldo {{amount}}",
       "localModels": "Funciona en este ordenador; {{count}} modelos descargados, {{size}} en total",
       "localNone": "Funciona en este ordenador; aún no hay modelos descargados",
+      "localNative": "Motor nativo, admite más modelos de reconocimiento y ofrece mejor rendimiento. Se ejecuta en este equipo; no hace falta clave de la nube",
+      "localWebgpu": "Comparte un único motor con la extensión del navegador, por lo que no es tan rápido. Se ejecuta en este equipo; no hace falta clave de la nube",
       "soniox": {
         "save": "Guardar y averiguar su región",
         "finding": "Averiguando la región de esta clave…",

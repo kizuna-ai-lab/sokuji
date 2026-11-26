@@ -7,10 +7,11 @@
 import type { ComponentType } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import type { AnyProvider } from '../../lib/provider/types';
+import { providerNameKey } from '../../providers/nameKey';
 
 export interface ProviderOptionModel {
   id: string;
-  /** `providers.<id>.name` */
+  /** `providers.<id>.name` (`providerNameKey`) */
   name: string;
   /** The engine credited for a hosted provider ("Powered by Soniox"). */
   vendor?: string;
@@ -36,13 +37,14 @@ export function useOptionModel(): (id: string, provider?: AnyProvider) => Provid
     if (provider?.kind === 'online') {
       // An online service's one line (`providers.<id>.note`, Bing's and Edge's) is its description (owner,
       // 2026-11-15): it says what it is, it credits no engine.
-      return { id, icon: provider.icon, name: t(`providers.${id}.name`, id), description: t(`providers.${id}.note`, '') || undefined };
+      return { id, icon: provider.icon, name: t(providerNameKey(id), id), description: t(`providers.${id}.note`, '') || undefined };
     }
-    // Only the local provider has a note of its own (the online services' line is their description, above).
-    const note = id === 'local_inference' ? t('providers.local_inference.note', 'Free · offline') : undefined;
+    // Only the two local providers have a note of their own (the online services' line is their description, above):
+    // what separates them from a service in the cloud, so both carry it.
+    const note = id === 'local_inference' || id === 'local_native' ? t('providers.local_inference.note', 'Free · offline') : undefined;
     return {
       id,
-      name: t(`providers.${id}.name`, id),
+      name: t(providerNameKey(id), id),
       vendor: provider?.vendor,
       vendorInText: provider?.kind === 'managed',
       note: provider?.vendor ? undefined : note,

@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "このデバイス",
+      "nameWithNative": "このデバイス（WASM/WebGPU）",
       "description": "モデルをこのパソコンにダウンロードすれば使えます。初回は数 GB のダウンロードが必要です。",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "無料 · オフライン"
     },
     "local_native": {
-      "name": "無料 (Native)",
+      "name": "このデバイス（ネイティブ）",
       "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）"
     },
     "unknown": {
@@ -902,6 +903,17 @@
     "importChooseFiles": "ファイルを選択",
     "importDropHint": "ここにファイルをドラッグ",
     "importDropSub": "フォルダ全体の場合は「フォルダを選択」を使用してください — onnx/ サブフォルダは自動的に照合されます",
+    "importDropSubFile": "ダウンロードしたファイルを選んでください。ファイル名は変えないでください。",
+    "importReason": {
+      "html": "ファイルの代わりに HTML が届きました（404 または CDN のエラーの可能性が高い）",
+      "size": "サイズが合いません：約 {{expected}} バイトのはずが {{got}} バイトです",
+      "magic_wasm": "WASM のマジックナンバーがありません",
+      "magic_onnx": "protobuf の先頭がありません",
+      "json": "内容が有効な JSON ではありません",
+      "empty": "ファイルが空です",
+      "invalid": "無効"
+    },
+    "importNoPath": "選んだファイルの場所を読み取れませんでした。ファイルピッカーでもう一度選んでください。",
     "importGroupConfig": "設定とトークナイザー",
     "importGroupModel": "モデルファイル",
     "importAlready": "インポート済み",
@@ -909,6 +921,7 @@
     "importHasInvalid": "無効なファイルを置き換えて再度追加してください。",
     "importAllPresent": "すべてのファイルが揃っています。",
     "importSomeReady": "あと {{count}} 個が不足しています — 今すぐインポートして、残りは後から追加できます。",
+    "importNeedAll": "あと {{count}} 個のファイルが足りません。すべてそろうとモデルをインポートできます。",
     "importAddToBegin": "上のファイルを追加して開始してください。",
     "importFinish": "インポートして完了",
     "importNow": "{{count}} 個を今すぐインポート",
@@ -949,7 +962,35 @@
     "hwMemory": "メモリ",
     "hwSize": "サイズ",
     "hwRepo": "リポジトリ",
-    "computeDevice": "計算デバイス",
+    "computeDevice": "ハードウェアアクセラレーション",
+    "streaming": "ストリーミング",
+    "faster": "より高速",
+    "gradeNone": "{{language}}の精度は測定されていません",
+    "gradeHelp": {
+      "title": "{{language}}の精度：{{grade}}",
+      "measured": "測定した誤り率：{{error}}%",
+      "below": "{{to}}% 未満",
+      "band": "{{from}}%～{{to}}%",
+      "above": "{{from}}% 以上",
+      "subGrades": "A・B・C はそれぞれ 3 段階に分かれます：{{plus}} は {{a}}%～{{b}}%、{{plain}} は {{b}}%～{{c}}%、{{minus}} は {{c}}%～{{d}}%。",
+      "method": "誤り率は、FLEURS のテスト音声でモデルが間違える割合で、モデルの Q8_0 版で測定したものです。ご自身の声、マイク、雑音によって結果は変わります。"
+    },
+    "speedHelp": {
+      "title": "速度：{{max}}段階中{{level}}",
+      "measured": "測定値：30 秒の録音の処理に {{seconds}} 秒",
+      "within": "{{seconds}} 秒以内",
+      "over": "{{seconds}} 秒超",
+      "method": "カタログの測定用コンピューター（AMD Ryzen 4750U のノート PC、GPU 使用）で、30 秒の録音を処理するのにかかった時間です。お使いのコンピューターはこれより速いことも遅いこともあります。"
+    },
+    "importError": {
+      "import_missing": "次のファイルが足りません：{{names}}。ダウンロードしてから、もう一度インポートしてください。",
+      "import_not_gguf": "{{name}} は GGUF モデルファイルではありません。",
+      "import_unreadable": "{{name}} を読み込めないか、空です。",
+      "import_mismatch": "{{name}} は公開されているファイルではありません（sha256 は {{got}} で始まり、本来は {{expected}} です）。もう一度ダウンロードしてください。",
+      "import_not_importable": "このモデルは手動でインポートできません。",
+      "import_failed": "インポートに失敗しました。"
+    },
+    "speedNone": "速度は測定されていません",
     "computeDeviceTooltip": "音声認識（ASR）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
     "computeDeviceTooltipTranslation": "翻訳モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
     "computeDeviceTooltipTts": "音声合成（TTS）モデルを実行するデバイス。自動は利用可能な最速のデバイスを選びます（GPUがあればGPU）。CPUはどこでも動作しますが、大きなモデルでは遅くなります。GPUはWindowsとLinuxではVulkan、Apple siliconではMetalを使用します。",
@@ -1014,6 +1055,21 @@
       "more": "ほか {{count}} 件",
       "engineTitle": "ローカルエンジン",
       "engineHint": "以前のバージョンがこのコンピューターでモデルを動かすためにダウンロードしたデスクトップ用エンジンです。現在の「このデバイス」サービスでは使われません。削除すると空き容量が増えます。",
+      "nativeTab": "ネイティブエンジン",
+      "webgpuTab": "WASM/WebGPU エンジン",
+      "webgpuTitle": "WASM/WebGPU エンジン",
+      "nativeHint": "アプリに同梱され、このコンピューターで動作します。",
+      "webgpuHintNamed": "アプリ自身のウィンドウ内で動作し、GPU があれば自動的に使います。「言語とライン構成」で「{{provider}}」に設定した段階は、ここでダウンロードしたモデルを使います。",
+      "otherDirection": "{{from}} → {{to}} 方向（開いたときの方向）のモデルを表示しています。",
+      "showDirection": "{{from}} → {{to}} を表示",
+      "engineHintNative": "ネイティブモデルが動作するエンジンです。",
+      "tabMeta": "{{count}} 個ダウンロード済み、{{size}}",
+      "tabNone": "ダウンロードなし",
+      "tabs": "エンジン",
+      "toHelpers": "補助モデル",
+      "downloadedChoose": "ダウンロードしました。セッションで使うには、「言語とライン構成」で選んでください。",
+      "goChoose": "選びに行く",
+      "dismiss": "閉じる",
       "remove": "削除",
       "engineConfirm": "ローカルエンジンを削除しますか？",
       "engineFrees": "{{size}} の空きができます。"
@@ -1163,6 +1219,8 @@
     "close": "閉じる"
   },
   "voiceLibrary": {
+    "noneChosen": "音声が選ばれていません",
+    "defaultVoice": "既定の声",
     "addVoice": "音声を追加…",
     "addVoiceTitle": "音声を追加",
     "clipSilent": "音声が検出されませんでした — マイクを確認してもう一度お試しください。",
@@ -1438,7 +1496,7 @@
       "createAccount": "アカウント作成",
       "signedIn": "サインイン済みです。続行できます。",
       "managedDesc": "メールアドレスでサインアップし、受信したメールで認証してください。認証すると試用クレジットが付きます。以降は残高をチャージし、使った分だけのお支払いです。",
-      "offlineNotice": "認識モデルはセットアップ後に「設定 → モデルとストレージ」からダウンロードします。翻訳は Bing、音声は Edge を使うのでダウンロードもアカウントも不要です。翻訳する文章と読み上げる訳文は Microsoft に送られます。",
+      "offlineNotice": "認識モデルはセットアップ後に「設定 → ローカルモデルとストレージ」からダウンロードします。翻訳は Bing、音声は Edge を使うのでダウンロードもアカウントも不要です。翻訳する文章と読み上げる訳文は Microsoft に送られます。",
       "pendingKey": "キーは後で「設定 → アカウントとキー」から追加できます。検証が通るまで開始できません。",
       "pendingSignIn": "後でアカウントボタンからサインインできます。それまで開始できません。",
       "verifyEmail": "サインイン済みです。お送りしたメールのリンクを開いて認証してください。認証すると試用クレジットが付きます。",
@@ -1812,7 +1870,7 @@
       "lineup": "言語と構成",
       "words": "単語リストと背景",
       "accounts": "アカウントとキー",
-      "models": "モデルとストレージ",
+      "models": "ローカルモデルとストレージ",
       "audio": "音声",
       "display": "表示",
       "history": "履歴とメモ",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "ログイン済み、残高 {{amount}}",
       "localModels": "このパソコンで動作します。ダウンロード済みのモデル {{count}} 個、合計 {{size}}",
       "localNone": "このパソコンで動作します。モデルはまだダウンロードしていません",
+      "localNative": "ネイティブエンジン。より多くの認識モデルに対応し、性能も優れています。このコンピューターで動作し、クラウドのキーは不要です",
+      "localWebgpu": "ブラウザ拡張機能と同じエンジンを共有するため、速度はそれほど出ません。このコンピューターで動作し、クラウドのキーは不要です",
       "soniox": {
         "save": "保存してリージョンを判定",
         "finding": "このキーのリージョンを判定しています…",

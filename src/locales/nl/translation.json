@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Dit apparaat",
+      "nameWithNative": "Dit apparaat (WASM/WebGPU)",
       "description": "Werkt zodra de modellen op deze computer zijn gedownload; de eerste keer moet er enkele GB worden gedownload.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Gratis · offline"
     },
     "local_native": {
-      "name": "Gratis (Native)",
+      "name": "Dit apparaat (Native)",
       "description": "Gratis spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Geheugen",
     "hwSize": "Grootte",
     "hwRepo": "Repo",
-    "computeDevice": "Rekenapparaat",
+    "computeDevice": "Hardwareversnelling",
     "computeDeviceTooltip": "Welk apparaat het spraakmodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU gebruikt Vulkan op Windows en Linux en Metal op Apple silicon.",
     "computeDeviceTooltipTranslation": "Welk apparaat het vertaalmodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU gebruikt Vulkan op Windows en Linux en Metal op Apple silicon.",
     "computeDeviceTooltipTts": "Welk apparaat het spraaksynthesemodel uitvoert. Auto kiest het snelste beschikbare apparaat (GPU indien aanwezig); CPU werkt overal maar is trager voor grote modellen; GPU gebruikt Vulkan op Windows en Linux en Metal op Apple silicon.",
@@ -1016,8 +1017,63 @@
       "engineHint": "De desktop-engine die eerdere versies downloadden om modellen op deze computer te draaien. De dienst ‘Dit apparaat’ gebruikt hem niet meer; verwijder hem om ruimte vrij te maken.",
       "remove": "Verwijderen",
       "engineConfirm": "De lokale engine verwijderen?",
-      "engineFrees": "Maakt {{size}} vrij."
-    }
+      "engineFrees": "Maakt {{size}} vrij.",
+      "nativeTab": "Native engine",
+      "webgpuTab": "WASM/WebGPU-engine",
+      "webgpuTitle": "WASM/WebGPU-engine",
+      "nativeHint": "Wordt met de app meegeleverd en draait op deze computer.",
+      "engineHintNative": "De engine waarop de native modellen draaien.",
+      "tabMeta": "{{count}} gedownload, {{size}}",
+      "tabNone": "Niets gedownload",
+      "tabs": "Engine",
+      "toHelpers": "Hulpmodellen",
+      "downloadedChoose": "Gedownload. Kies het in “Talen en opstelling” om het in een sessie te gebruiken.",
+      "goChoose": "Kiezen",
+      "dismiss": "Sluiten",
+      "webgpuHintNamed": "Draait in het eigen venster van de app en gebruikt de GPU als die er is. Stappen die op “{{provider}}” staan in “Talen en opstelling” gebruiken de hier gedownloade modellen.",
+      "otherDirection": "De modellen voor {{from}} → {{to}} worden getoond, de richting waar je vandaan komt.",
+      "showDirection": "Toon {{from}} → {{to}}"
+    },
+    "streaming": "Streaming",
+    "faster": "Sneller",
+    "gradeNone": "Nauwkeurigheid in {{language}} is niet gemeten",
+    "speedNone": "Snelheid is niet gemeten",
+    "gradeHelp": {
+      "title": "Nauwkeurigheid in {{language}}: {{grade}}",
+      "measured": "Gemeten foutpercentage: {{error}}%",
+      "below": "onder {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% of meer",
+      "subGrades": "A, B en C zijn elk in drie gesplitst: {{plus}} is {{a}}–{{b}}%, {{plain}} {{b}}–{{c}}%, {{minus}} {{c}}–{{d}}%.",
+      "method": "Het foutpercentage is het aandeel spraak dat het model fout heeft op de FLEURS-testopnamen, gemeten op de Q8_0-versie. Je eigen stem, microfoon en omgevingsgeluid veranderen het resultaat."
+    },
+    "speedHelp": {
+      "title": "Snelheid: {{level}} van {{max}}",
+      "measured": "Gemeten: {{seconds}} s om de opname van 30 seconden te verwerken",
+      "within": "binnen {{seconds}} s",
+      "over": "meer dan {{seconds}} s",
+      "method": "De tijd die het model nodig heeft om een opname van 30 seconden te verwerken op de testcomputer van de catalogus (een AMD Ryzen 4750U-laptop, met zijn GPU). Jouw computer kan sneller of langzamer zijn."
+    },
+    "importError": {
+      "import_missing": "Deze bestanden ontbreken: {{names}}. Download ze en importeer opnieuw.",
+      "import_not_gguf": "{{name}} is geen GGUF-modelbestand.",
+      "import_unreadable": "{{name}} kan niet worden gelezen of is leeg.",
+      "import_mismatch": "{{name}} is niet het gepubliceerde bestand (de sha256 begint met {{got}}, verwacht was {{expected}}). Download het opnieuw.",
+      "import_not_importable": "Dit model kan niet handmatig worden geïmporteerd.",
+      "import_failed": "Importeren is mislukt."
+    },
+    "importDropSubFile": "Kies de gedownloade bestanden. Laat de bestandsnamen ongewijzigd.",
+    "importNoPath": "De locatie van een gekozen bestand kon niet worden gelezen. Kies het bestand opnieuw met de bestandskiezer.",
+    "importReason": {
+      "html": "HTML ontvangen in plaats van de verwachte inhoud (waarschijnlijk een 404- of CDN-fout)",
+      "size": "grootte komt niet overeen: ~{{expected}} bytes verwacht, {{got}} bytes ontvangen",
+      "magic_wasm": "WASM-magic number ontbreekt",
+      "magic_onnx": "protobuf-prefix ontbreekt",
+      "json": "inhoud is geen geldige JSON",
+      "empty": "het bestand is leeg",
+      "invalid": "ongeldig"
+    },
+    "importNeedAll": "{{count}} ontbreken nog — voeg alle bestanden toe om het model te importeren."
   },
   "notes": {
     "stageAsr": "spraakherkenning",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Elke toepassing",
       "anyStyle": "Elke stijl"
-    }
+    },
+    "noneChosen": "Geen stem gekozen",
+    "defaultVoice": "Standaardstem"
   },
   "echoNotice": {
     "ttsEcho": "Uw luidsprekers voeren Sokuji's vertaalde spraak terug in de microfoon.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Account aanmaken",
       "signedIn": "Ingelogd. U kunt doorgaan.",
       "managedDesc": "Registreer u met uw e-mailadres en verifieer dit vanuit uw inbox; geverifieerde accounts krijgen een proeftegoed. Daarna waardeert u uw saldo op en betaalt u alleen voor wat u gebruikt.",
-      "offlineNotice": "Het herkenningsmodel wordt na de installatie gedownload via Instellingen → Modellen en opslag. De vertaling gebruikt Bing en de spraak Edge: niets te downloaden en geen account; de te vertalen tekst en de voor te lezen vertaling gaan naar Microsoft.",
+      "offlineNotice": "Het herkenningsmodel wordt na de installatie gedownload via Instellingen → Lokale modellen en opslag. De vertaling gebruikt Bing en de spraak Edge: niets te downloaden en geen account; de te vertalen tekst en de voor te lezen vertaling gaan naar Microsoft.",
       "pendingKey": "Je kunt de sleutel later toevoegen bij Instellingen → Accounts en sleutels. Starten blijft vergrendeld tot hij is gevalideerd.",
       "pendingSignIn": "U kunt later inloggen via de accountknop. Tot die tijd blijft Start vergrendeld.",
       "ownKeyDesc": "Deze sleutel wordt alleen op dit apparaat opgeslagen, en de app benadert de provider rechtstreeks vanaf hier — hij bereikt Kizuna AI nooit. U betaalt de provider voor wat u gebruikt.",
@@ -1812,7 +1870,7 @@
       "lineup": "Talen en opstelling",
       "words": "Woordenlijst en achtergrond",
       "accounts": "Accounts en sleutels",
-      "models": "Modellen en opslag",
+      "models": "Lokale modellen en opslag",
       "audio": "Audio",
       "display": "Weergave",
       "history": "Geschiedenis en notities",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Aangemeld; saldo {{amount}}",
       "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
       "localNone": "Draait op deze computer; nog geen modellen gedownload",
+      "localNative": "Native engine, ondersteunt meer herkenningsmodellen en presteert beter. Draait op deze computer; geen cloudsleutel nodig",
+      "localWebgpu": "Deelt één engine met de browserextensie en is daardoor minder snel. Draait op deze computer; geen cloudsleutel nodig",
       "soniox": {
         "save": "Opslaan en regio zoeken",
         "finding": "Regio van deze sleutel zoeken…",

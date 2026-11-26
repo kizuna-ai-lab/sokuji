@@ -8,7 +8,7 @@ import type { LocalInferenceSettings } from './settings';
 /**
  * LocalInference's `Engine` (ruling 9): `EngineSurface` over a settings-driven
  * engine adapter, fed from `settings`/`update` instead of the store. The model
- * library (downloading, importing, deleting) is the Models and storage page,
+ * library (downloading, importing, deleting) is the Local models and storage page,
  * where a slot's "Browse library…" goes; the voices are in the speech card
  * (B-20).
  *

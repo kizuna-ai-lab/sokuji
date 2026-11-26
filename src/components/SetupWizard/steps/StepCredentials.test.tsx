@@ -327,7 +327,7 @@ describe('StepCredentials — the line-up', () => {
     expect(screen.getByText('setup.credentials.offlineNotice')).toBeInTheDocument();
     expect(screen.getByText('setup.credentials.offlineHardware')).toBeInTheDocument();
     expect(en.setup.credentials.offlineNotice).toMatch(/Bing.*Edge.*Microsoft/);
-    expect(en.setup.credentials.offlineNotice).toContain('Settings → Models and storage');
+    expect(en.setup.credentials.offlineNotice).toContain('Settings → Local models and storage');
   });
 
   it('says that one OpenAI key serves the three OpenAI providers', () => {

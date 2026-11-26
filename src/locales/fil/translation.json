@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Ang device na ito",
+      "nameWithNative": "Ang device na ito (WASM/WebGPU)",
       "description": "Gumagana kapag na-download na ang mga model sa computer na ito; sa unang beses, kailangang mag-download ng ilang GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Libre · offline"
     },
     "local_native": {
-      "name": "Libre (Native)",
+      "name": "Ang device na ito (Native)",
       "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Memory",
     "hwSize": "Laki",
     "hwRepo": "Repo",
-    "computeDevice": "Compute device",
+    "computeDevice": "Hardware acceleration",
     "computeDeviceTooltip": "Kung aling device ang nagpapatakbo ng speech model. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
     "computeDeviceTooltipTranslation": "Kung aling device ang nagpapatakbo ng modelo ng pagsasalin. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
     "computeDeviceTooltipTts": "Kung aling device ang nagpapatakbo ng modelo ng sintesis ng pagsasalita. Pumipili ang Auto ng pinakamabilis na available na device (GPU kung mayroon); gumagana ang CPU kahit saan ngunit mas mabagal para sa malalaking modelo; gumagamit ang GPU ng Vulkan sa Windows at Linux, at Metal sa Apple silicon.",
@@ -1016,8 +1017,63 @@
       "engineHint": "Ang desktop engine na dinownload ng mga naunang bersyon para magpatakbo ng mga model sa computer na ito. Hindi na ito ginagamit ng serbisyong “Ang device na ito”; alisin ito para magbakante ng espasyo.",
       "remove": "Alisin",
       "engineConfirm": "Alisin ang lokal na engine?",
-      "engineFrees": "Magbabakante ng {{size}}."
-    }
+      "engineFrees": "Magbabakante ng {{size}}.",
+      "nativeTab": "Native na engine",
+      "webgpuTab": "WASM/WebGPU na engine",
+      "webgpuTitle": "WASM/WebGPU na engine",
+      "nativeHint": "Kasama ng app at tumatakbo sa computer na ito.",
+      "engineHintNative": "Ang engine kung saan tumatakbo ang mga native na model.",
+      "tabMeta": "{{count}} ang na-download, {{size}}",
+      "tabNone": "Walang na-download",
+      "tabs": "Engine",
+      "toHelpers": "Mga pantulong na model",
+      "downloadedChoose": "Na-download. Piliin ito sa “Mga wika at line-up” para magamit sa isang session.",
+      "goChoose": "Piliin",
+      "dismiss": "I-dismiss",
+      "webgpuHintNamed": "Tumatakbo sa sariling window ng app at gumagamit ng GPU kung mayroon. Ang mga yugtong nakatakda sa “{{provider}}” sa “Mga wika at line-up” ay gumagamit ng mga model na na-download dito.",
+      "otherDirection": "Ipinapakita ang mga model para sa {{from}} → {{to}}, ang direksyong pinanggalingan mo.",
+      "showDirection": "Ipakita ang {{from}} → {{to}}"
+    },
+    "streaming": "Streaming",
+    "faster": "Mas mabilis",
+    "gradeNone": "Hindi sinukat ang katumpakan sa {{language}}",
+    "speedNone": "Hindi sinukat ang bilis",
+    "gradeHelp": {
+      "title": "Katumpakan sa {{language}}: {{grade}}",
+      "measured": "Nasukat na error rate: {{error}}%",
+      "below": "wala pang {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% o higit pa",
+      "subGrades": "Ang A, B at C ay bawat isa hinahati sa tatlo: ang {{plus}} ay {{a}}–{{b}}%, ang {{plain}} ay {{b}}–{{c}}%, ang {{minus}} ay {{c}}–{{d}}%.",
+      "method": "Ang error rate ay ang bahagi ng pagsasalita na mali ang pagkakaintindi ng model sa mga test recording ng FLEURS, na sinukat sa Q8_0 na bersyon nito. Magbabago ang resulta depende sa sarili mong boses, mikropono at ingay."
+    },
+    "speedHelp": {
+      "title": "Bilis: {{level}} sa {{max}}",
+      "measured": "Nasukat: {{seconds}} s para iproseso ang 30-segundong recording",
+      "within": "sa loob ng {{seconds}} s",
+      "over": "higit sa {{seconds}} s",
+      "method": "Ang oras na kailangan ng model para iproseso ang 30-segundong recording sa test computer ng catalog (isang AMD Ryzen 4750U na laptop, gamit ang GPU nito). Maaaring mas mabilis o mas mabagal ang iyong computer."
+    },
+    "importError": {
+      "import_missing": "Kulang ang mga file na ito: {{names}}. I-download ang mga ito at i-import muli.",
+      "import_not_gguf": "Ang {{name}} ay hindi GGUF model file.",
+      "import_unreadable": "Hindi mabasa ang {{name}}, o walang laman ito.",
+      "import_mismatch": "Ang {{name}} ay hindi ang nailathalang file (nagsisimula ang sha256 nito sa {{got}}, inaasahan ang {{expected}}). I-download itong muli.",
+      "import_not_importable": "Hindi maaaring i-import nang mano-mano ang model na ito.",
+      "import_failed": "Nabigo ang pag-import."
+    },
+    "importDropSubFile": "Piliin ang mga na-download na file. Huwag baguhin ang kanilang mga pangalan.",
+    "importNoPath": "Hindi mabasa ang lokasyon ng napiling file. Piliin muli ang file gamit ang file picker.",
+    "importReason": {
+      "html": "HTML ang natanggap sa halip na inaasahang nilalaman (malamang na 404 o CDN error)",
+      "size": "hindi tugma ang laki: inaasahan ang ~{{expected}} byte, nakuha ang {{got}} byte",
+      "magic_wasm": "walang WASM magic number",
+      "magic_onnx": "walang protobuf prefix",
+      "json": "hindi wastong JSON ang nilalaman",
+      "empty": "walang laman ang file",
+      "invalid": "hindi wasto"
+    },
+    "importNeedAll": "Kulang pa ng {{count}} — idagdag ang bawat file para ma-import ang model."
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Anumang gamit",
       "anyStyle": "Anumang istilo"
-    }
+    },
+    "noneChosen": "Walang napiling boses",
+    "defaultVoice": "Default na boses"
   },
   "echoNotice": {
     "ttsEcho": "Ibinabalik ng iyong speaker ang isinaling boses ng Sokuji sa mikropono.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Gumawa ng Account",
       "signedIn": "Naka-sign in na. Maaari na kayong magpatuloy.",
       "managedDesc": "Mag-sign up gamit ang inyong email address at i-verify ito mula sa inyong inbox; makakakuha ng trial credit ang mga na-verify na account. Pagkatapos, mag-top up ng inyong balanse at magbayad lamang para sa ginamit ninyo.",
-      "offlineNotice": "Dina-download ang model ng pagkilala pagkatapos ng setup, mula sa Mga Setting → Mga model at storage. Bing ang gamit sa salin at Edge sa pagsasalita: walang ida-download at walang account; ipinapadala sa Microsoft ang tekstong isasalin at ang salin na babasahin.",
+      "offlineNotice": "Dina-download ang model ng pagkilala pagkatapos ng setup, mula sa Mga Setting → Mga lokal na model at storage. Bing ang gamit sa salin at Edge sa pagsasalita: walang ida-download at walang account; ipinapadala sa Microsoft ang tekstong isasalin at ang salin na babasahin.",
       "pendingKey": "Maidadagdag mo ang key sa ibang pagkakataon sa Mga Setting → Mga account at key. Naka-lock ang Simulan hanggang ma-validate ito.",
       "pendingSignIn": "Maaari kayong mag-sign in mamaya mula sa account button. Mananatiling naka-lock ang Start hanggang doon.",
       "ownKeyDesc": "Naka-imbak ang key na ito sa device na ito lamang, at direktang tumatawag ang app sa provider mula rito — hindi ito umaabot sa Kizuna AI. Nagbabayad kayo sa provider para sa ginamit ninyo.",
@@ -1812,7 +1870,7 @@
       "lineup": "Mga wika at line-up",
       "words": "Listahan ng salita at background",
       "accounts": "Mga account at key",
-      "models": "Mga model at storage",
+      "models": "Mga lokal na model at storage",
       "audio": "Audio",
       "display": "Display",
       "history": "Kasaysayan at mga tala",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Naka-sign in; balanse {{amount}}",
       "localModels": "Tumatakbo sa computer na ito; {{count}} model ang na-download, {{size}} lahat",
       "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model",
+      "localNative": "Native na engine, mas maraming recognition model ang sinusuportahan at mas mahusay ang performance. Tumatakbo sa computer na ito; walang kailangang cloud key",
+      "localWebgpu": "Iisang engine ang ibinabahagi nito sa browser extension, kaya hindi ito kasing bilis. Tumatakbo sa computer na ito; walang kailangang cloud key",
       "soniox": {
         "save": "I-save at hanapin ang rehiyon",
         "finding": "Hinahanap ang rehiyon ng key na ito…",

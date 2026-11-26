@@ -8,10 +8,10 @@ import '../test/env';
 import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeHub } from '../test/fakeHub';
 import { freshHfHome } from '../test/hfFixture';
-import { cachedFilePath, repoDir } from './hfCache';
+import { cachedFilePath, repoDir, repoLockQueue, withRepoLock, writeSnapshotLink } from './hfCache';
 import { downloadFile, downloadModel, downloadSeams, restoreDownloadSeams } from './download';
 import { modelSize, resetSizeCacheForTests } from './specs';
 
@@ -51,6 +51,103 @@ describe('downloadFile', () => {
     const blobs = path.join(repoDir(REPO), 'blobs');
     expect(fs.readdirSync(blobs)).toEqual([]);      // neither the blob nor a resumable .incomplete
     expect(cachedFilePath(REPO, FILE)).toBeNull();
+  });
+
+  // Review on #888: an import taking back a blob it had put in place must not interleave with a download that found that
+  // blob. The download's last step waits for the repo's writer and, if the blob is gone by then, fetches it after all.
+  it('waits for the repo to be free, and fetches a blob that was taken back meanwhile', async () => {
+    const blobs = path.join(repoDir(REPO), 'blobs');
+    fs.mkdirSync(blobs, { recursive: true });
+    const blob = path.join(blobs, hub.etag(FILE));
+    fs.writeFileSync(blob, content);                // put there by an import still running
+    let release!: () => void;
+    const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
+    try {
+      const download = downloadFile(REPO, FILE, { endpoint: hub.url });
+      // The download has looked at the hub and waits in the repo's queue, behind the import.
+      await vi.waitFor(() => expect(repoLockQueue(REPO)).toBe(2), { timeout: 5000 });
+      fs.rmSync(blob);                              // the import fails and takes its blob back
+      release();
+      const p = await download;
+      expect(fs.readFileSync(p).equals(content)).toBe(true);
+    } finally {
+      release();
+      await held;
+    }
+  });
+
+  // Review of the lock: a download must not wait behind a running import (minutes) before it even starts fetching.
+  it('fetches at once while the repo is busy, and finishes once it is free', async () => {
+    const incomplete = path.join(repoDir(REPO), 'blobs', `${hub.etag(FILE)}.incomplete`);
+    let release!: () => void;
+    const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
+    let finished = false;
+    const download = downloadFile(REPO, FILE, { endpoint: hub.url }).then((p) => { finished = true; return p; });
+    await vi.waitFor(() => expect(fs.existsSync(incomplete) && fs.statSync(incomplete).size).toBe(content.length), { timeout: 5000 });
+    expect(finished).toBe(false);
+    release();
+    await held;
+    expect(fs.readFileSync(await download).equals(content)).toBe(true);
+    expect(fs.existsSync(incomplete)).toBe(false);
+  });
+
+  it('can be cancelled while it waits for the repo', async () => {
+    const blobs = path.join(repoDir(REPO), 'blobs');
+    fs.mkdirSync(blobs, { recursive: true });
+    fs.writeFileSync(path.join(blobs, hub.etag(FILE)), content);
+    let release!: () => void;
+    const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
+    try {
+      const controller = new AbortController();
+      const download = downloadFile(REPO, FILE, { endpoint: hub.url, signal: controller.signal });
+      await vi.waitFor(() => expect(repoLockQueue(REPO)).toBe(2), { timeout: 5000 });   // waiting for the repo
+      controller.abort();
+      await expect(download).rejects.toThrow();
+      expect(repoLockQueue(REPO)).toBe(1);        // it left the queue; the holder is still there
+    } finally {
+      release();
+      await held;
+    }
+    // The lock still works for whoever comes next.
+    expect(await withRepoLock(REPO, async () => 'free')).toBe('free');
+  });
+
+  it('leaves no staging file when the file was put in place while it fetched', async () => {
+    const blobs = path.join(repoDir(REPO), 'blobs');
+    const incomplete = path.join(blobs, `${hub.etag(FILE)}.incomplete`);
+    let release!: () => void;
+    const held = withRepoLock(REPO, () => new Promise<void>((resolve) => { release = resolve; }));
+    const download = downloadFile(REPO, FILE, { endpoint: hub.url });
+    await vi.waitFor(() => expect(fs.existsSync(incomplete) && fs.statSync(incomplete).size).toBe(content.length), { timeout: 5000 });
+    // Another writer files the same file at the same commit meanwhile.
+    fs.writeFileSync(path.join(blobs, hub.etag(FILE)), content);
+    writeSnapshotLink(REPO, hub.commit, FILE, hub.etag(FILE));
+    release();
+    await held;
+    await download;
+    expect(fs.existsSync(incomplete)).toBe(false);
+  });
+
+  it('writes every byte of each chunk, and opens its file again if its folder was taken away', async () => {
+    const open = fs.promises.open;
+    let first = true;
+    const spy = vi.spyOn(fs.promises, 'open').mockImplementation((async (...args: Parameters<typeof fs.promises.open>) => {
+      if (first && String(args[0]).endsWith('.incomplete')) {
+        first = false;
+        // An import's rollback removed the empty folder just before.
+        fs.rmSync(path.dirname(String(args[0])), { recursive: true, force: true });
+      }
+      const handle = await open(...args);
+      const write = handle.write.bind(handle) as (b: Buffer, o: number, l: number) => Promise<{ bytesWritten: number }>;
+      (handle as unknown as { write: unknown }).write = (b: Buffer, o = 0, l = b.length - o) => write(b, o, Math.min(l, 4096));
+      return handle;
+    }) as typeof fs.promises.open);
+    try {
+      const p = await downloadFile(REPO, FILE, { endpoint: hub.url });
+      expect(fs.readFileSync(p).equals(content)).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('writes the huggingface_hub layout', async () => {

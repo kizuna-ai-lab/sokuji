@@ -1,4 +1,4 @@
-// "Models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
+// "Local models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
 // "This device" service can use, downloaded or not, as the model library's cards (B-20: Download and Import side by
 // side, In use, the progress, Delete); the helper models; the imported voices; a summary line with Clear all.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -27,6 +27,13 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isElectron: () => env.electron,
 }));
+// Whether the native engine is offered: the desktop build, with its provider registered.
+const offered = vi.hoisted(() => ({ native: false }));
+vi.mock('../../providers/registry', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../providers/registry')>();
+  return { ...real, presentProviders: (...a: Parameters<typeof real.presentProviders>) => [...real.presentProviders(...a), ...(offered.native ? [{ id: 'local_native' } as never] : [])] };
+});
+vi.mock('./NativeModelsGroup', () => ({ NativeModelsGroup: () => <div data-testid="native-library" /> }));
 vi.mock('../Settings/sections/ModelImportModal', () => ({
   ModelImportModal: ({ modelName }: { modelName: string }) => <div data-testid="import-modal">{modelName}</div>,
 }));
@@ -53,6 +60,7 @@ const engine = { refreshBundle: vi.fn(async () => {}), refreshBundleUsage: vi.fn
 beforeEach(() => {
   for (const f of [...Object.values(store), ...Object.values(turn), ...Object.values(punct), ...Object.values(engine), dict.deleteDictionary, voices.deleteVoice]) f.mockClear();
   env.electron = false;
+  offered.native = false;
   useLineUpStore.setState({ lineUp: null, stored: false } as never);
   useNativeModelStore.setState({ bundleStatus: 'ready', bundleVersion: '0.31.2', bundleUsage: 3_435_973_837, ...engine } as never);
   dict.stored = true;
@@ -79,7 +87,7 @@ const card = (name: string) => screen.getByText(name, { selector: '.model-card__
 const stageGroup = (name: string) => screen.getByRole('group', { name });
 const more = (name: string) => fireEvent.click(within(stageGroup(name)).getByRole('button', { name: /more/ }));
 
-describe('Models and storage — the session models', () => {
+describe('Local models and storage — the session models', () => {
   it('splits the models this pair can use into recognition, translation and speech', () => {
     mount();
     const session = screen.getByRole('region', { name: /Models for the session/ });
@@ -246,7 +254,7 @@ describe('Models and storage — the session models', () => {
   });
 });
 
-describe('Models and storage — the helper models', () => {
+describe('Local models and storage — the helper models', () => {
   it('manages Smart Turn here: Delete when it is on disk, Download when not', async () => {
     const first = mount();
     fireEvent.click(within(row('Smart Turn v3.2')).getByRole('button', { name: /^Delete/ }));
@@ -280,7 +288,7 @@ describe('Models and storage — the helper models', () => {
   });
 });
 
-describe('Models and storage — imported voices and the summary', () => {
+describe('Local models and storage — imported voices and the summary', () => {
   it('lists the imported voices, each deleted from its row', async () => {
     voices.list = [{ id: 4, engine: 'supertonic-3', name: 'My voice 1', jsonData: new Blob(['x'.repeat(300_000)]), importedAt: Date.UTC(2026, 10, 2) }];
     mount();
@@ -348,7 +356,7 @@ describe('Models and storage — imported voices and the summary', () => {
 });
 
 // PR review (#711): a row's buttons say which model they act on, so a screen reader's list of buttons is not a column of "Delete".
-describe('Models and storage — buttons named by their model', () => {
+describe('Local models and storage — buttons named by their model', () => {
   it('names the model in each Download, Import, Delete and Cancel', () => {
     useModelStore.setState({ downloads: { 'moonshine-tiny-ja-quant': { downloadedBytes: 1, totalBytes: 4, currentFile: 'a', percent: 25 } } } as never);
     mount();
@@ -360,8 +368,8 @@ describe('Models and storage — buttons named by their model', () => {
 });
 
 // B-19: the desktop engine earlier versions downloaded for on-device models takes several GB, and nothing else in
-// the app can remove it now: Models and storage lists it, with what it takes, and removes it after asking.
-describe('Models and storage — the on-device engine (B-19)', () => {
+// the app can remove it now: Local models and storage lists it, with what it takes, and removes it after asking.
+describe('Local models and storage — the on-device engine (B-19)', () => {
   const group = () => screen.queryByRole('region', { name: 'On-device engine' });
 
   it('on the desktop, shows the engine on disk, its version and what it takes', async () => {
@@ -430,5 +438,128 @@ describe('Models and storage — the on-device engine (B-19)', () => {
     useNativeModelStore.setState({ bundleUsage: null } as never);
     mount();
     expect(group()).toBeNull();
+  });
+});
+
+
+// Two engines, two libraries (#578): the desktop with the native engine offered shows them under tabs.
+describe('Local models and storage — the engines as tabs', () => {
+  const tabs = () => screen.getAllByRole('tab');
+  const desktopWithNative = () => { env.electron = true; offered.native = true; };
+
+  it('shows no tabs in the extension or where the native engine is not offered', () => {
+    mount();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    cleanup();
+    env.electron = true;
+    mount();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.getByRole('region', { name: /Models for the session/ })).toBeTruthy();
+  });
+
+  it('puts the native engine first and opens on it', () => {
+    desktopWithNative();
+    mount();
+    expect(tabs().map((t) => t.querySelector('.models-tabs__name')?.textContent)).toEqual(['Native engine', 'WASM/WebGPU engine']);
+    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByTestId('native-library')).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Recognition' })).toBeNull();
+  });
+
+  it("labels each tab with what its library holds, so the other engine's models stay in sight", () => {
+    desktopWithNative();
+    useNativeModelStore.setState({ statuses: { a: 'ready', b: 'ready', c: 'absent' }, sizes: { a: 1_073_741_824, b: 1_073_741_824, c: 5 } } as never);
+    mount();
+    expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('2 downloaded, 2.0 GB');
+    expect(tabs()[1].querySelector('.models-tabs__meta')?.textContent).toMatch(/^2 downloaded, /);
+  });
+
+  it('opens on the WASM/WebGPU engine where this computer has no native engine, unless a tab was already chosen', () => {
+    desktopWithNative();
+    useNativeModelStore.setState({ bundleStatus: 'unsupported' } as never);
+    mount();
+    expect(tabs()[1].getAttribute('aria-selected')).toBe('true');
+    fireEvent.click(tabs()[0]);
+    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+  });
+
+  it('says so when a library is empty', () => {
+    desktopWithNative();
+    useNativeModelStore.setState({ statuses: {}, sizes: {} } as never);
+    mount();
+    expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('None downloaded');
+  });
+
+  // Review on #888: with two engines on offer, "This device" alone no longer names the service that uses this library.
+  it('names the service that uses the WASM/WebGPU library by its full name', () => {
+    desktopWithNative();
+    mount();
+    fireEvent.click(tabs()[1]);
+    expect(screen.getByText(/Stages set to “This device \(WASM\/WebGPU\)” in/)).toBeTruthy();
+  });
+
+  it('switches to the WASM/WebGPU library without touching the line-up, and keeps the helper models on both', () => {
+    desktopWithNative();
+    const before = JSON.stringify(useLineUpStore.getState());
+    mount();
+    expect(screen.getByRole('region', { name: 'Helper models' })).toBeTruthy();
+    fireEvent.click(tabs()[1]);
+    expect(tabs()[1].getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryByTestId('native-library')).toBeNull();
+    expect(screen.getByRole('group', { name: 'Recognition' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Helper models' })).toBeTruthy();
+    expect(JSON.stringify(useLineUpStore.getState())).toBe(before);
+  });
+
+  it('jumps to the helper models from the page head', () => {
+    desktopWithNative();
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Helper models' }));
+    expect(scroll).toHaveBeenCalled();
+    expect((scroll.mock.instances[0] as HTMLElement).id).toBe('models-helpers-section');
+  });
+
+  it("opens the engine a navigation target belongs to", async () => {
+    desktopWithNative();
+    const { useSettingsStore } = await import('../../stores/settingsStore');
+    mount();
+    useSettingsStore.setState({ settingsNavigationTarget: 'models-asr' } as never);
+    await waitFor(() => expect(tabs()[1].getAttribute('aria-selected')).toBe('true'));
+    useSettingsStore.setState({ settingsNavigationTarget: 'native-models-asr' } as never);
+    await waitFor(() => expect(tabs()[0].getAttribute('aria-selected')).toBe('true'));
+    useSettingsStore.setState({ settingsNavigationTarget: null } as never);
+  });
+
+  // Review on #888: where this computer has no native engine, the page fell back to WASM/WebGPU even when it was opened
+  // on purpose for the native library, which then had no anchor to land on.
+  // Review on #888: the page's one summary counts the native models, so "Clear all" (asked as "Delete all models?") must
+  // delete them too; before, they stayed on disk and in the count.
+  it('clears the native models with the rest, every quant of each', async () => {
+    desktopWithNative();
+    const deleteModel = vi.fn(async () => {});
+    useNativeModelStore.setState({ statuses: { a: 'ready', b: 'ready', c: 'absent' }, sizes: { a: 1, b: 1 }, statusRepos: { a: 'org/a-gguf/a-Q8_0.gguf' }, deleteModel } as never);
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    await waitFor(() => expect(store.deleteAllModels).toHaveBeenCalled());
+    await waitFor(() => expect(deleteModel).toHaveBeenCalledTimes(2));
+    // No quant named: a speech card shares its repo, and naming one would leave its other quants on disk.
+    expect(deleteModel).toHaveBeenCalledWith('a');
+    expect(deleteModel).toHaveBeenCalledWith('b');
+  });
+
+  it('opens the native library when asked for it, even where this computer has no native engine', async () => {
+    desktopWithNative();
+    const { useSettingsStore } = await import('../../stores/settingsStore');
+    useNativeModelStore.setState({ bundleStatus: 'unsupported' } as never);
+    useSettingsStore.setState({ settingsNavigationTarget: 'native-models-asr' } as never);
+    try {
+      mount();
+      expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    } finally {
+      useSettingsStore.setState({ settingsNavigationTarget: null } as never);
+    }
   });
 });

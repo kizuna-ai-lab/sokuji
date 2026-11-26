@@ -1,6 +1,6 @@
 // src/components/SettingsPage/DeviceCategories.tsx
 //
-// "Models and storage" and "Audio": today's sections, as they are (providers
+// "Local models and storage" and "Audio": today's sections, as they are (providers
 // and stages design, rulings 14 and 16).
 import { useEffect, useMemo } from 'react';
 import { presentProviders } from '../../providers/registry';

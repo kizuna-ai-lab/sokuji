@@ -74,12 +74,16 @@ export interface VoicePickerProps {
   isSessionActive?: boolean;
   /** How many custom voices the account holds of how many it may: shown beside their heading. */
   customQuota?: { used: number; limit: number };
+  /** What the trigger says when no listed voice is the selection. Absent: "No voice chosen". A host that knows better
+   *  says so: "Default voice" for an empty choice on a model that speaks with its own, or the name of a saved voice the
+   *  list does not hold yet. */
+  noneLabel?: string;
 }
 
 const VoicePicker: React.FC<VoicePickerProps> = ({
   voices, selectedId, onSelect, onPreview, previewUnavailableReason,
   playingId, loadingId, onRename, onAskDelete, onAddVoice, onRefresh, refreshing,
-  capability, isSessionActive = false, customQuota,
+  capability, isSessionActive = false, customQuota, noneLabel,
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -858,7 +862,10 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
         {...getReferenceProps()}
       >
         <span className="voice-picker__value">
-          {selected?.label ?? selectedId}
+          {selected
+            ? selected.label
+            // Nothing to show (no voice of this model's is chosen, or none exists yet): say so, not an empty box.
+            : <span className="voice-picker__value-none">{noneLabel ?? t('voiceLibrary.noneChosen', 'No voice chosen')}</span>}
           <span className="voice-picker__value-sub">{selected ? rowSubtitle(selected) : ''}</span>
         </span>
         {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

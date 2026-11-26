@@ -11,6 +11,8 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { asrRoles, catalogModelFor } from '../../../lib/local-inference/native/asrBenchmarks';
+import { catalog as handyCatalog } from '@handy-computer/models';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { formatMemMb } from '../../../lib/local-inference/native/nativeCatalog';
 import type { VariantInfo, NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -251,6 +253,14 @@ const mockResolve = (src: string, tgt: string, selections: typeof mockSettings.s
   return { asr: pick('asr'), translation: pick('translation'), tts: pick('tts'), notes: [], prunes: [] };
 };
 
+// The import window: its own tests cover it; here only what the card hands it.
+let mockErrors: Record<string, string> = {};
+let mockErrorInfo: Record<string, { code: string; params: Record<string, string> }> = {};
+const importModal = vi.hoisted(() => ({ props: [] as Array<{ isOpen: boolean; modelId: string; modelName: string; repo?: string }> }));
+vi.mock('./NativeImportModal', () => ({
+  NativeImportModal: (p: { isOpen: boolean; modelId: string; modelName: string; repo?: string }) => { importModal.props.push(p); return p.isOpen ? <div data-testid={`import-window-${p.modelId}`} /> : null; },
+}));
+
 vi.mock('../../../stores/nativeModelStore', () => {
   const mockStoreState = () => ({
     statuses: mockStatuses,
@@ -281,7 +291,8 @@ vi.mock('../../../stores/nativeModelStore', () => {
     useNativeModelStatuses: () => ({ ...mockStatuses }),
     useNativeModelProgress: () => ({}),
     useNativeModelSizes: () => ({ ...mockSizes }),
-    useNativeModelErrors: () => ({}),
+    useNativeModelErrors: () => ({ ...mockErrors }),
+    useNativeModelErrorInfo: () => ({ ...mockErrorInfo }),
     useNativeCatalog: () => mockCatalogOverride ?? mockCatalog,
     useNativeAsrLoading: () => false,
     useNativeAsrResolved: () => null,
@@ -302,6 +313,8 @@ beforeEach(() => {
   Object.keys(mockStatuses).forEach((k) => delete mockStatuses[k]);
   Object.keys(mockSizes).forEach((k) => delete mockSizes[k]);
   mockTtsResolved = null;
+  mockErrors = {};
+  mockErrorInfo = {};
   mockSidecarStatus = 'ready';
   mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'q4_k_m' });
   mockDownload.mockReset();
@@ -314,62 +327,26 @@ beforeEach(() => {
 });
 
 describe('NativeModelManagementSection — HY-MT2 variant card', () => {
-  it('header dropdown is a select whose value is the chosen variant; rows list supported (enabled) and unsupported (disabled) variants', async () => {
+  it('shows the one quant a download fetches, with its size, and no picker', async () => {
     // All statuses absent (default) → pre-download state for hy-mt2-7b.
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const q4SizeLabel = formatMemMb(Math.round(8e9 / 1e6));
-
-    // The compact dropdown in the header is a customizable <select>
-    // (appearance: base-select — this section is Electron-only, Chromium 144);
-    // its value is the chosen variant id, and <selectedcontent> mirrors the
-    // chosen option's label + size into the closed control.
-    const dd = await waitFor(() => {
-      const card = screen.getByTestId('model-card-hy-mt2-7b');
-      return within(card).getByTestId('variant-dd-hy-mt2-7b') as HTMLSelectElement;
-    });
-    expect(dd.value).toBe('q4_k_m');
-
-    // Options live inside the select from the start — the picker is a
-    // top-layer popup, so listing them never grows the card (which is what
-    // the old menu's lazy render existed to prevent).
+    const label = await waitFor(() => within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-label-hy-mt2-7b'));
+    expect(label).toHaveTextContent('Q4_K_M');
+    expect(label).toHaveTextContent(q4SizeLabel);
+    // One quant per model, as the person sees it: the label reads it, and there is no control to choose another
+    // (review on #888: by role and text, so a picker coming back under another test id would still be caught).
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
-    const q4Row = within(card7b).getByTestId('variant-row-q4_k_m');
-    expect(q4Row).toHaveTextContent('Q4_K_M');
-    expect(q4Row).toHaveTextContent(q4SizeLabel);
-    expect(within(q4Row).getByText('recommended')).toBeInTheDocument();
-    expect(q4Row).toBeEnabled();
-
-    // q8_0 is unsupported → listed (so the user sees the option) but disabled;
-    // its actual reason is spelled out inline in the row — the old hover
-    // tooltip can't render above the select's top-layer picker, and inline
-    // beats hover-only anyway.
-    const q8Row = within(card7b).getByTestId('variant-row-q8_0');
-    expect(q8Row).toBeDisabled();
-    expect(q8Row).toHaveTextContent('GPU memory');
+    expect(within(card7b).getByText(`Q4_K_M · ${q4SizeLabel}`)).toBeInTheDocument();
+    expect(within(card7b).queryByRole('combobox')).toBeNull();
+    expect(within(card7b).queryByRole('listbox')).toBeNull();
+    expect(within(card7b).queryByText(/^Q8_0/)).toBeNull();
   });
 
-  it('changing the select to an unsupported variant is a no-op', async () => {
-    // A real picker never lets a disabled option through; this guards the
-    // programmatic/keyboard path — pinning must itself check support, the
-    // way the old menu's click handler no-opped on unsupported rows.
-    // (The positive pin path is covered on the TTS card below, where a
-    // second supported variant exists to change to.)
+  it('HY-MT1.5 cards show their quant too (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    const dd = await waitFor(() =>
-      within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-dd-hy-mt2-7b'));
-
-    fireEvent.change(dd, { target: { value: 'q8_0' } });
-
-    expect(mockUpdate).not.toHaveBeenCalled();
-  });
-
-  it('HY-MT1.5 cards also expose the quant-variant picker (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
-    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    // hy-mt15-7b is a multilingual card always present; its catalog entry carries
-    // variantIds too, so it fetches variants and shows the same Q4_K_M dropdown as hy-mt2.
-    const dd = await waitFor(() =>
-      within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-dd-hy-mt15-7b')) as HTMLSelectElement;
-    expect(dd.value).toBe('q4_k_m');
+    const label = await waitFor(() => within(screen.getByTestId('model-card-hy-mt15-7b')).getByTestId('variant-label-hy-mt15-7b'));
+    expect(label).toHaveTextContent('Q4_K_M');
   });
 
   it('collapses to resolved variant label after download; no variant chooser buttons', async () => {
@@ -461,7 +438,7 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     // Wait for the variant data to land so the download button knows the chosen repo.
     const card7b = await waitFor(() => {
       const c = screen.getByTestId('model-card-hy-mt2-7b');
-      within(c).getByTestId('variant-dd-hy-mt2-7b'); // throws until variant data lands
+      within(c).getByTestId('variant-label-hy-mt2-7b'); // throws until variant data lands
       return c;
     });
 
@@ -478,60 +455,23 @@ describe('NativeModelManagementSection — TTS multi-variant card (Task 10)', ()
   // qwen3-tts-1.7b (mockCatalog) mirrors hy-mt2-7b's shape but with kind:'tts' —
   // this exercises the TTS renderCards call, which previously passed undefined for
   // variantMap/onPin (the picker was translation/ASR-only before this task).
-  it('the picker renders on a multi-variant TTS card (same as ASR/translation)', async () => {
+  it('a multi-variant TTS card shows its one quant too (same as ASR/translation)', async () => {
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const bf16SizeLabel = formatMemMb(Math.round(3.6e9 / 1e6));
-
-    const dd = await waitFor(() => {
-      const card = screen.getByTestId('model-card-qwen3-tts-1.7b');
-      return within(card).getByTestId('variant-dd-qwen3-tts-1.7b') as HTMLSelectElement;
-    });
-    expect(dd.value).toBe('bf16');
-    const bf16Row = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-bf16');
-    expect(bf16Row).toHaveTextContent('BF16');
-    expect(bf16Row).toHaveTextContent(bf16SizeLabel);
-  });
-
-  it('pinning a supported variant on a TTS card writes it into that stage\'s selection', async () => {
-    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    const dd = await waitFor(() =>
-      within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-dd-qwen3-tts-1.7b'));
-
-    fireEvent.change(dd, { target: { value: 'fp32' } });
-
-    // The pin reaches settings on the (direction, stage) selection alongside
-    // its modelId — there is no separate map for it to live in, so pinning a
-    // variant necessarily also makes that card the stage's active pick.
-    expect(mockUpdate).toHaveBeenCalledWith({
-      selections: {
-        'ja→en': {
-          asr: { modelId: '' }, translation: { modelId: '' }, tts: { modelId: 'qwen3-tts-1.7b', variant: 'fp32' },
-        },
-      },
-    });
+    const label = await waitFor(() => within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-label-qwen3-tts-1.7b'));
+    expect(label).toHaveTextContent('BF16');
+    expect(label).toHaveTextContent(bf16SizeLabel);
   });
 
   it('downloads the chosen (recommended BF16) variant repo for a TTS card, not the default', async () => {
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     const card = await waitFor(() => {
       const c = screen.getByTestId('model-card-qwen3-tts-1.7b');
-      within(c).getByTestId('variant-dd-qwen3-tts-1.7b'); // throws until variant data lands
+      within(c).getByTestId('variant-label-qwen3-tts-1.7b'); // throws until variant data lands
       return c;
     });
-
-    const downloadBtn = within(card).getByRole('button', { name: /Download/i });
-    fireEvent.click(downloadBtn);
-
+    fireEvent.click(within(card).getByRole('button', { name: /Download/i }));
     expect(mockDownload).toHaveBeenCalledWith('qwen3-tts-1.7b', 'org/qwen3-tts-1.7b-bf16');
-  });
-
-  it('renders "runs on CPU here" on an enabled option when the sidecar refused its GPU tier', () => {
-    render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    const opt = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-bf16') as HTMLOptionElement;
-    expect(opt.disabled).toBe(false);
-    expect(opt.textContent).toContain('Runs on CPU on this machine');
-    const other = within(screen.getByTestId('model-card-qwen3-tts-1.7b')).getByTestId('variant-row-int8');
-    expect(other.textContent).not.toContain('Runs on CPU');
   });
 });
 
@@ -624,6 +564,16 @@ describe('NativeModelManagementSection — sidecar lifecycle states', () => {
     mockSidecarStatus = 'unavailable';
     const { container } = render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     expect(container.firstChild).toBeNull();
+  });
+
+  // Review on #888: a jump to a stage's native models made while the engine was starting found no anchor, and was lost.
+  it("keeps a stage's anchor on the page while the engine starts or is unavailable", () => {
+    for (const status of ['starting', 'idle', 'unavailable']) {
+      mockSidecarStatus = status;
+      const { unmount } = render(<NativeModelManagementSection stageFilter="asr" anchorId="native-models-asr-section" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
+      expect(document.getElementById('native-models-asr-section')).not.toBeNull();
+      unmount();
+    }
   });
 });
 
@@ -749,28 +699,23 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
     } as NativeModelInfo,
   };
 
-  it('renders the Recommended subgroup label for the filtered stage', async () => {
-    // mockCatalog's 'sense-voice' is recommended and ja-compatible (default
-    // mockSettings.sourceLanguage), so the Recommended subgroup renders.
-    // "Recommended" also labels each recommended card's own badge, so this
-    // scopes to the subgroup label specifically rather than getByText.
+  it('lists the recommended models first, with no sub-heading over either part', async () => {
     render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    const label = await waitFor(() => {
-      const el = document.querySelector('.model-subgroup__label');
-      expect(el).toBeInTheDocument();
-      return el as HTMLElement;
-    });
-    expect(label).toHaveTextContent('Recommended');
+    await screen.findByTestId('model-card-sense-voice');
+    expect(document.querySelector('.model-subgroup__label')).toBeNull();
+    const cards = [...document.querySelectorAll('[data-testid^="model-card-"]')];
+    const recommended = cards.map((c) => c.querySelector('.model-card__recommended-badge') !== null);
+    // Every recommended card comes before the first one that is not.
+    expect(recommended.indexOf(false) === -1 || recommended.lastIndexOf(true) < recommended.indexOf(false)).toBe(true);
   });
 
-  it('renders the "Show all ASR models (N)" button carrying the incompatible count, and every ASR model renders somewhere (compatible list or behind the toggle)', async () => {
+  it('folds the models the stage does not show under "N more", and every ASR model renders somewhere (shown, or behind the fold)', async () => {
     mockCatalogOverride = asrIncompatibleFixture;
     try {
       render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-      const showAll = await screen.findByText(/Show all ASR models/);
-      expect(showAll.textContent).toMatch(/Show all ASR models \(\d+\)/);
-
-      fireEvent.click(showAll);
+      const more = await screen.findByRole('button', { name: /\d+ more/ });
+      fireEvent.click(more);
+      expect(screen.getByText(/Models for other languages \(\d+\)/)).toBeInTheDocument();
       const allAsr = Object.values(asrIncompatibleFixture).filter((m) => m.kind === 'asr');
       for (const m of allAsr) {
         expect(screen.getByTestId(`model-card-${m.id}`)).toBeInTheDocument();
@@ -780,11 +725,11 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
     }
   });
 
-  it('an incompatible model (behind show-all) offers Download but clicking it (the "Use" affordance) does not write a selection', async () => {
+  it('an incompatible model (behind the fold) offers Download but clicking it (the "Use" affordance) does not write a selection', async () => {
     mockCatalogOverride = asrIncompatibleFixture;
     try {
       render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-      fireEvent.click(await screen.findByText(/Show all ASR models/));
+      fireEvent.click(await screen.findByRole('button', { name: /\d+ more/ }));
 
       const card = await screen.findByTestId('model-card-whisper-en-only');
       expect(within(card).getByRole('button', { name: /Download/i })).toBeEnabled();
@@ -796,12 +741,12 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
     }
   });
 
-  it('a downloaded incompatible model (behind show-all) shows the "available when your language is" line, naming the language', async () => {
+  it('a downloaded incompatible model (behind the fold) shows the "available when your language is" line, naming the language', async () => {
     mockCatalogOverride = asrIncompatibleFixture;
     mockStatuses['whisper-en-only'] = 'ready';
     try {
       render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-      fireEvent.click(await screen.findByText(/Show all ASR models/));
+      fireEvent.click(await screen.findByRole('button', { name: /\d+ more/ }));
       await screen.findByTestId('model-card-whisper-en-only');
 
       const line = screen.getByText(/Available when your language is/);
@@ -812,7 +757,7 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
   });
 });
 
-// C1 folded finding: the Models and storage page owns Clear-all now — the bottom
+// C1 folded finding: the Local models and storage page owns Clear-all now — the bottom
 // ModelStorageFooter duplicate must not render on the Library push
 // (stageFilter set), only on the standalone (prop-less) Settings-page render.
 describe('NativeModelManagementSection — ModelStorageFooter only on the standalone render (C1)', () => {
@@ -824,5 +769,251 @@ describe('NativeModelManagementSection — ModelStorageFooter only on the standa
   it('the standalone (prop-less stageFilter) render keeps the footer', () => {
     render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     expect(document.querySelector('.model-management__storage')).toBeInTheDocument();
+  });
+});
+
+describe('NativeModelManagementSection — the streaming tag', () => {
+  it('marks a streaming model and no other', async () => {
+    mockCatalogOverride = {
+      ...mockCatalog,
+      'stream-asr': { id: 'stream-asr', name: 'Stream ASR', languages: ['ja'], recommended: true, tiers: [], order: 9, repo: 'stream-asr', kind: 'asr', streaming: true } as NativeModelInfo,
+    };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
+      await screen.findByTestId('model-card-stream-asr');
+      expect(screen.getByTestId('streaming-stream-asr')).toHaveTextContent('Streaming');
+      expect(screen.queryByTestId('streaming-sense-voice')).toBeNull();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});
+
+// A recognition card says what the catalog Handy shows its list from says: a grade per language in play, a speed
+// meter, Recommended or Faster for the pick and the quick one, and Streaming where the model streams (#578).
+/** A catalog model that streams and speaks all the languages. */
+const catalogStreamer = (langs: string[]): string => handyCatalog.models.find((m) => m.role === 'asr' && m.capabilities.streaming && langs.every((l) => m.languages.includes(l)))!.id;
+
+describe('NativeModelManagementSection — recognition facts from the catalog', () => {
+  const langs = ['en', 'de'];
+  const pair = { source: 'en', target: 'de' };
+  const asCard = (id: string, order: number): NativeModelInfo => ({
+    id, name: id, languages: langs, recommended: false, tiers: [], order, repo: `handy-computer/${id}-gguf`, kind: 'asr', sizeBytes: 1,
+  } as NativeModelInfo);
+
+  it('badges the pick Recommended and the quick one Faster, grades both languages and draws the speed meter', async () => {
+    const picks = asrRoles(langs);
+    const best = [...picks].find(([, r]) => r === 'recommended')?.[0];
+    const fast = [...picks].find(([, r]) => r === 'faster')?.[0];
+    expect(best).toBeDefined();
+    const ids = [best!, ...(fast ? [fast] : [])];
+    mockCatalogOverride = Object.fromEntries(ids.map((id, i) => [id, asCard(id, i)]));
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={pair} />);
+      const card = await screen.findByTestId(`model-card-${best}`);
+      expect(within(card).getByText('Recommended')).toBeInTheDocument();
+      expect(within(card).getByTestId(`grade-${best}-en`)).toHaveTextContent(/EN\s*[A-DF][+-]?/);
+      expect(within(card).getByTestId(`grade-${best}-de`)).toHaveTextContent(/DE\s*[A-DF][+-]?/);
+      expect(within(card).getByTestId(`speed-${best}`).querySelectorAll('i')).toHaveLength(5);
+      // Its buttons sit in a column as wide as their widest state, held by a hidden copy of each state, so the facts
+      // beside them line up from card to card (owner, 2026-11-27); the copy is out of reach of focus and of the tree.
+      const sizer = within(card).getByTestId('actions-sizer');
+      expect(sizer.closest('.model-card__actions')).toHaveClass('model-card__actions--aligned');
+      expect(sizer).toHaveAttribute('aria-hidden', 'true');
+      expect([...sizer.querySelectorAll('button')].every((b) => b.tabIndex === -1)).toBe(true);
+      expect(sizer).toHaveTextContent(/Download.*Import.*Active.*Downloaded/);
+      expect(within(card).getAllByRole('button', { name: /Download/ })).toHaveLength(1);
+      if (fast) expect(within(screen.getByTestId(`model-card-${fast}`)).getByTestId(`faster-${fast}`)).toHaveTextContent('Faster');
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+
+  it('tags a streaming model Streaming, as the catalog says', async () => {
+    const streamer = catalogStreamer(langs);
+    mockCatalogOverride = { [streamer]: asCard(streamer, 0) };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={pair} />);
+      // Not the pick, so it sits behind "N more".
+      const more = screen.queryByRole('button', { name: /\d+ more/ });
+      if (more) fireEvent.click(more);
+      await screen.findByTestId(`model-card-${streamer}`);
+      expect(within(screen.getByTestId(`model-card-${streamer}`)).getByText('Streaming')).toBeInTheDocument();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+
+  it('shows a dash where a language was not measured, and keeps our own Recommended where the catalog knows nothing of the cards', async () => {
+    mockCatalogOverride = { 'sense-voice': { ...mockCatalog['sense-voice'] } };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
+      const card = await screen.findByTestId('model-card-sense-voice');
+      expect(within(card).getByTestId('grade-sense-voice-ja')).toHaveTextContent('—');
+      expect(within(card).getByText('Recommended')).toBeInTheDocument();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});
+
+describe('NativeModelManagementSection — the Import button', () => {
+  const pairProps = { settings: mockSettings, update: mockUpdate, pair: { source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage } };
+  const lastFor = (id: string) => [...importModal.props].reverse().find((p) => p.modelId === id);
+
+  it('sits beside Download on a model that is not downloaded, and opens the import window for that model', async () => {
+    importModal.props.length = 0;
+    render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+    const card = await screen.findByTestId('model-card-sense-voice');
+    expect(lastFor('sense-voice')?.isOpen).toBe(false);
+    fireEvent.click(within(card).getByRole('button', { name: /^Import: SenseVoice$/ }));
+    await waitFor(() => expect(lastFor('sense-voice')).toMatchObject({ isOpen: true, modelName: 'SenseVoice' }));
+    // Outside the card, as the WASM/WebGPU engine's is: inside, it took the card's hand cursor and its clicks reached
+    // the card (owner, 2026-11-27).
+    const win = await screen.findByTestId(`import-window-${lastFor('sense-voice')!.modelId}`);
+    expect(card.contains(win)).toBe(false);
+  });
+
+  it('hands the window the chosen variant\'s repo, so it names that variant\'s file', async () => {
+    importModal.props.length = 0;
+    render(<NativeModelManagementSection {...pairProps} />);
+    const card = await waitFor(() => {
+      const c = screen.getByTestId('model-card-hy-mt2-7b');
+      within(c).getByTestId('variant-label-hy-mt2-7b');
+      return c;
+    });
+    fireEvent.click(within(card).getByRole('button', { name: /^Import: / }));
+    await waitFor(() => expect(lastFor('hy-mt2-7b')).toMatchObject({ isOpen: true, repo: 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf' }));
+  });
+
+  it('is gone once the model is downloaded', async () => {
+    mockStatuses['sense-voice'] = 'ready';
+    render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+    const card = await screen.findByTestId('model-card-sense-voice');
+    expect(within(card).queryByRole('button', { name: /^Import: / })).toBeNull();
+  });
+
+  it('is not offered on a model for another language', async () => {
+    mockCatalogOverride = {
+      ...mockCatalog,
+      'whisper-en-only': { id: 'whisper-en-only', name: 'Whisper EN-only', languages: ['en'], recommended: false, tiers: [], order: 5, repo: 'whisper-en-only', kind: 'asr' } as NativeModelInfo,
+    };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+      fireEvent.click(await screen.findByRole('button', { name: /\d+ more/ }));
+      const card = await screen.findByTestId('model-card-whisper-en-only');
+      expect(within(card).queryByRole('button', { name: /^Import: / })).toBeNull();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});
+
+describe('NativeModelManagementSection — a refused import', () => {
+  const pairProps = { settings: mockSettings, update: mockUpdate, pair: { source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage } };
+
+  it('says why in the interface\'s language, from the engine\'s code, under the row and not inside it', async () => {
+    mockErrors = { 'sense-voice': 'missing: a.gguf' };
+    mockErrorInfo = { 'sense-voice': { code: 'import_missing', params: { names: 'a.gguf' } } };
+    render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+    const card = await screen.findByTestId('model-card-sense-voice');
+    const message = within(card).getByRole('alert');
+    expect(message).toHaveTextContent('These files are missing: a.gguf. Download them and import again.');
+    // Outside the row of info and buttons, so it cannot push them down.
+    expect(message.closest('.model-card__content')).toBeNull();
+    expect(card.className).toContain('model-card--error-below');
+  });
+
+  it('keeps the engine\'s own words for a failure it did not code', async () => {
+    mockErrors = { 'sense-voice': 'disk full' };
+    render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+    expect(within(await screen.findByTestId('model-card-sense-voice')).getByRole('alert')).toHaveTextContent('disk full');
+  });
+});
+
+describe('NativeModelManagementSection — a recognition model\'s one quant', () => {
+  it('is the quant its published accuracy was measured on, not the engine\'s machine-aware pick, and that is what downloads', async () => {
+    const info = catalogModelFor({ repo: 'handy-computer/cohere-transcribe-03-2026-gguf' })!;
+    const measured = info.quant.toLowerCase();
+    const other = measured === 'q4_k_m' ? 'q6_k' : 'q4_k_m';
+    const variant = (id: string, recommended: boolean) => ({ id, repo: `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${id}.gguf`, sizeBytes: 1e9, needBytes: 1e9, supported: true, recommended, downloaded: false });
+    mockCatalogOverride = {
+      'cohere-transcribe-03-2026': {
+        id: 'cohere-transcribe-03-2026', name: 'Cohere Transcribe', languages: ['ja', 'en'], recommended: true, tiers: [], order: 0, kind: 'asr',
+        repo: 'handy-computer/cohere-transcribe-03-2026-gguf', sizeBytes: 1e9,
+        variants: [variant(other, true), variant(measured, false)],   // the engine recommends the OTHER quant here
+      } as unknown as NativeModelInfo,
+    };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: 'ja', target: 'en' }} />);
+      const card = await screen.findByTestId('model-card-cohere-transcribe-03-2026');
+      expect(await within(card).findByTestId('variant-label-cohere-transcribe-03-2026')).toHaveTextContent(measured.toUpperCase());
+      fireEvent.click(within(card).getByRole('button', { name: /Download/i }));
+      expect(mockDownload).toHaveBeenCalledWith('cohere-transcribe-03-2026', `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${measured}.gguf`);
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+
+  // Review on #888: another quant already on disk (from before the one quant was fixed) makes the card ready; the card
+  // must name and delete that one, not the measured quant it would download.
+  it('names and deletes the quant on disk when that is what makes the card ready', async () => {
+    const info = catalogModelFor({ repo: 'handy-computer/cohere-transcribe-03-2026-gguf' })!;
+    const measured = info.quant.toLowerCase();
+    const other = measured === 'q4_k_m' ? 'q6_k' : 'q4_k_m';
+    const variant = (id: string, downloaded: boolean) => ({ id, computeType: id, repo: `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${id}.gguf`, sizeBytes: 1e9, needBytes: 1e9, supported: true, recommended: false, downloaded });
+    mockCatalogOverride = {
+      'cohere-transcribe-03-2026': {
+        id: 'cohere-transcribe-03-2026', name: 'Cohere Transcribe', languages: ['ja', 'en'], recommended: true, tiers: [], order: 0, kind: 'asr',
+        repo: 'handy-computer/cohere-transcribe-03-2026-gguf', sizeBytes: 1e9,
+        variants: [variant(other, true), variant(measured, false)],
+      } as unknown as NativeModelInfo,
+    };
+    mockStatuses['cohere-transcribe-03-2026'] = 'ready';
+    mockSizes['cohere-transcribe-03-2026'] = 1e9;
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: 'ja', target: 'en' }} />);
+      const card = await screen.findByTestId('model-card-cohere-transcribe-03-2026');
+      expect(await within(card).findByTestId('variant-resolved-cohere-transcribe-03-2026')).toHaveTextContent(other.toUpperCase());
+      fireEvent.click(within(card).getByRole('button', { name: /Delete/i }));
+      expect(mockDeleteModel).toHaveBeenCalledWith('cohere-transcribe-03-2026', `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${other}.gguf`);
+    } finally {
+      mockCatalogOverride = null;
+      delete mockStatuses['cohere-transcribe-03-2026'];
+      delete mockSizes['cohere-transcribe-03-2026'];
+    }
+  });
+
+  // Review on #888: the quant picker said when a quant would run on the CPU here, or not fit at all; the one fixed quant
+  // must still say so before it is downloaded.
+  it("says when the one quant would run on the CPU here, or would not fit, before it is downloaded", async () => {
+    const info = catalogModelFor({ repo: 'handy-computer/cohere-transcribe-03-2026-gguf' })!;
+    const measured = info.quant.toLowerCase();
+    const card = (extra: Record<string, unknown>) => ({
+      'cohere-transcribe-03-2026': {
+        id: 'cohere-transcribe-03-2026', name: 'Cohere Transcribe', languages: ['ja', 'en'], recommended: true, tiers: [], order: 0, kind: 'asr',
+        repo: 'handy-computer/cohere-transcribe-03-2026-gguf', sizeBytes: 1e9,
+        variants: [
+          { id: measured, computeType: measured, repo: `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${measured}.gguf`, sizeBytes: 1e9, needBytes: 1e9, supported: true, recommended: true, downloaded: false, ...extra },
+          { id: 'q2_k', computeType: 'q2_k', repo: 'handy-computer/cohere-transcribe-03-2026-gguf/cohere-q2_k.gguf', sizeBytes: 5e8, needBytes: 5e8, supported: true, recommended: false, downloaded: false },
+        ],
+      } as unknown as NativeModelInfo,
+    });
+    try {
+      mockCatalogOverride = card({ unsupportedTiers: ['gpu-vulkan'] });
+      const { unmount } = render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: 'ja', target: 'en' }} />);
+      let c = await screen.findByTestId('model-card-cohere-transcribe-03-2026');
+      await within(c).findByTestId('variant-label-cohere-transcribe-03-2026');
+      expect(within(c).getByTestId('variant-note-cohere-transcribe-03-2026')).toHaveTextContent('Runs on CPU on this machine');
+      unmount();
+      mockCatalogOverride = card({ supported: false });
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: 'ja', target: 'en' }} />);
+      c = await screen.findByTestId('model-card-cohere-transcribe-03-2026');
+      await within(c).findByTestId('variant-label-cohere-transcribe-03-2026');
+      // Its own reason where the catalog gives one ("Needs ~954 MB of GPU memory"), else the general one.
+      expect(within(c).getByTestId('variant-note-cohere-transcribe-03-2026')).toHaveTextContent(/Needs ~\d+ MB|Won't fit on this machine/);
+    } finally {
+      mockCatalogOverride = null;
+    }
   });
 });

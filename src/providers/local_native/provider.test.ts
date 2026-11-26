@@ -11,7 +11,7 @@ import type { LocalNativeConfig } from './config';
 import { ONE_SIDE_AT_A_TIME } from './config';
 import { createFakeNativeHost } from './fakeEngines';
 import { localNativeProvider } from './provider';
-import { LOCAL_NATIVE_DEFAULTS } from './settings';
+import { LOCAL_NATIVE_DEFAULTS, migrateLocalNativeSettings } from './settings';
 import type { NativeSpeechConfig } from './speechSession';
 import type { NativeTranslationConfig } from './translationSession';
 
@@ -38,16 +38,15 @@ describe('localNativeProvider', () => {
   it("keeps the old enum's id and the old slice's storage prefix", () => {
     expect(localNativeProvider.id).toBe('local_native');
     expect(localNativeProvider.kind).toBe('local');
-    expect(localNativeProvider.settings).toEqual({ key: 'localNative', defaults: LOCAL_NATIVE_DEFAULTS });
+    expect(localNativeProvider.settings).toEqual({ key: 'localNative', defaults: LOCAL_NATIVE_DEFAULTS, migrate: migrateLocalNativeSettings });
     expect(localNativeProvider.credentials.keys).toEqual([]);
   });
 
-  it('is flagged, Electron only, and unlocked by its tester switch (#578 ruling 1)', () => {
-    expect(localNativeProvider.flagged).toBe(true);
-    expect(localNativeProvider.testerSwitch).toBe(LOCAL_NATIVE_DEBUG_KEY);
-    expect(isPresent(localNativeProvider, env())).toBe(false);
-    expect(isPresent(localNativeProvider, env({ switchOn: (k) => k === LOCAL_NATIVE_DEBUG_KEY }))).toBe(true);
-    expect(isPresent(localNativeProvider, env({ enabled: new Set(['local_native']) }))).toBe(true);
+  it('is offered like any provider, on the desktop only: no flag, no tester switch', () => {
+    expect(localNativeProvider.flagged).toBeUndefined();
+    expect(localNativeProvider.testerSwitch).toBeUndefined();
+    expect(isPresent(localNativeProvider, env())).toBe(true);
+    expect(isPresent(localNativeProvider, env({ platform: 'web' }))).toBe(false);
     expect(isPresent(localNativeProvider, env({ platform: 'web', dev: true }))).toBe(false);
   });
 

@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "本机",
+      "nameWithNative": "本机（WASM/WebGPU）",
       "description": "模型下载到这台电脑后就能用，第一次要联网下载（数 GB）。",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "免费 · 不联网"
     },
     "local_native": {
-      "name": "免费 (Native)",
+      "name": "本机（原生）",
       "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）"
     },
     "unknown": {
@@ -902,6 +903,17 @@
     "importChooseFiles": "选择文件",
     "importDropHint": "把文件拖到这里",
     "importDropSub": "整个文件夹请用「选择文件夹」 —— 其中的 onnx/ 子目录会自动匹配",
+    "importDropSubFile": "请选择下载好的文件，文件名保持不变。",
+    "importReason": {
+      "html": "收到的是 HTML 网页而不是文件内容（很可能是 404 或 CDN 错误）",
+      "size": "大小不对：应约为 {{expected}} 字节，实际是 {{got}} 字节",
+      "magic_wasm": "缺少 WASM 文件头标识",
+      "magic_onnx": "缺少 protobuf 文件头",
+      "json": "内容不是有效的 JSON",
+      "empty": "文件是空的",
+      "invalid": "无效"
+    },
+    "importNoPath": "读不到所选文件的位置。请用选文件框重新选择该文件。",
     "importGroupConfig": "配置与分词器",
     "importGroupModel": "模型文件",
     "importAlready": "已导入",
@@ -909,6 +921,7 @@
     "importHasInvalid": "请替换无效文件后重新添加。",
     "importAllPresent": "所有文件齐全。",
     "importSomeReady": "还缺 {{count}} 个 —— 可先导入现有的，之后再补齐。",
+    "importNeedAll": "还缺 {{count}} 个文件——所有文件都齐了才能导入这个模型。",
     "importAddToBegin": "请先在上方添加文件。",
     "importFinish": "导入并完成",
     "importNow": "导入 {{count}} 个",
@@ -949,7 +962,35 @@
     "hwMemory": "内存",
     "hwSize": "模型大小",
     "hwRepo": "仓库",
-    "computeDevice": "计算设备",
+    "computeDevice": "硬件加速",
+    "streaming": "流式",
+    "faster": "更快",
+    "gradeNone": "没有测过{{language}}的准确度",
+    "gradeHelp": {
+      "title": "{{language}}的准确度：{{grade}}",
+      "measured": "测得的错误率：{{error}}%",
+      "below": "低于 {{to}}%",
+      "band": "{{from}}%–{{to}}%",
+      "above": "{{from}}% 及以上",
+      "subGrades": "A、B、C 各再分三档：{{plus}} 是 {{a}}%–{{b}}%，{{plain}} 是 {{b}}%–{{c}}%，{{minus}} 是 {{c}}%–{{d}}%。",
+      "method": "错误率是模型在 FLEURS 测试录音上说错的比例，在模型的 Q8_0 版本上测得。你自己的声音、麦克风和噪音会影响实际结果。"
+    },
+    "speedHelp": {
+      "title": "速度：{{max}} 格里的 {{level}} 格",
+      "measured": "测得：处理 30 秒录音用了 {{seconds}} 秒",
+      "within": "{{seconds}} 秒内",
+      "over": "超过 {{seconds}} 秒",
+      "method": "模型在评测用的电脑（一台 AMD Ryzen 4750U 笔记本，用它的 GPU）上处理一段 30 秒录音所用的时间。你的电脑可能更快或更慢。"
+    },
+    "importError": {
+      "import_missing": "缺少这些文件：{{names}}。请下载后再导入。",
+      "import_not_gguf": "{{name}} 不是 GGUF 模型文件。",
+      "import_unreadable": "{{name}} 读不了，或者是空的。",
+      "import_mismatch": "{{name}} 不是发布的那个文件（它的 sha256 以 {{got}} 开头，应为 {{expected}}）。请重新下载。",
+      "import_not_importable": "这个模型不能手动导入。",
+      "import_failed": "导入失败。"
+    },
+    "speedNone": "没有测过速度",
     "computeDeviceTooltip": "运行语音模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：在 Windows 和 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "computeDeviceTooltipTranslation": "运行翻译模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：在 Windows 和 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "computeDeviceTooltipTts": "运行语音合成（TTS）模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：在 Windows 和 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
@@ -1014,6 +1055,21 @@
       "more": "还有 {{count}} 个",
       "engineTitle": "本机引擎",
       "engineHint": "早期版本为在本机运行模型而下载的桌面引擎。现在的“本机”服务不再使用它，移除即可释放空间。",
+      "nativeTab": "原生引擎",
+      "webgpuTab": "WASM/WebGPU 引擎",
+      "webgpuTitle": "WASM/WebGPU 引擎",
+      "nativeHint": "随应用安装，在这台电脑上运行。",
+      "webgpuHintNamed": "在应用自己的窗口里运行，有 GPU 时自动加速。在“语言与会话组成”里选了“{{provider}}”的阶段，用的就是这里下载的模型。",
+      "otherDirection": "这里显示的是 {{from}} → {{to}} 方向的模型，也就是你刚才那个方向。",
+      "showDirection": "显示 {{from}} → {{to}}",
+      "engineHintNative": "原生模型运行所依赖的引擎。",
+      "tabMeta": "已下载 {{count}} 个，{{size}}",
+      "tabNone": "尚未下载",
+      "tabs": "引擎",
+      "toHelpers": "辅助模型",
+      "downloadedChoose": "已下载。要在会话里使用，请到“语言与会话组成”里选择它。",
+      "goChoose": "去选择",
+      "dismiss": "关闭",
       "remove": "移除",
       "engineConfirm": "移除本机引擎？",
       "engineFrees": "可释放 {{size}}。"
@@ -1163,6 +1219,8 @@
     "close": "关闭"
   },
   "voiceLibrary": {
+    "noneChosen": "还没有选声音",
+    "defaultVoice": "默认声音",
     "addVoice": "添加声音…",
     "addVoiceTitle": "添加声音",
     "clipSilent": "未检测到人声 — 请检查麦克风后重试。",
@@ -1438,7 +1496,7 @@
       "createAccount": "注册账号",
       "signedIn": "已登录，可以继续。",
       "managedDesc": "用邮箱注册或登录，并到邮箱完成验证；验证后即可获得试用额度。之后自行充值，按用量计费。",
-      "offlineNotice": "识别模型在设置完成后从「设置 → 模型与存储」下载。翻译用必应、语音用 Edge，不用下载，也不用账号；要翻译的文字和要念的译文会发给微软。",
+      "offlineNotice": "识别模型在设置完成后从「设置 → 本地模型与存储」下载。翻译用必应、语音用 Edge，不用下载，也不用账号；要翻译的文字和要念的译文会发给微软。",
       "pendingKey": "可以稍后在「设置 → 账号与密钥」里添加密钥。密钥校验通过前无法开始。",
       "pendingSignIn": "可以稍后从账户按钮登录。登录前无法开始。",
       "verifyEmail": "已登录。请到邮箱打开我们发送的链接完成验证——验证后试用额度才会到账。",
@@ -1812,7 +1870,7 @@
       "lineup": "语言与会话组成",
       "words": "词表与背景",
       "accounts": "账号与密钥",
-      "models": "模型与存储",
+      "models": "本地模型与存储",
       "audio": "音频",
       "display": "显示",
       "history": "历史与纪要",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "已登录，余额 {{amount}}",
       "localModels": "在这台电脑上运行；已下载 {{count}} 个模型，共 {{size}}",
       "localNone": "在这台电脑上运行；还没有下载模型",
+      "localNative": "原生引擎，支持更多识别模型，性能更好。本机运行，不需要云端密钥",
+      "localWebgpu": "与浏览器扩展共用同一个引擎，速度没有那么好。本机运行，不需要云端密钥",
       "soniox": {
         "save": "保存并识别区域",
         "finding": "正在识别这个密钥属于哪个区域…",

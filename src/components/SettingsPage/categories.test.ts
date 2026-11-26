@@ -7,7 +7,7 @@ registerReleasedCatalog();
 const EN: Record<string, string> = {
   'settingsPage.categories.lineup': 'Languages and line-up',
   'settingsPage.categories.accounts': 'Accounts and keys',
-  'settingsPage.categories.models': 'Models and storage',
+  'settingsPage.categories.models': 'Local models and storage',
   'settingsPage.categories.audio': 'Audio',
   'settingsPage.categories.display': 'Display',
   'settingsPage.categories.general': 'General',
@@ -31,13 +31,18 @@ describe('the settings categories', () => {
     expect(targetToCategory('model-asr')).toEqual({ category: 'lineup', anchor: 'model-asr' });
   });
 
-  // B-20: each stage's models open in Models and storage; the local engine's voices are in the speech card.
-  it("maps each stage's models to its group in Models and storage, where a slot's library opens", () => {
+  // B-20: each stage's models open in Local models and storage; the local engine's voices are in the speech card.
+  it("maps each stage's models to its group in Local models and storage, where a slot's library opens", () => {
     for (const stage of ['asr', 'translation', 'tts'])
       expect(targetToCategory(`models-${stage}`)).toEqual({ category: 'models', anchor: `models-${stage}` });
   });
 
-  it("maps Models and storage itself, where This device's row in the accounts goes", () => {
+  it("maps each stage's native models to the native tab's group in Local models and storage", () => {
+    for (const stage of ['asr', 'translation', 'tts'])
+      expect(targetToCategory(`native-models-${stage}`)).toEqual({ category: 'models', anchor: `native-models-${stage}` });
+  });
+
+  it("maps Local models and storage itself, where This device's row in the accounts goes", () => {
     expect(targetToCategory('models')).toEqual({ category: 'models', anchor: null });
   });
 

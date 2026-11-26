@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
-import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg, NativeDeviceProfile } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelState, ModelFileInfo, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg, NativeDeviceProfile } from '../lib/local-inference/native/nativeProtocol';
 import {
   statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
@@ -59,6 +59,8 @@ interface NativeModelStore {
   progress: Record<string, { downloaded: number; total: number }>;
   sizes: Record<string, number>;
   errors: Record<string, string>;
+  /** A refusal the engine coded (an import it turned down): lets the card say it in the interface's language. */
+  errorInfo: Record<string, { code: string; params: Record<string, string> }>;
   /** Per-machine model catalog from the sidecar (languages, recommended, tier availability). */
   catalog: Record<string, NativeModelInfo>;
   /** Sidecar lifecycle. Drives every native UI surface that depends on the catalog. */
@@ -121,11 +123,22 @@ interface NativeModelStore {
    *  so every refresh() caller (gate, ProviderSection) is automatically variant-aware. */
   statusRepos: Record<string, string>;
   setStatusRepos: (repos: Record<string, string>) => void;
+  /**
+   * The direction ("src→tgt") a slot's "Browse library…" opened the native library for, or null for the session's own
+   * (the pair's forward direction): the other direction's recognition, translation and speech models are not the same.
+   */
+  libraryDirection: string | null;
+  setLibraryDirection: (direction: string | null) => void;
   /** Query the sidecar for the cache status of these models (no-op if sidecar down). */
   refresh: (models: string[], repos?: Record<string, string>) => Promise<void>;
   /** Download one model, streaming progress into the store. `repo` selects a chosen
    *  variant's repo (the sidecar fetches it instead of the model's default repo). */
   download: (model: string, repo?: string) => Promise<void>;
+  /** Import files the person downloaded themselves, streaming progress into the store like a download; a refused file
+   *  lands as the model's error, in the engine's words. */
+  importFiles: (model: string, paths: string[], repo?: string) => Promise<void>;
+  /** The files a model is made of and where each is published (for downloading by hand). */
+  modelFiles: (model: string, repo?: string) => Promise<ModelFileInfo[]>;
   /** Ask the sidecar to stop an in-flight download (takes effect at a file boundary). */
   cancelDownload: (model: string) => Promise<void>;
   /** Delete one model from the sidecar cache (flips its status to absent). */
@@ -287,6 +300,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   progress: {},
   sizes: {},
   errors: {},
+  errorInfo: {},
   catalog: {},
   sidecarStatus: 'idle',
   engineInfo: null,
@@ -294,6 +308,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   profileGeneration: null,
   reportedUnsupportedOps: new Set(),
   statusRepos: {},
+  libraryDirection: null,
   lastResolutionNotes: [],
   asrLoading: false,
   asrResolved: null,
@@ -537,6 +552,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   },
 
   setStatusRepos: (repos) => set({ statusRepos: repos }),
+  setLibraryDirection: (direction) => set({ libraryDirection: direction }),
 
   refresh: async (models, repos) => {
     if (!models.length) return;
@@ -562,6 +578,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       statuses: { ...s.statuses, [model]: 'downloading' },
       progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
       errors: { ...s.errors, [model]: '' },
+      // An earlier import's coded refusal goes too: a download that fails shows its own cause.
+      errorInfo: Object.fromEntries(Object.entries(s.errorInfo).filter(([k]) => k !== model)),
     }));
     try {
       const status = await client.download(model, (p) =>
@@ -578,6 +596,29 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       }));
     }
   },
+
+  importFiles: async (model, paths, repo) => {
+    set((s) => ({
+      statuses: { ...s.statuses, [model]: 'downloading' },
+      progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
+      errors: { ...s.errors, [model]: '' },
+      errorInfo: Object.fromEntries(Object.entries(s.errorInfo).filter(([k]) => k !== model)),
+    }));
+    try {
+      const status = await client.importFiles(model, paths, (p) =>
+        set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })), repo);
+      set((s) => ({ statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' }, errors: { ...s.errors, [model]: '' } }));
+    } catch (err) {
+      const coded = err as { code?: string; params?: Record<string, string> };
+      set((s) => ({
+        statuses: { ...s.statuses, [model]: 'absent' },
+        errors: { ...s.errors, [model]: err instanceof Error ? err.message : String(err) },
+        errorInfo: coded.code ? { ...s.errorInfo, [model]: { code: coded.code, params: coded.params ?? {} } } : s.errorInfo,
+      }));
+    }
+  },
+
+  modelFiles: (model, repo) => client.files(model, repo),
 
   cancelDownload: async (model) => {
     // Fire the signal; the in-flight download() resolves 'cancelled' and flips the
@@ -776,6 +817,7 @@ export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuse
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);
 export const useNativeModelErrors = () => useNativeModelStore((s) => s.errors);
+export const useNativeModelErrorInfo = () => useNativeModelStore((s) => s.errorInfo);
 export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
 export const useNativeLastResolutionNotes = () => useNativeModelStore((s) => s.lastResolutionNotes);
 export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, FolderInput, CheckCircle, Star, Zap, Trash2, X, AlertTriangle } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import type { NativeEngineSettings } from '../engine/useNativeEngineAdapter';
 import type { LanguagePair } from '../../../lib/run/types';
@@ -28,6 +28,8 @@ import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceSt
 import { languageNameFor } from '../engine/languageName';
 import { TierIcon } from './TierIcon';
 import LicenseConsentModal from '../shared/LicenseConsentModal';
+import { NativeImportModal } from './NativeImportModal';
+import { GradeHelp, SpeedHelp } from './AsrFactsHelp';
 import { hasAcceptedLicense, acceptLicense } from '../../../stores/licenseConsentStore';
 import {
   useNativeModelStore,
@@ -36,6 +38,7 @@ import {
   useNativeModelProgress,
   useNativeModelSizes,
   useNativeModelErrors,
+  useNativeModelErrorInfo,
   useNativeAsrResolved,
   useNativeTranslationResolved,
   useNativeTtsResolved,
@@ -56,6 +59,8 @@ type CardResolved = {
   rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string;
 };
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
+import { ModelStageList } from '../shared/ModelStageList';
+import { asrFacts, asrRoles, catalogModelFor, roleOf, SPEED_METER_STEPS, type AsrFacts, type AsrRole } from '../../../lib/local-inference/native/asrBenchmarks';
 
 // [i18n key, English fallback] per tooltip row key (see buildBackendTooltipRows).
 const TT_LABEL: Record<string, [string, string]> = {
@@ -69,97 +74,56 @@ const TT_LABEL: Record<string, [string, string]> = {
   repo: ['models.hwRepo', 'Repo'],
 };
 
+/** English for each refusal the engine codes (`models.importError.<code>`), with the placeholders its params fill. */
+const IMPORT_ERROR_TEXT: Record<string, string> = {
+  import_missing: 'These files are missing: {{names}}. Download them and import again.',
+  import_not_gguf: '{{name}} is not a GGUF model file.',
+  import_unreadable: '{{name}} cannot be read, or is empty.',
+  import_mismatch: '{{name}} is not the published file (its sha256 starts {{got}}, expected {{expected}}). Download it again.',
+  import_not_importable: 'This model cannot be imported by hand.',
+  import_failed: 'The import failed.',
+};
+
 /** Props bundle for the optional variant chooser on multi-quant translation cards. */
 type VariantCardProps = {
   variants: VariantInfo[];
   recommendedVariantId: string;
   pinnedVariantId?: string;
   onPinVariant: (id: string) => void;
-};
-
-/**
- * Compact quant-variant picker shown in a card header (in place of the size).
- * A customizable <select> (appearance: base-select): the closed control mirrors
- * the chosen variant + size (e.g. "FP8 · 8.0 GB") via <selectedcontent>; the
- * picker lists all variants with sizes — unsupported ones disabled with the
- * reason inline (a hover tooltip can't render above the top-layer picker) —
- * plus a "runs on CPU" note when no GPU variant fits.
- *
- * No classic-select fallback: local native models are Electron-only, and the
- * packaged Electron (Chromium 144) always renders base-select.
- */
-const VariantDropdown: React.FC<{
-  variantProps: VariantCardProps;
-  chosenVariant?: VariantInfo;
-  disabled: boolean;
-  selectId: string;
-}> = ({ variantProps, chosenVariant, disabled, selectId }) => {
-  const { t } = useTranslation();
-
-  const gpuFits = variantProps.variants.some((v) => v.supported);
-  const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
-
-  return (
-    // stopPropagation: the surrounding .model-card selects the model on click.
-    <div className="model-card__variant-dd" onClick={(e) => e.stopPropagation()}>
-      <select
-        className="model-card__variant-select"
-        data-testid={`variant-dd-${selectId}`}
-        disabled={disabled}
-        value={chosenVariant ? chosenId : ''}
-        onChange={(e) => {
-          // The picker never lets a disabled option through; this guards the
-          // programmatic/keyboard path the way the old menu's click handler
-          // no-opped on unsupported rows.
-          const v = variantProps.variants.find((x) => x.id === e.target.value);
-          if (v?.supported) variantProps.onPinVariant(v.id);
-        }}
-      >
-        <button type="button"><selectedcontent /></button>
-        {!chosenVariant && (
-          <option value="" disabled hidden>CPU</option>
-        )}
-        {variantProps.variants.map((v) => {
-          const isRec = v.supported && v.id === variantProps.recommendedVariantId;
-          const sizeLabel = formatMemMb(Math.round(v.sizeBytes / 1e6));
-          return (
-            <option
-              key={v.id}
-              value={v.id}
-              disabled={!v.supported}
-              data-testid={`variant-row-${v.id}`}
-            >
-              <span className="model-card__variant-name">
-                {v.computeType.toUpperCase()}
-                <span className="model-card__variant-size"> · {sizeLabel}</span>
-              </span>
-              {isRec && (
-                <span className="model-card__variant-recommended">{t('models.recommended', 'Recommended').toLowerCase()}</span>
-              )}
-              {!v.supported && (
-                <span className="model-card__variant-reason">{v.reason || t('models.wontFit', "Won't fit on this machine")}</span>
-              )}
-              {v.supported && v.unsupportedTiers && v.unsupportedTiers.length > 0 && (
-                <span className="model-card__variant-reason">{t('models.variantRunsOnCpu', 'Runs on CPU on this machine')}</span>
-              )}
-            </option>
-          );
-        })}
-        {!gpuFits && (
-          // A disabled option, not a bare <span>: the select content model
-          // (and React's nesting validator) only admits option-shaped
-          // children, and a span here would log the very warning class the
-          // dev muffler exists to avoid adding to.
-          <option disabled className="model-card__variant-cpu-note">
-            {t('models.variantNoGpuFits', 'No GPU variant fits — runs on CPU.')}
-          </option>
-        )}
-      </select>
-    </div>
-  );
+  /** The repo the card's status was asked for (`statusReposFor`): another quant on disk can be what makes it ready. */
+  statusRepo?: string;
 };
 
 // One selectable + downloadable card — reuses ModelManagementSection's model-card__* classes.
+/**
+ * Invisible: each state a card's buttons can be in (Download and Import; Active or Downloaded with Delete), laid over
+ * one another, so a recognition card's button column is as wide as the widest of them in this language, whatever
+ * state the card is in — and the accuracy grades and speed meter beside it sit in the same place on every card
+ * (owner, 2026-11-27). Real buttons, so they take the same styles as the ones they stand for; hidden, never focused.
+ */
+const ActionsSizer: React.FC = () => {
+  const { t } = useTranslation();
+  const state = (active: boolean) => (
+    <span className="model-card__downloaded">
+      <span className={`model-card__status-label${active ? ' model-card__status-label--active' : ''}`}>
+        <span className="model-card__status-icon"><CheckCircle size={14} /></span>
+        <span>{active ? t('models.active', 'Active') : t('models.downloaded', 'Downloaded')}</span>
+      </span>
+      <button type="button" tabIndex={-1} className="model-card__btn model-card__btn--delete"><Trash2 size={12} /></button>
+    </span>
+  );
+  return (
+    <span className="model-card__actions-sizer" aria-hidden="true" data-testid="actions-sizer">
+      <span className="model-card__offer">
+        <button type="button" tabIndex={-1} className="model-card__btn model-card__btn--download"><Download size={14} /><span>{t('models.download', 'Download')}</span></button>
+        <button type="button" tabIndex={-1} className="model-card__btn model-card__btn--import"><FolderInput size={14} /><span>{t('models.import', 'Import')}</span></button>
+      </span>
+      {state(true)}
+      {state(false)}
+    </span>
+  );
+};
+
 const NativeModelCard: React.FC<{
   spec: NativeModelCardSpec;
   selected: boolean;
@@ -171,13 +135,16 @@ const NativeModelCard: React.FC<{
   /** Present only for translation cards that expose multiple quant variants (per the catalog's variantIds). */
   variantProps?: VariantCardProps;
   /** Optional body rendered inside the card (below the top row) only while the card is selected. */
+  /** A recognition card's measured facts and its badge (Recommended or Faster), from the catalog Handy shows its list from. */
+  asr?: { facts?: AsrFacts; badge?: AsrRole; languages: readonly string[] };
   children?: React.ReactNode;
-}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect, variantProps, children }) => {
+}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect, variantProps, asr, children }) => {
   const { t } = useTranslation();
   const statuses = useNativeModelStatuses();
   const progress = useNativeModelProgress();
   const sizes = useNativeModelSizes();
   const errors = useNativeModelErrors();
+  const errorInfo = useNativeModelErrorInfo();
   const download = useNativeModelStore((s) => s.download);
   const cancelDownload = useNativeModelStore((s) => s.cancelDownload);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
@@ -190,7 +157,10 @@ const NativeModelCard: React.FC<{
 
   const status = noDownload ? 'ready' : (statuses[spec.downloadId as string] || 'absent');
   const ready = noDownload || status === 'ready';
-  const err = noDownload ? undefined : errors[spec.downloadId as string];
+  const rawErr = noDownload ? undefined : errors[spec.downloadId as string];
+  // An import the engine refused says why in the interface's language; any other failure keeps the engine's own words.
+  const coded = noDownload ? undefined : errorInfo[spec.downloadId as string];
+  const err = rawErr && coded ? t(`models.importError.${coded.code}`, IMPORT_ERROR_TEXT[coded.code] ?? rawErr, coded.params) : rawErr;
 
   const statusClass = noDownload ? 'model-card--none'
     : status === 'ready' ? 'model-card--downloaded'
@@ -201,7 +171,7 @@ const NativeModelCard: React.FC<{
     selected && 'model-card--selected',
     (incompatible || hwGated) && 'model-card--incompatible',
     disabled && 'model-card--disabled',
-    err && status !== 'downloading' && 'model-card--error',
+    err && status !== 'downloading' && 'model-card--error model-card--error-below',
   ].filter(Boolean).join(' ');
 
   const handleClick = () => { if (!disabled && !incompatible && !hwGated && ready) onSelect(); };
@@ -215,9 +185,12 @@ const NativeModelCard: React.FC<{
   // both the resolved label and which repo the download button fetches.
   const chosenVariant = useMemo(() => {
     if (!variantProps) return undefined;
+    // A ready card is the quant its status was found for, which may be another one on disk: named and deleted as that.
+    const onDisk = ready && variantProps.statusRepo ? variantProps.variants.find((v) => v.repo === variantProps.statusRepo) : undefined;
+    if (onDisk) return onDisk;
     const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
     return variantProps.variants.find((v) => v.id === chosenId);
-  }, [variantProps]);
+  }, [variantProps, ready]);
 
   // Resolved variant label shown post-download: "FP8 · 7.8 GB"
   const resolvedVariantLabel = useMemo(() => {
@@ -238,6 +211,7 @@ const NativeModelCard: React.FC<{
   // (default True), but a producer that omitted it would otherwise silently drop
   // OmniVoice's gate. A license descriptor is opt-OUT of the gate, never opt-in.
   const [consentOpen, setConsentOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // The download button fetches the chosen variant's repo (undefined → default repo,
   // for single-variant cards). Keeps download in lock-step with the variant load.
@@ -263,6 +237,7 @@ const NativeModelCard: React.FC<{
   };
 
   return (
+    <>
     <div className={classNames} data-testid={`model-card-${spec.selectId}`} onClick={handleClick}>
       <div className="model-card__top-row">
         <div className="model-card__content">
@@ -278,14 +253,26 @@ const NativeModelCard: React.FC<{
                   {resolvedVariantLabel}
                 </span>
               ) : variantProps && !ready ? (
-                // Pre-download multi-variant card: compact dropdown picker, shown in the
-                // standard header size slot (trigger displays the chosen variant + size).
-                <VariantDropdown
-                  variantProps={variantProps}
-                  chosenVariant={chosenVariant}
-                  disabled={disabled}
-                  selectId={spec.selectId}
-                />
+                // Pre-download multi-variant card: the one quant a download fetches (the recommended one, or the
+                // one an earlier version pinned), named with its size. There is no picker: the list shows one quant
+                // per model (owner, 2026-11-27, as Handy does).
+                chosenVariant && (
+                  <>
+                    <span className="model-card__size" data-testid={`variant-label-${spec.selectId}`}>
+                      {`${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(Math.round((chosenVariant.sizeBytes ?? 0) / 1e6))}`}
+                    </span>
+                    {/* What the quant picker used to say about it, said before it is downloaded. */}
+                    {!chosenVariant.supported ? (
+                      <span className="model-card__lang-tag model-card__lang-tag--warn" data-testid={`variant-note-${spec.selectId}`}>
+                        {chosenVariant.reason || t('models.wontFit', "Won't fit on this machine")}
+                      </span>
+                    ) : chosenVariant.unsupportedTiers && chosenVariant.unsupportedTiers.length > 0 ? (
+                      <span className="model-card__lang-tag model-card__lang-tag--warn" data-testid={`variant-note-${spec.selectId}`}>
+                        {t('models.variantRunsOnCpu', 'Runs on CPU on this machine')}
+                      </span>
+                    ) : null}
+                  </>
+                )
               ) : (
                 // Normal single-variant card: GB-aware label (formatMemMb switches
                 // to GB at >= 1024 MB) — never a bare four-digit "MB".
@@ -298,6 +285,7 @@ const NativeModelCard: React.FC<{
               <div className="model-card__languages">
                 <LanguageTags languages={spec.languages || []} />
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
+                {(spec.streaming || asr?.facts?.streaming) && <span className="model-card__lang-tag" data-testid={`streaming-${spec.selectId}`}>{t('models.streaming', 'Streaming')}</span>}
               </div>
               {(() => {
                 // The active card shows the RESOLVED device as a LIVE badge (highlighted,
@@ -368,10 +356,16 @@ const NativeModelCard: React.FC<{
                 );
               })()}
               {hwGated && <span className="model-card__lang-tag">Requires GPU</span>}
-              {spec.recommended && (
+              {(asr ? asr.badge === 'recommended' : spec.recommended) && (
                 <span className="model-card__recommended-badge">
                   <Star size={10} />
                   {t('models.recommended', 'Recommended')}
+                </span>
+              )}
+              {asr?.badge === 'faster' && (
+                <span className="model-card__recommended-badge" data-testid={`faster-${spec.selectId}`}>
+                  <Zap size={10} />
+                  {t('models.faster', 'Faster')}
                 </span>
               )}
               {autoSelected && selected && (
@@ -382,9 +376,35 @@ const NativeModelCard: React.FC<{
               )}
             </div>
           </div>
-          {/* The quant-variant picker now lives in the header (VariantDropdown). */}
-
-          <div className="model-card__actions">
+          {asr && (
+            <div className="model-card__bench">
+              {asr.languages.map((language, i) => {
+                const grade = asr.facts?.grades[i]?.grade;
+                const name = languageNameFor(language);
+                return (
+                  <Tooltip key={language} position="top" icon="none" maxWidth={320}
+                    content={<GradeHelp language={name} grade={grade} error={asr.facts?.grades[i]?.error} />}>
+                    <span className="model-card__grade" data-testid={`grade-${spec.selectId}-${language}`}>
+                      <span className="model-card__grade-lang">{language.toUpperCase()}</span>
+                      <span className="model-card__grade-letter">{grade ?? '—'}</span>
+                    </span>
+                  </Tooltip>
+                );
+              })}
+              <Tooltip position="top" icon="none" maxWidth={320}
+                content={<SpeedHelp level={asr.facts?.speed} waitSeconds={asr.facts?.waitSeconds} />}>
+                <span className="model-card__speed" role="img" data-testid={`speed-${spec.selectId}`}
+                  aria-label={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured')
+                    : t('models.speedHelp.title', 'Speed: {{level}} of {{max}}', { level: asr.facts.speed, max: SPEED_METER_STEPS })}>
+                  {Array.from({ length: SPEED_METER_STEPS }, (_, n) => (
+                    <i key={n} className={n < (asr.facts?.speed ?? 0) ? 'on' : undefined} />
+                  ))}
+                </span>
+              </Tooltip>
+            </div>
+          )}
+          <div className={`model-card__actions${asr ? ' model-card__actions--aligned' : ''}`}>
+            {asr && <ActionsSizer />}
             {noDownload ? null : status === 'downloading' ? (
               <div className="model-card__progress">
                 <div className="model-card__progress-bar">
@@ -417,22 +437,37 @@ const NativeModelCard: React.FC<{
                 </button>
               </div>
             ) : (
-              <button
-                className="model-card__btn model-card__btn--download"
-                onClick={handleDownload}
-                disabled={disabled || hwGated}
-                title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
-              >
-                <Download size={14} />
-                <span>{t('models.download', 'Download')}</span>
-              </button>
+              <div className="model-card__offer">
+                <button
+                  className="model-card__btn model-card__btn--download"
+                  onClick={handleDownload}
+                  disabled={disabled || hwGated}
+                  title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
+                >
+                  <Download size={14} />
+                  <span>{t('models.download', 'Download')}</span>
+                </button>
+                {!incompatible && (
+                  <button
+                    className="model-card__btn model-card__btn--import"
+                    onClick={(e) => { e.stopPropagation(); setImportOpen(true); }}
+                    disabled={disabled || hwGated}
+                    title={t('models.importTitle', 'Import model')}
+                    aria-label={`${t('models.import', 'Import')}: ${spec.name}`}
+                  >
+                    <FolderInput size={14} />
+                    <span>{t('models.import', 'Import')}</span>
+                  </button>
+                )}
+              </div>
             )}
           </div>
-          {err && status !== 'downloading' && (
-            <div className="model-card__error-message">{err}</div>
-          )}
         </div>
       </div>
+      {err && status !== 'downloading' && (
+        // Below the row, full width: beside the info and the buttons it would push them down.
+        <div className="model-card__error-message" role="alert">{err}</div>
+      )}
       {selected && children && (
         // stopPropagation so interacting with the body (e.g. the voice picker's
         // dropdown/buttons) does not bubble to the card root's onClick and re-select.
@@ -450,6 +485,11 @@ const NativeModelCard: React.FC<{
         />
       )}
     </div>
+    {/* Beside the card, not in it, as the WASM/WebGPU engine's window is: inside, it took the card's hand cursor and its
+        clicks reached the card's own. */}
+    <NativeImportModal isOpen={importOpen} onClose={() => setImportOpen(false)}
+      modelId={spec.downloadId as string} modelName={spec.name} repo={chosenVariant?.repo} />
+    </>
   );
 };
 
@@ -474,7 +514,9 @@ export const NativeModelManagementSection: React.FC<{
   settings: NativeEngineSettings;
   update: (patch: Partial<NativeEngineSettings>) => void;
   pair: LanguagePair;
-}> = ({ isSessionActive = false, stageFilter, direction, settings, update, pair }) => {
+  /** The element id of the stage's list, for the page's jump target (`<anchor>-section`). */
+  anchorId?: string;
+}> = ({ isSessionActive = false, stageFilter, direction, settings, update, pair, anchorId }) => {
   const { t } = useTranslation();
   const catalog = useNativeCatalog();
   const statuses = useNativeModelStatuses();
@@ -522,6 +564,20 @@ export const NativeModelManagementSection: React.FC<{
     [srcLang, tgtLang, catalog]);
   const ttsCards = useMemo(() => nativeTtsCards(tgtLang, catalog), [tgtLang, catalog]);
 
+  // The languages the list speaks about, and which recognition model is the pick (Recommended) or the quick one
+  // (Faster) for them, by the catalog's method. Where the catalog picks none of the cards on offer (a language
+  // pair it has no data for) the cards keep the Recommended mark our own catalog gave them, so the list never starts
+  // out empty.
+  const asrLanguages = useMemo(() => [...new Set([srcLang, tgtLang])], [srcLang, tgtLang]);
+  const asrPicks = useMemo(() => asrRoles(asrLanguages), [asrLanguages]);
+  const asrBadge = (c: NativeModelCardSpec): AsrRole | undefined => {
+    const info = catalog[c.selectId];
+    const role = info ? roleOf(info, asrPicks) : undefined;
+    if (role) return role;
+    const anyPicked = asrCards.some((x) => { const i = catalog[x.selectId]; return i && roleOf(i, asrPicks); });
+    return !anyPicked && c.recommended ? 'recommended' : undefined;
+  };
+
   // Quant-variant data comes PRECOMPUTED from the models_catalog feed — the
   // sidecar owns the full ladder per card with machine-aware supported flags
   // and the stable recommendation; no per-card list_variants round-trips.
@@ -550,7 +606,12 @@ export const NativeModelManagementSection: React.FC<{
             unsupportedTiers: v.unsupportedTiers,
           };
         }),
-        recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
+        // A recognition model downloads the one quant its published accuracy was measured on (as Handy does), so the
+        // grade shown is the grade of the file that runs; any other model keeps the machine-aware pick of the engine.
+        recommended: (() => {
+          const measured = info.kind === 'asr' ? catalogModelFor(info)?.quant.toLowerCase() : undefined;
+          return (measured && vs.some((v) => v.id === measured) ? measured : undefined) ?? vs.find((v) => v.recommended)?.id ?? vs[0].id;
+        })(),
       };
     }
     return out;
@@ -678,12 +739,14 @@ export const NativeModelManagementSection: React.FC<{
       recommendedVariantId: vd.recommended,
       pinnedVariantId,
       onPinVariant: (id: string) => onPin?.(field, c.selectId, id),
+      statusRepo: c.downloadId ? statusRepos[c.downloadId] : undefined,
     } : undefined;
     return (
       <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
         selected={isSelected(c)} autoSelected={false} resolved={resolvedForField}
         onSelect={() => selectCard(field, c.selectId)}
-        variantProps={vProps}>
+        variantProps={vProps}
+        asr={field === 'asr' ? { facts: catalog[c.selectId] ? asrFacts(catalog[c.selectId], asrLanguages) : undefined, badge: asrBadge(c), languages: asrLanguages } : undefined}>
         {renderBody?.(c)}
       </NativeModelCard>
     );
@@ -719,14 +782,16 @@ export const NativeModelManagementSection: React.FC<{
     () => [...new Set(allDownloadIds.filter((id) => statuses[id] === 'ready'))],
     [allDownloadIds, statuses]);
 
-  // Lifecycle gate — all hooks above; early returns are safe here.
+  // Lifecycle gate — all hooks above; early returns are safe here. A stage of the library keeps its anchor through
+  // them: a jump to it made while the engine starts must still find where to land.
+  const stageAnchor = stageFilter ? (anchorId ?? `native-models-${stageFilter}-section`) : undefined;
   if (sidecarStatus === 'starting' || sidecarStatus === 'idle') {
-    return <div className="native-models-loading">{t('settings.localNativeStarting', 'Starting the local engine')}</div>;
+    return <div className="native-models-loading" id={stageAnchor}>{t('settings.localNativeStarting', 'Starting the local engine')}</div>;
   }
   if (sidecarStatus === 'unavailable') {
     // The runtime error (+ retry) is rendered inside EngineSection's card — an
     // engine concern belongs on the engine surface, not floating down here.
-    return null;
+    return stageAnchor ? <div id={stageAnchor} /> : null;
   }
 
   // Voice picker body for the selected TTS card, embedded via renderCards' renderBody.
@@ -749,6 +814,51 @@ export const NativeModelManagementSection: React.FC<{
       onCustomChanged={() => {}}
     />
   ) : null);
+
+  // On Local models and storage (a stage named): the same list as the WASM/WebGPU engine's — the stage's title, what is on disk
+  // and the recommended models shown, the rest folded under "N more", the models of other languages last.
+  if (stageFilter) {
+    const cfg = {
+      asr: {
+        title: t('models.page.tag.asr', 'Recognition'), cards: asrCards, selected: selectedAsr, body: undefined,
+        device: <NativeDeviceControl stage="asr" value={settings.asrDevice} onChange={(asrDevice) => update({ asrDevice })} disabled={isSessionActive} />,
+      },
+      translation: {
+        title: t('models.page.tag.translation', 'Translation'), cards: translationCards, selected: selectedTranslation, body: undefined,
+        device: <NativeDeviceControl stage="translation" value={settings.translationDevice} onChange={(translationDevice) => update({ translationDevice })} disabled={isSessionActive} />,
+      },
+      tts: {
+        title: t('models.page.tag.tts', 'Speech'), cards: ttsCards, selected: selectedTts, body: renderTtsBody,
+        device: <NativeDeviceControl stage="tts" value={settings.ttsDevice} onChange={(ttsDevice) => update({ ttsDevice })} disabled={isSessionActive} />,
+      },
+    }[stageFilter];
+    const card = (c: NativeModelCardSpec) => (
+      <div key={c.selectId || 'auto'} className="models-card">
+        {renderCard(c, stageFilter, (x) => cfg.selected === x.selectId, variantData, handlePinVariant, cfg.body)}
+      </div>
+    );
+    const onDisk = (c: NativeModelCardSpec) => !!c.downloadId && statuses[c.downloadId] === 'ready';
+    const isShown = (c: NativeModelCardSpec) => onDisk(c) || (stageFilter === 'asr' ? !!asrBadge(c) : !!c.recommended) || cfg.selected === c.selectId;
+    const incompatible = stageFilter === 'asr' ? asrIncompatibleCards : [];
+    return (
+      <ModelStageList title={cfg.title} id={anchorId ?? `native-models-${stageFilter}-section`} header={cfg.device}
+        shown={cfg.cards.filter(isShown).map(card)} rest={cfg.cards.filter((c) => !isShown(c)).map(card)}
+        others={incompatible.map((c) => (
+          <div key={c.selectId} className="models-card">
+            <NativeModelCard spec={c} disabled={isSessionActive} incompatible
+              selected={selectedAsr === c.selectId} autoSelected={false}
+              onSelect={() => selectCard('asr', c.selectId)} />
+            {onDisk(c) && (
+              <div className="model-card__available-when-lang">
+                {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
+                  lang: (c.languages || []).map((l) => languageNameFor(l)).join(', '),
+                })}
+              </div>
+            )}
+          </div>
+        ))} />
+    );
+  }
 
   return (
     // See ModelManagementSection's identical comment: the Library push
@@ -830,7 +940,7 @@ export const NativeModelManagementSection: React.FC<{
         </ModelGroup>
       )}
 
-      {/* The Models and storage page owns Clear-all now — this duplicate footer only
+      {/* The Local models and storage page owns Clear-all now — this duplicate footer only
           belongs on the standalone (prop-less stageFilter) render; the Library
           push is already scoped to one stage and its gating differs. */}
       {!stageFilter && (

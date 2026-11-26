@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "本機",
+      "nameWithNative": "本機 (WASM/WebGPU)",
       "description": "模型下載到這台電腦後就能用，第一次要連網下載（數 GB）。",
       "modelAsr": "ASR",
       "modelTranslation": "翻譯",
@@ -600,7 +601,7 @@
       "note": "免費 · 不連網"
     },
     "local_native": {
-      "name": "免費 (Native)",
+      "name": "本機 (Native)",
       "description": "免費語音辨識（ASR）+ 翻譯 + 語音合成（TTS）"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "記憶體",
     "hwSize": "模型大小",
     "hwRepo": "倉庫",
-    "computeDevice": "運算裝置",
+    "computeDevice": "硬體加速",
     "computeDeviceTooltip": "決定由哪個裝置執行語音模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：在 Windows 與 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "computeDeviceTooltipTranslation": "決定由哪個裝置執行翻譯模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：在 Windows 與 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "computeDeviceTooltipTts": "決定由哪個裝置執行語音合成模型。自動：選擇可用的最快裝置（有 GPU 時使用 GPU）；CPU：任何環境都能執行，但大型模型較慢；GPU：在 Windows 與 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
@@ -1016,8 +1017,63 @@
       "engineHint": "早期版本為在本機執行模型而下載的桌面引擎。現在的「本機」服務不再使用它，移除即可釋放空間。",
       "remove": "移除",
       "engineConfirm": "移除本機引擎？",
-      "engineFrees": "可釋放 {{size}}。"
-    }
+      "engineFrees": "可釋放 {{size}}。",
+      "nativeTab": "原生引擎",
+      "webgpuTab": "WASM/WebGPU 引擎",
+      "webgpuTitle": "WASM/WebGPU 引擎",
+      "nativeHint": "隨應用程式附帶，在這台電腦上執行。",
+      "engineHintNative": "原生模型所執行的引擎。",
+      "tabMeta": "已下載 {{count}} 個，{{size}}",
+      "tabNone": "尚未下載",
+      "tabs": "引擎",
+      "toHelpers": "輔助模型",
+      "downloadedChoose": "已下載。請在「語言與工作階段組成」中選擇它，即可在工作階段中使用。",
+      "goChoose": "選擇",
+      "dismiss": "關閉",
+      "webgpuHintNamed": "在應用程式自己的視窗中執行，有 GPU 時會使用。在「語言與工作階段組成」中設為「{{provider}}」的階段，會使用在此下載的模型。",
+      "otherDirection": "目前顯示 {{from}} → {{to}} 的模型，也就是你剛才所在的方向。",
+      "showDirection": "顯示 {{from}} → {{to}}"
+    },
+    "streaming": "串流",
+    "faster": "較快",
+    "gradeNone": "尚未測量{{language}}的準確度",
+    "speedNone": "尚未測量速度",
+    "gradeHelp": {
+      "title": "{{language}}的準確度：{{grade}}",
+      "measured": "測得的錯誤率：{{error}}%",
+      "below": "低於 {{to}}%",
+      "band": "{{from}}%–{{to}}%",
+      "above": "{{from}}% 以上",
+      "subGrades": "A、B、C 各再分三檔：{{plus}} 是 {{a}}%–{{b}}%，{{plain}} 是 {{b}}%–{{c}}%，{{minus}} 是 {{c}}%–{{d}}%。",
+      "method": "錯誤率是模型在 FLEURS 測試錄音上說錯的比例，在模型的 Q8_0 版本上測得。你自己的聲音、麥克風和雜訊會影響實際結果。"
+    },
+    "speedHelp": {
+      "title": "速度：{{max}} 格中的 {{level}} 格",
+      "measured": "測得：處理 30 秒錄音用了 {{seconds}} 秒",
+      "within": "{{seconds}} 秒內",
+      "over": "超過 {{seconds}} 秒",
+      "method": "模型在評測用的電腦（一台 AMD Ryzen 4750U 筆電，使用它的 GPU）上處理一段 30 秒錄音所用的時間。你的電腦可能更快或更慢。"
+    },
+    "importError": {
+      "import_missing": "缺少這些檔案：{{names}}。請下載後再匯入。",
+      "import_not_gguf": "{{name}} 不是 GGUF 模型檔案。",
+      "import_unreadable": "{{name}} 無法讀取，或是空的。",
+      "import_mismatch": "{{name}} 不是已發布的檔案（其 sha256 開頭為 {{got}}，應為 {{expected}}）。請重新下載。",
+      "import_not_importable": "這個模型無法手動匯入。",
+      "import_failed": "匯入失敗。"
+    },
+    "importDropSubFile": "請選擇已下載的檔案，並保持檔名不變。",
+    "importNoPath": "無法讀取所選檔案的位置。請使用檔案選擇器重新選擇檔案。",
+    "importReason": {
+      "html": "收到的是 HTML 網頁而非檔案內容（很可能是 404 或 CDN 錯誤）",
+      "size": "大小不符：應約為 {{expected}} 位元組，實際為 {{got}} 位元組",
+      "magic_wasm": "缺少 WASM 檔案標頭識別碼",
+      "magic_onnx": "缺少 protobuf 檔案標頭",
+      "json": "內容不是有效的 JSON",
+      "empty": "檔案是空的",
+      "invalid": "無效"
+    },
+    "importNeedAll": "仍缺少 {{count}} 個 — 請加入所有檔案，才能匯入模型。"
   },
   "notes": {
     "stageAsr": "語音辨識",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "不限用途",
       "anyStyle": "不限風格"
-    }
+    },
+    "noneChosen": "尚未選擇語音",
+    "defaultVoice": "預設聲音"
   },
   "echoNotice": {
     "ttsEcho": "您的喇叭正把 Sokuji 的翻譯語音送回麥克風。",
@@ -1438,7 +1496,7 @@
       "createAccount": "註冊",
       "signedIn": "已登入，可以繼續。",
       "managedDesc": "使用電子郵件註冊，並在收件匣完成驗證；驗證後的帳戶會取得試用額度。之後您可以儲值餘額，僅需為實際用量付費。",
-      "offlineNotice": "辨識模型在設定完成後從「設定 → 模型與儲存空間」下載。翻譯用必應、語音用 Edge，不用下載，也不用帳號；要翻譯的文字和要唸的譯文會傳給微軟。",
+      "offlineNotice": "辨識模型在設定完成後從「設定 → 本機模型與儲存空間」下載。翻譯用必應、語音用 Edge，不用下載，也不用帳號；要翻譯的文字和要唸的譯文會傳給微軟。",
       "pendingKey": "您可以稍後在「設定 → 帳號與金鑰」新增金鑰。金鑰通過驗證前，「開始」會保持鎖定。",
       "pendingSignIn": "您可以稍後從帳戶按鈕登入。在那之前，「開始」會保持鎖定。",
       "ownKeyDesc": "此金鑰只會儲存在這台裝置上，應用程式會直接從這裡呼叫該提供商 — 不會經過 Kizuna AI。您依實際用量直接付費給該提供商。",
@@ -1812,7 +1870,7 @@
       "lineup": "語言與工作階段組成",
       "words": "詞表與背景",
       "accounts": "帳號與金鑰",
-      "models": "模型與儲存空間",
+      "models": "本機模型與儲存空間",
       "audio": "音訊",
       "display": "顯示",
       "history": "歷史與紀要",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "已登入，餘額 {{amount}}",
       "localModels": "在這台電腦上執行；已下載 {{count}} 個模型，共 {{size}}",
       "localNone": "在這台電腦上執行；還沒有下載模型",
+      "localNative": "原生引擎，支援更多辨識模型，效能更好。在這台電腦上執行，無需雲端金鑰",
+      "localWebgpu": "與瀏覽器擴充功能共用同一個引擎，因此速度沒那麼快。在這台電腦上執行，無需雲端金鑰",
       "soniox": {
         "save": "儲存並辨識區域",
         "finding": "正在辨識這個金鑰屬於哪個區域…",

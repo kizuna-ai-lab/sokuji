@@ -101,4 +101,37 @@ describe('NativeModelClient', () => {
     conn.emit({ type: 'list_tts_voices_result', id: conn.sent[0].id, voices: [] });
     await expect(p).resolves.toEqual([]);
   });
+
+  it('importFiles() sends model_import with the chosen paths and the variant repo, then resolves like a download', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeModelClient(conn);
+    const progress: number[] = [];
+    const p = c.importFiles('sense-voice', ['/home/me/a.gguf'], (pr) => progress.push(pr.downloaded), 'org/repo/a.gguf');
+    await tick();
+    expect(conn.sent[0]).toMatchObject({ type: 'model_import', model: 'sense-voice', paths: ['/home/me/a.gguf'], repo: 'org/repo/a.gguf' });
+    conn.emit({ type: 'model_progress', model: 'sense-voice', downloaded: 10, total: 20 });
+    conn.emit({ type: 'model_download_done', model: 'sense-voice', status: 'ready' });
+    await expect(p).resolves.toBe('ready');
+    expect(progress).toEqual([10]);
+  });
+
+  it('importFiles() rejects with the engine\'s sentence when a file is refused', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeModelClient(conn);
+    const p = c.importFiles('sense-voice', ['/x/b.gguf']);
+    await tick();
+    conn.emit({ type: 'error', model: 'sense-voice', message: 'missing: a.gguf' });
+    await expect(p).rejects.toThrow('missing: a.gguf');
+  });
+
+  it('files() asks model_files and returns where each file is published', async () => {
+    const conn = new FakeSidecarConnection();
+    const c = new NativeModelClient(conn);
+    const p = c.files('sense-voice', 'org/repo/a.gguf');
+    const sent = conn.sent[0];
+    expect(sent).toMatchObject({ type: 'model_files', model: 'sense-voice', repo: 'org/repo/a.gguf' });
+    const files = [{ repo: 'org/repo', file: 'a.gguf', url: 'https://huggingface.co/org/repo/resolve/main/a.gguf' }];
+    conn.emit({ type: 'model_files_result', id: sent.id, model: 'sense-voice', files });
+    await expect(p).resolves.toEqual(files);
+  });
 });

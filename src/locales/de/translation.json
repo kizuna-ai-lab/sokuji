@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Dieses Gerät",
+      "nameWithNative": "Dieses Gerät (WASM/WebGPU)",
       "description": "Funktioniert, sobald die Modelle auf diesen Computer heruntergeladen sind; beim ersten Mal sind einige GB herunterzuladen.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Kostenlos · offline"
     },
     "local_native": {
-      "name": "Kostenlos (Native)",
+      "name": "Dieses Gerät (Native)",
       "description": "Kostenlose Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Speicher",
     "hwSize": "Größe",
     "hwRepo": "Repo",
-    "computeDevice": "Recheneinheit",
+    "computeDevice": "Hardwarebeschleunigung",
     "computeDeviceTooltip": "Legt fest, welches Gerät das Spracherkennungsmodell ausführt. Auto wählt das schnellste verfügbare Gerät (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU nutzt Vulkan unter Windows und Linux sowie Metal auf Apple-Silicon-Geräten.",
     "computeDeviceTooltipTranslation": "Legt fest, welches Gerät das Übersetzungsmodell ausführt. Auto wählt das schnellste verfügbare Gerät (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU nutzt Vulkan unter Windows und Linux sowie Metal auf Apple-Silicon-Geräten.",
     "computeDeviceTooltipTts": "Legt fest, welches Gerät das Sprachsynthesemodell ausführt. Auto wählt das schnellste verfügbare Gerät (GPU, falls vorhanden); CPU funktioniert überall, ist aber bei großen Modellen langsamer; GPU nutzt Vulkan unter Windows und Linux sowie Metal auf Apple-Silicon-Geräten.",
@@ -1016,8 +1017,63 @@
       "engineHint": "Die Desktop-Engine, die frühere Versionen heruntergeladen haben, um Modelle auf diesem Computer auszuführen. Der Dienst „Dieses Gerät“ nutzt sie nicht mehr; entfernen Sie sie, um Speicherplatz freizugeben.",
       "remove": "Entfernen",
       "engineConfirm": "Lokale Engine entfernen?",
-      "engineFrees": "Gibt {{size}} frei."
-    }
+      "engineFrees": "Gibt {{size}} frei.",
+      "nativeTab": "Native Engine",
+      "webgpuTab": "WASM/WebGPU-Engine",
+      "webgpuTitle": "WASM/WebGPU-Engine",
+      "nativeHint": "Wird mit der App geliefert und läuft auf diesem Computer.",
+      "engineHintNative": "Die Engine, auf der die nativen Modelle laufen.",
+      "tabMeta": "{{count}} heruntergeladen, {{size}}",
+      "tabNone": "Nichts heruntergeladen",
+      "tabs": "Engine",
+      "toHelpers": "Hilfsmodelle",
+      "downloadedChoose": "Heruntergeladen. Unter „Sprachen und Aufstellung“ auswählen, um es in einer Sitzung zu verwenden.",
+      "goChoose": "Auswählen",
+      "dismiss": "Ausblenden",
+      "webgpuHintNamed": "Läuft im eigenen Fenster der App und nutzt die GPU, sofern vorhanden. Stufen, die unter „Sprachen und Aufstellung“ auf „{{provider}}“ gestellt sind, verwenden die hier heruntergeladenen Modelle.",
+      "otherDirection": "Angezeigt werden die Modelle für {{from}} → {{to}} – die Richtung, von der aus diese Seite geöffnet wurde.",
+      "showDirection": "{{from}} → {{to}} anzeigen"
+    },
+    "streaming": "Streaming",
+    "faster": "Schneller",
+    "gradeNone": "Genauigkeit für {{language}} wurde nicht gemessen",
+    "speedNone": "Geschwindigkeit wurde nicht gemessen",
+    "gradeHelp": {
+      "title": "Genauigkeit für {{language}}: {{grade}}",
+      "measured": "Gemessene Fehlerquote: {{error}} %",
+      "below": "unter {{to}} %",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}} % oder mehr",
+      "subGrades": "A, B und C sind jeweils in drei Stufen unterteilt: {{plus}} entspricht {{a}}–{{b}} %, {{plain}} {{b}}–{{c}} %, {{minus}} {{c}}–{{d}} %.",
+      "method": "Die Fehlerquote ist der Anteil der Sprache, den das Modell bei den FLEURS-Testaufnahmen falsch erkennt, gemessen an der Q8_0-Version des Modells. Ihre eigene Stimme, Ihr Mikrofon und Störgeräusche verändern das Ergebnis."
+    },
+    "speedHelp": {
+      "title": "Geschwindigkeit: {{level}} von {{max}}",
+      "measured": "Gemessen: {{seconds}} s für die Verarbeitung der 30-Sekunden-Aufnahme",
+      "within": "innerhalb von {{seconds}} s",
+      "over": "über {{seconds}} s",
+      "method": "Die Zeit, die das Modell auf dem Testrechner des Katalogs (ein Laptop mit AMD Ryzen 4750U, unter Nutzung seiner GPU) für die Verarbeitung einer 30-Sekunden-Aufnahme braucht. Ihr Computer kann schneller oder langsamer sein."
+    },
+    "importError": {
+      "import_missing": "Diese Dateien fehlen: {{names}}. Laden Sie sie herunter und importieren Sie dann erneut.",
+      "import_not_gguf": "{{name}} ist keine GGUF-Modelldatei.",
+      "import_unreadable": "{{name}} kann nicht gelesen werden oder ist leer.",
+      "import_mismatch": "{{name}} ist nicht die veröffentlichte Datei (ihr sha256 beginnt mit {{got}}, erwartet wurde {{expected}}). Laden Sie sie erneut herunter.",
+      "import_not_importable": "Dieses Modell kann nicht manuell importiert werden.",
+      "import_failed": "Der Import ist fehlgeschlagen."
+    },
+    "importDropSubFile": "Die heruntergeladenen Dateien wählen. Dateinamen unverändert lassen.",
+    "importNoPath": "Der Speicherort einer gewählten Datei konnte nicht gelesen werden. Die Datei erneut über die Dateiauswahl wählen.",
+    "importReason": {
+      "html": "HTML statt des erwarteten Inhalts erhalten (wahrscheinlich 404- oder CDN-Fehler)",
+      "size": "Größe stimmt nicht: erwartet ca. {{expected}} Byte, erhalten {{got}} Byte",
+      "magic_wasm": "WASM-Magic-Number fehlt",
+      "magic_onnx": "protobuf-Präfix fehlt",
+      "json": "Inhalt ist kein gültiges JSON",
+      "empty": "Die Datei ist leer",
+      "invalid": "ungültig"
+    },
+    "importNeedAll": "{{count}} fehlen noch — alle Dateien hinzufügen, um das Modell zu importieren."
   },
   "notes": {
     "stageAsr": "Spracherkennung",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Beliebiger Anwendungsfall",
       "anyStyle": "Beliebiger Stil"
-    }
+    },
+    "noneChosen": "Keine Stimme gewählt",
+    "defaultVoice": "Standardstimme"
   },
   "echoNotice": {
     "ttsEcho": "Ihre Lautsprecher speisen Sokujis übersetzte Sprache zurück ins Mikrofon.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Konto erstellen",
       "signedIn": "Angemeldet. Sie können fortfahren.",
       "managedDesc": "Registrieren Sie sich mit Ihrer E-Mail-Adresse und bestätigen Sie sie über Ihren Posteingang; bestätigte Konten erhalten ein Testguthaben. Danach laden Sie Ihr Guthaben auf und zahlen nur für das, was Sie nutzen.",
-      "offlineNotice": "Das Erkennungsmodell wird nach der Einrichtung unter Einstellungen → Modelle und Speicher heruntergeladen. Die Übersetzung nutzt Bing und die Sprachausgabe Edge: nichts herunterzuladen, kein Konto; der zu übersetzende Text und die vorzulesende Übersetzung gehen an Microsoft.",
+      "offlineNotice": "Das Erkennungsmodell wird nach der Einrichtung unter Einstellungen → Lokale Modelle und Speicher heruntergeladen. Die Übersetzung nutzt Bing und die Sprachausgabe Edge: nichts herunterzuladen, kein Konto; der zu übersetzende Text und die vorzulesende Übersetzung gehen an Microsoft.",
       "pendingKey": "Den Schlüssel können Sie später unter Einstellungen → Konten und Schlüssel hinzufügen. Starten bleibt gesperrt, bis er geprüft ist.",
       "pendingSignIn": "Sie können sich später über die Konto-Schaltfläche anmelden. \"Starten\" bleibt bis dahin gesperrt.",
       "ownKeyDesc": "Dieser Schlüssel wird nur auf diesem Gerät gespeichert, und die App ruft den Anbieter direkt von hier aus auf — er erreicht Kizuna AI nie. Sie bezahlen den Anbieter für das, was Sie nutzen.",
@@ -1812,7 +1870,7 @@
       "lineup": "Sprachen und Aufstellung",
       "words": "Wortliste und Hintergrund",
       "accounts": "Konten und Schlüssel",
-      "models": "Modelle und Speicher",
+      "models": "Lokale Modelle und Speicher",
       "audio": "Audio",
       "display": "Anzeige",
       "history": "Verlauf und Notizen",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Angemeldet; Guthaben {{amount}}",
       "localModels": "Läuft auf diesem Computer; {{count}} Modelle geladen, zusammen {{size}}",
       "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen",
+      "localNative": "Native Engine, unterstützt mehr Erkennungsmodelle und bietet bessere Leistung. Läuft auf diesem Computer; kein Cloud-Schlüssel nötig",
+      "localWebgpu": "Teilt sich eine Engine mit der Browser-Erweiterung und ist daher nicht so schnell. Läuft auf diesem Computer; kein Cloud-Schlüssel nötig",
       "soniox": {
         "save": "Speichern und Region finden",
         "finding": "Region dieses Schlüssels wird ermittelt …",

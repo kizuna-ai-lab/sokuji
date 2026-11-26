@@ -324,6 +324,15 @@ describe('models_catalog (basics)', () => {
     expect(byId['sense-voice'].sizeBytes).toBe(252684608);
   });
 
+  // Review on #888: only speech models carried `streaming`, so no recognition card could show its Streaming tag.
+  it('says which recognition models stream: those run by the streaming backend', async () => {
+    probeWith({ kinds: ['cpu'], installed: new Set(['native_asr', 'native_asr_stream']) });
+    const reply = await call('models_catalog', { id: 5 });
+    const byId = Object.fromEntries((reply.models as Array<Record<string, any>>).map((m) => [m.id, m]));
+    expect(byId['moonshine-streaming-medium'].streaming).toBe(true);
+    expect(byId['sense-voice'].streaming).toBe(false);
+  });
+
   it('a filter narrows the results', async () => {
     probeWith({ installed: new Set(['ctranslate2', 'sherpa']) });
     const reply = await call('models_catalog', { id: 4, models: ['sense-voice'] });

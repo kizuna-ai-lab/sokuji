@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AUTO } from '../../lib/provider/languages';
-import { LOCAL_NATIVE_DEFAULTS, localNativeLanguages } from './settings';
+import { LOCAL_NATIVE_DEFAULTS, localNativeLanguages, migrateLocalNativeSettings } from './settings';
 
 describe('Local Native settings', () => {
   // The old slice's fields (`LocalNativeProviderConfig.ts`, `defaultLocalNativeSettings`),
@@ -33,5 +33,17 @@ describe('Local Native settings', () => {
       expect(targets, source).not.toContain(source);
     }
     expect(localNativeLanguages.initial?.(LOCAL_NATIVE_DEFAULTS)).toEqual({ source: 'ja', target: 'en' });
+  });
+
+  // A device stored by an earlier build may be a value this version no longer has ('cuda' before it was renamed,
+  // anything else a test build wrote): read as what it meant, never handed on as is (the slot badge threw on it).
+  it('reads a stored compute device it does not know as gpu (cuda) or auto, and leaves the known ones', () => {
+    const stored = { ...LOCAL_NATIVE_DEFAULTS, asrDevice: 'cuda', translationDevice: 'vulkan', ttsDevice: undefined } as Record<string, unknown>;
+    const out = migrateLocalNativeSettings(stored);
+    expect(out.asrDevice).toBe('gpu');
+    expect(out.translationDevice).toBe('auto');
+    expect(out.ttsDevice).toBe('auto');
+    expect(migrateLocalNativeSettings({ ...LOCAL_NATIVE_DEFAULTS, asrDevice: 'cpu', translationDevice: 'gpu' })).toEqual(
+      { ...LOCAL_NATIVE_DEFAULTS, asrDevice: 'cpu', translationDevice: 'gpu' });
   });
 });

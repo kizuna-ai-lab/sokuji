@@ -40,6 +40,7 @@ vi.mock('../../../lib/local-inference/modelFileValidation', () => ({
   validateModelFile: vi.fn(async () => {}),
   ModelFileValidationError: class extends Error {},
 }));
+import { validateModelFile } from '../../../lib/local-inference/modelFileValidation';
 
 import { ModelImportModal } from './ModelImportModal';
 
@@ -105,6 +106,25 @@ describe('ModelImportModal', () => {
     });
 
     await waitFor(() => expect(screen.getByText('2 / 2')).toBeInTheDocument());
+  });
+
+  // Review on #888: a file picked again under the same name replaces the first, but the first one's check still ran and,
+  // finishing last, put its verdict on the file now picked.
+  it('keeps the verdict of the file picked last, not of the one it replaced', async () => {
+    let refuseFirst!: () => void;
+    vi.mocked(validateModelFile)
+      .mockImplementationOnce(() => new Promise((_resolve, reject) => { refuseFirst = () => reject(new Error('bad')); }))
+      .mockImplementationOnce(async () => {});
+    const { container } = render(<ModelImportModal isOpen modelId="voxtral-mini-4b-webgpu" modelName="Voxtral" onClose={() => {}} />);
+    await screen.findByText('config.json');
+    const inputs = container.querySelectorAll('input[type="file"]');
+    const filesInput = inputs[inputs.length - 1] as HTMLInputElement;
+    fireEvent.change(filesInput, { target: { files: [new File([new Uint8Array([0x00])], 'config.json')] } });
+    fireEvent.change(filesInput, { target: { files: [new File([new Uint8Array([0x7b])], 'config.json')] } });
+    await waitFor(() => expect(screen.getByRole('button', { name: /Import 1 now/ })).toBeEnabled());
+    await act(async () => { refuseFirst(); });
+    expect(screen.getByRole('button', { name: /Import 1 now/ })).toBeEnabled();
+    expect(screen.queryByText('Replace the invalid file(s) and re-add.')).toBeNull();
   });
 
   it('closes on Escape', async () => {

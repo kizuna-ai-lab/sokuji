@@ -157,6 +157,28 @@ describe('NativeVoiceSection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  // Sophie on #888: Pocket TTS showed "No voice chosen" while the engine speaks with its first preset; MOSS-TTS-Nano
+  // speaks with its own voice too. Only a model that cannot speak without a voice says nothing is chosen.
+  it('says Default voice when nothing is chosen and the model speaks without one, No voice chosen when it cannot', () => {
+    const { unmount } = render(<NativeVoiceSection {...baseProps} capability={{ builtin: 'named', custom: 'none' }} builtinVoices={[]}
+      store={null} selected="" />);
+    expect(screen.getByText('Default voice')).toBeInTheDocument();
+    unmount();
+    render(<NativeVoiceSection {...baseProps} capability={{ builtin: 'none', custom: 'clip', required: true }} builtinVoices={[]}
+      store={makeClipStore()} selected="" />);
+    expect(screen.getByText('No voice chosen')).toBeInTheDocument();
+    expect(screen.queryByText('Default voice')).toBeNull();
+  });
+
+  // Review on #888: with the model not downloaded its voice list is empty, so a saved preset matched nothing and the
+  // picker said "Default voice" while the setting still named that preset. Only an empty choice is the default.
+  it('names a saved preset the list does not hold yet, instead of calling it the default', () => {
+    render(<NativeVoiceSection {...baseProps} capability={{ builtin: 'named', custom: 'none' }} builtinVoices={[]}
+      store={null} selected="builtin:Ava" />);
+    expect(screen.getByText('Ava')).toBeInTheDocument();
+    expect(screen.queryByText('Default voice')).toBeNull();
+  });
+
   it('lists builtin voices and writes ttsVoice on select', async () => {
     const store = makeClipStore();
     const onSelect = vi.fn();

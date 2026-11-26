@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Peranti ini",
+      "nameWithNative": "Peranti ini (WASM/WebGPU)",
       "description": "Berfungsi selepas model dimuat turun ke komputer ini; kali pertama perlu memuat turun beberapa GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Percuma · luar talian"
     },
     "local_native": {
-      "name": "Percuma (Native)",
+      "name": "Peranti ini (Native)",
       "description": "Pengecaman pertuturan percuma (ASR) + Terjemahan + Sintesis pertuturan (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Memori",
     "hwSize": "Saiz",
     "hwRepo": "Repo",
-    "computeDevice": "Peranti pengiraan",
+    "computeDevice": "Pecutan perkakasan",
     "computeDeviceTooltip": "Peranti yang menjalankan model pertuturan. Auto memilih peranti terpantas yang tersedia (GPU jika ada); CPU berfungsi di mana-mana tetapi lebih perlahan untuk model besar; GPU menggunakan Vulkan pada Windows dan Linux, serta Metal pada Apple silicon.",
     "computeDeviceTooltipTranslation": "Peranti yang menjalankan model terjemahan. Auto memilih peranti terpantas yang tersedia (GPU jika ada); CPU berfungsi di mana-mana tetapi lebih perlahan untuk model besar; GPU menggunakan Vulkan pada Windows dan Linux, serta Metal pada Apple silicon.",
     "computeDeviceTooltipTts": "Peranti yang menjalankan model sintesis pertuturan. Auto memilih peranti terpantas yang tersedia (GPU jika ada); CPU berfungsi di mana-mana tetapi lebih perlahan untuk model besar; GPU menggunakan Vulkan pada Windows dan Linux, serta Metal pada Apple silicon.",
@@ -1016,8 +1017,63 @@
       "engineHint": "Enjin desktop yang dimuat turun oleh versi terdahulu untuk menjalankan model pada komputer ini. Perkhidmatan “Peranti ini” tidak lagi menggunakannya; alih keluar untuk mengosongkan ruang.",
       "remove": "Alih keluar",
       "engineConfirm": "Alih keluar enjin setempat?",
-      "engineFrees": "Mengosongkan {{size}}."
-    }
+      "engineFrees": "Mengosongkan {{size}}.",
+      "nativeTab": "Enjin natif",
+      "webgpuTab": "Enjin WASM/WebGPU",
+      "webgpuTitle": "Enjin WASM/WebGPU",
+      "nativeHint": "Disertakan bersama aplikasi dan dijalankan pada komputer ini.",
+      "engineHintNative": "Enjin tempat model natif dijalankan.",
+      "tabMeta": "{{count}} dimuat turun, {{size}}",
+      "tabNone": "Tiada yang dimuat turun",
+      "tabs": "Enjin",
+      "toHelpers": "Model pembantu",
+      "downloadedChoose": "Dimuat turun. Pilih dalam “Bahasa dan susunan” untuk menggunakannya dalam sesi.",
+      "goChoose": "Pilih",
+      "dismiss": "Ketepikan",
+      "webgpuHintNamed": "Dijalankan dalam tetingkap aplikasi itu sendiri dan menggunakan GPU jika ada. Peringkat yang ditetapkan kepada “{{provider}}” dalam “Bahasa dan susunan” menggunakan model yang dimuat turun di sini.",
+      "otherDirection": "Memaparkan model untuk {{from}} → {{to}}, arah asal anda datang.",
+      "showDirection": "Papar {{from}} → {{to}}"
+    },
+    "streaming": "Penstriman",
+    "faster": "Lebih pantas",
+    "gradeNone": "Ketepatan dalam {{language}} tidak diukur",
+    "speedNone": "Kelajuan tidak diukur",
+    "gradeHelp": {
+      "title": "Ketepatan dalam {{language}}: {{grade}}",
+      "measured": "Kadar ralat yang diukur: {{error}}%",
+      "below": "di bawah {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% atau lebih",
+      "subGrades": "A, B dan C masing-masing dibahagikan kepada tiga: {{plus}} ialah {{a}}–{{b}}%, {{plain}} {{b}}–{{c}}%, {{minus}} {{c}}–{{d}}%.",
+      "method": "Kadar ralat ialah bahagian pertuturan yang tersilap dikenali oleh model pada rakaman ujian FLEURS, diukur pada versi Q8_0 model itu. Suara, mikrofon dan bunyi bising anda sendiri akan mengubah keputusan."
+    },
+    "speedHelp": {
+      "title": "Kelajuan: {{level}} daripada {{max}}",
+      "measured": "Diukur: {{seconds}} s untuk memproses rakaman 30 saat",
+      "within": "dalam {{seconds}} s",
+      "over": "melebihi {{seconds}} s",
+      "method": "Masa yang diambil oleh model untuk memproses rakaman 30 saat pada komputer ujian katalog (komputer riba AMD Ryzen 4750U, menggunakan GPU-nya). Komputer anda mungkin lebih pantas atau lebih perlahan."
+    },
+    "importError": {
+      "import_missing": "Fail ini tiada: {{names}}. Muat turun fail tersebut dan import semula.",
+      "import_not_gguf": "{{name}} bukan fail model GGUF.",
+      "import_unreadable": "{{name}} tidak dapat dibaca, atau kosong.",
+      "import_mismatch": "{{name}} bukan fail yang diterbitkan (sha256nya bermula dengan {{got}}, sepatutnya {{expected}}). Muat turun semula.",
+      "import_not_importable": "Model ini tidak boleh diimport secara manual.",
+      "import_failed": "Import gagal."
+    },
+    "importDropSubFile": "Pilih fail yang telah dimuat turun. Kekalkan nama fail seperti sedia ada.",
+    "importNoPath": "Lokasi fail yang dipilih tidak dapat dibaca. Pilih fail itu semula menggunakan pemilih fail.",
+    "importReason": {
+      "html": "HTML diterima dan bukannya kandungan yang dijangka (kemungkinan ralat 404 atau CDN)",
+      "size": "saiz tidak sepadan: dijangka ~{{expected}} bait, diterima {{got}} bait",
+      "magic_wasm": "nombor ajaib WASM tiada",
+      "magic_onnx": "awalan protobuf tiada",
+      "json": "kandungan bukan JSON yang sah",
+      "empty": "fail kosong",
+      "invalid": "tidak sah"
+    },
+    "importNeedAll": "{{count}} masih tiada — tambah semua fail untuk mengimport model."
   },
   "notes": {
     "stageAsr": "pengecaman suara",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Semua kegunaan",
       "anyStyle": "Semua gaya"
-    }
+    },
+    "noneChosen": "Tiada suara dipilih",
+    "defaultVoice": "Suara lalai"
   },
   "echoNotice": {
     "ttsEcho": "Pembesar suara anda memulangkan suara terjemahan Sokuji ke mikrofon.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Cipta akaun",
       "signedIn": "Log masuk berjaya. Anda boleh teruskan.",
       "managedDesc": "Daftar menggunakan alamat e-mel anda dan sahkannya melalui peti masuk anda; akaun yang disahkan mendapat kredit percubaan. Selepas itu, anda tambah nilai baki anda dan hanya membayar untuk apa yang anda gunakan.",
-      "offlineNotice": "Model pengecaman dimuat turun selepas persediaan, daripada Tetapan → Model dan storan. Terjemahan menggunakan Bing dan pertuturan menggunakan Edge: tiada apa untuk dimuat turun dan tanpa akaun; teks untuk diterjemah dan terjemahan untuk dibacakan dihantar kepada Microsoft.",
+      "offlineNotice": "Model pengecaman dimuat turun selepas persediaan, daripada Tetapan → Model setempat dan storan. Terjemahan menggunakan Bing dan pertuturan menggunakan Edge: tiada apa untuk dimuat turun dan tanpa akaun; teks untuk diterjemah dan terjemahan untuk dibacakan dihantar kepada Microsoft.",
       "pendingKey": "Anda boleh menambah kunci kemudian dalam Tetapan → Akaun dan kunci. Mula kekal dikunci sehingga kunci disahkan.",
       "pendingSignIn": "Anda boleh log masuk kemudian daripada butang Akaun. Mula kekal dikunci sehingga itu.",
       "ownKeyDesc": "Kunci ini disimpan pada peranti ini sahaja, dan aplikasi menghubungi penyedia terus dari sini — ia tidak pernah sampai ke Kizuna AI. Anda membayar penyedia untuk apa yang anda gunakan.",
@@ -1812,7 +1870,7 @@
       "lineup": "Bahasa dan susunan",
       "words": "Senarai perkataan dan latar",
       "accounts": "Akaun dan kunci",
-      "models": "Model dan storan",
+      "models": "Model setempat dan storan",
       "audio": "Audio",
       "display": "Paparan",
       "history": "Sejarah dan nota",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Telah log masuk; baki {{amount}}",
       "localModels": "Berjalan pada komputer ini; {{count}} model dimuat turun, jumlah {{size}}",
       "localNone": "Berjalan pada komputer ini; belum ada model dimuat turun",
+      "localNative": "Enjin natif, menyokong lebih banyak model pengecaman dan berprestasi lebih baik. Dijalankan pada komputer ini; tiada kunci awan diperlukan",
+      "localWebgpu": "Berkongsi satu enjin dengan sambungan pelayar, jadi tidak sepantas itu. Dijalankan pada komputer ini; tiada kunci awan diperlukan",
       "soniox": {
         "save": "Simpan dan cari rantaunya",
         "finding": "Mencari rantau kunci ini…",

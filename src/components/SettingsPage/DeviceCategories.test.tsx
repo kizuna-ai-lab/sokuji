@@ -1,4 +1,4 @@
-// "Models and storage" lists what is downloaded whatever provider is selected (PR review).
+// "Local models and storage" lists what is downloaded whatever provider is selected (PR review).
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 

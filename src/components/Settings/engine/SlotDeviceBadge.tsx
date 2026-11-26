@@ -38,7 +38,7 @@ export const BADGE_WIDTH_VAR = '--slot-badge-w';
  *
  * It shows only what tells something (the owner's pick of 2026-10-02, after
  * a device "Auto" beside the model's "Auto ·" read as the model pick not
- * taking): a pinned SETTING (CPU / GPU), amber-outlined; on Auto, the ACTUAL
+ * taking): a pinned SETTING (CPU / GPU); on Auto, the ACTUAL
  * device a run used (Vulkan / Metal / CPU). On Auto with no run it is not
  * drawn: the room the select reserves for it collapses to zero (no width is
  * published) and the description the select points at is absent.

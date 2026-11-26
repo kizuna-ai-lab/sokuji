@@ -593,6 +593,7 @@
     },
     "local_inference": {
       "name": "Perangkat ini",
+      "nameWithNative": "Perangkat ini (WASM/WebGPU)",
       "description": "Berfungsi setelah model diunduh ke komputer ini; pertama kali perlu mengunduh beberapa GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -600,7 +601,7 @@
       "note": "Gratis · offline"
     },
     "local_native": {
-      "name": "Gratis (Native)",
+      "name": "Perangkat ini (Native)",
       "description": "Pengenalan ucapan gratis (ASR) + Terjemahan + Sintesis ucapan (TTS)"
     },
     "unknown": {
@@ -949,7 +950,7 @@
     "hwMemory": "Memori",
     "hwSize": "Ukuran",
     "hwRepo": "Repo",
-    "computeDevice": "Perangkat komputasi",
+    "computeDevice": "Akselerasi perangkat keras",
     "computeDeviceTooltip": "Perangkat mana yang menjalankan model ucapan. Otomatis memilih perangkat tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU menggunakan Vulkan di Windows dan Linux, serta Metal di Apple silicon.",
     "computeDeviceTooltipTranslation": "Perangkat mana yang menjalankan model terjemahan. Otomatis memilih perangkat tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU menggunakan Vulkan di Windows dan Linux, serta Metal di Apple silicon.",
     "computeDeviceTooltipTts": "Perangkat mana yang menjalankan model sintesis ucapan. Otomatis memilih perangkat tercepat yang tersedia (GPU jika ada); CPU berfungsi di mana saja tetapi lebih lambat untuk model besar; GPU menggunakan Vulkan di Windows dan Linux, serta Metal di Apple silicon.",
@@ -1016,8 +1017,63 @@
       "engineHint": "Mesin desktop yang diunduh versi sebelumnya untuk menjalankan model di komputer ini. Layanan “Perangkat ini” tidak lagi memakainya; hapus untuk mengosongkan ruang.",
       "remove": "Hapus",
       "engineConfirm": "Hapus mesin lokal?",
-      "engineFrees": "Mengosongkan {{size}}."
-    }
+      "engineFrees": "Mengosongkan {{size}}.",
+      "nativeTab": "Mesin native",
+      "webgpuTab": "Mesin WASM/WebGPU",
+      "webgpuTitle": "Mesin WASM/WebGPU",
+      "nativeHint": "Disertakan bersama aplikasi dan berjalan di komputer ini.",
+      "engineHintNative": "Mesin tempat model native berjalan.",
+      "tabMeta": "{{count}} terunduh, {{size}}",
+      "tabNone": "Belum ada yang diunduh",
+      "tabs": "Mesin",
+      "toHelpers": "Model pembantu",
+      "downloadedChoose": "Terunduh. Pilih di “Bahasa dan susunan” untuk dipakai dalam sesi.",
+      "goChoose": "Pilih",
+      "dismiss": "Abaikan",
+      "webgpuHintNamed": "Berjalan di jendela aplikasi itu sendiri dan memakai GPU jika ada. Tahap yang diatur ke “{{provider}}” di “Bahasa dan susunan” memakai model yang diunduh di sini.",
+      "otherDirection": "Menampilkan model untuk {{from}} → {{to}}, arah asal Anda datang.",
+      "showDirection": "Tampilkan {{from}} → {{to}}"
+    },
+    "streaming": "Streaming",
+    "faster": "Lebih cepat",
+    "gradeNone": "Akurasi dalam {{language}} tidak diukur",
+    "speedNone": "Kecepatan tidak diukur",
+    "gradeHelp": {
+      "title": "Akurasi dalam {{language}}: {{grade}}",
+      "measured": "Tingkat kesalahan terukur: {{error}}%",
+      "below": "di bawah {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% atau lebih",
+      "subGrades": "A, B, dan C masing-masing dibagi menjadi tiga: {{plus}} adalah {{a}}–{{b}}%, {{plain}} {{b}}–{{c}}%, {{minus}} {{c}}–{{d}}%.",
+      "method": "Tingkat kesalahan adalah porsi ucapan yang salah dikenali model pada rekaman uji FLEURS, diukur pada versi Q8_0-nya. Suara, mikrofon, dan kebisingan Anda sendiri akan memengaruhi hasilnya."
+    },
+    "speedHelp": {
+      "title": "Kecepatan: {{level}} dari {{max}}",
+      "measured": "Terukur: {{seconds}} dtk untuk memproses rekaman 30 detik",
+      "within": "dalam {{seconds}} dtk",
+      "over": "lebih dari {{seconds}} dtk",
+      "method": "Waktu yang dibutuhkan model untuk memproses rekaman 30 detik pada komputer uji katalog (laptop AMD Ryzen 4750U, menggunakan GPU-nya). Komputer Anda mungkin lebih cepat atau lebih lambat."
+    },
+    "importError": {
+      "import_missing": "File berikut tidak ada: {{names}}. Unduh file tersebut lalu impor lagi.",
+      "import_not_gguf": "{{name}} bukan file model GGUF.",
+      "import_unreadable": "{{name}} tidak dapat dibaca, atau kosong.",
+      "import_mismatch": "{{name}} bukan file yang dipublikasikan (sha256-nya diawali {{got}}, seharusnya {{expected}}). Unduh lagi.",
+      "import_not_importable": "Model ini tidak dapat diimpor secara manual.",
+      "import_failed": "Impor gagal."
+    },
+    "importDropSubFile": "Pilih file yang sudah diunduh. Biarkan namanya apa adanya.",
+    "importNoPath": "Lokasi file yang dipilih tidak dapat dibaca. Pilih file itu lagi melalui pemilih file.",
+    "importReason": {
+      "html": "menerima HTML, bukan konten yang diharapkan (kemungkinan galat 404 atau CDN)",
+      "size": "ukuran tidak cocok: diharapkan ~{{expected}} byte, diterima {{got}} byte",
+      "magic_wasm": "angka ajaib WASM tidak ada",
+      "magic_onnx": "awalan protobuf tidak ada",
+      "json": "konten bukan JSON yang valid",
+      "empty": "file kosong",
+      "invalid": "tidak valid"
+    },
+    "importNeedAll": "{{count}} masih kurang — tambahkan semua berkas untuk mengimpor model."
   },
   "notes": {
     "stageAsr": "pengenalan suara",
@@ -1290,7 +1346,9 @@
       },
       "anyUseCase": "Semua kegunaan",
       "anyStyle": "Semua gaya"
-    }
+    },
+    "noneChosen": "Belum ada suara dipilih",
+    "defaultVoice": "Suara default"
   },
   "echoNotice": {
     "ttsEcho": "Speaker Anda mengembalikan suara terjemahan Sokuji ke mikrofon.",
@@ -1438,7 +1496,7 @@
       "createAccount": "Buat akun",
       "signedIn": "Sudah masuk. Anda dapat melanjutkan.",
       "managedDesc": "Daftar dengan alamat email Anda dan verifikasi melalui kotak masuk Anda; akun yang terverifikasi mendapat kredit uji coba. Setelah itu, Anda mengisi ulang saldo dan hanya membayar sesuai penggunaan Anda.",
-      "offlineNotice": "Model pengenalan diunduh setelah penyiapan, dari Pengaturan → Model dan penyimpanan. Terjemahan memakai Bing dan ucapan memakai Edge: tidak ada yang diunduh dan tanpa akun; teks yang diterjemahkan dan terjemahan yang dibacakan dikirim ke Microsoft.",
+      "offlineNotice": "Model pengenalan diunduh setelah penyiapan, dari Pengaturan → Model lokal dan penyimpanan. Terjemahan memakai Bing dan ucapan memakai Edge: tidak ada yang diunduh dan tanpa akun; teks yang diterjemahkan dan terjemahan yang dibacakan dikirim ke Microsoft.",
       "pendingKey": "Anda dapat menambahkan kunci nanti di Pengaturan → Akun dan kunci. Mulai tetap terkunci sampai kunci tervalidasi.",
       "pendingSignIn": "Anda dapat masuk nanti melalui tombol Akun. Mulai akan tetap terkunci sampai saat itu.",
       "ownKeyDesc": "Kunci ini hanya disimpan di perangkat ini, dan aplikasi memanggil penyedia langsung dari sini — kunci ini tidak pernah sampai ke Kizuna AI. Anda membayar penyedia sesuai penggunaan Anda.",
@@ -1812,7 +1870,7 @@
       "lineup": "Bahasa dan susunan",
       "words": "Daftar kata dan latar",
       "accounts": "Akun dan kunci",
-      "models": "Model dan penyimpanan",
+      "models": "Model lokal dan penyimpanan",
       "audio": "Audio",
       "display": "Tampilan",
       "history": "Riwayat dan catatan",
@@ -1851,6 +1909,8 @@
       "signedInBalance": "Sudah masuk; saldo {{amount}}",
       "localModels": "Berjalan di komputer ini; {{count}} model diunduh, total {{size}}",
       "localNone": "Berjalan di komputer ini; belum ada model yang diunduh",
+      "localNative": "Mesin native, mendukung lebih banyak model pengenalan dan berkinerja lebih baik. Berjalan di komputer ini; tidak perlu kunci cloud",
+      "localWebgpu": "Berbagi satu mesin dengan ekstensi peramban, sehingga tidak secepat itu. Berjalan di komputer ini; tidak perlu kunci cloud",
       "soniox": {
         "save": "Simpan dan cari wilayahnya",
         "finding": "Mencari wilayah kunci ini…",

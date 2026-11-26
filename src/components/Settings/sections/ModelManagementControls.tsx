@@ -8,9 +8,10 @@
  * Reuses the existing model-group__* / model-subgroup__* / model-management__*
  * classes (global via ModelManagementSection.scss) and i18n keys.
  */
+import './ModelManagementControls.scss';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Star, HardDrive, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, HardDrive, Trash2 } from 'lucide-react';
 
 // ─── ModelGroup (collapsible per-stage group) ────────────────────────────────
 
@@ -58,9 +59,9 @@ export const ModelGroup: React.FC<{
 // ─── Recommended / Others split ──────────────────────────────────────────────
 
 /**
- * Split a list into Recommended / Others sub-groups, rendering each item via
- * the caller's `renderItem` (so the card type stays provider-specific). Falls
- * back to a flat list when nothing is recommended.
+ * The list of cards, the recommended ones first, with no sub-heading over either part: each recommended card carries
+ * its own badge, and a heading of the same word over it said it twice (owner, 2026-11-27). Rendered through the
+ * caller's `renderItem`, so the card type stays provider-specific.
  */
 export function RecommendedOthers<T>({
   items,
@@ -71,27 +72,7 @@ export function RecommendedOthers<T>({
   isRecommended: (item: T) => boolean;
   renderItem: (item: T) => React.ReactNode;
 }): React.ReactElement {
-  const { t } = useTranslation();
-  const recommended = items.filter(isRecommended);
-  const others = items.filter((i) => !isRecommended(i));
-  if (recommended.length === 0) return <>{items.map(renderItem)}</>;
-  return (
-    <>
-      <div className="model-subgroup">
-        <div className="model-subgroup__label">
-          <Star size={11} />
-          {t('models.recommendedGroup', 'Recommended')}
-        </div>
-        {recommended.map(renderItem)}
-      </div>
-      {others.length > 0 && (
-        <div className="model-subgroup">
-          <div className="model-subgroup__label">{t('models.othersGroup', 'Other models')}</div>
-          {others.map(renderItem)}
-        </div>
-      )}
-    </>
-  );
+  return <>{[...items.filter(isRecommended), ...items.filter((i) => !isRecommended(i))].map(renderItem)}</>;
 }
 
 // ─── Storage footer (used + clear-all confirm) ───────────────────────────────

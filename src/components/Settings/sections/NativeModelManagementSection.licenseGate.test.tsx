@@ -179,6 +179,7 @@ vi.mock('../../../stores/nativeModelStore', () => {
     useNativeModelProgress: () => ({}),
     useNativeModelSizes: () => ({ ...mockSizes }),
     useNativeModelErrors: () => ({}),
+    useNativeModelErrorInfo: () => ({}),
     useNativeCatalog: () => mockCatalog,
     useNativeAsrLoading: () => false,
     useNativeAsrResolved: () => null,

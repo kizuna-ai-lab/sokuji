@@ -187,8 +187,9 @@
 
 // The per-slot compute-device badge (SlotDeviceBadge), drawn inside the
 // slot's select box: absolutely placed over the select's right end, left of
-// the caret. Not interactive — pointer events fall through to the select —
-// so no hover state; the amber outline is the only state it carries.
+// the caret. Not interactive — pointer events fall through to the select.
+// Quiet caption text like the select's other notes (owner, 2026-11-27: the
+// outlined pill, amber when pinned, stood out from the page).
 .slot-device-badge {
   position: absolute;
   top: 50%;
@@ -201,14 +202,12 @@
   line-height: 1.2;
   white-space: nowrap;
   color: vars.$text-muted;
-  border: 1px solid vars.$border-default;
-  border-radius: vars.$radius-md;
-  padding: 1px 7px;
+  padding: 1px 4px;
   pointer-events: none;
 
   b {
-    color: vars.$text-secondary;
-    font-weight: vars.$weight-semibold;
+    color: vars.$text-muted;
+    font-weight: vars.$weight-medium;
   }
 
   // "Compute device:" for assistive tech only — the select points its
@@ -224,14 +223,6 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
-  }
-
-  // Amber outline: the user pinned an explicit device for this stage,
-  // rather than leaving it on Auto.
-  &--pinned {
-    border-color: vars.$color-warning;
-
-    b { color: vars.$color-warning; }
   }
 }
 

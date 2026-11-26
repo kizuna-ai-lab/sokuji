@@ -52,12 +52,31 @@ export function resolveRevision(repo: string, revision = 'main'): string | null 
   }
 }
 
-/** The local path of `file` in the revision's snapshot, or null when it is not cached (a dangling link is not cached). */
+/**
+ * The local path of `file` in the revision's snapshot, or null when it is not cached (a dangling link is not cached).
+ * For `main`, a file its snapshot lacks is looked for in the others, newest first: files cached under an earlier commit
+ * (another card's download, an import) stay usable after `main` moves on. Only reading falls back; a download decides
+ * by the pointer under the hub's commit, so it still fetches that commit's own bytes.
+ */
 export function cachedFilePath(repo: string, file: string, revision = 'main'): string | null {
   const commit = resolveRevision(repo, revision);
-  if (commit === null) return null;
-  const p = path.join(repoDir(repo), 'snapshots', commit, ...file.split('/'));
-  return fs.existsSync(p) ? p : null;
+  const rel = file.split('/');
+  const snapshots = path.join(repoDir(repo), 'snapshots');
+  if (commit !== null) {
+    const p = path.join(snapshots, commit, ...rel);
+    if (fs.existsSync(p)) return p;
+  }
+  if (revision !== 'main') return null;
+  let others: string[];
+  try {
+    others = fs.readdirSync(snapshots).filter((c) => c !== commit);
+  } catch {
+    return null;
+  }
+  const found = others.map((c) => path.join(snapshots, c, ...rel)).filter((p) => fs.existsSync(p));
+  if (found.length === 0) return null;
+  const mtime = (p: string) => fs.lstatSync(p).mtimeMs;
+  return found.sort((a, b) => mtime(b) - mtime(a))[0];
 }
 
 /** The revision's snapshot directory, or null when the repo was never fetched. */
@@ -165,4 +184,68 @@ export function writeRef(repo: string, ref: string, commit: string): void {
     // no ref yet
   }
   if (current !== commit) fs.writeFileSync(p, commit);
+}
+
+const repoLocks = new Map<string, Promise<unknown>>();
+const queued = new Map<string, number>();
+
+/** How many callers hold or wait for `repo`'s lock: 0 when it is free. For tests, to act once a caller is queued. */
+export function repoLockQueue(repo: string): number {
+  return queued.get(repoDir(repo)) ?? 0;
+}
+
+/**
+ * Runs `fn` while no other caller holds `repo`'s lock in this engine: what goes into a repo's cache — a blob put in
+ * place or taken back, its snapshot links, `main` — is decided by one writer at a time, so an import that fails cannot
+ * take back a blob another import or a download has just started to use. In-process: the engine is the cache's one
+ * writer. A `signal` that aborts while waiting gives up the wait (the queue behind it carries on).
+ */
+export async function withRepoLock<T>(repo: string, fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  const key = repoDir(repo);
+  const before = repoLocks.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const mine = new Promise<void>((resolve) => { release = resolve; });
+  const tail = before.then(() => mine);
+  repoLocks.set(key, tail);
+  const forget = () => { if (repoLocks.get(key) === tail) repoLocks.delete(key); };
+  queued.set(key, (queued.get(key) ?? 0) + 1);
+  const leave = () => {
+    const n = (queued.get(key) ?? 1) - 1;
+    if (n > 0) queued.set(key, n);
+    else queued.delete(key);
+  };
+  try {
+    await untilFree(before, signal);
+  } catch (e) {
+    release();                       // whoever waits behind this one waits only for `before`
+    void tail.then(forget);
+    leave();
+    throw e;
+  }
+  try {
+    return await fn();
+  } finally {
+    release();
+    forget();
+    leave();
+  }
+}
+
+/** Resolves with `p`, or rejects as soon as `signal` aborts. */
+function untilFree(p: Promise<unknown>, signal?: AbortSignal): Promise<void> {
+  if (!signal) return p.then(() => undefined);
+  const reason = () => (signal.reason instanceof Error ? signal.reason : Object.assign(new Error('cancelled'), { name: 'AbortError' }));
+  if (signal.aborted) return Promise.reject(reason());
+  return new Promise<void>((resolve, reject) => {
+    const onAbort = () => reject(reason());
+    signal.addEventListener('abort', onAbort, { once: true });
+    p.then(() => { signal.removeEventListener('abort', onAbort); resolve(); });
+  });
+}
+
+/** `withRepoLock` over several repos, taken in one order so two callers never wait on each other. */
+export function withRepoLocks<T>(repos: readonly string[], fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  const sorted = [...new Set(repos)].sort();
+  const run = (i: number): Promise<T> => (i === sorted.length ? fn() : withRepoLock(sorted[i], () => run(i + 1), signal));
+  return run(0);
 }
