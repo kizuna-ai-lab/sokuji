@@ -32,7 +32,6 @@ class EngineHost {
     this.port = null;
     this.starting = null;
     this.crashes = [];
-    this.exitWaiters = [];
   }
 
   status() {
@@ -134,7 +133,7 @@ class EngineHost {
           settle(reject, new Error(`The local engine exited before it was ready (code ${code})`));
         } else if (wasCurrent && !stopping && !child.__stopRequested) this.crashes.push(this.now());
         if (child.__stopRequested) child.__stopRequested = false;
-        for (const w of this.exitWaiters.splice(0)) w();
+        for (const w of (child.__exitWaiters ?? []).splice(0)) w();   // only the waiters of this child
       });
 
       child.__markStopping = () => { stopping = true; child.__stopRequested = true; };
@@ -148,7 +147,7 @@ class EngineHost {
     return new Promise((resolve) => {
       let done = false;
       const finish = () => { if (!done) { done = true; clearTimeout(timer); resolve(); } };
-      this.exitWaiters.push(finish);
+      (child.__exitWaiters ??= []).push(finish);
       const timer = setTimeout(() => {
         try { child.kill(); } catch { /* already gone */ }
         // kill() reports through 'exit'; do not wait forever for it

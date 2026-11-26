@@ -46,7 +46,10 @@ const good = (version = VERSION) => [
   [`sokuji-native-${SKU}-v${VERSION}/NOTICES.txt`, 'notices'],
 ];
 
-describe('fetchNative', () => {
+// The tests build their archives with the system `zstd` (the app itself unpacks with the pure-JS fzstd).
+const hasZstd = (() => { try { execFileSync('zstd', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
+
+describe.skipIf(!hasZstd)('fetchNative', () => {
   let tmp, root, from, hash;
   const run = (over = {}) => fetchNative({
     root, sku: SKU, from, nativeVersion: VERSION, archives: { version: VERSION, sha256: { [SKU]: hash } }, log: () => {}, ...over,

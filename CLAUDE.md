@@ -201,7 +201,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      The app pins one in root `package.json`'s `nativeVersion` and `scripts/native-archives.json` (sha256 per SKU,
      copied from the release's `manifest.json`); a build fails on a mismatch. Order: native tag first → refresh
      `native-archives.json` and `nativeVersion` in one commit → app release. There is no separate engine
-     version. Current native version is 1.2.0 (ABI 2): ggml 0.25.3, transcribe.cpp 0.2.4, llama.cpp v0.5.0,
+     version. Current native version is 1.3.0 (ABI 2; 1.3.0 adds the Node-API addon and the app archives, the engines are 1.2.0's): ggml 0.25.3, transcribe.cpp 0.2.4, llama.cpp v0.5.0,
      audio.cpp 0.8.2-audio8-perf-hotfix; transcribe.cpp 0.2.4 turns PnC/ITN `DEFAULT` on for sensevoice/canary, so
      those two output cased, punctuated text by default (upstream #157). Windows native files ship unsigned
      (owner decision 2026-11-26; the SignPath steps in `native-build.yml` stay off until
