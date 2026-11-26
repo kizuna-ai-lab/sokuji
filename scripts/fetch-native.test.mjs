@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import zlib from 'node:zlib';
 import { join } from 'node:path';
 import { fetchNative } from './fetch-native.mjs';
 
@@ -32,10 +33,15 @@ function tarEntry(name, body, type = '0') {
 
 function makeArchive(dir, entries) {
   const tar = Buffer.concat([...entries.map(([n, b, t]) => tarEntry(n, Buffer.from(b), t)), Buffer.alloc(1024)]);
-  const tarPath = join(dir, 'a.tar');
-  writeFileSync(tarPath, tar);
-  execFileSync('zstd', ['-q', '-f', tarPath, '-o', join(dir, NAME)]);
-  rmSync(tarPath);
+  // Node's own encoder (22.15+); the system zstd stands in on an older Node, so no test depends on a hidden tool.
+  if (typeof zlib.zstdCompressSync === 'function') {
+    writeFileSync(join(dir, NAME), zlib.zstdCompressSync(tar));
+  } else {
+    const tarPath = join(dir, 'a.tar');
+    writeFileSync(tarPath, tar);
+    execFileSync('zstd', ['-q', '-f', tarPath, '-o', join(dir, NAME)]);
+    rmSync(tarPath);
+  }
   return createHash('sha256').update(readFileSync(join(dir, NAME))).digest('hex');
 }
 
@@ -46,10 +52,7 @@ const good = (version = VERSION) => [
   [`sokuji-native-${SKU}-v${VERSION}/NOTICES.txt`, 'notices'],
 ];
 
-// The tests build their archives with the system `zstd` (the app itself unpacks with the pure-JS fzstd).
-const hasZstd = (() => { try { execFileSync('zstd', ['--version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
-
-describe.skipIf(!hasZstd)('fetchNative', () => {
+describe('fetchNative', () => {
   let tmp, root, from, hash;
   const run = (over = {}) => fetchNative({
     root, sku: SKU, from, nativeVersion: VERSION, archives: { version: VERSION, sha256: { [SKU]: hash } }, log: () => {}, ...over,
