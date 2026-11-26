@@ -19,7 +19,8 @@ function realish(p) {
   const rest = [];
   for (;;) {
     try {
-      return path.join(fs.realpathSync(cur), ...rest.reverse());
+      // .native asks the OS for the spelling on disk; the JS version keeps the capitals it was given.
+      return path.join((fs.realpathSync.native || fs.realpathSync)(cur), ...rest.reverse());
     } catch {
       const parent = path.dirname(cur);
       if (parent === cur) return null;
@@ -40,16 +41,19 @@ function modelCachePaths(env) {
  * Removes the Python sidecar bundle an older build left in userData/sidecar (hundreds of MB). Never throws; models in
  * userData/hf-cache are not touched.
  */
-async function removeLegacySidecar(userDataDir, { rm = (p) => fs.promises.rm(p, { recursive: true, force: true }), log = () => {}, keep = [] } = {}) {
+async function removeLegacySidecar(userDataDir, { rm = (p) => fs.promises.rm(p, { recursive: true, force: true }), log = () => {}, keep = [], platform = process.platform } = {}) {
   const dir = path.join(userDataDir, 'sidecar');
   try {
     if (!fs.existsSync(dir)) return;
     // A model cache the user pointed inside the old tree is theirs, not the sidecar's: leave the whole tree. Compared by
     // real path (symlinks followed on both sides); a path that cannot be resolved at all counts as inside — losing models
     // is worse than keeping a few hundred MB.
-    const dirReal = realish(dir);
+    // macOS and Windows file systems ignore case by default, and a path that does not exist yet keeps the capitals it was
+    // typed with, so there both sides are compared in lower case.
+    const fold = (p) => (p !== null && (platform === 'darwin' || platform === 'win32') ? p.toLowerCase() : p);
+    const dirReal = fold(realish(dir));
     const inside = keep.filter(Boolean).find((k) => {
-      const r = realish(k);
+      const r = fold(realish(k));
       return dirReal === null || r === null || r === dirReal || r.startsWith(dirReal + path.sep);
     });
     if (inside) {

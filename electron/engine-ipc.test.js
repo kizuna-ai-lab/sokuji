@@ -163,6 +163,25 @@ describe('removeLegacySidecar', () => {
     fs.rmSync(ud, { recursive: true, force: true });
   });
 
+  it.each(['darwin', 'win32'])('on %s, whose file systems ignore case, a cache named with other capitals is still inside', async (platform) => {
+    const ud = tmp();
+    const cache = path.join(ud, 'sidecar', 'model-cache');
+    fs.mkdirSync(cache, { recursive: true });
+    fs.writeFileSync(path.join(cache, 'model'), 'm');
+    const differentCase = path.join(ud, 'SIDECAR', 'Model-Cache');
+    await removeLegacySidecar(ud, { log: vi.fn(), keep: [differentCase], platform });
+    expect(fs.existsSync(path.join(cache, 'model'))).toBe(true);
+    fs.rmSync(ud, { recursive: true, force: true });
+  });
+
+  it('on linux, where case matters, a differently capitalised path is another folder', async () => {
+    const ud = tmp();
+    fs.mkdirSync(path.join(ud, 'sidecar'), { recursive: true });
+    await removeLegacySidecar(ud, { log: vi.fn(), keep: [path.join(ud, 'SIDECAR2', 'cache')], platform: 'linux' });
+    expect(fs.existsSync(path.join(ud, 'sidecar'))).toBe(false);
+    fs.rmSync(ud, { recursive: true, force: true });
+  });
+
   it('keeps the folder when a configured cache path cannot be resolved at all', async () => {
     const ud = tmp();
     fs.mkdirSync(path.join(ud, 'sidecar'), { recursive: true });
