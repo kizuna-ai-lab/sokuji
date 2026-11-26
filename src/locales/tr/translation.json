@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Bu cihaz",
+      "nameWithNative": "Bu cihaz (WASM/WebGPU)",
       "description": "Modeller bu bilgisayara indirildikten sonra çalışır; ilk seferde birkaç GB indirmek gerekir.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Ücretsiz · çevrimdışı"
     },
     "local_native": {
-      "name": "Ücretsiz (Native)",
+      "name": "Bu cihaz (Native)",
       "description": "Ücretsiz konuşma tanıma (ASR) + Çeviri + konuşma sentezi (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Kaldır",
       "engineConfirm": "Yerel motor kaldırılsın mı?",
       "engineFrees": "{{size}} yer açılır.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Native motor",
+      "webgpuTab": "WASM/WebGPU motoru",
+      "webgpuTitle": "WASM/WebGPU motoru",
+      "nativeHint": "Uygulamayla birlikte gelir ve bu bilgisayarda çalışır.",
+      "webgpuHint": "Uygulamanın kendi penceresinde çalışır ve varsa GPU’yu kullanır. “Diller ve düzen” bölümünde “Bu cihaz” olarak ayarlanan aşamalar buraya indirilen modelleri kullanır.",
+      "engineHintNative": "Native modellerin üzerinde çalıştığı motor.",
+      "tabMeta": "{{count}} indirildi, {{size}}",
+      "tabNone": "Hiçbiri indirilmedi",
+      "tabs": "Motor",
+      "toHelpers": "Yardımcı modeller",
+      "downloadedChoose": "İndirildi. Bir oturumda kullanmak için “Diller ve düzen” bölümünden seçin.",
+      "goChoose": "Seç",
+      "dismiss": "Kapat"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Giriş yapıldı; bakiye {{amount}}",
       "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
       "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi",
+      "localNative": "Native motor, daha fazla tanıma modelini destekler. Bu bilgisayarda çalışır; bulut anahtarı gerekmez",
+      "localWebgpu": "Tarayıcı uzantısıyla tek bir motoru paylaşır, bu yüzden o kadar hızlı değildir. Bu bilgisayarda çalışır; bulut anahtarı gerekmez",
       "soniox": {
         "save": "Kaydet ve bölgesini bul",
         "finding": "Bu anahtarın bölgesi bulunuyor…",

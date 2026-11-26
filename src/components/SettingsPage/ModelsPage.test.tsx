@@ -474,6 +474,15 @@ describe('Models and storage — the engines as tabs', () => {
     expect(tabs()[1].querySelector('.models-tabs__meta')?.textContent).toMatch(/^2 downloaded, /);
   });
 
+  it('opens on the WASM/WebGPU engine where this computer has no native engine, unless a tab was already chosen', () => {
+    desktopWithNative();
+    useNativeModelStore.setState({ bundleStatus: 'unsupported' } as never);
+    mount();
+    expect(tabs()[1].getAttribute('aria-selected')).toBe('true');
+    fireEvent.click(tabs()[0]);
+    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+  });
+
   it('says so when a library is empty', () => {
     desktopWithNative();
     useNativeModelStore.setState({ statuses: {}, sizes: {} } as never);

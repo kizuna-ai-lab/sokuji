@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "本机",
+      "nameWithNative": "本机（WASM/WebGPU）",
       "description": "模型下载到这台电脑后就能用，第一次要联网下载（数 GB）。",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "免费 · 不联网"
     },
     "local_native": {
-      "name": "免费 (Native)",
+      "name": "本机（原生）",
       "description": "免费语音识别（ASR）+ 翻译 + 语音合成（TTS）"
     },
     "unknown": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "已登录，余额 {{amount}}",
       "localModels": "在这台电脑上运行；已下载 {{count}} 个模型，共 {{size}}",
       "localNone": "在这台电脑上运行；还没有下载模型",
+      "localNative": "原生引擎，支持更多识别模型。本机运行，不需要云端密钥",
+      "localWebgpu": "与浏览器扩展共用同一个引擎，速度没有那么好。本机运行，不需要云端密钥",
       "soniox": {
         "save": "保存并识别区域",
         "finding": "正在识别这个密钥属于哪个区域…",

@@ -123,7 +123,9 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
     if (navTarget.startsWith('native-models-')) setTab('native');
     else if (navTarget.startsWith('models-')) setTab('webgpu');
   }, [navTarget]);
+  const chosen = useRef(false);
   const chooseTab = (next: 'native' | 'webgpu') => {
+    chosen.current = true;
     setTab(next);
     // The new list starts at its top, not where the other one was scrolled to.
     tabs.current?.scrollIntoView?.({ block: 'start' });
@@ -144,6 +146,11 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   // here with what it takes. Read afresh on opening the page: whether it is there, and its size on disk.
   const desktop = isElectron();
   const engineStatus = useNativeModelStore((s) => s.bundleStatus);
+  // Opens on the native engine, unless this computer has none to offer (no engine for its platform): then the one
+  // library it can use, unless the person already chose.
+  useEffect(() => {
+    if (nativeOffered && engineStatus === 'unsupported' && !chosen.current) setTab('webgpu');
+  }, [nativeOffered, engineStatus]);
   const engineVersion = useNativeModelStore((s) => s.bundleVersion);
   const engineBytes = useNativeModelStore((s) => s.bundleUsage);
   useEffect(() => {

@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Peranti ini",
+      "nameWithNative": "Peranti ini (WASM/WebGPU)",
       "description": "Berfungsi selepas model dimuat turun ke komputer ini; kali pertama perlu memuat turun beberapa GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Percuma · luar talian"
     },
     "local_native": {
-      "name": "Percuma (Native)",
+      "name": "Peranti ini (Native)",
       "description": "Pengecaman pertuturan percuma (ASR) + Terjemahan + Sintesis pertuturan (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Alih keluar",
       "engineConfirm": "Alih keluar enjin setempat?",
       "engineFrees": "Mengosongkan {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Enjin natif",
+      "webgpuTab": "Enjin WASM/WebGPU",
+      "webgpuTitle": "Enjin WASM/WebGPU",
+      "nativeHint": "Disertakan bersama aplikasi dan dijalankan pada komputer ini.",
+      "webgpuHint": "Dijalankan dalam tetingkap aplikasi itu sendiri dan menggunakan GPU jika ada. Peringkat yang ditetapkan kepada “Peranti ini” dalam “Bahasa dan susunan” menggunakan model yang dimuat turun di sini.",
+      "engineHintNative": "Enjin tempat model natif dijalankan.",
+      "tabMeta": "{{count}} dimuat turun, {{size}}",
+      "tabNone": "Tiada yang dimuat turun",
+      "tabs": "Enjin",
+      "toHelpers": "Model pembantu",
+      "downloadedChoose": "Dimuat turun. Pilih dalam “Bahasa dan susunan” untuk menggunakannya dalam sesi.",
+      "goChoose": "Pilih",
+      "dismiss": "Ketepikan"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Telah log masuk; baki {{amount}}",
       "localModels": "Berjalan pada komputer ini; {{count}} model dimuat turun, jumlah {{size}}",
       "localNone": "Berjalan pada komputer ini; belum ada model dimuat turun",
+      "localNative": "Enjin natif, menyokong lebih banyak model pengecaman. Dijalankan pada komputer ini; tiada kunci awan diperlukan",
+      "localWebgpu": "Berkongsi satu enjin dengan sambungan pelayar, jadi tidak sepantas itu. Dijalankan pada komputer ini; tiada kunci awan diperlukan",
       "soniox": {
         "save": "Simpan dan cari rantaunya",
         "finding": "Mencari rantau kunci ini…",

@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Tämä laite",
+      "nameWithNative": "Tämä laite (WASM/WebGPU)",
       "description": "Toimii, kun mallit on ladattu tälle tietokoneelle; ensimmäisellä kerralla on ladattava useita gigatavuja.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Ilmainen · ilman verkkoa"
     },
     "local_native": {
-      "name": "Ilmainen (Native)",
+      "name": "Tämä laite (Native)",
       "description": "Ilmainen puheentunnistus (ASR) + Käännös + puhesynteesi (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Poista",
       "engineConfirm": "Poistetaanko paikallinen moottori?",
       "engineFrees": "Vapauttaa {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Natiivimoottori",
+      "webgpuTab": "WASM/WebGPU-moottori",
+      "webgpuTitle": "WASM/WebGPU-moottori",
+      "nativeHint": "Tulee sovelluksen mukana ja toimii tällä tietokoneella.",
+      "webgpuHint": "Toimii sovelluksen omassa ikkunassa ja käyttää näytönohjainta, jos sellainen on. Vaiheet, jotka on asetettu kohtaan ”Tämä laite” kohdassa ”Kielet ja kokoonpano”, käyttävät tänne ladattuja malleja.",
+      "engineHintNative": "Moottori, jolla natiivimallit toimivat.",
+      "tabMeta": "{{count}} ladattu, {{size}}",
+      "tabNone": "Ei ladattuja",
+      "tabs": "Moottori",
+      "toHelpers": "Apumallit",
+      "downloadedChoose": "Ladattu. Valitse se kohdassa ”Kielet ja kokoonpano”, jotta voit käyttää sitä istunnossa.",
+      "goChoose": "Valitse",
+      "dismiss": "Hylkää"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Kirjautunut; saldo {{amount}}",
       "localModels": "Toimii tällä tietokoneella; {{count}} mallia ladattu, yhteensä {{size}}",
       "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu",
+      "localNative": "Natiivimoottori, tukee useampia tunnistusmalleja. Toimii tällä tietokoneella; pilviavainta ei tarvita",
+      "localWebgpu": "Jakaa yhden moottorin selainlaajennuksen kanssa, joten se ei ole yhtä nopea. Toimii tällä tietokoneella; pilviavainta ei tarvita",
       "soniox": {
         "save": "Tallenna ja etsi alue",
         "finding": "Etsitään avaimen aluetta…",

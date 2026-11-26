@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Dit apparaat",
+      "nameWithNative": "Dit apparaat (WASM/WebGPU)",
       "description": "Werkt zodra de modellen op deze computer zijn gedownload; de eerste keer moet er enkele GB worden gedownload.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Gratis · offline"
     },
     "local_native": {
-      "name": "Gratis (Native)",
+      "name": "Dit apparaat (Native)",
       "description": "Gratis spraakherkenning (ASR) + Vertaling + spraaksynthese (TTS)"
     },
     "unknown": {
@@ -1016,18 +1017,18 @@
       "engineConfirm": "De lokale engine verwijderen?",
       "engineFrees": "Maakt {{size}} vrij.",
       "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
+      "webgpuTab": "WASM/WebGPU-engine",
+      "webgpuTitle": "WASM/WebGPU-engine",
+      "nativeHint": "Wordt met de app meegeleverd en draait op deze computer.",
+      "webgpuHint": "Draait in het eigen venster van de app en gebruikt de GPU als die er is. Stappen die op “Dit apparaat” staan in “Talen en opstelling” gebruiken de hier gedownloade modellen.",
+      "engineHintNative": "De engine waarop de native modellen draaien.",
+      "tabMeta": "{{count}} gedownload, {{size}}",
+      "tabNone": "Niets gedownload",
       "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "toHelpers": "Hulpmodellen",
+      "downloadedChoose": "Gedownload. Kies het in “Talen en opstelling” om het in een sessie te gebruiken.",
+      "goChoose": "Kiezen",
+      "dismiss": "Sluiten"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Aangemeld; saldo {{amount}}",
       "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
       "localNone": "Draait op deze computer; nog geen modellen gedownload",
+      "localNative": "Native engine, ondersteunt meer herkenningsmodellen. Draait op deze computer; geen cloudsleutel nodig",
+      "localWebgpu": "Deelt één engine met de browserextensie en is daardoor minder snel. Draait op deze computer; geen cloudsleutel nodig",
       "soniox": {
         "save": "Opslaan en regio zoeken",
         "finding": "Regio van deze sleutel zoeken…",

@@ -16,6 +16,7 @@ import { planFromStores } from '../../lib/plan/fromStores';
 import { transcriptionProvider } from '../../lib/plan/read';
 import type { AnyProvider } from '../../lib/provider/types';
 import { presentProviders } from '../../providers/registry';
+import { providerNameKey } from '../../providers/nameKey';
 import { stageProviderId } from '../../stores/lineUpStore';
 import { useProviderStore } from '../../stores/providerStore';
 import { useModelStore, useModelStatuses, useStorageUsedMb } from '../../stores/modelStore';
@@ -45,6 +46,8 @@ interface Account {
   key: string;
   name: string;
   kind: 'kizuna' | 'key' | 'local' | 'online';
+  /** A local row: which of the two local engines it is (the second exists where the native one is offered). */
+  engine?: 'native' | 'webgpu';
   /** The provider whose credential form the row opens. */
   provider?: AnyProvider;
   /** The provider ids the account serves, for its chips. */
@@ -107,8 +110,10 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
     if (managed.length) list.push({ key: 'kizuna', name: 'Kizuna AI', kind: 'kizuna', serves: managed.map((p) => p.id), guide: managed.find((p) => p.guideUrl)?.guideUrl, icon: KizunaAIIcon });
     // The accounts that need no key come first (the mock's order): this device, then the online services (Bing, Edge)
     // in the registry's order; then the providers with a key.
+    const native = providers.find((p) => p.id === 'local_native');
+    if (native) list.push({ key: 'local_native', name: t('providers.local_native.name', 'This device (Native)'), kind: 'local', engine: 'native', serves: ['local_native'], guide: native.guideUrl, icon: native.icon });
     const local = providers.find((p) => p.id === 'local_inference');
-    if (local) list.push({ key: 'local_inference', name: t('providers.local_inference.name', 'This device'), kind: 'local', serves: ['local_inference'], guide: local.guideUrl, icon: local.icon });
+    if (local) list.push({ key: 'local_inference', name: t(providerNameKey('local_inference'), 'This device'), kind: 'local', engine: native ? 'webgpu' : undefined, serves: ['local_inference'], guide: local.guideUrl, icon: local.icon });
     for (const p of providers) {
       if (p.kind === 'online') list.push({ key: p.id, name: t(`providers.${p.id}.name`, p.id), kind: 'online', serves: [p.id], guide: p.guideUrl, icon: p.icon });
     }
@@ -155,7 +160,11 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         if (r?.state === 'not-ready' && r.code === 'auth') return t('settingsPage.lineup.state.keyRefused', 'Key not accepted');
         return t('settingsPage.lineup.state.keyNotVerified', 'Key not verified');
       }
+      // Where both local engines are offered, each row says what separates it from the other; the models downloaded
+      // are counted on the tabs of Models and storage, not here.
       case 'local':
+        if (a.engine === 'native') return t('settingsPage.accounts.localNative', 'Native engine, supports more recognition models. Runs on this computer; no cloud key needed');
+        if (a.engine === 'webgpu') return t('settingsPage.accounts.localWebgpu', 'Shares one engine with the browser extension, so it is not as fast. Runs on this computer; no cloud key needed');
         return localModels > 0
           ? t('settingsPage.accounts.localModels', 'Runs on this computer; {{count}} models downloaded, {{size}} in all', { count: localModels, size: formatBytes(storageMb * 1_048_576) })
           : t('settingsPage.accounts.localNone', 'Runs on this computer; no models downloaded yet');
@@ -227,7 +236,8 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
                   device's models are set up in Models and storage, so its button goes there; Bing and Edge need
                   nothing, and their line says so. */}
               {a.kind === 'local' ? (
-                <button type="button" className="accounts-row__toggle" onClick={() => navigateToSettings('models')}>
+                // Where both engines are offered, each row opens its own engine's tab; else the one list.
+                <button type="button" className="accounts-row__toggle" onClick={() => navigateToSettings(a.engine === 'native' ? 'native-models-asr' : a.engine === 'webgpu' ? 'models-asr' : 'models')}>
                   {t('settingsPage.accounts.manageModels', 'Manage models')}
                 </button>
               ) : a.kind !== 'online' && (

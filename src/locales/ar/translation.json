@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "هذا الجهاز",
+      "nameWithNative": "هذا الجهاز (WASM/WebGPU)",
       "description": "يعمل بعد تنزيل النماذج على هذا الحاسوب؛ في المرة الأولى يلزم تنزيل عدة غيغابايتات.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "مجاني · بلا اتصال"
     },
     "local_native": {
-      "name": "مجاني (Native)",
+      "name": "هذا الجهاز (Native)",
       "description": "التعرف على الكلام المجاني (ASR) + ترجمة + تحويل النص إلى كلام (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "إزالة",
       "engineConfirm": "هل تريد إزالة المحرك المحلي؟",
       "engineFrees": "يحرّر {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "المحرك الأصلي",
+      "webgpuTab": "محرك WASM/WebGPU",
+      "webgpuTitle": "محرك WASM/WebGPU",
+      "nativeHint": "يأتي مع التطبيق ويعمل على هذا الكمبيوتر.",
+      "webgpuHint": "يعمل داخل نافذة التطبيق نفسها ويستخدم وحدة معالجة الرسومات (GPU) إن وُجدت. المراحل المضبوطة على «هذا الجهاز» في «اللغات والتشكيلة» تستخدم النماذج التي تم تحميلها هنا.",
+      "engineHintNative": "المحرك الذي تعمل عليه النماذج الأصلية.",
+      "tabMeta": "تم التحميل {{count}}، {{size}}",
+      "tabNone": "لم يتم تحميل أي شيء",
+      "tabs": "المحرك",
+      "toHelpers": "نماذج مساعدة",
+      "downloadedChoose": "تم التحميل. اختره في «اللغات والتشكيلة» لاستخدامه في جلسة.",
+      "goChoose": "اختيار",
+      "dismiss": "تجاهل"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "تم تسجيل الدخول؛ الرصيد {{amount}}",
       "localModels": "يعمل على هذا الحاسوب؛ تم تنزيل {{count}} نموذج، بإجمالي {{size}}",
       "localNone": "يعمل على هذا الحاسوب؛ لم يُنزَّل أي نموذج بعد",
+      "localNative": "محرك أصلي، يدعم المزيد من نماذج التعرّف. يعمل على هذا الكمبيوتر؛ لا حاجة إلى مفتاح سحابي",
+      "localWebgpu": "يتشارك محركًا واحدًا مع إضافة المتصفح، لذا ليس بالسرعة نفسها. يعمل على هذا الكمبيوتر؛ لا حاجة إلى مفتاح سحابي",
       "soniox": {
         "save": "حفظ ومعرفة منطقته",
         "finding": "جارٍ معرفة منطقة هذا المفتاح…",

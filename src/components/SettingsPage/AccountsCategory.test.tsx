@@ -7,9 +7,11 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isKizunaAIEnabled: () => true, isElectron: () => true, isExtension: () => false,
 }));
+// Whether Local Native is offered: flagged, so most builds do not (#578).
+const offered = vi.hoisted(() => ({ native: false }));
 vi.mock('../../providers/registry', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../providers/registry')>();
-  return { ...actual, presentProviders: () => actual.RELEASED };
+  return { ...actual, presentProviders: () => actual.RELEASED.filter((p) => p.id !== 'local_native' || offered.native) };
 });
 const authState = vi.hoisted(() => ({ signedIn: true }));
 vi.mock('../providers/useAuthContext', () => ({ useAuthContext: () => ({ signedIn: authState.signedIn, getToken: async () => null }) }));
@@ -34,6 +36,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 const row = (name: string) => screen.getByRole('group', { name });
 
 beforeEach(() => {
+  offered.native = false;
   runsOn('soniox');
   useProviderStore.setState({
     readiness: {},
@@ -352,5 +355,35 @@ describe('accounts and keys — the state line, as the mock writes it', () => {
     useModelStore.setState({ modelStatuses: {}, storageUsedMb: 0 } as never);
     render(<AccountsCategory locked={false} />);
     expect(row('This device')).toHaveTextContent('Runs on this computer; no models downloaded yet');
+  });
+});
+
+// Local Native beside This device (#578): two local engines, each row saying what separates it from the other.
+describe('accounts and keys — the two local engines', () => {
+  it('lists no native row where Local Native is not offered, and the older engine keeps its name', () => {
+    render(<AccountsCategory locked={false} />);
+    const names = screen.getAllByRole('group').map((g) => g.getAttribute('aria-label'));
+    expect(names).toContain('This device');
+    expect(names).not.toContain('This device (Native)');
+  });
+
+  it("lists the native engine's row before the WASM/WebGPU one when it is offered, each in its own words", () => {
+    offered.native = true;
+    render(<AccountsCategory locked={false} />);
+    const names = screen.getAllByRole('group').map((g) => g.getAttribute('aria-label'));
+    expect(names.slice(0, 5)).toEqual(['Kizuna AI', 'This device (Native)', 'This device (WASM/WebGPU)', 'Bing', 'Edge']);
+    expect(row('This device (Native)').querySelector('.accounts-row__state')).toHaveTextContent(/Native engine, supports more recognition models/);
+    expect(row('This device (WASM/WebGPU)').querySelector('.accounts-row__state')).toHaveTextContent(/Shares one engine with the browser extension, so it is not as fast/);
+    // Neither carries a "Recommended" label: that is for Kizuna AI's own service.
+    expect(screen.queryByText(/Recommended/i)).toBeNull();
+  });
+
+  it("opens each engine's own tab of Models and storage", () => {
+    offered.native = true;
+    render(<AccountsCategory locked={false} />);
+    fireEvent.click(within(row('This device (Native)')).getByRole('button', { name: 'Manage models' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('native-models-asr');
+    fireEvent.click(within(row('This device (WASM/WebGPU)')).getByRole('button', { name: 'Manage models' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models-asr');
   });
 });

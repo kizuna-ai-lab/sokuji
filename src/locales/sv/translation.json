@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Den här enheten",
+      "nameWithNative": "Den här enheten (WASM/WebGPU)",
       "description": "Fungerar när modellerna har laddats ned till den här datorn; första gången krävs en nedladdning på flera GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Gratis · offline"
     },
     "local_native": {
-      "name": "Gratis (Native)",
+      "name": "Den här enheten (Native)",
       "description": "Gratis taligenkänning (ASR) + Översättning + talsyntes (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Ta bort",
       "engineConfirm": "Ta bort den lokala motorn?",
       "engineFrees": "Frigör {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Nativ motor",
+      "webgpuTab": "WASM/WebGPU-motor",
+      "webgpuTitle": "WASM/WebGPU-motor",
+      "nativeHint": "Följer med appen och körs på den här datorn.",
+      "webgpuHint": "Körs i appens eget fönster och använder grafikprocessorn om det finns en. Steg som är inställda på ”Den här enheten” i ”Språk och uppsättning” använder modellerna som laddats ned här.",
+      "engineHintNative": "Motorn som de nativa modellerna körs på.",
+      "tabMeta": "{{count}} nedladdade, {{size}}",
+      "tabNone": "Inget nedladdat",
+      "tabs": "Motor",
+      "toHelpers": "Hjälpmodeller",
+      "downloadedChoose": "Nedladdad. Välj den i ”Språk och uppsättning” för att använda den i en session.",
+      "goChoose": "Välj",
+      "dismiss": "Avfärda"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Inloggad; saldo {{amount}}",
       "localModels": "Körs på den här datorn; {{count}} modeller nedladdade, totalt {{size}}",
       "localNone": "Körs på den här datorn; inga modeller nedladdade ännu",
+      "localNative": "Nativ motor, stöder fler igenkänningsmodeller. Körs på den här datorn; ingen molnnyckel behövs",
+      "localWebgpu": "Delar en motor med webbläsartillägget och är därför inte lika snabb. Körs på den här datorn; ingen molnnyckel behövs",
       "soniox": {
         "save": "Spara och hitta regionen",
         "finding": "Söker nyckelns region…",

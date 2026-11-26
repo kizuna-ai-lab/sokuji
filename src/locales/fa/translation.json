@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "این دستگاه",
+      "nameWithNative": "این دستگاه (WASM/WebGPU)",
       "description": "پس از دانلود مدل‌ها روی این رایانه کار می‌کند؛ بار اول باید چند گیگابایت دانلود شود.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "رایگان · آفلاین"
     },
     "local_native": {
-      "name": "رایگان (Native)",
+      "name": "این دستگاه (Native)",
       "description": "تشخیص گفتار رایگان (ASR) + ترجمه + تبدیل متن به گفتار (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "حذف",
       "engineConfirm": "موتور محلی حذف شود؟",
       "engineFrees": "{{size}} آزاد می‌شود.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "موتور بومی",
+      "webgpuTab": "موتور WASM/WebGPU",
+      "webgpuTitle": "موتور WASM/WebGPU",
+      "nativeHint": "همراه برنامه ارائه می‌شود و روی همین رایانه اجرا می‌شود.",
+      "webgpuHint": "در پنجرهٔ خود برنامه اجرا می‌شود و در صورت وجود، از GPU استفاده می‌کند. مرحله‌هایی که در «زبان‌ها و ترکیب» روی «این دستگاه» تنظیم شده‌اند از مدل‌هایی که اینجا دانلود شده‌اند استفاده می‌کنند.",
+      "engineHintNative": "موتوری که مدل‌های بومی روی آن اجرا می‌شوند.",
+      "tabMeta": "{{count}} دانلود شد، {{size}}",
+      "tabNone": "چیزی دانلود نشده",
+      "tabs": "موتور",
+      "toHelpers": "مدل‌های کمکی",
+      "downloadedChoose": "دانلود شد. برای استفاده در جلسه، آن را در «زبان‌ها و ترکیب» انتخاب کنید.",
+      "goChoose": "انتخاب",
+      "dismiss": "بستن"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "وارد شده‌اید؛ موجودی {{amount}}",
       "localModels": "روی این رایانه اجرا می‌شود؛ {{count}} مدل دانلود شده، در کل {{size}}",
       "localNone": "روی این رایانه اجرا می‌شود؛ هنوز مدلی دانلود نشده",
+      "localNative": "موتور بومی، از مدل‌های تشخیص بیشتری پشتیبانی می‌کند. روی همین رایانه اجرا می‌شود؛ به کلید ابری نیازی نیست",
+      "localWebgpu": "یک موتور را با افزونهٔ مرورگر به اشتراک می‌گذارد، بنابراین چندان سریع نیست. روی همین رایانه اجرا می‌شود؛ به کلید ابری نیازی نیست",
       "soniox": {
         "save": "ذخیره و یافتن منطقه",
         "finding": "در حال یافتن منطقهٔ این کلید…",

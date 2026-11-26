@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Ang device na ito",
+      "nameWithNative": "Ang device na ito (WASM/WebGPU)",
       "description": "Gumagana kapag na-download na ang mga model sa computer na ito; sa unang beses, kailangang mag-download ng ilang GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Libre · offline"
     },
     "local_native": {
-      "name": "Libre (Native)",
+      "name": "Ang device na ito (Native)",
       "description": "Libreng pagkilala sa pagsasalita (ASR) + Pagsasalin + sintesis ng pagsasalita (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Alisin",
       "engineConfirm": "Alisin ang lokal na engine?",
       "engineFrees": "Magbabakante ng {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
+      "nativeTab": "Native na engine",
+      "webgpuTab": "WASM/WebGPU na engine",
+      "webgpuTitle": "WASM/WebGPU na engine",
+      "nativeHint": "Kasama ng app at tumatakbo sa computer na ito.",
+      "webgpuHint": "Tumatakbo sa sariling window ng app at gumagamit ng GPU kung mayroon. Ang mga yugtong nakatakda sa “Ang device na ito” sa “Mga wika at line-up” ay gumagamit ng mga model na na-download dito.",
+      "engineHintNative": "Ang engine kung saan tumatakbo ang mga native na model.",
+      "tabMeta": "{{count}} ang na-download, {{size}}",
+      "tabNone": "Walang na-download",
       "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "toHelpers": "Mga pantulong na model",
+      "downloadedChoose": "Na-download. Piliin ito sa “Mga wika at line-up” para magamit sa isang session.",
+      "goChoose": "Piliin",
+      "dismiss": "I-dismiss"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Naka-sign in; balanse {{amount}}",
       "localModels": "Tumatakbo sa computer na ito; {{count}} model ang na-download, {{size}} lahat",
       "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model",
+      "localNative": "Native na engine, mas maraming recognition model ang sinusuportahan. Tumatakbo sa computer na ito; walang kailangang cloud key",
+      "localWebgpu": "Iisang engine ang ibinabahagi nito sa browser extension, kaya hindi ito kasing bilis. Tumatakbo sa computer na ito; walang kailangang cloud key",
       "soniox": {
         "save": "I-save at hanapin ang rehiyon",
         "finding": "Hinahanap ang rehiyon ng key na ito…",

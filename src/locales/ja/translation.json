@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "このデバイス",
+      "nameWithNative": "このデバイス（WASM/WebGPU）",
       "description": "モデルをこのパソコンにダウンロードすれば使えます。初回は数 GB のダウンロードが必要です。",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "無料 · オフライン"
     },
     "local_native": {
-      "name": "無料 (Native)",
+      "name": "このデバイス（ネイティブ）",
       "description": "無料音声認識（ASR）+ 翻訳 + 音声合成（TTS）"
     },
     "unknown": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "ログイン済み、残高 {{amount}}",
       "localModels": "このパソコンで動作します。ダウンロード済みのモデル {{count}} 個、合計 {{size}}",
       "localNone": "このパソコンで動作します。モデルはまだダウンロードしていません",
+      "localNative": "ネイティブエンジン。より多くの認識モデルに対応します。このコンピューターで動作し、クラウドのキーは不要です",
+      "localWebgpu": "ブラウザ拡張機能と同じエンジンを共有するため、速度はそれほど出ません。このコンピューターで動作し、クラウドのキーは不要です",
       "soniox": {
         "save": "保存してリージョンを判定",
         "finding": "このキーのリージョンを判定しています…",

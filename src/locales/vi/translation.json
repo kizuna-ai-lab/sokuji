@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Thiết bị này",
+      "nameWithNative": "Thiết bị này (WASM/WebGPU)",
       "description": "Dùng được sau khi tải các mô hình về máy tính này; lần đầu cần tải vài GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Miễn phí · ngoại tuyến"
     },
     "local_native": {
-      "name": "Miễn phí (Native)",
+      "name": "Thiết bị này (Native)",
       "description": "Nhận dạng giọng nói miễn phí (ASR) + Dịch + Tổng hợp giọng nói (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Gỡ bỏ",
       "engineConfirm": "Gỡ bỏ công cụ cục bộ?",
       "engineFrees": "Giải phóng {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Công cụ gốc",
+      "webgpuTab": "Công cụ WASM/WebGPU",
+      "webgpuTitle": "Công cụ WASM/WebGPU",
+      "nativeHint": "Đi kèm ứng dụng và chạy trên máy tính này.",
+      "webgpuHint": "Chạy ngay trong cửa sổ của ứng dụng và dùng GPU nếu có. Các bước đặt là “Thiết bị này” trong “Ngôn ngữ và cách phối hợp” sẽ dùng các mô hình đã tải xuống ở đây.",
+      "engineHintNative": "Công cụ mà các mô hình gốc chạy trên đó.",
+      "tabMeta": "Đã tải xuống {{count}}, {{size}}",
+      "tabNone": "Chưa tải xuống gì",
+      "tabs": "Công cụ",
+      "toHelpers": "Mô hình phụ trợ",
+      "downloadedChoose": "Đã tải xuống. Hãy chọn nó trong “Ngôn ngữ và cách phối hợp” để dùng trong một phiên.",
+      "goChoose": "Chọn",
+      "dismiss": "Bỏ qua"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Đã đăng nhập; số dư {{amount}}",
       "localModels": "Chạy trên máy này; đã tải {{count}} mô hình, tổng {{size}}",
       "localNone": "Chạy trên máy này; chưa tải mô hình nào",
+      "localNative": "Công cụ gốc, hỗ trợ nhiều mô hình nhận dạng hơn. Chạy trên máy tính này; không cần khóa đám mây",
+      "localWebgpu": "Dùng chung một công cụ với tiện ích mở rộng trình duyệt nên không nhanh bằng. Chạy trên máy tính này; không cần khóa đám mây",
       "soniox": {
         "save": "Lưu và tìm khu vực",
         "finding": "Đang tìm khu vực của khóa này…",

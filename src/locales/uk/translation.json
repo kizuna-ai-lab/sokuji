@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Цей пристрій",
+      "nameWithNative": "Цей пристрій (WASM/WebGPU)",
       "description": "Працює після завантаження моделей на цей комп’ютер; першого разу треба завантажити кілька ГБ.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Безкоштовно · без інтернету"
     },
     "local_native": {
-      "name": "Безкоштовний (Native)",
+      "name": "Цей пристрій (Native)",
       "description": "Безкоштовне розпізнавання мовлення (ASR) + Переклад + синтез мовлення (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Вилучити",
       "engineConfirm": "Вилучити локальний рушій?",
       "engineFrees": "Звільниться {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Нативний рушій",
+      "webgpuTab": "Рушій WASM/WebGPU",
+      "webgpuTitle": "Рушій WASM/WebGPU",
+      "nativeHint": "Постачається разом із застосунком і працює на цьому комп’ютері.",
+      "webgpuHint": "Працює у власному вікні застосунку й використовує GPU, якщо він є. Етапи, для яких у розділі «Мови та склад» вибрано «Цей пристрій», використовують моделі, завантажені тут.",
+      "engineHintNative": "Рушій, на якому працюють нативні моделі.",
+      "tabMeta": "Завантажено: {{count}}, {{size}}",
+      "tabNone": "Нічого не завантажено",
+      "tabs": "Рушій",
+      "toHelpers": "Допоміжні моделі",
+      "downloadedChoose": "Завантажено. Виберіть її в розділі «Мови та склад», щоб використовувати в сеансі.",
+      "goChoose": "Вибрати",
+      "dismiss": "Відхилити"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Вхід виконано; баланс {{amount}}",
       "localModels": "Працює на цьому комп’ютері; завантажено моделей: {{count}}, усього {{size}}",
       "localNone": "Працює на цьому комп’ютері; моделі ще не завантажено",
+      "localNative": "Нативний рушій, підтримує більше моделей розпізнавання. Працює на цьому комп’ютері; хмарний ключ не потрібен",
+      "localWebgpu": "Ділить один рушій із розширенням браузера, тому не такий швидкий. Працює на цьому комп’ютері; хмарний ключ не потрібен",
       "soniox": {
         "save": "Зберегти й визначити регіон",
         "finding": "Визначаємо регіон цього ключа…",

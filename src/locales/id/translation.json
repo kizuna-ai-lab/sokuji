@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Perangkat ini",
+      "nameWithNative": "Perangkat ini (WASM/WebGPU)",
       "description": "Berfungsi setelah model diunduh ke komputer ini; pertama kali perlu mengunduh beberapa GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Gratis · offline"
     },
     "local_native": {
-      "name": "Gratis (Native)",
+      "name": "Perangkat ini (Native)",
       "description": "Pengenalan ucapan gratis (ASR) + Terjemahan + Sintesis ucapan (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Hapus",
       "engineConfirm": "Hapus mesin lokal?",
       "engineFrees": "Mengosongkan {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Mesin native",
+      "webgpuTab": "Mesin WASM/WebGPU",
+      "webgpuTitle": "Mesin WASM/WebGPU",
+      "nativeHint": "Disertakan bersama aplikasi dan berjalan di komputer ini.",
+      "webgpuHint": "Berjalan di jendela aplikasi itu sendiri dan memakai GPU jika ada. Tahap yang diatur ke “Perangkat ini” di “Bahasa dan susunan” memakai model yang diunduh di sini.",
+      "engineHintNative": "Mesin tempat model native berjalan.",
+      "tabMeta": "{{count}} terunduh, {{size}}",
+      "tabNone": "Belum ada yang diunduh",
+      "tabs": "Mesin",
+      "toHelpers": "Model pembantu",
+      "downloadedChoose": "Terunduh. Pilih di “Bahasa dan susunan” untuk dipakai dalam sesi.",
+      "goChoose": "Pilih",
+      "dismiss": "Abaikan"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Sudah masuk; saldo {{amount}}",
       "localModels": "Berjalan di komputer ini; {{count}} model diunduh, total {{size}}",
       "localNone": "Berjalan di komputer ini; belum ada model yang diunduh",
+      "localNative": "Mesin native, mendukung lebih banyak model pengenalan. Berjalan di komputer ini; tidak perlu kunci cloud",
+      "localWebgpu": "Berbagi satu mesin dengan ekstensi peramban, sehingga tidak secepat itu. Berjalan di komputer ini; tidak perlu kunci cloud",
       "soniox": {
         "save": "Simpan dan cari wilayahnya",
         "finding": "Mencari wilayah kunci ini…",

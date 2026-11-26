@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "এই ডিভাইস",
+      "nameWithNative": "এই ডিভাইস (WASM/WebGPU)",
       "description": "মডেলগুলো এই কম্পিউটারে ডাউনলোড হলে কাজ করে; প্রথমবার কয়েক GB ডাউনলোড করতে হয়।",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "বিনামূল্যে · অফলাইন"
     },
     "local_native": {
-      "name": "বিনামূল্যে (Native)",
+      "name": "এই ডিভাইস (Native)",
       "description": "বিনামূল্যে বাক স্বীকৃতি (ASR) + অনুবাদ + বাক সংশ্লেষণ (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "সরান",
       "engineConfirm": "স্থানীয় ইঞ্জিন সরাবেন?",
       "engineFrees": "{{size}} খালি হবে।",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "নেটিভ ইঞ্জিন",
+      "webgpuTab": "WASM/WebGPU ইঞ্জিন",
+      "webgpuTitle": "WASM/WebGPU ইঞ্জিন",
+      "nativeHint": "অ্যাপের সঙ্গেই আসে এবং এই কম্পিউটারে চলে।",
+      "webgpuHint": "অ্যাপের নিজস্ব উইন্ডোর ভেতরে চলে এবং জিপিইউ থাকলে তা ব্যবহার করে। “ভাষা ও লাইন-আপ”-এ “এই ডিভাইস” নির্বাচিত ধাপগুলো এখানে ডাউনলোড করা মডেল ব্যবহার করে।",
+      "engineHintNative": "নেটিভ মডেলগুলো যে ইঞ্জিনে চলে।",
+      "tabMeta": "{{count}}টি ডাউনলোড হয়েছে, {{size}}",
+      "tabNone": "কিছু ডাউনলোড হয়নি",
+      "tabs": "ইঞ্জিন",
+      "toHelpers": "সহায়ক মডেল",
+      "downloadedChoose": "ডাউনলোড হয়েছে। সেশনে ব্যবহার করতে “ভাষা ও লাইন-আপ”-এ এটি বেছে নিন।",
+      "goChoose": "বেছে নিন",
+      "dismiss": "বন্ধ করুন"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "সাইন ইন করা; ব্যালান্স {{amount}}",
       "localModels": "এই কম্পিউটারে চলে; {{count}}টি মডেল ডাউনলোড করা, মোট {{size}}",
       "localNone": "এই কম্পিউটারে চলে; এখনো কোনো মডেল ডাউনলোড হয়নি",
+      "localNative": "নেটিভ ইঞ্জিন, আরও বেশি শনাক্তকরণ মডেল সমর্থন করে। এই কম্পিউটারে চলে; ক্লাউড কী লাগে না",
+      "localWebgpu": "ব্রাউজার এক্সটেনশনের সঙ্গে একটি ইঞ্জিন ভাগ করে, তাই ততটা দ্রুত নয়। এই কম্পিউটারে চলে; ক্লাউড কী লাগে না",
       "soniox": {
         "save": "সংরক্ষণ করুন ও অঞ্চল খুঁজুন",
         "finding": "এই কী-র অঞ্চল খোঁজা হচ্ছে…",

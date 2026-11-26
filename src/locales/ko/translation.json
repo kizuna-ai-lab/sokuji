@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "이 기기",
+      "nameWithNative": "이 기기 (WASM/WebGPU)",
       "description": "모델을 이 컴퓨터에 내려받으면 사용할 수 있습니다. 처음에는 수 GB를 내려받아야 합니다.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "무료 · 오프라인"
     },
     "local_native": {
-      "name": "무료 (Native)",
+      "name": "이 기기 (Native)",
       "description": "무료 음성 인식(ASR) + 번역 + 음성 합성(TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "제거",
       "engineConfirm": "로컬 엔진을 제거할까요?",
       "engineFrees": "{{size}}가 확보됩니다.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "네이티브 엔진",
+      "webgpuTab": "WASM/WebGPU 엔진",
+      "webgpuTitle": "WASM/WebGPU 엔진",
+      "nativeHint": "앱에 포함되어 있으며 이 컴퓨터에서 실행됩니다.",
+      "webgpuHint": "앱 자체 창 안에서 실행되며 GPU가 있으면 사용합니다. “언어와 구성”에서 “이 기기”로 설정한 단계는 여기서 다운로드한 모델을 사용합니다.",
+      "engineHintNative": "네이티브 모델이 실행되는 엔진입니다.",
+      "tabMeta": "{{count}}개 다운로드됨, {{size}}",
+      "tabNone": "다운로드한 항목 없음",
+      "tabs": "엔진",
+      "toHelpers": "보조 모델",
+      "downloadedChoose": "다운로드됨. 세션에서 사용하려면 “언어와 구성”에서 선택하세요.",
+      "goChoose": "선택",
+      "dismiss": "닫기"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "로그인됨, 잔액 {{amount}}",
       "localModels": "이 컴퓨터에서 실행됩니다. 모델 {{count}}개 다운로드됨, 모두 {{size}}",
       "localNone": "이 컴퓨터에서 실행됩니다. 아직 내려받은 모델이 없습니다",
+      "localNative": "네이티브 엔진으로, 더 많은 인식 모델을 지원합니다. 이 컴퓨터에서 실행되며 클라우드 키가 필요 없습니다",
+      "localWebgpu": "브라우저 확장 프로그램과 엔진 하나를 공유하므로 그만큼 빠르지는 않습니다. 이 컴퓨터에서 실행되며 클라우드 키가 필요 없습니다",
       "soniox": {
         "save": "저장하고 지역 찾기",
         "finding": "이 키의 지역을 찾는 중…",

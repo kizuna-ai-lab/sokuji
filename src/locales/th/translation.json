@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "อุปกรณ์นี้",
+      "nameWithNative": "อุปกรณ์นี้ (WASM/WebGPU)",
       "description": "ใช้ได้เมื่อดาวน์โหลดโมเดลลงคอมพิวเตอร์เครื่องนี้แล้ว ครั้งแรกต้องดาวน์โหลดหลาย GB",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "ฟรี · ออฟไลน์"
     },
     "local_native": {
-      "name": "ฟรี (Native)",
+      "name": "อุปกรณ์นี้ (Native)",
       "description": "การรู้จำเสียงพูดฟรี (ASR) + แปล + การสังเคราะห์เสียงพูด (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "ลบออก",
       "engineConfirm": "ลบเอนจินในเครื่องออกไหม",
       "engineFrees": "จะได้พื้นที่คืน {{size}}",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "เอนจินเนทีฟ",
+      "webgpuTab": "เอนจิน WASM/WebGPU",
+      "webgpuTitle": "เอนจิน WASM/WebGPU",
+      "nativeHint": "มาพร้อมกับแอปและทำงานบนคอมพิวเตอร์เครื่องนี้",
+      "webgpuHint": "ทำงานในหน้าต่างของแอปเอง และใช้ GPU เมื่อมี ขั้นตอนที่ตั้งเป็น “อุปกรณ์นี้” ใน “ภาษาและชุดบริการ” จะใช้โมเดลที่ดาวน์โหลดไว้ที่นี่",
+      "engineHintNative": "เอนจินที่โมเดลเนทีฟทำงานอยู่",
+      "tabMeta": "ดาวน์โหลดแล้ว {{count}} รายการ, {{size}}",
+      "tabNone": "ยังไม่มีที่ดาวน์โหลด",
+      "tabs": "เอนจิน",
+      "toHelpers": "โมเดลเสริม",
+      "downloadedChoose": "ดาวน์โหลดแล้ว เลือกใน “ภาษาและชุดบริการ” เพื่อใช้ในเซสชัน",
+      "goChoose": "เลือก",
+      "dismiss": "ปิด"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "ลงชื่อเข้าใช้แล้ว ยอดคงเหลือ {{amount}}",
       "localModels": "ทำงานบนคอมพิวเตอร์เครื่องนี้ ดาวน์โหลดโมเดลแล้ว {{count}} รายการ รวม {{size}}",
       "localNone": "ทำงานบนคอมพิวเตอร์เครื่องนี้ ยังไม่ได้ดาวน์โหลดโมเดล",
+      "localNative": "เอนจินเนทีฟ รองรับโมเดลการรู้จำมากขึ้น ทำงานบนคอมพิวเตอร์เครื่องนี้ ไม่ต้องใช้คีย์คลาวด์",
+      "localWebgpu": "ใช้เอนจินเดียวร่วมกับส่วนขยายเบราว์เซอร์ จึงเร็วไม่เท่า ทำงานบนคอมพิวเตอร์เครื่องนี้ ไม่ต้องใช้คีย์คลาวด์",
       "soniox": {
         "save": "บันทึกและหาภูมิภาคของคีย์",
         "finding": "กำลังหาภูมิภาคของคีย์นี้…",

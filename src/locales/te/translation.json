@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "ఈ పరికరం",
+      "nameWithNative": "ఈ పరికరం (WASM/WebGPU)",
       "description": "మోడల్‌లు ఈ కంప్యూటర్‌కు డౌన్‌లోడ్ అయ్యాక పనిచేస్తుంది; మొదటిసారి అనేక GB డౌన్‌లోడ్ చేయాలి.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "ఉచితం · ఆఫ్‌లైన్"
     },
     "local_native": {
-      "name": "ఉచిత (Native)",
+      "name": "ఈ పరికరం (Native)",
       "description": "ఉచిత వాక్ గుర్తింపు (ASR) + అనువాదం + వాక్ సంశ్లేషణ (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "తీసివేయి",
       "engineConfirm": "స్థానిక ఇంజిన్‌ను తీసివేయాలా?",
       "engineFrees": "{{size}} ఖాళీ అవుతుంది.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "నేటివ్ ఇంజిన్",
+      "webgpuTab": "WASM/WebGPU ఇంజిన్",
+      "webgpuTitle": "WASM/WebGPU ఇంజిన్",
+      "nativeHint": "యాప్‌తో పాటే వస్తుంది, ఈ కంప్యూటర్‌లో నడుస్తుంది.",
+      "webgpuHint": "యాప్ సొంత విండోలోనే నడుస్తుంది, GPU ఉంటే దాన్ని ఉపయోగిస్తుంది. “భాషలు, లైన్-అప్”లో “ఈ పరికరం”కు సెట్ చేసిన దశలు ఇక్కడ డౌన్‌లోడ్ చేసిన మోడల్‌లను ఉపయోగిస్తాయి.",
+      "engineHintNative": "నేటివ్ మోడల్‌లు నడిచే ఇంజిన్.",
+      "tabMeta": "{{count}} డౌన్‌లోడ్ అయ్యాయి, {{size}}",
+      "tabNone": "ఏదీ డౌన్‌లోడ్ కాలేదు",
+      "tabs": "ఇంజిన్",
+      "toHelpers": "సహాయక మోడల్‌లు",
+      "downloadedChoose": "డౌన్‌లోడ్ అయింది. సెషన్‌లో ఉపయోగించడానికి “భాషలు, లైన్-అప్”లో దీన్ని ఎంచుకోండి.",
+      "goChoose": "ఎంచుకోండి",
+      "dismiss": "విస్మరించు"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "సైన్ ఇన్ అయ్యారు; బ్యాలెన్స్ {{amount}}",
       "localModels": "ఈ కంప్యూటర్‌లో నడుస్తుంది; {{count}} మోడల్‌లు డౌన్‌లోడ్ అయ్యాయి, మొత్తం {{size}}",
       "localNone": "ఈ కంప్యూటర్‌లో నడుస్తుంది; ఇంకా మోడల్‌లు డౌన్‌లోడ్ కాలేదు",
+      "localNative": "నేటివ్ ఇంజిన్, మరిన్ని గుర్తింపు మోడల్‌లకు మద్దతు ఇస్తుంది. ఈ కంప్యూటర్‌లో నడుస్తుంది; క్లౌడ్ కీ అవసరం లేదు",
+      "localWebgpu": "బ్రౌజర్ ఎక్స్‌టెన్షన్‌తో ఒకే ఇంజిన్‌ను పంచుకుంటుంది, కాబట్టి అంత వేగంగా ఉండదు. ఈ కంప్యూటర్‌లో నడుస్తుంది; క్లౌడ్ కీ అవసరం లేదు",
       "soniox": {
         "save": "సేవ్ చేసి ప్రాంతాన్ని కనుగొను",
         "finding": "ఈ కీ ప్రాంతాన్ని కనుగొంటోంది…",

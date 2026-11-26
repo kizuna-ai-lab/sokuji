@@ -242,7 +242,7 @@ describe('languages and line-up', () => {
     render(<LineUpCategory locked={false} />);
     const translation = optionTexts('Translation');
     // Soniox is not chosen here, so it shows what it lacks.
-    expect(translation).toEqual(expect.arrayContaining(['KizunaAI (Soniox)', 'KizunaAI (Qwen)', 'Soniox (needs a key)', 'This device', 'Bing']));
+    expect(translation).toEqual(expect.arrayContaining(['KizunaAI (Soniox)', 'KizunaAI (Qwen)', 'Soniox (needs a key)', 'This device (WASM/WebGPU)', 'Bing']));
     expect(translation.filter((t) => t.startsWith('KizunaAI (Soniox)'))).toHaveLength(1);
     expect(translation.some((t) => t.startsWith('OpenAI Realtime') && t.includes('needs a key'))).toBe(true);
     const speech = optionTexts('Speech');
@@ -252,8 +252,8 @@ describe('languages and line-up', () => {
     // Native, #578 ruling 1), as before they were providers of their own.
     expect(translation.filter((t) => t === 'Bing')).toHaveLength(1);
     expect(speech.filter((t) => t === 'Edge')).toHaveLength(1);
-    expect(translation.slice(translation.indexOf('This device'), translation.indexOf('This device') + 3)).toEqual(['This device', 'Free (Native)', 'Bing']);
-    expect(speech.slice(speech.indexOf('This device'), speech.indexOf('This device') + 3)).toEqual(['This device', 'Free (Native)', 'Edge']);
+    expect(translation.slice(translation.indexOf('This device (WASM/WebGPU)'), translation.indexOf('This device (WASM/WebGPU)') + 3)).toEqual(['This device (WASM/WebGPU)', 'This device (Native)', 'Bing']);
+    expect(speech.slice(speech.indexOf('This device (WASM/WebGPU)'), speech.indexOf('This device (WASM/WebGPU)') + 3)).toEqual(['This device (WASM/WebGPU)', 'This device (Native)', 'Edge']);
   });
 
   describe("a text model for the translation (text models, part B)", () => {
@@ -991,7 +991,7 @@ describe('languages and line-up', () => {
       useLineUpStore.setState({ lineUp: { ...soniox, speech: 'local_inference' }, stored: true });
       render(<LineUpCategory locked={false} />);
       open(cardOf('Speech'));
-      expect(within(cardOf('Speech')).getByText('This device options')).toBeTruthy();
+      expect(within(cardOf('Speech')).getByText('This device (WASM/WebGPU) options')).toBeTruthy();
       expect(cardOf('Speech').querySelector('#model-management-section')?.getAttribute('data-provider')).toBe('local_inference');
       expect(cardOf('Speech').querySelector('#local-voices-section')).not.toBeNull();
       expect(own(cardOf('Speech'))).toEqual(['local_inference:speech:speech']);
@@ -1190,7 +1190,7 @@ describe('languages and line-up — options inside each stage card', () => {
   it("this device, Bing and Edge: each card names its provider's options; Bing has none", () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     render(<LineUpCategory locked={false} />);
-    expect(within(card('Transcription')).getByRole('button', { name: /This device options/ })).toBeInTheDocument();
+    expect(within(card('Transcription')).getByRole('button', { name: /This device \(WASM\/WebGPU\) options/ })).toBeInTheDocument();
     expect(within(card('Translation')).queryByRole('button', { name: /options/ })).toBeNull();
     expect(within(card('Speech')).getByRole('button', { name: /Edge options/ })).toBeInTheDocument();
   });

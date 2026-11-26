@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "This device",
+      "nameWithNative": "This device (WASM/WebGPU)",
       "description": "Works once its models are downloaded to this computer; the first time needs a download of several GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Free · offline"
     },
     "local_native": {
-      "name": "Free (Native)",
+      "name": "This device (Native)",
       "description": "Free Speech Recognition (ASR) + Translation + Speech Synthesis (TTS)"
     },
     "unknown": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Signed in; balance {{amount}}",
       "localModels": "Runs on this computer; {{count}} models downloaded, {{size}} in all",
       "localNone": "Runs on this computer; no models downloaded yet",
+      "localNative": "Native engine, supports more recognition models. Runs on this computer; no cloud key needed",
+      "localWebgpu": "Shares one engine with the browser extension, so it is not as fast. Runs on this computer; no cloud key needed",
       "soniox": {
         "save": "Save and find its region",
         "finding": "Finding the region of this key…",

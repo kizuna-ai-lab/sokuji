@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "מכשיר זה",
+      "nameWithNative": "מכשיר זה (WASM/WebGPU)",
       "description": "פועל אחרי שהמודלים הורדו למחשב הזה; בפעם הראשונה צריך להוריד כמה ג׳יגה-בייט.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "חינם · ללא חיבור"
     },
     "local_native": {
-      "name": "חינמי (Native)",
+      "name": "מכשיר זה (Native)",
       "description": "זיהוי דיבור חינמי (ASR) + תרגום + סינתזת דיבור (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "הסרה",
       "engineConfirm": "להסיר את המנוע המקומי?",
       "engineFrees": "יפונו {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "מנוע מקורי",
+      "webgpuTab": "מנוע WASM/WebGPU",
+      "webgpuTitle": "מנוע WASM/WebGPU",
+      "nativeHint": "מגיע עם האפליקציה ופועל במחשב הזה.",
+      "webgpuHint": "פועל בחלון של האפליקציה עצמה ומשתמש ב-GPU כשיש כזה. שלבים שהוגדרו ל“מכשיר זה” ב“שפות והרכב” משתמשים במודלים שהורדו כאן.",
+      "engineHintNative": "המנוע שעליו פועלים המודלים המקוריים.",
+      "tabMeta": "{{count}} הורדו, {{size}}",
+      "tabNone": "לא הורד דבר",
+      "tabs": "מנוע",
+      "toHelpers": "מודלים עוזרים",
+      "downloadedChoose": "הורד. יש לבחור אותו ב“שפות והרכב” כדי להשתמש בו בסשן.",
+      "goChoose": "בחירה",
+      "dismiss": "התעלם"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "מחובר; יתרה {{amount}}",
       "localModels": "פועל במחשב הזה; הורדו {{count}} מודלים, {{size}} בסך הכול",
       "localNone": "פועל במחשב הזה; עדיין לא הורדו מודלים",
+      "localNative": "מנוע מקורי, תומך ביותר מודלי זיהוי. פועל במחשב הזה; אין צורך במפתח ענן",
+      "localWebgpu": "חולק מנוע אחד עם תוספת הדפדפן, ולכן אינו מהיר כל כך. פועל במחשב הזה; אין צורך במפתח ענן",
       "soniox": {
         "save": "שמירה ומציאת האזור",
         "finding": "מחפשים את האזור של המפתח…",

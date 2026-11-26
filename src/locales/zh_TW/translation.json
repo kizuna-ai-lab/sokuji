@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "本機",
+      "nameWithNative": "本機 (WASM/WebGPU)",
       "description": "模型下載到這台電腦後就能用，第一次要連網下載（數 GB）。",
       "modelAsr": "ASR",
       "modelTranslation": "翻譯",
@@ -598,7 +599,7 @@
       "note": "免費 · 不連網"
     },
     "local_native": {
-      "name": "免費 (Native)",
+      "name": "本機 (Native)",
       "description": "免費語音辨識（ASR）+ 翻譯 + 語音合成（TTS）"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "移除",
       "engineConfirm": "移除本機引擎？",
       "engineFrees": "可釋放 {{size}}。",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "原生引擎",
+      "webgpuTab": "WASM/WebGPU 引擎",
+      "webgpuTitle": "WASM/WebGPU 引擎",
+      "nativeHint": "隨應用程式附帶，在這台電腦上執行。",
+      "webgpuHint": "在應用程式自己的視窗中執行，有 GPU 時會使用。在「語言與工作階段組成」中設為「本機」的階段，會使用在此下載的模型。",
+      "engineHintNative": "原生模型所執行的引擎。",
+      "tabMeta": "已下載 {{count}} 個，{{size}}",
+      "tabNone": "尚未下載",
+      "tabs": "引擎",
+      "toHelpers": "輔助模型",
+      "downloadedChoose": "已下載。請在「語言與工作階段組成」中選擇它，即可在工作階段中使用。",
+      "goChoose": "選擇",
+      "dismiss": "關閉"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "已登入，餘額 {{amount}}",
       "localModels": "在這台電腦上執行；已下載 {{count}} 個模型，共 {{size}}",
       "localNone": "在這台電腦上執行；還沒有下載模型",
+      "localNative": "原生引擎，支援更多辨識模型。在這台電腦上執行，無需雲端金鑰",
+      "localWebgpu": "與瀏覽器擴充功能共用同一個引擎，因此速度沒那麼快。在這台電腦上執行，無需雲端金鑰",
       "soniox": {
         "save": "儲存並辨識區域",
         "finding": "正在辨識這個金鑰屬於哪個區域…",

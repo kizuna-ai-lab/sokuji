@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Это устройство",
+      "nameWithNative": "Это устройство (WASM/WebGPU)",
       "description": "Работает после загрузки моделей на этот компьютер; в первый раз нужно скачать несколько ГБ.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Бесплатно · без интернета"
     },
     "local_native": {
-      "name": "Бесплатный (Native)",
+      "name": "Это устройство (Native)",
       "description": "Бесплатное распознавание речи (ASR) + Перевод + синтез речи (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Удалить",
       "engineConfirm": "Удалить локальный движок?",
       "engineFrees": "Освободится {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Нативный движок",
+      "webgpuTab": "Движок WASM/WebGPU",
+      "webgpuTitle": "Движок WASM/WebGPU",
+      "nativeHint": "Входит в состав приложения и работает на этом компьютере.",
+      "webgpuHint": "Работает в собственном окне приложения и использует GPU, если он есть. Этапы, для которых в разделе «Языки и состав» выбрано «Это устройство», используют модели, скачанные здесь.",
+      "engineHintNative": "Движок, на котором работают нативные модели.",
+      "tabMeta": "Скачано: {{count}}, {{size}}",
+      "tabNone": "Ничего не скачано",
+      "tabs": "Движок",
+      "toHelpers": "Вспомогательные модели",
+      "downloadedChoose": "Скачано. Выберите её в разделе «Языки и состав», чтобы использовать в сеансе.",
+      "goChoose": "Выбрать",
+      "dismiss": "Скрыть"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Вход выполнен; баланс {{amount}}",
       "localModels": "Работает на этом компьютере; загружено моделей: {{count}}, всего {{size}}",
       "localNone": "Работает на этом компьютере; модели ещё не загружены",
+      "localNative": "Нативный движок, поддерживает больше моделей распознавания. Работает на этом компьютере; облачный ключ не нужен",
+      "localWebgpu": "Использует один движок с расширением браузера, поэтому не такой быстрый. Работает на этом компьютере; облачный ключ не нужен",
       "soniox": {
         "save": "Сохранить и определить регион",
         "finding": "Определяем регион этого ключа…",

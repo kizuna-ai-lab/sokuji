@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Este dispositivo",
+      "nameWithNative": "Este dispositivo (WASM/WebGPU)",
       "description": "Funciona depois que os modelos são baixados neste computador; na primeira vez é preciso baixar vários GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Grátis · offline"
     },
     "local_native": {
-      "name": "Gratuito (Native)",
+      "name": "Este dispositivo (Native)",
       "description": "Reconhecimento de fala gratuito (ASR) + Tradução + Síntese de fala (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Remover",
       "engineConfirm": "Remover o motor local?",
       "engineFrees": "Libera {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Motor nativo",
+      "webgpuTab": "Motor WASM/WebGPU",
+      "webgpuTitle": "Motor WASM/WebGPU",
+      "nativeHint": "Vem com o app e roda neste computador.",
+      "webgpuHint": "Roda na própria janela do app e usa a GPU quando houver uma. Etapas definidas como “Este dispositivo” em “Idiomas e composição” usam os modelos baixados aqui.",
+      "engineHintNative": "O motor em que os modelos nativos rodam.",
+      "tabMeta": "{{count}} baixados, {{size}}",
+      "tabNone": "Nenhum baixado",
+      "tabs": "Motor",
+      "toHelpers": "Modelos auxiliares",
+      "downloadedChoose": "Baixado. Escolha-o em “Idiomas e composição” para usá-lo em uma sessão.",
+      "goChoose": "Escolher",
+      "dismiss": "Dispensar"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Conectado; saldo {{amount}}",
       "localModels": "Roda neste computador; {{count}} modelos baixados, {{size}} no total",
       "localNone": "Roda neste computador; nenhum modelo baixado ainda",
+      "localNative": "Motor nativo, oferece suporte a mais modelos de reconhecimento. Roda neste computador; não precisa de chave de nuvem",
+      "localWebgpu": "Compartilha um único motor com a extensão do navegador, por isso não é tão rápido. Roda neste computador; não precisa de chave de nuvem",
       "soniox": {
         "save": "Salvar e descobrir a região",
         "finding": "Descobrindo a região desta chave…",

@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "Dieses Gerät",
+      "nameWithNative": "Dieses Gerät (WASM/WebGPU)",
       "description": "Funktioniert, sobald die Modelle auf diesen Computer heruntergeladen sind; beim ersten Mal sind einige GB herunterzuladen.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Kostenlos · offline"
     },
     "local_native": {
-      "name": "Kostenlos (Native)",
+      "name": "Dieses Gerät (Native)",
       "description": "Kostenlose Spracherkennung (ASR) + Übersetzung + Sprachsynthese (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Entfernen",
       "engineConfirm": "Lokale Engine entfernen?",
       "engineFrees": "Gibt {{size}} frei.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
+      "nativeTab": "Native Engine",
+      "webgpuTab": "WASM/WebGPU-Engine",
+      "webgpuTitle": "WASM/WebGPU-Engine",
+      "nativeHint": "Wird mit der App geliefert und läuft auf diesem Computer.",
+      "webgpuHint": "Läuft im eigenen Fenster der App und nutzt die GPU, sofern vorhanden. Stufen, die unter „Sprachen und Aufstellung“ auf „Dieses Gerät“ gestellt sind, verwenden die hier heruntergeladenen Modelle.",
+      "engineHintNative": "Die Engine, auf der die nativen Modelle laufen.",
+      "tabMeta": "{{count}} heruntergeladen, {{size}}",
+      "tabNone": "Nichts heruntergeladen",
       "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "toHelpers": "Hilfsmodelle",
+      "downloadedChoose": "Heruntergeladen. Unter „Sprachen und Aufstellung“ auswählen, um es in einer Sitzung zu verwenden.",
+      "goChoose": "Auswählen",
+      "dismiss": "Ausblenden"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Angemeldet; Guthaben {{amount}}",
       "localModels": "Läuft auf diesem Computer; {{count}} Modelle geladen, zusammen {{size}}",
       "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen",
+      "localNative": "Native Engine, unterstützt mehr Erkennungsmodelle. Läuft auf diesem Computer; kein Cloud-Schlüssel nötig",
+      "localWebgpu": "Teilt sich eine Engine mit der Browser-Erweiterung und ist daher nicht so schnell. Läuft auf diesem Computer; kein Cloud-Schlüssel nötig",
       "soniox": {
         "save": "Speichern und Region finden",
         "finding": "Region dieses Schlüssels wird ermittelt …",

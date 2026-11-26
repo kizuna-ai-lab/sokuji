@@ -591,6 +591,7 @@
     },
     "local_inference": {
       "name": "To urządzenie",
+      "nameWithNative": "To urządzenie (WASM/WebGPU)",
       "description": "Działa po pobraniu modeli na ten komputer; za pierwszym razem trzeba pobrać kilka GB.",
       "modelAsr": "ASR",
       "modelTranslation": "MT",
@@ -598,7 +599,7 @@
       "note": "Bezpłatnie · offline"
     },
     "local_native": {
-      "name": "Darmowy (Native)",
+      "name": "To urządzenie (Native)",
       "description": "Darmowe rozpoznawanie mowy (ASR) + Tłumaczenie + synteza mowy (TTS)"
     },
     "unknown": {
@@ -1015,19 +1016,19 @@
       "remove": "Usuń",
       "engineConfirm": "Usunąć silnik lokalny?",
       "engineFrees": "Zwolni {{size}}.",
-      "nativeTab": "Native engine",
-      "webgpuTab": "WASM/WebGPU engine",
-      "webgpuTitle": "WASM/WebGPU engine",
-      "nativeHint": "Ships with the app and runs on this computer.",
-      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
-      "engineHintNative": "The engine the native models run on.",
-      "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
-      "tabs": "Engine",
-      "toHelpers": "Helper models",
-      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
-      "goChoose": "Choose",
-      "dismiss": "Dismiss"
+      "nativeTab": "Silnik natywny",
+      "webgpuTab": "Silnik WASM/WebGPU",
+      "webgpuTitle": "Silnik WASM/WebGPU",
+      "nativeHint": "Dołączony do aplikacji, działa na tym komputerze.",
+      "webgpuHint": "Działa w oknie samej aplikacji i korzysta z GPU, jeśli jest dostępne. Etapy ustawione na „To urządzenie” w „Języki i zestaw” używają modeli pobranych tutaj.",
+      "engineHintNative": "Silnik, na którym działają modele natywne.",
+      "tabMeta": "Pobrano: {{count}}, {{size}}",
+      "tabNone": "Nic nie pobrano",
+      "tabs": "Silnik",
+      "toHelpers": "Modele pomocnicze",
+      "downloadedChoose": "Pobrano. Wybierz go w „Języki i zestaw”, aby użyć w sesji.",
+      "goChoose": "Wybierz",
+      "dismiss": "Odrzuć"
     }
   },
   "notes": {
@@ -1859,6 +1860,8 @@
       "signedInBalance": "Zalogowano; saldo {{amount}}",
       "localModels": "Działa na tym komputerze; pobrano modeli: {{count}}, razem {{size}}",
       "localNone": "Działa na tym komputerze; nie pobrano jeszcze żadnych modeli",
+      "localNative": "Silnik natywny, obsługuje więcej modeli rozpoznawania. Działa na tym komputerze; klucz chmury nie jest potrzebny",
+      "localWebgpu": "Współdzieli jeden silnik z rozszerzeniem przeglądarki, więc nie jest tak szybki. Działa na tym komputerze; klucz chmury nie jest potrzebny",
       "soniox": {
         "save": "Zapisz i znajdź region",
         "finding": "Szukanie regionu tego klucza…",
