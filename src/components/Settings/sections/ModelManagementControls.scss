@@ -1,0 +1,201 @@
+// The model library's lists, as the native engine's library draws them (NativeModelManagementSection and the shared
+// controls in ModelManagementControls): the per-stage group, its "show all" toggle, the Recommended / Others split,
+// the storage footer and the warming-up placeholder. B-20 removed these rules along with the in-panel library; the
+// native library is on Models and storage now, so they are back (#578).
+@use '../shared/variables' as vars;
+@use '../../../styles/tokens' as tk;
+
+.model-management-section {
+  .model-group {
+    margin-bottom: 16px;
+
+    &__header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 0;
+
+      &:hover {
+        .model-group__title {
+          color: vars.$text-secondary;
+        }
+      }
+    }
+
+    &__chevron {
+      display: flex;
+      align-items: center;
+      color: vars.$text-muted;
+      transition: transform vars.$transition-fast;
+    }
+
+    &__title {
+      font-size: vars.$font-body;
+      font-weight: vars.$weight-semibold;
+      color: vars.$text-muted;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0;
+      transition: color vars.$transition-fast;
+    }
+
+    &__subtitle {
+      font-size: vars.$font-caption;
+      color: vars.$text-disabled;
+      font-style: italic;
+    }
+
+    &__list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    &__show-all {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 0;
+      background: none;
+      border: none;
+      font-size: vars.$font-caption;
+      color: vars.$text-muted;
+      cursor: pointer;
+      transition: color vars.$transition-fast;
+
+      &:hover {
+        color: vars.$text-secondary;
+      }
+    }
+
+  }
+}
+
+.model-management__storage {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 0;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+  border-top: 1px solid vars.$border-subtle;
+  margin-top: 8px;
+}
+
+.model-management__clear-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+  background: none;
+  border: 1px solid vars.$border-subtle;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+
+  &:hover:not(:disabled) {
+    color: tk.$color-error;
+    border-color: tk.$color-error;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.model-management__clear-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.model-management__clear-confirm-text {
+  color: tk.$color-error;
+  font-weight: 500;
+}
+
+.model-management__clear-btn {
+  padding: 2px 10px;
+  font-size: vars.$font-caption;
+  border: 1px solid vars.$border-subtle;
+  border-radius: 4px;
+  cursor: pointer;
+  background: none;
+
+  &--yes {
+    color: tk.$color-error;
+    border-color: tk.$color-error;
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, tk.$color-error 15%, transparent);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &--no {
+    color: vars.$text-muted;
+
+    &:hover {
+      color: vars.$text-primary;
+      border-color: vars.$text-primary;
+    }
+  }
+}
+
+// LOCAL_NATIVE sidecar lifecycle placeholder, shown in place of the model cards
+// while the sidecar is warming up (`starting`/`idle`). The `unavailable` error
+// lives inside EngineSection's card. Top-level class because it is returned
+// standalone, not nested inside .model-management-section.
+.native-models-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: vars.$radius-md;
+  font-size: vars.$font-body;
+  justify-content: center;
+  color: vars.$text-muted;
+  background: vars.$bg-surface;
+
+  &::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    border: 2px solid vars.$bg-elevated;
+    border-top-color: vars.$color-primary;
+    border-radius: 50%;
+    animation: native-models-spin 0.8s linear infinite;
+  }
+}
+
+@keyframes native-models-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// The Multi chip's tooltip body (LanguageTags). Rendered through Tooltip's
+// portal, outside .model-management-section, hence top-level. A 99-language
+// ASR model lists every name: the count stays put, the names scroll.
+.model-card__lang-list {
+  max-height: 240px;
+  overflow-y: auto;
+
+  &-count {
+    color: vars.$text-muted;
+    margin-bottom: 4px;
+  }
+}

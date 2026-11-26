@@ -749,28 +749,23 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
     } as NativeModelInfo,
   };
 
-  it('renders the Recommended subgroup label for the filtered stage', async () => {
-    // mockCatalog's 'sense-voice' is recommended and ja-compatible (default
-    // mockSettings.sourceLanguage), so the Recommended subgroup renders.
-    // "Recommended" also labels each recommended card's own badge, so this
-    // scopes to the subgroup label specifically rather than getByText.
+  it('lists the recommended models first, with no sub-heading over either part', async () => {
     render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-    const label = await waitFor(() => {
-      const el = document.querySelector('.model-subgroup__label');
-      expect(el).toBeInTheDocument();
-      return el as HTMLElement;
-    });
-    expect(label).toHaveTextContent('Recommended');
+    await screen.findByTestId('model-card-sense-voice');
+    expect(document.querySelector('.model-subgroup__label')).toBeNull();
+    const cards = [...document.querySelectorAll('[data-testid^="model-card-"]')];
+    const recommended = cards.map((c) => c.querySelector('.model-card__recommended-badge') !== null);
+    // Every recommended card comes before the first one that is not.
+    expect(recommended.indexOf(false) === -1 || recommended.lastIndexOf(true) < recommended.indexOf(false)).toBe(true);
   });
 
-  it('renders the "Show all ASR models (N)" button carrying the incompatible count, and every ASR model renders somewhere (compatible list or behind the toggle)', async () => {
+  it('folds the models the stage does not show under "N more", and every ASR model renders somewhere (shown, or behind the fold)', async () => {
     mockCatalogOverride = asrIncompatibleFixture;
     try {
       render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-      const showAll = await screen.findByText(/Show all ASR models/);
-      expect(showAll.textContent).toMatch(/Show all ASR models \(\d+\)/);
-
-      fireEvent.click(showAll);
+      const more = await screen.findByRole('button', { name: /\d+ more/ });
+      fireEvent.click(more);
+      expect(screen.getByText(/Models for other languages \(\d+\)/)).toBeInTheDocument();
       const allAsr = Object.values(asrIncompatibleFixture).filter((m) => m.kind === 'asr');
       for (const m of allAsr) {
         expect(screen.getByTestId(`model-card-${m.id}`)).toBeInTheDocument();
@@ -780,11 +775,11 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
     }
   });
 
-  it('an incompatible model (behind show-all) offers Download but clicking it (the "Use" affordance) does not write a selection', async () => {
+  it('an incompatible model (behind the fold) offers Download but clicking it (the "Use" affordance) does not write a selection', async () => {
     mockCatalogOverride = asrIncompatibleFixture;
     try {
       render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-      fireEvent.click(await screen.findByText(/Show all ASR models/));
+      fireEvent.click(await screen.findByRole('button', { name: /\d+ more/ }));
 
       const card = await screen.findByTestId('model-card-whisper-en-only');
       expect(within(card).getByRole('button', { name: /Download/i })).toBeEnabled();
@@ -796,12 +791,12 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
     }
   });
 
-  it('a downloaded incompatible model (behind show-all) shows the "available when your language is" line, naming the language', async () => {
+  it('a downloaded incompatible model (behind the fold) shows the "available when your language is" line, naming the language', async () => {
     mockCatalogOverride = asrIncompatibleFixture;
     mockStatuses['whisper-en-only'] = 'ready';
     try {
       render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
-      fireEvent.click(await screen.findByText(/Show all ASR models/));
+      fireEvent.click(await screen.findByRole('button', { name: /\d+ more/ }));
       await screen.findByTestId('model-card-whisper-en-only');
 
       const line = screen.getByText(/Available when your language is/);

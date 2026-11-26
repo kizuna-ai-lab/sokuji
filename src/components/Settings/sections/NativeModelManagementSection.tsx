@@ -56,6 +56,7 @@ type CardResolved = {
   rtf?: number; tokensPerSec?: number; memoryBytes?: number; fallbackReason?: string;
 };
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
+import { ModelStageList } from '../shared/ModelStageList';
 
 // [i18n key, English fallback] per tooltip row key (see buildBackendTooltipRows).
 const TT_LABEL: Record<string, [string, string]> = {
@@ -474,7 +475,9 @@ export const NativeModelManagementSection: React.FC<{
   settings: NativeEngineSettings;
   update: (patch: Partial<NativeEngineSettings>) => void;
   pair: LanguagePair;
-}> = ({ isSessionActive = false, stageFilter, direction, settings, update, pair }) => {
+  /** The element id of the stage's list, for the page's jump target (`<anchor>-section`). */
+  anchorId?: string;
+}> = ({ isSessionActive = false, stageFilter, direction, settings, update, pair, anchorId }) => {
   const { t } = useTranslation();
   const catalog = useNativeCatalog();
   const statuses = useNativeModelStatuses();
@@ -749,6 +752,51 @@ export const NativeModelManagementSection: React.FC<{
       onCustomChanged={() => {}}
     />
   ) : null);
+
+  // On Models and storage (a stage named): the same list as the WASM/WebGPU engine's — the stage's title, what is on disk
+  // and the recommended models shown, the rest folded under "N more", the models of other languages last.
+  if (stageFilter) {
+    const cfg = {
+      asr: {
+        title: t('models.page.tag.asr', 'Recognition'), cards: asrCards, selected: selectedAsr, body: undefined,
+        device: <NativeDeviceControl stage="asr" value={settings.asrDevice} onChange={(asrDevice) => update({ asrDevice })} disabled={isSessionActive} />,
+      },
+      translation: {
+        title: t('models.page.tag.translation', 'Translation'), cards: translationCards, selected: selectedTranslation, body: undefined,
+        device: <NativeDeviceControl stage="translation" value={settings.translationDevice} onChange={(translationDevice) => update({ translationDevice })} disabled={isSessionActive} />,
+      },
+      tts: {
+        title: t('models.page.tag.tts', 'Speech'), cards: ttsCards, selected: selectedTts, body: renderTtsBody,
+        device: <NativeDeviceControl stage="tts" value={settings.ttsDevice} onChange={(ttsDevice) => update({ ttsDevice })} disabled={isSessionActive} />,
+      },
+    }[stageFilter];
+    const card = (c: NativeModelCardSpec) => (
+      <div key={c.selectId || 'auto'} className="models-card">
+        {renderCard(c, stageFilter, (x) => cfg.selected === x.selectId, variantData, handlePinVariant, cfg.body)}
+      </div>
+    );
+    const onDisk = (c: NativeModelCardSpec) => !!c.downloadId && statuses[c.downloadId] === 'ready';
+    const isShown = (c: NativeModelCardSpec) => onDisk(c) || !!c.recommended || cfg.selected === c.selectId;
+    const incompatible = stageFilter === 'asr' ? asrIncompatibleCards : [];
+    return (
+      <ModelStageList title={cfg.title} id={anchorId ?? `native-models-${stageFilter}-section`} header={cfg.device}
+        shown={cfg.cards.filter(isShown).map(card)} rest={cfg.cards.filter((c) => !isShown(c)).map(card)}
+        others={incompatible.map((c) => (
+          <div key={c.selectId} className="models-card">
+            <NativeModelCard spec={c} disabled={isSessionActive} incompatible
+              selected={selectedAsr === c.selectId} autoSelected={false}
+              onSelect={() => selectCard('asr', c.selectId)} />
+            {onDisk(c) && (
+              <div className="model-card__available-when-lang">
+                {t('engineUi.availableWhenLang', 'Downloaded. Available when your language is {{lang}}.', {
+                  lang: (c.languages || []).map((l) => languageNameFor(l)).join(', '),
+                })}
+              </div>
+            )}
+          </div>
+        ))} />
+    );
+  }
 
   return (
     // See ModelManagementSection's identical comment: the Library push

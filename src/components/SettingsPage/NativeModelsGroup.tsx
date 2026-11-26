@@ -18,11 +18,6 @@ import { LOCAL_NATIVE_DEFAULTS, type LocalNativeSettings } from '../../providers
 import type { Stage } from '../../lib/local-inference/selection/types';
 
 const STAGES: readonly Stage[] = ['asr', 'translation', 'tts'];
-const TAGS: Record<Stage, [string, string]> = {
-  asr: ['models.page.tag.asr', 'Recognition'],
-  translation: ['models.page.tag.translation', 'Translation'],
-  tts: ['models.page.tag.tts', 'Speech'],
-};
 /** The anchor of a stage's native models: `categories.ts` knows it as a navigation target. */
 export const nativeAnchor = (stage: Stage) => `native-models-${stage}`;
 
@@ -66,14 +61,10 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
           <button type="button" className="models-page__link" onClick={() => setFinished(false)}>{t('models.page.dismiss', 'Dismiss')}</button>
         </div>
       )}
-      {STAGES.map((stage) => {
-        const title = t(TAGS[stage][0], TAGS[stage][1]);
-        return (
-          <div key={stage} className="models-stage" role="group" aria-label={title} id={`${nativeAnchor(stage)}-section`}>
-            <NativeModelManagementSection stageFilter={stage} settings={settings} update={update} pair={pair} isSessionActive={locked} />
-          </div>
-        );
-      })}
+      {STAGES.map((stage) => (
+        <NativeModelManagementSection key={stage} stageFilter={stage} anchorId={`${nativeAnchor(stage)}-section`}
+          settings={settings} update={update} pair={pair} isSessionActive={locked} />
+      ))}
     </VoicePreviewContext.Provider>
   );
 }

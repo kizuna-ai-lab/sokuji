@@ -8,7 +8,6 @@
 // downloaded (B-19), with what it takes and Remove; and a summary line with Clear all.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight } from 'lucide-react';
 import {
   useModelDownloads, useModelStatuses, useDownloadErrors, useStorageUsedMb, useWebGPUAvailable, useDeviceFeatures, useModelStore,
 } from '../../stores/modelStore';
@@ -34,6 +33,7 @@ import { SMART_TURN_MODEL_ID } from '../../lib/turn/smartTurn';
 import { computeDeleteNotes } from '../Settings/engine/deleteNotes';
 import { ModelImportModal } from '../Settings/sections/ModelImportModal';
 import { ModelCard } from '../Settings/shared/ModelCard';
+import { ModelStageList } from '../Settings/shared/ModelStageList';
 import { NativeModelsGroup } from './NativeModelsGroup';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
 import type { LanguagePair } from '../../lib/run/types';
@@ -105,7 +105,6 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const runsHere = useLineUpStore((s) => RUN_STAGES.some((stage) => stageProviderIn(s, stage) === 'local_inference'));
 
   const [asking, setAsking] = useState<string | null>(null);
-  const [open, setOpen] = useState<Partial<Record<Stage, boolean>>>({});
   const [importTarget, setImportTarget] = useState<ModelManifestEntry | null>(null);
   const [dictStored, setDictStored] = useState<boolean | null>(null);
   const [imported, setImported] = useState<voiceStorage.StoredVoice[]>([]);
@@ -281,35 +280,11 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
           hint={nativeOffered
             ? t('models.page.webgpuHint', 'Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.')
             : t('models.page.sessionHint', 'Stages set to “This device” in “Languages and line-up” use the models downloaded here.')}>
-          {stageGroups.map(({ stage, shown, rest, others }) => {
-            const title = t(TAGS[stage][0], TAGS[stage][1]);
-            const hidden = rest.length + others.length;
-            return (
-              // Anchored for an engine slot's "Browse library…" (B-20): the page scrolls here and lights the group.
-              <div key={stage} className="models-stage" role="group" aria-label={title} id={`models-${stage}-section`}>
-                <h4 className="models-stage__title">{title}</h4>
-                <div className="models-stage__shown">{shown.map(sessionRow)}</div>
-                {hidden > 0 && (
-                  <div className="models-group__fold">
-                    <button type="button" className="models-group__fold-btn" aria-expanded={Boolean(open[stage])}
-                      onClick={() => setOpen((o) => ({ ...o, [stage]: !o[stage] }))}>
-                      {open[stage] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                      {t('models.page.more', '{{count}} more', { count: hidden })}
-                    </button>
-                    {open[stage] && (
-                      <>
-                        {rest.map(sessionRow)}
-                        {others.length > 0 && (
-                          <p className="models-stage__caption">{t('models.page.otherLanguages', 'Models for other languages ({{count}})', { count: others.length })}</p>
-                        )}
-                        {others.map(sessionRow)}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {stageGroups.map(({ stage, shown, rest, others }) => (
+            // Anchored for an engine slot's "Browse library…" (B-20): the page scrolls here and lights the group.
+            <ModelStageList key={stage} title={t(TAGS[stage][0], TAGS[stage][1])} id={`models-${stage}-section`}
+              shown={shown.map(sessionRow)} rest={rest.map(sessionRow)} others={others.map(sessionRow)} />
+          ))}
         </Group>
   );
 

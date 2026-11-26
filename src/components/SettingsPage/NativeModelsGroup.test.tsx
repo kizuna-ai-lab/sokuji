@@ -51,10 +51,8 @@ describe('NativeModelsGroup', () => {
     render(<NativeModelsGroup locked />);
     expect(screen.getByTestId('engine-card')).toBeTruthy();
     expect(seen.engines[0]).toEqual({ isSessionActive: true });
-    for (const stage of ['asr', 'translation', 'tts']) {
-      const anchor = document.getElementById(`native-models-${stage}-section`)!;
-      expect(anchor.querySelector(`[data-testid="library-${stage}"]`)).toBeTruthy();
-    }
+    // Each stage's list owns its anchor (the section is handed the id), so a jump lands on it.
+    expect(seen.libraries.map((l) => l.anchorId)).toEqual(['asr', 'translation', 'tts'].map((s) => `native-models-${s}-section`));
     expect(seen.libraries.map((l) => l.stageFilter)).toEqual(['asr', 'translation', 'tts']);
     expect(seen.libraries[0]).toMatchObject({ settings: own, pair: { source: 'en', target: 'ja' }, isSessionActive: true });
     expect(seen.previews.every((p) => p === appVoicePreview)).toBe(true);
