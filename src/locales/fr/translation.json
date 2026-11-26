@@ -1036,11 +1036,19 @@
     "speedNone": "La vitesse n’a pas été mesurée",
     "gradeHelp": {
       "title": "Précision en {{language}} : {{grade}}",
-      "how": "Comment c’est noté : la part de parole que le modèle reconnaît mal (son taux d’erreur) sur les enregistrements de test FLEURS, mesurée sur la version Q8_0 du modèle. Moins de 5% d’erreurs vaut A, moins de 10% B, moins de 20% C, moins de 30% D, au-delà F ; un + ou un − divise chaque lettre en tiers. Votre propre voix, votre micro et le bruit feront varier le résultat."
+      "measured": "Taux d’erreur mesuré : {{error}} %",
+      "below": "moins de {{to}} %",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}} % ou plus",
+      "subGrades": "A, B et C sont chacun divisés en trois : {{plus}} correspond à {{a}}–{{b}} %, {{plain}} à {{b}}–{{c}} %, {{minus}} à {{c}}–{{d}} %.",
+      "method": "Le taux d’erreur est la part de la parole que le modèle comprend mal sur les enregistrements de test FLEURS, mesurée sur sa version Q8_0. Votre propre voix, votre micro et le bruit modifieront le résultat."
     },
     "speedHelp": {
       "title": "Vitesse : {{level}} sur {{max}}",
-      "how": "Comment c’est noté : le temps que met le modèle à traiter un enregistrement de 30 secondes sur l’ordinateur de test du catalogue (un portable AMD Ryzen 4750U, avec son GPU). Chaque niveau correspond à une limite de plus battue : 20, 10, 5, 3 et 1.5 secondes. Votre ordinateur peut être plus rapide ou plus lent."
+      "measured": "Mesuré : {{seconds}} s pour traiter l’enregistrement de 30 secondes",
+      "within": "en moins de {{seconds}} s",
+      "over": "plus de {{seconds}} s",
+      "method": "Le temps que met le modèle pour traiter un enregistrement de 30 secondes sur l’ordinateur de test du catalogue (un portable AMD Ryzen 4750U, avec son GPU). Votre ordinateur peut être plus rapide ou plus lent."
     },
     "importError": {
       "import_missing": "Ces fichiers sont manquants : {{names}}. Téléchargez-les, puis importez à nouveau.",

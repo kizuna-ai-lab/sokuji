@@ -29,6 +29,7 @@ import { languageNameFor } from '../engine/languageName';
 import { TierIcon } from './TierIcon';
 import LicenseConsentModal from '../shared/LicenseConsentModal';
 import { NativeImportModal } from './NativeImportModal';
+import { GradeHelp, SpeedHelp } from './AsrFactsHelp';
 import { hasAcceptedLicense, acceptLicense } from '../../../stores/licenseConsentStore';
 import {
   useNativeModelStore,
@@ -364,13 +365,7 @@ const NativeModelCard: React.FC<{
                 const name = languageNameFor(language);
                 return (
                   <Tooltip key={language} position="top" icon="none" maxWidth={320}
-                    content={grade ? (
-                      <>
-                        <strong>{t('models.gradeHelp.title', 'Accuracy in {{language}}: {{grade}}', { language: name, grade })}</strong>
-                        <br />
-                        {t('models.gradeHelp.how', 'How it is rated: the share of speech the model gets wrong (its error rate) on the FLEURS test recordings, measured on the Q8_0 version of the model. Under 5% wrong is A, under 10% B, under 20% C, under 30% D, more is F; a + or − splits each letter into thirds. Your own voice, microphone and noise will change the result.')}
-                      </>
-                    ) : t('models.gradeNone', 'Accuracy in {{language}} was not measured', { language: name })}>
+                    content={<GradeHelp language={name} grade={grade} error={asr.facts?.grades[i]?.error} />}>
                     <span className="model-card__grade" data-testid={`grade-${spec.selectId}-${language}`}>
                       <span className="model-card__grade-lang">{language.toUpperCase()}</span>
                       <span className="model-card__grade-letter">{grade ?? '—'}</span>
@@ -379,13 +374,7 @@ const NativeModelCard: React.FC<{
                 );
               })}
               <Tooltip position="top" icon="none" maxWidth={320}
-                content={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured') : (
-                  <>
-                    <strong>{t('models.speedHelp.title', 'Speed: {{level}} of {{max}}', { level: asr.facts.speed, max: SPEED_METER_STEPS })}</strong>
-                    <br />
-                    {t('models.speedHelp.how', 'How it is rated: how long the model takes to process a 30-second recording on the catalog’s test computer (an AMD Ryzen 4750U laptop, using its GPU). Each step is one more of these limits beaten: 20, 10, 5, 3 and 1.5 seconds. Your computer may be faster or slower.')}
-                  </>
-                )}>
+                content={<SpeedHelp level={asr.facts?.speed} waitSeconds={asr.facts?.waitSeconds} />}>
                 <span className="model-card__speed" role="img" data-testid={`speed-${spec.selectId}`}
                   aria-label={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured')
                     : t('models.speedHelp.title', 'Speed: {{level}} of {{max}}', { level: asr.facts.speed, max: SPEED_METER_STEPS })}>

@@ -267,7 +267,7 @@
     i {
       width: 3px;
       border-radius: 1px;
-      background: vars.$border-subtle;
+      background: vars.$border-strong; // an unlit step: the subtle line all but vanished on the dark theme
       &:nth-child(1) { height: 4px; }
       &:nth-child(2) { height: 6px; }
       &:nth-child(3) { height: 8px; }

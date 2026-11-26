@@ -1036,11 +1036,19 @@
     "speedNone": "Hız ölçülmedi",
     "gradeHelp": {
       "title": "{{language}} doğruluğu: {{grade}}",
-      "how": "Nasıl derecelendirilir: modelin FLEURS test kayıtlarında yanlış anladığı konuşma oranı (hata oranı); modelin Q8_0 sürümü üzerinde ölçülür. Hata oranı %5'ten azsa A, %10'dan azsa B, %20'den azsa C, %30'dan azsa D, daha fazlaysa F olur; + veya − her harfi üçe böler. Kendi sesiniz, mikrofonunuz ve ortam gürültüsü sonucu değiştirir."
+      "measured": "Ölçülen hata oranı: %{{error}}",
+      "below": "%{{to}} altı",
+      "band": "%{{from}}–{{to}}",
+      "above": "%{{from}} ve üzeri",
+      "subGrades": "A, B ve C'nin her biri üçe bölünür: {{plus}} %{{a}}–{{b}}, {{plain}} %{{b}}–{{c}}, {{minus}} %{{c}}–{{d}} aralığıdır.",
+      "method": "Hata oranı, modelin FLEURS test kayıtlarında yanlış anladığı konuşmanın payıdır ve modelin Q8_0 sürümünde ölçülmüştür. Kendi sesiniz, mikrofonunuz ve gürültü sonucu değiştirecektir."
     },
     "speedHelp": {
       "title": "Hız: {{max}} üzerinden {{level}}",
-      "how": "Nasıl derecelendirilir: modelin 30 saniyelik bir kaydı kataloğun test bilgisayarında (GPU'sunu kullanan bir AMD Ryzen 4750U dizüstü bilgisayar) işlemesinin ne kadar sürdüğü. Her adım, bu sınırlardan birinin daha aşıldığı anlamına gelir: 20, 10, 5, 3 ve 1.5 saniye. Sizin bilgisayarınız bundan daha hızlı ya da daha yavaş olabilir."
+      "measured": "Ölçülen: 30 saniyelik kaydı işlemek için {{seconds}} sn",
+      "within": "{{seconds}} sn içinde",
+      "over": "{{seconds}} sn üzeri",
+      "method": "Modelin 30 saniyelik bir kaydı katalogun test bilgisayarında (AMD Ryzen 4750U dizüstü, GPU'su kullanılarak) işlemesi için gereken süre. Sizin bilgisayarınız daha hızlı ya da daha yavaş olabilir."
     },
     "importError": {
       "import_missing": "Bu dosyalar eksik: {{names}}. Bunları indirip yeniden içe aktarın.",

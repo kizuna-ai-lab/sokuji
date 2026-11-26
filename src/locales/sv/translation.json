@@ -1036,11 +1036,19 @@
     "speedNone": "Hastigheten mättes inte",
     "gradeHelp": {
       "title": "Noggrannhet för {{language}}: {{grade}}",
-      "how": "Så betygsätts den: andelen tal som modellen uppfattar fel (dess felfrekvens) på FLEURS testinspelningar, mätt på Q8_0-versionen av modellen. Under 5% fel är A, under 10% B, under 20% C, under 30% D, mer är F; ett + eller − delar varje bokstav i tredjedelar. Din egen röst, mikrofon och bakgrundsljud påverkar resultatet."
+      "measured": "Uppmätt felfrekvens: {{error}} %",
+      "below": "under {{to}} %",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}} % eller mer",
+      "subGrades": "A, B och C delas var och en i tre: {{plus}} är {{a}}–{{b}} %, {{plain}} {{b}}–{{c}} %, {{minus}} {{c}}–{{d}} %.",
+      "method": "Felfrekvensen är andelen tal som modellen uppfattar fel på FLEURS testinspelningar, uppmätt på dess Q8_0-version. Din egen röst, mikrofon och bakgrundsljud påverkar resultatet."
     },
     "speedHelp": {
       "title": "Hastighet: {{level}} av {{max}}",
-      "how": "Så betygsätts den: hur lång tid modellen behöver för att bearbeta en inspelning på 30 sekunder på katalogens testdator (en AMD Ryzen 4750U-laptop som använder dess GPU). Varje steg är ytterligare en av dessa gränser som underskrids: 20, 10, 5, 3 och 1.5 sekunder. Din dator kan vara snabbare eller långsammare."
+      "measured": "Uppmätt: {{seconds}} s för att bearbeta inspelningen på 30 sekunder",
+      "within": "inom {{seconds}} s",
+      "over": "över {{seconds}} s",
+      "method": "Tiden det tar för modellen att bearbeta en inspelning på 30 sekunder på katalogens testdator (en AMD Ryzen 4750U-bärbar, med dess GPU). Din dator kan vara snabbare eller långsammare."
     },
     "importError": {
       "import_missing": "Dessa filer saknas: {{names}}. Ladda ner dem och importera igen.",

@@ -1036,11 +1036,19 @@
     "speedNone": "La velocità non è stata misurata",
     "gradeHelp": {
       "title": "Accuratezza in {{language}}: {{grade}}",
-      "how": "Come viene valutata: la quota di parlato che il modello sbaglia (il suo tasso di errore) sulle registrazioni di prova FLEURS, misurata sulla versione Q8_0 del modello. Meno del 5% di errori è A, meno del 10% B, meno del 20% C, meno del 30% D, oltre è F; un + o un − divide ogni lettera in terzi. La tua voce, il microfono e il rumore cambieranno il risultato."
+      "measured": "Tasso di errore misurato: {{error}}%",
+      "below": "meno di {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% o più",
+      "subGrades": "A, B e C sono divise ciascuna in tre: {{plus}} corrisponde a {{a}}–{{b}}%, {{plain}} a {{b}}–{{c}}%, {{minus}} a {{c}}–{{d}}%.",
+      "method": "Il tasso di errore è la quota di parlato che il modello sbaglia sulle registrazioni di test FLEURS, misurata sulla sua versione Q8_0. La tua voce, il microfono e il rumore cambieranno il risultato."
     },
     "speedHelp": {
       "title": "Velocità: {{level}} su {{max}}",
-      "how": "Come viene valutata: quanto tempo impiega il modello a elaborare una registrazione di 30 secondi sul computer di prova del catalogo (un portatile AMD Ryzen 4750U, che usa la sua GPU). Ogni livello è un altro di questi limiti superato: 20, 10, 5, 3 e 1.5 secondi. Il tuo computer può essere più veloce o più lento."
+      "measured": "Misurato: {{seconds}} s per elaborare la registrazione di 30 secondi",
+      "within": "entro {{seconds}} s",
+      "over": "oltre {{seconds}} s",
+      "method": "Il tempo che il modello impiega per elaborare una registrazione di 30 secondi sul computer di prova del catalogo (un portatile AMD Ryzen 4750U, usando la sua GPU). Il tuo computer potrebbe essere più veloce o più lento."
     },
     "importError": {
       "import_missing": "Mancano questi file: {{names}}. Scaricali e importa di nuovo.",

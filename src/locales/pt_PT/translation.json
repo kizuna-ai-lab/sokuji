@@ -1036,11 +1036,19 @@
     "speedNone": "A velocidade não foi medida",
     "gradeHelp": {
       "title": "Precisão em {{language}}: {{grade}}",
-      "how": "Como é avaliado: a parte da fala que o modelo erra (a sua taxa de erro) nas gravações de teste FLEURS, medida na versão Q8_0 do modelo. Menos de 5% de erros é A, menos de 10% B, menos de 20% C, menos de 30% D, mais do que isso é F; um + ou − divide cada letra em terços. A sua própria voz, o microfone e o ruído vão alterar o resultado."
+      "measured": "Taxa de erro medida: {{error}}%",
+      "below": "abaixo de {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% ou mais",
+      "subGrades": "A, B e C são divididas em três: {{plus}} equivale a {{a}}–{{b}}%, {{plain}} a {{b}}–{{c}}%, {{minus}} a {{c}}–{{d}}%.",
+      "method": "A taxa de erro é a parcela da fala que o modelo erra nas gravações de teste FLEURS, medida na respetiva versão Q8_0. A sua própria voz, o microfone e o ruído vão alterar o resultado."
     },
     "speedHelp": {
       "title": "Velocidade: {{level}} de {{max}}",
-      "how": "Como é avaliada: quanto tempo o modelo demora a processar uma gravação de 30 segundos no computador de testes do catálogo (um portátil AMD Ryzen 4750U, a usar a respetiva GPU). Cada nível é mais um destes limites ultrapassado: 20, 10, 5, 3 e 1.5 segundos. O seu computador pode ser mais rápido ou mais lento."
+      "measured": "Medido: {{seconds}} s para processar a gravação de 30 segundos",
+      "within": "em até {{seconds}} s",
+      "over": "mais de {{seconds}} s",
+      "method": "O tempo que o modelo demora a processar uma gravação de 30 segundos no computador de teste do catálogo (um portátil AMD Ryzen 4750U, com a respetiva GPU). O seu computador pode ser mais rápido ou mais lento."
     },
     "importError": {
       "import_missing": "Estes ficheiros estão em falta: {{names}}. Transfira-os e importe novamente.",

@@ -1036,11 +1036,19 @@
     "speedNone": "Nopeutta ei ole mitattu",
     "gradeHelp": {
       "title": "Tarkkuus kielellä {{language}}: {{grade}}",
-      "how": "Näin arvioidaan: kuinka suuren osan puheesta malli tunnistaa väärin (virheprosentti) FLEURS-testiäänitteillä, mitattuna mallin Q8_0-versiolla. Alle 5% virheitä on A, alle 10% B, alle 20% C, alle 30% D ja sitä enemmän F; + tai − jakaa kunkin kirjaimen kolmeen osaan. Oma äänesi, mikrofonisi ja taustamelu muuttavat tulosta."
+      "measured": "Mitattu virheprosentti: {{error}} %",
+      "below": "alle {{to}} %",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}} % tai enemmän",
+      "subGrades": "A, B ja C jakautuvat kukin kolmeen: {{plus}} on {{a}}–{{b}} %, {{plain}} {{b}}–{{c}} %, {{minus}} {{c}}–{{d}} %.",
+      "method": "Virheprosentti kertoo, kuinka suuren osan puheesta malli tunnistaa väärin FLEURS-testiäänitteillä, mitattuna sen Q8_0-versiolla. Oma äänesi, mikrofonisi ja taustamelu muuttavat tulosta."
     },
     "speedHelp": {
       "title": "Nopeus: {{level}} / {{max}}",
-      "how": "Näin arvioidaan: kuinka kauan malli käsittelee 30 sekunnin äänitteen luettelon testitietokoneella (AMD Ryzen 4750U -kannettava, jonka GPU:ta käytetään). Jokainen askel tarkoittaa, että yksi näistä rajoista alitetaan: 20, 10, 5, 3 ja 1.5 sekuntia. Oma tietokoneesi voi olla nopeampi tai hitaampi."
+      "measured": "Mitattu: {{seconds}} s 30 sekunnin äänitteen käsittelyyn",
+      "within": "{{seconds}} s sisällä",
+      "over": "yli {{seconds}} s",
+      "method": "Aika, jonka malli tarvitsee 30 sekunnin äänitteen käsittelyyn luettelon testitietokoneella (AMD Ryzen 4750U -kannettava, sen GPU:ta käyttäen). Sinun tietokoneesi voi olla nopeampi tai hitaampi."
     },
     "importError": {
       "import_missing": "Nämä tiedostot puuttuvat: {{names}}. Lataa ne ja tuo uudelleen.",

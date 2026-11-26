@@ -1036,11 +1036,19 @@
     "speedNone": "Chưa đo tốc độ",
     "gradeHelp": {
       "title": "Độ chính xác với {{language}}: {{grade}}",
-      "how": "Cách chấm điểm: tỷ lệ lời nói mà mô hình nhận sai (tỷ lệ lỗi) trên các bản ghi âm thử nghiệm FLEURS, đo trên phiên bản Q8_0 của mô hình. Sai dưới 5% là A, dưới 10% là B, dưới 20% là C, dưới 30% là D, nhiều hơn là F; dấu + hoặc − chia mỗi chữ cái thành ba phần. Giọng nói của bạn, micro và tiếng ồn sẽ làm kết quả thay đổi."
+      "measured": "Tỷ lệ lỗi đo được: {{error}}%",
+      "below": "dưới {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% trở lên",
+      "subGrades": "A, B và C mỗi hạng được chia thành ba: {{plus}} là {{a}}–{{b}}%, {{plain}} là {{b}}–{{c}}%, {{minus}} là {{c}}–{{d}}%.",
+      "method": "Tỷ lệ lỗi là phần lời nói mà mô hình nhận sai trên các bản ghi âm thử nghiệm FLEURS, đo trên phiên bản Q8_0 của mô hình. Giọng nói, micro và tiếng ồn của bạn sẽ làm kết quả thay đổi."
     },
     "speedHelp": {
       "title": "Tốc độ: {{level}} trên {{max}}",
-      "how": "Cách chấm điểm: thời gian mô hình cần để xử lý một bản ghi âm 30 giây trên máy tính thử nghiệm của danh mục (một laptop AMD Ryzen 4750U, dùng GPU của nó). Mỗi bậc là vượt thêm một trong các giới hạn này: 20, 10, 5, 3 và 1.5 giây. Máy tính của bạn có thể nhanh hơn hoặc chậm hơn."
+      "measured": "Đo được: {{seconds}} giây để xử lý bản ghi âm 30 giây",
+      "within": "trong {{seconds}} giây",
+      "over": "hơn {{seconds}} giây",
+      "method": "Thời gian mô hình xử lý một bản ghi âm 30 giây trên máy tính thử nghiệm của danh mục (laptop AMD Ryzen 4750U, dùng GPU của máy). Máy tính của bạn có thể nhanh hơn hoặc chậm hơn."
     },
     "importError": {
       "import_missing": "Thiếu các tệp này: {{names}}. Hãy tải xuống rồi nhập lại.",

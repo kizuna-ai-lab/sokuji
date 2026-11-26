@@ -1036,11 +1036,19 @@
     "speedNone": "Kelajuan tidak diukur",
     "gradeHelp": {
       "title": "Ketepatan dalam {{language}}: {{grade}}",
-      "how": "Cara ia dinilai: bahagian ucapan yang tersalah oleh model (kadar ralatnya) pada rakaman ujian FLEURS, diukur pada versi Q8_0 model. Kurang daripada 5% salah ialah A, kurang daripada 10% B, kurang daripada 20% C, kurang daripada 30% D, lebih daripada itu F; tanda + atau − membahagikan setiap huruf kepada sepertiga. Suara anda sendiri, mikrofon dan bunyi bising akan mengubah keputusan."
+      "measured": "Kadar ralat yang diukur: {{error}}%",
+      "below": "di bawah {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% atau lebih",
+      "subGrades": "A, B dan C masing-masing dibahagikan kepada tiga: {{plus}} ialah {{a}}–{{b}}%, {{plain}} {{b}}–{{c}}%, {{minus}} {{c}}–{{d}}%.",
+      "method": "Kadar ralat ialah bahagian pertuturan yang tersilap dikenali oleh model pada rakaman ujian FLEURS, diukur pada versi Q8_0 model itu. Suara, mikrofon dan bunyi bising anda sendiri akan mengubah keputusan."
     },
     "speedHelp": {
       "title": "Kelajuan: {{level}} daripada {{max}}",
-      "how": "Cara ia dinilai: berapa lama model memproses rakaman 30 saat pada komputer ujian katalog (komputer riba AMD Ryzen 4750U, menggunakan GPU-nya). Setiap langkah ialah satu lagi had ini yang dilepasi: 20, 10, 5, 3 dan 1.5 saat. Komputer anda mungkin lebih pantas atau lebih perlahan."
+      "measured": "Diukur: {{seconds}} s untuk memproses rakaman 30 saat",
+      "within": "dalam {{seconds}} s",
+      "over": "melebihi {{seconds}} s",
+      "method": "Masa yang diambil oleh model untuk memproses rakaman 30 saat pada komputer ujian katalog (komputer riba AMD Ryzen 4750U, menggunakan GPU-nya). Komputer anda mungkin lebih pantas atau lebih perlahan."
     },
     "importError": {
       "import_missing": "Fail ini tiada: {{names}}. Muat turun fail tersebut dan import semula.",

@@ -1036,11 +1036,19 @@
     "speedNone": "Geschwindigkeit wurde nicht gemessen",
     "gradeHelp": {
       "title": "Genauigkeit für {{language}}: {{grade}}",
-      "how": "So wird bewertet: der Anteil der Sprache, den das Modell falsch erkennt (seine Fehlerrate), gemessen auf den FLEURS-Testaufnahmen mit der Q8_0-Version des Modells. Unter 5% Fehler ergibt A, unter 10% B, unter 20% C, unter 30% D, mehr F; ein + oder − teilt jeden Buchstaben in Drittel. Die eigene Stimme, das Mikrofon und Störgeräusche verändern das Ergebnis."
+      "measured": "Gemessene Fehlerquote: {{error}} %",
+      "below": "unter {{to}} %",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}} % oder mehr",
+      "subGrades": "A, B und C sind jeweils in drei Stufen unterteilt: {{plus}} entspricht {{a}}–{{b}} %, {{plain}} {{b}}–{{c}} %, {{minus}} {{c}}–{{d}} %.",
+      "method": "Die Fehlerquote ist der Anteil der Sprache, den das Modell bei den FLEURS-Testaufnahmen falsch erkennt, gemessen an der Q8_0-Version des Modells. Ihre eigene Stimme, Ihr Mikrofon und Störgeräusche verändern das Ergebnis."
     },
     "speedHelp": {
       "title": "Geschwindigkeit: {{level}} von {{max}}",
-      "how": "So wird bewertet: wie lange das Modell auf dem Testcomputer des Katalogs (ein AMD Ryzen 4750U-Laptop mit GPU) für eine 30-Sekunden-Aufnahme braucht. Jede Stufe bedeutet, dass eine weitere dieser Grenzen unterboten wird: 20, 10, 5, 3 und 1.5 Sekunden. Ein anderer Computer kann schneller oder langsamer sein."
+      "measured": "Gemessen: {{seconds}} s für die Verarbeitung der 30-Sekunden-Aufnahme",
+      "within": "innerhalb von {{seconds}} s",
+      "over": "über {{seconds}} s",
+      "method": "Die Zeit, die das Modell auf dem Testrechner des Katalogs (ein Laptop mit AMD Ryzen 4750U, unter Nutzung seiner GPU) für die Verarbeitung einer 30-Sekunden-Aufnahme braucht. Ihr Computer kann schneller oder langsamer sein."
     },
     "importError": {
       "import_missing": "Diese Dateien fehlen: {{names}}. Laden Sie sie herunter und importieren Sie dann erneut.",

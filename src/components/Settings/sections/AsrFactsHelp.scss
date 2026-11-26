@@ -1,0 +1,68 @@
+// The accuracy and speed tooltips of a recognition card (AsrFactsHelp.tsx): the shared tooltip's box, with the scale
+// as a small table and the model's own row marked. Not under .model-card: the tooltip is drawn in a portal.
+@use '../shared/variables' as vars;
+
+.asr-help {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+
+  &__note {
+    color: vars.$text-secondary;
+    font-size: 12px;
+  }
+}
+
+.asr-scale {
+  border-collapse: collapse;
+  font-size: 12px;
+
+  th, td {
+    padding: 1px 8px 1px 4px;
+    text-align: left;
+    font-weight: normal;
+    color: vars.$text-secondary;
+  }
+  th { width: 1%; white-space: nowrap; }
+
+  &__letter {
+    display: inline-block;
+    min-width: 2.2em;
+    text-align: center;
+    padding: 0 4px;
+    border-radius: 3px;
+    background: vars.$bg-control;
+    color: vars.$text-primary;
+    font-weight: vars.$weight-semibold;
+  }
+
+  // The model's own place on the scale.
+  &__row--this {
+    th, td {
+      background: color-mix(in srgb, vars.$color-primary 14%, transparent);
+      color: vars.$text-primary;
+    }
+    td { font-weight: vars.$weight-semibold; }
+  }
+}
+
+// The card's five-step meter, also drawn in the tooltip's scale.
+.asr-meter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  vertical-align: middle;
+
+  i {
+    width: 3px;
+    border-radius: 1px;
+    background: vars.$border-strong; // an unlit step: the subtle line all but vanished on the dark theme
+    &:nth-child(1) { height: 4px; }
+    &:nth-child(2) { height: 6px; }
+    &:nth-child(3) { height: 8px; }
+    &:nth-child(4) { height: 10px; }
+    &:nth-child(5) { height: 12px; }
+    &.on { background: vars.$color-primary; }
+  }
+}

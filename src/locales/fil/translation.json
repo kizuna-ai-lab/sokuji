@@ -1036,11 +1036,19 @@
     "speedNone": "Hindi sinukat ang bilis",
     "gradeHelp": {
       "title": "Katumpakan sa {{language}}: {{grade}}",
-      "how": "Paano ito nire-rate: ang bahagi ng pagsasalita na mali ang nakukuha ng model (ang error rate nito) sa mga test recording ng FLEURS, na sinukat sa Q8_0 na bersyon ng model. Wala pang 5% na mali ay A, wala pang 10% ay B, wala pang 20% ay C, wala pang 30% ay D, at mas mataas pa rito ay F; hinahati ng + o − ang bawat letra sa tatlong bahagi. Mababago ng sarili mong boses, mikropono, at ingay ang resulta."
+      "measured": "Nasukat na error rate: {{error}}%",
+      "below": "wala pang {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% o higit pa",
+      "subGrades": "Ang A, B at C ay bawat isa hinahati sa tatlo: ang {{plus}} ay {{a}}–{{b}}%, ang {{plain}} ay {{b}}–{{c}}%, ang {{minus}} ay {{c}}–{{d}}%.",
+      "method": "Ang error rate ay ang bahagi ng pagsasalita na mali ang pagkakaintindi ng model sa mga test recording ng FLEURS, na sinukat sa Q8_0 na bersyon nito. Magbabago ang resulta depende sa sarili mong boses, mikropono at ingay."
     },
     "speedHelp": {
       "title": "Bilis: {{level}} sa {{max}}",
-      "how": "Paano ito nire-rate: kung gaano katagal pino-proseso ng model ang isang 30-segundong recording sa test computer ng catalog (isang AMD Ryzen 4750U na laptop, gamit ang GPU nito). Ang bawat hakbang ay isa pang limitasyon na nalampasan: 20, 10, 5, 3, at 1.5 segundo. Maaaring mas mabilis o mas mabagal ang computer mo."
+      "measured": "Nasukat: {{seconds}} s para iproseso ang 30-segundong recording",
+      "within": "sa loob ng {{seconds}} s",
+      "over": "higit sa {{seconds}} s",
+      "method": "Ang oras na kailangan ng model para iproseso ang 30-segundong recording sa test computer ng catalog (isang AMD Ryzen 4750U na laptop, gamit ang GPU nito). Maaaring mas mabilis o mas mabagal ang iyong computer."
     },
     "importError": {
       "import_missing": "Kulang ang mga file na ito: {{names}}. I-download ang mga ito at i-import muli.",

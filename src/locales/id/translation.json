@@ -1036,11 +1036,19 @@
     "speedNone": "Kecepatan tidak diukur",
     "gradeHelp": {
       "title": "Akurasi dalam {{language}}: {{grade}}",
-      "how": "Cara penilaiannya: persentase ucapan yang salah dikenali model (tingkat kesalahannya) pada rekaman uji FLEURS, diukur pada versi Q8_0 dari model. Kesalahan di bawah 5% adalah A, di bawah 10% B, di bawah 20% C, di bawah 30% D, lebih dari itu F; tanda + atau − membagi setiap huruf menjadi tiga bagian. Suara Anda sendiri, mikrofon, dan kebisingan akan mengubah hasilnya."
+      "measured": "Tingkat kesalahan terukur: {{error}}%",
+      "below": "di bawah {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% atau lebih",
+      "subGrades": "A, B, dan C masing-masing dibagi menjadi tiga: {{plus}} adalah {{a}}–{{b}}%, {{plain}} {{b}}–{{c}}%, {{minus}} {{c}}–{{d}}%.",
+      "method": "Tingkat kesalahan adalah porsi ucapan yang salah dikenali model pada rekaman uji FLEURS, diukur pada versi Q8_0-nya. Suara, mikrofon, dan kebisingan Anda sendiri akan memengaruhi hasilnya."
     },
     "speedHelp": {
       "title": "Kecepatan: {{level}} dari {{max}}",
-      "how": "Cara penilaiannya: berapa lama model memproses rekaman 30 detik pada komputer uji katalog (laptop AMD Ryzen 4750U, memakai GPU-nya). Setiap tingkat berarti satu batas lagi terlampaui: 20, 10, 5, 3, dan 1.5 detik. Komputer Anda bisa lebih cepat atau lebih lambat."
+      "measured": "Terukur: {{seconds}} dtk untuk memproses rekaman 30 detik",
+      "within": "dalam {{seconds}} dtk",
+      "over": "lebih dari {{seconds}} dtk",
+      "method": "Waktu yang dibutuhkan model untuk memproses rekaman 30 detik pada komputer uji katalog (laptop AMD Ryzen 4750U, menggunakan GPU-nya). Komputer Anda mungkin lebih cepat atau lebih lambat."
     },
     "importError": {
       "import_missing": "File berikut tidak ada: {{names}}. Unduh file tersebut lalu impor lagi.",

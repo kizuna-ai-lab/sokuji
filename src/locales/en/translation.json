@@ -1197,11 +1197,19 @@
     "gradeNone": "Accuracy in {{language}} was not measured",
     "gradeHelp": {
       "title": "Accuracy in {{language}}: {{grade}}",
-      "how": "How it is rated: the share of speech the model gets wrong (its error rate) on the FLEURS test recordings, measured on the Q8_0 version of the model. Under 5% wrong is A, under 10% B, under 20% C, under 30% D, more is F; a + or − splits each letter into thirds. Your own voice, microphone and noise will change the result."
+      "measured": "Measured error rate: {{error}}%",
+      "below": "under {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% or more",
+      "subGrades": "A, B and C are each split in three: {{plus}} is {{a}}–{{b}}%, {{plain}} {{b}}–{{c}}%, {{minus}} {{c}}–{{d}}%.",
+      "method": "The error rate is the share of speech the model gets wrong on the FLEURS test recordings, measured on its Q8_0 version. Your own voice, microphone and noise will change the result."
     },
     "speedHelp": {
       "title": "Speed: {{level}} of {{max}}",
-      "how": "How it is rated: how long the model takes to process a 30-second recording on the catalog’s test computer (an AMD Ryzen 4750U laptop, using its GPU). Each step is one more of these limits beaten: 20, 10, 5, 3 and 1.5 seconds. Your computer may be faster or slower."
+      "measured": "Measured: {{seconds}} s to process the 30-second recording",
+      "within": "within {{seconds}} s",
+      "over": "over {{seconds}} s",
+      "method": "The time the model takes to process a 30-second recording on the catalog’s test computer (an AMD Ryzen 4750U laptop, using its GPU). Your computer may be faster or slower."
     },
     "importError": {
       "import_missing": "These files are missing: {{names}}. Download them and import again.",

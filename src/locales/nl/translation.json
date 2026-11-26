@@ -1036,11 +1036,19 @@
     "speedNone": "Snelheid is niet gemeten",
     "gradeHelp": {
       "title": "Nauwkeurigheid in {{language}}: {{grade}}",
-      "how": "Zo wordt het beoordeeld: het aandeel spraak dat het model fout heeft (het foutpercentage) op de FLEURS-testopnamen, gemeten met de Q8_0-versie van het model. Minder dan 5% fout is A, minder dan 10% B, minder dan 20% C, minder dan 30% D, meer is F; een + of − verdeelt elke letter in derden. Je eigen stem, microfoon en omgevingsgeluid veranderen het resultaat."
+      "measured": "Gemeten foutpercentage: {{error}}%",
+      "below": "onder {{to}}%",
+      "band": "{{from}}–{{to}}%",
+      "above": "{{from}}% of meer",
+      "subGrades": "A, B en C zijn elk in drie gesplitst: {{plus}} is {{a}}–{{b}}%, {{plain}} {{b}}–{{c}}%, {{minus}} {{c}}–{{d}}%.",
+      "method": "Het foutpercentage is het aandeel spraak dat het model fout heeft op de FLEURS-testopnamen, gemeten op de Q8_0-versie. Je eigen stem, microfoon en omgevingsgeluid veranderen het resultaat."
     },
     "speedHelp": {
       "title": "Snelheid: {{level}} van {{max}}",
-      "how": "Zo wordt het beoordeeld: hoe lang het model erover doet om een opname van 30 seconden te verwerken op de testcomputer van de catalogus (een AMD Ryzen 4750U-laptop, met zijn GPU). Elke stap is nog een van deze grenzen die wordt gehaald: 20, 10, 5, 3 en 1.5 seconden. Jouw computer kan sneller of langzamer zijn."
+      "measured": "Gemeten: {{seconds}} s om de opname van 30 seconden te verwerken",
+      "within": "binnen {{seconds}} s",
+      "over": "meer dan {{seconds}} s",
+      "method": "De tijd die het model nodig heeft om een opname van 30 seconden te verwerken op de testcomputer van de catalogus (een AMD Ryzen 4750U-laptop, met zijn GPU). Jouw computer kan sneller of langzamer zijn."
     },
     "importError": {
       "import_missing": "Deze bestanden ontbreken: {{names}}. Download ze en importeer opnieuw.",
