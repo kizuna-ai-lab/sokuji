@@ -323,16 +323,22 @@ describe('importModel', () => {
     let first = true;
     const spy = vi.spyOn(fs, 'renameSync').mockImplementation(((x: fs.PathLike, y: fs.PathLike) => {
       real(x, y);
-      if (first) { first = false; a.abort(); }
+      if (first) { first = false; a.abort(); }   // the first import is cancelled once its blob is in place
     }) as typeof fs.renameSync);
+    // Queued in a known order behind a holder: the German import first, the Spanish one behind it.
+    let release!: () => void;
+    const held = withRepoLock(repoDe, () => new Promise<void>((resolve) => { release = resolve; }));
     try {
-      const [ra, rb] = await Promise.all([
-        importModel('pocket-tts-de', [de], send, { signal: a.signal }),
-        importModel('pocket-tts-es', [es], send),
-      ]);
-      expect(ra).toBe('cancelled');
-      expect(rb).toBe('ready');
+      const first = importModel('pocket-tts-de', [de], send, { signal: a.signal });
+      await vi.waitFor(() => expect(repoLockQueue(repoDe)).toBe(2), { timeout: 5000 });
+      const second = importModel('pocket-tts-es', [es], send);
+      await vi.waitFor(() => expect(repoLockQueue(repoDe)).toBe(3), { timeout: 5000 });
+      release();
+      expect(await first).toBe('cancelled');
+      expect(await second).toBe('ready');
     } finally {
+      release();
+      await held;
       spy.mockRestore();
     }
     expect(fs.existsSync(cachedFilePath(repoEs, fileEs) ?? '/nonexistent')).toBe(true);
@@ -356,6 +362,24 @@ describe('importModel', () => {
       await held;
     }
     expect(cachedFilePath(REPO, FILE)).toBeNull();
+    expect(fs.existsSync(repoDir(REPO))).toBe(false);
+  });
+
+  // Review of the fix below: a check of the copied bytes that throws (a read error, not "not a GGUF") left the copy.
+  it('removes its staging copy when checking the copied bytes fails', async () => {
+    const from = put(path.basename(FILE), gguf());
+    const open = fs.promises.open;
+    const spy = vi.spyOn(fs.promises, 'open').mockImplementation((async (...args: Parameters<typeof fs.promises.open>) => {
+      if (String(args[0]).endsWith('.incomplete') && (args[1] === undefined || args[1] === 'r')) {
+        throw Object.assign(new Error('EIO: i/o error'), { code: 'EIO' });
+      }
+      return open(...args);
+    }) as typeof fs.promises.open);
+    try {
+      await expect(importModel(CARD, [from], send)).rejects.toThrow(/EIO/);
+    } finally {
+      spy.mockRestore();
+    }
     expect(fs.existsSync(repoDir(REPO))).toBe(false);
   });
 

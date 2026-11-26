@@ -179,40 +179,34 @@ export async function importModel(modelId: string, paths: readonly string[], sen
           fs.mkdirSync(blobs, { recursive: true });
           sweepStaging(blobs);
           const incomplete = path.join(blobs, `import-${process.pid}-${randomBytes(6).toString('hex')}.incomplete`);
+          // The staging copy is this import's until it is the blob: whatever stops it on the way (a refusal, a read
+          // error, a failed rename), it goes (its pid keeps it from a sweep while this engine runs). Once renamed, the
+          // removal finds nothing.
           let sha: string;
+          let known: KnownFile | undefined;
           try {
             sha = await copyHashing(w.from!, incomplete, tick, signal);
             if (signal?.aborted) throw new ImportError('cancelled', 'import_cancelled');
-          } catch (e) {
-            fs.rmSync(incomplete, { force: true });
-            throw e;
-          }
-          const known = knownFile(w.repo, w.file);
-          if (known && known.sha256 !== sha) {
-            fs.rmSync(incomplete, { force: true });
-            throw new ImportError(
-              `${w.name} is not the published file (its sha256 is ${sha.slice(0, 12)}…, expected ${known.sha256.slice(0, 12)}…): download it again`,
-              'import_mismatch', { name: w.name, got: sha.slice(0, 12), expected: known.sha256.slice(0, 12) },
-            );
-          }
-          // The bytes copied are the ones checked, not only the file looked at first: it may have been replaced while
-          // the import waited for the repo, and a file the catalog does not list has no published hash to catch that.
-          if (w.name.endsWith('.gguf') && !(await isGguf(incomplete))) {
-            fs.rmSync(incomplete, { force: true });
-            throw new ImportError(`${w.name} is not a GGUF file`, 'import_not_gguf', { name: w.name });
-          }
-          const blob = path.join(blobs, sha);
-          // Bytes already cached (an earlier download or import) are kept; the copy is dropped.
-          if (fs.existsSync(blob)) fs.rmSync(incomplete, { force: true });
-          else {
-            try {
-              fs.renameSync(incomplete, blob);
-            } catch (e) {
-              // The staging copy is this import's until it is the blob: never left behind (its pid keeps it from a sweep).
-              try { fs.rmSync(incomplete, { force: true }); } catch { /* the rename's error is the one to tell */ }
-              throw e;
+            known = knownFile(w.repo, w.file);
+            if (known && known.sha256 !== sha) {
+              throw new ImportError(
+                `${w.name} is not the published file (its sha256 is ${sha.slice(0, 12)}…, expected ${known.sha256.slice(0, 12)}…): download it again`,
+                'import_mismatch', { name: w.name, got: sha.slice(0, 12), expected: known.sha256.slice(0, 12) },
+              );
             }
-            renamed.push(blob);
+            // The bytes copied are the ones checked, not only the file looked at first: it may have been replaced while
+            // the import waited for the repo, and a file the catalog does not list has no published hash to catch that.
+            if (w.name.endsWith('.gguf') && !(await isGguf(incomplete))) {
+              throw new ImportError(`${w.name} is not a GGUF file`, 'import_not_gguf', { name: w.name });
+            }
+            const blob = path.join(blobs, sha);
+            // Bytes already cached (an earlier download or import) are kept; the copy is dropped (below).
+            if (!fs.existsSync(blob)) {
+              fs.renameSync(incomplete, blob);
+              renamed.push(blob);
+            }
+          } finally {
+            try { fs.rmSync(incomplete, { force: true }); } catch { /* the error that stopped it is the one to tell */ }
           }
           placed.push({ repo: w.repo, file: w.file, sha, known });
         }
