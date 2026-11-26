@@ -40,7 +40,7 @@ export const NativeImportModal: React.FC<{
     // As the WASM/WebGPU engine's window does: an HTML error page in place of the file, and — where the catalog lists the
     // file's size — one far off it, are told at once; the engine's own check (the published bytes) comes at import.
     validate: async (filename, blob, expectedSizeBytes) => {
-      if (blob.size === 0) throw new ModelFileValidationError(`Invalid file ${filename}: it is empty`);
+      if (blob.size === 0) throw new ModelFileValidationError(`Invalid file ${filename}: it is empty`, 'empty');
       await validateModelFile(filename, blob, expectedSizeBytes);
     },
     commit: async (files) => {

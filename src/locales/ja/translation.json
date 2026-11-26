@@ -902,6 +902,15 @@
     "importDropHint": "ここにファイルをドラッグ",
     "importDropSub": "フォルダ全体の場合は「フォルダを選択」を使用してください — onnx/ サブフォルダは自動的に照合されます",
     "importDropSubFile": "ダウンロードしたファイルを選んでください。ファイル名は変えないでください。",
+    "importReason": {
+      "html": "ファイルの代わりに HTML が届きました（404 または CDN のエラーの可能性が高い）",
+      "size": "サイズが合いません：約 {{expected}} バイトのはずが {{got}} バイトです",
+      "magic_wasm": "WASM のマジックナンバーがありません",
+      "magic_onnx": "protobuf の先頭がありません",
+      "json": "内容が有効な JSON ではありません",
+      "empty": "ファイルが空です",
+      "invalid": "無効"
+    },
     "importNoPath": "選んだファイルの場所を読み取れませんでした。ファイルピッカーでもう一度選んでください。",
     "importGroupConfig": "設定とトークナイザー",
     "importGroupModel": "モデルファイル",

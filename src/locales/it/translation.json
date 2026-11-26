@@ -1051,7 +1051,16 @@
       "import_failed": "Importazione non riuscita."
     },
     "importDropSubFile": "Scegli i file scaricati. Lascia i loro nomi così come sono.",
-    "importNoPath": "Non è stato possibile leggere la posizione di un file scelto. Scegli di nuovo il file con il selettore di file."
+    "importNoPath": "Non è stato possibile leggere la posizione di un file scelto. Scegli di nuovo il file con il selettore di file.",
+    "importReason": {
+      "html": "ricevuto HTML anziché il contenuto previsto (probabile errore 404 o CDN)",
+      "size": "dimensione non corrispondente: previsti ~{{expected}} byte, ricevuti {{got}} byte",
+      "magic_wasm": "numero magico WASM mancante",
+      "magic_onnx": "prefisso protobuf mancante",
+      "json": "il contenuto non è un JSON valido",
+      "empty": "il file è vuoto",
+      "invalid": "non valido"
+    }
   },
   "notes": {
     "stageAsr": "riconoscimento vocale",

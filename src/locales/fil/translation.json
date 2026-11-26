@@ -1051,7 +1051,16 @@
       "import_failed": "Nabigo ang pag-import."
     },
     "importDropSubFile": "Piliin ang mga na-download na file. Huwag baguhin ang kanilang mga pangalan.",
-    "importNoPath": "Hindi mabasa ang lokasyon ng napiling file. Piliin muli ang file gamit ang file picker."
+    "importNoPath": "Hindi mabasa ang lokasyon ng napiling file. Piliin muli ang file gamit ang file picker.",
+    "importReason": {
+      "html": "HTML ang natanggap sa halip na inaasahang nilalaman (malamang na 404 o CDN error)",
+      "size": "hindi tugma ang laki: inaasahan ang ~{{expected}} byte, nakuha ang {{got}} byte",
+      "magic_wasm": "walang WASM magic number",
+      "magic_onnx": "walang protobuf prefix",
+      "json": "hindi wastong JSON ang nilalaman",
+      "empty": "walang laman ang file",
+      "invalid": "hindi wasto"
+    }
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",

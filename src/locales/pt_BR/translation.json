@@ -1051,7 +1051,16 @@
       "import_failed": "Falha na importação."
     },
     "importDropSubFile": "Escolha os arquivos baixados. Mantenha os nomes deles como estão.",
-    "importNoPath": "Não foi possível ler o local de um arquivo escolhido. Escolha o arquivo novamente com o seletor de arquivos."
+    "importNoPath": "Não foi possível ler o local de um arquivo escolhido. Escolha o arquivo novamente com o seletor de arquivos.",
+    "importReason": {
+      "html": "recebeu HTML em vez do conteúdo esperado (provavelmente erro 404 ou de CDN)",
+      "size": "tamanho incompatível: esperados ~{{expected}} bytes, recebidos {{got}} bytes",
+      "magic_wasm": "número mágico do WASM ausente",
+      "magic_onnx": "prefixo protobuf ausente",
+      "json": "o conteúdo não é um JSON válido",
+      "empty": "o arquivo está vazio",
+      "invalid": "inválido"
+    }
   },
   "notes": {
     "stageAsr": "reconhecimento de fala",

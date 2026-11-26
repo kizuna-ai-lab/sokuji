@@ -1051,7 +1051,16 @@
       "import_failed": "匯入失敗。"
     },
     "importDropSubFile": "請選擇已下載的檔案，並保持檔名不變。",
-    "importNoPath": "無法讀取所選檔案的位置。請使用檔案選擇器重新選擇檔案。"
+    "importNoPath": "無法讀取所選檔案的位置。請使用檔案選擇器重新選擇檔案。",
+    "importReason": {
+      "html": "收到的是 HTML 網頁而非檔案內容（很可能是 404 或 CDN 錯誤）",
+      "size": "大小不符：應約為 {{expected}} 位元組，實際為 {{got}} 位元組",
+      "magic_wasm": "缺少 WASM 檔案標頭識別碼",
+      "magic_onnx": "缺少 protobuf 檔案標頭",
+      "json": "內容不是有效的 JSON",
+      "empty": "檔案是空的",
+      "invalid": "無效"
+    }
   },
   "notes": {
     "stageAsr": "語音辨識",

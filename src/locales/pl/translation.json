@@ -1051,7 +1051,16 @@
       "import_failed": "Import się nie powiódł."
     },
     "importDropSubFile": "Wybierz pobrane pliki. Nie zmieniaj ich nazw.",
-    "importNoPath": "Nie udało się odczytać lokalizacji wybranego pliku. Wybierz plik ponownie za pomocą okna wyboru plików."
+    "importNoPath": "Nie udało się odczytać lokalizacji wybranego pliku. Wybierz plik ponownie za pomocą okna wyboru plików.",
+    "importReason": {
+      "html": "otrzymano HTML zamiast oczekiwanej zawartości (prawdopodobnie błąd 404 lub CDN)",
+      "size": "rozmiar się nie zgadza: oczekiwano ok. {{expected}} bajtów, otrzymano {{got}} bajtów",
+      "magic_wasm": "brak liczby magicznej WASM",
+      "magic_onnx": "brak prefiksu protobuf",
+      "json": "zawartość nie jest prawidłowym JSON-em",
+      "empty": "plik jest pusty",
+      "invalid": "nieprawidłowy"
+    }
   },
   "notes": {
     "stageAsr": "rozpoznawania mowy",

@@ -1051,7 +1051,16 @@
       "import_failed": "Error al importar."
     },
     "importDropSubFile": "Elige los archivos descargados. Conserva sus nombres tal como están.",
-    "importNoPath": "No se pudo leer la ubicación de un archivo elegido. Vuelve a elegir el archivo con el selector de archivos."
+    "importNoPath": "No se pudo leer la ubicación de un archivo elegido. Vuelve a elegir el archivo con el selector de archivos.",
+    "importReason": {
+      "html": "se recibió HTML en lugar del contenido esperado (probablemente un error 404 o de CDN)",
+      "size": "el tamaño no coincide: se esperaban ~{{expected}} bytes y se recibieron {{got}} bytes",
+      "magic_wasm": "falta el número mágico de WASM",
+      "magic_onnx": "falta el prefijo de protobuf",
+      "json": "el contenido no es un JSON válido",
+      "empty": "el archivo está vacío",
+      "invalid": "no válido"
+    }
   },
   "notes": {
     "stageAsr": "reconocimiento de voz",

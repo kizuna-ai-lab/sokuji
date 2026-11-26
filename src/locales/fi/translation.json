@@ -1051,7 +1051,16 @@
       "import_failed": "Tuonti epäonnistui."
     },
     "importDropSubFile": "Valitse ladatut tiedostot. Säilytä niiden nimet ennallaan.",
-    "importNoPath": "Valitun tiedoston sijaintia ei voitu lukea. Valitse tiedosto uudelleen tiedostovalitsimella."
+    "importNoPath": "Valitun tiedoston sijaintia ei voitu lukea. Valitse tiedosto uudelleen tiedostovalitsimella.",
+    "importReason": {
+      "html": "saatiin HTML odotetun sisällön sijaan (todennäköisesti 404- tai CDN-virhe)",
+      "size": "koko ei täsmää: odotettiin ~{{expected}} tavua, saatiin {{got}} tavua",
+      "magic_wasm": "WASM-taikaluku puuttuu",
+      "magic_onnx": "protobuf-etuliite puuttuu",
+      "json": "sisältö ei ole kelvollista JSON-muotoa",
+      "empty": "tiedosto on tyhjä",
+      "invalid": "virheellinen"
+    }
   },
   "notes": {
     "stageAsr": "puheentunnistus",

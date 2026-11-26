@@ -1051,7 +1051,16 @@
       "import_failed": "Import gagal."
     },
     "importDropSubFile": "Pilih fail yang telah dimuat turun. Kekalkan nama fail seperti sedia ada.",
-    "importNoPath": "Lokasi fail yang dipilih tidak dapat dibaca. Pilih fail itu semula menggunakan pemilih fail."
+    "importNoPath": "Lokasi fail yang dipilih tidak dapat dibaca. Pilih fail itu semula menggunakan pemilih fail.",
+    "importReason": {
+      "html": "HTML diterima dan bukannya kandungan yang dijangka (kemungkinan ralat 404 atau CDN)",
+      "size": "saiz tidak sepadan: dijangka ~{{expected}} bait, diterima {{got}} bait",
+      "magic_wasm": "nombor ajaib WASM tiada",
+      "magic_onnx": "awalan protobuf tiada",
+      "json": "kandungan bukan JSON yang sah",
+      "empty": "fail kosong",
+      "invalid": "tidak sah"
+    }
   },
   "notes": {
     "stageAsr": "pengecaman suara",

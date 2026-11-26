@@ -1051,7 +1051,16 @@
       "import_failed": "İçe aktarma başarısız oldu."
     },
     "importDropSubFile": "İndirdiğiniz dosyaları seçin. Adlarını olduğu gibi bırakın.",
-    "importNoPath": "Seçilen dosyanın konumu okunamadı. Dosyayı dosya seçiciyle yeniden seçin."
+    "importNoPath": "Seçilen dosyanın konumu okunamadı. Dosyayı dosya seçiciyle yeniden seçin.",
+    "importReason": {
+      "html": "beklenen içerik yerine HTML alındı (büyük olasılıkla 404 veya CDN hatası)",
+      "size": "boyut uyuşmuyor: ~{{expected}} bayt bekleniyordu, {{got}} bayt alındı",
+      "magic_wasm": "WASM sihirli sayısı eksik",
+      "magic_onnx": "protobuf öneki eksik",
+      "json": "içerik geçerli bir JSON değil",
+      "empty": "dosya boş",
+      "invalid": "geçersiz"
+    }
   },
   "notes": {
     "stageAsr": "konuşma tanıma",

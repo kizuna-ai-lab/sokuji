@@ -1051,7 +1051,16 @@
       "import_failed": "Impor gagal."
     },
     "importDropSubFile": "Pilih file yang sudah diunduh. Biarkan namanya apa adanya.",
-    "importNoPath": "Lokasi file yang dipilih tidak dapat dibaca. Pilih file itu lagi melalui pemilih file."
+    "importNoPath": "Lokasi file yang dipilih tidak dapat dibaca. Pilih file itu lagi melalui pemilih file.",
+    "importReason": {
+      "html": "menerima HTML, bukan konten yang diharapkan (kemungkinan galat 404 atau CDN)",
+      "size": "ukuran tidak cocok: diharapkan ~{{expected}} byte, diterima {{got}} byte",
+      "magic_wasm": "angka ajaib WASM tidak ada",
+      "magic_onnx": "awalan protobuf tidak ada",
+      "json": "konten bukan JSON yang valid",
+      "empty": "file kosong",
+      "invalid": "tidak valid"
+    }
   },
   "notes": {
     "stageAsr": "pengenalan suara",

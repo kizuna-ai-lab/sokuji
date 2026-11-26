@@ -1051,7 +1051,16 @@
       "import_failed": "Importeren is mislukt."
     },
     "importDropSubFile": "Kies de gedownloade bestanden. Laat de bestandsnamen ongewijzigd.",
-    "importNoPath": "De locatie van een gekozen bestand kon niet worden gelezen. Kies het bestand opnieuw met de bestandskiezer."
+    "importNoPath": "De locatie van een gekozen bestand kon niet worden gelezen. Kies het bestand opnieuw met de bestandskiezer.",
+    "importReason": {
+      "html": "HTML ontvangen in plaats van de verwachte inhoud (waarschijnlijk een 404- of CDN-fout)",
+      "size": "grootte komt niet overeen: ~{{expected}} bytes verwacht, {{got}} bytes ontvangen",
+      "magic_wasm": "WASM-magic number ontbreekt",
+      "magic_onnx": "protobuf-prefix ontbreekt",
+      "json": "inhoud is geen geldige JSON",
+      "empty": "het bestand is leeg",
+      "invalid": "ongeldig"
+    }
   },
   "notes": {
     "stageAsr": "spraakherkenning",

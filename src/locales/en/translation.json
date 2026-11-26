@@ -1134,6 +1134,15 @@
     "importDropHint": "Drag your files here",
     "importDropSub": "For a whole folder use \"Choose folder\" — its onnx/ subfolder is matched automatically",
     "importDropSubFile": "Choose the downloaded file(s). Keep their names as they are.",
+    "importReason": {
+      "html": "received HTML instead of expected content (likely 404 or CDN error)",
+      "size": "size mismatch: expected ~{{expected}} bytes, got {{got}} bytes",
+      "magic_wasm": "missing WASM magic number",
+      "magic_onnx": "missing protobuf prefix",
+      "json": "content is not valid JSON",
+      "empty": "the file is empty",
+      "invalid": "invalid"
+    },
     "importNoPath": "The location of a chosen file could not be read. Choose the file again with the file picker.",
     "importGroupConfig": "Config & tokenizer",
     "importGroupModel": "Model files",

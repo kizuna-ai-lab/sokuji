@@ -33,6 +33,17 @@ interface ModelImportModalProps {
   backend?: ImportBackend;
 }
 
+/** English for each way a picked file can be refused (`models.importReason.<code>`), with the numbers filled in. */
+const REASON_TEXT: Record<string, string> = {
+  html: 'received HTML instead of expected content (likely 404 or CDN error)',
+  size: 'size mismatch: expected ~{{expected}} bytes, got {{got}} bytes',
+  magic_wasm: 'missing WASM magic number',
+  magic_onnx: 'missing protobuf prefix',
+  json: 'content is not valid JSON',
+  empty: 'the file is empty',
+  invalid: 'invalid',
+};
+
 type CmdTab = CommandTab;
 type FileState = 'ok' | 'invalid' | 'stored' | 'missing';
 
@@ -152,8 +163,9 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
           results[filename] = { ok: true };
         } catch (err) {
           const reason = err instanceof ModelFileValidationError
-            ? err.message.replace(/^Invalid file .*?: /, '').replace(/^Size mismatch.*?: /, 'size mismatch: ')
-            : 'invalid';
+            ? t(`models.importReason.${err.code}`, REASON_TEXT[err.code]
+              ?? err.message.replace(/^Invalid file .*?: /, '').replace(/^Size mismatch.*?: /, 'size mismatch: '), err.params)
+            : t('models.importReason.invalid', 'invalid');
           results[filename] = { ok: false, reason };
         }
       }),
@@ -161,7 +173,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
     // Merge (not overwrite) so results from an earlier, slower validation batch
     // that resolves out of order aren't dropped.
     setValidation((prev) => ({ ...prev, ...results }));
-  }, [expectedNames, sizeByName, backend]);
+  }, [expectedNames, sizeByName, backend, t]);
 
   // ── Per-file display state ──
   const stateOf = useCallback((filename: string): FileState => {

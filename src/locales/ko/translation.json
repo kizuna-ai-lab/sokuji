@@ -1051,7 +1051,16 @@
       "import_failed": "가져오기에 실패했습니다."
     },
     "importDropSubFile": "다운로드한 파일을 선택하세요. 파일 이름은 그대로 두세요.",
-    "importNoPath": "선택한 파일의 위치를 읽을 수 없습니다. 파일 선택 창에서 파일을 다시 선택하세요."
+    "importNoPath": "선택한 파일의 위치를 읽을 수 없습니다. 파일 선택 창에서 파일을 다시 선택하세요.",
+    "importReason": {
+      "html": "예상한 내용 대신 HTML을 받았습니다(404 또는 CDN 오류일 가능성이 큼)",
+      "size": "크기가 맞지 않습니다: 약 {{expected}}바이트여야 하는데 {{got}}바이트입니다",
+      "magic_wasm": "WASM 매직 넘버가 없습니다",
+      "magic_onnx": "protobuf 접두부가 없습니다",
+      "json": "내용이 올바른 JSON이 아닙니다",
+      "empty": "파일이 비어 있습니다",
+      "invalid": "유효하지 않음"
+    }
   },
   "notes": {
     "stageAsr": "음성 인식",

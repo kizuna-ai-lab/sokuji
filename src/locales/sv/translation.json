@@ -1051,7 +1051,16 @@
       "import_failed": "Importen misslyckades."
     },
     "importDropSubFile": "Välj de nedladdade filerna. Behåll deras namn som de är.",
-    "importNoPath": "Det gick inte att läsa platsen för en vald fil. Välj filen igen med filväljaren."
+    "importNoPath": "Det gick inte att läsa platsen för en vald fil. Välj filen igen med filväljaren.",
+    "importReason": {
+      "html": "fick HTML i stället för det förväntade innehållet (troligen ett 404- eller CDN-fel)",
+      "size": "storleken stämmer inte: väntade ~{{expected}} byte, fick {{got}} byte",
+      "magic_wasm": "WASM-magiskt tal saknas",
+      "magic_onnx": "protobuf-prefix saknas",
+      "json": "innehållet är inte giltig JSON",
+      "empty": "filen är tom",
+      "invalid": "ogiltig"
+    }
   },
   "notes": {
     "stageAsr": "taligenkänning",

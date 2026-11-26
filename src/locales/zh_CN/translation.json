@@ -902,6 +902,15 @@
     "importDropHint": "把文件拖到这里",
     "importDropSub": "整个文件夹请用「选择文件夹」 —— 其中的 onnx/ 子目录会自动匹配",
     "importDropSubFile": "请选择下载好的文件，文件名保持不变。",
+    "importReason": {
+      "html": "收到的是 HTML 网页而不是文件内容（很可能是 404 或 CDN 错误）",
+      "size": "大小不对：应约为 {{expected}} 字节，实际是 {{got}} 字节",
+      "magic_wasm": "缺少 WASM 文件头标识",
+      "magic_onnx": "缺少 protobuf 文件头",
+      "json": "内容不是有效的 JSON",
+      "empty": "文件是空的",
+      "invalid": "无效"
+    },
     "importNoPath": "读不到所选文件的位置。请用选文件框重新选择该文件。",
     "importGroupConfig": "配置与分词器",
     "importGroupModel": "模型文件",

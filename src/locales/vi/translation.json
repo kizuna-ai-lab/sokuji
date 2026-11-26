@@ -1051,7 +1051,16 @@
       "import_failed": "Nhập không thành công."
     },
     "importDropSubFile": "Chọn các tệp đã tải xuống. Giữ nguyên tên của chúng.",
-    "importNoPath": "Không đọc được vị trí của tệp đã chọn. Hãy chọn lại tệp bằng bộ chọn tệp."
+    "importNoPath": "Không đọc được vị trí của tệp đã chọn. Hãy chọn lại tệp bằng bộ chọn tệp.",
+    "importReason": {
+      "html": "nhận được HTML thay vì nội dung mong đợi (có thể là lỗi 404 hoặc CDN)",
+      "size": "kích thước không khớp: cần khoảng {{expected}} byte, nhận được {{got}} byte",
+      "magic_wasm": "thiếu số magic của WASM",
+      "magic_onnx": "thiếu tiền tố protobuf",
+      "json": "nội dung không phải JSON hợp lệ",
+      "empty": "tệp trống",
+      "invalid": "không hợp lệ"
+    }
   },
   "notes": {
     "stageAsr": "nhận dạng giọng nói",
