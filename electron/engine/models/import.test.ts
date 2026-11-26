@@ -111,6 +111,8 @@ describe('importModel', () => {
     controller.abort();
     expect(await importModel(CARD, [from], send, { signal: controller.signal })).toBe('cancelled');
     expect(modelStatus(CARD)).toBe('absent');
+    // Nothing of it is left: no staging file, and the repo folder it made is gone again.
+    expect(fs.existsSync(repoDir(REPO))).toBe(false);
   });
 
   it('is a no-op for bytes already in the cache: the blob is reused', async () => {
@@ -171,5 +173,59 @@ describe('importModel', () => {
     const cached = fs.readFileSync(cachedFilePath(REPO, FILE)!);
     expect(path.basename(fs.realpathSync(cachedFilePath(REPO, FILE)!))).toBe(sha256(cached));
     expect(cached.equals(content)).toBe(true);
+  });
+
+  // Review of the fixes above: every speech card shares one repo, so a failed import must take back only what it put
+  // there — not the folder, which another card's download may be writing into at the same time.
+  it("takes back only its own files when it fails, never another card's in the same repo", async () => {
+    const [[repo, file]] = ttsFiles();
+    const other = Buffer.from('another card, downloaded meanwhile');
+    const otherBlob = path.join(repoDir(repo), 'blobs', sha256(other));
+    // The import is stopped once its first file is in place; meanwhile another card's download lands in the same repo.
+    const controller = new AbortController();
+    const real = fs.renameSync;
+    const spy = vi.spyOn(fs, 'renameSync').mockImplementation(((a: fs.PathLike, b: fs.PathLike) => {
+      real(a, b);
+      fs.writeFileSync(otherBlob, other);
+      writeSnapshotLink(repo, 'b'.repeat(40), 'other.bin', sha256(other));
+      writeRef(repo, 'main', 'b'.repeat(40));
+      controller.abort();
+    }) as typeof fs.renameSync);
+    try {
+      expect(await importModel(TTS, putAll(), send, { signal: controller.signal })).toBe('cancelled');
+    } finally {
+      spy.mockRestore();
+    }
+    expect(fs.existsSync(otherBlob)).toBe(true);
+    expect(cachedFilePath(repo, 'other.bin')).not.toBeNull();
+    expect(cachedFilePath(repo, file)).toBeNull();
+    expect(fs.readdirSync(path.join(repoDir(repo), 'blobs'))).toEqual([sha256(other)]);
+  });
+
+  // Review of the fixes above: the cache answers through `main` alone, so files filed under one commit vanished when a
+  // later download (or import) moved `main` to another. Moving it keeps what the old snapshot had.
+  it('keeps imported files resolving when a later download moves main to another commit', async () => {
+    expect(await importModel(TTS, putAll(), send)).toBe('ready');
+    const [[repo]] = ttsFiles();
+    const later = Buffer.from('a later download');
+    fs.writeFileSync(path.join(repoDir(repo), 'blobs', sha256(later)), later);
+    writeSnapshotLink(repo, 'c'.repeat(40), 'later.bin', sha256(later));
+    writeRef(repo, 'main', 'c'.repeat(40));
+    for (const [r, f] of ttsFiles()) expect(cachedFilePath(r, f)).not.toBeNull();
+    expect(cachedFilePath(repo, 'later.bin')).not.toBeNull();
+    expect(modelStatus(TTS)).toBe('ready');
+  });
+
+  // Review of the fixes above: a staging file an engine left when it stopped mid-import (several GB) was never removed.
+  it("sweeps the staging files of an engine that is no longer running, and leaves a running one's", async () => {
+    const blobs = path.join(repoDir(REPO), 'blobs');
+    fs.mkdirSync(blobs, { recursive: true });
+    const dead = path.join(blobs, 'import-99999999-abcdef.incomplete');
+    const alive = path.join(blobs, `import-${process.pid}-123456.incomplete`);
+    fs.writeFileSync(dead, 'left behind');
+    fs.writeFileSync(alive, 'in flight');
+    expect(await importModel(CARD, [put(path.basename(FILE), gguf())], send)).toBe('ready');
+    expect(fs.existsSync(dead)).toBe(false);
+    expect(fs.existsSync(alive)).toBe(true);
   });
 });

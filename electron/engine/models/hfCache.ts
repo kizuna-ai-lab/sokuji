@@ -164,5 +164,32 @@ export function writeRef(repo: string, ref: string, commit: string): void {
   } catch {
     // no ref yet
   }
-  if (current !== commit) fs.writeFileSync(p, commit);
+  if (current === commit) return;
+  // `main` is the one snapshot files are looked up in: moving it to another commit keeps what the old one held and the
+  // new one lacks, or files cached under the old commit (another card's, an import's) would read as absent.
+  if (ref === 'main' && current) carryOver(repo, current.trim(), commit);
+  fs.writeFileSync(p, commit);
+}
+
+/** Links into snapshots/<to> every file of snapshots/<from> it does not have (blobs are named by content: safe to share). */
+function carryOver(repo: string, from: string, to: string): void {
+  const src = path.join(repoDir(repo), 'snapshots', from);
+  const dst = path.join(repoDir(repo), 'snapshots', to);
+  if (from === to || !fs.existsSync(src)) return;
+  const walk = (rel: string): void => {
+    for (const entry of fs.readdirSync(path.join(src, rel), { withFileTypes: true })) {
+      const r = path.join(rel, entry.name);
+      const a = path.join(src, r);
+      const b = path.join(dst, r);
+      if (entry.isDirectory()) { walk(r); continue; }
+      if (fs.existsSync(b) || !fs.existsSync(a)) continue;   // the new snapshot's own file wins; a dangling link is dropped
+      fs.mkdirSync(path.dirname(b), { recursive: true });
+      // The same relative link works from the same depth; where links were copies (Windows), a hard link, else a copy.
+      if (entry.isSymbolicLink()) fs.symlinkSync(fs.readlinkSync(a), b);
+      else {
+        try { fs.linkSync(a, b); } catch { fs.copyFileSync(a, b); }
+      }
+    }
+  };
+  walk('');
 }

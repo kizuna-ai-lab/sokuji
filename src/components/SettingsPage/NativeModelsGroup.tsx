@@ -59,13 +59,10 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
     const [from, to] = splitDirection(dir);
     return { from: languageNameFor(from), to: languageNameFor(to) };
   };
-  // An edit made before Local Native's settings have loaded (the list shows the defaults meanwhile) waits for the load,
-  // then lands: the store has nothing to write it to before then.
-  const update = (patch: Partial<NativeEngineSettings>): void | Promise<void> => {
-    const store = useProviderStore.getState();
-    if (store.entries.local_native) return store.updateSettings(native, patch as Partial<LocalNativeSettings>);
-    return store.load(native).then(() => useProviderStore.getState().updateSettings(native, patch as Partial<LocalNativeSettings>));
-  };
+  const update = (patch: Partial<NativeEngineSettings>) => useProviderStore.getState().updateSettings(native, patch as Partial<LocalNativeSettings>);
+  // Until Local Native's settings have loaded the lists show its defaults: no edit is taken then (the store has nothing
+  // to write to, and an edit built from the defaults would replace the stored picks).
+  const unloaded = !entry;
   return (
     <VoicePreviewContext.Provider value={appVoicePreview}>
       <EngineSection isSessionActive={locked} />
@@ -88,7 +85,7 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
       )}
       {STAGES.map((stage) => (
         <NativeModelManagementSection key={stage} stageFilter={stage} anchorId={`${nativeAnchor(stage)}-section`}
-          direction={direction} settings={settings} update={update} pair={pair} isSessionActive={locked} />
+          direction={direction} settings={settings} update={update} pair={pair} isSessionActive={locked || unloaded} />
       ))}
     </VoicePreviewContext.Provider>
   );

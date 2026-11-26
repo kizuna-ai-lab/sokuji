@@ -270,10 +270,11 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
 
   const clearAll = async () => {
     setAsking(null);
-    // The native engine's models too: the summary counts them, and the question is "delete all models". Each from the
-    // quant its status was found for (the engine's own files stay: they are not models).
+    // The native engine's models too: the summary counts them, and the question is "delete all models". Every quant of
+    // each (no repo named: a speech card shares its repo, and a named quant would leave the others); the engine's own
+    // files stay, they are not models.
     const native = useNativeModelStore.getState();
-    await Promise.all(nativeReady.map((id) => native.deleteModel(id, native.statusRepos[id])));
+    await Promise.all(nativeReady.map((id) => native.deleteModel(id)));
     await useModelStore.getState().deleteAllModels();
     // The clear wipes the whole model storage, the helper models' included: their own stores are told.
     await useSegmentationStore.getState().refresh();

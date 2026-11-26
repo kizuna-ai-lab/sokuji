@@ -86,6 +86,35 @@ function commitFor(repo: string, files: ReadonlyArray<{ file: string; sha: strin
   return createHash('sha1').update(`${repo}\n${id}`).digest('hex');
 }
 
+/** Removes `dir`'s empty `blobs` folder and then `dir` itself if nothing else is in them; never a folder with files. */
+function pruneEmpty(dir: string): void {
+  for (const d of [path.join(dir, 'blobs'), dir]) {
+    try {
+      fs.rmdirSync(d);
+    } catch {
+      return;   // not empty, or gone: leave it
+    }
+  }
+}
+
+/** True while process `pid` runs (EPERM: it runs as another user). */
+function running(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    return (e as NodeJS.ErrnoException).code === 'EPERM';
+  }
+}
+
+/** Removes staging files an engine left in `blobs` when it stopped mid-import (named by its pid, which no longer runs). */
+function sweepStaging(blobs: string): void {
+  for (const name of fs.readdirSync(blobs)) {
+    const m = /^import-(\d+)-[0-9a-f]+\.incomplete$/.exec(name);
+    if (m && Number(m[1]) !== process.pid && !running(Number(m[1]))) fs.rmSync(path.join(blobs, name), { force: true });
+  }
+}
+
 export interface ImportOptions {
   /** The chosen variant's artifact, as a download takes it. */
   repo?: string | null;
@@ -128,14 +157,17 @@ export async function importModel(modelId: string, paths: readonly string[], sen
   // Each file is copied into the repo's blobs under a name of its own while it is hashed, checked, then given its
   // hash's name; the snapshot links and `main` follow once every file is in, one commit per repo.
   const placed: Array<{ repo: string; file: string; sha: string; known?: KnownFile }> = [];
-  // A repo folder this import made is removed again if it fails or is cancelled: a refused file leaves nothing behind.
-  const made: string[] = [];
+  // What this import put in place, taken back if it fails or is cancelled: only that — a repo may be shared (every
+  // speech card's is), and another card may be writing into it meanwhile.
+  const renamed: string[] = [];
+  const touched = new Set<string>();
   try {
     for (const w of wanted) {
       const dir = repoDir(w.repo);
-      if (!fs.existsSync(dir)) made.push(dir);
+      touched.add(dir);
       const blobs = path.join(dir, 'blobs');
       fs.mkdirSync(blobs, { recursive: true });
+      sweepStaging(blobs);
       const incomplete = path.join(blobs, `import-${process.pid}-${randomBytes(6).toString('hex')}.incomplete`);
       let sha: string;
       try {
@@ -156,11 +188,20 @@ export async function importModel(modelId: string, paths: readonly string[], sen
       const blob = path.join(blobs, sha);
       // Bytes already cached (an earlier download or import) are kept; the copy is dropped.
       if (fs.existsSync(blob)) fs.rmSync(incomplete, { force: true });
-      else fs.renameSync(incomplete, blob);
+      else {
+        fs.renameSync(incomplete, blob);
+        renamed.push(blob);
+      }
       placed.push({ repo: w.repo, file: w.file, sha, known });
     }
   } catch (e) {
-    for (const dir of made) fs.rmSync(dir, { recursive: true, force: true });
+    // Best effort: a cleanup that fails (a file held open on Windows) must not hide why the import stopped.
+    try {
+      for (const blob of renamed) fs.rmSync(blob, { force: true });
+      for (const dir of touched) pruneEmpty(dir);
+    } catch {
+      // left for a later import or a delete of the model
+    }
     if (e instanceof ImportError && e.code === 'import_cancelled') return 'cancelled';
     throw e;
   }

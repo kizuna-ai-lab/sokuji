@@ -536,7 +536,7 @@ describe('Local models and storage — the engines as tabs', () => {
   // on purpose for the native library, which then had no anchor to land on.
   // Review on #888: the page's one summary counts the native models, so "Clear all" (asked as "Delete all models?") must
   // delete them too; before, they stayed on disk and in the count.
-  it('clears the native models with the rest, each from the quant on disk', async () => {
+  it('clears the native models with the rest, every quant of each', async () => {
     desktopWithNative();
     const deleteModel = vi.fn(async () => {});
     useNativeModelStore.setState({ statuses: { a: 'ready', b: 'ready', c: 'absent' }, sizes: { a: 1, b: 1 }, statusRepos: { a: 'org/a-gguf/a-Q8_0.gguf' }, deleteModel } as never);
@@ -545,8 +545,9 @@ describe('Local models and storage — the engines as tabs', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
     await waitFor(() => expect(store.deleteAllModels).toHaveBeenCalled());
     await waitFor(() => expect(deleteModel).toHaveBeenCalledTimes(2));
-    expect(deleteModel).toHaveBeenCalledWith('a', 'org/a-gguf/a-Q8_0.gguf');
-    expect(deleteModel).toHaveBeenCalledWith('b', undefined);
+    // No quant named: a speech card shares its repo, and naming one would leave its other quants on disk.
+    expect(deleteModel).toHaveBeenCalledWith('a');
+    expect(deleteModel).toHaveBeenCalledWith('b');
   });
 
   it('opens the native library when asked for it, even where this computer has no native engine', async () => {
