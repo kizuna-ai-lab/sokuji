@@ -123,6 +123,12 @@ interface NativeModelStore {
    *  so every refresh() caller (gate, ProviderSection) is automatically variant-aware. */
   statusRepos: Record<string, string>;
   setStatusRepos: (repos: Record<string, string>) => void;
+  /**
+   * The direction ("src→tgt") a slot's "Browse library…" opened the native library for, or null for the session's own
+   * (the pair's forward direction): the other direction's recognition, translation and speech models are not the same.
+   */
+  libraryDirection: string | null;
+  setLibraryDirection: (direction: string | null) => void;
   /** Query the sidecar for the cache status of these models (no-op if sidecar down). */
   refresh: (models: string[], repos?: Record<string, string>) => Promise<void>;
   /** Download one model, streaming progress into the store. `repo` selects a chosen
@@ -302,6 +308,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   profileGeneration: null,
   reportedUnsupportedOps: new Set(),
   statusRepos: {},
+  libraryDirection: null,
   lastResolutionNotes: [],
   asrLoading: false,
   asrResolved: null,
@@ -545,6 +552,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   },
 
   setStatusRepos: (repos) => set({ statusRepos: repos }),
+  setLibraryDirection: (direction) => set({ libraryDirection: direction }),
 
   refresh: async (models, repos) => {
     if (!models.length) return;

@@ -147,6 +147,9 @@ test(`@real prepare: downloads the models of ${ASR || 'the chosen recognizer'} i
 
   await page.locator('[data-tour="settings-button"]').click();
   await page.getByRole('navigation').getByRole('button', { name: /^Local models and storage/ }).click();
+  // Where the native engine is offered the page opens on its tab: these models are the WASM/WebGPU engine's.
+  const webgpuTab = page.getByRole('tab', { name: /WASM\/WebGPU engine/ });
+  if (await webgpuTab.count() > 0) await webgpuTab.click();
   for (const { name } of [MODELS[asr], TRANSLATION_MODEL]) {
     // Two catalogue entries carry the translation model's name: both are downloaded (a second or two of clicking, 50 MB more).
     const download = page.getByRole('button', { name: `Download: ${name}` });

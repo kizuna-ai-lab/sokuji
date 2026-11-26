@@ -34,6 +34,7 @@ vi.mock('../../components/Settings/sections/EngineSection', () => ({
 
 import { LocalNativeEngine } from './LocalNativeEngine';
 import { LOCAL_NATIVE_DEFAULTS } from './settings';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 
 beforeEach(() => {
@@ -65,8 +66,11 @@ describe('LocalNativeEngine', () => {
     for (const stage of ['asr', 'translation', 'tts']) {
       act(() => { seen.surfaces[0].onBrowse?.({ dir: 'en→ja', stage }); });
       expect(navigate).toHaveBeenLastCalledWith(`native-models-${stage}`);
+      // With the slot's direction (review on #888): the reverse direction's models are not the forward pair's.
+      expect(useNativeModelStore.getState().libraryDirection).toBe('en→ja');
     }
     navigate.mockRestore();
+    useNativeModelStore.getState().setLibraryDirection(null);
   });
 
   it("hands its voice previews the app's route (#578 ruling 13)", () => {

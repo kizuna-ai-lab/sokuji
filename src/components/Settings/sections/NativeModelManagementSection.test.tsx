@@ -334,10 +334,13 @@ describe('NativeModelManagementSection — HY-MT2 variant card', () => {
     const label = await waitFor(() => within(screen.getByTestId('model-card-hy-mt2-7b')).getByTestId('variant-label-hy-mt2-7b'));
     expect(label).toHaveTextContent('Q4_K_M');
     expect(label).toHaveTextContent(q4SizeLabel);
-    // One quant per model: no select, no rows to choose another.
+    // One quant per model, as the person sees it: the label reads it, and there is no control to choose another
+    // (review on #888: by role and text, so a picker coming back under another test id would still be caught).
     const card7b = screen.getByTestId('model-card-hy-mt2-7b');
-    expect(within(card7b).queryByTestId('variant-dd-hy-mt2-7b')).toBeNull();
-    expect(within(card7b).queryByTestId('variant-row-q8_0')).toBeNull();
+    expect(within(card7b).getByText(`Q4_K_M · ${q4SizeLabel}`)).toBeInTheDocument();
+    expect(within(card7b).queryByRole('combobox')).toBeNull();
+    expect(within(card7b).queryByRole('listbox')).toBeNull();
+    expect(within(card7b).queryByText(/^Q8_0/)).toBeNull();
   });
 
   it('HY-MT1.5 cards show their quant too (the gate is data-driven variantIds, not a hy-mt2-only special case)', async () => {
@@ -835,7 +838,7 @@ describe('NativeModelManagementSection — recognition facts from the catalog', 
       const more = screen.queryByRole('button', { name: /\d+ more/ });
       if (more) fireEvent.click(more);
       await screen.findByTestId(`model-card-${streamer}`);
-      expect(screen.getByTestId(`streaming-${streamer}`)).toHaveTextContent('Streaming');
+      expect(within(screen.getByTestId(`model-card-${streamer}`)).getByText('Streaming')).toBeInTheDocument();
     } finally {
       mockCatalogOverride = null;
     }

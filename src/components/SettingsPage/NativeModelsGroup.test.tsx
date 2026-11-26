@@ -132,4 +132,29 @@ describe('NativeModelsGroup', () => {
     expect(updateSettings).toHaveBeenCalledWith({ id: 'local_native' }, { asrDevice: 'cpu' });
     load.mockReset().mockImplementation(async () => {});
   });
+
+  // Review on #888: a slot's "Browse library…" for the other direction (the participant's, ja→en on an en→ja pair)
+  // opened the forward pair's lists. The library shows the direction it was opened for, says so, and goes back.
+  it("shows the direction a slot opened it for, says which, and goes back to the session's own", () => {
+    useNativeModelStore.getState().setLibraryDirection('ja→en');
+    const { unmount } = render(<NativeModelsGroup locked={false} />);
+    expect(seen.libraries.slice(-3).map((l) => l.direction)).toEqual(['ja→en', 'ja→en', 'ja→en']);
+    const note = screen.getByRole('status');
+    expect(note.textContent).toMatch(/Japanese → English/);
+    fireEvent.click(screen.getByRole('button', { name: /English → Japanese/ }));
+    expect(useNativeModelStore.getState().libraryDirection).toBeNull();
+    expect(seen.libraries.slice(-3).map((l) => l.direction)).toEqual([undefined, undefined, undefined]);
+    // Leaving the page forgets it too: the next visit opens on the session's own direction.
+    useNativeModelStore.getState().setLibraryDirection('ja→en');
+    unmount();
+    expect(useNativeModelStore.getState().libraryDirection).toBeNull();
+  });
+
+  it("shows no note for the session's own direction", () => {
+    useNativeModelStore.getState().setLibraryDirection('en→ja');
+    render(<NativeModelsGroup locked={false} />);
+    expect(seen.libraries.slice(-3).map((l) => l.direction)).toEqual([undefined, undefined, undefined]);
+    expect(screen.queryByRole('status')).toBeNull();
+    useNativeModelStore.getState().setLibraryDirection(null);
+  });
 });

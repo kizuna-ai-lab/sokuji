@@ -32,6 +32,7 @@ import { presentProviders } from '../../providers/registry';
 import { SMART_TURN_MODEL_ID } from '../../lib/turn/smartTurn';
 import { computeDeleteNotes } from '../Settings/engine/deleteNotes';
 import { ModelImportModal } from '../Settings/sections/ModelImportModal';
+import { providerNameKey } from '../../providers/nameKey';
 import { ModelCard } from '../Settings/shared/ModelCard';
 import { ModelStageList } from '../Settings/shared/ModelStageList';
 import { NativeModelsGroup } from './NativeModelsGroup';
@@ -283,7 +284,9 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const webgpuGroup = (
         <Group title={nativeOffered ? t('models.page.webgpuTitle', 'WASM/WebGPU engine') : t('models.page.sessionTitle', 'Models for the session (the “This device” service)')}
           hint={nativeOffered
-            ? t('models.page.webgpuHint', 'Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.')
+            // The service named as the line-up names it, now that two engines are on offer (review on #888).
+            ? t('models.page.webgpuHintNamed', 'Runs in the app’s own window and uses the GPU when there is one. Stages set to “{{provider}}” in “Languages and line-up” use the models downloaded here.',
+              { provider: t(providerNameKey('local_inference'), 'This device (WASM/WebGPU)') })
             : t('models.page.sessionHint', 'Stages set to “This device” in “Languages and line-up” use the models downloaded here.')}>
           {stageGroups.map(({ stage, shown, rest, others }) => (
             // Anchored for an engine slot's "Browse library…" (B-20): the page scrolls here and lights the group.

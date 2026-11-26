@@ -490,6 +490,14 @@ describe('Local models and storage — the engines as tabs', () => {
     expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('None downloaded');
   });
 
+  // Review on #888: with two engines on offer, "This device" alone no longer names the service that uses this library.
+  it('names the service that uses the WASM/WebGPU library by its full name', () => {
+    desktopWithNative();
+    mount();
+    fireEvent.click(tabs()[1]);
+    expect(screen.getByText(/Stages set to “This device \(WASM\/WebGPU\)” in/)).toBeTruthy();
+  });
+
   it('switches to the WASM/WebGPU library without touching the line-up, and keeps the helper models on both', () => {
     desktopWithNative();
     const before = JSON.stringify(useLineUpStore.getState());

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { EngineSurface } from '../../components/Settings/engine/EngineSurface';
 import { useNativeEngineAdapter, type NativeEngineSettings } from '../../components/Settings/engine/useNativeEngineAdapter';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { VoicePreviewContext } from '../../components/providers/VoicePreviewContext';
 import type { EngineProps } from '../../lib/provider/types';
@@ -32,7 +33,11 @@ export function LocalNativeEngine({
         effectiveMode={modeOfLegs(legs)}
         initialSlot={initialSlot ?? null}
         onInitialSlotConsumed={onInitialSlotConsumed}
-        onBrowse={(slot) => useSettingsStore.getState().navigateToSettings(`native-models-${slot.stage}`)}
+        onBrowse={(slot) => {
+          // The library opens on the slot's own direction: the participant's models are not the speaker's.
+          useNativeModelStore.getState().setLibraryDirection(slot.dir);
+          useSettingsStore.getState().navigateToSettings(`native-models-${slot.stage}`);
+        }}
       />
     </VoicePreviewContext.Provider>
   );

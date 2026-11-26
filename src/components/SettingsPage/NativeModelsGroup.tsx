@@ -15,7 +15,8 @@ import { useProviderStore } from '../../stores/providerStore';
 import { useNativeModelStatuses, useNativeModelStore } from '../../stores/nativeModelStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { LOCAL_NATIVE_DEFAULTS, type LocalNativeSettings } from '../../providers/local_native/settings';
-import type { Stage } from '../../lib/local-inference/selection/types';
+import { directionKey, splitDirection, type Stage } from '../../lib/local-inference/selection/types';
+import { languageNameFor } from '../Settings/engine/languageName';
 
 const STAGES: readonly Stage[] = ['asr', 'translation', 'tts'];
 /** The anchor of a stage's native models: `categories.ts` knows it as a navigation target. */
@@ -45,9 +46,19 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
     before.current = statuses;
     if (Object.keys(statuses).some((id) => was[id] === 'downloading' && statuses[id] === 'ready')) setFinished(true);
   }, [statuses]);
+  // The direction a slot's "Browse library…" asked for; forgotten on leaving the page, so the next visit opens on the
+  // session's own.
+  const libraryDirection = useNativeModelStore((s) => s.libraryDirection);
+  useEffect(() => () => useNativeModelStore.getState().setLibraryDirection(null), []);
   if (!native) return null;
   const settings = (entry?.settings as LocalNativeSettings | undefined) ?? LOCAL_NATIVE_DEFAULTS;
   const pair = entry?.pair ?? { source: 'en', target: 'ja' };
+  const forward = directionKey(pair.source, pair.target);
+  const direction = libraryDirection && libraryDirection !== forward ? libraryDirection : undefined;
+  const names = (dir: string) => {
+    const [from, to] = splitDirection(dir);
+    return { from: languageNameFor(from), to: languageNameFor(to) };
+  };
   // An edit made before Local Native's settings have loaded (the list shows the defaults meanwhile) waits for the load,
   // then lands: the store has nothing to write it to before then.
   const update = (patch: Partial<NativeEngineSettings>): void | Promise<void> => {
@@ -58,6 +69,14 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
   return (
     <VoicePreviewContext.Provider value={appVoicePreview}>
       <EngineSection isSessionActive={locked} />
+      {direction && (
+        <div className="models-page__notice" role="status">
+          <span>{t('models.page.otherDirection', 'Showing the models for {{from}} → {{to}}, the direction you came from.', names(direction))}</span>
+          <button type="button" className="models-page__link" onClick={() => useNativeModelStore.getState().setLibraryDirection(null)}>
+            {t('models.page.showDirection', 'Show {{from}} → {{to}}', names(forward))}
+          </button>
+        </div>
+      )}
       {finished && (
         <div className="models-page__notice" role="status">
           <span>{t('models.page.downloadedChoose', 'Downloaded. Choose it in “Languages and line-up” to use it in a session.')}</span>
@@ -69,7 +88,7 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
       )}
       {STAGES.map((stage) => (
         <NativeModelManagementSection key={stage} stageFilter={stage} anchorId={`${nativeAnchor(stage)}-section`}
-          settings={settings} update={update} pair={pair} isSessionActive={locked} />
+          direction={direction} settings={settings} update={update} pair={pair} isSessionActive={locked} />
       ))}
     </VoicePreviewContext.Provider>
   );
