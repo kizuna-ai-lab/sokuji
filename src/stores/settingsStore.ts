@@ -32,6 +32,7 @@ import {
 } from '../services/providers/LocalNativeProviderConfig';
 import { reportError, reportWarning, describeCause } from '../lib/diagnostics/report';
 import { persistSetting } from '../services/persistSetting';
+import { setUsageSharing } from '../lib/usageSharing';
 import { isThemeSetting, type ThemeSetting } from '../lib/theme/theme';
 
 /** Map a native readiness reason to its user-facing message. Verbatim port of
@@ -71,6 +72,8 @@ export interface CommonSettings {
   keepReplayAudio: boolean;
   autoSaveOnStop: boolean;
   diagnosticLogs: boolean;
+  /** Share usage data: which pages and features are used, never content (General). On by default. */
+  shareUsageData: boolean;
   /** Notes after the session (desktop): written when a session ends, with the line-up's notes service. Off by default. */
   notesAfterSession: boolean;
   /** Turning the notes on has been explained once (what is sent where). */
@@ -176,6 +179,7 @@ const defaultCommonSettings: CommonSettings = {
   keepReplayAudio: false,
   autoSaveOnStop: false,
   diagnosticLogs: false,
+  shareUsageData: true,
   notesAfterSession: false,
   notesExplained: false,
   liveNotes: false,
@@ -257,6 +261,7 @@ export interface SettingsStore {
   // Diagnostic logs (Help). Opt-in: while off, logStore records nothing and
   // the title bar offers no logs button.
   diagnosticLogs: boolean;
+  shareUsageData: boolean;
   /** Appearance: follow the OS, or light or dark (spec 2026-10-22 §4). */
   theme: ThemeSetting;
 
@@ -298,6 +303,7 @@ export interface SettingsStore {
   setLiveNotes: (on: boolean) => Promise<void>;
   setLiveNotesExplained: (explained: boolean) => Promise<void>;
   setDiagnosticLogs: (diagnosticLogs: boolean) => Promise<void>;
+  setShareUsageData: (shareUsageData: boolean) => Promise<void>;
   setTheme: (theme: ThemeSetting) => Promise<void>;
   setSegmentationMode: (mode: SegmentationMode) => Promise<void>;
   setSentenceSegmentationChunkSentences: (n: number) => Promise<void>;
@@ -506,6 +512,16 @@ const useSettingsStore = create<SettingsStore>()(
       const previous = get().liveNotesExplained;
       set({ liveNotesExplained });
       if (!await persistSetting('settings.notes.liveExplained', liveNotesExplained)) set({ liveNotesExplained: previous });
+    },
+
+    setShareUsageData: async (shareUsageData) => {
+      const previous = get().shareUsageData;
+      set({shareUsageData});
+      setUsageSharing(shareUsageData);
+      if (!await persistSetting('settings.common.shareUsageData', shareUsageData)) {
+        set({shareUsageData: previous});
+        setUsageSharing(previous);
+      }
     },
 
     // The log store follows this switch. Applied before the write so the
@@ -724,6 +740,9 @@ const useSettingsStore = create<SettingsStore>()(
         // off, which is the default.
         const diagnosticLogs = await service.getSetting('settings.common.diagnosticLogs', defaultCommonSettings.diagnosticLogs);
         useLogStore.getState().setEnabled(diagnosticLogs);
+        // Before any other read can report: the analytics client is opted out when the user said so.
+        const shareUsageData = await service.getSetting('settings.common.shareUsageData', defaultCommonSettings.shareUsageData);
+        setUsageSharing(shareUsageData !== false);
 
         // Load common settings
         const provider = await service.getSetting('settings.common.provider', defaultCommonSettings.provider);
@@ -789,6 +808,7 @@ const useSettingsStore = create<SettingsStore>()(
           liveNotes,
           liveNotesExplained,
           diagnosticLogs,
+          shareUsageData: shareUsageData !== false,
           segmentationMode,
           sentenceSegmentationChunkSentences,
           segmentationSourcePause,
@@ -918,6 +938,8 @@ export const useKeepReplayAudio = () => useSettingsStore((state) => state.keepRe
 export const useAutoSaveOnStop = () => useSettingsStore((state) => state.autoSaveOnStop);
 export const useDiagnosticLogs = () => useSettingsStore((state) => state.diagnosticLogs);
 export const useSetDiagnosticLogs = () => useSettingsStore((state) => state.setDiagnosticLogs);
+export const useShareUsageData = () => useSettingsStore((state) => state.shareUsageData);
+export const useSetShareUsageData = () => useSettingsStore((state) => state.setShareUsageData);
 export const useThemeSetting = () => useSettingsStore((state) => state.theme);
 export const useSetThemeSetting = () => useSettingsStore((state) => state.setTheme);
 export const useSegmentationMode = () => useSettingsStore((state) => state.segmentationMode);

@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Báo lỗi hoặc nhận trợ giúp",
     "diagnosticLogs": "Nhật ký chẩn đoán",
     "diagnosticLogsTooltip": "Ghi lại hoạt động của ứng dụng để bạn đính kèm vào báo cáo lỗi. Tắt theo mặc định. Khi bật, nút “Nhật ký” xuất hiện trên thanh tiêu đề và cài đặt vẫn bật sau khi khởi động lại.",
+    "shareUsageData": "Chia sẻ dữ liệu sử dụng",
+    "shareUsageDataLine": "Giúp chúng tôi cải thiện Sokuji: ghi lại bạn dùng những trang và tính năng nào, không bao giờ ghi tin nhắn hay nội dung khác.",
     "appearance": "Giao diện",
     "appearanceTooltip": "Giao diện của ứng dụng. “Hệ thống” dùng thiết lập sáng hoặc tối của hệ điều hành.",
     "appearanceMode": {

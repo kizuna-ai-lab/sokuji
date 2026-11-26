@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { isElectron, isExtension } from '../../utils/environment';
 import { useStartBasicsTour } from '../Tour/useStartBasicsTour';
 import { useSetSetupWizardOpen } from '../../stores/layoutStore';
-import { useDiagnosticLogs, useSetDiagnosticLogs, useThemeSetting, useSetThemeSetting } from '../../stores/settingsStore';
+import { useDiagnosticLogs, useSetDiagnosticLogs, useShareUsageData, useSetShareUsageData, useThemeSetting, useSetThemeSetting } from '../../stores/settingsStore';
 import { useAnalytics } from '../../lib/analytics';
 import type { ThemeSetting } from '../../lib/theme/theme';
 import ToggleSwitch from '../Settings/shared/ToggleSwitch';
@@ -42,10 +42,13 @@ export function GeneralCategory({ locked }: CategoryBodyProps) {
   const setTheme = useSetThemeSetting();
   const logs = useDiagnosticLogs();
   const setLogs = useSetDiagnosticLogs();
+  const shareUsage = useShareUsageData();
+  const setShareUsage = useSetShareUsageData();
   const setWizardOpen = useSetSetupWizardOpen();
   const startTour = useStartBasicsTour();
   const version = `v${__APP_VERSION__}`;
   const logsName = t('settings.diagnosticLogs', 'Diagnostic logs');
+  const shareName = t('settings.shareUsageData', 'Share usage data');
 
   return (
     <div className="general-category" id="help-section">
@@ -76,6 +79,9 @@ export function GeneralCategory({ locked }: CategoryBodyProps) {
       <div className="general-list">
         <Row name={logsName} line={t('settings.diagnosticLogsTooltip', 'Record what the app does, so you can attach it to a bug report. Off by default. While on, a “Logs” button appears in the title bar, and the setting stays on after a restart.')}>
           <ToggleSwitch checked={logs} onChange={() => void setLogs(!logs)} label="" ariaLabel={logsName} />
+        </Row>
+        <Row name={shareName} line={t('settings.shareUsageDataLine', 'Help us improve Sokuji: records which pages and features you use, never messages or other content.')}>
+          <ToggleSwitch checked={shareUsage} onChange={() => void setShareUsage(!shareUsage)} label="" ariaLabel={shareName} />
         </Row>
         {isElectron() ? (
           <Row name={t('settingsPage.general.update', 'Updates')} line={t('settingsPage.general.updateLine', 'You have {{version}}.', { version })}>

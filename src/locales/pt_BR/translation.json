@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Relatar erros ou obter ajuda",
     "diagnosticLogs": "Logs de diagnóstico",
     "diagnosticLogsTooltip": "Registra o que o aplicativo faz, para você anexar a um relatório de bug. Desativado por padrão. Enquanto estiver ativado, o botão “Logs” aparece na barra de título, e a opção continua ativada após reiniciar.",
+    "shareUsageData": "Compartilhar dados de uso",
+    "shareUsageDataLine": "Ajude-nos a melhorar o Sokuji: registra quais páginas e recursos você usa, nunca mensagens ou outros conteúdos.",
     "appearance": "Aparência",
     "appearanceTooltip": "A aparência do aplicativo. “Sistema” usa a configuração clara ou escura do sistema operacional.",
     "appearanceMode": {

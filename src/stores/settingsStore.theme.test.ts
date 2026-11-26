@@ -85,3 +85,31 @@ describe('the appearance setting', () => {
     expect(useSettingsStore.getState().settingsLoadFailed).toBe(true);
   });
 });
+
+describe('the usage-sharing setting', () => {
+  it('is on by default and loads a stored off', async () => {
+    expect(useSettingsStore.getState().shareUsageData).toBe(true);
+    stored['settings.common.shareUsageData'] = false;
+    await useSettingsStore.getState().loadSettings();
+    expect(useSettingsStore.getState().shareUsageData).toBe(false);
+    const { usageSharingOn } = await import('../lib/usageSharing');
+    expect(usageSharingOn()).toBe(false);
+  });
+
+  it('saves a change, and tells the analytics client', async () => {
+    const { usageSharingOn } = await import('../lib/usageSharing');
+    await useSettingsStore.getState().setShareUsageData(true);
+    await useSettingsStore.getState().setShareUsageData(false);
+    expect(setSetting).toHaveBeenLastCalledWith('settings.common.shareUsageData', false);
+    expect(usageSharingOn()).toBe(false);
+  });
+
+  it('puts the choice back when the write is refused', async () => {
+    await useSettingsStore.getState().setShareUsageData(true);
+    setSetting.mockImplementation(async () => ({ success: false }));
+    await useSettingsStore.getState().setShareUsageData(false);
+    expect(useSettingsStore.getState().shareUsageData).toBe(true);
+    const { usageSharingOn } = await import('../lib/usageSharing');
+    expect(usageSharingOn()).toBe(true);
+  });
+});

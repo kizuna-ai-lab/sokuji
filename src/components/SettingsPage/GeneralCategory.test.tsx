@@ -34,7 +34,7 @@ beforeEach(() => {
   help.result = null;
   for (const f of [tour.start, help.change, help.check, help.open]) f.mockClear();
   useLayoutStore.setState({ setupWizardOpen: false });
-  useSettingsStore.setState({ theme: 'system', diagnosticLogs: false } as never);
+  useSettingsStore.setState({ theme: 'system', diagnosticLogs: false, shareUsageData: true } as never);
 });
 afterEach(() => cleanup());
 
@@ -66,6 +66,15 @@ describe('general', () => {
     expect(within(row('Diagnostic logs')).getByText(/attach it to a bug report/)).toBeInTheDocument();
     fireEvent.click(within(row('Diagnostic logs')).getByRole('switch'));
     expect(useSettingsStore.getState().diagnosticLogs).toBe(true);
+  });
+
+  it('shares usage data by default, and stops when the switch is turned off', () => {
+    render(<GeneralCategory locked={false} />);
+    const sw = within(row('Share usage data')).getByRole('switch');
+    expect(within(row('Share usage data')).getByText('Help us improve Sokuji: records which pages and features you use, never messages or other content.')).toBeInTheDocument();
+    expect(sw).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(sw);
+    expect(useSettingsStore.getState().shareUsageData).toBe(false);
   });
 
   it('on the desktop, checks for updates and says how the check went', () => {

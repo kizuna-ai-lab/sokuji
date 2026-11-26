@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Mag-report ng bug o humingi ng tulong",
     "diagnosticLogs": "Mga diagnostic log",
     "diagnosticLogsTooltip": "Itinatala ang ginagawa ng app para mailakip mo ito sa isang ulat ng bug. Naka-off bilang default. Habang naka-on, may lalabas na button na “Mga Log” sa title bar, at mananatili itong naka-on pagkatapos mag-restart.",
+    "shareUsageData": "Ibahagi ang data ng paggamit",
+    "shareUsageDataLine": "Tulungan kaming pagbutihin ang Sokuji: itinatala kung aling mga page at feature ang ginagamit mo, hindi kailanman ang mga mensahe o iba pang nilalaman.",
     "appearance": "Itsura",
     "appearanceTooltip": "Kung paano mukhang ang app. Ang “System” ay gumagamit ng light o dark na setting ng operating system.",
     "appearanceMode": {

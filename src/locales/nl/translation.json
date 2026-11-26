@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Bugs melden of hulp krijgen",
     "diagnosticLogs": "Diagnostische logboeken",
     "diagnosticLogsTooltip": "Legt vast wat de app doet, zodat je het bij een bugmelding kunt voegen. Standaard uit. Zolang dit aan staat, verschijnt er een knop ‘Logs’ in de titelbalk, en de instelling blijft aan na een herstart.",
+    "shareUsageData": "Gebruiksgegevens delen",
+    "shareUsageDataLine": "Help ons Sokuji te verbeteren: legt vast welke pagina’s en functies je gebruikt, nooit berichten of andere inhoud.",
     "appearance": "Weergave",
     "appearanceTooltip": "Hoe de app eruitziet. “Systeem” neemt de lichte of donkere instelling van het besturingssysteem over.",
     "appearanceMode": {

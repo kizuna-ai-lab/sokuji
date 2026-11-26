@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Fehler melden oder Hilfe erhalten",
     "diagnosticLogs": "Diagnoseprotokolle",
     "diagnosticLogsTooltip": "Zeichnet auf, was die App tut, damit Sie es einem Fehlerbericht beifügen können. Standardmäßig aus. Solange es aktiv ist, erscheint in der Titelleiste die Schaltfläche „Protokolle“, und die Einstellung bleibt auch nach einem Neustart aktiv.",
+    "shareUsageData": "Nutzungsdaten teilen",
+    "shareUsageDataLine": "Helfen Sie uns, Sokuji zu verbessern: Erfasst, welche Seiten und Funktionen Sie nutzen, niemals Nachrichten oder andere Inhalte.",
     "appearance": "Erscheinungsbild",
     "appearanceTooltip": "Wie die App aussieht. „System“ übernimmt die Hell-/Dunkel-Einstellung des Betriebssystems.",
     "appearanceMode": {

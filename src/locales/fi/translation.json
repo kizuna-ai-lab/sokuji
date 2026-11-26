@@ -114,6 +114,8 @@
     "helpEmailTooltip": "Ilmoita virheistä tai pyydä apua",
     "diagnosticLogs": "Diagnostiikkalokit",
     "diagnosticLogsTooltip": "Tallentaa sovelluksen toiminnan, jotta voit liittää sen virheraporttiin. Oletuksena pois päältä. Kun asetus on päällä, otsikkorivillä näkyy ”Lokit”-painike, ja asetus pysyy päällä uudelleenkäynnistyksen jälkeen.",
+    "shareUsageData": "Jaa käyttötietoja",
+    "shareUsageDataLine": "Auta meitä kehittämään Sokuji-sovellusta: tallentaa, mitä sivuja ja toimintoja käytät, ei koskaan viestejä tai muuta sisältöä.",
     "appearance": "Ulkoasu",
     "appearanceTooltip": "Sovelluksen ulkoasu. ”Järjestelmä” käyttää käyttöjärjestelmän vaaleaa tai tummaa asetusta.",
     "appearanceMode": {
