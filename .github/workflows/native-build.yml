@@ -225,12 +225,15 @@ jobs:
           $dir = 'native/build/check'
           Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
           New-Item -ItemType Directory $dir | Out-Null
-          python - (Get-ChildItem native/build/archive/*.tar.zst).FullName $dir <<'PY'
+          # PowerShell has no heredoc: the script goes through a file.
+          @'
           import sys, tarfile, zstandard
           with open(sys.argv[1], 'rb') as f, zstandard.ZstdDecompressor().stream_reader(f) as r:
               with tarfile.open(fileobj=r, mode='r|') as t:
                   t.extractall(sys.argv[2], filter='data')
-          PY
+          '@ | Set-Content -Encoding utf8 native/build/untar.py
+          python native/build/untar.py (Get-ChildItem native/build/archive/*.tar.zst).FullName $dir
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $bad = Get-ChildItem $dir -Recurse -Include *.dll, *.node | ForEach-Object {
             $s = Get-AuthenticodeSignature $_.FullName
             if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch '(^|, )CN=SignPath Foundation(,|$)') { "$($_.Name): $($s.Status)" }
