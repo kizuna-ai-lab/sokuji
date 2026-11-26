@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { registerEngineIpc } from './engine-ipc.js';
-import { removeLegacySidecar } from './legacy-sidecar-cleanup.js';
+import { removeLegacySidecar, modelCachePaths } from './legacy-sidecar-cleanup.js';
 
 class FakeChild extends EventEmitter {
   constructor() { super(); this.posted = []; }
@@ -131,6 +131,44 @@ describe('removeLegacySidecar', () => {
     await removeLegacySidecar(ud, { log, keep: [cache] });
     expect(fs.existsSync(path.join(cache, 'model'))).toBe(true);
     expect(log).toHaveBeenCalledWith('warn', expect.stringMatching(/model cache/));
+    fs.rmSync(ud, { recursive: true, force: true });
+  });
+
+  it('protects every place the engine may keep its models: HF_HUB_CACHE and HUGGINGFACE_HUB_CACHE as well as HF_HOME', () => {
+    expect(modelCachePaths({ HF_HUB_CACHE: '/a', HUGGINGFACE_HUB_CACHE: '/b', HF_HOME: '/c' })).toEqual(expect.arrayContaining(['/a', '/b', '/c', path.join('/c', 'hub')]));
+    expect(modelCachePaths({})).toEqual([]);
+  });
+
+  it('keeps the folder when the cache is reached through a symlink that points inside it', async () => {
+    const ud = tmp();
+    const cache = path.join(ud, 'sidecar', 'cache');
+    fs.mkdirSync(cache, { recursive: true });
+    fs.writeFileSync(path.join(cache, 'model'), 'm');
+    const link = path.join(ud, 'models-link');
+    fs.symlinkSync(cache, link);
+    await removeLegacySidecar(ud, { log: vi.fn(), keep: [link] });
+    expect(fs.existsSync(path.join(cache, 'model'))).toBe(true);
+    fs.rmSync(ud, { recursive: true, force: true });
+  });
+
+  it('keeps the folder when userData itself is reached through a symlink', async () => {
+    const ud = tmp();
+    const cache = path.join(ud, 'sidecar', 'cache');
+    fs.mkdirSync(cache, { recursive: true });
+    fs.writeFileSync(path.join(cache, 'model'), 'm');
+    const viaLink = path.join(tmp(), 'userdata-link');
+    fs.symlinkSync(ud, viaLink);
+    await removeLegacySidecar(viaLink, { log: vi.fn(), keep: [cache] });
+    expect(fs.existsSync(path.join(cache, 'model'))).toBe(true);
+    fs.rmSync(ud, { recursive: true, force: true });
+  });
+
+  it('keeps the folder when a configured cache path cannot be resolved at all', async () => {
+    const ud = tmp();
+    fs.mkdirSync(path.join(ud, 'sidecar'), { recursive: true });
+    const log = vi.fn();
+    await removeLegacySidecar(ud, { log, keep: [path.join(ud, 'sidecar', 'not-yet', 'cache')] });   // would be created inside it
+    expect(fs.existsSync(path.join(ud, 'sidecar'))).toBe(true);
     fs.rmSync(ud, { recursive: true, force: true });
   });
 
