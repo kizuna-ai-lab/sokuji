@@ -1427,6 +1427,7 @@
     "close": "Close"
   },
   "voiceLibrary": {
+    "noneChosen": "No voice chosen",
     "filter": {
       "genderLabel": "Gender",
       "ageLabel": "Age",

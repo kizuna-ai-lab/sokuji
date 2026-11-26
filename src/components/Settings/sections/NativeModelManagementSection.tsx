@@ -59,7 +59,7 @@ type CardResolved = {
 };
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 import { ModelStageList } from '../shared/ModelStageList';
-import { asrFacts, asrRoles, roleOf, SPEED_METER_STEPS, type AsrFacts, type AsrRole } from '../../../lib/local-inference/native/asrBenchmarks';
+import { asrFacts, asrRoles, catalogModelFor, roleOf, SPEED_METER_STEPS, type AsrFacts, type AsrRole } from '../../../lib/local-inference/native/asrBenchmarks';
 
 // [i18n key, English fallback] per tooltip row key (see buildBackendTooltipRows).
 const TT_LABEL: Record<string, [string, string]> = {
@@ -566,7 +566,12 @@ export const NativeModelManagementSection: React.FC<{
             unsupportedTiers: v.unsupportedTiers,
           };
         }),
-        recommended: vs.find((v) => v.recommended)?.id ?? vs[0].id,
+        // A recognition model downloads the one quant its published accuracy was measured on (as Handy does), so the
+        // grade shown is the grade of the file that runs; any other model keeps the machine-aware pick of the engine.
+        recommended: (() => {
+          const measured = info.kind === 'asr' ? catalogModelFor(info)?.quant.toLowerCase() : undefined;
+          return (measured && vs.some((v) => v.id === measured) ? measured : undefined) ?? vs.find((v) => v.recommended)?.id ?? vs[0].id;
+        })(),
       };
     }
     return out;

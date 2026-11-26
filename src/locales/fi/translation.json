@@ -1322,7 +1322,8 @@
       },
       "anyUseCase": "Kaikki käyttötarkoitukset",
       "anyStyle": "Kaikki tyylit"
-    }
+    },
+    "noneChosen": "Ääntä ei valittu"
   },
   "echoNotice": {
     "ttsEcho": "Kaiuttimesi syöttävät Sokujin käännetyn puheen takaisin mikrofoniin.",

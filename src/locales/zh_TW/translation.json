@@ -1322,7 +1322,8 @@
       },
       "anyUseCase": "不限用途",
       "anyStyle": "不限風格"
-    }
+    },
+    "noneChosen": "尚未選擇語音"
   },
   "echoNotice": {
     "ttsEcho": "您的喇叭正把 Sokuji 的翻譯語音送回麥克風。",

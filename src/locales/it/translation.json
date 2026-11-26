@@ -1322,7 +1322,8 @@
       },
       "anyUseCase": "Qualsiasi caso d'uso",
       "anyStyle": "Qualsiasi stile"
-    }
+    },
+    "noneChosen": "Nessuna voce scelta"
   },
   "echoNotice": {
     "ttsEcho": "Gli altoparlanti stanno reimmettendo la voce tradotta di Sokuji nel microfono.",

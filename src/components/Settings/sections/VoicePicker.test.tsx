@@ -756,3 +756,14 @@ describe('preset sections', () => {
     await vi.waitFor(() => expect(screen.getByRole('gridcell', { name: 'Quartz' })).toHaveFocus());
   });
 });
+
+describe('VoicePicker — nothing chosen', () => {
+  it('says so in the trigger instead of showing an empty box, for no selection and for a selection that is not in the list', () => {
+    const { unmount } = render(<VoicePicker {...base} selectedId="" voices={[]} />);
+    expect(screen.getByText('No voice chosen')).toBeInTheDocument();
+    unmount();
+    render(<VoicePicker {...base} selectedId="custom:21" voices={[]} />);
+    expect(screen.getByText('No voice chosen')).toBeInTheDocument();
+    expect(screen.queryByText('custom:21')).toBeNull();
+  });
+});

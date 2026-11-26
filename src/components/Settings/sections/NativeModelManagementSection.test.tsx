@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
-import { asrRoles } from '../../../lib/local-inference/native/asrBenchmarks';
+import { asrRoles, catalogModelFor } from '../../../lib/local-inference/native/asrBenchmarks';
 import { catalog as handyCatalog } from '@handy-computer/models';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { formatMemMb } from '../../../lib/local-inference/native/nativeCatalog';
@@ -903,5 +903,30 @@ describe('NativeModelManagementSection — a refused import', () => {
     mockErrors = { 'sense-voice': 'disk full' };
     render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
     expect(within(await screen.findByTestId('model-card-sense-voice')).getByRole('alert')).toHaveTextContent('disk full');
+  });
+});
+
+describe('NativeModelManagementSection — a recognition model\'s one quant', () => {
+  it('is the quant its published accuracy was measured on, not the engine\'s machine-aware pick, and that is what downloads', async () => {
+    const info = catalogModelFor({ repo: 'handy-computer/cohere-transcribe-03-2026-gguf' })!;
+    const measured = info.quant.toLowerCase();
+    const other = measured === 'q4_k_m' ? 'q6_k' : 'q4_k_m';
+    const variant = (id: string, recommended: boolean) => ({ id, repo: `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${id}.gguf`, sizeBytes: 1e9, needBytes: 1e9, supported: true, recommended, downloaded: false });
+    mockCatalogOverride = {
+      'cohere-transcribe-03-2026': {
+        id: 'cohere-transcribe-03-2026', name: 'Cohere Transcribe', languages: ['ja', 'en'], recommended: true, tiers: [], order: 0, kind: 'asr',
+        repo: 'handy-computer/cohere-transcribe-03-2026-gguf', sizeBytes: 1e9,
+        variants: [variant(other, true), variant(measured, false)],   // the engine recommends the OTHER quant here
+      } as unknown as NativeModelInfo,
+    };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: 'ja', target: 'en' }} />);
+      const card = await screen.findByTestId('model-card-cohere-transcribe-03-2026');
+      expect(await within(card).findByTestId('variant-label-cohere-transcribe-03-2026')).toHaveTextContent(measured.toUpperCase());
+      fireEvent.click(within(card).getByRole('button', { name: /Download/i }));
+      expect(mockDownload).toHaveBeenCalledWith('cohere-transcribe-03-2026', `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${measured}.gguf`);
+    } finally {
+      mockCatalogOverride = null;
+    }
   });
 });

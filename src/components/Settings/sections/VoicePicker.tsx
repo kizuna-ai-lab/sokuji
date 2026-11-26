@@ -858,7 +858,10 @@ const VoicePicker: React.FC<VoicePickerProps> = ({
         {...getReferenceProps()}
       >
         <span className="voice-picker__value">
-          {selected?.label ?? selectedId}
+          {selected
+            ? selected.label
+            // Nothing to show (no voice of this model's is chosen, or none exists yet): say so, not an empty box.
+            : <span className="voice-picker__value-none">{t('voiceLibrary.noneChosen', 'No voice chosen')}</span>}
           <span className="voice-picker__value-sub">{selected ? rowSubtitle(selected) : ''}</span>
         </span>
         {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

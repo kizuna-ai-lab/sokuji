@@ -1195,6 +1195,7 @@
     "close": "关闭"
   },
   "voiceLibrary": {
+    "noneChosen": "还没有选声音",
     "addVoice": "添加声音…",
     "addVoiceTitle": "添加声音",
     "clipSilent": "未检测到人声 — 请检查麦克风后重试。",

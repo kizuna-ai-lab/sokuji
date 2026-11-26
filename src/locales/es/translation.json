@@ -1322,7 +1322,8 @@
       },
       "anyUseCase": "Cualquier caso de uso",
       "anyStyle": "Cualquier estilo"
-    }
+    },
+    "noneChosen": "Ninguna voz elegida"
   },
   "echoNotice": {
     "ttsEcho": "Sus altavoces devuelven la voz traducida de Sokuji al micrófono.",

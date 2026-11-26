@@ -1322,7 +1322,8 @@
       },
       "anyUseCase": "Semua kegunaan",
       "anyStyle": "Semua gaya"
-    }
+    },
+    "noneChosen": "Belum ada suara dipilih"
   },
   "echoNotice": {
     "ttsEcho": "Speaker Anda mengembalikan suara terjemahan Sokuji ke mikrofon.",

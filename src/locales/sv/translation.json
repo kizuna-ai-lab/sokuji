@@ -1322,7 +1322,8 @@
       },
       "anyUseCase": "Alla användningsområden",
       "anyStyle": "Alla stilar"
-    }
+    },
+    "noneChosen": "Ingen röst vald"
   },
   "echoNotice": {
     "ttsEcho": "Dina högtalare matar tillbaka Sokujis översatta tal in i mikrofonen.",
