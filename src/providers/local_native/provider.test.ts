@@ -11,7 +11,7 @@ import type { LocalNativeConfig } from './config';
 import { ONE_SIDE_AT_A_TIME } from './config';
 import { createFakeNativeHost } from './fakeEngines';
 import { localNativeProvider } from './provider';
-import { LOCAL_NATIVE_DEFAULTS } from './settings';
+import { LOCAL_NATIVE_DEFAULTS, migrateLocalNativeSettings } from './settings';
 import type { NativeSpeechConfig } from './speechSession';
 import type { NativeTranslationConfig } from './translationSession';
 
@@ -38,7 +38,7 @@ describe('localNativeProvider', () => {
   it("keeps the old enum's id and the old slice's storage prefix", () => {
     expect(localNativeProvider.id).toBe('local_native');
     expect(localNativeProvider.kind).toBe('local');
-    expect(localNativeProvider.settings).toEqual({ key: 'localNative', defaults: LOCAL_NATIVE_DEFAULTS });
+    expect(localNativeProvider.settings).toEqual({ key: 'localNative', defaults: LOCAL_NATIVE_DEFAULTS, migrate: migrateLocalNativeSettings });
     expect(localNativeProvider.credentials.keys).toEqual([]);
   });
 

@@ -8,7 +8,7 @@ import { admitLocalNative, buildLocalNative, describeLocalNative, type LocalNati
 import { LocalNativeEngine } from './LocalNativeEngine';
 import { LocalNativeSettingsView } from './LocalNativeSettings';
 import { LocalNativeTurnDetectionControls, LocalNativeTurnDetectionHelp, LocalNativeTurnDetectionSummary } from './LocalNativeTurnDetection';
-import { LOCAL_NATIVE_DEFAULTS, localNativeLanguages, type LocalNativeSettings } from './settings';
+import { LOCAL_NATIVE_DEFAULTS, localNativeLanguages, migrateLocalNativeSettings, type LocalNativeSettings } from './settings';
 import { admitNativeSpeech, areNativeSpeechConfigs, nativeSpeechUnit } from './speechUnit';
 import { admitNativeTranscription, areNativeTranscriptionConfigs, nativeTranscriptionUnit } from './transcriptionUnit';
 import { admitNativeTranslation, areNativeTranslationConfigs, nativeTranslationUnit } from './translationUnit';
@@ -27,7 +27,7 @@ export const localNativeProvider: Provider<LocalNativeSettings, LocalNativeCrede
   icon: KizunaAIIcon,
   guideUrl: 'https://sokuji.kizuna.ai/docs/tutorials/local-native-setup',
 
-  settings: { key: 'localNative', defaults: LOCAL_NATIVE_DEFAULTS },
+  settings: { key: 'localNative', defaults: LOCAL_NATIVE_DEFAULTS, migrate: migrateLocalNativeSettings },
   Settings: LocalNativeSettingsView,
   // The engine's three slots, the speech speed and the translation prompt; the VAD is its turn detection.
   settingsStages: [TR, TL, SP],
