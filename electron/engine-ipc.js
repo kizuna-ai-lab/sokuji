@@ -3,6 +3,7 @@
  * does not change, so `sidecar-bundle:*` keeps answering in its old shapes; the native files ship inside the app, so
  * the engine is simply "ready" where the platform is supported.
  */
+const fs = require('fs');
 const path = require('path');
 const { EngineHost } = require('./engine-host');
 const { resolveNativeDir } = require('./native-dir');
@@ -22,7 +23,7 @@ function engineEnv({ env, userData, nativeDir, origins }) {
   };
 }
 
-function registerEngineIpc({ ipcMain, app, detectSku, nativeVersion, repoRoot, enginePath, env = process.env, resourcesPath = process.resourcesPath, platform = process.platform, arch = process.arch, log = () => {}, fork }) {
+function registerEngineIpc({ ipcMain, app, detectSku, nativeVersion, repoRoot, enginePath, env = process.env, resourcesPath = process.resourcesPath, platform = process.platform, arch = process.arch, log = () => {}, fork, exists = fs.existsSync }) {
   const sku = detectSku(platform, { arch });
   const nativeDir = resolveNativeDir({ isPackaged: app.isPackaged, resourcesPath, env, repoRoot });
   const host = new EngineHost({
@@ -43,6 +44,11 @@ function registerEngineIpc({ ipcMain, app, detectSku, nativeVersion, repoRoot, e
   ipcMain.handle('sidecar-bundle:status', () => {
     if (sku === null) {
       return { ok: true, sku: null, state: 'unsupported', installed: false, installedVersion: null, requiredVersion: null, stagedBytes: 0, devVenvPresent: false };
+    }
+    // The native files ship inside the app; a checkout that has not run `npm run fetch:native` has none, and "ready"
+    // would only move the failure to the next start.
+    if (!exists(path.join(nativeDir, 'sokuji_native_node.node'))) {
+      return { ok: true, sku, state: 'absent', installed: false, installedVersion: null, requiredVersion: nativeVersion, stagedBytes: 0, devVenvPresent: false, hint: `The native runtime is missing from ${nativeDir}; run \`npm run fetch:native\`.` };
     }
     return { ok: true, sku, state: 'ready', installed: true, installedVersion: nativeVersion, requiredVersion: nativeVersion, stagedBytes: 0, devVenvPresent: false };
   });

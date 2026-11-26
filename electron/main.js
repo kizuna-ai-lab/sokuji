@@ -802,7 +802,7 @@ nativeHost = registerEngineIpc({
   log: (level, message) => console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](`[Sokuji] ${message}`),
 });
 // The Python sidecar bundle an older build installed; not awaited, never throws.
-app.whenReady().then(() => removeLegacySidecar(app.getPath('userData'), { log: (l, m) => console.log(`[Sokuji] ${m}`) }));
+app.whenReady().then(() => removeLegacySidecar(app.getPath('userData'), { log: (l, m) => console.log(`[Sokuji] ${m}`), keep: [process.env.HF_HOME] }));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('get-distribution-channel', () => getDistributionChannel());

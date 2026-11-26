@@ -65,7 +65,13 @@ class EngineHost {
   /** Tells a child to die and remembers it, so the next start does not fork beside a process that is still dying. */
   killChild(child) {
     this.dying = child;
-    try { child.kill(); } catch { /* already gone */ }
+    let delivered = true;
+    try { delivered = child.kill() !== false; } catch { /* already gone */ }
+    // Electron answers false while the process has no pid yet (fork() returned, spawn not yet): the request would be
+    // lost and the child would start after being cancelled. Keep it and repeat the kill when it spawns.
+    if (!delivered && !child.__done && typeof child.once === 'function') {
+      child.once('spawn', () => { try { child.kill(); } catch { /* already gone */ } });
+    }
   }
 
   async launch() {
@@ -138,6 +144,7 @@ class EngineHost {
             lastPong = this.now();
             break;
           case 'stuck':
+            if (this.child !== child) break;           // already dropped: its first missed deadline was charged, once
             this.log('error', `[engine] ${m.job} missed its deadline; killing the engine`);
             this.recordCrash();
             forget();
@@ -158,7 +165,9 @@ class EngineHost {
         child.__done = true;
         forget();
         if (!settled) {
-          if (!stopping && !child.__stopRequested) this.recordCrash();   // a bad driver that aborts at load counts too
+          // A bad driver that aborts at load counts; a launch that never got a process (no pid: the stdio pipes could
+          // not be made) is not an engine crash.
+          if (!stopping && !child.__stopRequested && child.pid !== undefined) this.recordCrash();
           settle(reject, new Error(`The local engine exited before it was ready (code ${code})`));
         } else if (wasCurrent && !stopping && !child.__stopRequested) this.recordCrash();
         if (child.__stopRequested) child.__stopRequested = false;
@@ -185,6 +194,8 @@ class EngineHost {
     const child = this.child;
     if (!child) return Promise.resolve();
     child.__markStopping?.();
+    this.port = null;          // withdrawn now: a start must not be handed the port of an engine that is shutting down
+    this.dying = child;        // ...and waits for it to exit before it forks
     return new Promise((resolve) => {
       let done = false;
       const finish = () => { if (!done) { done = true; clearTimeout(timer); resolve(); } };

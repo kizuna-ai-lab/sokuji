@@ -106,13 +106,19 @@ export class NativeTtsBackend {
     }
   }
 
+  /** True during the warm-up synth, which absorbs the first GPU pipeline compile and gets the load deadline. */
+  private warming = false;
+
   private async warmUp(): Promise<void> {
     const t0 = performance.now();
     try {
+      this.warming = true;
       await this.generate(WARM_UP_TEXT);
     } catch (e) {
       seams.log('warn', `native_tts: warm-up synth failed for family='${this.family}', continuing without it: ${message(e)}`);
       return;
+    } finally {
+      this.warming = false;
     }
     seams.log('info', `native_tts: warm-up synth for family='${this.family}' took ${((performance.now() - t0) / 1000).toFixed(2)}s (hides the first-synth GPU pipeline compile)`);
   }
@@ -151,7 +157,7 @@ export class NativeTtsBackend {
       await guarded(model.synth(text, this.language, speed, {
         signal: controller.signal,
         onAudio: (pcm, sr, ch) => { parts.push(pcm); rate = sr; channels = ch; },
-      }), ttsMs(text.length), 'tts_synth');
+      }), this.warming ? LOAD_MS : ttsMs(text.length), 'tts_synth');
       const samples = new Float32Array(parts.reduce((n, p) => n + p.length, 0));
       let at = 0;
       for (const p of parts) {

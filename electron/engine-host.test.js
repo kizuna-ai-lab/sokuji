@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events';
 import { EngineHost } from './engine-host.js';
 
 class FakeChild extends EventEmitter {
-  constructor() { super(); this.posted = []; this.killed = false; this.stdout = null; this.stderr = null; }
+  constructor() { super(); this.posted = []; this.killed = false; this.stdout = null; this.stderr = null; this.pid = 4242; }
   postMessage(m) { this.posted.push(m); }
   kill() { this.killed = true; queueMicrotask(() => this.emit('exit', 137)); return true; }
   say(m) { this.emit('message', m); }
@@ -223,6 +223,58 @@ describe('EngineHost', () => {
     await vi.advanceTimersByTimeAsync(0);
     expect(await starting).toMatch(/exited before it was ready|cancelled/);
     expect(host.status()).toEqual({ running: false, port: null });
+  });
+
+  it('a kill that came before the process had spawned is repeated when it spawns', async () => {
+    const { host, children } = setup();
+    const starting = host.start().catch(() => {});
+    const kill = vi.fn().mockReturnValueOnce(false).mockReturnValue(true);       // Electron: false while there is no pid yet
+    children[0].kill = kill;
+    host.kill();
+    expect(kill).toHaveBeenCalledTimes(1);
+    children[0].emit('spawn');
+    expect(kill).toHaveBeenCalledTimes(2);
+    children[0].emit('exit', 137);
+    await starting;
+  });
+
+  it('a second stuck from a child already dropped does not use another crash slot', async () => {
+    const { host, children, fork } = setup();
+    await ready(host, children, 1);
+    children[0].kill = function () { this.killed = true; return true; };         // slow to exit
+    children[0].say({ type: 'stuck', job: 'a' });
+    children[0].say({ type: 'stuck', job: 'b' });
+    children[0].emit('exit', 137);
+    await ready(host, children, 2);
+    children[1].emit('exit', 134);                                               // the second real failure
+    await ready(host, children, 3);                                              // must still be allowed
+    expect(fork).toHaveBeenCalledTimes(3);
+  });
+
+  it('a launch that never got a process (no pid) does not count as a crash', async () => {
+    const { host, children } = setup();
+    for (let i = 0; i < 3; i++) {
+      const p = host.start().catch(() => {});
+      children[i].pid = undefined;
+      children[i].emit('exit', 1);
+      await p;
+    }
+    await expect(ready(host, children, 77)).resolves.toEqual({ port: 77 });
+  });
+
+  it('stop() withdraws the port at once; a start waits for the old engine and then forks', async () => {
+    const { host, children, fork } = setup();
+    await ready(host, children, 4000);
+    const stopping = host.stop();
+    expect(host.status()).toEqual({ running: false, port: null });
+    const next = host.start();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(fork).toHaveBeenCalledTimes(1);                                       // not handed the dying engine's port
+    children[0].emit('exit', 0);
+    await stopping;
+    await vi.advanceTimersByTimeAsync(0);
+    children[1].say({ type: 'ready', port: 4001 });
+    await expect(next).resolves.toEqual({ port: 4001 });
   });
 
   it('kill() ends the engine at once, for the quit paths that cannot wait', async () => {

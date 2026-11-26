@@ -12,7 +12,7 @@ class FakeChild extends EventEmitter {
   kill() { queueMicrotask(() => this.emit('exit', 137)); }
 }
 
-function setup({ sku = 'linux-x64', env = {}, packaged = false } = {}) {
+function setup({ sku = 'linux-x64', env = {}, packaged = false, runtimePresent = true } = {}) {
   const handlers = {};
   const children = [];
   const fork = vi.fn((_p, _a, opts) => { const c = new FakeChild(); c.opts = opts; children.push(c); return c; });
@@ -24,6 +24,7 @@ function setup({ sku = 'linux-x64', env = {}, packaged = false } = {}) {
     repoRoot: '/repo',
     enginePath: '/repo/dist-electron/engine.js',
     resourcesPath: '/app/resources',
+    exists: () => runtimePresent,
     env,
     fork,
   });
@@ -36,6 +37,11 @@ describe('engine IPC', () => {
     expect(await handlers['sidecar-bundle:status']()).toEqual({
       ok: true, sku: 'linux-x64', state: 'ready', installed: true, installedVersion: '1.2.0', requiredVersion: '1.2.0', stagedBytes: 0, devVenvPresent: false,
     });
+  });
+
+  it('sidecar-bundle:status does not call a missing runtime ready, and says how to get it', async () => {
+    const { handlers } = setup({ runtimePresent: false });
+    expect(await handlers['sidecar-bundle:status']()).toMatchObject({ ok: true, state: 'absent', installed: false, hint: expect.stringMatching(/npm run fetch:native/) });
   });
 
   it('sidecar-bundle:status answers unsupported where detectSku is null', async () => {
@@ -113,6 +119,26 @@ describe('removeLegacySidecar', () => {
     expect(fs.existsSync(path.join(ud, 'sidecar'))).toBe(false);
     expect(fs.existsSync(path.join(ud, 'hf-cache', 'model'))).toBe(true);
     expect(log).toHaveBeenCalledWith('info', expect.stringMatching(/removed the old Python sidecar/));
+    fs.rmSync(ud, { recursive: true, force: true });
+  });
+
+  it('leaves everything alone when the model cache the user configured lives inside it', async () => {
+    const ud = tmp();
+    const cache = path.join(ud, 'sidecar', 'model-cache');
+    fs.mkdirSync(cache, { recursive: true });
+    fs.writeFileSync(path.join(cache, 'model'), 'm');
+    const log = vi.fn();
+    await removeLegacySidecar(ud, { log, keep: [cache] });
+    expect(fs.existsSync(path.join(cache, 'model'))).toBe(true);
+    expect(log).toHaveBeenCalledWith('warn', expect.stringMatching(/model cache/));
+    fs.rmSync(ud, { recursive: true, force: true });
+  });
+
+  it('still removes it when the configured cache is elsewhere', async () => {
+    const ud = tmp();
+    fs.mkdirSync(path.join(ud, 'sidecar'), { recursive: true });
+    await removeLegacySidecar(ud, { log: vi.fn(), keep: [path.join(ud, 'hf-cache')] });
+    expect(fs.existsSync(path.join(ud, 'sidecar'))).toBe(false);
     fs.rmSync(ud, { recursive: true, force: true });
   });
 
