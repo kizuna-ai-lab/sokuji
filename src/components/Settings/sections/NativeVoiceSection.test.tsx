@@ -170,6 +170,15 @@ describe('NativeVoiceSection', () => {
     expect(screen.queryByText('Default voice')).toBeNull();
   });
 
+  // Review on #888: with the model not downloaded its voice list is empty, so a saved preset matched nothing and the
+  // picker said "Default voice" while the setting still named that preset. Only an empty choice is the default.
+  it('names a saved preset the list does not hold yet, instead of calling it the default', () => {
+    render(<NativeVoiceSection {...baseProps} capability={{ builtin: 'named', custom: 'none' }} builtinVoices={[]}
+      store={null} selected="builtin:Ava" />);
+    expect(screen.getByText('Ava')).toBeInTheDocument();
+    expect(screen.queryByText('Default voice')).toBeNull();
+  });
+
   it('lists builtin voices and writes ttsVoice on select', async () => {
     const store = makeClipStore();
     const onSelect = vi.fn();

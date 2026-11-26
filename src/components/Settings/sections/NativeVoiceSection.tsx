@@ -473,6 +473,13 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
     capability.custom !== 'none',
     capability.builtin === 'named',
   );
+  // What the picker says when no listed voice is the selection. Nothing chosen: the model's own default voice
+  // (Pocket TTS's first preset, MOSS-TTS-Nano's built-in one), except for a model that cannot speak without one, which
+  // says nothing is chosen (with the warning below). A saved preset the list does not hold yet (the model not
+  // downloaded, its voices not read): that preset's name, not the default — the setting still names it.
+  const noneLabel = !selectedId
+    ? (requiresVoiceClip(capability) ? undefined : t('voiceLibrary.defaultVoice', 'Default voice'))
+    : selectedId.startsWith('builtin:') ? selectedId.slice('builtin:'.length) : undefined;
   // Only widen the capability object when the model actually requires a
   // transcript — other models' store.capability objects (MOSS, Supertonic,
   // WASM local-inference) pass through unchanged so VoiceLibrarySection's
@@ -486,9 +493,7 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       <VoiceLibrarySection
         voices={voices}
         selectedId={selectedId}
-        // Nothing chosen is the model's own default voice (Pocket TTS's first preset, MOSS-TTS-Nano's built-in one),
-        // except for a model that cannot speak without one: that one says nothing is chosen, with the warning below.
-        noneLabel={requiresVoiceClip(capability) ? undefined : t('voiceLibrary.defaultVoice', 'Default voice')}
+        noneLabel={noneLabel}
         onSelect={onSelect}
         onImport={handleImport}
         onRecord={store?.onRecord ? handleRecord : undefined}

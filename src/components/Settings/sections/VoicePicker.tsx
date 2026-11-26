@@ -74,8 +74,9 @@ export interface VoicePickerProps {
   isSessionActive?: boolean;
   /** How many custom voices the account holds of how many it may: shown beside their heading. */
   customQuota?: { used: number; limit: number };
-  /** What the trigger says when no listed voice is chosen. Absent: "No voice chosen". A host whose model speaks with a
-   *  default of its own then says so ("Default voice"). */
+  /** What the trigger says when no listed voice is the selection. Absent: "No voice chosen". A host that knows better
+   *  says so: "Default voice" for an empty choice on a model that speaks with its own, or the name of a saved voice the
+   *  list does not hold yet. */
   noneLabel?: string;
 }
 
