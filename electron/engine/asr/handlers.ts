@@ -75,11 +75,13 @@ const initAsr: Handler = async (state, msg, _binary, conn) => {
   const streaming = eng.resolvesToStreaming !== undefined && await eng.resolvesToStreaming(model, device, pin);
   let ms = 0;
   let generation: number | undefined;
+  // True once another connection's init has replaced the model this connection loaded: its frames must not reach it.
+  const stale = () => generation !== undefined && eng.generation !== undefined && eng.generation !== generation;
   if (streaming) {
     await eng.initStreaming!(model, language, sampleRate, device, pin);
     generation = eng.generation;
     if (conn) {
-      conn.ctx.set('on_binary', (data: Uint8Array) => eng.feedStream!(data));
+      conn.ctx.set('on_binary', (data: Uint8Array) => (stale() ? [] : eng.feedStream!(data)));
       conn.ctx.set('stream_task', eng.runStream!((m) => conn.send(m)));
       conn.onClose(() => teardown(state, conn, generation));
     }
@@ -88,6 +90,7 @@ const initAsr: Handler = async (state, msg, _binary, conn) => {
     generation = eng.generation;
     if (conn) {
       conn.ctx.set('on_binary', (data: Uint8Array) => {
+        if (stale()) return [];                                           // a later init owns the model now
         void deliver(conn, eng.feed(data));
         return [];
       });

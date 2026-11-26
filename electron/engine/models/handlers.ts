@@ -60,13 +60,14 @@ export const modelDownloadHandler: Handler = async (state, msg, _binary, conn) =
   if (!conn) return [{ type: 'error', id: msg.id, message: 'no connection' }, null];
   const model = String(msg.model ?? '');
   const downloads = downloadsOf(state);
-  const running = downloads.get(model);
-  if (running) {
-    // Two writers on one .incomplete blob corrupt it: a live download is refused; one whose connection has gone is
-    // stopped and waited for before the new one starts.
+  // Two writers on one .incomplete blob corrupt it: a live download is refused; one whose connection has gone is
+  // stopped and waited for before the new one starts. Looked up again after each wait: another request may have taken
+  // the slot while this one was waiting.
+  for (let running = downloads.get(model); running; running = downloads.get(model)) {
     if (!running.conn.closed) return [{ type: 'error', id: msg.id, model, message: `${model} is already downloading` }, null];
     running.controller.abort();
     await running.task;
+    if (downloads.get(model) === running) downloads.delete(model);
   }
   const entry: Download = { controller: new AbortController(), conn, task: Promise.resolve() };
   downloads.set(model, entry);

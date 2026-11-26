@@ -133,7 +133,7 @@ export class TtsEngine {
         const bytes = toInt16_24kMono(pcm, channels, rate);
         total += bytes.length / 2;
         const n = seq++;
-        sends = sends.then(() => send({ type: 'tts_chunk', id: msgId, seq: n }, bytes));
+        sends = sends.then(() => (signal?.aborted ? undefined : send({ type: 'tts_chunk', id: msgId, seq: n }, bytes)));   // re-checked when its turn comes
       });
       await sends;
     } catch (e) {
