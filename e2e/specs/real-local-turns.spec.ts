@@ -31,7 +31,7 @@ import { expect, test } from '../support/test';
 //   2. Prepare, once per profile and model:
 //        E2E_LOCAL_PREPARE=1 E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
 //      It downloads the recognizer and the ja-en translation model through Local models and storage into the profile.
-//      Roughly 0.3 GB for Whisper base plus Opus-MT ja-en, 0.25 GB for SenseVoice, about 2.8 GB for Voxtral 4B.
+//      Roughly 0.3 GB for Whisper base plus the translation model (Qwen 2.5 0.5B, about 0.5 GB), 0.25 GB for SenseVoice, about 2.8 GB for Voxtral 4B.
 //   3. Measure, five runs per model, on the before build:
 //        E2E_LOCAL_OUT=<before> E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
 //   4. After: the same in the branch's worktree (`npm ci`, `npm run e2e:build`), with E2E_LOCAL_OUT=<after> and the same
@@ -52,7 +52,8 @@ const MODELS = {
   'voxtral-mini-4b-webgpu': { name: 'Voxtral Mini 4B Realtime (WebGPU)', webgpu: true },
 } as const;
 type ModelId = keyof typeof MODELS;
-const TRANSLATION_MODEL = { id: 'opus-mt-ja-en', name: 'Opus-MT (ja → en)' };
+// Opus-MT ja → en, which this spec first used, has left the catalogue: the smallest translation model that remains.
+const TRANSLATION_MODEL = { id: 'qwen2.5-0.5b-translation', name: 'Qwen 2.5 0.5B (multilingual, WebGPU)' };
 
 const ASR = process.env.E2E_LOCAL_ASR ?? '';
 const PROFILE = process.env.E2E_LOCAL_PROFILE ?? '';

@@ -67,6 +67,23 @@ side's own run-to-run spread. It runs on a profile you name (`E2E_LOCAL_PROFILE`
 models, needs a hardware WebGPU adapter for the WebGPU recognizers, and downloads models in its prepare step. It builds,
 opens windows and downloads, so it is run by hand, never in CI. The spec's header comment is the runbook.
 
+`real-local-turn-detection.spec.ts` is the pass/fail check of the same change: for each recognizer on the shared turn
+detection (Whisper base on WebGPU, SenseVoice and Moonshine Base JA on sherpa-onnx, Voxtral 4B, and Local Native with Whisper
+base) it runs three sessions in one app on the eight Japanese sentences: automatic turns (every sentence heard, no turn empty),
+then, stopped and started again, one unbroken utterance of about a minute (cut at the model's limit, nothing lost), then
+push-to-talk (one turn per press, none for a press with nothing said). A sentence counts as heard by any of several of its
+words, so a small model mishearing one word is not read as lost audio. The translation and the voice are the E2E build's
+fakes. It needs `E2E_LOCAL_PROFILE` (the models, about 3.5 GB, are downloaded into it once with `E2E_LOCAL_PREPARE=1`),
+a hardware WebGPU adapter for the WebGPU recognizers, and for Local Native the native engine in `resources/native`
+(`npm run fetch:native`). `E2E_LOCAL_ASR` picks some of the recognizers.
+
+`real-native-session.spec.ts` runs whole sessions on the native engine with small real models (Whisper base, Qwen 2.5 0.5B,
+Pocket TTS (English), MOSS-TTS-Nano; about 1.3 GB): all three stages native, Japanese to English, with the engine kept off the
+network (`HF_HUB_OFFLINE=1`), and the fake transcriber's English translated and read aloud in Japanese by the native engine.
+It needs `E2E_NATIVE_PROFILE` (filled once with `E2E_NATIVE_PREPARE=1`) and the native engine in `resources/native`.
+
+Both are run by hand on a machine you are at, never in CI; each spec's header comment is its runbook.
+
 ## The E2E build
 
 `vite build --mode e2e` is the production bundle with a few compile-time
@@ -88,7 +105,8 @@ audio away from any Sokuji already running on the machine.
 
 ## What a test gets (`e2e/support`)
 
-- `test` from `support/test.ts` gives a spec `launchApp({ seed, userData })`. It returns `{ app, page, userData, errors, close, kill, … }`.
+- `test` from `support/test.ts` gives a spec `launchApp({ seed, userData, env })` (`env`: more environment for the app,
+  such as `HF_HUB_OFFLINE: '1'`). It returns `{ app, page, userData, errors, close, kill, … }`.
   A new directory is a first run; passing the directory of an app that was closed is a restart on the same state.
   Every app a test started is killed when the test ends, passed or failed; the user-data directories of a test that passed are deleted.
 - The launch refuses anything but the E2E build (it looks for the build's marker in `dist-electron/main.js`): a release or
@@ -98,6 +116,8 @@ audio away from any Sokuji already running on the machine.
   injected microphone's tone from the recording), the fake provider runs every stage.
   Another interface language: `{ ...baseStorage('fake'), i18nextLng: 'ja' }`.
 - `sokuji.kill()` ends the process at once (a crash); launch again on the same `userData` to test recovery.
+- `downloadNative(page, modelId)` from `support/native.ts` downloads a native model from its card on Local models and
+  storage's native engine tab (the page open there).
   The seeded settings are written to disk at launch, so they survive a kill; settings changed later through the app are
   on disk only when Chromium gets to them (seconds), as for a user.
 - `sokuji.answerSaveDialog(path)` / `answerOpenDialog(paths)` set what the system dialog answers (`null` is Cancel);

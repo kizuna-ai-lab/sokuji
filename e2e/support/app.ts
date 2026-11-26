@@ -79,6 +79,8 @@ export async function launch(options: {
   seed?: Seed;
   /** The services the main process calls are answered by the test's fakes (e2e/support/main/fake-services.cjs). */
   fakeServices?: boolean;
+  /** More environment for the app, over the runner's (`HF_HUB_OFFLINE: '1'` keeps the local engine off the network). */
+  env?: Record<string, string>;
 } = {}): Promise<Sokuji> {
   const main = path.join(REPO, 'dist-electron/main.js');
   if (!fs.existsSync(path.join(REPO, 'build/index.html')) || !fs.existsSync(main)) {
@@ -101,7 +103,7 @@ export async function launch(options: {
       '--use-fake-ui-for-media-stream',
       ...(process.platform === 'linux' ? ['--no-sandbox'] : []),
     ],
-    env: { ...process.env, ...(process.platform === 'linux' && !process.env.DISPLAY ? { DISPLAY: ':1' } : {}) },
+    env: { ...process.env, ...(process.platform === 'linux' && !process.env.DISPLAY ? { DISPLAY: ':1' } : {}), ...options.env },
   });
   // Ends the app at once, with its renderer, GPU and utility processes: left alone they outlive the main process,
   // keep the user-data directory busy and hold the test runner open. Every process of this app carries the
