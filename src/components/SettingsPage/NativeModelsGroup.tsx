@@ -12,7 +12,7 @@ import { NativeModelManagementSection } from '../Settings/sections/NativeModelMa
 import type { NativeEngineSettings } from '../Settings/engine/useNativeEngineAdapter';
 import { presentProviders } from '../../providers/registry';
 import { useProviderStore } from '../../stores/providerStore';
-import { useNativeModelStatuses } from '../../stores/nativeModelStore';
+import { useNativeModelStatuses, useNativeModelStore } from '../../stores/nativeModelStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { LOCAL_NATIVE_DEFAULTS, type LocalNativeSettings } from '../../providers/local_native/settings';
 import type { Stage } from '../../lib/local-inference/selection/types';
@@ -33,6 +33,13 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
   useEffect(() => {
     if (native && !entry) void useProviderStore.getState().load(native);
   }, [native, entry]);
+  // The library lists what the engine reports, so the engine is started here: nothing else does it for a person who
+  // has not chosen the native engine in the line-up (its readiness check starts it only then). Again when the engine
+  // finishes installing, which is when its first start can succeed. Both are no-ops while it is running or starting.
+  const bundleStatus = useNativeModelStore((s) => s.bundleStatus);
+  useEffect(() => {
+    if (native) void useNativeModelStore.getState().ensureCatalog();
+  }, [native, bundleStatus]);
   // A download finishing only installs the model: using it is the user's choice, made in the line-up, so the page says
   // where, rather than changing a session's configuration for them.
   const statuses = useNativeModelStatuses();

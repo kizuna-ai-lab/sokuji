@@ -32,6 +32,7 @@ import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 
 const load = vi.fn(async () => {});
+const ensureCatalog = vi.fn(async () => {});
 const own = { selections: { 'en→ja': { asr: 'x' } } } as never;
 
 beforeEach(() => {
@@ -39,7 +40,8 @@ beforeEach(() => {
   offered.native = true;
   useProviderStore.setState({ entries: { local_native: { settings: own, pair: { source: 'en', target: 'ja' } } } } as never);
   load.mockClear();
-  useNativeModelStore.setState({ statuses: {} } as never);
+  ensureCatalog.mockClear();
+  useNativeModelStore.setState({ statuses: {}, bundleStatus: 'absent', ensureCatalog } as never);
   useProviderStore.setState({ load } as never);
 });
 afterEach(() => cleanup());
@@ -97,5 +99,18 @@ describe('NativeModelsGroup', () => {
     render(<NativeModelsGroup locked={false} />);
     act(() => { useNativeModelStore.setState({ statuses: { m: 'ready' } } as never); });
     expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('starts the engine so its models are listed, again once the engine has been installed', () => {
+    render(<NativeModelsGroup locked={false} />);
+    expect(ensureCatalog).toHaveBeenCalledTimes(1);
+    act(() => { useNativeModelStore.setState({ bundleStatus: 'ready' } as never); });
+    expect(ensureCatalog).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not start the engine where Local Native is not offered', () => {
+    offered.native = false;
+    render(<NativeModelsGroup locked={false} />);
+    expect(ensureCatalog).not.toHaveBeenCalled();
   });
 });
