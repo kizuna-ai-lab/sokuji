@@ -299,7 +299,12 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     finishing.delete(run);
     unwatchIfIdle();
     useLiveNotes.getState().end(run.recordId);
+    sendTally(run);
+  };
+  /** Sends a run's tally once: turned off mid-session or ended, whichever comes first. */
+  const sendTally = (run: LiveRun) => {
     const summary = run.tally?.summary();
+    run.tally = undefined;
     // Counting must never break the session's end: a callback that throws is dropped.
     if (summary) { try { bridges.track('live_notes_summary', summary); } catch { /* analytics only */ } }
   };
@@ -320,6 +325,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         live.gone = true;
         live.loop?.dispose();
         useLiveNotes.getState().turnedOff(live.recordId);
+        sendTally(live);
         paused = { recordId: live.recordId, seen: live.seen };
         live = null;
       }

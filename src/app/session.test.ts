@@ -1175,6 +1175,22 @@ describe('attach', () => {
       });
     });
 
+    it('sends the summary when live notes are turned off mid-session, not again at the end', async () => {
+      await withLive(true, 'openai', async () => {
+        const live = answeringLive();
+        const { session, clock, track } = await setup({ history: historyPort(), ipc: null, liveNotes: live.factory });
+        await session.runner.start();
+        clock.advance(8000);
+        await vi.waitFor(() => expect(live.made).toHaveLength(1));
+        live.made[0].deps.log?.({ sentences: 2, latencyMs: 500, accepted: true, givenUp: false, unstablePoints: 0 });
+        useSettingsStore.setState({ liveNotes: false } as never);
+        expect(track).toHaveBeenCalledWith('live_notes_summary', expect.objectContaining({ updates: 1, accepted: 1 }));
+        await session.runner.stop();
+        await session.runner.settled();
+        expect(track.mock.calls.filter(([e]) => e === 'live_notes_summary')).toHaveLength(1);
+      });
+    });
+
     it('ends the live notes even when the analytics callback throws on the summary', async () => {
       await withLive(true, 'openai', async () => {
         const live = answeringLive();
