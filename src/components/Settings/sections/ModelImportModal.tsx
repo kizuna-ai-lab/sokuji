@@ -20,6 +20,8 @@ export interface ImportBackend {
   validate(filename: string, blob: Blob, expectedSizeBytes: number): Promise<void>;
   /** Stores the picked files; throws ModelImportError when some required file is still missing. */
   commit(files: NamedBlob[]): Promise<void>;
+  /** The line under the drop area, where the engine's files are not a folder with an onnx/ subfolder. */
+  dropHint?: string;
 }
 
 interface ModelImportModalProps {
@@ -319,7 +321,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
             >
               <ArrowDownToLine size={24} className="import-drop__icon" />
               <div className="import-drop__lead">{t('models.importDropHint', 'Drag the folder or files here')}</div>
-              <div className="import-drop__sub">{t('models.importDropSub', 'Pick the whole download folder — its onnx/ subfolder is matched automatically')}</div>
+              <div className="import-drop__sub">{backend.dropHint ?? t('models.importDropSub', 'Pick the whole download folder — its onnx/ subfolder is matched automatically')}</div>
               <div className="import-drop__btns">
                 <button className="import-btn import-btn--sm" onClick={() => folderInputRef.current?.click()}>
                   <FolderInput size={13} /> {t('models.importChooseFolder', 'Choose folder')}

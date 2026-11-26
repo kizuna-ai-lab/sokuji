@@ -73,4 +73,23 @@ describe('NativeImportModal — the shared import window over the native engine'
     mount();
     expect(await screen.findByText(/engine down/)).toBeInTheDocument();
   });
+
+  it('does not talk of an onnx/ subfolder, which is the WASM/WebGPU engine\'s way: a native model is a file or two', async () => {
+    mount();
+    await screen.findByText('dir/x-Q8_0.gguf');
+    expect(screen.queryByText(/onnx/)).toBeNull();
+    expect(screen.getByText('Choose the downloaded file(s). Keep their names as they are.')).toBeInTheDocument();
+  });
+
+  it('says so, in the window, when a chosen file has no location, instead of sending the engine nothing', async () => {
+    pathFor.mockReturnValue('');
+    mount();
+    await screen.findByText('dir/x-Q8_0.gguf');
+    addFiles(gguf());
+    const importBtn = await screen.findByRole('button', { name: /Import (& finish|1 now)/ });
+    await waitFor(() => expect(importBtn).toBeEnabled());
+    fireEvent.click(importBtn);
+    expect(await screen.findByText(/location of a chosen file could not be read/)).toBeInTheDocument();
+    expect(store.importFiles).not.toHaveBeenCalled();
+  });
 });

@@ -1049,7 +1049,9 @@
       "import_mismatch": "{{name}} bukan file yang dipublikasikan (sha256-nya diawali {{got}}, seharusnya {{expected}}). Unduh lagi.",
       "import_not_importable": "Model ini tidak dapat diimpor secara manual.",
       "import_failed": "Impor gagal."
-    }
+    },
+    "importDropSubFile": "Pilih file yang sudah diunduh. Biarkan namanya apa adanya.",
+    "importNoPath": "Lokasi file yang dipilih tidak dapat dibaca. Pilih file itu lagi melalui pemilih file."
   },
   "notes": {
     "stageAsr": "pengenalan suara",

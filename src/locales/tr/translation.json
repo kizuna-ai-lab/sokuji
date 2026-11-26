@@ -1049,7 +1049,9 @@
       "import_mismatch": "{{name}} yayımlanan dosya değil (sha256 değeri {{got}} ile başlıyor, beklenen {{expected}}). Lütfen yeniden indirin.",
       "import_not_importable": "Bu model elle içe aktarılamaz.",
       "import_failed": "İçe aktarma başarısız oldu."
-    }
+    },
+    "importDropSubFile": "İndirdiğiniz dosyaları seçin. Adlarını olduğu gibi bırakın.",
+    "importNoPath": "Seçilen dosyanın konumu okunamadı. Dosyayı dosya seçiciyle yeniden seçin."
   },
   "notes": {
     "stageAsr": "konuşma tanıma",

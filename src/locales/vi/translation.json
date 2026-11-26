@@ -1049,7 +1049,9 @@
       "import_mismatch": "{{name}} không phải là tệp đã phát hành (sha256 của nó bắt đầu bằng {{got}}, trong khi mong đợi {{expected}}). Hãy tải xuống lại.",
       "import_not_importable": "Không thể nhập mô hình này theo cách thủ công.",
       "import_failed": "Nhập không thành công."
-    }
+    },
+    "importDropSubFile": "Chọn các tệp đã tải xuống. Giữ nguyên tên của chúng.",
+    "importNoPath": "Không đọc được vị trí của tệp đã chọn. Hãy chọn lại tệp bằng bộ chọn tệp."
   },
   "notes": {
     "stageAsr": "nhận dạng giọng nói",

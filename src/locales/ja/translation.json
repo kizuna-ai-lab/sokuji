@@ -901,6 +901,8 @@
     "importChooseFiles": "ファイルを選択",
     "importDropHint": "ここにファイルをドラッグ",
     "importDropSub": "フォルダ全体の場合は「フォルダを選択」を使用してください — onnx/ サブフォルダは自動的に照合されます",
+    "importDropSubFile": "ダウンロードしたファイルを選んでください。ファイル名は変えないでください。",
+    "importNoPath": "選んだファイルの場所を読み取れませんでした。ファイルピッカーでもう一度選んでください。",
     "importGroupConfig": "設定とトークナイザー",
     "importGroupModel": "モデルファイル",
     "importAlready": "インポート済み",

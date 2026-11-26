@@ -1049,7 +1049,9 @@
       "import_mismatch": "{{name}} 不是已發布的檔案（其 sha256 開頭為 {{got}}，應為 {{expected}}）。請重新下載。",
       "import_not_importable": "這個模型無法手動匯入。",
       "import_failed": "匯入失敗。"
-    }
+    },
+    "importDropSubFile": "請選擇已下載的檔案，並保持檔名不變。",
+    "importNoPath": "無法讀取所選檔案的位置。請使用檔案選擇器重新選擇檔案。"
   },
   "notes": {
     "stageAsr": "語音辨識",

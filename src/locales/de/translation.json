@@ -1049,7 +1049,9 @@
       "import_mismatch": "{{name}} ist nicht die veröffentlichte Datei (ihr sha256 beginnt mit {{got}}, erwartet wurde {{expected}}). Laden Sie sie erneut herunter.",
       "import_not_importable": "Dieses Modell kann nicht manuell importiert werden.",
       "import_failed": "Der Import ist fehlgeschlagen."
-    }
+    },
+    "importDropSubFile": "Die heruntergeladenen Dateien wählen. Dateinamen unverändert lassen.",
+    "importNoPath": "Der Speicherort einer gewählten Datei konnte nicht gelesen werden. Die Datei erneut über die Dateiauswahl wählen."
   },
   "notes": {
     "stageAsr": "Spracherkennung",

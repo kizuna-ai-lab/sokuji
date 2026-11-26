@@ -1049,7 +1049,9 @@
       "import_mismatch": "{{name}} bukan fail yang diterbitkan (sha256nya bermula dengan {{got}}, sepatutnya {{expected}}). Muat turun semula.",
       "import_not_importable": "Model ini tidak boleh diimport secara manual.",
       "import_failed": "Import gagal."
-    }
+    },
+    "importDropSubFile": "Pilih fail yang telah dimuat turun. Kekalkan nama fail seperti sedia ada.",
+    "importNoPath": "Lokasi fail yang dipilih tidak dapat dibaca. Pilih fail itu semula menggunakan pemilih fail."
   },
   "notes": {
     "stageAsr": "pengecaman suara",

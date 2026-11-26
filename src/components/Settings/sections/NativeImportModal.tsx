@@ -7,6 +7,7 @@
 // header, the published bytes where the catalog lists them) before anything goes into the model cache. The card shows
 // the progress and, if a file is refused, the reason.
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ModelImportModal, type ImportBackend } from './ModelImportModal';
 import { ModelFileValidationError } from '../../../lib/local-inference/modelFileValidation';
 import { useNativeModelStore } from '../../../stores/nativeModelStore';
@@ -27,11 +28,13 @@ export const NativeImportModal: React.FC<{
   /** The chosen variant's artifact, as a download takes it. */
   repo?: string;
 }> = ({ isOpen, onClose, modelId, modelName, repo }) => {
+  const { t } = useTranslation();
   const backend = useMemo<ImportBackend>(() => ({
     targets: async () => {
       const files = await useNativeModelStore.getState().modelFiles(modelId, repo);
       return { repo: files[0]?.repo, files: files.map((f) => ({ filename: f.file, url: f.url, sizeBytes: f.size ?? 0 })) };
     },
+    dropHint: t('models.importDropSubFile', 'Choose the downloaded file(s). Keep their names as they are.'),
     // What is already in the cache is the card's business (it reads "downloaded"); the window lists what to add.
     stored: async () => new Set<string>(),
     validate: async (filename, blob) => {
@@ -39,9 +42,12 @@ export const NativeImportModal: React.FC<{
     },
     commit: async (files) => {
       const paths = files.map(pathOf);
+      // A file the page could not give a location for (not from the system's file picker or a real drop): say so here
+      // rather than let the engine answer "no files were chosen".
+      if (paths.some((p) => !p)) throw new Error(t('models.importNoPath', 'The location of a chosen file could not be read. Choose the file again with the file picker.'));
       // The card shows the progress, and the reason if a file is refused.
       void useNativeModelStore.getState().importFiles(modelId, paths, repo);
     },
-  }), [modelId, repo]);
+  }), [modelId, repo, t]);
   return <ModelImportModal isOpen={isOpen} onClose={onClose} modelId={modelId} modelName={modelName} backend={backend} />;
 };

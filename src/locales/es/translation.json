@@ -1049,7 +1049,9 @@
       "import_mismatch": "{{name}} no es el archivo publicado (su sha256 empieza por {{got}}, y se esperaba {{expected}}). Vuelve a descargarlo.",
       "import_not_importable": "Este modelo no se puede importar manualmente.",
       "import_failed": "Error al importar."
-    }
+    },
+    "importDropSubFile": "Elige los archivos descargados. Conserva sus nombres tal como están.",
+    "importNoPath": "No se pudo leer la ubicación de un archivo elegido. Vuelve a elegir el archivo con el selector de archivos."
   },
   "notes": {
     "stageAsr": "reconocimiento de voz",

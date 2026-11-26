@@ -1049,7 +1049,9 @@
       "import_mismatch": "Ang {{name}} ay hindi ang nailathalang file (nagsisimula ang sha256 nito sa {{got}}, inaasahan ang {{expected}}). I-download itong muli.",
       "import_not_importable": "Hindi maaaring i-import nang mano-mano ang model na ito.",
       "import_failed": "Nabigo ang pag-import."
-    }
+    },
+    "importDropSubFile": "Piliin ang mga na-download na file. Huwag baguhin ang kanilang mga pangalan.",
+    "importNoPath": "Hindi mabasa ang lokasyon ng napiling file. Piliin muli ang file gamit ang file picker."
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",

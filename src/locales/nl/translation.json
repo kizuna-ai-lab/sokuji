@@ -1049,7 +1049,9 @@
       "import_mismatch": "{{name}} is niet het gepubliceerde bestand (de sha256 begint met {{got}}, verwacht was {{expected}}). Download het opnieuw.",
       "import_not_importable": "Dit model kan niet handmatig worden geïmporteerd.",
       "import_failed": "Importeren is mislukt."
-    }
+    },
+    "importDropSubFile": "Kies de gedownloade bestanden. Laat de bestandsnamen ongewijzigd.",
+    "importNoPath": "De locatie van een gekozen bestand kon niet worden gelezen. Kies het bestand opnieuw met de bestandskiezer."
   },
   "notes": {
     "stageAsr": "spraakherkenning",
