@@ -86,11 +86,14 @@ describe('the registered catalog', () => {
 });
 
 describe('the stages that go together', () => {
-  const endToEnd = ['kizunaai_qwen', 'gemini', 'volcengine_ast2', 'openai', 'openai_translate', 'openai_live', 'qwen_livetranslate', 'palabraai'];
+  const endToEnd = ['gemini', 'openai_translate', 'openai_live', 'palabraai'];
+  // Whole-unit services whose text-only session makes no audio (owner, 2026-11-23): their voice may be another's.
+  const textOpen = ['kizunaai_qwen', 'volcengine_ast2', 'openai', 'qwen_livetranslate'];
 
-  it('an end-to-end provider holds all three jointly; nothing else is joint', () => {
-    expect(allCaps().filter((c) => c.joint).map((c) => c.id).sort()).toEqual([...endToEnd].sort());
+  it('an end-to-end provider holds all three jointly; a whole-unit service whose text-only session makes no audio holds its transcription and translation; nothing else is joint', () => {
+    expect(allCaps().filter((c) => c.joint).map((c) => c.id).sort()).toEqual([...endToEnd, ...textOpen].sort());
     for (const id of endToEnd) expect(caps(id)!.joint).toEqual(['transcription', 'translation', 'speech']);
+    for (const id of textOpen) expect(caps(id), id).toMatchObject({ joint: ['transcription', 'translation'], takesVoice: true, voiceAlone: false });
   });
 
   it('Soniox, with an own key or Kizuna AI\'s, translates only what it transcribes; no other option says so', () => {

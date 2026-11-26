@@ -8,6 +8,7 @@
  * `kizunaBudget.test.ts` restates the arithmetic. The backend's 402 stays the
  * authority.
  */
+import { servesSpeech } from '../../lib/plan/read';
 import type { BalanceShape } from '../../lib/session/types';
 import { asQwenRegion, type QwenRegion } from './regions';
 import type { QwenSettings } from './settings';
@@ -36,10 +37,26 @@ export const QWEN_SCREEN_MICRO_USD_PER_HOUR: Record<QwenRegion, number> = { sg: 
 /** The shortest session the backend starts, in seconds. */
 export const QWEN_MANAGED_MIN_SESSION_S = 60;
 
+/** Kizuna AI's managed Qwen, as a plan names it. */
+const KIZUNA_QWEN = { id: 'kizunaai_qwen' } as const;
+
+/**
+ * Which legs a start asks Qwen to voice: the speaker unless text-only, the
+ * participant with participant speech, and neither when another provider's
+ * voice reads Qwen's translation (its unit then runs text alone). A shape
+ * that carries no plan is a session on Qwen alone.
+ */
+export function qwenSpeech(shape: Pick<BalanceShape, 'legs' | 'textOnly' | 'participantSpeech' | 'plan'>): { speaker: boolean; participant: boolean } {
+  const ownVoice = shape.plan === undefined || servesSpeech(shape.plan, KIZUNA_QWEN);
+  return {
+    speaker: ownVoice && shape.legs.includes('speaker') && !shape.textOnly,
+    participant: ownVoice && shape.legs.includes('participant') && shape.participantSpeech,
+  };
+}
+
 /**
  * Kizuna Qwen's `minimumBalance`: the backend's floor for this start's legs
- * in the region picked. A leg speaks when it is the speaker and not
- * text-only, or the participant with participant speech (the lease's own
+ * in the region picked. A leg speaks as `qwenSpeech` says (the lease's own
  * rule for `speech`). While the screen-context switch is on every leg also
  * carries the add-on. The gate reads the switch, before the pick, so it is
  * conservative on purpose: a cancelled pick only lowers the real floor, and
@@ -48,7 +65,8 @@ export const QWEN_MANAGED_MIN_SESSION_S = 60;
 export function kizunaQwenMinimumBalance(shape: BalanceShape, s: Pick<QwenSettings, 'region' | 'screenContext'>): number {
   const region = asQwenRegion(s.region);
   const rate = QWEN_RATE_MICRO_USD_PER_HOUR[region];
-  const speaking = (shape.legs.includes('speaker') && !shape.textOnly ? 1 : 0) + (shape.legs.includes('participant') && shape.participantSpeech ? 1 : 0);
+  const speech = qwenSpeech(shape);
+  const speaking = (speech.speaker ? 1 : 0) + (speech.participant ? 1 : 0);
   const screen = s.screenContext === true ? shape.legs.length * QWEN_SCREEN_MICRO_USD_PER_HOUR[region] : 0;
   const perHour = speaking * rate.speaking + (shape.legs.length - speaking) * rate.text + screen;
   return Math.ceil((perHour * QWEN_MANAGED_MIN_SESSION_S) / 3600);

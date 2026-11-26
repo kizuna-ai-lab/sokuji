@@ -44,7 +44,8 @@ export const qwenLiveTranslateProvider: Provider<QwenSettings, QwenCredentials, 
 
   languages: qwenLanguages,
 
-  endToEnd: true,
+  // Not end to end (owner, 2026-11-23): its text-only session asks for text alone (`output_modalities: ['text']`,
+  // audio billed per output token), so another provider's voice may read its translation.
   units: [wholeUnitOf<QwenSettings, QwenCredentials, QwenConfig>({
     // Text only is offered: a leg that does not speak asks for text alone.
     speech: 'optional',

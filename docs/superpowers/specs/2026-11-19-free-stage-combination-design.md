@@ -442,6 +442,11 @@ are rebuilt. Half of the providers are fused models, which is where that model i
 
 - Whether each end-to-end vendor stops generating and charging for audio when asked for text only. To be
   checked per vendor before step 2 offers it another voice; a vendor that cannot be confirmed is not offered.
+  Checked from the vendors' documentation on 2026-11-23: OpenAI Realtime (`output_modalities: ['text']`), Doubao
+  AST 2.0 (`s2t`) and Qwen LiveTranslate (`output_modalities: ['text']`) have a text-only mode and price audio
+  output per token, so they are offered another voice (owner, 2026-11-23). Gemini's Live models answer in audio
+  only, and OpenAI Translate and OpenAI Live bill by session time with the voice included: they are not. Palabra's
+  pricing does not say: not offered. Not yet confirmed on a bill.
 - Latency of a fused model's text with an external voice. Not measured. A fused model run this way also loses
   its own voice features (voice cloning in Qwen and Doubao).
 - Echo with a voice that is not Soniox's against Soniox STT. Agent text carries text, so it should hold; to be

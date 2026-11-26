@@ -79,7 +79,9 @@ describe('choosing a provider for a stage', () => {
   it("a text model chosen for translation under an end-to-end provider moves its transcription and voice to this device's defaults: this device's recognition and Edge", () => {
     for (const from of [gemini, { transcription: 'openai_live', translation: 'openai_live', speech: 'openai_live', summarisation: null }, { transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen', summarisation: 'x' }]) {
       const chosen = choose(from, 'translation', 'openai_text');
-      expect(chosen).toEqual({ lineUp: { transcription: 'local_inference', translation: 'openai_text', speech: 'edge', summarisation: from.summarisation }, moved: ['transcription', 'speech'] });
+      // An end-to-end provider's voice goes with its joint group, unsaid; Qwen's voice reads only its own text, so it follows, and that is said.
+      const followed = from.speech === 'kizunaai_qwen' ? { followed: { stage: 'speech', from: 'kizunaai_qwen', to: 'edge' } } : {};
+      expect(chosen).toEqual({ lineUp: { transcription: 'local_inference', translation: 'openai_text', speech: 'edge', summarisation: from.summarisation }, moved: ['transcription', 'speech'], ...followed });
       const plan = compose(chosen.lineUp, input);
       expect(isRefusal(plan)).toBe(false);
       // Recognition alone on this device, the text model, and Edge, a provider of its own: three units.
@@ -131,7 +133,7 @@ describe('choosing a provider for a stage', () => {
     // Bing for the translation alone: the hosted transcription and the hosted voice both stay.
     expect(choose(kizuna, 'translation', 'bing')).toEqual({ lineUp: { ...kizuna, translation: 'bing' }, moved: [] });
     expect(isRefusal(compose({ ...kizuna, translation: 'bing' }, input))).toBe(false);
-    // A text side that takes no other voice holds all three stages, so the hosted voice goes with the choice itself.
+    // Kizuna AI's Qwen for the text: the two hosted services never run together, so the hosted voice goes to Qwen's.
     expect(choose({ ...soniox, speech: 'kizunaai_soniox' }, 'transcription', 'kizunaai_qwen')).toEqual({
       lineUp: { transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen', summarisation: null }, moved: ['translation', 'speech'],
     });
@@ -169,25 +171,41 @@ describe('choosing a provider for a stage', () => {
     }
   });
 
-  it('a choice made on the speech stage makes nothing follow: a voice that cannot stand alone is kept as chosen, refused', () => {
+  it('a voice that cannot stand alone, chosen for speech, brings its text side: it reads only its own translation', () => {
     const chosen = chooseNotAlone(soniox, 'speech', 'kizunaai_soniox');
-    expect(chosen).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: [] });
-    expect(compose(chosen.lineUp, notAlone)).toMatchObject({ refused: 'lineup_voice_not_alone' });
+    expect(chosen).toEqual({ lineUp: kizuna, moved: ['transcription', 'translation'] });
+    expect(isRefusal(compose(chosen.lineUp, notAlone))).toBe(false);
+    // The released voices that read only their own text: OpenAI Realtime's, Doubao AST 2.0's, Qwen's.
+    for (const id of ['openai', 'volcengine_ast2', 'qwen_livetranslate', 'kizunaai_qwen']) {
+      const all = { transcription: id, translation: id, speech: id, summarisation: null };
+      expect(choose(soniox, 'speech', id), id).toEqual({ lineUp: all, moved: ['transcription', 'translation'] });
+      // And another voice under it leaves its text where it is, and runs.
+      const edge = choose(all, 'speech', 'edge');
+      expect(edge, id).toEqual({ lineUp: { ...all, speech: 'edge' }, moved: [] });
+      expect(isRefusal(compose(edge.lineUp, input)), id).toBe(false);
+    }
   });
 
   it('a refusal of another kind makes nothing follow, and neither does a default voice that would still be refused', () => {
+    // A catalog in which own-key Soniox takes no other voice: Kizuna AI's voice, offered alone, would follow it.
+    const noVoice = allCaps().map((c) => (c.id === 'soniox' ? { ...c, takesVoice: false } : c));
+    expect(chooseWith(kizuna, 'transcription', 'soniox', { ...input, catalog: noVoice }).followed).toEqual({ stage: 'speech', from: 'kizunaai_soniox', to: 'soniox' });
     // No provider is offered: the composer says so before it looks at the voice.
-    const none = { ...choiceInput([], {}), catalog: notAlone.catalog };
+    const none = { ...choiceInput([], {}), catalog: noVoice };
     expect(compose({ ...soniox, speech: 'kizunaai_soniox' }, none)).toMatchObject({ refused: 'lineup_not_offered' });
     expect(chooseWith(kizuna, 'transcription', 'soniox', none)).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: ['translation'] });
     // Soniox is not offered, so its default voice would not run either: the choice is kept as made.
-    const withoutSoniox = { ...choiceInput(RELEASED.filter((p) => p.id !== 'soniox'), {}), catalog: notAlone.catalog };
+    const withoutSoniox = { ...choiceInput(RELEASED.filter((p) => p.id !== 'soniox'), {}), catalog: noVoice };
     expect(chooseWith(kizuna, 'transcription', 'soniox', withoutSoniox)).toEqual({ lineUp: { ...soniox, speech: 'kizunaai_soniox' }, moved: ['translation'] });
   });
 
   it('the two hosted providers are separate choices', () => {
-    expect(choose(soniox, 'transcription', 'kizunaai_qwen').lineUp).toMatchObject({ transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen' });
+    // Soniox's own-key voice reads Kizuna AI's Qwen.
+    expect(choose(soniox, 'transcription', 'kizunaai_qwen').lineUp).toMatchObject({ transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'soniox' });
     expect(choose(kizuna, 'speech', 'kizunaai_qwen').lineUp).toMatchObject({ transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen' });
+    expect(choose(kizuna, 'transcription', 'kizunaai_qwen').lineUp).toMatchObject({ transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen' });
+    const qwen = { transcription: 'kizunaai_qwen', translation: 'kizunaai_qwen', speech: 'kizunaai_qwen', summarisation: null };
+    expect(choose(qwen, 'speech', 'kizunaai_soniox').lineUp).toEqual(kizuna);
   });
   it('only the notes can be switched off', () => { expect(() => choose(soniox, 'speech', null)).toThrow(); expect(choose(soniox, 'summarisation', null).lineUp.summarisation).toBeNull(); });
   it('refuses an option that does not serve the stage', () => { expect(() => choose(soniox, 'transcription', 'edge')).toThrow(); });
@@ -198,11 +216,12 @@ describe('choosing a provider for a stage', () => {
 
   // Under the app's catalog, and under one in which Kizuna AI's Soniox voice is not offered alone.
   it.each([
-    // Every voice that has a unit of its own is offered alone, and a text side that takes no other voice holds all
-    // three stages jointly, so choosing it already moves speech: no choice makes a voice follow.
-    ["the app's catalog: no voice ever has to follow", input, []],
-    // The only voice that ever has to follow is one that is not offered alone.
-    ['a voice not offered alone: it follows, and nothing else does', notAlone, ['lineup_voice_not_alone']],
+    // A voice that is not offered alone goes with its text side, and a text side that takes no other voice holds all
+    // three stages jointly: a voice follows by the composer's refusal only out of a stored line-up that put such a voice
+    // beside another host's text.
+    ["the app's catalog: only out of a stored lone voice", input, ['lineup_voice_not_alone']],
+    // A voice that is not offered alone also follows a text side chosen beside it.
+    ['a voice not offered alone: it follows', notAlone, ['lineup_voice_not_alone']],
   ] as const)('for every line-up and every choice: the chosen stage and the stages that go with it are the choice, any other stage moves only when its provider lost a stage it needs, and speech alone may follow (%s)', (_name, input, expected) => {
     const choose = (lineUp: LineUp, stage: RunStage, id: string) => chooseWith(lineUp, stage, id, input);
     const reasons = new Set<string>();
@@ -210,31 +229,45 @@ describe('choosing a provider for a stage', () => {
       if (!c.stages.includes(stage)) continue;
       const label = JSON.stringify({ from, stage, id: c.id });
       const { lineUp, moved, followed } = choose(from, stage, c.id);
-      const group = goesWith(c, stage);
+      const catalogOf = (id: string) => (input.catalog ?? allCaps()).find((x) => x.id === id) ?? caps(id)!;
+      // What an option holds with a stage: the stages that go with it, and for a voice not offered alone all it serves.
+      const needs = (o: ReturnType<typeof catalogOf>, s: RunStage) => (s === 'speech' && !o.voiceAlone ? o.stages : goesWith(o, s));
+      const group = needs(catalogOf(c.id), stage);
+      const defaults = hostDefaults(c.host);
       // The line-up by the rule of the stages that go together alone.
       const byJoint = { ...from };
+      let expectedFollow: { stage: 'speech'; from: string; to: string } | undefined;
       for (const s of RUN_STAGES) {
         if (group.includes(s)) { byJoint[s] = c.id; continue; }
-        const lostPartner = goesWith(caps(from[s]!)!, s).some((t) => group.includes(t) && from[t] === from[s]);
-        if (lostPartner) byJoint[s] = hostDefaults(c.host)[s];
+        const option = catalogOf(from[s]!);
+        const lost = (stages: readonly RunStage[]) => stages.some((t) => group.includes(t) && from[t] === from[s]);
+        if (!lost(needs(option, s))) continue;
+        byJoint[s] = defaults[s];
+        // A voice that reads only its own text goes with it, and the result says so; a joint group goes whole, unsaid.
+        if (s === 'speech' && !lost(goesWith(option, s)) && defaults.speech !== from.speech) expectedFollow = { stage: 'speech', from: from.speech!, to: defaults.speech! };
       }
       // A transcription that stands alone (Soniox's) stays when another option is chosen to translate it; one held
       // jointly with the translation (an end-to-end provider's) goes with it.
-      if (stage === 'translation' && !group.includes('transcription') && !goesWith(caps(from.transcription!)!, 'transcription').includes('translation')) {
+      if (stage === 'translation' && !group.includes('transcription') && !goesWith(catalogOf(from.transcription!), 'transcription').includes('translation')) {
         expect(lineUp.transcription, label).toBe(from.transcription);
       }
-      if (followed) {
-        // Only for a choice of another stage, only away from a voice the composer refuses, only to one that runs.
-        expect(stage, label).not.toBe('speech');
-        const refused = compose(byJoint, input);
-        expect(isRefusal(refused) && ['lineup_voice_not_alone', 'lineup_voice_not_taken'].includes(refused.refused), label).toBe(true);
-        if (isRefusal(refused)) reasons.add(refused.refused);
-        expect(followed, label).toEqual({ stage: 'speech', from: byJoint.speech, to: hostDefaults(c.host).speech });
-        expect(lineUp, label).toEqual({ ...byJoint, speech: followed.to });
-        expect(isRefusal(compose(lineUp, input)), label).toBe(false);
-      } else {
-        expect(lineUp, label).toEqual(byJoint);
+      // A voice left beside a text side chosen that it cannot run beside follows to the chosen host's voice, when that runs.
+      let expected: LineUp = byJoint;
+      const first = compose(byJoint, input);
+      if (stage !== 'speech' && defaults.speech !== byJoint.speech && isRefusal(first) && ['lineup_voice_not_alone', 'lineup_voice_not_taken'].includes(first.refused)
+        && !isRefusal(compose({ ...byJoint, speech: defaults.speech }, input))) {
+        reasons.add(first.refused);
+        expected = { ...byJoint, speech: defaults.speech };
+        expectedFollow = { stage: 'speech', from: byJoint.speech!, to: defaults.speech! };
       }
+      // Two managed providers never run together: the other one's stages go to the chosen host's defaults.
+      if (c.account === 'kizuna') {
+        const replaced = { ...expected };
+        for (const s of RUN_STAGES) if (expected[s] !== c.id && catalogOf(expected[s]!).account === 'kizuna') replaced[s] = defaults[s];
+        expected = replaced;
+      }
+      expect(lineUp, label).toEqual(expected);
+      expect(followed, label).toEqual(expectedFollow);
       expect(moved, label).toEqual(RUN_STAGES.filter((s) => s !== stage && lineUp[s] !== from[s]));
       expect(lineUp.summarisation, label).toBe(from.summarisation);
     }

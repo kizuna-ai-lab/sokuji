@@ -112,6 +112,20 @@ describe('Qwen lease: the session-key request', () => {
     expect(JSON.parse(a.last().init.body as string)).toEqual({ legs: ['speaker'], speech: { speaker: false, participant: false }, region: 'sg', screenContext: false });
   });
 
+  it("asks for no voice when another provider's voice reads Qwen's translation, whatever textOnly and participant speech say", async () => {
+    const net = stubFetch();
+    const controller = new AbortController();
+    const ctx: LeaseContext = { signal: controller.signal, clock: createVirtualClock(0), end: vi.fn(), frame: vi.fn(), waiting: vi.fn() };
+    const lease = createQwenLease({ fetch: net.fetch as unknown as typeof fetch, apiUrl: () => API });
+    const shape = shapeFor(['speaker', 'participant'], { participantSpeech: true });
+    // The plan's speech stage is Edge's: Qwen's unit runs text alone.
+    const plan = { ...shape.plan, byStage: { ...shape.plan.byStage, speech: { ...shape.plan.byStage.speech, provider: { ...shape.plan.byStage.speech.provider, id: 'edge' } } } };
+    lease({ ...shape, plan }, QWEN_DEFAULTS, ctx).catch(() => {});
+    await flush();
+    expect(JSON.parse(net.last().init.body as string)).toEqual({ legs: ['speaker', 'participant'], speech: { speaker: false, participant: false }, region: 'sg', screenContext: false });
+    controller.abort();
+  });
+
   it('asks for Both with the participant spoken to me', async () => {
     const a = acquiring(['speaker', 'participant'], { participantSpeech: true });
     await flush();

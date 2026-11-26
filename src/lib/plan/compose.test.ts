@@ -92,7 +92,7 @@ describe('compose', () => {
       ['no voice: no split serves, and the host has no unit', all('soniox'), on('soniox', [text]), { refused: 'lineup_no_unit', stage: 'transcription' }],
       ['no text unit: the same', all('soniox'), on('soniox', [voice]), { refused: 'lineup_no_unit', stage: 'transcription' }],
       ['units for single stages are not a split of the joint group', all('soniox'), on('soniox', [tr, tl, voice]), { refused: 'lineup_no_unit', stage: 'transcription' }],
-      ['an end-to-end provider is never split: its stages go together', all('openai'), on('openai', [text, voice]), { refused: 'lineup_no_unit', stage: 'transcription' }],
+      ['an end-to-end provider is never split: its stages go together', all('gemini'), on('gemini', [text, voice]), { refused: 'lineup_no_unit', stage: 'transcription' }],
       ['a host with no joint stages is covered by several of its units, each stage once', all('local_inference'), on('local_inference', [text, voice]), [['local_inference', 'stt', ['transcription', 'translation']], ['local_inference', 'tts', ['speech']]]],
       ['three units of one host, where no fewer serve', all('local_inference'), on('local_inference', [tr, tl, voice]), [['local_inference', 'tr', ['transcription']], ['local_inference', 'tl', ['translation']], ['local_inference', 'tts', ['speech']]]],
       ['fewest units first: two before three', all('local_inference'), on('local_inference', [tr, tl, voice, text]), [['local_inference', 'stt', ['transcription', 'translation']], ['local_inference', 'tts', ['speech']]]],
@@ -100,7 +100,7 @@ describe('compose', () => {
       ["Soniox's translation is bound to its transcription: units for the single stages are no cover of it", all('kizunaai_soniox'), on('kizunaai_soniox', [tr, tl, voice]), { refused: 'lineup_no_unit', stage: 'transcription' }],
       ['the joint group alone is asked of one unit, as before', { transcription: 'soniox', translation: 'soniox', speech: 'edge' }, on('soniox', [text, voice]), { refused: 'lineup_no_unit', stage: 'speech' }],
       ['part of a joint group is still a split stage, whatever units the host has', { transcription: 'soniox', translation: 'bing', speech: 'soniox' }, { ...on('soniox', [text, tr, voice]), catalog: jointSoniox }, { refused: 'lineup_stage_split', stage: 'translation' }],
-      ['an end-to-end provider given two stages is asked for one unit, never a cut', { transcription: 'openai', translation: 'openai', speech: 'soniox' }, { ...on('openai', [tr, tl, voice]), providers: [stubProvider('openai', { units: [tr, tl, voice] }), stubProvider('soniox', { units: [text, tr, voice] })] }, { refused: 'lineup_stage_split', stage: 'speech' }],
+      ['an end-to-end provider given two stages is asked for one unit, never a cut', { transcription: 'gemini', translation: 'gemini', speech: 'soniox' }, { ...on('gemini', [tr, tl, voice]), providers: [stubProvider('gemini', { units: [tr, tl, voice] }), stubProvider('soniox', { units: [text, tr, voice] })] }, { refused: 'lineup_stage_split', stage: 'speech' }],
     ] as Array<[string, Pick<LineUp, RunStage>, ComposeInput, unknown]>)('%s', (_name, lineUp, given, expected) => {
       expect(shape(compose(lineUp, given))).toEqual(expected);
     });

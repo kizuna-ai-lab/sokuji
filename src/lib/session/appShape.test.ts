@@ -297,12 +297,12 @@ describe('readShapeFromStores — the line-up id that serves each stage', () => 
       expect(liveGate()).toBeNull();
     });
 
-    it("Kizuna AI's Qwen text under Kizuna AI's Soniox voice: it takes no other voice, so the two hosted services never run together", () => {
+    it("Kizuna AI's Qwen text under Kizuna AI's Soniox voice: Qwen takes another voice, but the two hosted services never run together", () => {
       useProviderStore.setState({ entries: { ...entries({ source: 'en', target: 'ja' }), kizunaai_qwen: { settings: QWEN_DEFAULTS, credentials: {}, pair: { source: 'en', target: 'ja' } } } });
       stored('kizunaai_qwen', 'kizunaai_soniox');
       environment.value = 'electron';
       expect(readShapeFromStores(auth)).toBeNull();
-      const refusal = { code: 'lineup_voice_not_taken', params: { stage: 'speech', provider: 'kizunaai_qwen' } };
+      const refusal = { code: 'lineup_two_managed', params: { stage: 'speech' } };
       expect(liveGate()).toMatchObject(refusal);
       expect(planRefusalFromStores()).toEqual(liveGate());
       expect(lineUpNoticeFromStores()).toMatchObject({ ...refusal, stage: 'speech' });

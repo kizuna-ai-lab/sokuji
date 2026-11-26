@@ -255,17 +255,20 @@ describe('localInferenceProvider', () => {
           // together), where it was that this device had no unit. `choose` never makes such a line-up: it moves an
           // end-to-end provider's stages together (the walk of every reachable line-up in `choose.test.ts`).
           expect(t.id, label).toBe('local_inference');
-          expect(tl.joint ?? sp.joint, label).toEqual(['transcription', 'translation', 'speech']);
+          expect(tl.joint?.includes('transcription') || sp.joint?.includes('speech'), label).toBe(true);
           expect(then, label).toEqual({ refused: 'lineup_no_unit', stage: 'transcription' });
           expect(now, label).toEqual({ refused: 'lineup_stage_split', stage: 'transcription' });
         }
       }
-      // Each end-to-end provider, under each option that speaks (one that does not leaves the line-up incomplete);
-      // and each text model, under each end-to-end provider's voice.
-      const endToEnd = catalog.filter((c) => c.joint?.includes('translation'));
-      const speaking = catalog.filter((c) => c.stages.includes('speech'));
+      // Each provider that holds its translation with its transcription, under each option that speaks (one that does
+      // not leaves the line-up incomplete); and each text model, under each end-to-end provider's voice. A voice that
+      // reads only its own translation beside another host's text is refused for that first, before and after alike.
+      const jointText = allCaps().filter((c) => c.joint?.includes('translation'));
+      const endToEnd = allCaps().filter((c) => c.joint?.includes('speech'));
+      const loneVoice = (c: (typeof jointText)[number]) => !c.voiceAlone && !c.joint?.includes('speech');
+      const speaking = allCaps().filter((c) => c.stages.includes('speech') && !loneVoice(c));
       expect(reworded.sort()).toEqual([
-        ...endToEnd.flatMap((tl) => speaking.map((sp) => `${tl.id}/${sp.id}`)),
+        ...jointText.flatMap((tl) => speaking.map((sp) => `${tl.id}/${sp.id}`)),
         ...translators.flatMap((tl) => endToEnd.map((sp) => `${tl}/${sp.id}`)),
       ].sort());
       // Each translator, under each voice that stands alone.

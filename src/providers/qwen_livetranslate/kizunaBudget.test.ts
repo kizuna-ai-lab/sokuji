@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { LegName } from '../../lib/conversation/types';
-import { kizunaQwenMinimumBalance, QWEN_SCREEN_MICRO_USD_PER_HOUR } from './kizunaBudget';
+import { stubProvider, planOf } from '../../lib/plan/testing';
+import { kizunaQwenMinimumBalance, qwenSpeech, QWEN_SCREEN_MICRO_USD_PER_HOUR } from './kizunaBudget';
 import type { QwenRegion } from './regions';
 import { QWEN_DEFAULTS } from './settings';
 
@@ -72,5 +73,24 @@ describe('Kizuna Qwen start floor mirrors the backend', () => {
 
   it('floors a region it does not know as Singapore, the region every backend serves', () => {
     expect(kizunaQwenMinimumBalance({ legs: ['speaker'], textOnly: false, participantSpeech: false }, { ...QWEN_DEFAULTS, region: 'mars' as QwenRegion })).toBe(42_630);
+  });
+});
+
+describe("which legs Kizuna Qwen voices (the lease's request and the floor alike)", () => {
+  const own = planOf(stubProvider('kizunaai_qwen'));
+  // A plan whose speech stage another provider's voice serves: Qwen's unit runs text alone.
+  const read = { ...own, byStage: { ...own.byStage, speech: { ...own.byStage.speech, provider: { ...own.byStage.speech.provider, id: 'edge' } } } };
+
+  it('voices the speaker unless text-only, and the participant with participant speech, on its own voice or with no plan', () => {
+    for (const plan of [undefined, own]) {
+      expect(qwenSpeech({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, plan })).toEqual({ speaker: true, participant: true });
+      expect(qwenSpeech({ legs: ['speaker', 'participant'], textOnly: true, participantSpeech: false, plan })).toEqual({ speaker: false, participant: false });
+    }
+  });
+  it("voices no leg when another provider's voice reads its translation, and is floored at the text rate", () => {
+    expect(qwenSpeech({ legs: ['speaker', 'participant'], textOnly: false, participantSpeech: true, plan: read })).toEqual({ speaker: false, participant: false });
+    const floor = (plan: typeof own) => kizunaQwenMinimumBalance({ legs: ['speaker'], textOnly: false, participantSpeech: false, plan }, { ...QWEN_DEFAULTS, region: 'sg' });
+    expect(floor(own)).toBe(42_630);
+    expect(floor(read)).toBe(11_130);
   });
 });

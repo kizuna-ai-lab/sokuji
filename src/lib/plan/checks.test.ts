@@ -23,8 +23,9 @@ describe('the catalog says which voices stand alone and which text sides take an
   it("a voice alone: Kizuna AI's Soniox, Soniox with an own key, Edge, this device and Local Native", () => {
     expect(allCaps().filter((c) => c.voiceAlone).map((c) => c.id).sort()).toEqual(['edge', 'kizunaai_soniox', 'local_inference', 'local_native', 'soniox']);
   });
-  it("another voice is taken by Kizuna AI's Soniox, Soniox and this device (Bing only translates, so it is never asked)", () => {
-    expect(allCaps().filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort()).toEqual(['kizunaai_soniox', 'local_inference', 'local_native', 'soniox']);
+  it("another voice is taken by Kizuna AI's Soniox, Soniox, this device, and the whole-unit services whose text-only session makes no audio: Kizuna AI's Qwen, Qwen, OpenAI Realtime and Doubao AST 2.0 (Bing only translates, so it is never asked)", () => {
+    expect(allCaps().filter((c) => c.takesVoice && c.stages.includes('transcription')).map((c) => c.id).sort())
+      .toEqual(['kizunaai_qwen', 'kizunaai_soniox', 'local_inference', 'local_native', 'openai', 'qwen_livetranslate', 'soniox', 'volcengine_ast2']);
   });
 });
 
@@ -42,9 +43,15 @@ describe('a voice beside another host\'s text', () => {
     ["an end-to-end provider's voice is not offered alone", 'soniox', 'gemini', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'gemini' }],
     ["Kizuna AI's Qwen voice is not offered alone", 'local_inference', 'kizunaai_qwen', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'kizunaai_qwen' }],
     ['an end-to-end provider takes no other voice', 'gemini', 'edge', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'gemini' }],
-    ["Kizuna AI's Qwen takes no other voice", 'kizunaai_qwen', 'soniox', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'kizunaai_qwen' }],
-    ["Kizuna AI's Qwen takes no other voice, Kizuna AI's Soniox voice included: the two hosted services never run together", 'kizunaai_qwen', 'kizunaai_soniox', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'kizunaai_qwen' }],
-    ["an end-to-end provider takes no other voice, Kizuna AI's Soniox voice included", 'openai', 'kizunaai_soniox', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'openai' }],
+    ["Soniox's voice (own key) reads Kizuna AI's Qwen", 'kizunaai_qwen', 'soniox', null],
+    ["Kizuna AI's Soniox voice beside Kizuna AI's Qwen passes the voice check: the two hosted services are refused as two managed providers", 'kizunaai_qwen', 'kizunaai_soniox', null],
+    ['Edge reads OpenAI Realtime', 'openai', 'edge', null],
+    ['Edge reads Doubao AST 2.0', 'volcengine_ast2', 'edge', null],
+    ["a local voice reads Qwen's text", 'qwen_livetranslate', 'local_inference', null],
+    ["an end-to-end provider takes no other voice, Kizuna AI's Soniox voice included", 'gemini', 'kizunaai_soniox', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'gemini' }],
+    ['OpenAI Translate takes no other voice', 'openai_translate', 'edge', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'openai_translate' }],
+    ['OpenAI Live takes no other voice', 'openai_live', 'edge', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'openai_live' }],
+    ['Palabra takes no other voice', 'palabraai', 'edge', { refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'palabraai' }],
     ['the voice is judged first', 'openai', 'gemini', { refused: 'lineup_voice_not_alone', stage: 'speech', provider: 'gemini' }],
   ] as const)('%s', (_name, transcription, speech, expected) => {
     expect(voiceRefusal(options(transcription, speech))).toEqual(expected);
@@ -129,9 +136,9 @@ describe('compose runs these checks after its own, the voice first', () => {
     expect(compose(mix('soniox', 'kizunaai_soniox'), { ...given(twoUnits('soniox')), catalog: catalog.filter((c) => c.id !== 'kizunaai_soniox') }))
       .toEqual({ refused: 'lineup_incomplete', stage: 'speech' });
   });
-  it("Kizuna AI's Qwen text with Kizuna AI's Soniox voice is refused before the two managed providers are counted: Qwen takes no other voice", () => {
+  it("Kizuna AI's Qwen text with Kizuna AI's Soniox voice is refused as two managed providers: the two hosted services never run together", () => {
     expect(compose(mix('kizunaai_qwen', 'kizunaai_soniox'), given(stubProvider('kizunaai_qwen', { kind: 'managed' }), twoUnits('kizunaai_soniox', 'managed'))))
-      .toEqual({ refused: 'lineup_voice_not_taken', stage: 'speech', provider: 'kizunaai_qwen' });
+      .toEqual({ refused: 'lineup_two_managed', stage: 'speech' });
   });
   it('an end-to-end text side with Edge is refused: it takes no other voice', () => {
     expect(compose(mix('gemini', 'edge'), given(stubProvider('gemini'), twoUnits('edge', 'online'))))
