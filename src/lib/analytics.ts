@@ -395,6 +395,21 @@ export interface AnalyticsEvents extends ReconnectAnalyticsEvents {
   'user_profile_loaded': { has_subscription: boolean; email_verified: boolean };
   'user_profile_refresh_clicked': Record<string, never>;
   'account_management_clicked': Record<string, never>;
+  /**
+   * Notes written for a meeting (after a session, from History, again from a newer transcript): counted by service,
+   * outcome and time; never the text, the service's answer or a record id. `service`: the line-up's notes service,
+   * `own` when it did not name one, `none` when none is set up.
+   */
+  'notes_started': { service: string };
+  'notes_finished': { outcome: 'complete' | 'failed' | 'cancelled'; failure?: 'no_service' | 'service' | 'error'; service: string; duration_ms: number };
+  /**
+   * A file turned into a transcript: imported as a new record, or a record's recording transcribed again. Counted by
+   * kind, who paid (`hosted`: Kizuna AI), how it ended, a failure's code and the time taken; never the file or its text.
+   */
+  'file_job_started': { kind: 'import' | 'transcribe' };
+  'file_job_finished': { kind: 'import' | 'transcribe'; hosted: boolean; outcome: 'complete' | 'failed' | 'cancelled'; failure?: string; duration_ms: number };
+  /** One session's live notes: updates run, kept, given up, and their mean time; never the text. Sent when they end. */
+  'live_notes_summary': { service: string; updates: number; accepted: number; given_up: number; avg_latency_ms: number };
   'top_up_clicked': Record<string, never>;
   'subscription_management_clicked': Record<string, never>;
 

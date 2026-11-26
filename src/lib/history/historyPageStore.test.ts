@@ -676,6 +676,93 @@ describe('transcripts and file jobs', () => {
     second.getState().dispose();
   });
 
+  // Which features are used and how they end: the kind of job, who paid, the outcome, a failure's code and the time
+  // taken; never the file's name, its content or a record id.
+  describe('analytics', () => {
+    const watched = (o: Parameters<typeof fakeJobs>[0] = {}) => {
+      const f = fakeJobs(o);
+      const seen: Array<[string, unknown]> = [];
+      const jobs = { ...f.jobs, track: (e: string, p: unknown) => { seen.push([e, p]); } };
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
+      store.getState().follow();
+      return { f, seen };
+    };
+
+    it('counts an import started and finished, with who paid and how long it took', async () => {
+      const { f, seen } = watched({ hosted: true });
+      const started = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+      clock.advance(4000);
+      f.finishImport({ recordId: B, transcribed: true });
+      await started;
+      expect(seen).toEqual([
+        ['file_job_started', { kind: 'import' }],
+        ['file_job_finished', { kind: 'import', hosted: true, outcome: 'complete', duration_ms: 4000 }],
+      ]);
+      expect(JSON.stringify(seen)).not.toContain('Team sync');
+    });
+
+    it('counts a transcription again the same way', async () => {
+      const { f, seen } = watched();
+      port.getRecord = async () => recordOf(A, [1]);
+      await store.getState().openRecord(A);
+      const started = store.getState().transcribeOpen(OPTS);
+      await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalled());
+      f.finishTranscribe({ transcriptId: 2, sentences: 1 });
+      await started;
+      expect(seen.map(([e, p]) => [e, (p as { kind: string }).kind])).toEqual([['file_job_started', 'transcribe'], ['file_job_finished', 'transcribe']]);
+      expect(seen[1][1]).toMatchObject({ hosted: false, outcome: 'complete' });
+    });
+
+    it("says an import failed with the failure's code", async () => {
+      const { f, seen } = watched();
+      const started = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+      f.finishImport({ recordId: B, transcribed: false, failure: 'NO_KEY' });
+      await started;
+      expect(seen[1][1]).toMatchObject({ outcome: 'failed', failure: 'NO_KEY' });
+    });
+
+    it('says a transcription that threw failed, by the error code', async () => {
+      const { f, seen } = watched();
+      port.getRecord = async () => recordOf(A, [1]);
+      await store.getState().openRecord(A);
+      const started = store.getState().transcribeOpen(OPTS);
+      await vi.waitFor(() => expect(f.jobs.transcribe).toHaveBeenCalled());
+      f.finishTranscribe(Object.assign(new Error('x'), { code: 'SERVICE' }));
+      await started;
+      expect(seen[1][1]).toMatchObject({ outcome: 'failed', failure: 'SERVICE' });
+    });
+
+    it('says a job the user cancelled was cancelled', async () => {
+      const { f, seen } = watched();
+      const started = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+      store.getState().cancelJob();
+      f.finishImport({ recordId: B, transcribed: false, failure: 'CANCELLED' });
+      await started;
+      expect(seen[1][1]).toMatchObject({ outcome: 'cancelled' });
+    });
+
+    it('finishes the job even when the analytics callback throws', async () => {
+      const f = fakeJobs();
+      const jobs = { ...f.jobs, track: () => { throw new Error('analytics is broken'); } };
+      store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, jobs as never);
+      store.getState().follow();
+      const started = store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      await vi.waitFor(() => expect(f.jobs.importFile).toHaveBeenCalled());
+      f.finishImport({ recordId: B, transcribed: true });
+      await started;
+      expect(store.getState().job).toBeNull();
+    });
+
+    it('says a job that could not start for want of a file service failed, with that reason', async () => {
+      const { seen } = watched({ missing: 'no-key' });
+      await store.getState().importFile(file, { options: OPTS, myLanguage: 'zh' });
+      expect(seen[1][1]).toMatchObject({ outcome: 'failed', failure: 'no-key' });
+    });
+  });
+
   it('two quick starts make one job', async () => {
     const f = fakeJobs();
     store = createHistoryPageStore(port, clock, (e) => `failed: ${(e as Error).message}`, null, f.jobs as never);

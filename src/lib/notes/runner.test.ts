@@ -41,14 +41,16 @@ function fakePort(o: { sentences?: HistorySentence[] } = {}) {
 
 const settle = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
 
-function setup(o: { chat?: ChatPort | null; sentences?: HistorySentence[] } = {}) {
+function setup(o: { chat?: ChatPort | null; sentences?: HistorySentence[]; track?: (event: string, properties: unknown) => void; now?: () => number; service?: string } = {}) {
   const { port, raw, saved } = fakePort(o);
   const calls: ChatRequest[] = [];
   const chat: ChatPort = o.chat ?? (async (r) => { calls.push(r); return ANSWER; });
   const runner = createNotesRunner({
     port,
-    chatFor: async () => (o.chat === null ? null : { chat, model: 'gpt-6-luna' }),
+    chatFor: async () => (o.chat === null ? null : { chat, model: 'gpt-6-luna', ...(o.service ? { service: o.service } : {}) }),
     language: () => JA,
+    ...(o.track ? { track: o.track as never } : {}),
+    ...(o.now ? { now: o.now } : {}),
   });
   return { runner, raw, saved, calls };
 }
@@ -237,5 +239,92 @@ describe('the notes runner', () => {
     runner.start(ID);
     await vi.waitFor(() => expect(saved).toHaveLength(1));
     expect(saved[0]).toMatchObject({ state: 'complete', requestIds: ['req_1', 'req_2', 'req_3'] });
+  });
+
+  // Which features are used, and how they end, never what was said: no text, no service message, no record id.
+  describe('analytics', () => {
+    const events = () => {
+      const seen: Array<[string, unknown]> = [];
+      let t = 1000;
+      return { seen, track: (e: string, p: unknown) => { seen.push([e, p]); }, now: () => (t += 250) };
+    };
+
+    it('counts a version started and finished, with the service and how long it took', async () => {
+      const ev = events();
+      const { runner, saved } = setup({ track: ev.track, now: ev.now, service: 'kizunaai' });
+      runner.start(ID);
+      await vi.waitFor(() => expect(saved).toHaveLength(1));
+      expect(ev.seen[0]).toEqual(['notes_started', { service: 'kizunaai' }]);
+      expect(ev.seen[1][0]).toBe('notes_finished');
+      expect(ev.seen[1][1]).toEqual({ outcome: 'complete', service: 'kizunaai', duration_ms: expect.any(Number) });
+      expect((ev.seen[1][1] as { duration_ms: number }).duration_ms).toBeGreaterThan(0);
+      expect(ev.seen).toHaveLength(2);
+    });
+
+    it('says a version failed without the service message, and why in a word', async () => {
+      const ev = events();
+      const chat: ChatPort = async () => { throw new ChatError('refused', { status: 401, serviceMessage: 'Incorrect API key sk-secret.' }); };
+      const { runner, saved } = setup({ chat, track: ev.track, now: ev.now, service: 'kizunaai' });
+      runner.start(ID);
+      await vi.waitFor(() => expect(saved).toHaveLength(1));
+      expect(ev.seen[1][1]).toMatchObject({ outcome: 'failed', failure: 'service' });
+      expect(JSON.stringify(ev.seen)).not.toContain('sk-secret');
+    });
+
+    it('says a version failed for want of a notes service', async () => {
+      const ev = events();
+      const { runner, saved } = setup({ chat: null, track: ev.track, now: ev.now });
+      runner.start(ID);
+      await vi.waitFor(() => expect(saved).toHaveLength(1));
+      expect(ev.seen).toEqual([
+        ['notes_started', { service: 'none' }],
+        ['notes_finished', { outcome: 'failed', failure: 'no_service', service: 'none', duration_ms: expect.any(Number) }],
+      ]);
+    });
+
+    it('says a version was cancelled', async () => {
+      const ev = events();
+      const chat: ChatPort = (r) => new Promise((_, reject) => r.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError'))));
+      const { runner, saved } = setup({ chat, track: ev.track, now: ev.now, service: 'kizunaai' });
+      runner.start(ID);
+      await settle();
+      runner.cancel(ID);
+      await vi.waitFor(() => expect(saved).toHaveLength(1));
+      expect(ev.seen[1][1]).toMatchObject({ outcome: 'cancelled' });
+    });
+
+    it('counts nothing for too little transcript, where nothing is written', async () => {
+      const ev = events();
+      const { runner, raw } = setup({ sentences: [sentence(1)], track: ev.track, now: ev.now });
+      runner.start(ID);
+      await vi.waitFor(() => expect(raw.getSentences).toHaveBeenCalled());
+      await settle();
+      expect(ev.seen).toEqual([]);
+    });
+
+    it('saves the version and clears the run even when the analytics callback throws', async () => {
+      const { runner, saved } = setup({ track: () => { throw new Error('analytics is broken'); } });
+      runner.start(ID);
+      await vi.waitFor(() => expect(saved).toHaveLength(1));
+      expect(saved[0]).toMatchObject({ state: 'complete' });
+      await settle();
+      expect(runner.running()).toEqual([]);
+    });
+
+    it('says a version failed when saving it or the writing threw unexpectedly, and says it once', async () => {
+      const ev = events();
+      const { runner, raw } = setup({ track: ev.track, now: ev.now, service: 'kizunaai' });
+      raw.saveNotes.mockRejectedValue(new Error('disk full'));
+      runner.start(ID);
+      await vi.waitFor(() => expect(ev.seen.filter(([e]) => e === 'notes_finished')).toHaveLength(1));
+      await settle();
+      expect(ev.seen.filter(([e]) => e === 'notes_finished')).toEqual([['notes_finished', { outcome: 'failed', failure: 'error', service: 'kizunaai', duration_ms: expect.any(Number) }]]);
+    });
+
+    it('works with no analytics wired', async () => {
+      const { runner, saved } = setup();
+      runner.start(ID);
+      await vi.waitFor(() => expect(saved).toHaveLength(1));
+    });
   });
 });

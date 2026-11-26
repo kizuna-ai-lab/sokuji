@@ -11,6 +11,8 @@ import type { ChatPort } from './chat';
 import { activePrompts } from './promptSource';
 import { NOTES_MIN_MS, writeNotes } from './write';
 
+import type { AnalyticsPort } from '../session/ports';
+
 export interface NotesLanguage { code: string; name: string }
 
 export interface NotesRunnerDeps {
@@ -25,6 +27,10 @@ export interface NotesRunnerDeps {
   /** The word list: spellings the notes are asked to prefer (stage 5); none when absent. */
   names?(): readonly WordEntry[];
   report?(message: string, cause: unknown): void;
+  /** Which features are used and how they end (never what was said); absent where no analytics is wired. */
+  track?: AnalyticsPort['track'];
+  /** The clock for a version's duration; the real one when absent. */
+  now?(): number;
 }
 
 export interface NotesRunner {
@@ -68,6 +74,9 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
   const listeners = new Set<() => void>();
   const notify = () => { for (const l of listeners) l(); };
   const report = (message: string, cause: unknown) => d.report?.(message, cause);
+  const now = () => (d.now ?? Date.now)();
+  // Counting must never keep a version from being saved: a callback that throws is dropped.
+  const track: AnalyticsPort['track'] = (event, properties) => { try { d.track?.(event, properties); } catch { /* analytics only */ } };
 
   async function run(recordId: string, asked: NotesLanguage | undefined, controller: AbortController, transcriptId?: number): Promise<void> {
     const record = await d.port.getRecord(recordId);
@@ -88,31 +97,60 @@ export function createNotesRunner(d: NotesRunnerDeps): NotesRunner {
       recordId, transcriptId: newest.id, language: language.code,
       writtenBy: { kind: 'sokuji' as const, promptVersion: prompts.version, model: service?.model ?? '', ...(service?.service ? { service: service.service } : {}) },
     };
+    // Counted by service, outcome and time, never by what the notes say or the service answered.
+    const serviceName = service?.service ?? (service ? 'own' : 'none');
+    const startedAt = now();
+    track('notes_started', { service: serviceName });
+    // Exactly once, so that started and finished balance whatever happens below.
+    let counted = false;
+    const finished = (outcome: 'complete' | 'failed' | 'cancelled', failure?: 'no_service' | 'service' | 'error') => {
+      if (counted) return;
+      counted = true;
+      track('notes_finished', { outcome, ...(failure ? { failure } : {}), service: serviceName, duration_ms: Math.max(0, now() - startedAt) });
+    };
     const save = (rest: Pick<HistoryNotesInput, 'state' | 'failure' | 'body'>) => d.port.saveNotes({ ...base, ...rest, requestIds: [...requestIds] });
-    if (!service) {
-      await save({ state: 'failed', failure: NO_NOTES_SERVICE, body: null });
-      return;
-    }
-    let result;
     try {
-      result = await writeNotes({
-        sentences, speakerLabel: notesSpeakerLabel(sentences), language, chat: service.chat, signal: controller.signal, requestIds,
-        names: d.names?.() ?? [], prompts,
-      });
-    } catch (error) {
-      if (controller.signal.aborted || isAbort(error)) {
-        await save({ state: 'cancelled', failure: null, body: null });
+      if (!service) {
+        await save({ state: 'failed', failure: NO_NOTES_SERVICE, body: null });
+        finished('failed', 'no_service');
         return;
       }
+      let result;
+      try {
+        result = await writeNotes({
+          sentences, speakerLabel: notesSpeakerLabel(sentences), language, chat: service.chat, signal: controller.signal, requestIds,
+          names: d.names?.() ?? [], prompts,
+        });
+      } catch (error) {
+        if (controller.signal.aborted || isAbort(error)) {
+          await save({ state: 'cancelled', failure: null, body: null });
+          finished('cancelled');
+          return;
+        }
+        throw error;
+      }
+      // Cancelled just as the last answer came in: the user asked to stop, so the version is cancelled.
+      if (controller.signal.aborted) {
+        await save({ state: 'cancelled', failure: null, body: null });
+        finished('cancelled');
+        return;
+      }
+      if (result.ok) {
+        await save({ state: 'complete', body: result.body });
+        finished('complete');
+      } else if ('failure' in result) {
+        await save({ state: 'failed', failure: result.failure, body: null });
+        finished('failed', 'service');
+      } else {
+        // A result that is neither (nothing is saved): the started event is closed all the same.
+        finished('failed', 'error');
+      }
+  
+    } catch (error) {
+      // An unexpected throw (a save refused, say): counted as failed, then reported as before by `start`.
+      finished('failed', 'error');
       throw error;
     }
-    // Cancelled just as the last answer came in: the user asked to stop, so the version is cancelled.
-    if (controller.signal.aborted) {
-      await save({ state: 'cancelled', failure: null, body: null });
-      return;
-    }
-    if (result.ok) await save({ state: 'complete', body: result.body });
-    else if ('failure' in result) await save({ state: 'failed', failure: result.failure, body: null });
   }
 
   return {
