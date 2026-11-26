@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { attachUsageSharingClient, setUsageSharing, usageSharingOn } from './usageSharing';
+import { attachUsageSharingClient, followUsageSharingSetting, setUsageSharing, usageSharingOn } from './usageSharing';
 
 // Like the real client, it remembers its own choice.
 const client = (optedOut = false) => {
@@ -57,5 +57,49 @@ describe('usage sharing', () => {
     attachUsageSharingClient(null);
     expect(() => setUsageSharing(false)).not.toThrow();
     setUsageSharing(true);
+  });
+});
+
+// The extension popup is its own page with its own client: it follows the saved setting in the browser's storage.
+describe('following the saved setting (extension popup)', () => {
+  const KEY = 'settings.common.shareUsageData';
+  const storage = (saved: Record<string, unknown>) => {
+    let listener: ((changes: Record<string, { newValue?: unknown }>, area: string) => void) | null = null;
+    return {
+      area: { get: (key: string, cb: (r: Record<string, unknown>) => void) => cb(key in saved ? { [key]: saved[key] } : {}) },
+      onChanged: { addListener: (l: typeof listener) => { listener = l; } },
+      change: (area: string, changes: Record<string, { newValue?: unknown }>) => listener?.(changes, area),
+    };
+  };
+
+  it('opts the client out when the saved choice is off, and in again when it changes', () => {
+    const c = client();
+    attachUsageSharingClient(c);
+    const st = storage({ [KEY]: false });
+    followUsageSharingSetting(st.area, st.onChanged, 'sync', KEY);
+    expect(c.optOut).toHaveBeenCalledTimes(1);
+    st.change('sync', { [KEY]: { newValue: true } });
+    expect(c.optIn).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats nothing saved as sharing, and ignores other keys and other storage areas', () => {
+    const c = client(true);
+    attachUsageSharingClient(c);
+    const st = storage({});
+    followUsageSharingSetting(st.area, st.onChanged, 'sync', KEY);
+    expect(c.optIn).toHaveBeenCalledTimes(1);
+    st.change('local', { [KEY]: { newValue: false } });
+    st.change('sync', { other: { newValue: false } });
+    expect(c.optOut).not.toHaveBeenCalled();
+  });
+
+  it('leaves the client as it is when the saved choice cannot be read', () => {
+    const c = client(true);
+    attachUsageSharingClient(c);
+    const st = storage({});
+    const failing = { get: (_key: string, cb: (r?: Record<string, unknown>) => void) => cb(undefined) };
+    expect(() => followUsageSharingSetting(failing as never, st.onChanged, 'sync', KEY)).not.toThrow();
+    expect(c.optIn).not.toHaveBeenCalled();
+    expect(c.optOut).not.toHaveBeenCalled();
   });
 });

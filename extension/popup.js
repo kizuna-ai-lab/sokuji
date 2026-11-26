@@ -2,6 +2,7 @@
 
 // Import PostHog from installed package
 import PostHog from 'posthog-js-lite';
+import { attachUsageSharingClient, followUsageSharingSetting } from '../src/lib/usageSharing';
 import { deriveEnabledSites } from './platforms';
 import { deriveSiteInfo, deriveSiteGroups } from './platformIcons';
 
@@ -54,6 +55,11 @@ function initializePostHog() {
       console.debug('[Sokuji] [Popup] PostHog initialized in development mode - capturing is opt-out by default');
     }
     
+    // The "Share usage data" switch (General settings, saved by the app in the same browser storage) decides whether
+    // this client reports too.
+    attachUsageSharingClient(posthogInstance);
+    followUsageSharingSetting(chrome.storage.sync, chrome.storage.onChanged, 'sync', 'settings.common.shareUsageData');
+
     console.debug('[Sokuji] [Popup] PostHog initialized');
   } catch (error) {
     console.error('[Sokuji] [Popup] Error initializing PostHog:', error);

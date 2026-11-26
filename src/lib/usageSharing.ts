@@ -40,3 +40,23 @@ export function attachUsageSharingClient(next: OptClient | null): void {
   client = next;
   apply();
 }
+
+/**
+ * For a page that has no settings store but shares the browser's storage with the app (the extension popup): applies
+ * the saved choice now and follows it when the app changes it. Nothing saved reads as sharing, the default.
+ */
+export function followUsageSharingSetting(
+  area: { get(key: string, cb: (result: Record<string, unknown>) => void): void },
+  onChanged: { addListener(listener: (changes: Record<string, { newValue?: unknown }>, areaName: string) => void): void },
+  areaName: string,
+  key: string,
+): void {
+  area.get(key, (result) => {
+    // A failed read gives no result: the client keeps its own persisted choice.
+    if (!result) return;
+    setUsageSharing(result[key] !== false);
+  });
+  onChanged.addListener((changes, changedArea) => {
+    if (changedArea === areaName && key in changes) setUsageSharing(changes[key].newValue !== false);
+  });
+}
