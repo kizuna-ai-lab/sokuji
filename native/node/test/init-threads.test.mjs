@@ -3,7 +3,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
-import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
+import { isMainThread, parentPort, workerData } from 'node:worker_threads';
+import { fileURLToPath } from 'node:url';
 import { loadAddon, nativeDir } from './helpers.mjs';
 
 if (!isMainThread) {
@@ -21,7 +22,7 @@ if (!isMainThread) {
       import { Worker } from 'node:worker_threads';
       const gate = new SharedArrayBuffer(4);
       const mk = () => new Promise((res, rej) => {
-        const w = new Worker(${JSON.stringify(new URL(import.meta.url).pathname)}, { execArgv: [], workerData: { gate, dir: ${JSON.stringify(nativeDir())} } });
+        const w = new Worker(${JSON.stringify(fileURLToPath(import.meta.url))}, { execArgv: [], workerData: { gate, dir: ${JSON.stringify(nativeDir())} } });
         w.once('message', res); w.once('error', rej);
       });
       const a = mk(), b = mk();

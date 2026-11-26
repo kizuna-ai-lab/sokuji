@@ -233,13 +233,18 @@ Napi::Value Init(const Napi::CallbackInfo &info) {
     if (has_log && !log_v.IsFunction()) throw Napi::TypeError::New(env, "init: onLog must be a function");
 
     State &s = state();
+    if (s.initialised.load()) return InitResult(env);
+
+    // Outside the lock: it runs the global JSON.parse, which user code may replace with a function that calls init()
+    // on this same thread, and a second lock of a mutex this thread holds is undefined.
+    ReadContract(env, dir);
+
     // Held across sk_init (which logs through LogToJs, which takes `mu`, not this one): a second caller waits here,
     // then sees `initialised` and returns the first call's result, instead of running sk_init and the log-sink
     // install a second time and replacing the first caller's onLog.
     std::lock_guard<std::mutex> init_lock(s.init_mu);
     if (s.initialised.load()) return InitResult(env);
 
-    ReadContract(env, dir);
     if (sk_abi_version() != SK_ABI_VERSION) {
         throw MakeNativeError(env, SK_ERR_INVALID_ARGUMENT,
                               "library ABI " + std::to_string(sk_abi_version()) +
