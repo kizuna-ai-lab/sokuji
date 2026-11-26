@@ -166,6 +166,28 @@ describe('a download and its connection', () => {
     expect(calls).toBe(1);
   });
 
+  it('two requests waiting on a closed owner start one download, not two', async () => {
+    let n = 0;
+    let running = 0;
+    let most = 0;
+    handlerSeams.downloadModel = (_m, _s, opts) => {
+      const mine = ++n;
+      if (mine === 1) return new Promise((resolve) => opts?.signal?.addEventListener('abort', () => setTimeout(() => resolve('cancelled'), 30)));
+      running++; most = Math.max(most, running);
+      return new Promise((resolve) => setTimeout(() => { running--; resolve('ready'); }, 30));
+    };
+    const { a, b, state } = twoConns();
+    const cSocket = new FakeSocket();
+    const cConn = new Conn(cSocket);
+    const c = { call: (m: Record<string, unknown>) => handleMessage(state, JSON.stringify(m), null, cConn) };
+    await a.call({ type: 'model_download', id: 1, model: 'm' });
+    a.conn.markClosed();
+    const [r1, r2] = await Promise.all([b.call({ type: 'model_download', id: 2, model: 'm' }), c.call({ type: 'model_download', id: 3, model: 'm' })]);
+    await downloadsOf(state).get('m')?.task;
+    expect([r1[0], r2[0]].filter((r) => r?.type === 'error')).toHaveLength(1);
+    expect(most).toBe(1);
+  });
+
   it('a request after the old connection closed waits for the old download to stop', async () => {
     const order: string[] = [];
     let n = 0;

@@ -209,6 +209,26 @@ describe('one engine, several connections', () => {
     expect(closed).toBe(1);
   });
 
+  it('frames from a connection whose model a later init replaced are dropped', async () => {
+    const state = createState();
+    let gen = 0;
+    const fed: number[] = [];
+    state.asr_engine = { get generation() { return gen; }, init: async () => { gen++; return 1; }, feed: (b: Uint8Array) => { fed.push(b.length); return []; }, close: () => {} };
+    register(state);
+    const a = connect(state);
+    const b = connect(state);
+    a.socket.message(msg({ type: 'asr_init', id: 1 }));
+    await a.h.settled();
+    b.socket.message(msg({ type: 'asr_init', id: 1 }));
+    await b.h.settled();
+    a.socket.message(new Uint8Array(4));
+    b.socket.message(new Uint8Array(6));
+    await Promise.all([a.h.settled(), b.h.settled()]);
+    expect(fed).toEqual([6]);
+    a.socket.close(); b.socket.close();
+    await Promise.all([a.h.done, b.h.done]);
+  });
+
   it('two inits at once load one after the other', async () => {
     const state = createState();
     let running = 0;

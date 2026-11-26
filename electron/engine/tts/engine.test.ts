@@ -175,6 +175,22 @@ describe('streaming output', () => {
     expect(sent.map(([m]) => m.type)).toEqual(['tts_done']);
   });
 
+  it('an abort while sends are queued stops the chunks still waiting', async () => {
+    stub(stream({ generateStream: async (_t, _s, _sig, onChunk) => { for (let i = 0; i < 3; i++) onChunk(new Float32Array(8000).fill(1), 24000, 1); } }));
+    const eng = new TtsEngine();
+    await eng.init('moss-tts-nano');
+    const controller = new AbortController();
+    const sent: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const send = async (m: Record<string, any>) => { sent.push(m.type); if (sent.length === 1) { controller.abort(); await gate; } };
+    const done = eng.generateStream('hi', 1, send, controller.signal, 'q');
+    await new Promise((r) => setTimeout(r, 10));
+    release();
+    await done;
+    expect(sent.filter((t) => t === 'tts_chunk')).toHaveLength(1);
+  });
+
   it('a synthesis failure sends an error, not tts_done', async () => {
     stub(stream({ generateStream: async (_t, _s, _sig, onChunk) => { onChunk(new Float32Array(8000).fill(1), 24000, 1); throw new Error('decoder blew up'); } }));
     const eng = new TtsEngine();
