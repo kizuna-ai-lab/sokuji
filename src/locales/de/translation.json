@@ -1860,7 +1860,7 @@
       "signedInBalance": "Angemeldet; Guthaben {{amount}}",
       "localModels": "Läuft auf diesem Computer; {{count}} Modelle geladen, zusammen {{size}}",
       "localNone": "Läuft auf diesem Computer; noch keine Modelle geladen",
-      "localNative": "Native Engine, unterstützt mehr Erkennungsmodelle. Läuft auf diesem Computer; kein Cloud-Schlüssel nötig",
+      "localNative": "Native Engine, unterstützt mehr Erkennungsmodelle und bietet bessere Leistung. Läuft auf diesem Computer; kein Cloud-Schlüssel nötig",
       "localWebgpu": "Teilt sich eine Engine mit der Browser-Erweiterung und ist daher nicht so schnell. Läuft auf diesem Computer; kein Cloud-Schlüssel nötig",
       "soniox": {
         "save": "Speichern und Region finden",

@@ -1860,7 +1860,7 @@
       "signedInBalance": "已登录，余额 {{amount}}",
       "localModels": "在这台电脑上运行；已下载 {{count}} 个模型，共 {{size}}",
       "localNone": "在这台电脑上运行；还没有下载模型",
-      "localNative": "原生引擎，支持更多识别模型。本机运行，不需要云端密钥",
+      "localNative": "原生引擎，支持更多识别模型，性能更好。本机运行，不需要云端密钥",
       "localWebgpu": "与浏览器扩展共用同一个引擎，速度没有那么好。本机运行，不需要云端密钥",
       "soniox": {
         "save": "保存并识别区域",

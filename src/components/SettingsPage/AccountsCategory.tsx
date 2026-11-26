@@ -163,7 +163,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
       // Where both local engines are offered, each row says what separates it from the other; the models downloaded
       // are counted on the tabs of Models and storage, not here.
       case 'local':
-        if (a.engine === 'native') return t('settingsPage.accounts.localNative', 'Native engine, supports more recognition models. Runs on this computer; no cloud key needed');
+        if (a.engine === 'native') return t('settingsPage.accounts.localNative', 'Native engine, supports more recognition models and performs better. Runs on this computer; no cloud key needed');
         if (a.engine === 'webgpu') return t('settingsPage.accounts.localWebgpu', 'Shares one engine with the browser extension, so it is not as fast. Runs on this computer; no cloud key needed');
         return localModels > 0
           ? t('settingsPage.accounts.localModels', 'Runs on this computer; {{count}} models downloaded, {{size}} in all', { count: localModels, size: formatBytes(storageMb * 1_048_576) })

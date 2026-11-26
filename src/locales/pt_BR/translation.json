@@ -1860,7 +1860,7 @@
       "signedInBalance": "Conectado; saldo {{amount}}",
       "localModels": "Roda neste computador; {{count}} modelos baixados, {{size}} no total",
       "localNone": "Roda neste computador; nenhum modelo baixado ainda",
-      "localNative": "Motor nativo, oferece suporte a mais modelos de reconhecimento. Roda neste computador; não precisa de chave de nuvem",
+      "localNative": "Motor nativo, oferece suporte a mais modelos de reconhecimento e tem melhor desempenho. Roda neste computador; não precisa de chave de nuvem",
       "localWebgpu": "Compartilha um único motor com a extensão do navegador, por isso não é tão rápido. Roda neste computador; não precisa de chave de nuvem",
       "soniox": {
         "save": "Salvar e descobrir a região",

@@ -1860,7 +1860,7 @@
       "signedInBalance": "Kirjautunut; saldo {{amount}}",
       "localModels": "Toimii tällä tietokoneella; {{count}} mallia ladattu, yhteensä {{size}}",
       "localNone": "Toimii tällä tietokoneella; malleja ei ole vielä ladattu",
-      "localNative": "Natiivimoottori, tukee useampia tunnistusmalleja. Toimii tällä tietokoneella; pilviavainta ei tarvita",
+      "localNative": "Natiivimoottori, tukee useampia tunnistusmalleja ja toimii paremmin. Toimii tällä tietokoneella; pilviavainta ei tarvita",
       "localWebgpu": "Jakaa yhden moottorin selainlaajennuksen kanssa, joten se ei ole yhtä nopea. Toimii tällä tietokoneella; pilviavainta ei tarvita",
       "soniox": {
         "save": "Tallenna ja etsi alue",

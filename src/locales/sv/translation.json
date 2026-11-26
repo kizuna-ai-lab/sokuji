@@ -1860,7 +1860,7 @@
       "signedInBalance": "Inloggad; saldo {{amount}}",
       "localModels": "Körs på den här datorn; {{count}} modeller nedladdade, totalt {{size}}",
       "localNone": "Körs på den här datorn; inga modeller nedladdade ännu",
-      "localNative": "Nativ motor, stöder fler igenkänningsmodeller. Körs på den här datorn; ingen molnnyckel behövs",
+      "localNative": "Nativ motor, stöder fler igenkänningsmodeller och presterar bättre. Körs på den här datorn; ingen molnnyckel behövs",
       "localWebgpu": "Delar en motor med webbläsartillägget och är därför inte lika snabb. Körs på den här datorn; ingen molnnyckel behövs",
       "soniox": {
         "save": "Spara och hitta regionen",

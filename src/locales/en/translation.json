@@ -1860,7 +1860,7 @@
       "signedInBalance": "Signed in; balance {{amount}}",
       "localModels": "Runs on this computer; {{count}} models downloaded, {{size}} in all",
       "localNone": "Runs on this computer; no models downloaded yet",
-      "localNative": "Native engine, supports more recognition models. Runs on this computer; no cloud key needed",
+      "localNative": "Native engine, supports more recognition models and performs better. Runs on this computer; no cloud key needed",
       "localWebgpu": "Shares one engine with the browser extension, so it is not as fast. Runs on this computer; no cloud key needed",
       "soniox": {
         "save": "Save and find its region",

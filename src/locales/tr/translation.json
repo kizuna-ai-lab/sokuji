@@ -1860,7 +1860,7 @@
       "signedInBalance": "Giriş yapıldı; bakiye {{amount}}",
       "localModels": "Bu bilgisayarda çalışır; {{count}} model indirildi, toplam {{size}}",
       "localNone": "Bu bilgisayarda çalışır; henüz model indirilmedi",
-      "localNative": "Native motor, daha fazla tanıma modelini destekler. Bu bilgisayarda çalışır; bulut anahtarı gerekmez",
+      "localNative": "Native motor, daha fazla tanıma modelini destekler ve daha iyi performans gösterir. Bu bilgisayarda çalışır; bulut anahtarı gerekmez",
       "localWebgpu": "Tarayıcı uzantısıyla tek bir motoru paylaşır, bu yüzden o kadar hızlı değildir. Bu bilgisayarda çalışır; bulut anahtarı gerekmez",
       "soniox": {
         "save": "Kaydet ve bölgesini bul",

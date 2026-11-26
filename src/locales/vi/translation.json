@@ -1860,7 +1860,7 @@
       "signedInBalance": "Đã đăng nhập; số dư {{amount}}",
       "localModels": "Chạy trên máy này; đã tải {{count}} mô hình, tổng {{size}}",
       "localNone": "Chạy trên máy này; chưa tải mô hình nào",
-      "localNative": "Công cụ gốc, hỗ trợ nhiều mô hình nhận dạng hơn. Chạy trên máy tính này; không cần khóa đám mây",
+      "localNative": "Công cụ gốc, hỗ trợ nhiều mô hình nhận dạng hơn và hiệu suất tốt hơn. Chạy trên máy tính này; không cần khóa đám mây",
       "localWebgpu": "Dùng chung một công cụ với tiện ích mở rộng trình duyệt nên không nhanh bằng. Chạy trên máy tính này; không cần khóa đám mây",
       "soniox": {
         "save": "Lưu và tìm khu vực",

@@ -372,7 +372,7 @@ describe('accounts and keys — the two local engines', () => {
     render(<AccountsCategory locked={false} />);
     const names = screen.getAllByRole('group').map((g) => g.getAttribute('aria-label'));
     expect(names.slice(0, 5)).toEqual(['Kizuna AI', 'This device (Native)', 'This device (WASM/WebGPU)', 'Bing', 'Edge']);
-    expect(row('This device (Native)').querySelector('.accounts-row__state')).toHaveTextContent(/Native engine, supports more recognition models/);
+    expect(row('This device (Native)').querySelector('.accounts-row__state')).toHaveTextContent(/Native engine, supports more recognition models and performs better/);
     expect(row('This device (WASM/WebGPU)').querySelector('.accounts-row__state')).toHaveTextContent(/Shares one engine with the browser extension, so it is not as fast/);
     // Neither carries a "Recommended" label: that is for Kizuna AI's own service.
     expect(screen.queryByText(/Recommended/i)).toBeNull();

@@ -1860,7 +1860,7 @@
       "signedInBalance": "Aangemeld; saldo {{amount}}",
       "localModels": "Draait op deze computer; {{count}} modellen gedownload, samen {{size}}",
       "localNone": "Draait op deze computer; nog geen modellen gedownload",
-      "localNative": "Native engine, ondersteunt meer herkenningsmodellen. Draait op deze computer; geen cloudsleutel nodig",
+      "localNative": "Native engine, ondersteunt meer herkenningsmodellen en presteert beter. Draait op deze computer; geen cloudsleutel nodig",
       "localWebgpu": "Deelt één engine met de browserextensie en is daardoor minder snel. Draait op deze computer; geen cloudsleutel nodig",
       "soniox": {
         "save": "Opslaan en regio zoeken",

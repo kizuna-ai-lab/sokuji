@@ -1860,7 +1860,7 @@
       "signedInBalance": "Sudah masuk; saldo {{amount}}",
       "localModels": "Berjalan di komputer ini; {{count}} model diunduh, total {{size}}",
       "localNone": "Berjalan di komputer ini; belum ada model yang diunduh",
-      "localNative": "Mesin native, mendukung lebih banyak model pengenalan. Berjalan di komputer ini; tidak perlu kunci cloud",
+      "localNative": "Mesin native, mendukung lebih banyak model pengenalan dan berkinerja lebih baik. Berjalan di komputer ini; tidak perlu kunci cloud",
       "localWebgpu": "Berbagi satu mesin dengan ekstensi peramban, sehingga tidak secepat itu. Berjalan di komputer ini; tidak perlu kunci cloud",
       "soniox": {
         "save": "Simpan dan cari wilayahnya",

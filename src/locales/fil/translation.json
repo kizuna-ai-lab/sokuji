@@ -1860,7 +1860,7 @@
       "signedInBalance": "Naka-sign in; balanse {{amount}}",
       "localModels": "Tumatakbo sa computer na ito; {{count}} model ang na-download, {{size}} lahat",
       "localNone": "Tumatakbo sa computer na ito; wala pang na-download na model",
-      "localNative": "Native na engine, mas maraming recognition model ang sinusuportahan. Tumatakbo sa computer na ito; walang kailangang cloud key",
+      "localNative": "Native na engine, mas maraming recognition model ang sinusuportahan at mas mahusay ang performance. Tumatakbo sa computer na ito; walang kailangang cloud key",
       "localWebgpu": "Iisang engine ang ibinabahagi nito sa browser extension, kaya hindi ito kasing bilis. Tumatakbo sa computer na ito; walang kailangang cloud key",
       "soniox": {
         "save": "I-save at hanapin ang rehiyon",

@@ -1860,7 +1860,7 @@
       "signedInBalance": "Zalogowano; saldo {{amount}}",
       "localModels": "Działa na tym komputerze; pobrano modeli: {{count}}, razem {{size}}",
       "localNone": "Działa na tym komputerze; nie pobrano jeszcze żadnych modeli",
-      "localNative": "Silnik natywny, obsługuje więcej modeli rozpoznawania. Działa na tym komputerze; klucz chmury nie jest potrzebny",
+      "localNative": "Silnik natywny, obsługuje więcej modeli rozpoznawania i zapewnia lepszą wydajność. Działa na tym komputerze; klucz chmury nie jest potrzebny",
       "localWebgpu": "Współdzieli jeden silnik z rozszerzeniem przeglądarki, więc nie jest tak szybki. Działa na tym komputerze; klucz chmury nie jest potrzebny",
       "soniox": {
         "save": "Zapisz i znajdź region",

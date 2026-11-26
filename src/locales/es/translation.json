@@ -1860,7 +1860,7 @@
       "signedInBalance": "Sesión iniciada; saldo {{amount}}",
       "localModels": "Funciona en este ordenador; {{count}} modelos descargados, {{size}} en total",
       "localNone": "Funciona en este ordenador; aún no hay modelos descargados",
-      "localNative": "Motor nativo, admite más modelos de reconocimiento. Se ejecuta en este equipo; no hace falta clave de la nube",
+      "localNative": "Motor nativo, admite más modelos de reconocimiento y ofrece mejor rendimiento. Se ejecuta en este equipo; no hace falta clave de la nube",
       "localWebgpu": "Comparte un único motor con la extensión del navegador, por lo que no es tan rápido. Se ejecuta en este equipo; no hace falta clave de la nube",
       "soniox": {
         "save": "Guardar y averiguar su región",

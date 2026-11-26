@@ -1860,7 +1860,7 @@
       "signedInBalance": "Connecté ; solde {{amount}}",
       "localModels": "Fonctionne sur cet ordinateur ; {{count}} modèles téléchargés, {{size}} au total",
       "localNone": "Fonctionne sur cet ordinateur ; aucun modèle téléchargé pour l’instant",
-      "localNative": "Moteur natif, prend en charge davantage de modèles de reconnaissance. Fonctionne sur cet ordinateur ; aucune clé cloud requise",
+      "localNative": "Moteur natif, prend en charge davantage de modèles de reconnaissance et offre de meilleures performances. Fonctionne sur cet ordinateur ; aucune clé cloud requise",
       "localWebgpu": "Partage un seul moteur avec l’extension du navigateur, il est donc moins rapide. Fonctionne sur cet ordinateur ; aucune clé cloud requise",
       "soniox": {
         "save": "Enregistrer et trouver sa région",
