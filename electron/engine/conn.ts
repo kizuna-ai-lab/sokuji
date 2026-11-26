@@ -56,6 +56,16 @@ export class Conn {
    */
   async send(obj?: Record<string, unknown> | null, binary?: Uint8Array | null): Promise<void> {
     if (obj) checkOutbound(obj);
+    // One send at a time: a binary frame and its JSON must stay adjacent even when two background tasks (a superseded
+    // and a new generation) send at once.
+    const turn = this.tail.then(() => this.sendFrames(obj, binary));
+    this.tail = turn.catch(() => {});
+    return turn;
+  }
+
+  private tail: Promise<void> = Promise.resolve();
+
+  private async sendFrames(obj?: Record<string, unknown> | null, binary?: Uint8Array | null): Promise<void> {
     if (this.isClosed || this.socket.readyState !== OPEN) return;
     if (binary) await this.write(binary);
     if (obj) await this.write(JSON.stringify(obj));
