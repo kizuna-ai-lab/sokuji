@@ -52,7 +52,6 @@ describe("Soniox's text unit", () => {
       expect(unit.capabilities(SONIOX_DEFAULTS)).toEqual({
         speech: 'never',
         turns: ['auto', 'manual'],
-        turnOwner: 'either',
         boundaries: 'provider',
         textInput: false,
         faceToFace: true,

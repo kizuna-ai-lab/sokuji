@@ -34,7 +34,8 @@ describe('AsrEngine — qwen3-asr-webgpu routing', () => {
 
   it('constructs the qwen3 module worker and posts the variant key and language in the init message', async () => {
     const engine = new AsrEngine();
-    const initP = engine.init('qwen3-asr-0.6b-webgpu', { minSilenceDuration: 1.0 }, 'ja');
+    const { port1, port2 } = new MessageChannel();
+    const initP = engine.init('qwen3-asr-0.6b-webgpu', 'ja', undefined, port1);
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     expect(String(worker.url)).toContain('qwen3-asr-webgpu.worker');
@@ -48,28 +49,35 @@ describe('AsrEngine — qwen3-asr-webgpu routing', () => {
       hfModelId: 'jiangzhuo9357/Qwen3-ASR-0.6B-ONNX',
       language: 'ja',
       dtype: 'q4f16',
-      vadConfig: { minSilenceDuration: 1.0 },
+      segmentPort: port1,
     }));
     expect(init.ortWasmBaseUrl).toMatch(/\/wasm\/ort\/$/);
-    expect(init.vadModelUrl).toMatch(/\/wasm\/vad\/silero_vad_v5\.onnx$/);
+    // The detector owns the VAD: no VAD config or model URL reaches the recognizer.
+    expect(init).not.toHaveProperty('vadConfig');
+    expect(init).not.toHaveProperty('vadModelUrl');
     // No sherpa-style package metadata on this path.
     expect(init.dataFileUrls).toBeUndefined();
 
     worker.emit({ type: 'ready', loadTimeMs: 3 });
     await expect(initP).resolves.toEqual({ loadTimeMs: 3 });
     expect(engine.ready).toBe(true);
+    port1.close();
+    port2.close();
   });
 
   it('delivers the worker result to onResult', async () => {
     const engine = new AsrEngine();
     const onResult = vi.fn();
     engine.onResult = onResult;
-    const initP = engine.init('qwen3-asr-0.6b-webgpu');
+    const { port1, port2 } = new MessageChannel();
+    const initP = engine.init('qwen3-asr-0.6b-webgpu', undefined, undefined, port1);
     await vi.waitFor(() => expect(MockWorker.instances.length).toBe(1));
     const worker = MockWorker.last();
     worker.emit({ type: 'ready', loadTimeMs: 1 });
     await initP;
     worker.emit({ type: 'result', text: 'こんにちは', startSample: 0, durationMs: 900, recognitionTimeMs: 120 });
     expect(onResult).toHaveBeenCalledWith(expect.objectContaining({ text: 'こんにちは', durationMs: 900, recognitionTimeMs: 120 }));
+    port1.close();
+    port2.close();
   });
 });

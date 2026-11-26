@@ -1,8 +1,8 @@
 {
   "name": "sokuji",
   "productName": "Sokuji",
-  "version": "0.51.1",
-  "sidecarVersion": "0.4.0",
+  "version": "0.51.2",
+  "nativeVersion": "1.3.0",
   "private": true,
   "main": "dist-electron/main.js",
   "homepage": "./",
@@ -106,7 +106,8 @@
       "artifactName": "${name}_${version}_${arch}.${ext}",
       "recommends": [
         "pulseaudio-utils",
-        "xwayland"
+        "xwayland",
+        "libvulkan1"
       ],
       "executableArgs": [
         "--ozone-platform=x11"
@@ -125,7 +126,8 @@
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.8.9",
     "fzstd": "^0.1.1",
-    "tar-stream": "^3.2.0"
+    "tar-stream": "^3.2.0",
+    "ws": "^8.19.0"
   },
   "overrides": {
     "onnxruntime-node": "npm:empty-npm-package@1.0.0",
@@ -194,7 +196,6 @@
     "vite-plugin-electron-renderer": "^1.0.0",
     "vitest": "^4.1.11",
     "web-vitals": "^2.1.4",
-    "ws": "^8.19.0",
     "zustand": "^5.0.8"
   },
   "scripts": {
@@ -204,6 +205,7 @@
     "build:audio-host": "node scripts/build-audio-host.js",
     "preview": "vite preview",
     "test": "vitest",
+    "typecheck:engine": "tsc -p electron/engine --noEmit",
     "electron:dev": "vite",
     "electron:build": "npm run build && npm run make",
     "electron:start": "electron .",
@@ -213,11 +215,11 @@
     "postinstall": "electron-rebuild && bash scripts/copy-ort-wasm.sh",
     "extension:build": "cd extension && npx vite build",
     "extension:dev": "cd extension && npx vite build --watch --mode development",
-    "sidecar:setup": "bash sidecar/setup.sh",
     "e2e:build": "vite build --mode e2e",
     "e2e": "playwright test -c e2e/playwright.config.ts --grep-invert \"@long|@real\"",
     "e2e:long": "playwright test -c e2e/playwright.config.ts --grep @long",
-    "e2e:real": "playwright test -c e2e/playwright.config.ts --grep @real"
+    "e2e:real": "playwright test -c e2e/playwright.config.ts --grep @real",
+    "fetch:native": "node scripts/fetch-native.mjs"
   },
   "eslintConfig": {
     "extends": [

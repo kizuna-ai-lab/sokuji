@@ -149,3 +149,6 @@ benchmark/punctuation-restoration/tools/*.out.txt
 # E2E (Playwright) output
 /e2e/test-results/
 /e2e/report/
+
+# Native libraries fetched by npm run fetch:native
+resources/native/

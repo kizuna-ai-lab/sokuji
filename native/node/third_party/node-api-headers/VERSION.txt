@@ -1,0 +1,5 @@
+node-api-headers 1.9.0
+Source: https://github.com/nodejs/node-api-headers, npm tarball node-api-headers-1.9.0.tgz
+        (sha512-2oNILP4jXwRB4ywnYKjVk1YyJ96n2D4EOVJO6S3oYZ5PtbJrw3Yt9TpAuX3nBLMuzn74rnfGQrv13pS9vC+YiA==)
+Files, unmodified: include/js_native_api.h, include/js_native_api_types.h, include/node_api.h,
+        include/node_api_types.h, def/node_api.def, LICENSE (MIT)

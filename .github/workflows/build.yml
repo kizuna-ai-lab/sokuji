@@ -10,6 +10,8 @@ on:
       - 'v*'
   pull_request:
     branches: [main, master, mobile]
+  # A manual run of a branch (the engine switch's five-platform gate): builds and checks, publishes nothing.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -56,73 +58,6 @@ jobs:
 
       - name: Run the unit tests
         run: npx vitest run
-
-  # The sidecar's pytest suite had no CI coverage anywhere (a ledgered slice-3
-  # debt, closed here in slice 5) — grep -rl "pytest" .github/ used to return
-  # zero hits. Path-gated on sidecar/** (and the one script that consumes its
-  # requirements.txt) so app-only PRs don't pay for it. It installs
-  # sidecar/requirements.txt, whose pinned linux-x64 sokuji-native wheel DOES
-  # resolve on this runner (verified in the job log), so wheel-gated tests run
-  # here; what the runner lacks is a GPU and a model cache, so device- and
-  # model-gated tests skip (pytest.skip / importorskip) instead of failing —
-  # see sidecar/tests/test_accel.py and test_catalog.py.
-  sidecar-tests:
-    name: sidecar-tests
-    runs-on: ubuntu-24.04
-    # T3a: least-privilege override -- this job only checks out and runs
-    # pytest, never git/write operations, so it needs none of the top-level
-    # permissions block's write/write/write escalation.
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-          # Full history: the change-detection step below diffs against the
-          # base branch (PR) or previous commit (push), neither of which a
-          # shallow checkout can resolve.
-          fetch-depth: 0
-
-      - name: Check for sidecar changes
-        id: changes
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
-        run: |
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            BASE="origin/$PR_BASE_REF"
-          else
-            BASE="$PUSH_BEFORE_SHA"
-          fi
-          # No resolvable base (new branch's first push, force-push past
-          # history, or an event shape without one) — default to running
-          # rather than silently skipping.
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ] \
-             || ! git rev-parse --verify -q "$BASE" >/dev/null; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD | grep -qE '^(sidecar/|scripts/build-sidecar-bundle\.py|\.github/workflows/sidecar-bundles\.yml)'; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Setup Python
-        if: steps.changes.outputs.changed == 'true'
-        uses: actions/setup-python@v6
-        with: { python-version: '3.12' }
-
-      - name: Install sidecar dependencies
-        if: steps.changes.outputs.changed == 'true'
-        run: pip install -r sidecar/requirements.txt pytest scipy
-
-      - name: Run sidecar tests
-        if: steps.changes.outputs.changed == 'true'
-        # sokuji_sidecar is not installed as a package; every local invocation runs with
-        # PYTHONPATH=sidecar and CI must too, or collection fails on the first import.
-        env:
-          PYTHONPATH: ${{ github.workspace }}/sidecar
-        run: python -m pytest sidecar/tests -q
 
   build:
     name: build (${{ matrix.name }})
@@ -186,6 +121,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # The native libraries ship inside the app (resources/native/, copied by both packagers as an extra resource and
+      # signed with the app). The archive is the one package.json's nativeVersion pins, checked against the sha256 in
+      # scripts/native-archives.json; the platform's SKU is detected from the runner.
+      - name: Fetch the native libraries
+        run: npm run fetch:native
 
       # Feature gates decide which providers get compiled into the artifact, and
       # an unset one expands to the empty string, which reads as "off" — silently.
@@ -300,6 +241,16 @@ jobs:
         if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_AUDIO_HOST_CONFIGURATION_SLUG == ''
         shell: bash
         run: echo "::warning::SIGNPATH_AUDIO_HOST_CONFIGURATION_SLUG is not set, so sokuji-audio-host.exe ships unsigned and Smart App Control will block it."
+
+      - name: Native files' signatures (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Valid once SignPath signs them (SIGNPATH_NATIVE_CONFIGURATION_SLUG); NotSigned is accepted until then.
+          Get-ChildItem resources/native -Include *.dll, *.node -Recurse | ForEach-Object {
+            $s = Get-AuthenticodeSignature $_.FullName
+            "| $($_.Name) | $($s.Status) |" | Tee-Object -FilePath $env:GITHUB_STEP_SUMMARY -Append
+          }
 
       - name: Build Electron app with Forge
         if: runner.os == 'Windows'
@@ -561,6 +512,20 @@ jobs:
           echo "OK: signed with Developer ID, team 48ST7Q3ACJ."
           codesign --verify --deep --strict "$APP"
           echo "OK: bundle passes strict nested validation."
+
+          # The native libraries and the Node addon, packaged under Resources/resources/native: each is signed by the
+          # same team, or the engine fails to load on a notarized build (library validation).
+          NATIVE="$APP/Contents/Resources/resources/native"
+          [ -f "$NATIVE/sokuji_native_node.node" ] || { echo "FAIL: $NATIVE has no sokuji_native_node.node." >&2; exit 1; }
+          COUNT=0
+          while IFS= read -r -d '' F; do
+            codesign --verify --strict "$F" || { echo "FAIL: $F is not validly signed." >&2; exit 1; }
+            SIG=$(codesign -dvv "$F" 2>&1)
+            grep -Fxq 'TeamIdentifier=48ST7Q3ACJ' <<<"$SIG" || { echo "FAIL: $F is not signed by team 48ST7Q3ACJ." >&2; exit 1; }
+            COUNT=$((COUNT + 1))
+          done < <(find "$NATIVE" -type f \( -name '*.node' -o -name '*.dylib' -o -name '*.so' \) -print0)
+          [ "$COUNT" -ge 3 ] || { echo "FAIL: only $COUNT native files under $NATIVE." >&2; exit 1; }
+          echo "OK: $COUNT native files signed by team 48ST7Q3ACJ."
 
           # Gatekeeper's verdict, from the ticket stapled to the app, so the first
           # open needs no network and no xattr. spctl reports "security disabled"

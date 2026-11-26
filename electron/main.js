@@ -60,8 +60,8 @@ const mainPageUrl = () => (isDevBuild() ? 'http://localhost:5173' : pathToFileUR
 const isMainPageSender = (sender) => sender === mainWindow?.webContents && isAppPage(sender.getURL(), mainPageUrl());
 
 const { UpdateManager } = require('./update-manager');
-const { NativeHostManager } = require('./native-host-manager');
-const nativeHost = new NativeHostManager();
+// The local engine: registered with the IPC below, once `app` is ready to answer getPath().
+let nativeHost = { stop: () => Promise.resolve(), kill: () => {} };
 
 // LAN caption sharing (spec 2026-10-04): handlers registered once, here;
 // createWindow() hands each new main window to attachWindow(). The closures
@@ -240,7 +240,7 @@ ipcMain.handle('theme:set', (event, setting) => {
 // sandbox-recovery relaunches via app.exit(), which skips before-quit/will-quit,
 // so it must run the sidecar teardown itself or the native sidecar orphans and
 // keeps its Windows file locks. (removeVirtualAudioDevices is a Linux-only no-op.)
-const sandboxRecoveryOptions = { deps: { beforeExit: () => { try { nativeHost.stop(); } catch (_) {} } } };
+const sandboxRecoveryOptions = { deps: { beforeExit: () => { try { nativeHost.kill(); } catch (_) {} } } };
 if (sandboxRecovery) {
   sandboxRecovery.applyNoSandboxFlag(app, sandboxRecoveryOptions);
   sandboxRecovery.registerCrashDetection(app, sandboxRecoveryOptions);
@@ -742,7 +742,7 @@ const cleanupAndExit = () => {
   if (isDuplicateInstance) return;
   console.log('[Sokuji] [Main] Cleaning up virtual audio devices before exit...');
   removeVirtualAudioDevices();
-  nativeHost.stop();
+  nativeHost.kill();   // synchronous: the process is about to exit and cannot wait for a graceful stop
   closeHistoryStore();
   console.log('[Sokuji] [Main] Virtual audio devices cleaned up successfully');
 };
@@ -790,128 +790,19 @@ app.on('activate', function () {
 app.on('will-quit', cleanupAndExit);
 
 // IPC handler for app version
-nativeHost.registerIpc(ipcMain);
-
-// ---- Self-contained sidecar bundle install/status (distribution spec) ----
-// SKU detection + bundle download live in the main process because the sidecar
-// (which the bundle provides) is not yet running. Progress is pushed to the
-// renderer on 'sidecar-bundle-progress', mirroring the model-download UX.
-const { detectSku: _detectSku } = require('./sidecar-sku');
-const { resolvePython: _resolveSidecarPython } = require('./native-host-manager');
-const sidecarBundle = require('./sidecar-bundle');
-const _currentSku = () =>
-  _detectSku(process.platform, { arch: process.arch });
-ipcMain.handle('sidecar-bundle:status', () => {
-  const sku = _currentSku();
-  // Dev machines that lived through the slice-5 sku rename (linux-nvidia/
-  // win-nvidia/win-directml/mac -> linux-x64/linux-arm64/win-x64/mac-arm64/
-  // mac-x64) keep every old sku's multi-GB bundle tree forever, since install/
-  // remove only ever touch the CURRENT sku's dir. Prune once here, at the
-  // first bundle-resolution call the renderer makes each launch; never throws.
-  // `installing: _bundleInstalling` (fix round 1): a renderer reload (Ctrl+R /
-  // View menu reload, not dev-gated) resets the renderer's own in-memory
-  // "install in progress" guard while main's install promise keeps running —
-  // the remounted settings panel's status query must not race a live install's
-  // `.tmp` extraction target with this prune.
-  if (sku !== null) {
-    sidecarBundle.pruneStaleSkuDirs(
-      path.dirname(sidecarBundle.bundleInstallDir(app.getPath('userData'), sku)), sku,
-      { installing: _bundleInstalling });
-  }
-  if (sku === null) {
-    // Even without a bundle SKU (ARM windows) a dev checkout
-    // with a venv keeps the whole native lane usable — report it so the UI
-    // shows the dev note + unlocked model area instead of a dead end.
-    let devVenvPresent = false;
-    try { devVenvPresent = require('fs').existsSync(_resolveSidecarPython()); } catch { /* keep false */ }
-    return { ok: true, sku: null, state: 'unsupported', installed: false,
-             installedVersion: null, requiredVersion: null,
-             stagedBytes: 0, devVenvPresent };
-  }
-  let requiredVersion = null;
-  try { requiredVersion = sidecarBundle.requiredSidecarVersion(); }
-  catch { /* tree without the field — no version gate */ }
-  const st = sidecarBundle.bundleStatus(app.getPath('userData'), sku);
-  // Strict matching (spec S2): an installed bundle at any other version is a
-  // 'mismatch' — the renderer presents it as "engine update required".
-  const state = !st.installed ? 'absent'
-    : (requiredVersion === null || st.version === requiredVersion) ? 'ready' : 'mismatch';
-  let devVenvPresent = false;
-  try { devVenvPresent = require('fs').existsSync(_resolveSidecarPython()); } catch { /* keep false */ }
-  return {
-    ok: true, sku, state,
-    installed: st.installed, installedVersion: st.version, requiredVersion,
-    stagedBytes: requiredVersion === null ? 0
-      : sidecarBundle.stagedBytes(app.getPath('userData'), sku, requiredVersion),
-    devVenvPresent,
-  };
+const { registerEngineIpc, defaultHfHome } = require('./engine-ipc');
+const { removeLegacySidecar, modelCachePaths } = require('./legacy-sidecar-cleanup');
+nativeHost = registerEngineIpc({
+  ipcMain,
+  app,
+  detectSku: require('./sidecar-sku').detectSku,
+  nativeVersion: require('../package.json').nativeVersion,
+  repoRoot: path.join(__dirname, '..'),
+  enginePath: path.join(__dirname, 'engine.js'),
+  log: (level, message) => console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](`[Sokuji] ${message}`),
 });
-// Best-effort manifest peek so the engine card can show exact sizes pre-install.
-ipcMain.handle('sidecar-bundle:manifest', async () => {
-  const sku = _currentSku();
-  if (sku === null) return { ok: false, error: 'unsupported platform' };
-  try {
-    const version = sidecarBundle.requiredSidecarVersion();
-    const r = await fetch(`${sidecarBundle.bundleBaseUrl(version)}/manifest.json`);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const entry = sidecarBundle.pickBundle(await r.json(), sku);
-    if (!entry) throw new Error(`no bundle for sku ${sku}`);
-    return { ok: true, size: entry.size ?? null, installedSize: entry.installedSize ?? null };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-});
-// In-flight guard + cancellation. Cancel aborts the network stream but KEEPS
-// the staging files — re-invoking install resumes from the staged bytes (S7).
-let _bundleInstalling = false;
-let _bundleAbort = null;
-ipcMain.handle('sidecar-bundle:install', async (event) => {
-  const sku = _currentSku();
-  if (sku === null) return { ok: false, sku: null, error: 'no sidecar bundle for this platform' };
-  if (_bundleInstalling) return { ok: false, sku, error: 'bundle install already in progress' };
-  _bundleInstalling = true;
-  _bundleAbort = new AbortController();
-  try {
-    const r = await sidecarBundle.installBundle({
-      sku,
-      version: sidecarBundle.requiredSidecarVersion(),
-      userDataDir: app.getPath('userData'),
-      signal: _bundleAbort.signal,
-      stopSidecar: () => nativeHost.stop(),
-      onProgress: (p) => {
-        if (!event.sender.isDestroyed()) event.sender.send('sidecar-bundle-progress', { sku, ...p });
-      },
-    });
-    return { ok: true, sku, ...r };
-  } catch (e) {
-    if (e && e.name === 'AbortError') return { ok: false, sku, cancelled: true };
-    return { ok: false, sku, error: e instanceof Error ? e.message : String(e) };
-  } finally {
-    _bundleInstalling = false;
-    _bundleAbort = null;
-  }
-});
-ipcMain.handle('sidecar-bundle:cancel', () => {
-  _bundleAbort?.abort();
-  return { ok: true };
-});
-// What the installed engine takes on disk (B-19: the "On-device engine" row in Models and storage).
-ipcMain.handle('sidecar-bundle:usage', async () => {
-  const sku = _currentSku();
-  if (sku === null) return { ok: false, error: 'unsupported platform' };
-  try {
-    return { ok: true, bytes: await sidecarBundle.installedBytes(app.getPath('userData'), sku) };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
-});
-ipcMain.handle('sidecar-bundle:remove', () => {
-  const sku = _currentSku();
-  if (sku === null) return { ok: false, error: 'unsupported platform' };
-  nativeHost.stop();  // release file locks before deleting (Windows)
-  sidecarBundle.removeBundle(app.getPath('userData'), sku);
-  return { ok: true };
-});
+// The Python sidecar bundle an older build installed; not awaited, never throws.
+app.whenReady().then(() => removeLegacySidecar(app.getPath('userData'), { log: (l, m) => console.log(`[Sokuji] ${m}`), keep: modelCachePaths({ ...process.env, HF_HOME: defaultHfHome(process.env, app.getPath('userData')) }) }));
 
 ipcMain.handle('get-app-version', () => app.getVersion());
 ipcMain.handle('get-distribution-channel', () => getDistributionChannel());

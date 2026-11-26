@@ -2,6 +2,7 @@
 
 // Import PostHog from installed package
 import PostHog from 'posthog-js-lite';
+import { attachUsageSharingClient, followUsageSharingSetting } from '../src/lib/usageSharing';
 import { deriveEnabledSites } from './platforms';
 import { deriveSiteInfo, deriveSiteGroups } from './platformIcons';
 
@@ -37,6 +38,11 @@ function initializePostHog() {
       debug: isDevelopment(),
       persistence: 'localStorage',
       autocapture: true,
+      // Silent until the saved "Share usage data" choice has been read (usageSharing opts the client in when it says
+      // share): the popup's first events are captured while that read is still pending. The client keeps an opt-in
+      // across popup openings, so this costs one opt-in, not one per opening.
+      defaultOptIn: false,
+      preloadFeatureFlags: false, // no flags are used, and the construction-time request would ignore the sharing switch
       captureHistoryEvents: false // Not needed for popup
     });
     
@@ -54,6 +60,11 @@ function initializePostHog() {
       console.debug('[Sokuji] [Popup] PostHog initialized in development mode - capturing is opt-out by default');
     }
     
+    // The "Share usage data" switch (General settings, saved by the app in the same browser storage) decides whether
+    // this client reports too.
+    attachUsageSharingClient(posthogInstance);
+    followUsageSharingSetting(chrome.storage.sync, chrome.storage.onChanged, 'sync', 'settings.common.shareUsageData');
+
     console.debug('[Sokuji] [Popup] PostHog initialized');
   } catch (error) {
     console.error('[Sokuji] [Popup] Error initializing PostHog:', error);

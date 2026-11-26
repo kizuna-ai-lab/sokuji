@@ -25,12 +25,15 @@ import { useProviderStore } from '../../../stores/providerStore';
 import { runsOn } from '../../../stores/lineUpStore.testing';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
+import { useTurnDetectionStore } from '../../../stores/turnDetectionStore';
+import { TURN_DETECTION_DEFAULTS } from '../../../lib/turn/turnDetectionSettings';
 import { SpeechSection } from './SpeechSection';
 
 const localEntry = () => ({ settings: { ...LOCAL_INFERENCE_DEFAULTS }, credentials: {}, pair: { source: 'ja', target: 'en' } });
 const originalResolve = useModelStore.getState().resolve;
 
 beforeEach(() => {
+  useTurnDetectionStore.setState({ settings: TURN_DETECTION_DEFAULTS });
   runsOn('local_inference');
   useProviderStore.setState({ entries: { local_inference: localEntry() }, readiness: {} });
   useSettingsStore.setState({ settingsNavigationTarget: null });

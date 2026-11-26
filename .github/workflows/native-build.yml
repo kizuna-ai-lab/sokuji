@@ -1,13 +1,19 @@
 # .github/workflows/native-build.yml
 # Build the sokuji-native wheels (spec §4.6): one ggml + transcribe.cpp + llama.cpp +
-# audio.cpp behind the sk_* C ABI, per platform. Two lanes, mirroring sidecar-bundles.yml:
+# audio.cpp behind the sk_* C ABI, per platform. Two lanes:
 #   - workflow_dispatch: dry run — artifacts only.
 #   - native-vX.Y.Z tag push: build all five and publish a PRERELEASE GitHub Release
 #     (prerelease so electron-updater's "latest release" lookup never lands on it).
+# Each platform yields two artifacts: the wheel, and the app archive
+# sokuji-native-<sku>-v<version>.tar.zst (libraries + backend modules + the Node addon +
+# NOTICES.txt) with its .sha256, which the app downloads. The release also carries
+# manifest.json, the five archives' names, hashes and sizes (native/ci/make_app_archive.py).
 name: native-build
 
 permissions:
   contents: read
+  # The SignPath step reads the artifact the build job uploads.
+  actions: read
 
 on:
   workflow_dispatch:
@@ -40,9 +46,7 @@ jobs:
           # spirv-headers CMake config 22.04's own package lacks, from pinned Khronos/
           # Google sources (R38 — see native/ci/vulkan-toolchain.sh's header for why
           # not an apt repo: LunarG's jammy apt repo has no arm64 index at all, and its
-          # libvulkan-dev ships no headers). sidecar-bundles.yml's Linux runners move
-          # to 22.04 too, though its interpreter is python-build-standalone (portable)
-          # and only this wheel's floor matters there.
+          # libvulkan-dev ships no headers).
           - { sku: linux-x64,   runner: ubuntu-22.04,     lane: vulkan, plat: manylinux_2_35_x86_64 }
           - { sku: linux-arm64, runner: ubuntu-22.04-arm, lane: vulkan, plat: manylinux_2_35_aarch64 }
           - { sku: win-x64,     runner: windows-2022,     lane: vulkan, plat: win_amd64 }
@@ -62,6 +66,10 @@ jobs:
           [ "$WANT" = "$HAVE" ] || { echo "tag $WANT != CMake project version $HAVE"; exit 1; }
       - uses: actions/setup-python@v6
         with: { python-version: '3.12' }
+      # Node 22 on PATH when CMake configures: native/node/CMakeLists.txt then registers the
+      # addon's node:test suites as the ctest test `test_node_addon`.
+      - uses: actions/setup-node@v5
+        with: { node-version: '22' }
       - name: CTest models (whisper-tiny Q8_0, moonshine-streaming-tiny Q8_0, Qwen3-0.6B Q8_0, supertonic-3 F16, MOSS-TTS-Nano Q8_0)
         id: models
         uses: actions/cache@v4
@@ -129,9 +137,11 @@ jobs:
           Start-Process -Wait -FilePath .\vulkansdk-windows-X64.exe -ArgumentList '--accept-licenses','--default-answer','--confirm-command','install'
           "VULKAN_SDK=C:\VulkanSDK\$env:VULKAN_SDK_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
           "C:\VulkanSDK\$env:VULKAN_SDK_VERSION\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-      - name: Build, test, wheel (POSIX)
+      - name: Build, test, wheel, app archive (POSIX)
         if: runner.os != 'Windows'
         env:
+          # Set => build.sh also packs native/build/archive/sokuji-native-<sku>-v<version>.tar.zst.
+          SOKUJI_SKU: ${{ matrix.sku }}
           # Opt-in gate for test_tts_synthesises_on_a_gpu_device: place each TTS family whose
           # model dir is set on the first NON-CPU device and synthesize there. It is what the
           # slice-4 metal lane was missing — that lane went green while three of the five
@@ -154,17 +164,142 @@ jobs:
           # non-paravirtual macOS runner exists, the coverage turns on by itself.
           SK_TEST_TTS_GPU: ${{ matrix.lane == 'metal' && '1' || '' }}
         run: native/ci/build.sh ${{ matrix.lane }} ${{ matrix.plat }}
-      - name: Build, test, wheel (Windows)
+      - name: Build, test, wheel, app archive (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          SOKUJI_SKU: ${{ matrix.sku }}
         run: native\ci\build.ps1 -Lane ${{ matrix.lane }} -Plat ${{ matrix.plat }}
-      - name: Wheel size
+      # Windows native files: signed through SignPath on a native-v* tag, then the archive is made
+      # again from the signed stage (build.ps1 left native/build/vulkan/app-stage in place). The
+      # artifact configuration is .signpath/artifact-configurations/native.xml; until the variable
+      # SIGNPATH_NATIVE_CONFIGURATION_SLUG is set, a release ships these files unsigned, with a warning.
+      - name: Collect the native files for signing (Windows)
+        id: upload-native-files
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/native-v') && github.repository == 'kizuna-ai-lab/sokuji' && vars.SIGNPATH_NATIVE_CONFIGURATION_SLUG != ''
+        shell: pwsh
+        run: |
+          $stage = 'native/build/vulkan/app-stage'
+          New-Item -ItemType Directory -Force native/build/to-sign | Out-Null
+          # The names in native.xml, one by one: any other .dll/.node in the stage (or a missing one) stops the build.
+          $listed = ([xml](Get-Content .signpath/artifact-configurations/native.xml)).SelectNodes('//*[local-name()="pe-file"]') | ForEach-Object { $_.path } | Sort-Object
+          $staged = Get-ChildItem $stage -File | Where-Object { $_.Extension -in '.dll', '.node' } | ForEach-Object Name | Sort-Object
+          $diff = Compare-Object $listed $staged
+          if ($diff) { $diff | Out-String; throw 'the stage and .signpath/artifact-configurations/native.xml list different native files' }
+          foreach ($n in $listed) { Copy-Item "$stage/$n" native/build/to-sign/ }
+          Get-ChildItem native/build/to-sign
+      - name: Upload the native files for signing (Windows)
+        id: upload-native-zip
+        if: steps.upload-native-files.outcome == 'success'
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-native-unsigned
+          path: native/build/to-sign/*
+      - name: Sign the native files (Windows)
+        if: steps.upload-native-zip.outcome == 'success'
+        # Pinned: this step hands it the SignPath API token.
+        uses: signpath/github-action-submit-signing-request@c92b958760219087e01f8d67a1669ed57afe2627 # v2
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_NATIVE_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload-native-zip.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: native-signed/
+          wait-for-completion-timeout-in-seconds: 3600
+      - name: Remake the archive from the signed files (Windows)
+        if: steps.upload-native-zip.outcome == 'success'
+        shell: pwsh
+        run: |
+          $stage = 'native/build/vulkan/app-stage'
+          Copy-Item native-signed/* $stage -Force
+          $v = (Select-String -Path native/CMakeLists.txt -Pattern '^project\(sokuji_native VERSION ([0-9.]+)').Matches[0].Groups[1].Value
+          python native/ci/make_app_archive.py $stage ${{ matrix.sku }} $v native/build/archive
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Every native file in the archive is signed (Windows)
+        if: steps.upload-native-zip.outcome == 'success'
+        shell: pwsh
+        run: |
+          $dir = 'native/build/check'
+          Remove-Item -Recurse -Force $dir -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory $dir | Out-Null
+          # PowerShell has no heredoc: the script goes through a file.
+          @'
+          import sys, tarfile, zstandard
+          with open(sys.argv[1], 'rb') as f, zstandard.ZstdDecompressor().stream_reader(f) as r:
+              with tarfile.open(fileobj=r, mode='r|') as t:
+                  t.extractall(sys.argv[2], filter='data')
+          '@ | Set-Content -Encoding utf8 native/build/untar.py
+          python native/build/untar.py (Get-ChildItem native/build/archive/*.tar.zst).FullName $dir
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $bad = Get-ChildItem $dir -Recurse -Include *.dll, *.node | ForEach-Object {
+            $s = Get-AuthenticodeSignature $_.FullName
+            if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch '(^|, )CN=SignPath Foundation(,|$)') { "$($_.Name): $($s.Status)" }
+          }
+          if ($bad) { $bad; throw 'unsigned or wrongly signed native files in the archive' }
+      - name: Warn that the native files ship unsigned (Windows)
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/native-v') && vars.SIGNPATH_NATIVE_CONFIGURATION_SLUG == ''
         shell: bash
-        run: ls -la native/python/dist/ | tee -a "$GITHUB_STEP_SUMMARY"
+        run: echo "::warning::SIGNPATH_NATIVE_CONFIGURATION_SLUG is not set, so the Windows native files ship unsigned."
+      - name: Wheel and archive sizes
+        shell: bash
+        run: |
+          ls -la native/python/dist/ | tee -a "$GITHUB_STEP_SUMMARY"
+          ls -la native/build/archive/ | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Electron's shared libraries (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Electron links GTK/NSS/ALSA/GBM even under ELECTRON_RUN_AS_NODE. These names exist
+          # on 22.04; on 24.04 they are virtual packages provided by the t64 renames.
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-0 libnss3 libasound2 libgbm1
+      - name: Load the unpacked archive under Electron
+        timeout-minutes: 10
+        shell: bash
+        env:
+          ELECTRON_RUN_AS_NODE: '1'
+        run: |
+          # The app loads the addon inside Electron (Node-API 10, its own V8 and C++ runtime),
+          # not in the Node 22 the ctest suite ran on. Unpack the archive first, so that what is
+          # loaded is what ships: the addon, the libraries it finds beside itself, contract.json.
+          # On Windows this also covers the delay-load hook (the host binary is electron.exe) and
+          # a clean process exit with the addon's exit handler installed.
+          set -euo pipefail
+          unpack=native/build/app-unpacked
+          rm -rf "$unpack" && mkdir -p "$unpack"
+          python - native/build/archive/sokuji-native-${{ matrix.sku }}-v*.tar.zst "$unpack" <<'PY'
+          import sys, tarfile, zstandard
+          archive, dest = sys.argv[1:]
+          with open(archive, 'rb') as f, zstandard.ZstdDecompressor().stream_reader(f) as r:
+              with tarfile.open(fileobj=r, mode='r|') as t:
+                  t.extractall(dest, filter='data')
+          PY
+          dirs=("$unpack"/sokuji-native-*/)
+          [ "${#dirs[@]}" -eq 1 ] || { echo "expected one top-level directory, got: ${dirs[*]}"; exit 1; }
+          ls -la "${dirs[0]}"
+          cat > native/build/electron-smoke.cjs <<'JS'
+          const dir = require('node:path').resolve(process.argv[2]);
+          if (!process.versions.electron) throw new Error('not running under Electron');
+          const sk = require(require('node:path').join(dir, 'sokuji_native_node.node'));
+          if (sk.abi() !== 2) throw new Error(`ABI ${sk.abi()}`);
+          sk.init({ moduleDir: dir });
+          const devices = sk.devices();
+          console.log('electron', process.versions.electron, 'node-api', process.versions.napi, sk.version(), JSON.stringify(devices.map((d) => `${d.kind}:${d.name}`)));
+          if (!devices.some((d) => d.kind === 'cpu')) throw new Error('no CPU device');
+          JS
+          npx --yes electron@44.11.5 native/build/electron-smoke.cjs "${dirs[0]}"
       - uses: actions/upload-artifact@v6
         with:
           name: sokuji-native-${{ matrix.sku }}
           path: native/python/dist/*.whl
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        if: ${{ !cancelled() }}
+        with:
+          name: sokuji-native-archive-${{ matrix.sku }}
+          path: native/build/archive/*
           if-no-files-found: error
 
   release:
@@ -174,16 +309,30 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Only for native/ci/make_app_archive.py (--manifest needs the standard library alone).
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          sparse-checkout: native/ci
+      # Every artifact into one directory: the five archives, five .sha256 files and the wheels (not attached).
       - uses: actions/download-artifact@v7
         with:
-          path: wheels
+          path: release
           merge-multiple: true
-      - run: ls -la wheels
+      # manifest.json: {"version", "archives": {"<sku>": {"file", "sha256", "size"}}}, checked
+      # against each archive and its .sha256 (and the tag's version against each file name).
+      - name: manifest.json
+        run: python3 native/ci/make_app_archive.py --manifest release "${GITHUB_REF_NAME#native-v}"
+      - run: ls -la release && cat release/manifest.json
       - uses: softprops/action-gh-release@v3
         with:
           prerelease: true
           name: ${{ github.ref_name }}
-          files: wheels/*.whl
+          files: |
+            release/*.tar.zst
+            release/*.tar.zst.sha256
+            release/manifest.json
           body: |
             sokuji-native ${{ github.ref_name }} — one ggml + transcribe.cpp + llama.cpp + audio.cpp behind the sk_* C ABI.
-            Pins: see native/cmake/upstreams.cmake at this tag. Wheels are py3-none-<platform>; install with pip.
+            Pins: see native/cmake/upstreams.cmake at this tag.
+            App archives: sokuji-native-<sku>-v<version>.tar.zst (libraries, backend modules, the Node addon, NOTICES.txt) with .sha256 files; manifest.json lists them.

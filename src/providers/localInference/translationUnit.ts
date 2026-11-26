@@ -99,7 +99,6 @@ export function createLocalTranslationUnit(deps: LocalTranslationUnitDeps = {}):
     capabilities: () => ({
       speech: 'never',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'provider',
       textInput: false,
       // One direction per session: a connection that carries both directions has no translator here.

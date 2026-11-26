@@ -54,6 +54,8 @@ import { runsOn } from '../../../stores/lineUpStore.testing';
 import { useLineUpStore } from '../../../stores/lineUpStore';
 import { useSettingsStore } from '../../../stores/settingsStore';
 import { useTurnModeStore } from '../../../stores/turnModeStore';
+import { useTurnDetectionStore } from '../../../stores/turnDetectionStore';
+import { TURN_DETECTION_DEFAULTS } from '../../../lib/turn/turnDetectionSettings';
 import { ProviderTurnDetectionControls } from '../../providers/ProviderOwnSettings';
 import { SpeechSection } from './SpeechSection';
 import { registerReleasedCatalog } from '../../../lib/lineup/catalog.testing';
@@ -68,6 +70,7 @@ beforeEach(() => {
   trackEvent.mockClear();
   tooltipContents.length = 0;
   runsOn('local_inference');
+  useTurnDetectionStore.setState({ settings: TURN_DETECTION_DEFAULTS });
   useProviderStore.setState({ entries: { local_inference: localEntry() }, readiness: {} });
   useSettingsStore.setState({ textOnly: false, keepReplayAudio: false, settingsNavigationTarget: null } as Partial<ReturnType<typeof useSettingsStore.getState>>);
   useTurnModeStore.setState({ turnMode: 'auto', pushKey: 'Space' });
@@ -212,7 +215,7 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
   });
 
   // The provider's tuning block and this row read the same entry.
-  it("a change in the provider's tuning block goes to the provider's settings, and the summary follows", () => {
+  it("a change in the tuning block goes to settings.turnDetection, and the summary follows", () => {
     const { container } = render(
       <>
         <SpeechSection locked={false} />
@@ -222,7 +225,7 @@ describe("SpeechSection — the provider's turn-detection tuning", () => {
     const block = container.querySelector<HTMLElement>('#turn-detection-tuning-section')!;
     const minSilence = within(block).getByText('Min Silence Duration').closest('.setting-item')!.querySelector('input[type="range"]')!;
     fireEvent.change(minSilence, { target: { value: '0.5' } });
-    expect((useProviderStore.getState().entries.local_inference.settings as typeof LOCAL_INFERENCE_DEFAULTS).vadMinSilenceDuration).toBe(0.5);
+    expect(useTurnDetectionStore.getState().settings.minSilence).toBe(0.5);
     expect(link(container)!.textContent).toBe('VAD Settings · Min Silence Duration: 0.50s');
   });
 

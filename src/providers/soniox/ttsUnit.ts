@@ -166,7 +166,6 @@ export function createSonioxTtsUnit(deps: SonioxTtsUnitDeps = {}): SonioxTtsUnit
       // Whether a leg is read aloud is the user's switch to say, as it is for Soniox as a whole.
       speech: 'optional',
       turns: ['auto', 'manual'],
-      turnOwner: 'either',
       boundaries: 'provider',
       textInput: false,
       faceToFace: true,

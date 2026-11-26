@@ -26,13 +26,8 @@ describe('Silero VAD input', () => {
   it('finds the VAD workers', () => {
     // Guards the scan itself: a rename that hid every worker would pass the rest.
     expect(sileroWorkers.map(w => w.name).sort()).toEqual([
-      'cohere-transcribe-webgpu.worker.ts',
-      'granite-speech-webgpu.worker.ts',
       'native-vad.worker.ts',
-      'qwen3-asr-webgpu.worker.ts',
-      'voxtral-3b-webgpu.worker.ts',
-      'voxtral-webgpu.worker.ts',
-      'whisper-webgpu.worker.ts',
+      'turn-detector.worker.ts',
     ]);
   });
 

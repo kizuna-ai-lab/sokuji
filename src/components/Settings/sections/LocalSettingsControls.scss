@@ -60,3 +60,10 @@
     cursor: not-allowed;
   }
 }
+
+// The model's own length limit, under the Max speech slider.
+.turn-detection__limit-note {
+  margin-top: 4px;
+  font-size: vars.$font-caption;
+  color: vars.$text-muted;
+}

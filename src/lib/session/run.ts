@@ -286,6 +286,7 @@ export class Run {
       ...(shape.legs.length === 2 ? { bothLegs: true } : {}),
       ...(shape.lineUpStored ? { lineUp: shape.lineUp } : {}),
       ...(deps.localModels ? { localModels: deps.localModels } : {}),
+      ...(deps.nativeModels ? { nativeModels: deps.nativeModels } : {}),
     });
     const configs: Partial<Record<LegName, PlanConfigs>> = {};
     for (const leg of shape.legs) {

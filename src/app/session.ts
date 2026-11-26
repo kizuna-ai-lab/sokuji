@@ -34,6 +34,8 @@ import { openDesktopCapture } from '../lib/screen/desktopFrames';
 import { openTabCapture } from '../lib/screen/tabFrames';
 import { appMicMuted, appParticipantSpeech, appReplayAudio, ensureReadyFromStores, faceToFaceFromStores, persistIfUnchanged, planRefusalFromStores, readShapeFromStores, turnScreenContextOff, watchLegsFromStores, watchSpeechFromStores } from '../lib/session/appShape';
 import type { LegName } from '../lib/conversation/types';
+import { createLiveTally, type LiveTally } from '../lib/notes/live/tally';
+import { setAppTrack } from './appTrack';
 import type { AnalyticsPort, ControlMethod, FramePort } from '../lib/session/ports';
 import { createRunner, type Runner } from '../lib/session/runner';
 import type { OpenSource } from '../lib/session/source';
@@ -48,6 +50,7 @@ import { createKaraoke, type KaraokeState } from '../lib/view/karaoke';
 import { presentProviders } from '../providers/registry';
 import { useLineUpStore } from '../stores/lineUpStore';
 import { localModels } from '../stores/localModels';
+import { nativeModels } from '../stores/nativeModels';
 import useSettingsStore from '../stores/settingsStore';
 import { getApiUrl, getEnvironment, isElectron } from '../utils/environment';
 import { trackBusy } from './busy';
@@ -215,6 +218,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     punctuate: punctuation.punctuate,
     punctuationReady: () => punctuation.ready(),
     localModels,
+    nativeModels,
     newSessionId: options.newSessionId ?? (() => crypto.randomUUID()),
     onRunEnded: async (legs) => {
       // The results of the auto-save are panel notes (spec 2026-10-05 §5): drawn
@@ -273,6 +277,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     resumed: { recordId: string; seen: LiveSentence[] } | null;
     /** Reading the notes service failed: the next sentence tries again (review). */
     failed: boolean;
+    /** Counts of its updates, sent as one event when the session's live notes end. */
+    tally?: LiveTally;
   };
   let live: LiveRun | null = null;
   /** Runs stopped whose last update has not come yet (their service may still be loading). */
@@ -293,6 +299,14 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
     finishing.delete(run);
     unwatchIfIdle();
     useLiveNotes.getState().end(run.recordId);
+    sendTally(run);
+  };
+  /** Sends a run's tally once: turned off mid-session or ended, whichever comes first. */
+  const sendTally = (run: LiveRun) => {
+    const summary = run.tally?.summary();
+    run.tally = undefined;
+    // Counting must never break the session's end: a callback that throws is dropped.
+    if (summary) { try { bridges.track('live_notes_summary', summary); } catch { /* analytics only */ } }
   };
   // Turned off during a session: the loop goes at once, and the panel says so. Turned on again in the same session,
   // live notes start with the next sentence and go on from the notes on screen. Turned off while a stopped session's
@@ -311,6 +325,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         live.gone = true;
         live.loop?.dispose();
         useLiveNotes.getState().turnedOff(live.recordId);
+        sendTally(live);
         paused = { recordId: live.recordId, seen: live.seen };
         live = null;
       }
@@ -353,6 +368,8 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         return;
       }
       const shown = useLiveNotes.getState();
+      begun.tally ??= createLiveTally(service.service);
+      const tally = begun.tally;
       begun.loop = factory({
         ...(resumed ? { from: { state: (shown.recordId === recordId ? shown.state : null) ?? emptyLive(), seen: resumed.seen } } : {}),
         // The record's own "my language", as the notes after the session use (spec §6.5).
@@ -366,7 +383,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         // Kizuna AI refused for the account (the balance ran out…): the loop has stopped; the panel says why.
         onStopped: (why) => useLiveNotes.getState().stoppedFor(recordId, why),
         onUsage: (usage) => useLiveNotes.getState().addUsage(recordId, usage),
-        log: (line) => console.info('[Sokuji] [LiveNotes]', JSON.stringify(line)),
+        log: (line) => { tally.add(line); console.info('[Sokuji] [LiveNotes]', JSON.stringify(line)); },
       });
       begun.loop.sentences(begun.pending);
       begun.pending = [];
@@ -609,6 +626,7 @@ export function createAppSession(options: AppSessionOptions = {}): AppSession {
         const value = next[key];
         if (value !== undefined) (bridges as Record<keyof AppBridges, unknown>)[key] = value;
       }
+      if (next.track) setAppTrack(next.track);
       // A microtask later: `useAppSessionBridges` calls this while React renders, and a store write there would update other components mid-render.
       if (bridges.auth.signedIn !== signedIn || (bridges.auth.userId ?? null) !== userId || (bridges.auth.loaded !== false) !== loaded) {
         queueMicrotask(() => { for (const watcher of [...signInWatchers]) watcher(); });

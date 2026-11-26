@@ -266,11 +266,14 @@ describe('choosing a provider for a stage', () => {
     // and `lineup_language_not_spoken`.
     expect([...refusals].sort()).toEqual(REACHABLE_REFUSALS);
     // The line-ups whose transcription and translation are apart: Soniox, either one, under Bing or this device, and this device's under Bing; and
-    // Soniox, either one, or this device, under a text model.
+    // Soniox, either one, or this device, under a text model. Local Native (#578 ruling 17): its recognition under
+    // Bing, this device or a text model, and its translation under Soniox, either one, or this device.
     const textModels = ['openai_text', 'gemini_text', 'openai_compatible'];
     expect([...new Set(separate)].sort()).toEqual([
       'kizunaai_soniox>bing', 'kizunaai_soniox>local_inference', 'soniox>bing', 'soniox>local_inference', 'local_inference>bing',
       ...['kizunaai_soniox', 'soniox', 'local_inference'].flatMap((heard) => textModels.map((model) => `${heard}>${model}`)),
+      'local_native>bing', 'local_native>local_inference', ...textModels.map((model) => `local_native>${model}`),
+      'kizunaai_soniox>local_native', 'soniox>local_native', 'local_inference>local_native',
     ].sort());
   });
 });

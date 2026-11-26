@@ -8,7 +8,7 @@ Worktree directory: `.claude/worktrees/` (gitignored)
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar, still runs on the old provider path until kizuna-ai-lab/sokuji#578.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar's engine, runs on the same provider structure, flagged while it is tested.
 
 ## Development Commands
 
@@ -99,14 +99,20 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      that only a pick writes (each provider shows it within what it offers); a load never writes
    - The runner (`src/lib/session/`, `src/app/`) runs the legs; L1
      (`src/lib/conversation/Conversation.ts`) folds each leg's events into segments
-   - Local Native is the exception until kizuna-ai-lab/sokuji#578: `LocalNativeClient`
-     implements the old `IClient` (`src/services/interfaces/IClient.ts`), registered as
-     `LocalNativeProviderConfig` in `ProviderConfigFactory`, built through `ClientFactory`;
-     `src/providers/oldPath.consistency.test.ts` keeps every other file off that path.
-     Its folders (`src/services/{clients,providers,interfaces}/`) also hold four shared
-     leaves the new code takes — `ProviderConfig` (`LanguageOption`, `VoiceOption`),
-     `astGuard`, `tutorialUrls` and `ISettingsService`, the guard's `SHARED` set — which
-     stay or move when #578 lands; they are not Local Native's to delete
+   - Local Native (`src/providers/local_native/`) runs on this structure: flagged, Electron
+     only, offered by its tester switch `debug:local-native` or `VITE_ENABLED_PROVIDERS=local_native`.
+     Like LocalInference it has four units (its whole session, its recognition, its
+     translation, its voice), so any stage of it combines with another provider's. It reads
+     this device's native facts through `NativeModels` (`src/stores/nativeModels.ts`), handed
+     to its builders, its admit and its check as LocalInference's models are. Its old path —
+     `LocalNativeClient` on the old `IClient` (`src/services/interfaces/IClient.ts`),
+     `LocalNativeProviderConfig` in `ProviderConfigFactory`, `ClientFactory` — stays compiled
+     and unreachable until the owner's live test, then is deleted (until then
+     kizuna-ai-lab/sokuji#578); `src/providers/oldPath.consistency.test.ts` keeps every other
+     file off it. Its folders (`src/services/{clients,providers,interfaces}/`) also hold four
+     shared leaves the new code takes — `ProviderConfig` (`LanguageOption`, `VoiceOption`),
+     `astGuard`, `tutorialUrls` and `ISettingsService`, the guard's `SHARED` set — which stay
+     or move when the old path is deleted; they are not Local Native's to delete
 
 3. **Audio Processing Pipeline**
    ```
@@ -148,15 +154,20 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 
 6. **Native runtime (`native/`)**
    - One CMake super-project builds three engines on ONE pristine upstream ggml 0.25 behind
-     the `sk_*` C ABI (`native/include/sokuji_native.h`) in `libsokuji_native` / Python package
-     `sokuji_native`: transcribe.cpp (ASR), llama.cpp (translation), audio.cpp (TTS — nine
+     the `sk_*` C ABI (`native/include/sokuji_native.h`) in `libsokuji_native`, driven from Node
+     through the N-API addon `native/node` (`sokuji_native_node.node`): transcribe.cpp (ASR), llama.cpp (translation), audio.cpp (TTS — nine
      families: moss_tts_nano, qwen3_tts, omnivoice, pocket_tts, supertonic, voxcpm1,
      voxcpm2, irodori_tts, index_tts2). Design:
      `docs/superpowers/specs/2026-08-30-sidecar-ggml-only-design.md` (Amendment A1: VAD runs in
      the renderer via `native-vad.worker.ts`, not here); build/layout/per-stage detail:
-     `native/README.md`. `sokuji_sidecar/native.py` is the sidecar's one door in — nothing else
-     imports `sokuji_native` directly; `asr_backend.py`/`translate_backend.py`/`tts_backend.py`
-     are what the catalog and engines talk to.
+     `native/README.md`. **The engine is TypeScript** (`electron/engine/`, no Python): `electron/engine/native.ts`
+     is its one door to the addon; `asr/`, `translate/` and `tts/` hold each stage's backend, engine and WebSocket
+     handlers; `catalog/` the model cards; `planner.ts` and `accel/` choose a device and quantisation. The Electron
+     main process (`electron/engine-ipc.js`, `engine-host.js`) forks `dist-electron/engine.js` (entry
+     `electron/engine/entry.ts`) as a utilityProcess, restarts it after a native call misses its deadline (spec §6.5)
+     and gives up after three crashes in 60 s. The WebSocket protocol is `electron/engine/wire_schema.json`.
+     The native files ship inside the app (`resources/native/`, fetched by `npm run fetch:native`, pinned by
+     `nativeVersion` and `scripts/native-archives.json`).
    - **Two patch mechanisms** keep three upstreams building on one ggml: `src/audiocpp_compat.h`
      shims the symbols audio.cpp's ggml fork adds, plus four symbols whose behaviour changed
      upstream (`ggml_conv_1d`/`_dw`/`ggml_conv_2d`/`_3d` — im2col runs F16 upstream vs. the
@@ -176,7 +187,7 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      `manylinux_2_35_*` floor, ubuntu-22.04 CI + a from-source Khronos toolchain for `glslc` —
      R37/R38, LunarG's apt has no arm64), win-x64 (Vulkan, LunarG SDK), mac-arm64 (Metal),
      mac-x64 (CPU only, GPU lane `none`). Tiers `gpu-metal`/`gpu-vulkan`/`cpu`, ranked in that
-     order (highest first) by `TIER_RANK` (`planner.py`: 3.0/2.5/1.0); a Metal device reporting
+     order (highest first) by `TIER_RANK` (`electron/engine/planner.ts`: 3.0/2.5/1.0); a Metal device reporting
      `/paravirtual/i` (every CI macOS runner) is excluded from `gpu-metal` so a VM shim is never
      handed a plan that hard-aborts. Real-GPU smoke (default q8_0/f16 rungs): five TTS families
      pass on GB10 (linux-arm64), an RTX 4070 SUPER over win-x64 and linux-x64, and an Apple M4
@@ -185,59 +196,32 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      and can never supply real-hardware evidence.
    - **Versions**: native's lives in `CMakeLists.txt`'s `project(sokuji_native VERSION …)` (+
      the `sk_version()` literal in `tests/test_common.cpp`) → tag `native-vX.Y.Z` →
-     `native-build.yml` publishes five wheels as a **prerelease** (never "latest", so
-     electron-updater's own lookup can't land on it). Sidecar's lives in root `package.json`'s
-     `sidecarVersion` (the only file carrying it) → tag `sidecar-vX.Y.Z` →
-     `sidecar-bundles.yml` publishes five bundles + a merged `manifest.json`, also prerelease.
-     App version is the five-site rule above, independent of both. Order is fixed: native tag
-     first (wheels must exist) → `sidecar/requirements.txt` pins the five wheel URLs by
-     `sys_platform`/`platform_machine` (mirrored by `NATIVE_RELEASE_BASE`/`NATIVE_WHEELS` in
-     `sidecar/tests/test_runtime_gate.py`, which must move with it), in the SAME commit as root
-     `package.json`'s `sidecarVersion` → sidecar tag on that
-     commit — `sidecar-bundles.yml`'s first step refuses a tag whose `sidecarVersion` is not on
-     the tagged commit (the 2026-09-05 `sidecar-v0.3.0` run failed all five lanes for exactly
-     that, and had to be re-cut), and a bundle built before `requirements.txt` carries the URLs
-     ships hollow, no `sokuji_native` inside. The app release that carries that `sidecarVersion`
-     to users is a later, ordinary app version. The first *shipped* ggml-only pair is
-     `native-v1.0.1` / `sidecar-v0.2.0` — a clean break from the ONNX-era `sidecar-v0.1.x`
-     line; `native-v1.0.0` was published the same day but never pinned by any bundle, superseded
-     by 1.0.1 (R41: the Python binding's `Translator._make_cb` used to decode each streamed
-     token piece independently, corrupting a BPE boundary landing inside a multibyte CJK
-     character to U+FFFD; fixed with a per-call incremental UTF-8 decoder) before any bundle
-     pinned it. `native-v1.0.2` / `sidecar-v0.2.1` (2026-09-03) follow: engine pins to
-     transcribe.cpp 0.2.3 and audio.cpp 0.7.1, and four more TTS families compiled in
-     (voxcpm1, voxcpm2, irodori_tts, index_tts2 — nine in total). `native-v1.1.0` follows
-     (ABI 2: device profile and op coverage — spec
-     docs/superpowers/specs/2026-09-04-native-device-profile-design.md). `native-v1.2.0`
-     (2026-09-25) moves ggml to 0.25.3, transcribe.cpp to 0.2.4, llama.cpp to v0.5.0 and
-     audio.cpp to 0.8.2-audio8-perf-hotfix; `audiocpp_compat.h` gains sections (D)/(E);
-     `sk_asr` leaves PnC/ITN at `DEFAULT` (unchanged); transcribe.cpp 0.2.4 turns `DEFAULT`
-     on for sensevoice/canary, so those two now output cased, punctuated text by default
-     (upstream #157). Current native version is 1.2.0 (ABI unchanged at 2).
+     `native-build.yml` publishes five app archives (`sokuji-native-<sku>-v<ver>.tar.zst` + `.sha256`) and
+     `manifest.json` as a **prerelease** (never "latest", so electron-updater's own lookup can't land on it).
+     The app pins one in root `package.json`'s `nativeVersion` and `scripts/native-archives.json` (sha256 per SKU,
+     copied from the release's `manifest.json`); a build fails on a mismatch. Order: native tag first → refresh
+     `native-archives.json` and `nativeVersion` in one commit → app release. There is no separate engine
+     version. Current native version is 1.3.0 (ABI 2; 1.3.0 adds the Node-API addon and the app archives, the engines are 1.2.0's): ggml 0.25.3, transcribe.cpp 0.2.4, llama.cpp v0.5.0,
+     audio.cpp 0.8.2-audio8-perf-hotfix; transcribe.cpp 0.2.4 turns PnC/ITN `DEFAULT` on for sensevoice/canary, so
+     those two output cased, punctuated text by default (upstream #157). Windows native files ship unsigned
+     (owner decision 2026-11-26; the SignPath steps in `native-build.yml` stay off until
+     `SIGNPATH_NATIVE_CONFIGURATION_SLUG` is set).
    - **Dev loop**: `native/ci/build.sh <none|vulkan|metal> <plat tag>` (`.ps1` on Windows)
-     builds and runs CTest + the Python suite against a fresh stage;
-     `SOKUJI_NATIVE_DIR=.../stage` points a wheel-less `import sokuji_native` at it. Models
-     cache under `~/.cache/sokuji-native-tests/` (`native/README.md` has the `curl` lines).
-     Gates: `ctest` (skip rc 77 without models); `native/python/tests`, incl.
-     `test_tts_synthesises_on_a_gpu_device` (`SK_TEST_TTS_GPU=1`, one subprocess per
-     family/quant — a GGML abort is an uncatchable SIGABRT); `native/tests/parity`
-     (sample-exact vs. `audiocpp_cli`, its own per-source-keyed "nosve" cache); the sidecar's
-     live TTS→ASR loopback (`SOKUJI_RUN_TTS_LOOPBACK=1`, `sidecar/tests/test_tts_engine.py`).
-     `sidecar-tests` in CI needs `PYTHONPATH=sidecar` — it isn't installed as a package. It
-     installs `sidecar/requirements.txt`, which DOES resolve the pinned linux-x64
-     `sokuji_native` wheel on the ubuntu runner (so `importorskip`-gated tests run there), but
-     it has no model cache, no GPU, and sets neither `SK_TEST_TTS_GPU` nor
-     `SOKUJI_RUN_TTS_LOOPBACK`, so every model- or device-gated test skips silently. It only
-     runs when the diff touches `sidecar/**`, `scripts/build-sidecar-bundle.py` or
-     `sidecar-bundles.yml`; `native-build.yml` has no push/PR trigger at all — native changes
-     get CI only from a `workflow_dispatch` dry run or the `native-v*` tag.
+     builds and runs CTest, the addon's `node --test` suites (`native/node/test`) and the Python binding's
+     tests against a fresh stage; `SOKUJI_NATIVE_DIR=.../stage` points tests at it. Models cache under
+     `~/.cache/sokuji-native-tests/` (`native/README.md` has the `curl` lines).
+     Gates: `ctest` (skip rc 77 without models); `native/node/test` (CPU lane in CI; GPU tests are opt-in);
+     `native/tests/parity` (sample-exact vs. `audiocpp_cli`, its own per-source-keyed "nosve" cache); the engine's
+     own suite (`npx vitest run electron/engine`) with a recorded Python session replayed on the real addon
+     when `SOKUJI_NATIVE_DIR` is set. `native-build.yml` has no push/PR trigger at all — native changes get CI only
+     from a `workflow_dispatch` dry run or the `native-v*` tag.
    - **Thread policy**: `n_threads=0` (default) resolves to `min(hardware_concurrency, 12)` —
      `ggml_barrier()` spin-waits with no yield, so at `n_threads == nproc` timing turns unstable
      (1.2-4.3x run-to-run spread measured at nproc=20 on GB10 vs. ~1.03x at the 12-thread knee;
-     a 10-core M4 never crosses it); `SOKUJI_NATIVE_THREADS` overrides. A GPU TTS load runs one discarded warm-up `synth()`
+     a 10-core M4 never crosses it); `SOKUJI_NATIVE_THREADS` overrides (read by `electron/engine/native.ts`). A GPU TTS load runs one discarded warm-up `synth()`
      (skipped for CPU and the three voice-required families) to pay the driver's
      one-time pipeline-compile cost at load, not on the user's first utterance.
-   - **Voice rules** (`catalog.VOICE_REQUIRED_FAMILIES`, consumed by `tts_backend.py`):
+   - **Voice rules** (`VOICE_REQUIRED_FAMILIES` in `electron/engine/catalog/`, consumed by `electron/engine/tts/backend.ts`):
      `qwen3_tts`/`omnivoice` are clone-only (reference clip + its transcript) and `index_tts2`
      needs the clip only — for all three a bare `synth()` with no `set_voice()` raises a clean
      error before reaching the native layer. `pocket_tts` gets its first listed preset (`alba`)
@@ -248,10 +232,12 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
    - **Known gaps**: no real M1/M2/M3 Metal hardware has run this suite (only an M4 — the
      architectural Apple7/Apple6 capability gates are what R36 relies on instead);
      `moss_tts_nano`'s bf16-on-Vulkan peak (1.228) clips, likely R23 sampling variance,
-     unconfirmed; `qwen3-tts-1.7b`'s bf16 rung was never loaded (only 0.6b was); an
-     install-order race in the sidecar's native-backend singleton (last `load()` wins); every
-     sidecar bundle built before `sidecar-v0.2.0` shipped hollow — no `sokuji_native` wheel
-     installed inside at all.
+     unconfirmed; `qwen3-tts-1.7b`'s bf16 rung was never loaded (only 0.6b was); a Metal
+     init can stall on a CI macOS VM (the system shader-compiler service never answers; the addon's log-sink tests
+     use a CPU-only module dir for that reason) — a real-Mac check and an init timeout with CPU fallback are open.
+   - **Renderer clients** (`src/lib/local-inference/native/`): `SidecarConnection` and
+     `NativeTtsClient` take a clock; Local Native's seams (`src/providers/local_native/engines.ts`)
+     hand them the run's, so every timeout of a session runs on the request's clock.
 
 7. **LAN caption sharing** (spec: `docs/superpowers/specs/2026-10-04-lan-caption-sharing-design.md`)
    - Desktop only. `src/lib/share/publisher.ts` mirrors the conversation view (reset by
@@ -295,9 +281,9 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
 - `src/lib/contract/`, `src/lib/provider/`, `src/lib/session/` - The client contract, the
   definition's types, the runner
 - `src/services/` - The settings service; Local Native's old client and descriptor
-  (`clients/`, `providers/`, `interfaces/`) until kizuna-ai-lab/sokuji#578, beside four
-  shared leaves the new code takes (`ProviderConfig`, `astGuard`, `tutorialUrls`,
-  `ISettingsService`), which stay or move when #578 lands
+  (`clients/`, `providers/`, `interfaces/`), compiled and unreachable until kizuna-ai-lab/sokuji#578's
+  live test, beside four shared leaves the new code takes (`ProviderConfig`, `astGuard`,
+  `tutorialUrls`, `ISettingsService`), which stay or move when the old path is deleted
 - `src/lib/audio/` - The runner's sources (`capture/`) and the page's playback
 - `src/lib/modern-audio/` - The recorders (`ModernAudioRecorder`, the participant recorders)
   and the echo monitor
@@ -356,8 +342,8 @@ reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.mi
   `src/providers/sessionSide.consistency.test.ts` holds every adapter's session side
   off the stores and the reporter, and its timers on the request's clock;
   `src/lib/diagnostics/consoleLedger.consistency.test.ts` holds `src/providers` to no
-  `console.error` / `console.warn`. Local Native's old `IClient` (until
-  kizuna-ai-lab/sokuji#578) keeps the same rule through `handlers.onError`,
+  `console.error` / `console.warn`. Local Native's old `IClient`, unreachable and kept
+  until kizuna-ai-lab/sokuji#578's live test, keeps the same rule through `handlers.onError`,
   `handlers.onDiagnostic` and `handlers.onRealtimeEvent`.
 - **Hot paths** (per-audio-chunk, per-frame, per-poll-tick) never log per
   occurrence: return silently, or report the ok → failing transition. Bursts pass
@@ -367,7 +353,7 @@ reportWarning('AudioStore', 'No real microphone available', { dedupeKey: 'mic.mi
   one list in `src/lib/diagnostics/redact.ts`, shared with PostHog error tracking.
   Panel text is clipboard-exportable, so this is not optional.
 - **Contexts that cannot import the store** — web workers, AudioWorklets,
-  `extension/`, `electron/`, `sidecar/` — keep their existing message/IPC channel,
+  `extension/`, `electron/` — keep their existing message/IPC channel,
   and the renderer-side caller reports. They are outside this policy.
 - **`src/stores`, `src/services` and `src/contexts` are finished**: they contain no
   `console.error` / `console.warn`, and `consoleLedger.consistency.test.ts` fails if
@@ -445,12 +431,12 @@ useSettingsStore.subscribe(
 - `VITE_ENABLED_PROVIDERS`: the comma-separated ids of the `flagged` providers a release
   offers (`enabledProviderIds` in `src/utils/environment.ts`, read by `isPresent`);
   development builds offer every flagged provider regardless, and a definition's tester
-  switch offers it on one device. No provider is flagged today
-- `VITE_ENABLE_LOCAL_NATIVE`: Register the Local Native (Electron sidecar) provider in
-  production builds; unset in releases. Temporary run-time alternative for testers on a
-  packaged Electron build: DevTools → `localStorage.setItem('debug:local-native', '1')` →
-  restart; `localStorage.removeItem('debug:local-native')` + restart hides it again. Remove the
-  switch with the gate when Local Native ships.
+  switch offers it on one device. Local Native (`local_native`) is flagged today: on a
+  packaged Electron build its tester switch is DevTools →
+  `localStorage.setItem('debug:local-native', '1')` → restart;
+  `localStorage.removeItem('debug:local-native')` + restart hides it again
+- `VITE_ENABLE_LOCAL_NATIVE`: gates only Local Native's old path (its descriptor in
+  `ProviderConfigFactory`); unset in releases. It goes with the old path.
 - Environment detection via `src/utils/environment.ts`
 
 ### TypeScript Configuration
@@ -510,13 +496,13 @@ What the spec's "What adding a provider then touches" lists
 4. The extension manifest, when it uses a host the manifest does not list yet: MV3
    declares hosts statically (`host_permissions`, and the CSP's `connect-src`).
 5. When it is flagged, its id in `VITE_ENABLED_PROVIDERS` at release.
-`registry.test.ts`'s invariants fail loudly on anything missed. Local Native is the
-exception until kizuna-ai-lab/sokuji#578: it still runs the old path (`src/services/`,
-`ProviderConfigFactory`).
+`registry.test.ts`'s invariants fail loudly on anything missed. Local Native is registered
+here like every other provider; only its old path (`src/services/`, `ProviderConfigFactory`)
+waits for deletion after kizuna-ai-lab/sokuji#578's live test.
 
 ### Adding a native model or TTS family
 
-The native stack has three rosters, all in `sidecar/sokuji_sidecar/catalog.py`: ASR cards
+The native stack has three rosters, all in `electron/engine/catalog/` (`asr.ts`, `translate.ts`, `tts.ts`): ASR cards
 (`ASR_MODELS`, one `_tc_row(...)` each), translation cards (`TRANSLATE_MODELS`,
 `_llm_translate_row(...)` plus `_GGUF_SOURCES`) and TTS cards (`TTS_MODELS`, `_tts_gguf_row(...)`).
 Every card carries a `graph_family`, the key the op-coverage gate looks up in the recordings
@@ -534,7 +520,15 @@ every row are the exact Hub file sizes: `python benchmark/qwen3-asr-webgpu/hub_s
 <out.json>` writes every file's exact byte count to `<out.json>` (its console line is rounded MB —
 never copy that); nothing re-checks them at runtime, so a wrong number is what the user sees.
 
-**An ASR model of an architecture already compiled in** — catalog only, ships with a sidecar tag:
+> **Python names in the cases below.** These recipes were written when the catalog and planner were Python
+> (`sidecar/sokuji_sidecar/`). They are now TypeScript under `electron/engine/` (`catalog/{asr,translate,tts}.ts`,
+> `planner.ts`, `accel/`, `ggufHeader.ts`), ported row for row; read `_tc_row`, `_tts_gguf_row`, `test_catalog.py`,
+> `test_tts_backend.py` and `test_accel.py` as the matching code and tests there (`catalog/catalog.test.ts`,
+> `tts/backend.test.ts`, `accel/accel.test.ts`). Anywhere a case says "sidecar tag" or "wheels", the release is now
+> a native tag plus a refresh of `nativeVersion` and `scripts/native-archives.json`. Rewriting the cases line by
+> line is open (ledger: engine-switch, Task 5).
+
+**An ASR model of an architecture already compiled in** — catalog only, ships with the next app release:
 1. One `_tc_row(...)` in `ASR_MODELS`: `repo` must be `handy-computer/<x>-gguf`; `quants` keys
    are limited to `F16`/`Q8_0`/`Q6_K`/`Q5_K_M`/`Q4_K_M` and `default` must be one of them — any
    other key, or a default not in `quants`, makes `_tc_row` raise `ValueError` at import
@@ -633,10 +627,8 @@ every gate keys on that path.
    `src/lib/local-inference/native/nativeVoiceStores.ts` (reference-clip ceiling) and the single
    global `TTS_ASSUMED_RTF` in `NativeTtsClient.ts` (raise it if the family is slower than
    index_tts2 on CPU).
-6. Release, in the order the Versions bullet fixes: native version + tag → wheels → pins,
-   `test_runtime_gate.py` and `sidecarVersion` in one commit on main → sidecar tag → smoke the
-   published bundles with `PYTHONNOUSERSITE=1` (the bundled interpreter honours user
-   site-packages, which precede its own).
+6. Release, in the order the Versions bullet fixes: native version + tag → archives → `nativeVersion` and
+   `scripts/native-archives.json` in one commit → an ordinary app release.
 
 **A quant rung or weight dtype**: add it to the card (ASR: the `quants` dict AND the order tuple
 inside `_tc_row`; translation: `_GGUF_SOURCES`, and widen `_llm_translate_row` for a third rung;
@@ -655,8 +647,7 @@ run first.
 
 If prose and code disagree, the code wins: `gguf_header.read_header` for `arch=`,
 `_TTS_TIER_OVERRIDES` for which families have GPU tiers (all nine, since 2f2b28bc), the
-`# recorded-on:` header of a `.ops` file for where it was recorded, and `sidecar/requirements.txt`
-for which wheel `sidecar-tests` installs. The comments that used to contradict these were
+`# recorded-on:` header of a `.ops` file for where it was recorded. The comments that used to contradict these were
 corrected on 2026-09-05.
 
 ### Modifying Audio Pipeline

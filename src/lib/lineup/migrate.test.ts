@@ -17,6 +17,9 @@ describe('the line-up from today\'s values', () => {
   it('nothing resolved for a local stage is local', () => {
     expect(lineUpFromToday({ provider: 'local_inference', local: { translation: null, tts: null } })).toMatchObject({ translation: 'local_inference', speech: 'local_inference' });
   });
+  it('an old stored Local Native becomes its own line-up on every stage (#578)', () => {
+    expect(lineUpFromToday({ provider: 'local_native', local: null })).toEqual({ transcription: 'local_native', translation: 'local_native', speech: 'local_native', summarisation: null });
+  });
   it('the hosted Soniox provider serves all three stages', () => { expect(lineUpFromToday({ provider: 'kizunaai_soniox', local: null })).toMatchObject({ transcription: 'kizunaai_soniox', speech: 'kizunaai_soniox' }); });
   it('each other provider serves all three stages', () => {
     for (const id of ['kizunaai_qwen', 'soniox', 'openai', 'openai_translate', 'openai_live', 'gemini', 'qwen_livetranslate', 'volcengine_ast2', 'palabraai']) {

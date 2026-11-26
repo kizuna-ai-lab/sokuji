@@ -1,6 +1,6 @@
 # sokuji-native
 
-One native library for the Sokuji sidecar: **transcribe.cpp** (ASR), **llama.cpp**
+One native library for the Sokuji local engine: **transcribe.cpp** (ASR), **llama.cpp**
 (translation) and **audio.cpp** (TTS, nine families: moss_tts_nano, qwen3_tts, omnivoice,
 pocket_tts, supertonic, voxcpm1, voxcpm2, irodori_tts, index_tts2) linked into `libsokuji_native`
 behind the `sk_*` C ABI in `include/sokuji_native.h`, on top of one pristine upstream ggml
@@ -24,6 +24,16 @@ loader + `glslc` — on Linux that's `libvulkan-dev` (apt) plus the pinned Khron
 toolchain `native/ci/vulkan-toolchain.sh` builds (see below); on Windows, the LunarG SDK.
 Output: a wheel in `native/python/dist/`; the staged binaries in
 `native/build/<lane>/stage/` (`native/build/cpu/stage/` for `none`).
+
+With `SOKUJI_SKU=<linux-x64|linux-arm64|win-x64|mac-arm64|mac-x64>` set (CI sets it from its
+matrix), the script also packs the **app archive**
+`native/build/archive/sokuji-native-<sku>-v<version>.tar.zst` (+ `.sha256`): one top-level
+directory holding the stage, `sokuji_native_node.node` (the Node-API addon, `native/node/`) and
+`NOTICES.txt`, byte-reproducible (`ci/make_app_archive.py`, tested by
+`tests/test_make_app_archive.py`). The release also carries `manifest.json`
+(`{"version", "archives": {"<sku>": {"file", "sha256", "size"}}}`), written by
+`make_app_archive.py --manifest`. A new vendored or fetched upstream gets a line in
+`ci/NOTICES.in`.
 
 **Linux wheel floor (R37): `manylinux_2_35`, built on `ubuntu-22.04`/`ubuntu-22.04-arm`.**
 `pip install` needs glibc ≥ 2.35 (Ubuntu 22.04+, Debian 12+) no matter which symbols are
@@ -110,7 +120,8 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   `libggml`, `libggml-base`, a CPU backend module, and the Vulkan/Metal module. Those backends
   are dlopen'd, so no `DT_NEEDED` check sees them, and CI runners have no GPU — a missing GPU
   module would otherwise ship green under a Vulkan/Metal wheel name. `build.ps1` is not gated.
-- `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built: every
+- `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built, and again on
+  the app archive's stage (where `sokuji_native_node.node` is checked like the `.so` files): every
   staged shared object may depend only on glibc/libstdc++/libgcc, the system Vulkan loader
   and its siblings, and may reference no glibc symbol newer than the wheel tag's floor.
   (The Vulkan loader is external by design, which is why `auditwheel` is not the gate.)
@@ -119,7 +130,7 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   plus the headers and CMake config 22.04's own packages lack or don't ship). Point CMake
   at it with `VULKAN_SDK=<prefix>` and `CMAKE_PREFIX_PATH=<prefix>`; see the script's own
   header for the full rationale, exact pins and output layout.
-- `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every family compiled in (companions such as `marblenet_vad` / `moss_tts_local` ride along with the selected ones; the sidecar catalog decides what is supported).
+- `src/sk_selftest.cpp` — `sk_audio_families()`, reporting every family compiled in (companions such as `marblenet_vad` / `moss_tts_local` ride along with the selected ones; the engine's catalog (`electron/engine/catalog/`) decides what is supported).
 - `src/sk_internal.h` — internal-only helpers shared by the `sk_*.cpp` files (locking, the
   device table, `own_directory()`, the log sink); never installed.
 - `src/sk_asr.cpp` — `sk_asr_load/capabilities/run/stream_open/stream_feed/stream_finalize/stream_close/unload`
@@ -143,9 +154,7 @@ open a new stream); `sk_asr_stream_close` still must be called to free the strea
 it also abandons an unfinalized stream early; a model has at most one open stream and
 must outlive it. Python: `sokuji_native.asr_load()` returns an `AsrModel`
 (`.run()`, `.open_stream()` → `AsrStream` with `.feed()`/`.finalize()`/`.close()`, `.unload()`).
-The sidecar never imports `sokuji_native` directly — `sokuji_sidecar/native.py` is the one
-door in, and `asr_backend.py`'s `NativeAsrBackend` / `NativeAsrStreamBackend` (registered as
-`native_asr` / `native_asr_stream`) are what the catalog and `asr_engine.py` talk to.
+The engine never loads the library directly — `electron/engine/native.ts` is the one door to the Node addon (`native/node`), which `electron/engine/{asr,translate,tts}` talk to through it.
 
 CTest needs real models for `test_asr` (skips with exit code 77 when absent):
 
@@ -491,5 +500,5 @@ transcribe.cpp's v0.2.4 tag was re-pointed twice upstream on 2026-09-25 (CI/pack
 commits), so that pin alone is the release commit `7d37cea2` fetched WITHOUT
 `GIT_SHALLOW`; the other three pins stay shallow. `sk_asr` leaves PnC/ITN at `DEFAULT`
 (unchanged); transcribe.cpp 0.2.4 turns `DEFAULT` on for sensevoice/canary (#157), so those
-two now output cased, punctuated text by default. Current native version is 1.2.0 (ABI
+two now output cased, punctuated text by default. Current native version is 1.3.0 (1.3.0 adds the Node-API addon and the app archives; the engine libraries are unchanged from 1.2.0) (ABI
 unchanged at 2).

@@ -1,0 +1,6 @@
+node-gyp 11.5.0 — src/win_delay_load_hook.cc
+Source: https://github.com/nodejs/node-gyp (tag v11.5.0), npm tarball node-gyp-11.5.0.tgz
+        (sha512-ra7Kvlhxn5V9Slyus0ygMa2h+UqExPqUIkfk7Pc8QTLT956JLSy51uWFwHtIYy0vI8cB4BDhc/S03+880My/LQ==)
+Files, unmodified: win_delay_load_hook.cc (Windows only; built with HOST_BINARY="node.exe");
+        win_delay_load_hook.LICENSE is node-gyp's LICENSE (MIT). The source file carries no
+        license header of its own upstream.

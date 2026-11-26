@@ -12,6 +12,7 @@ import { payerBalance } from '../session/orgNotice';
 import { accountPayer } from '../session/payerChoice';
 import type { AccountState } from '../run/types';
 import { fitsHosted, hostedEstimateMicroUsd, hostedEstimateUsd, type HostedFileTerms, type TrackSize } from './file/hostedFile';
+import type { AnalyticsPort } from '../session/ports';
 import type { ImportPhase, ImportResult } from './file/importFile';
 import type { FileRecognitionMissing, FileRecognitionService } from './file/service';
 import { trackTranslation, transcribedTracks, type TranscribePhase } from './file/transcribe';
@@ -142,6 +143,8 @@ export interface FileJobs {
   }): Promise<{ transcriptId: number; sentences: number }>;
   /** An imported record is transcribed: its notes, as after a session. */
   notesAfterImport(recordId: string): void;
+  /** Which features are used and how they end (never a file, its content or a record); absent where no analytics is wired. */
+  track?: AnalyticsPort['track'];
 }
 
 export interface HistoryPageState {
@@ -263,6 +266,26 @@ export interface HistoryPageActions {
   /** The failure line goes. */
   clearJobFailure(): void;
 }
+
+/**
+ * Counts a file job: started now, and finished by `end` with who paid, how it ended and how long it took. A failure is
+ * said by its code (the file jobs' own), never by a message.
+ */
+function countJob(files: FileJobs | null | undefined, clock: Clock, kind: 'import' | 'transcribe') {
+  const startedAt = clock.now();
+  // Counting must never keep a job from ending: a callback that throws is dropped.
+  const send: AnalyticsPort['track'] = (event, properties) => { try { files?.track?.(event, properties); } catch { /* analytics only */ } };
+  send('file_job_started', { kind });
+  return (hosted: boolean, failure: string | null) => {
+    const outcome = failure === null ? 'complete' : failure === CANCELLED ? 'cancelled' : 'failed';
+    send('file_job_finished', {
+      kind, hosted, outcome, ...(outcome === 'failed' && failure !== null ? { failure } : {}), duration_ms: Math.max(0, clock.now() - startedAt),
+    });
+  };
+}
+
+/** The code a cancelled file job ends with (`ImportError`, `TranscribeError`). */
+const CANCELLED = 'CANCELLED';
 
 /** A failure's code, as the file jobs give them; LOCAL for an error with none (the service's errors always have one). */
 const codeOf = (error: unknown): string => {
@@ -1114,19 +1137,23 @@ export function createHistoryPageStore(
         const controller = new AbortController();
         jobs.setState({ job: { kind: 'import', recordId: null, name: file.name, phase: 'reading', hosted: false }, jobFailure: null, jobKept: false, controller });
         let hosted = false;
+        const counted = countJob(files, clock, 'import');
+        let ended: string | null = null;
         try {
           const service = await files.service();
-          if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
+          if ('missing' in service) { ended = service.missing; jobs.setState({ jobFailure: service.missing }); return; }
           hosted = 'hosted' in service;
           changeJob({ hosted });
           const result = await files.importFile({
             file, options: o.options, myLanguage: o.myLanguage, service, signal: controller.signal, onProgress: (p) => setJobPhase(p.phase),
           });
           if (result.transcribed) files.notesAfterImport(result.recordId);
-          else jobs.setState({ jobFailure: result.failure, jobKept: true });
+          else { ended = result.failure; jobs.setState({ jobFailure: result.failure, jobKept: true }); }
         } catch (error) {
-          jobs.setState({ jobFailure: codeOf(error) });
+          ended = codeOf(error);
+          jobs.setState({ jobFailure: ended });
         } finally {
+          counted(hosted, ended);
           // The page shown now (this one, or the next if History was closed meanwhile) reads the list again.
           jobs.setState({ job: null, controller: null });
           if (hosted) refreshBalance();
@@ -1141,9 +1168,11 @@ export function createHistoryPageStore(
         const controller = new AbortController();
         jobs.setState({ job: { kind: 'transcribe', recordId, name: null, phase: 'uploading', hosted: false }, jobFailure: null, jobKept: false, controller });
         let hosted = false;
+        const counted = countJob(files, clock, 'transcribe');
+        let ended: string | null = null;
         try {
           const service = await files.service();
-          if ('missing' in service) { jobs.setState({ jobFailure: service.missing }); return; }
+          if ('missing' in service) { ended = service.missing; jobs.setState({ jobFailure: service.missing }); return; }
           hosted = 'hosted' in service;
           changeJob({ hosted });
           await files.transcribe({
@@ -1152,8 +1181,10 @@ export function createHistoryPageStore(
         } catch (error) {
           // Too long for the service: the record's recording, not a file, is what is too long.
           const code = codeOf(error);
+          ended = code;
           jobs.setState({ jobFailure: code === 'TOO_LONG' ? 'RECORD_TOO_LONG' : code });
         } finally {
+          counted(hosted, ended);
           // The page shown now shows the new transcript (see follow()).
           jobs.setState({ job: null, controller: null });
           if (hosted) refreshBalance();

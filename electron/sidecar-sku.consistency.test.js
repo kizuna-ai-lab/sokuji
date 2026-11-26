@@ -1,30 +1,22 @@
 // electron/sidecar-sku.consistency.test.js
 //
-// `sidecar-bundle.js` keeps a hand-written `KNOWN_SKUS` set that mirrors
-// `sidecar-sku.js`'s `detectSku` output vocabulary. It is deliberately a copy and
-// not an import (sidecar-sku.js is main-process-only; sidecar-bundle.js is also
-// loaded from plain-node tests), which means nothing makes the two move together.
-//
-// Drift is quiet where it hurts. `KNOWN_SKUS` gates `isInstallArtifactDir`, the
-// exemption that keeps `pruneStaleSkuDirs` from deleting `<sku>.tmp` — the directory a
-// multi-GB install is actively extracting into — and `<sku>.old`, the rollback copy.
-// Add a SKU to detectSku and forget this set, and on exactly that new platform an
-// in-flight install becomes deletable mid-extraction by any `sidecar-bundle:status`
-// call. Every test stays green, because no test runs on that platform.
-//
-// So: enumerate detectSku over a wide platform x arch cross product and require the
-// set of non-null results to equal KNOWN_SKUS, exactly — no missing entries, and no
-// stale ones left behind by a rename.
+// `detectSku` names the platforms the app has a native archive for, and scripts/native-archives.json holds one sha256
+// per such archive. The two are written by hand in different places, so nothing makes them move together: add a SKU to
+// detectSku and forget the hashes, and `npm run fetch:native` fails on exactly that new platform, where no CI job runs.
+// Enumerate detectSku over a wide platform x arch cross product and require the set of non-null results to equal the
+// SKUs in native-archives.json, exactly — none missing, none left behind by a rename.
 import { describe, it, expect } from 'vitest';
+import { createRequire } from 'node:module';
 import { detectSku } from './sidecar-sku.js';
-import { KNOWN_SKUS } from './sidecar-bundle.js';
 
-// Everything process.platform and process.arch can be in a Node/Electron build,
-// plus a few nonsense values, so a SKU cannot hide behind an unlisted combination.
+const archives = createRequire(import.meta.url)('../scripts/native-archives.json');
+
+// Everything process.platform and process.arch can be in a Node/Electron build, plus a few nonsense values, so a SKU
+// cannot hide behind an unlisted combination.
 const PLATFORMS = ['aix', 'android', 'darwin', 'freebsd', 'haiku', 'linux',
                    'openbsd', 'sunos', 'win32', 'cygwin', 'netbsd'];
 const ARCHES = ['arm', 'arm64', 'ia32', 'loong64', 'mips', 'mipsel', 'ppc',
-                'ppc64', 'riscv64', 's390', 's390x', 'x64'];
+                'ppc64', 's390', 's390x', 'x64', 'riscv64'];
 
 function detectedSkus() {
   const out = new Set();
@@ -37,20 +29,12 @@ function detectedSkus() {
   return out;
 }
 
-describe('KNOWN_SKUS mirrors detectSku exactly', () => {
-  it('every SKU detectSku can return is in KNOWN_SKUS', () => {
-    const missing = [...detectedSkus()].filter((s) => !KNOWN_SKUS.has(s));
-    expect(missing).toEqual([]);
+describe('native-archives.json mirrors detectSku exactly', () => {
+  it('every detectable SKU has a sha256, and no sha256 is for an undetectable SKU', () => {
+    expect([...detectedSkus()].sort()).toEqual(Object.keys(archives.sha256).sort());
   });
 
-  it('KNOWN_SKUS carries nothing detectSku can never return', () => {
-    const detected = detectedSkus();
-    const stale = [...KNOWN_SKUS].filter((s) => !detected.has(s));
-    expect(stale).toEqual([]);
-  });
-
-  it('the two sets are equal, and non-empty', () => {
-    expect([...detectedSkus()].sort()).toEqual([...KNOWN_SKUS].sort());
-    expect(KNOWN_SKUS.size).toBeGreaterThan(0);
+  it('every sha256 is 64 hex digits', () => {
+    for (const [sku, sum] of Object.entries(archives.sha256)) expect(sum, sku).toMatch(/^[0-9a-f]{64}$/);
   });
 });

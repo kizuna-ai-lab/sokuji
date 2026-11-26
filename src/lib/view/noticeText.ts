@@ -145,6 +145,9 @@ export const NOTICE_WORDS: Readonly<Record<string, string>> = {
   transcription_failed: 'Some speech could not be transcribed: {{detail}}',
   translation_failed: 'A translation failed: {{detail}}',
   translation_unavailable: 'No translation model for this direction: its speech is transcribed only.',
+  // The turn detector a local recognizer shares (spec 2026-11-23): it fell behind the audio, or Silero would not load.
+  turn_detection_overloaded: 'Turn detection cannot keep up on this device.',
+  turn_detection_unavailable: 'Turn detection could not start: {{detail}}',
   // A leg that should speak but cannot (#619).
   speaker_tts_missing: 'Translation the other side hears is text only: no speech model speaks {{target}}.',
   participant_tts_missing: 'Translation I hear is text only: no speech model speaks {{target}}.',
@@ -203,6 +206,13 @@ export const NOTICE_ALIASES: Readonly<Record<string, string>> = {
   // OpenAI Translate (Stage 2 OpenAI Translate, choice 11): a key that lists no gpt-realtime-translate model, and a region OpenAI does not serve — the old validation's sentences, which every locale already has.
   no_translate_model: 'settings.translateModelNotAvailable',
   region_unsupported: 'settings.regionNotSupported',
+  // Local Native's readiness (#578 ruling 5): the old gate's sentences, which every locale has.
+  native_engine_update_required: 'settings.localNativeEngineUpdateRequired',
+  native_engine_required: 'settings.localNativeEngineRequired',
+  native_unavailable: 'settings.localNativeUnavailable',
+  native_starting: 'settings.localNativeStarting',
+  native_asr_missing: 'settings.localNativeAsrIncompatible',
+  native_translation_missing: 'settings.localNativeTranslationIncompatible',
   // The panel notes (spec 2026-10-05 §5): a result about the conversation,
   // worded by the export menu's own sentences.
   export_copied: 'mainPanel.export.copySuccess',

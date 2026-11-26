@@ -231,6 +231,35 @@ describe('promoteQueued', () => {
     return { feed, queue };
   }
 
+  it('a cancel of a queued press that already ended drops its sealed segment and keeps the draining run', () => {
+    const { feed, queue } = draining();
+    queue.start();
+    feed.append(f32(2, 2));
+    queue.finish();
+    feed.sealStaged();
+    queue.start();
+    feed.append(f32(3));
+    queue.finish();
+    feed.sealStaged();
+
+    // the later press was cancelled after it ended: it is the entry cancelled, not the run ahead of it
+    expect(queue.cancel()).toBe('finish');
+    expect(feed.stopped).toBe(false);
+
+    feed.complete();
+    expect(promoteQueued(feed, queue)).toBe('finish');
+    expect(Array.from(feed.audio)).toEqual([2, 2]);
+    expect(promoteQueued(feed, queue)).toBeNull();
+  });
+
+  it('a cancel returns open for a press still held, and null when nothing is queued', () => {
+    const queue = new QueuedUtterance();
+    expect(queue.cancel()).toBeNull();
+    queue.start();
+    expect(queue.cancel()).toBe('open');
+    expect(queue.cancel()).toBeNull();
+  });
+
   it('drops a queued misfire and promotes the utterance queued behind it', () => {
     const { feed, queue } = draining();
     queue.start();

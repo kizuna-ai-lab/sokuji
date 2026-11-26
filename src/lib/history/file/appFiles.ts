@@ -3,6 +3,7 @@
 // The desktop app's import and transcription: the page store's file jobs over the app's History port, the browser's
 // decoder and Opus encoder, the line-up's recognition service (for Kizuna AI's, its published terms and the account
 // that pays), and the notes after an import (as after a session).
+import { appTrack } from '../../../app/appTrack';
 import { currentRunPhase } from '../../../app/runPhase';
 import { useAccountStore } from '../../../stores/accountStore';
 import useSettingsStore from '../../../stores/settingsStore';
@@ -82,6 +83,7 @@ export function appFileJobs(): FileJobs {
     transcribe: (o) => transcribeRecord({
       port, recordId: o.recordId, service: o.service, options: o.options, clock: realClock, newJobId, onProgress: o.onProgress, signal: o.signal,
     }),
+    track: appTrack,
     notesAfterImport(recordId) {
       if (useSettingsStore.getState().notesAfterSession) appNotesRunner().start(recordId);
     },
