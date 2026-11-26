@@ -1030,7 +1030,12 @@
       "goChoose": "اختيار",
       "dismiss": "تجاهل"
     },
-    "streaming": "البث المباشر"
+    "streaming": "البث المباشر",
+    "faster": "أسرع",
+    "gradeTooltip": "الدقة في {{language}}: {{grade}}",
+    "gradeNone": "لم يتم قياس الدقة في {{language}}",
+    "speedTooltip": "السرعة: {{level}} من {{max}} (تم القياس على جهاز الاختبار الخاص بالكتالوج، وليس على هذا الكمبيوتر)",
+    "speedNone": "لم يتم قياس السرعة"
   },
   "notes": {
     "stageAsr": "التعرف على الكلام",

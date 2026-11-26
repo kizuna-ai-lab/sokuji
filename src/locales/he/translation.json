@@ -1030,7 +1030,12 @@
       "goChoose": "בחירה",
       "dismiss": "התעלם"
     },
-    "streaming": "סטרימינג"
+    "streaming": "סטרימינג",
+    "faster": "מהיר יותר",
+    "gradeTooltip": "דיוק עבור {{language}}: {{grade}}",
+    "gradeNone": "הדיוק עבור {{language}} לא נמדד",
+    "speedTooltip": "מהירות: {{level}} מתוך {{max}} (נמדדה במכונת הבדיקה של הקטלוג, לא במחשב הזה)",
+    "speedNone": "המהירות לא נמדדה"
   },
   "notes": {
     "stageAsr": "זיהוי דיבור",

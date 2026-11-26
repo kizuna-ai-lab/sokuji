@@ -1030,7 +1030,12 @@
       "goChoose": "Выбрать",
       "dismiss": "Скрыть"
     },
-    "streaming": "Потоковое"
+    "streaming": "Потоковое",
+    "faster": "Быстрее",
+    "gradeTooltip": "Точность ({{language}}): {{grade}}",
+    "gradeNone": "Точность ({{language}}) не измерялась",
+    "speedTooltip": "Скорость: {{level}} из {{max}} (измерена на тестовой машине каталога, а не на этом компьютере)",
+    "speedNone": "Скорость не измерялась"
   },
   "notes": {
     "stageAsr": "распознавания речи",

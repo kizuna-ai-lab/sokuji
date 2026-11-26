@@ -1030,7 +1030,12 @@
       "goChoose": "Välj",
       "dismiss": "Avfärda"
     },
-    "streaming": "Strömmande"
+    "streaming": "Strömmande",
+    "faster": "Snabbare",
+    "gradeTooltip": "Noggrannhet för {{language}}: {{grade}}",
+    "gradeNone": "Noggrannheten för {{language}} mättes inte",
+    "speedTooltip": "Hastighet: {{level}} av {{max}} (uppmätt på katalogens testdator, inte på den här datorn)",
+    "speedNone": "Hastigheten mättes inte"
   },
   "notes": {
     "stageAsr": "taligenkänning",

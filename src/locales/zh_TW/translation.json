@@ -1030,7 +1030,12 @@
       "goChoose": "選擇",
       "dismiss": "關閉"
     },
-    "streaming": "串流"
+    "streaming": "串流",
+    "faster": "較快",
+    "gradeTooltip": "{{language}}準確度：{{grade}}",
+    "gradeNone": "尚未測量{{language}}的準確度",
+    "speedTooltip": "速度：{{level}} / {{max}}（於型錄的測試機器上測得，並非在這台電腦上）",
+    "speedNone": "尚未測量速度"
   },
   "notes": {
     "stageAsr": "語音辨識",

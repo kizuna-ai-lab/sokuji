@@ -1030,7 +1030,12 @@
       "goChoose": "Escolher",
       "dismiss": "Ignorar"
     },
-    "streaming": "Streaming"
+    "streaming": "Streaming",
+    "faster": "Mais rápido",
+    "gradeTooltip": "Precisão em {{language}}: {{grade}}",
+    "gradeNone": "A precisão em {{language}} não foi medida",
+    "speedTooltip": "Velocidade: {{level}} de {{max}} (medida na máquina de teste do catálogo, não neste computador)",
+    "speedNone": "A velocidade não foi medida"
   },
   "notes": {
     "stageAsr": "reconhecimento de voz",

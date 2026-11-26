@@ -1030,7 +1030,12 @@
       "goChoose": "Pilih",
       "dismiss": "Ketepikan"
     },
-    "streaming": "Penstriman"
+    "streaming": "Penstriman",
+    "faster": "Lebih pantas",
+    "gradeTooltip": "Ketepatan dalam {{language}}: {{grade}}",
+    "gradeNone": "Ketepatan dalam {{language}} tidak diukur",
+    "speedTooltip": "Kelajuan: {{level}} daripada {{max}} (diukur pada mesin ujian katalog, bukan pada komputer ini)",
+    "speedNone": "Kelajuan tidak diukur"
   },
   "notes": {
     "stageAsr": "pengecaman suara",

@@ -1030,7 +1030,12 @@
       "goChoose": "Pilih",
       "dismiss": "Abaikan"
     },
-    "streaming": "Streaming"
+    "streaming": "Streaming",
+    "faster": "Lebih cepat",
+    "gradeTooltip": "Akurasi dalam {{language}}: {{grade}}",
+    "gradeNone": "Akurasi dalam {{language}} tidak diukur",
+    "speedTooltip": "Kecepatan: {{level}} dari {{max}} (diukur pada mesin uji katalog, bukan pada komputer ini)",
+    "speedNone": "Kecepatan tidak diukur"
   },
   "notes": {
     "stageAsr": "pengenalan suara",

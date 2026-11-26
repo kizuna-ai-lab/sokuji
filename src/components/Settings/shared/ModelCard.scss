@@ -234,6 +234,43 @@
     color: vars.$text-source;
   }
 
+  // A recognition model's measured facts, between its info and its buttons: one accuracy grade per language in play
+  // and a five-step speed meter (the catalog's, #578).
+  &__bench {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: vars.$text-secondary;
+    font-size: 12px;
+  }
+  &__grade {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    cursor: help;
+  }
+  &__grade-lang { color: vars.$text-muted; font-size: 11px; }
+  &__grade-letter { min-width: 22px; text-align: center; padding: 1px 4px; border-radius: 3px; background: vars.$bg-control; color: vars.$text-primary; font-weight: vars.$weight-semibold; }
+  &__speed {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 12px;
+    cursor: help;
+    i {
+      width: 3px;
+      border-radius: 1px;
+      background: vars.$border-subtle;
+      &:nth-child(1) { height: 4px; }
+      &:nth-child(2) { height: 6px; }
+      &:nth-child(3) { height: 8px; }
+      &:nth-child(4) { height: 10px; }
+      &:nth-child(5) { height: 12px; }
+      &.on { background: vars.$color-primary; }
+    }
+  }
+
   &__actions {
     flex: 0 0 auto;
     display: flex;

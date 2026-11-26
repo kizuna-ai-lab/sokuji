@@ -1030,7 +1030,12 @@
       "goChoose": "เลือก",
       "dismiss": "ปิด"
     },
-    "streaming": "สตรีมมิง"
+    "streaming": "สตรีมมิง",
+    "faster": "เร็วกว่า",
+    "gradeTooltip": "ความแม่นยำ ({{language}}): {{grade}}",
+    "gradeNone": "ไม่ได้วัดความแม่นยำ ({{language}})",
+    "speedTooltip": "ความเร็ว: {{level}} จาก {{max}} (วัดบนเครื่องทดสอบของแค็ตตาล็อก ไม่ใช่บนคอมพิวเตอร์เครื่องนี้)",
+    "speedNone": "ไม่ได้วัดความเร็ว"
   },
   "notes": {
     "stageAsr": "การรู้จำเสียงพูด",

@@ -1030,7 +1030,12 @@
       "goChoose": "Seç",
       "dismiss": "Kapat"
     },
-    "streaming": "Akışlı"
+    "streaming": "Akışlı",
+    "faster": "Daha hızlı",
+    "gradeTooltip": "{{language}} doğruluğu: {{grade}}",
+    "gradeNone": "{{language}} doğruluğu ölçülmedi",
+    "speedTooltip": "Hız: {{max}} üzerinden {{level}} (bu bilgisayarda değil, kataloğun test makinesinde ölçülmüştür)",
+    "speedNone": "Hız ölçülmedi"
   },
   "notes": {
     "stageAsr": "konuşma tanıma",

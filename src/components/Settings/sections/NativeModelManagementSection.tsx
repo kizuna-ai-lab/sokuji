@@ -57,6 +57,7 @@ type CardResolved = {
 };
 import { ModelGroup, RecommendedOthers, ModelStorageFooter } from './ModelManagementControls';
 import { ModelStageList } from '../shared/ModelStageList';
+import { asrFacts, asrRoles, roleOf, SPEED_METER_STEPS, type AsrFacts, type AsrRole } from '../../../lib/local-inference/native/asrBenchmarks';
 
 // [i18n key, English fallback] per tooltip row key (see buildBackendTooltipRows).
 const TT_LABEL: Record<string, [string, string]> = {
@@ -90,8 +91,10 @@ const NativeModelCard: React.FC<{
   /** Present only for translation cards that expose multiple quant variants (per the catalog's variantIds). */
   variantProps?: VariantCardProps;
   /** Optional body rendered inside the card (below the top row) only while the card is selected. */
+  /** A recognition card's measured facts and its badge (Recommended or Faster), from the catalog Handy shows its list from. */
+  asr?: { facts?: AsrFacts; badge?: AsrRole; languages: readonly string[] };
   children?: React.ReactNode;
-}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect, variantProps, children }) => {
+}> = ({ spec, selected, autoSelected, disabled, incompatible = false, resolved = null, onSelect, variantProps, asr, children }) => {
   const { t } = useTranslation();
   const statuses = useNativeModelStatuses();
   const progress = useNativeModelProgress();
@@ -217,7 +220,7 @@ const NativeModelCard: React.FC<{
               <div className="model-card__languages">
                 <LanguageTags languages={spec.languages || []} />
                 {spec.note && <span className="model-card__lang-tag">{spec.note}</span>}
-                {spec.streaming && <span className="model-card__lang-tag" data-testid={`streaming-${spec.selectId}`}>{t('models.streaming', 'Streaming')}</span>}
+                {(spec.streaming || asr?.facts?.streaming) && <span className="model-card__lang-tag" data-testid={`streaming-${spec.selectId}`}>{t('models.streaming', 'Streaming')}</span>}
               </div>
               {(() => {
                 // The active card shows the RESOLVED device as a LIVE badge (highlighted,
@@ -288,10 +291,16 @@ const NativeModelCard: React.FC<{
                 );
               })()}
               {hwGated && <span className="model-card__lang-tag">Requires GPU</span>}
-              {spec.recommended && (
+              {(asr ? asr.badge === 'recommended' : spec.recommended) && (
                 <span className="model-card__recommended-badge">
                   <Star size={10} />
                   {t('models.recommended', 'Recommended')}
+                </span>
+              )}
+              {asr?.badge === 'faster' && (
+                <span className="model-card__recommended-badge" data-testid={`faster-${spec.selectId}`}>
+                  <Zap size={10} />
+                  {t('models.faster', 'Faster')}
                 </span>
               )}
               {autoSelected && selected && (
@@ -302,6 +311,31 @@ const NativeModelCard: React.FC<{
               )}
             </div>
           </div>
+          {asr && (
+            <div className="model-card__bench">
+              {asr.languages.map((language, i) => {
+                const grade = asr.facts?.grades[i]?.grade;
+                const name = languageNameFor(language);
+                return (
+                  <span key={language} className="model-card__grade" data-testid={`grade-${spec.selectId}-${language}`}
+                    title={grade ? t('models.gradeTooltip', 'Accuracy in {{language}}: {{grade}}', { language: name, grade })
+                      : t('models.gradeNone', 'Accuracy in {{language}} was not measured', { language: name })}>
+                    <span className="model-card__grade-lang">{language.toUpperCase()}</span>
+                    <span className="model-card__grade-letter">{grade ?? '—'}</span>
+                  </span>
+                );
+              })}
+              <span className="model-card__speed" role="img" data-testid={`speed-${spec.selectId}`}
+                aria-label={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured')
+                  : t('models.speedTooltip', 'Speed: {{level}} of {{max}} (measured on the catalog’s test machine, not on this computer)', { level: asr.facts.speed, max: SPEED_METER_STEPS })}
+                title={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured')
+                  : t('models.speedTooltip', 'Speed: {{level}} of {{max}} (measured on the catalog’s test machine, not on this computer)', { level: asr.facts.speed, max: SPEED_METER_STEPS })}>
+                {Array.from({ length: SPEED_METER_STEPS }, (_, n) => (
+                  <i key={n} className={n < (asr.facts?.speed ?? 0) ? 'on' : undefined} />
+                ))}
+              </span>
+            </div>
+          )}
           <div className="model-card__actions">
             {noDownload ? null : status === 'downloading' ? (
               <div className="model-card__progress">
@@ -441,6 +475,20 @@ export const NativeModelManagementSection: React.FC<{
     () => nativeTranslationCards(srcLang, tgtLang, catalog),
     [srcLang, tgtLang, catalog]);
   const ttsCards = useMemo(() => nativeTtsCards(tgtLang, catalog), [tgtLang, catalog]);
+
+  // The languages the list speaks about, and which recognition model is the pick (Recommended) or the quick one
+  // (Faster) for them, by the catalog's method. Where the catalog picks none of the cards on offer (a language
+  // pair it has no data for) the cards keep the Recommended mark our own catalog gave them, so the list never starts
+  // out empty.
+  const asrLanguages = useMemo(() => [...new Set([srcLang, tgtLang])], [srcLang, tgtLang]);
+  const asrPicks = useMemo(() => asrRoles(asrLanguages), [asrLanguages]);
+  const asrBadge = (c: NativeModelCardSpec): AsrRole | undefined => {
+    const info = catalog[c.selectId];
+    const role = info ? roleOf(info, asrPicks) : undefined;
+    if (role) return role;
+    const anyPicked = asrCards.some((x) => { const i = catalog[x.selectId]; return i && roleOf(i, asrPicks); });
+    return !anyPicked && c.recommended ? 'recommended' : undefined;
+  };
 
   // Quant-variant data comes PRECOMPUTED from the models_catalog feed — the
   // sidecar owns the full ladder per card with machine-aware supported flags
@@ -603,7 +651,8 @@ export const NativeModelManagementSection: React.FC<{
       <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}
         selected={isSelected(c)} autoSelected={false} resolved={resolvedForField}
         onSelect={() => selectCard(field, c.selectId)}
-        variantProps={vProps}>
+        variantProps={vProps}
+        asr={field === 'asr' ? { facts: catalog[c.selectId] ? asrFacts(catalog[c.selectId], asrLanguages) : undefined, badge: asrBadge(c), languages: asrLanguages } : undefined}>
         {renderBody?.(c)}
       </NativeModelCard>
     );
@@ -693,7 +742,7 @@ export const NativeModelManagementSection: React.FC<{
       </div>
     );
     const onDisk = (c: NativeModelCardSpec) => !!c.downloadId && statuses[c.downloadId] === 'ready';
-    const isShown = (c: NativeModelCardSpec) => onDisk(c) || !!c.recommended || cfg.selected === c.selectId;
+    const isShown = (c: NativeModelCardSpec) => onDisk(c) || (stageFilter === 'asr' ? !!asrBadge(c) : !!c.recommended) || cfg.selected === c.selectId;
     const incompatible = stageFilter === 'asr' ? asrIncompatibleCards : [];
     return (
       <ModelStageList title={cfg.title} id={anchorId ?? `native-models-${stageFilter}-section`} header={cfg.device}

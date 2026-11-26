@@ -1030,7 +1030,12 @@
       "goChoose": "선택",
       "dismiss": "닫기"
     },
-    "streaming": "스트리밍"
+    "streaming": "스트리밍",
+    "faster": "더 빠름",
+    "gradeTooltip": "{{language}} 정확도: {{grade}}",
+    "gradeNone": "{{language}} 정확도는 측정되지 않았습니다",
+    "speedTooltip": "속도: {{max}}단계 중 {{level}}단계 (이 컴퓨터가 아닌 카탈로그의 테스트 머신에서 측정)",
+    "speedNone": "속도는 측정되지 않았습니다"
   },
   "notes": {
     "stageAsr": "음성 인식",

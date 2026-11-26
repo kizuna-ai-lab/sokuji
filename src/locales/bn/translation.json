@@ -1030,7 +1030,12 @@
       "goChoose": "বেছে নিন",
       "dismiss": "বন্ধ করুন"
     },
-    "streaming": "স্ট্রিমিং"
+    "streaming": "স্ট্রিমিং",
+    "faster": "দ্রুততর",
+    "gradeTooltip": "{{language}}-এ নির্ভুলতা: {{grade}}",
+    "gradeNone": "{{language}}-এ নির্ভুলতা পরিমাপ করা হয়নি",
+    "speedTooltip": "গতি: {{max}}-এর মধ্যে {{level}} (ক্যাটালগের পরীক্ষামূলক মেশিনে পরিমাপ করা, এই কম্পিউটারে নয়)",
+    "speedNone": "গতি পরিমাপ করা হয়নি"
   },
   "notes": {
     "stageAsr": "স্পিচ রিকগনিশন",

@@ -1030,7 +1030,12 @@
       "goChoose": "चुनें",
       "dismiss": "खारिज करें"
     },
-    "streaming": "स्ट्रीमिंग"
+    "streaming": "स्ट्रीमिंग",
+    "faster": "अधिक तेज़",
+    "gradeTooltip": "{{language}} में सटीकता: {{grade}}",
+    "gradeNone": "{{language}} में सटीकता मापी नहीं गई",
+    "speedTooltip": "गति: {{max}} में से {{level}} (कैटलॉग की परीक्षण मशीन पर मापी गई, इस कंप्यूटर पर नहीं)",
+    "speedNone": "गति मापी नहीं गई"
   },
   "notes": {
     "stageAsr": "वाक् पहचान",

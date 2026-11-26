@@ -1030,7 +1030,12 @@
       "goChoose": "Piliin",
       "dismiss": "I-dismiss"
     },
-    "streaming": "Streaming"
+    "streaming": "Streaming",
+    "faster": "Mas mabilis",
+    "gradeTooltip": "Katumpakan sa {{language}}: {{grade}}",
+    "gradeNone": "Hindi sinukat ang katumpakan sa {{language}}",
+    "speedTooltip": "Bilis: {{level}} sa {{max}} (sinukat sa test machine ng catalog, hindi sa computer na ito)",
+    "speedNone": "Hindi sinukat ang bilis"
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",

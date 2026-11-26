@@ -1030,7 +1030,12 @@
       "goChoose": "Wybierz",
       "dismiss": "Odrzuć"
     },
-    "streaming": "Strumieniowe"
+    "streaming": "Strumieniowe",
+    "faster": "Szybsze",
+    "gradeTooltip": "Dokładność ({{language}}): {{grade}}",
+    "gradeNone": "Nie zmierzono dokładności ({{language}})",
+    "speedTooltip": "Szybkość: {{level}} z {{max}} (zmierzona na maszynie testowej katalogu, a nie na tym komputerze)",
+    "speedNone": "Nie zmierzono szybkości"
   },
   "notes": {
     "stageAsr": "rozpoznawania mowy",

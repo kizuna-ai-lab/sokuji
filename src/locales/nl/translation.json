@@ -1030,7 +1030,12 @@
       "goChoose": "Kiezen",
       "dismiss": "Sluiten"
     },
-    "streaming": "Streaming"
+    "streaming": "Streaming",
+    "faster": "Sneller",
+    "gradeTooltip": "Nauwkeurigheid in {{language}}: {{grade}}",
+    "gradeNone": "Nauwkeurigheid in {{language}} is niet gemeten",
+    "speedTooltip": "Snelheid: {{level}} van {{max}} (gemeten op de testmachine van de catalogus, niet op deze computer)",
+    "speedNone": "Snelheid is niet gemeten"
   },
   "notes": {
     "stageAsr": "spraakherkenning",

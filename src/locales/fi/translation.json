@@ -1030,7 +1030,12 @@
       "goChoose": "Valitse",
       "dismiss": "Hylkää"
     },
-    "streaming": "Suoratoisto"
+    "streaming": "Suoratoisto",
+    "faster": "Nopeampi",
+    "gradeTooltip": "Tarkkuus ({{language}}): {{grade}}",
+    "gradeNone": "Tarkkuutta ({{language}}) ei ole mitattu",
+    "speedTooltip": "Nopeus: {{level}}/{{max}} (mitattu luettelon testikoneella, ei tällä tietokoneella)",
+    "speedNone": "Nopeutta ei ole mitattu"
   },
   "notes": {
     "stageAsr": "puheentunnistus",

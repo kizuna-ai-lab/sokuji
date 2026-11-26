@@ -11,6 +11,8 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { asrRoles } from '../../../lib/local-inference/native/asrBenchmarks';
+import { catalog as handyCatalog } from '@handy-computer/models';
 import { NativeModelManagementSection } from './NativeModelManagementSection';
 import { formatMemMb } from '../../../lib/local-inference/native/nativeCatalog';
 import type { VariantInfo, NativeModelInfo } from '../../../lib/local-inference/native/nativeProtocol';
@@ -757,6 +759,66 @@ describe('NativeModelManagementSection — the streaming tag', () => {
       await screen.findByTestId('model-card-stream-asr');
       expect(screen.getByTestId('streaming-stream-asr')).toHaveTextContent('Streaming');
       expect(screen.queryByTestId('streaming-sense-voice')).toBeNull();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});
+
+// A recognition card says what the catalog Handy shows its list from says: a grade per language in play, a speed
+// meter, Recommended or Faster for the pick and the quick one, and Streaming where the model streams (#578).
+/** A catalog model that streams and speaks all the languages. */
+const catalogStreamer = (langs: string[]): string => handyCatalog.models.find((m) => m.role === 'asr' && m.capabilities.streaming && langs.every((l) => m.languages.includes(l)))!.id;
+
+describe('NativeModelManagementSection — recognition facts from the catalog', () => {
+  const langs = ['en', 'de'];
+  const pair = { source: 'en', target: 'de' };
+  const asCard = (id: string, order: number): NativeModelInfo => ({
+    id, name: id, languages: langs, recommended: false, tiers: [], order, repo: `handy-computer/${id}-gguf`, kind: 'asr', sizeBytes: 1,
+  } as NativeModelInfo);
+
+  it('badges the pick Recommended and the quick one Faster, grades both languages and draws the speed meter', async () => {
+    const picks = asrRoles(langs);
+    const best = [...picks].find(([, r]) => r === 'recommended')?.[0];
+    const fast = [...picks].find(([, r]) => r === 'faster')?.[0];
+    expect(best).toBeDefined();
+    const ids = [best!, ...(fast ? [fast] : [])];
+    mockCatalogOverride = Object.fromEntries(ids.map((id, i) => [id, asCard(id, i)]));
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={pair} />);
+      const card = await screen.findByTestId(`model-card-${best}`);
+      expect(within(card).getByText('Recommended')).toBeInTheDocument();
+      expect(within(card).getByTestId(`grade-${best}-en`)).toHaveTextContent(/EN\s*[A-DF][+-]?/);
+      expect(within(card).getByTestId(`grade-${best}-de`)).toHaveTextContent(/DE\s*[A-DF][+-]?/);
+      expect(within(card).getByTestId(`speed-${best}`).querySelectorAll('i')).toHaveLength(5);
+      if (fast) expect(within(screen.getByTestId(`model-card-${fast}`)).getByTestId(`faster-${fast}`)).toHaveTextContent('Faster');
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+
+  it('tags a streaming model Streaming, as the catalog says', async () => {
+    const streamer = catalogStreamer(langs);
+    mockCatalogOverride = { [streamer]: asCard(streamer, 0) };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={pair} />);
+      // Not the pick, so it sits behind "N more".
+      const more = screen.queryByRole('button', { name: /\d+ more/ });
+      if (more) fireEvent.click(more);
+      await screen.findByTestId(`model-card-${streamer}`);
+      expect(screen.getByTestId(`streaming-${streamer}`)).toHaveTextContent('Streaming');
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+
+  it('shows a dash where a language was not measured, and keeps our own Recommended where the catalog knows nothing of the cards', async () => {
+    mockCatalogOverride = { 'sense-voice': { ...mockCatalog['sense-voice'] } };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
+      const card = await screen.findByTestId('model-card-sense-voice');
+      expect(within(card).getByTestId('grade-sense-voice-ja')).toHaveTextContent('—');
+      expect(within(card).getByText('Recommended')).toBeInTheDocument();
     } finally {
       mockCatalogOverride = null;
     }

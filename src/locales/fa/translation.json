@@ -1030,7 +1030,12 @@
       "goChoose": "انتخاب",
       "dismiss": "بستن"
     },
-    "streaming": "استریم"
+    "streaming": "استریم",
+    "faster": "سریع‌تر",
+    "gradeTooltip": "دقت در {{language}}: {{grade}}",
+    "gradeNone": "دقت در {{language}} اندازه‌گیری نشده است",
+    "speedTooltip": "سرعت: {{level}} از {{max}} (روی دستگاه آزمایش فهرست اندازه‌گیری شده است، نه روی این رایانه)",
+    "speedNone": "سرعت اندازه‌گیری نشده است"
   },
   "notes": {
     "stageAsr": "تشخیص گفتار",
