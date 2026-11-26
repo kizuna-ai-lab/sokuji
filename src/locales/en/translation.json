@@ -1182,18 +1182,24 @@
     "hwRepo": "Repo",
     "computeDevice": "Hardware acceleration",
     "streaming": "Streaming",
-    "nativeImport": {
-      "title": "Import {{name}}",
-      "intro": "Download the file(s) below yourself, then choose them here. The file names must stay as they are.",
-      "loading": "Looking up the files…",
-      "openPage": "Open the download page",
-      "choose": "Choose files…",
-      "pickTitle": "Choose the downloaded files"
-    },
     "faster": "Faster",
-    "gradeTooltip": "Accuracy in {{language}}: {{grade}}",
     "gradeNone": "Accuracy in {{language}} was not measured",
-    "speedTooltip": "Speed: {{level}} of {{max}} (measured on the catalog’s test machine, not on this computer)",
+    "gradeHelp": {
+      "title": "Accuracy in {{language}}: {{grade}}",
+      "how": "How it is rated: the share of speech the model gets wrong (its error rate) on the FLEURS test recordings, measured on the Q8_0 version of the model. Under 5% wrong is A, under 10% B, under 20% C, under 30% D, more is F; a + or − splits each letter into thirds. Your own voice, microphone and noise will change the result."
+    },
+    "speedHelp": {
+      "title": "Speed: {{level}} of {{max}}",
+      "how": "How it is rated: how long the model takes to process a 30-second recording on the catalog’s test computer (an AMD Ryzen 4750U laptop, using its GPU). Each step is one more of these limits beaten: 20, 10, 5, 3 and 1.5 seconds. Your computer may be faster or slower."
+    },
+    "importError": {
+      "import_missing": "These files are missing: {{names}}. Download them and import again.",
+      "import_not_gguf": "{{name}} is not a GGUF model file.",
+      "import_unreadable": "{{name}} cannot be read, or is empty.",
+      "import_mismatch": "{{name}} is not the published file (its sha256 starts {{got}}, expected {{expected}}). Download it again.",
+      "import_not_importable": "This model cannot be imported by hand.",
+      "import_failed": "The import failed."
+    },
     "speedNone": "Speed was not measured",
     "computeDeviceTooltip": "Which device runs the speech model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",
     "computeDeviceTooltipTranslation": "Which device runs the translation model. Auto picks the fastest available device (GPU when present); CPU works everywhere but is slower for large models; GPU uses Vulkan on Windows and Linux and Metal on Apple silicon.",

@@ -1032,17 +1032,23 @@
     },
     "streaming": "Akışlı",
     "faster": "Daha hızlı",
-    "gradeTooltip": "{{language}} doğruluğu: {{grade}}",
     "gradeNone": "{{language}} doğruluğu ölçülmedi",
-    "speedTooltip": "Hız: {{max}} üzerinden {{level}} (bu bilgisayarda değil, kataloğun test makinesinde ölçülmüştür)",
     "speedNone": "Hız ölçülmedi",
-    "nativeImport": {
-      "title": "{{name}} içe aktar",
-      "intro": "Aşağıdaki dosyaları kendiniz indirin, ardından burada seçin. Dosya adları olduğu gibi kalmalıdır.",
-      "loading": "Dosyalar aranıyor…",
-      "openPage": "İndirme sayfasını aç",
-      "choose": "Dosya seç…",
-      "pickTitle": "İndirilen dosyaları seçin"
+    "gradeHelp": {
+      "title": "{{language}} doğruluğu: {{grade}}",
+      "how": "Nasıl derecelendirilir: modelin FLEURS test kayıtlarında yanlış anladığı konuşma oranı (hata oranı); modelin Q8_0 sürümü üzerinde ölçülür. Hata oranı %5'ten azsa A, %10'dan azsa B, %20'den azsa C, %30'dan azsa D, daha fazlaysa F olur; + veya − her harfi üçe böler. Kendi sesiniz, mikrofonunuz ve ortam gürültüsü sonucu değiştirir."
+    },
+    "speedHelp": {
+      "title": "Hız: {{max}} üzerinden {{level}}",
+      "how": "Nasıl derecelendirilir: modelin 30 saniyelik bir kaydı kataloğun test bilgisayarında (GPU'sunu kullanan bir AMD Ryzen 4750U dizüstü bilgisayar) işlemesinin ne kadar sürdüğü. Her adım, bu sınırlardan birinin daha aşıldığı anlamına gelir: 20, 10, 5, 3 ve 1.5 saniye. Sizin bilgisayarınız bundan daha hızlı ya da daha yavaş olabilir."
+    },
+    "importError": {
+      "import_missing": "Bu dosyalar eksik: {{names}}. Bunları indirip yeniden içe aktarın.",
+      "import_not_gguf": "{{name}} bir GGUF model dosyası değil.",
+      "import_unreadable": "{{name}} okunamıyor veya boş.",
+      "import_mismatch": "{{name}} yayımlanan dosya değil (sha256 değeri {{got}} ile başlıyor, beklenen {{expected}}). Lütfen yeniden indirin.",
+      "import_not_importable": "Bu model elle içe aktarılamaz.",
+      "import_failed": "İçe aktarma başarısız oldu."
     }
   },
   "notes": {

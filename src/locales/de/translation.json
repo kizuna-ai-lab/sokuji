@@ -1032,17 +1032,23 @@
     },
     "streaming": "Streaming",
     "faster": "Schneller",
-    "gradeTooltip": "Genauigkeit für {{language}}: {{grade}}",
     "gradeNone": "Genauigkeit für {{language}} wurde nicht gemessen",
-    "speedTooltip": "Geschwindigkeit: {{level}} von {{max}} (auf dem Testrechner des Katalogs gemessen, nicht auf diesem Computer)",
     "speedNone": "Geschwindigkeit wurde nicht gemessen",
-    "nativeImport": {
-      "title": "{{name}} importieren",
-      "intro": "Laden Sie die folgenden Dateien selbst herunter und wählen Sie sie dann hier aus. Die Dateinamen dürfen nicht geändert werden.",
-      "loading": "Dateien werden gesucht…",
-      "openPage": "Seite zum Herunterladen öffnen",
-      "choose": "Dateien wählen…",
-      "pickTitle": "Heruntergeladene Dateien wählen"
+    "gradeHelp": {
+      "title": "Genauigkeit für {{language}}: {{grade}}",
+      "how": "So wird bewertet: der Anteil der Sprache, den das Modell falsch erkennt (seine Fehlerrate), gemessen auf den FLEURS-Testaufnahmen mit der Q8_0-Version des Modells. Unter 5% Fehler ergibt A, unter 10% B, unter 20% C, unter 30% D, mehr F; ein + oder − teilt jeden Buchstaben in Drittel. Die eigene Stimme, das Mikrofon und Störgeräusche verändern das Ergebnis."
+    },
+    "speedHelp": {
+      "title": "Geschwindigkeit: {{level}} von {{max}}",
+      "how": "So wird bewertet: wie lange das Modell auf dem Testcomputer des Katalogs (ein AMD Ryzen 4750U-Laptop mit GPU) für eine 30-Sekunden-Aufnahme braucht. Jede Stufe bedeutet, dass eine weitere dieser Grenzen unterboten wird: 20, 10, 5, 3 und 1.5 Sekunden. Ein anderer Computer kann schneller oder langsamer sein."
+    },
+    "importError": {
+      "import_missing": "Diese Dateien fehlen: {{names}}. Laden Sie sie herunter und importieren Sie dann erneut.",
+      "import_not_gguf": "{{name}} ist keine GGUF-Modelldatei.",
+      "import_unreadable": "{{name}} kann nicht gelesen werden oder ist leer.",
+      "import_mismatch": "{{name}} ist nicht die veröffentlichte Datei (ihr sha256 beginnt mit {{got}}, erwartet wurde {{expected}}). Laden Sie sie erneut herunter.",
+      "import_not_importable": "Dieses Modell kann nicht manuell importiert werden.",
+      "import_failed": "Der Import ist fehlgeschlagen."
     }
   },
   "notes": {

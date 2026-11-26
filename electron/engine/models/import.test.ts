@@ -73,13 +73,15 @@ describe('importModel', () => {
   it('says which file is missing, and puts nothing in the cache', async () => {
     const other = put('something-else.gguf', gguf());
     await expect(importModel(CARD, [other], send)).rejects.toThrow(`missing: ${path.basename(FILE)}`);
+    // Coded, so the interface can say it in its own language.
+    await expect(importModel(CARD, [other], send)).rejects.toMatchObject({ code: 'import_missing', params: { names: path.basename(FILE) } });
     expect(modelStatus(CARD)).toBe('absent');
     expect(fs.existsSync(repoDir(REPO))).toBe(false);
   });
 
   it('refuses a file that is not a GGUF, or was cut short', async () => {
     const name = path.basename(FILE);
-    await expect(importModel(CARD, [put(name, Buffer.from('<html>not a model</html>'))], send)).rejects.toThrow(`${name} is not a GGUF file`);
+    await expect(importModel(CARD, [put(name, Buffer.from('<html>not a model</html>'))], send)).rejects.toMatchObject({ message: `${name} is not a GGUF file`, code: 'import_not_gguf', params: { name } });
     await expect(importModel(CARD, [put(name, gguf().subarray(0, 30))], send)).rejects.toBeInstanceOf(ImportError);
     expect(modelStatus(CARD)).toBe('absent');
   });
@@ -99,7 +101,7 @@ describe('importModel', () => {
   it('checks a file the published catalog lists against its hash, and refuses another file of that name', async () => {
     const [[repo, file]] = downloadSpecs('cohere-transcribe-03-2026').files!;
     expect(knownFile(repo, file)?.sha256).toMatch(/^[0-9a-f]{64}$/);
-    await expect(importModel('cohere-transcribe-03-2026', [put(path.basename(file), gguf())], send)).rejects.toThrow('is not the published file');
+    await expect(importModel('cohere-transcribe-03-2026', [put(path.basename(file), gguf())], send)).rejects.toMatchObject({ code: 'import_mismatch', params: { name: path.basename(file) } });
     expect(fs.existsSync(repoDir(repo))).toBe(false);
   });
 

@@ -1032,17 +1032,23 @@
     },
     "streaming": "Streaming",
     "faster": "Plus rapide",
-    "gradeTooltip": "Précision en {{language}} : {{grade}}",
     "gradeNone": "La précision en {{language}} n’a pas été mesurée",
-    "speedTooltip": "Vitesse : {{level}} sur {{max}} (mesurée sur la machine de test du catalogue, et non sur cet ordinateur)",
     "speedNone": "La vitesse n’a pas été mesurée",
-    "nativeImport": {
-      "title": "Importer {{name}}",
-      "intro": "Téléchargez vous-même le ou les fichiers ci-dessous, puis choisissez-les ici. Les noms des fichiers doivent rester inchangés.",
-      "loading": "Recherche des fichiers…",
-      "openPage": "Ouvrir la page de téléchargement",
-      "choose": "Choisir des fichiers…",
-      "pickTitle": "Choisissez les fichiers téléchargés"
+    "gradeHelp": {
+      "title": "Précision en {{language}} : {{grade}}",
+      "how": "Comment c’est noté : la part de parole que le modèle reconnaît mal (son taux d’erreur) sur les enregistrements de test FLEURS, mesurée sur la version Q8_0 du modèle. Moins de 5% d’erreurs vaut A, moins de 10% B, moins de 20% C, moins de 30% D, au-delà F ; un + ou un − divise chaque lettre en tiers. Votre propre voix, votre micro et le bruit feront varier le résultat."
+    },
+    "speedHelp": {
+      "title": "Vitesse : {{level}} sur {{max}}",
+      "how": "Comment c’est noté : le temps que met le modèle à traiter un enregistrement de 30 secondes sur l’ordinateur de test du catalogue (un portable AMD Ryzen 4750U, avec son GPU). Chaque niveau correspond à une limite de plus battue : 20, 10, 5, 3 et 1.5 secondes. Votre ordinateur peut être plus rapide ou plus lent."
+    },
+    "importError": {
+      "import_missing": "Ces fichiers sont manquants : {{names}}. Téléchargez-les, puis importez à nouveau.",
+      "import_not_gguf": "{{name}} n’est pas un fichier de modèle GGUF.",
+      "import_unreadable": "{{name}} est illisible ou vide.",
+      "import_mismatch": "{{name}} n’est pas le fichier publié (son sha256 commence par {{got}}, alors que {{expected}} était attendu). Téléchargez-le à nouveau.",
+      "import_not_importable": "Ce modèle ne peut pas être importé manuellement.",
+      "import_failed": "L’importation a échoué."
     }
   },
   "notes": {

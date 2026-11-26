@@ -1,67 +1,76 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
 
 const store = vi.hoisted(() => ({ modelFiles: vi.fn(), importFiles: vi.fn(async () => {}) }));
 vi.mock('../../../stores/nativeModelStore', () => ({
   useNativeModelStore: Object.assign((sel: Function) => sel(store), { getState: () => store }),
 }));
-const opened = vi.hoisted(() => [] as string[]);
-vi.mock('../../../utils/openExternalUrl', () => ({ openExternalUrl: (u: string) => { opened.push(u); } }));
+// The WASM/WebGPU engine's store, which the shared window reads for its own default backend.
+vi.mock('../../../stores/modelStore', () => ({
+  useModelStore: (sel: Function) => sel({ importModel: vi.fn() }),
+}));
 
 import '../../../locales';
 import { NativeImportModal } from './NativeImportModal';
 
-const FILES = [{ repo: 'handy-computer/x-gguf', file: 'dir/x-Q8_0.gguf', url: 'https://huggingface.co/handy-computer/x-gguf/resolve/main/dir/x-Q8_0.gguf' }];
-const invoke = vi.fn();
+const FILES = [{ repo: 'handy-computer/x-gguf', file: 'dir/x-Q8_0.gguf', url: 'https://huggingface.co/handy-computer/x-gguf/resolve/main/dir/x-Q8_0.gguf', size: 2048 }];
+const pathFor = vi.fn();
 
 beforeEach(() => {
   store.modelFiles.mockReset().mockResolvedValue(FILES);
   store.importFiles.mockClear();
-  invoke.mockReset();
-  opened.length = 0;
-  (window as unknown as { electron: unknown }).electron = { invoke };
+  pathFor.mockReset().mockImplementation((f: { name: string }) => `/home/me/${f.name}`);
+  (window as unknown as { nativeFiles: unknown }).nativeFiles = { pathFor };
 });
-afterEach(() => { cleanup(); delete (window as unknown as { electron?: unknown }).electron; });
+afterEach(() => { cleanup(); delete (window as unknown as { nativeFiles?: unknown }).nativeFiles; });
 
 const mount = (onClose = vi.fn()) => {
   render(<NativeImportModal isOpen onClose={onClose} modelId="x" modelName="Model X" repo="handy-computer/x-gguf/dir/x-Q8_0.gguf" />);
   return onClose;
 };
+const gguf = (name = 'x-Q8_0.gguf', body = 'GGUF....') => new File([body], name);
+const addFiles = (...files: File[]) => {
+  const input = document.querySelectorAll('input[type="file"]')[1] as HTMLInputElement;   // "Choose files"
+  Object.defineProperty(input, 'files', { value: files, configurable: true });
+  fireEvent.change(input);
+};
 
-describe('NativeImportModal', () => {
-  it('names the file the model is made of and where it is published, asked for the chosen variant', async () => {
+describe('NativeImportModal — the shared import window over the native engine', () => {
+  it('is the same window as the WASM/WebGPU engine\'s: the repository, the command and the file the model is made of', async () => {
     mount();
-    expect(await screen.findByText('x-Q8_0.gguf')).toBeInTheDocument();
-    expect(screen.getByText(/handy-computer\/x-gguf/)).toBeInTheDocument();
+    expect(await screen.findByText('dir/x-Q8_0.gguf')).toBeInTheDocument();
+    expect(screen.getByText('handy-computer/x-gguf')).toBeInTheDocument();
+    expect(document.querySelector('.import-cmd__term pre')?.textContent).toContain('hf download handy-computer/x-gguf');
+    expect(document.querySelector('.import-cmd__term pre')?.textContent).toContain('dir/x-Q8_0.gguf');
     expect(store.modelFiles).toHaveBeenCalledWith('x', 'handy-computer/x-gguf/dir/x-Q8_0.gguf');
-    fireEvent.click(screen.getByRole('button', { name: /Open the download page/ }));
-    expect(opened).toEqual([FILES[0].url]);
   });
 
-  it('imports the files the person chooses, for the chosen variant, and closes', async () => {
-    invoke.mockResolvedValue({ ok: true, paths: ['/home/me/x-Q8_0.gguf'] });
+  it('hands the engine the paths of the files chosen, for the chosen variant, once they match', async () => {
     const onClose = mount();
-    await screen.findByText('x-Q8_0.gguf');
-    fireEvent.click(screen.getByRole('button', { name: /Choose files/ }));
+    await screen.findByText('dir/x-Q8_0.gguf');
+    addFiles(gguf());
+    const importBtn = await screen.findByRole('button', { name: /Import (& finish|1 now)/ });
+    await waitFor(() => expect(importBtn).toBeEnabled());
+    fireEvent.click(importBtn);
     await waitFor(() => expect(store.importFiles).toHaveBeenCalledWith('x', ['/home/me/x-Q8_0.gguf'], 'handy-computer/x-gguf/dir/x-Q8_0.gguf'));
-    expect(invoke).toHaveBeenCalledWith('native-models:pick-files', expect.objectContaining({ title: expect.any(String) }));
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('does nothing when the person cancels the dialog', async () => {
-    invoke.mockResolvedValue({ ok: true, paths: [] });
-    const onClose = mount();
-    await screen.findByText('x-Q8_0.gguf');
-    fireEvent.click(screen.getByRole('button', { name: /Choose files/ }));
-    await waitFor(() => expect(invoke).toHaveBeenCalled());
+  it('refuses an empty file in the window, before the engine hears of it', async () => {
+    mount();
+    await screen.findByText('dir/x-Q8_0.gguf');
+    addFiles(gguf('x-Q8_0.gguf', ''));
+    await waitFor(() => expect(document.querySelector('.import-file--invalid')).not.toBeNull());
+    expect(within(document.querySelector('.import-file--invalid') as HTMLElement).getByText(/empty/)).toBeInTheDocument();
     expect(store.importFiles).not.toHaveBeenCalled();
-    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('says so when the files cannot be looked up, and offers no choice', async () => {
+  it('shows the size where the catalog lists it, and says so when the files cannot be looked up', async () => {
+    mount();
+    expect(await screen.findByText(/2\.0 KB|2 KB|2\.00 KB/)).toBeInTheDocument();
+    cleanup();
     store.modelFiles.mockRejectedValue(new Error('engine down'));
     mount();
-    expect(await screen.findByRole('alert')).toHaveTextContent('engine down');
-    expect(screen.getByRole('button', { name: /Choose files/ })).toBeDisabled();
+    expect(await screen.findByText(/engine down/)).toBeInTheDocument();
   });
 });

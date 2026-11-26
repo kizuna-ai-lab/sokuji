@@ -1032,17 +1032,23 @@
     },
     "streaming": "스트리밍",
     "faster": "더 빠름",
-    "gradeTooltip": "{{language}} 정확도: {{grade}}",
     "gradeNone": "{{language}} 정확도는 측정되지 않았습니다",
-    "speedTooltip": "속도: {{max}}단계 중 {{level}}단계 (이 컴퓨터가 아닌 카탈로그의 테스트 머신에서 측정)",
     "speedNone": "속도는 측정되지 않았습니다",
-    "nativeImport": {
-      "title": "{{name}} 가져오기",
-      "intro": "아래 파일을 직접 다운로드한 다음 여기에서 선택하세요. 파일 이름은 그대로 유지해야 합니다.",
-      "loading": "파일을 찾는 중…",
-      "openPage": "다운로드 페이지 열기",
-      "choose": "파일 선택…",
-      "pickTitle": "다운로드한 파일 선택"
+    "gradeHelp": {
+      "title": "{{language}} 정확도: {{grade}}",
+      "how": "평가 방식: FLEURS 테스트 녹음에서 모델이 잘못 인식하는 음성의 비율(오류율)이며, 모델의 Q8_0 버전으로 측정했습니다. 오류가 5% 미만이면 A, 10% 미만이면 B, 20% 미만이면 C, 30% 미만이면 D, 그보다 많으면 F이고, + 또는 −는 각 등급을 3등분합니다. 사용자의 목소리, 마이크, 주변 소음에 따라 결과가 달라질 수 있습니다."
+    },
+    "speedHelp": {
+      "title": "속도: {{max}}단계 중 {{level}}단계",
+      "how": "평가 방식: 카탈로그의 테스트 컴퓨터(GPU를 사용하는 AMD Ryzen 4750U 노트북)에서 모델이 30초 길이의 녹음을 처리하는 데 걸리는 시간입니다. 한 단계마다 20, 10, 5, 3, 1.5초 기준 중 하나를 더 통과한 것입니다. 사용하는 컴퓨터는 이보다 빠르거나 느릴 수 있습니다."
+    },
+    "importError": {
+      "import_missing": "다음 파일이 없습니다: {{names}}. 파일을 다운로드한 후 다시 가져오세요.",
+      "import_not_gguf": "{{name}}은(는) GGUF 모델 파일이 아닙니다.",
+      "import_unreadable": "{{name}}을(를) 읽을 수 없거나 비어 있습니다.",
+      "import_mismatch": "{{name}}은(는) 게시된 파일이 아닙니다(sha256이 {{got}}(으)로 시작하며, 예상 값은 {{expected}}입니다). 다시 다운로드하세요.",
+      "import_not_importable": "이 모델은 직접 가져올 수 없습니다.",
+      "import_failed": "가져오기에 실패했습니다."
     }
   },
   "notes": {

@@ -98,6 +98,12 @@
     align-items: stretch;
     gap: 6px;
   }
+  // A card that shows its error under the row (the native engine's) keeps the row as it is.
+  &--error-below &__content {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+  }
 
   &__info {
     flex: 1;
@@ -405,6 +411,7 @@
 
   &__error-message {
     width: 100%;
+    margin-top: 6px;
     font-size: vars.$font-caption;
     color: vars.$color-error;
     opacity: 0.85;

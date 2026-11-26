@@ -795,7 +795,6 @@ const { removeLegacySidecar, modelCachePaths } = require('./legacy-sidecar-clean
 nativeHost = registerEngineIpc({
   ipcMain,
   app,
-  showOpenDialog: (options) => (mainWindow ? dialog.showOpenDialog(mainWindow, options) : dialog.showOpenDialog(options)),
   detectSku: require('./sidecar-sku').detectSku,
   nativeVersion: require('../package.json').nativeVersion,
   repoRoot: path.join(__dirname, '..'),

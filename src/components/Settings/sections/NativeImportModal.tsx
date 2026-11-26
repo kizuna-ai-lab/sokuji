@@ -1,25 +1,21 @@
 // src/components/Settings/sections/NativeImportModal.tsx
 //
-// Importing a native model by hand, for where the hub cannot be reached: the window names the file(s) the model is
-// made of and where each is published, the person downloads them however they can, then chooses them here. The engine
-// checks what was chosen (the right file, a whole GGUF, the published bytes where the catalog lists them) before
-// anything goes into the model cache; the card shows the progress and, if a file is refused, the reason.
-import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { ExternalLink, FolderInput } from 'lucide-react';
-import Modal from '../../Modal/Modal';
+// Importing a native model by hand, for where the hub cannot be reached: the same window as the WASM/WebGPU engine's
+// (ModelImportModal: get the files with a command, add them by dropping or choosing, see each file's state), over the
+// native engine's own backend. The files it needs come from the engine (model_files); the picked files are handed to
+// the engine by their paths on this computer, and the engine checks them (the file named, a GGUF with a readable
+// header, the published bytes where the catalog lists them) before anything goes into the model cache. The card shows
+// the progress and, if a file is refused, the reason.
+import React, { useMemo } from 'react';
+import { ModelImportModal, type ImportBackend } from './ModelImportModal';
+import { ModelFileValidationError } from '../../../lib/local-inference/modelFileValidation';
 import { useNativeModelStore } from '../../../stores/nativeModelStore';
-import type { ModelFileInfo } from '../../../lib/local-inference/native/nativeProtocol';
-import { openExternalUrl } from '../../../utils/openExternalUrl';
 
-interface ElectronInvoke { invoke(channel: string, data?: unknown): Promise<any>; }
-
-/** The files the person picks in the system's Open dialog (paths on this computer); [] when they cancel. */
-async function pickFiles(title: string): Promise<string[]> {
-  const e = (window as unknown as { electron?: ElectronInvoke }).electron;
-  if (!e) return [];
-  const r = await e.invoke('native-models:pick-files', { title });
-  return r?.ok && Array.isArray(r.paths) ? r.paths : [];
+/** The path of a file the page was given (the preload's `nativeFiles`); File.path is gone from Electron. */
+function pathOf(file: Blob): string {
+  const files = (window as unknown as { nativeFiles?: { pathFor(f: Blob): string } }).nativeFiles;
+  if (!files) throw new Error('importing a native model needs the desktop app');
+  return files.pathFor(file);
 }
 
 export const NativeImportModal: React.FC<{
@@ -31,56 +27,21 @@ export const NativeImportModal: React.FC<{
   /** The chosen variant's artifact, as a download takes it. */
   repo?: string;
 }> = ({ isOpen, onClose, modelId, modelName, repo }) => {
-  const { t } = useTranslation();
-  const [files, setFiles] = useState<ModelFileInfo[] | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    let live = true;
-    setFiles(null);
-    setProblem(null);
-    useNativeModelStore.getState().modelFiles(modelId, repo).then(
-      (f) => { if (live) setFiles(f); },
-      (e: unknown) => { if (live) setProblem(e instanceof Error ? e.message : String(e)); },
-    );
-    return () => { live = false; };
-  }, [isOpen, modelId, repo]);
-
-  const choose = async () => {
-    const paths = await pickFiles(t('models.nativeImport.pickTitle', 'Choose the downloaded files'));
-    if (paths.length === 0) return;
-    onClose();
-    // The card shows the progress, and the reason if a file is refused.
-    void useNativeModelStore.getState().importFiles(modelId, paths, repo);
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t('models.nativeImport.title', 'Import {{name}}', { name: modelName })}>
-      <div className="native-import-modal">
-        <p>{t('models.nativeImport.intro', 'Download the file(s) below yourself, then choose them here. The file names must stay as they are.')}</p>
-        {problem && <p role="alert">{problem}</p>}
-        {files === null && !problem && <p>{t('models.nativeImport.loading', 'Looking up the files…')}</p>}
-        {files && (
-          <ul className="native-import-modal__files">
-            {files.map((f) => (
-              <li key={`${f.repo}/${f.file}`}>
-                <strong>{f.file.split('/').pop()}</strong>
-                <span className="native-import-modal__repo"> {f.repo}</span>
-                {' '}
-                <button type="button" className="native-import-modal__link" onClick={() => openExternalUrl(f.url)}>
-                  <ExternalLink size={12} aria-hidden="true" />
-                  {t('models.nativeImport.openPage', 'Open the download page')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <button type="button" className="model-card__btn model-card__btn--import" onClick={() => void choose()} disabled={!files || files.length === 0}>
-          <FolderInput size={14} />
-          <span>{t('models.nativeImport.choose', 'Choose files…')}</span>
-        </button>
-      </div>
-    </Modal>
-  );
+  const backend = useMemo<ImportBackend>(() => ({
+    targets: async () => {
+      const files = await useNativeModelStore.getState().modelFiles(modelId, repo);
+      return { repo: files[0]?.repo, files: files.map((f) => ({ filename: f.file, url: f.url, sizeBytes: f.size ?? 0 })) };
+    },
+    // What is already in the cache is the card's business (it reads "downloaded"); the window lists what to add.
+    stored: async () => new Set<string>(),
+    validate: async (filename, blob) => {
+      if (blob.size === 0) throw new ModelFileValidationError(`Invalid file ${filename}: it is empty`);
+    },
+    commit: async (files) => {
+      const paths = files.map(pathOf);
+      // The card shows the progress, and the reason if a file is refused.
+      void useNativeModelStore.getState().importFiles(modelId, paths, repo);
+    },
+  }), [modelId, repo]);
+  return <ModelImportModal isOpen={isOpen} onClose={onClose} modelId={modelId} modelName={modelName} backend={backend} />;
 };

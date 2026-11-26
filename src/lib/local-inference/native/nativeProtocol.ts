@@ -109,7 +109,7 @@ export interface ListVariantsResultMsg {
 }
 export interface OkMsg { type: 'ok'; id: number; }
 export interface TtsGenerateResultMsg { type: 'tts_generate_result'; id: number; sampleRate: number; generationTimeMs: number; samples: number; }
-export interface ErrorMsg { type: 'error'; id?: number; model?: string; message: string; }
+export interface ErrorMsg { type: 'error'; id?: number; model?: string; message: string; code?: string; params?: Record<string, string>; }
 export interface TranslateResultMsg { type: 'translate_result'; id: number; sourceText: string; translatedText: string; inferenceTimeMs: number; }
 /** Id-less push during translate() generation: one per token, each carrying the
  *  cleaned full accumulation so far (not a delta) — same shape choice as AsrPartialMsg. */
@@ -119,7 +119,7 @@ export interface AsrResultMsg { type: 'result'; text: string; startSample?: numb
 export type NativeModelState = 'ready' | 'absent';
 export interface ModelStatusResultMsg { type: 'model_status_result'; id: number; statuses: Record<string, NativeModelState>; }
 export interface ModelDeleteResultMsg { type: 'model_delete_result'; id: number; model: string; freed: number; }
-export interface ModelFileInfo { repo: string; file: string; url: string; }
+export interface ModelFileInfo { repo: string; file: string; url: string; /** Bytes, where the published catalog lists the file. */ size?: number; }
 export interface ModelFilesResultMsg { type: 'model_files_result'; id: number; model: string; files: ModelFileInfo[]; }
 export interface ModelProgressMsg { type: 'model_progress'; model: string; downloaded: number; total: number; }
 export type ModelDownloadStatus = 'ready' | 'cancelled';

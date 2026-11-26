@@ -1032,17 +1032,23 @@
     },
     "streaming": "Streaming",
     "faster": "Lebih cepat",
-    "gradeTooltip": "Akurasi dalam {{language}}: {{grade}}",
     "gradeNone": "Akurasi dalam {{language}} tidak diukur",
-    "speedTooltip": "Kecepatan: {{level}} dari {{max}} (diukur pada mesin uji katalog, bukan pada komputer ini)",
     "speedNone": "Kecepatan tidak diukur",
-    "nativeImport": {
-      "title": "Impor {{name}}",
-      "intro": "Unduh sendiri file di bawah ini, lalu pilih di sini. Nama file harus tetap seperti semula.",
-      "loading": "Mencari file…",
-      "openPage": "Buka halaman unduhan",
-      "choose": "Pilih file…",
-      "pickTitle": "Pilih file yang telah diunduh"
+    "gradeHelp": {
+      "title": "Akurasi dalam {{language}}: {{grade}}",
+      "how": "Cara penilaiannya: persentase ucapan yang salah dikenali model (tingkat kesalahannya) pada rekaman uji FLEURS, diukur pada versi Q8_0 dari model. Kesalahan di bawah 5% adalah A, di bawah 10% B, di bawah 20% C, di bawah 30% D, lebih dari itu F; tanda + atau − membagi setiap huruf menjadi tiga bagian. Suara Anda sendiri, mikrofon, dan kebisingan akan mengubah hasilnya."
+    },
+    "speedHelp": {
+      "title": "Kecepatan: {{level}} dari {{max}}",
+      "how": "Cara penilaiannya: berapa lama model memproses rekaman 30 detik pada komputer uji katalog (laptop AMD Ryzen 4750U, memakai GPU-nya). Setiap tingkat berarti satu batas lagi terlampaui: 20, 10, 5, 3, dan 1.5 detik. Komputer Anda bisa lebih cepat atau lebih lambat."
+    },
+    "importError": {
+      "import_missing": "File berikut tidak ada: {{names}}. Unduh file tersebut lalu impor lagi.",
+      "import_not_gguf": "{{name}} bukan file model GGUF.",
+      "import_unreadable": "{{name}} tidak dapat dibaca, atau kosong.",
+      "import_mismatch": "{{name}} bukan file yang dipublikasikan (sha256-nya diawali {{got}}, seharusnya {{expected}}). Unduh lagi.",
+      "import_not_importable": "Model ini tidak dapat diimpor secara manual.",
+      "import_failed": "Impor gagal."
     }
   },
   "notes": {

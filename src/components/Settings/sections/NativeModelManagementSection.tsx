@@ -37,6 +37,7 @@ import {
   useNativeModelProgress,
   useNativeModelSizes,
   useNativeModelErrors,
+  useNativeModelErrorInfo,
   useNativeAsrResolved,
   useNativeTranslationResolved,
   useNativeTtsResolved,
@@ -72,6 +73,16 @@ const TT_LABEL: Record<string, [string, string]> = {
   repo: ['models.hwRepo', 'Repo'],
 };
 
+/** English for each refusal the engine codes (`models.importError.<code>`), with the placeholders its params fill. */
+const IMPORT_ERROR_TEXT: Record<string, string> = {
+  import_missing: 'These files are missing: {{names}}. Download them and import again.',
+  import_not_gguf: '{{name}} is not a GGUF model file.',
+  import_unreadable: '{{name}} cannot be read, or is empty.',
+  import_mismatch: '{{name}} is not the published file (its sha256 starts {{got}}, expected {{expected}}). Download it again.',
+  import_not_importable: 'This model cannot be imported by hand.',
+  import_failed: 'The import failed.',
+};
+
 /** Props bundle for the optional variant chooser on multi-quant translation cards. */
 type VariantCardProps = {
   variants: VariantInfo[];
@@ -101,6 +112,7 @@ const NativeModelCard: React.FC<{
   const progress = useNativeModelProgress();
   const sizes = useNativeModelSizes();
   const errors = useNativeModelErrors();
+  const errorInfo = useNativeModelErrorInfo();
   const download = useNativeModelStore((s) => s.download);
   const cancelDownload = useNativeModelStore((s) => s.cancelDownload);
   const deleteModel = useNativeModelStore((s) => s.deleteModel);
@@ -113,7 +125,10 @@ const NativeModelCard: React.FC<{
 
   const status = noDownload ? 'ready' : (statuses[spec.downloadId as string] || 'absent');
   const ready = noDownload || status === 'ready';
-  const err = noDownload ? undefined : errors[spec.downloadId as string];
+  const rawErr = noDownload ? undefined : errors[spec.downloadId as string];
+  // An import the engine refused says why in the interface's language; any other failure keeps the engine's own words.
+  const coded = noDownload ? undefined : errorInfo[spec.downloadId as string];
+  const err = rawErr && coded ? t(`models.importError.${coded.code}`, IMPORT_ERROR_TEXT[coded.code] ?? rawErr, coded.params) : rawErr;
 
   const statusClass = noDownload ? 'model-card--none'
     : status === 'ready' ? 'model-card--downloaded'
@@ -124,7 +139,7 @@ const NativeModelCard: React.FC<{
     selected && 'model-card--selected',
     (incompatible || hwGated) && 'model-card--incompatible',
     disabled && 'model-card--disabled',
-    err && status !== 'downloading' && 'model-card--error',
+    err && status !== 'downloading' && 'model-card--error model-card--error-below',
   ].filter(Boolean).join(' ');
 
   const handleClick = () => { if (!disabled && !incompatible && !hwGated && ready) onSelect(); };
@@ -319,23 +334,37 @@ const NativeModelCard: React.FC<{
                 const grade = asr.facts?.grades[i]?.grade;
                 const name = languageNameFor(language);
                 return (
-                  <span key={language} className="model-card__grade" data-testid={`grade-${spec.selectId}-${language}`}
-                    title={grade ? t('models.gradeTooltip', 'Accuracy in {{language}}: {{grade}}', { language: name, grade })
-                      : t('models.gradeNone', 'Accuracy in {{language}} was not measured', { language: name })}>
-                    <span className="model-card__grade-lang">{language.toUpperCase()}</span>
-                    <span className="model-card__grade-letter">{grade ?? '—'}</span>
-                  </span>
+                  <Tooltip key={language} position="top" icon="none" maxWidth={320}
+                    content={grade ? (
+                      <>
+                        <strong>{t('models.gradeHelp.title', 'Accuracy in {{language}}: {{grade}}', { language: name, grade })}</strong>
+                        <br />
+                        {t('models.gradeHelp.how', 'How it is rated: the share of speech the model gets wrong (its error rate) on the FLEURS test recordings, measured on the Q8_0 version of the model. Under 5% wrong is A, under 10% B, under 20% C, under 30% D, more is F; a + or − splits each letter into thirds. Your own voice, microphone and noise will change the result.')}
+                      </>
+                    ) : t('models.gradeNone', 'Accuracy in {{language}} was not measured', { language: name })}>
+                    <span className="model-card__grade" data-testid={`grade-${spec.selectId}-${language}`}>
+                      <span className="model-card__grade-lang">{language.toUpperCase()}</span>
+                      <span className="model-card__grade-letter">{grade ?? '—'}</span>
+                    </span>
+                  </Tooltip>
                 );
               })}
-              <span className="model-card__speed" role="img" data-testid={`speed-${spec.selectId}`}
-                aria-label={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured')
-                  : t('models.speedTooltip', 'Speed: {{level}} of {{max}} (measured on the catalog’s test machine, not on this computer)', { level: asr.facts.speed, max: SPEED_METER_STEPS })}
-                title={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured')
-                  : t('models.speedTooltip', 'Speed: {{level}} of {{max}} (measured on the catalog’s test machine, not on this computer)', { level: asr.facts.speed, max: SPEED_METER_STEPS })}>
-                {Array.from({ length: SPEED_METER_STEPS }, (_, n) => (
-                  <i key={n} className={n < (asr.facts?.speed ?? 0) ? 'on' : undefined} />
-                ))}
-              </span>
+              <Tooltip position="top" icon="none" maxWidth={320}
+                content={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured') : (
+                  <>
+                    <strong>{t('models.speedHelp.title', 'Speed: {{level}} of {{max}}', { level: asr.facts.speed, max: SPEED_METER_STEPS })}</strong>
+                    <br />
+                    {t('models.speedHelp.how', 'How it is rated: how long the model takes to process a 30-second recording on the catalog’s test computer (an AMD Ryzen 4750U laptop, using its GPU). Each step is one more of these limits beaten: 20, 10, 5, 3 and 1.5 seconds. Your computer may be faster or slower.')}
+                  </>
+                )}>
+                <span className="model-card__speed" role="img" data-testid={`speed-${spec.selectId}`}
+                  aria-label={asr.facts?.speed === undefined ? t('models.speedNone', 'Speed was not measured')
+                    : t('models.speedHelp.title', 'Speed: {{level}} of {{max}}', { level: asr.facts.speed, max: SPEED_METER_STEPS })}>
+                  {Array.from({ length: SPEED_METER_STEPS }, (_, n) => (
+                    <i key={n} className={n < (asr.facts?.speed ?? 0) ? 'on' : undefined} />
+                  ))}
+                </span>
+              </Tooltip>
             </div>
           )}
           <div className="model-card__actions">
@@ -372,6 +401,15 @@ const NativeModelCard: React.FC<{
               </div>
             ) : (
               <>
+                <button
+                  className="model-card__btn model-card__btn--download"
+                  onClick={handleDownload}
+                  disabled={disabled || hwGated}
+                  title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
+                >
+                  <Download size={14} />
+                  <span>{t('models.download', 'Download')}</span>
+                </button>
                 {!incompatible && (
                   <button
                     className="model-card__btn model-card__btn--import"
@@ -384,23 +422,15 @@ const NativeModelCard: React.FC<{
                     <span>{t('models.import', 'Import')}</span>
                   </button>
                 )}
-                <button
-                  className="model-card__btn model-card__btn--download"
-                  onClick={handleDownload}
-                  disabled={disabled || hwGated}
-                  title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
-                >
-                  <Download size={14} />
-                  <span>{t('models.download', 'Download')}</span>
-                </button>
               </>
             )}
           </div>
-          {err && status !== 'downloading' && (
-            <div className="model-card__error-message">{err}</div>
-          )}
         </div>
       </div>
+      {err && status !== 'downloading' && (
+        // Below the row, full width: beside the info and the buttons it would push them down.
+        <div className="model-card__error-message" role="alert">{err}</div>
+      )}
       {selected && children && (
         // stopPropagation so interacting with the body (e.g. the voice picker's
         // dropdown/buttons) does not bubble to the card root's onClick and re-select.

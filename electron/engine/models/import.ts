@@ -33,7 +33,12 @@ export function knownFile(repo: string, file: string): KnownFile | undefined {
   return undefined;
 }
 
-export class ImportError extends Error {}
+/** A refusal a person can act on: `code` and `params` let the interface say it in its own language; `message` is English. */
+export class ImportError extends Error {
+  constructor(message: string, readonly code: string = 'import_failed', readonly params: Record<string, string> = {}) {
+    super(message);
+  }
+}
 
 /** True when the file starts with a readable GGUF header (a file cut short, or not a GGUF at all, does not). */
 async function isGguf(file: string): Promise<boolean> {
@@ -50,7 +55,7 @@ async function isGguf(file: string): Promise<boolean> {
 async function sha256Of(file: string, onBytes: (n: number) => void, signal?: AbortSignal): Promise<string> {
   const hash = createHash('sha256');
   for await (const chunk of fs.createReadStream(file, { highWaterMark: 4 << 20 })) {
-    if (signal?.aborted) throw new ImportError('cancelled');
+    if (signal?.aborted) throw new ImportError('cancelled', 'import_cancelled');
     hash.update(chunk as Buffer);
     onBytes((chunk as Buffer).length);
   }
@@ -75,18 +80,18 @@ export interface ImportOptions {
 export async function importModel(modelId: string, paths: readonly string[], send: Send, opts: ImportOptions = {}): Promise<'ready' | 'cancelled'> {
   const { signal } = opts;
   const specs = downloadSpecs(modelId, opts.repo);
-  if (!specs.files || specs.files.length === 0) throw new ImportError(`${modelId} cannot be imported: it is not a single published file`);
+  if (!specs.files || specs.files.length === 0) throw new ImportError(`${modelId} cannot be imported: it is not a single published file`, 'import_not_importable', { model: modelId });
   const byName = new Map(paths.map((p) => [path.basename(p), p]));
   const wanted = specs.files.map(([repo, file]) => ({ repo, file, name: path.posix.basename(file), from: byName.get(path.posix.basename(file)) }));
   const missing = wanted.filter((w) => w.from === undefined).map((w) => w.name);
-  if (missing.length > 0) throw new ImportError(`missing: ${missing.join(', ')}`);
+  if (missing.length > 0) throw new ImportError(`missing: ${missing.join(', ')}`, 'import_missing', { names: missing.join(', ') });
 
   let total = 0;
   for (const w of wanted) {
     checkRepoPath(w.repo, w.file);
     const st = fs.statSync(w.from!, { throwIfNoEntry: false });
-    if (!st?.isFile() || st.size === 0) throw new ImportError(`${w.name} is not a readable file`);
-    if (w.name.endsWith('.gguf') && !(await isGguf(w.from!))) throw new ImportError(`${w.name} is not a GGUF file`);
+    if (!st?.isFile() || st.size === 0) throw new ImportError(`${w.name} is not a readable file`, 'import_unreadable', { name: w.name });
+    if (w.name.endsWith('.gguf') && !(await isGguf(w.from!))) throw new ImportError(`${w.name} is not a GGUF file`, 'import_not_gguf', { name: w.name });
     total += st.size * 2;   // read to hash it, then read again to copy it
   }
 
@@ -106,7 +111,10 @@ export async function importModel(modelId: string, paths: readonly string[], sen
       const sha = await sha256Of(from, tick, signal);
       const known = knownFile(w.repo, w.file);
       if (known && known.sha256 !== sha) {
-        throw new ImportError(`${w.name} is not the published file (its sha256 is ${sha.slice(0, 12)}…, expected ${known.sha256.slice(0, 12)}…): download it again`);
+        throw new ImportError(
+          `${w.name} is not the published file (its sha256 is ${sha.slice(0, 12)}…, expected ${known.sha256.slice(0, 12)}…): download it again`,
+          'import_mismatch', { name: w.name, got: sha.slice(0, 12), expected: known.sha256.slice(0, 12) },
+        );
       }
       const dir = repoDir(w.repo);
       const blob = path.join(dir, 'blobs', sha);
@@ -132,7 +140,7 @@ export async function importModel(modelId: string, paths: readonly string[], sen
       writeRef(w.repo, 'main', commit);
     }
   } catch (e) {
-    if (e instanceof ImportError && e.message === 'cancelled') return 'cancelled';
+    if (e instanceof ImportError && e.code === 'import_cancelled') return 'cancelled';
     throw e;
   }
   await send({ type: 'model_progress', model: modelId, downloaded: total, total });

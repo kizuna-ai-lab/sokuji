@@ -9,11 +9,26 @@ import { useModelStore } from '../../../stores/modelStore';
 import { formatBytes } from '../../../lib/local-inference/formatBytes';
 import './ModelImportModal.scss';
 
+/**
+ * What the window needs from an engine to import into it: which files the model is made of, which are already stored,
+ * whether a picked file is sane, and how the picked files are stored. The WASM/WebGPU engine's own (the default) reads
+ * its manifest and IndexedDB; the native engine's puts the files in its hub cache (NativeImportModal).
+ */
+export interface ImportBackend {
+  targets(): Promise<{ files: ModelFileTarget[]; repo?: string }> | { files: ModelFileTarget[]; repo?: string };
+  stored(filenames: string[]): Promise<Set<string>>;
+  validate(filename: string, blob: Blob, expectedSizeBytes: number): Promise<void>;
+  /** Stores the picked files; throws ModelImportError when some required file is still missing. */
+  commit(files: NamedBlob[]): Promise<void>;
+}
+
 interface ModelImportModalProps {
   modelId: string;
   modelName: string;
   isOpen: boolean;
   onClose: () => void;
+  /** Where the files go; the WASM/WebGPU engine's own when absent. */
+  backend?: ImportBackend;
 }
 
 type CmdTab = CommandTab;
@@ -26,9 +41,22 @@ function groupOf(filename: string): 'model' | 'config' {
     : 'config';
 }
 
-export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelImportModalProps) {
+export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend: given }: ModelImportModalProps) {
   const { t } = useTranslation();
   const importModel = useModelStore((s) => s.importModel);
+  const backend = useMemo<ImportBackend>(() => given ?? {
+    targets: () => {
+      const info = ModelManager.getInstance().getModelFileTargets(modelId);
+      return { files: info.files, repo: info.repo };
+    },
+    stored: async (filenames) => {
+      const present = new Set<string>();
+      await Promise.all(filenames.map(async (fn) => { if (await modelStorage.hasFile(modelId, fn)) present.add(fn); }));
+      return present;
+    },
+    validate: validateModelFile,
+    commit: (files) => importModel(modelId, files),
+  }, [given, modelId, importModel]);
 
   const [targets, setTargets] = useState<ModelFileTarget[]>([]);
   const [repo, setRepo] = useState<string | undefined>(undefined);
@@ -61,14 +89,8 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
 
   // ── Load the expected file list + already-stored files when opened ──
   const refreshStored = useCallback(async (filenames: string[]) => {
-    const present = new Set<string>();
-    await Promise.all(
-      filenames.map(async (fn) => {
-        if (await modelStorage.hasFile(modelId, fn)) present.add(fn);
-      }),
-    );
-    setStored(present);
-  }, [modelId]);
+    setStored(await backend.stored(filenames));
+  }, [backend]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -77,17 +99,29 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     setError(null);
     setCopied(false);
     setSource('huggingface');
-    try {
-      const info = ModelManager.getInstance().getModelFileTargets(modelId);
+    let live = true;
+    const show = (info: { files: ModelFileTarget[]; repo?: string }) => {
+      if (!live) return;
       setTargets(info.files);
       setRepo(info.repo);
       setTab(info.repo ? 'hf' : 'curl');
       void refreshStored(info.files.map((f) => f.filename));
-    } catch (err) {
+    };
+    const fail = (err: unknown) => {
+      if (!live) return;
       setTargets([]);
       setError(err instanceof Error ? err.message : String(err));
+    };
+    // A backend that knows its files at once (the WASM/WebGPU engine's manifest) shows them in the same render pass.
+    try {
+      const got = backend.targets();
+      if (got instanceof Promise) got.then(show, fail);
+      else show(got);
+    } catch (err) {
+      fail(err);
     }
-  }, [isOpen, modelId, refreshStored]);
+    return () => { live = false; };
+  }, [isOpen, backend, refreshStored]);
 
   const expectedNames = useMemo(() => targets.map((f) => f.filename), [targets]);
   const sizeByName = useMemo(
@@ -112,7 +146,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
       Object.entries(match.matched).map(async ([filename, key]) => {
         const blob = merged.get(key)!;
         try {
-          await validateModelFile(filename, blob, sizeByName[filename] ?? 0);
+          await backend.validate(filename, blob, sizeByName[filename] ?? 0);
           results[filename] = { ok: true };
         } catch (err) {
           const reason = err instanceof ModelFileValidationError
@@ -125,7 +159,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     // Merge (not overwrite) so results from an earlier, slower validation batch
     // that resolves out of order aren't dropped.
     setValidation((prev) => ({ ...prev, ...results }));
-  }, [expectedNames, sizeByName]);
+  }, [expectedNames, sizeByName, backend]);
 
   // ── Per-file display state ──
   const stateOf = useCallback((filename: string): FileState => {
@@ -152,7 +186,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     setImporting(true);
     setError(null);
     try {
-      await importModel(modelId, [...selected.values()]);
+      await backend.commit([...selected.values()]);
       onClose();
     } catch (err) {
       if (err instanceof ModelImportError) {
@@ -165,7 +199,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
     } finally {
       setImporting(false);
     }
-  }, [importModel, modelId, selected, onClose, t, refreshStored, expectedNames]);
+  }, [backend, selected, onClose, t, refreshStored, expectedNames]);
 
   // The mirror only changes curl/wget commands when the file hosts are on
   // huggingface.co (the hf CLI tab always accepts HF_ENDPOINT). For a
@@ -343,7 +377,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose }: ModelI
                         {st === 'stored' && (
                           <span className="import-file__tag">{t('models.importAlready', 'already imported')}</span>
                         )}
-                        <span className="import-file__size">{formatBytes(f.sizeBytes)}</span>
+                        {f.sizeBytes > 0 && <span className="import-file__size">{formatBytes(f.sizeBytes)}</span>}
                       </li>
                     );
                   })}

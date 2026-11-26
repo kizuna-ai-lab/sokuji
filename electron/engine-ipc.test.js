@@ -12,13 +12,12 @@ class FakeChild extends EventEmitter {
   kill() { queueMicrotask(() => this.emit('exit', 137)); }
 }
 
-function setup({ sku = 'linux-x64', env = {}, packaged = false, runtimePresent = true, showOpenDialog } = {}) {
+function setup({ sku = 'linux-x64', env = {}, packaged = false, runtimePresent = true } = {}) {
   const handlers = {};
   const children = [];
   const fork = vi.fn((_p, _a, opts) => { const c = new FakeChild(); c.opts = opts; children.push(c); return c; });
   registerEngineIpc({
     ipcMain: { handle: (ch, fn) => { handlers[ch] = fn; } },
-    showOpenDialog,
     app: { isPackaged: packaged, getPath: () => '/userData' },
     detectSku: () => sku,
     nativeVersion: '1.2.0',
@@ -33,16 +32,6 @@ function setup({ sku = 'linux-x64', env = {}, packaged = false, runtimePresent =
 }
 
 describe('engine IPC', () => {
-  it('native-models:pick-files returns the paths the person chose, and none when they cancel', async () => {
-    const showOpenDialog = vi.fn(async () => ({ canceled: false, filePaths: ['/a/m.gguf', '/a/n.gguf'] }));
-    const { handlers } = setup({ showOpenDialog });
-    expect(await handlers['native-models:pick-files']({}, { title: 'Pick' })).toEqual({ ok: true, paths: ['/a/m.gguf', '/a/n.gguf'] });
-    expect(showOpenDialog).toHaveBeenCalledWith({ title: 'Pick', properties: ['openFile', 'multiSelections'] });
-    showOpenDialog.mockResolvedValueOnce({ canceled: true, filePaths: [] });
-    expect(await handlers['native-models:pick-files']({}, {})).toEqual({ ok: true, paths: [] });
-    expect(await setup().handlers['native-models:pick-files']({}, {})).toEqual({ ok: false, error: 'no dialog' });
-  });
-
   it('sidecar-bundle:status answers ready with the native version', async () => {
     const { handlers } = setup();
     expect(await handlers['sidecar-bundle:status']()).toEqual({

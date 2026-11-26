@@ -1032,17 +1032,23 @@
     },
     "streaming": "Streaming",
     "faster": "Mas mabilis",
-    "gradeTooltip": "Katumpakan sa {{language}}: {{grade}}",
     "gradeNone": "Hindi sinukat ang katumpakan sa {{language}}",
-    "speedTooltip": "Bilis: {{level}} sa {{max}} (sinukat sa test machine ng catalog, hindi sa computer na ito)",
     "speedNone": "Hindi sinukat ang bilis",
-    "nativeImport": {
-      "title": "I-import ang {{name}}",
-      "intro": "I-download mo mismo ang mga file sa ibaba, pagkatapos ay piliin ang mga ito rito. Dapat manatiling pareho ang mga pangalan ng file.",
-      "loading": "Hinahanap ang mga file…",
-      "openPage": "Buksan ang pahina ng pag-download",
-      "choose": "Pumili ng mga file…",
-      "pickTitle": "Piliin ang mga na-download na file"
+    "gradeHelp": {
+      "title": "Katumpakan sa {{language}}: {{grade}}",
+      "how": "Paano ito nire-rate: ang bahagi ng pagsasalita na mali ang nakukuha ng model (ang error rate nito) sa mga test recording ng FLEURS, na sinukat sa Q8_0 na bersyon ng model. Wala pang 5% na mali ay A, wala pang 10% ay B, wala pang 20% ay C, wala pang 30% ay D, at mas mataas pa rito ay F; hinahati ng + o − ang bawat letra sa tatlong bahagi. Mababago ng sarili mong boses, mikropono, at ingay ang resulta."
+    },
+    "speedHelp": {
+      "title": "Bilis: {{level}} sa {{max}}",
+      "how": "Paano ito nire-rate: kung gaano katagal pino-proseso ng model ang isang 30-segundong recording sa test computer ng catalog (isang AMD Ryzen 4750U na laptop, gamit ang GPU nito). Ang bawat hakbang ay isa pang limitasyon na nalampasan: 20, 10, 5, 3, at 1.5 segundo. Maaaring mas mabilis o mas mabagal ang computer mo."
+    },
+    "importError": {
+      "import_missing": "Kulang ang mga file na ito: {{names}}. I-download ang mga ito at i-import muli.",
+      "import_not_gguf": "Ang {{name}} ay hindi GGUF model file.",
+      "import_unreadable": "Hindi mabasa ang {{name}}, o walang laman ito.",
+      "import_mismatch": "Ang {{name}} ay hindi ang nailathalang file (nagsisimula ang sha256 nito sa {{got}}, inaasahan ang {{expected}}). I-download itong muli.",
+      "import_not_importable": "Hindi maaaring i-import nang mano-mano ang model na ito.",
+      "import_failed": "Nabigo ang pag-import."
     }
   },
   "notes": {

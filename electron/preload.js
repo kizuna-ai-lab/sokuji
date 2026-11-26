@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 // Renderer→main invoke allowlist. Single source of truth in ipc-channels.js
 // (guarded against handler drift by ipc-channels.test.js). The bundler inlines
 // this array into the built preload.js, so the shipped artifact stays an
@@ -54,6 +54,9 @@ function initializeCookies() {
 
 // Expose cookie API to renderer process
 contextBridge.exposeInMainWorld('cookieAPI', cookieAPI);
+// The path of a file the person picked or dropped in the page (File.path is gone from Electron): what the local engine
+// is handed to import a model file. Only the path of a file the page was given; nothing is read or opened here.
+contextBridge.exposeInMainWorld('nativeFiles', { pathFor: (file) => webUtils.getPathForFile(file) });
 contextBridge.exposeInMainWorld('initializeCookies', initializeCookies);
 
 // Track original callback → wrapper for correct removeListener behavior

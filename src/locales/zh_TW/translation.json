@@ -1032,17 +1032,23 @@
     },
     "streaming": "串流",
     "faster": "較快",
-    "gradeTooltip": "{{language}}準確度：{{grade}}",
     "gradeNone": "尚未測量{{language}}的準確度",
-    "speedTooltip": "速度：{{level}} / {{max}}（於型錄的測試機器上測得，並非在這台電腦上）",
     "speedNone": "尚未測量速度",
-    "nativeImport": {
-      "title": "匯入 {{name}}",
-      "intro": "請自行下載下列檔案，然後在此選擇。檔案名稱必須保持不變。",
-      "loading": "正在尋找檔案…",
-      "openPage": "開啟下載頁面",
-      "choose": "選擇檔案…",
-      "pickTitle": "選擇已下載的檔案"
+    "gradeHelp": {
+      "title": "{{language}}的準確度：{{grade}}",
+      "how": "評級方法：模型在 FLEURS 測試錄音上說錯的比例（錯誤率），是在模型的 Q8_0 版本上測得的。錯誤率低於 5% 為 A，低於 10% 為 B，低於 20% 為 C，低於 30% 為 D，更高為 F；+ 和 − 會把每個字母再分成三份。你自己的聲音、麥克風和雜訊會影響實際結果。"
+    },
+    "speedHelp": {
+      "title": "速度：{{max}} 格中的 {{level}} 格",
+      "how": "評級方法：模型在評測用電腦（一台 AMD Ryzen 4750U 筆記型電腦，使用其 GPU）上處理一段 30 秒錄音所需的時間。每一格代表又趕在一個時限內：20、10、5、3、1.5 秒。你的電腦可能更快或更慢。"
+    },
+    "importError": {
+      "import_missing": "缺少這些檔案：{{names}}。請下載後再匯入。",
+      "import_not_gguf": "{{name}} 不是 GGUF 模型檔案。",
+      "import_unreadable": "{{name}} 無法讀取，或是空的。",
+      "import_mismatch": "{{name}} 不是已發布的檔案（其 sha256 開頭為 {{got}}，應為 {{expected}}）。請重新下載。",
+      "import_not_importable": "這個模型無法手動匯入。",
+      "import_failed": "匯入失敗。"
     }
   },
   "notes": {

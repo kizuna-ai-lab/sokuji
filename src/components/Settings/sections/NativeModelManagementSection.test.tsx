@@ -254,6 +254,8 @@ const mockResolve = (src: string, tgt: string, selections: typeof mockSettings.s
 };
 
 // The import window: its own tests cover it; here only what the card hands it.
+let mockErrors: Record<string, string> = {};
+let mockErrorInfo: Record<string, { code: string; params: Record<string, string> }> = {};
 const importModal = vi.hoisted(() => ({ props: [] as Array<{ isOpen: boolean; modelId: string; modelName: string; repo?: string }> }));
 vi.mock('./NativeImportModal', () => ({
   NativeImportModal: (p: { isOpen: boolean; modelId: string; modelName: string; repo?: string }) => { importModal.props.push(p); return null; },
@@ -289,7 +291,8 @@ vi.mock('../../../stores/nativeModelStore', () => {
     useNativeModelStatuses: () => ({ ...mockStatuses }),
     useNativeModelProgress: () => ({}),
     useNativeModelSizes: () => ({ ...mockSizes }),
-    useNativeModelErrors: () => ({}),
+    useNativeModelErrors: () => ({ ...mockErrors }),
+    useNativeModelErrorInfo: () => ({ ...mockErrorInfo }),
     useNativeCatalog: () => mockCatalogOverride ?? mockCatalog,
     useNativeAsrLoading: () => false,
     useNativeAsrResolved: () => null,
@@ -310,6 +313,8 @@ beforeEach(() => {
   Object.keys(mockStatuses).forEach((k) => delete mockStatuses[k]);
   Object.keys(mockSizes).forEach((k) => delete mockSizes[k]);
   mockTtsResolved = null;
+  mockErrors = {};
+  mockErrorInfo = {};
   mockSidecarStatus = 'ready';
   mockListVariants.mockResolvedValue({ variants: mockVariants, recommended: 'q4_k_m' });
   mockDownload.mockReset();
@@ -876,5 +881,27 @@ describe('NativeModelManagementSection — the Import button', () => {
     } finally {
       mockCatalogOverride = null;
     }
+  });
+});
+
+describe('NativeModelManagementSection — a refused import', () => {
+  const pairProps = { settings: mockSettings, update: mockUpdate, pair: { source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage } };
+
+  it('says why in the interface\'s language, from the engine\'s code, under the row and not inside it', async () => {
+    mockErrors = { 'sense-voice': 'missing: a.gguf' };
+    mockErrorInfo = { 'sense-voice': { code: 'import_missing', params: { names: 'a.gguf' } } };
+    render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+    const card = await screen.findByTestId('model-card-sense-voice');
+    const message = within(card).getByRole('alert');
+    expect(message).toHaveTextContent('These files are missing: a.gguf. Download them and import again.');
+    // Outside the row of info and buttons, so it cannot push them down.
+    expect(message.closest('.model-card__content')).toBeNull();
+    expect(card.className).toContain('model-card--error-below');
+  });
+
+  it('keeps the engine\'s own words for a failure it did not code', async () => {
+    mockErrors = { 'sense-voice': 'disk full' };
+    render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+    expect(within(await screen.findByTestId('model-card-sense-voice')).getByRole('alert')).toHaveTextContent('disk full');
   });
 });

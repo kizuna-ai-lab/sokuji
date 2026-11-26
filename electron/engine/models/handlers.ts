@@ -7,6 +7,7 @@ import type { Conn } from '../conn';
 import { register as registerHandler, type EngineState, type Handler } from '../server';
 import { downloadModel } from './download';
 import { importModel, ImportError } from './import';
+import { knownFile } from './import';
 import { downloadSpecs } from './specs';
 import { deleteModel } from './remove';
 import { modelStatus } from './status';
@@ -84,7 +85,8 @@ async function runImport(state: EngineState, model: string, conn: Conn, paths: s
     await conn.send({ type: 'model_download_done', model, status });
   } catch (e) {
     // An ImportError is worded for the person; anything else is the engine's own message.
-    await conn.send({ type: 'error', model, message: e instanceof ImportError || e instanceof Error ? e.message : String(e) });
+    if (e instanceof ImportError) await conn.send({ type: 'error', model, message: e.message, code: e.code, params: e.params });
+    else await conn.send({ type: 'error', model, message: e instanceof Error ? e.message : String(e) });
   } finally {
     const downloads = downloadsOf(state);
     if (downloads.get(model) === entry) downloads.delete(model);
@@ -109,7 +111,7 @@ export const modelImportHandler: Handler = async (state, msg, _binary, conn) => 
 export const modelFilesHandler: Handler = async (_state, msg) => {
   const model = String(msg.model ?? '');
   const specs = downloadSpecs(model, str(msg.repo));
-  const files = (specs.files ?? []).map(([repo, file]) => ({ repo, file, url: `https://huggingface.co/${repo}/resolve/main/${file}` }));
+  const files = (specs.files ?? []).map(([repo, file]) => ({ repo, file, url: `https://huggingface.co/${repo}/resolve/main/${file}`, size: knownFile(repo, file)?.size }));
   return [{ type: 'model_files_result', id: msg.id, model, files }, null];
 };
 

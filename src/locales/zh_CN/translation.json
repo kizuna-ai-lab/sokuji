@@ -950,18 +950,24 @@
     "hwRepo": "仓库",
     "computeDevice": "硬件加速",
     "streaming": "流式",
-    "nativeImport": {
-      "title": "导入 {{name}}",
-      "intro": "请先自己下载下面的文件，再在这里选择它们。文件名不能改。",
-      "loading": "正在查找文件…",
-      "openPage": "打开下载页面",
-      "choose": "选择文件…",
-      "pickTitle": "选择已下载的文件"
-    },
     "faster": "更快",
-    "gradeTooltip": "{{language}}的准确度：{{grade}}",
     "gradeNone": "没有测过{{language}}的准确度",
-    "speedTooltip": "速度：{{max}} 格里的 {{level}} 格（在评测用的机器上测的，不是这台电脑）",
+    "gradeHelp": {
+      "title": "{{language}}的准确度：{{grade}}",
+      "how": "评级方法：模型在 FLEURS 测试录音上说错的比例（错误率），是在模型的 Q8_0 版本上测的。错误率低于 5% 是 A，低于 10% 是 B，低于 20% 是 C，低于 30% 是 D，更高是 F；+ 和 − 把每个字母再分成三份。你自己的声音、麦克风和噪音会影响实际结果。"
+    },
+    "speedHelp": {
+      "title": "速度：{{max}} 格里的 {{level}} 格",
+      "how": "评级方法：模型在评测用的电脑（一台 AMD Ryzen 4750U 笔记本，用它的 GPU）上处理一段 30 秒录音要多久。每一格表示又赶在一个时限内：20、10、5、3、1.5 秒。你的电脑可能更快或更慢。"
+    },
+    "importError": {
+      "import_missing": "缺少这些文件：{{names}}。请下载后再导入。",
+      "import_not_gguf": "{{name}} 不是 GGUF 模型文件。",
+      "import_unreadable": "{{name}} 读不了，或者是空的。",
+      "import_mismatch": "{{name}} 不是发布的那个文件（它的 sha256 以 {{got}} 开头，应为 {{expected}}）。请重新下载。",
+      "import_not_importable": "这个模型不能手动导入。",
+      "import_failed": "导入失败。"
+    },
     "speedNone": "没有测过速度",
     "computeDeviceTooltip": "运行语音模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：在 Windows 和 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",
     "computeDeviceTooltipTranslation": "运行翻译模型的设备。自动：选择当前最快的可用设备（有GPU时优先使用GPU）；CPU：适用于所有设备，但运行大模型时较慢；GPU：在 Windows 和 Linux 上使用 Vulkan，在 Apple silicon 上使用 Metal。",

@@ -1032,17 +1032,23 @@
     },
     "streaming": "Strumieniowe",
     "faster": "Szybsze",
-    "gradeTooltip": "Dokładność ({{language}}): {{grade}}",
     "gradeNone": "Nie zmierzono dokładności ({{language}})",
-    "speedTooltip": "Szybkość: {{level}} z {{max}} (zmierzona na maszynie testowej katalogu, a nie na tym komputerze)",
     "speedNone": "Nie zmierzono szybkości",
-    "nativeImport": {
-      "title": "Importuj {{name}}",
-      "intro": "Pobierz poniższe pliki samodzielnie, a następnie wybierz je tutaj. Nazwy plików muszą pozostać bez zmian.",
-      "loading": "Wyszukiwanie plików…",
-      "openPage": "Otwórz stronę pobierania",
-      "choose": "Wybierz pliki…",
-      "pickTitle": "Wybierz pobrane pliki"
+    "gradeHelp": {
+      "title": "Dokładność ({{language}}): {{grade}}",
+      "how": "Jak jest oceniana: odsetek mowy, który model rozpoznaje błędnie (jego współczynnik błędów) na nagraniach testowych FLEURS, zmierzony dla wersji Q8_0 modelu. Poniżej 5% błędów to A, poniżej 10% B, poniżej 20% C, poniżej 30% D, więcej to F; + lub − dzieli każdą literę na trzy części. Twój własny głos, mikrofon i hałas zmienią wynik."
+    },
+    "speedHelp": {
+      "title": "Szybkość: {{level}} z {{max}}",
+      "how": "Jak jest oceniana: ile czasu model potrzebuje na przetworzenie 30-sekundowego nagrania na komputerze testowym katalogu (laptopie AMD Ryzen 4750U, z użyciem jego GPU). Każdy stopień oznacza pokonanie kolejnego z tych limitów: 20, 10, 5, 3 i 1.5 sekundy. Twój komputer może być szybszy lub wolniejszy."
+    },
+    "importError": {
+      "import_missing": "Brakuje tych plików: {{names}}. Pobierz je i zaimportuj ponownie.",
+      "import_not_gguf": "{{name}} nie jest plikiem modelu GGUF.",
+      "import_unreadable": "Nie można odczytać pliku {{name}} lub jest pusty.",
+      "import_mismatch": "{{name}} nie jest opublikowanym plikiem (jego sha256 zaczyna się od {{got}}, oczekiwano {{expected}}). Pobierz go ponownie.",
+      "import_not_importable": "Tego modelu nie można zaimportować ręcznie.",
+      "import_failed": "Import się nie powiódł."
     }
   },
   "notes": {

@@ -1032,17 +1032,23 @@
     },
     "streaming": "Streaming",
     "faster": "Sneller",
-    "gradeTooltip": "Nauwkeurigheid in {{language}}: {{grade}}",
     "gradeNone": "Nauwkeurigheid in {{language}} is niet gemeten",
-    "speedTooltip": "Snelheid: {{level}} van {{max}} (gemeten op de testmachine van de catalogus, niet op deze computer)",
     "speedNone": "Snelheid is niet gemeten",
-    "nativeImport": {
-      "title": "{{name}} importeren",
-      "intro": "Download de onderstaande bestanden zelf en kies ze daarna hier. De bestandsnamen moeten ongewijzigd blijven.",
-      "loading": "Bestanden opzoeken…",
-      "openPage": "Downloadpagina openen",
-      "choose": "Bestanden kiezen…",
-      "pickTitle": "Kies de gedownloade bestanden"
+    "gradeHelp": {
+      "title": "Nauwkeurigheid in {{language}}: {{grade}}",
+      "how": "Zo wordt het beoordeeld: het aandeel spraak dat het model fout heeft (het foutpercentage) op de FLEURS-testopnamen, gemeten met de Q8_0-versie van het model. Minder dan 5% fout is A, minder dan 10% B, minder dan 20% C, minder dan 30% D, meer is F; een + of − verdeelt elke letter in derden. Je eigen stem, microfoon en omgevingsgeluid veranderen het resultaat."
+    },
+    "speedHelp": {
+      "title": "Snelheid: {{level}} van {{max}}",
+      "how": "Zo wordt het beoordeeld: hoe lang het model erover doet om een opname van 30 seconden te verwerken op de testcomputer van de catalogus (een AMD Ryzen 4750U-laptop, met zijn GPU). Elke stap is nog een van deze grenzen die wordt gehaald: 20, 10, 5, 3 en 1.5 seconden. Jouw computer kan sneller of langzamer zijn."
+    },
+    "importError": {
+      "import_missing": "Deze bestanden ontbreken: {{names}}. Download ze en importeer opnieuw.",
+      "import_not_gguf": "{{name}} is geen GGUF-modelbestand.",
+      "import_unreadable": "{{name}} kan niet worden gelezen of is leeg.",
+      "import_mismatch": "{{name}} is niet het gepubliceerde bestand (de sha256 begint met {{got}}, verwacht was {{expected}}). Download het opnieuw.",
+      "import_not_importable": "Dit model kan niet handmatig worden geïmporteerd.",
+      "import_failed": "Importeren is mislukt."
     }
   },
   "notes": {

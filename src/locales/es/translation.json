@@ -1032,17 +1032,23 @@
     },
     "streaming": "Streaming",
     "faster": "Más rápido",
-    "gradeTooltip": "Precisión en {{language}}: {{grade}}",
     "gradeNone": "No se midió la precisión en {{language}}",
-    "speedTooltip": "Velocidad: {{level}} de {{max}} (medida en el equipo de pruebas del catálogo, no en este equipo)",
     "speedNone": "No se midió la velocidad",
-    "nativeImport": {
-      "title": "Importar {{name}}",
-      "intro": "Descarga tú mismo los archivos de abajo y luego elígelos aquí. Los nombres de los archivos deben mantenerse tal cual.",
-      "loading": "Buscando los archivos…",
-      "openPage": "Abrir la página de descarga",
-      "choose": "Elegir archivos…",
-      "pickTitle": "Elige los archivos descargados"
+    "gradeHelp": {
+      "title": "Precisión en {{language}}: {{grade}}",
+      "how": "Cómo se califica: el porcentaje de habla que el modelo reconoce mal (su tasa de error) en las grabaciones de prueba de FLEURS, medido con la versión Q8_0 del modelo. Menos de 5% de error es A, menos de 10% B, menos de 20% C, menos de 30% D y más es F; un + o un − divide cada letra en tercios. Tu propia voz, el micrófono y el ruido cambiarán el resultado."
+    },
+    "speedHelp": {
+      "title": "Velocidad: {{level}} de {{max}}",
+      "how": "Cómo se califica: cuánto tarda el modelo en procesar una grabación de 30 segundos en el ordenador de pruebas del catálogo (un portátil AMD Ryzen 4750U que usa su GPU). Cada nivel supera un límite más de estos: 20, 10, 5, 3 y 1.5 segundos. Tu ordenador puede ser más rápido o más lento."
+    },
+    "importError": {
+      "import_missing": "Faltan estos archivos: {{names}}. Descárgalos y vuelve a importar.",
+      "import_not_gguf": "{{name}} no es un archivo de modelo GGUF.",
+      "import_unreadable": "No se puede leer {{name}} o está vacío.",
+      "import_mismatch": "{{name}} no es el archivo publicado (su sha256 empieza por {{got}}, y se esperaba {{expected}}). Vuelve a descargarlo.",
+      "import_not_importable": "Este modelo no se puede importar manualmente.",
+      "import_failed": "Error al importar."
     }
   },
   "notes": {

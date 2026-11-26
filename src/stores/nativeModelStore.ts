@@ -59,6 +59,8 @@ interface NativeModelStore {
   progress: Record<string, { downloaded: number; total: number }>;
   sizes: Record<string, number>;
   errors: Record<string, string>;
+  /** A refusal the engine coded (an import it turned down): lets the card say it in the interface's language. */
+  errorInfo: Record<string, { code: string; params: Record<string, string> }>;
   /** Per-machine model catalog from the sidecar (languages, recommended, tier availability). */
   catalog: Record<string, NativeModelInfo>;
   /** Sidecar lifecycle. Drives every native UI surface that depends on the catalog. */
@@ -292,6 +294,7 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
   progress: {},
   sizes: {},
   errors: {},
+  errorInfo: {},
   catalog: {},
   sidecarStatus: 'idle',
   engineInfo: null,
@@ -589,15 +592,18 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       statuses: { ...s.statuses, [model]: 'downloading' },
       progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
       errors: { ...s.errors, [model]: '' },
+      errorInfo: Object.fromEntries(Object.entries(s.errorInfo).filter(([k]) => k !== model)),
     }));
     try {
       const status = await client.importFiles(model, paths, (p) =>
         set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })), repo);
       set((s) => ({ statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' }, errors: { ...s.errors, [model]: '' } }));
     } catch (err) {
+      const coded = err as { code?: string; params?: Record<string, string> };
       set((s) => ({
         statuses: { ...s.statuses, [model]: 'absent' },
         errors: { ...s.errors, [model]: err instanceof Error ? err.message : String(err) },
+        errorInfo: coded.code ? { ...s.errorInfo, [model]: { code: coded.code, params: coded.params ?? {} } } : s.errorInfo,
       }));
     }
   },
@@ -801,6 +807,7 @@ export const useNativeModelStatuses = () => useNativeModelStore((s) => s.statuse
 export const useNativeModelProgress = () => useNativeModelStore((s) => s.progress);
 export const useNativeModelSizes = () => useNativeModelStore((s) => s.sizes);
 export const useNativeModelErrors = () => useNativeModelStore((s) => s.errors);
+export const useNativeModelErrorInfo = () => useNativeModelStore((s) => s.errorInfo);
 export const useNativeCatalog = () => useNativeModelStore((s) => s.catalog);
 export const useNativeLastResolutionNotes = () => useNativeModelStore((s) => s.lastResolutionNotes);
 export const useNativeAsrLoading = () => useNativeModelStore((s) => s.asrLoading);

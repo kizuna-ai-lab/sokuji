@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Conn } from '../conn';
 import { createState, handleMessage } from '../server';
 import { downloadsOf, handlerSeams, register, restoreHandlerSeams } from './handlers';
+import { ImportError } from './import';
 
 class FakeSocket {
   readyState = 1;
@@ -230,6 +231,14 @@ describe('model_import', () => {
     await call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/b.gguf'] });
     await terminal(socket);
     expect(socket.sent.at(-1)).toEqual({ type: 'error', model: 'm', message: 'missing: a.gguf' });
+  });
+
+  it('sends the refusal\'s code and params with its message, for the interface to translate', async () => {
+    handlerSeams.importModel = async () => { throw new ImportError('missing: a.gguf', 'import_missing', { names: 'a.gguf' }); };
+    const { socket, call } = setup();
+    await call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/b.gguf'] });
+    await terminal(socket);
+    expect(socket.sent.at(-1)).toEqual({ type: 'error', model: 'm', message: 'missing: a.gguf', code: 'import_missing', params: { names: 'a.gguf' } });
   });
 
   it('asks for files when none were chosen, and does not import over a download in flight', async () => {

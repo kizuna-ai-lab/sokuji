@@ -1032,17 +1032,23 @@
     },
     "streaming": "Strömmande",
     "faster": "Snabbare",
-    "gradeTooltip": "Noggrannhet för {{language}}: {{grade}}",
     "gradeNone": "Noggrannheten för {{language}} mättes inte",
-    "speedTooltip": "Hastighet: {{level}} av {{max}} (uppmätt på katalogens testdator, inte på den här datorn)",
     "speedNone": "Hastigheten mättes inte",
-    "nativeImport": {
-      "title": "Importera {{name}}",
-      "intro": "Ladda ner filerna nedan själv och välj dem sedan här. Filnamnen måste vara oförändrade.",
-      "loading": "Söker efter filerna…",
-      "openPage": "Öppna nedladdningssidan",
-      "choose": "Välj filer…",
-      "pickTitle": "Välj de nedladdade filerna"
+    "gradeHelp": {
+      "title": "Noggrannhet för {{language}}: {{grade}}",
+      "how": "Så betygsätts den: andelen tal som modellen uppfattar fel (dess felfrekvens) på FLEURS testinspelningar, mätt på Q8_0-versionen av modellen. Under 5% fel är A, under 10% B, under 20% C, under 30% D, mer är F; ett + eller − delar varje bokstav i tredjedelar. Din egen röst, mikrofon och bakgrundsljud påverkar resultatet."
+    },
+    "speedHelp": {
+      "title": "Hastighet: {{level}} av {{max}}",
+      "how": "Så betygsätts den: hur lång tid modellen behöver för att bearbeta en inspelning på 30 sekunder på katalogens testdator (en AMD Ryzen 4750U-laptop som använder dess GPU). Varje steg är ytterligare en av dessa gränser som underskrids: 20, 10, 5, 3 och 1.5 sekunder. Din dator kan vara snabbare eller långsammare."
+    },
+    "importError": {
+      "import_missing": "Dessa filer saknas: {{names}}. Ladda ner dem och importera igen.",
+      "import_not_gguf": "{{name}} är inte en GGUF-modellfil.",
+      "import_unreadable": "{{name}} kan inte läsas eller är tom.",
+      "import_mismatch": "{{name}} är inte den publicerade filen (dess sha256 börjar med {{got}}, förväntat {{expected}}). Ladda ner den igen.",
+      "import_not_importable": "Den här modellen kan inte importeras manuellt.",
+      "import_failed": "Importen misslyckades."
     }
   },
   "notes": {

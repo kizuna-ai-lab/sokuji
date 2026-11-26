@@ -1032,17 +1032,23 @@
     },
     "streaming": "Phát trực tiếp",
     "faster": "Nhanh hơn",
-    "gradeTooltip": "Độ chính xác với {{language}}: {{grade}}",
     "gradeNone": "Chưa đo độ chính xác với {{language}}",
-    "speedTooltip": "Tốc độ: {{level}}/{{max}} (đo trên máy thử nghiệm của danh mục, không phải trên máy tính này)",
     "speedNone": "Chưa đo tốc độ",
-    "nativeImport": {
-      "title": "Nhập {{name}}",
-      "intro": "Hãy tự tải xuống các tệp bên dưới, rồi chọn chúng tại đây. Tên tệp phải được giữ nguyên.",
-      "loading": "Đang tìm các tệp…",
-      "openPage": "Mở trang tải xuống",
-      "choose": "Chọn tệp…",
-      "pickTitle": "Chọn các tệp đã tải xuống"
+    "gradeHelp": {
+      "title": "Độ chính xác với {{language}}: {{grade}}",
+      "how": "Cách chấm điểm: tỷ lệ lời nói mà mô hình nhận sai (tỷ lệ lỗi) trên các bản ghi âm thử nghiệm FLEURS, đo trên phiên bản Q8_0 của mô hình. Sai dưới 5% là A, dưới 10% là B, dưới 20% là C, dưới 30% là D, nhiều hơn là F; dấu + hoặc − chia mỗi chữ cái thành ba phần. Giọng nói của bạn, micro và tiếng ồn sẽ làm kết quả thay đổi."
+    },
+    "speedHelp": {
+      "title": "Tốc độ: {{level}} trên {{max}}",
+      "how": "Cách chấm điểm: thời gian mô hình cần để xử lý một bản ghi âm 30 giây trên máy tính thử nghiệm của danh mục (một laptop AMD Ryzen 4750U, dùng GPU của nó). Mỗi bậc là vượt thêm một trong các giới hạn này: 20, 10, 5, 3 và 1.5 giây. Máy tính của bạn có thể nhanh hơn hoặc chậm hơn."
+    },
+    "importError": {
+      "import_missing": "Thiếu các tệp này: {{names}}. Hãy tải xuống rồi nhập lại.",
+      "import_not_gguf": "{{name}} không phải là tệp mô hình GGUF.",
+      "import_unreadable": "Không thể đọc {{name}}, hoặc tệp trống.",
+      "import_mismatch": "{{name}} không phải là tệp đã phát hành (sha256 của nó bắt đầu bằng {{got}}, trong khi mong đợi {{expected}}). Hãy tải xuống lại.",
+      "import_not_importable": "Không thể nhập mô hình này theo cách thủ công.",
+      "import_failed": "Nhập không thành công."
     }
   },
   "notes": {

@@ -36,7 +36,7 @@ export class NativeModelClient {
     if (msg.type === 'error' && msg.model && this.downloads.has(msg.model)) {
       const h = this.downloads.get(msg.model)!;
       this.downloads.delete(msg.model);
-      h.reject(new Error(msg.message));
+      h.reject(Object.assign(new Error(msg.message), msg.code ? { code: msg.code, params: msg.params ?? {} } : {}));
     }
   }
 
