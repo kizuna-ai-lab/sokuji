@@ -46,10 +46,11 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
     before.current = statuses;
     if (Object.keys(statuses).some((id) => was[id] === 'downloading' && statuses[id] === 'ready')) setFinished(true);
   }, [statuses]);
-  // The direction a slot's "Browse library…" asked for; forgotten on leaving the page, so the next visit opens on the
-  // session's own.
-  const libraryDirection = useNativeModelStore((s) => s.libraryDirection);
-  useEffect(() => () => useNativeModelStore.getState().setLibraryDirection(null), []);
+  // The direction a slot's "Browse library…" asked for, taken by this visit (the next one opens on the session's own):
+  // read once into this page's state and cleared from the store when the page opens — not on leaving, which under
+  // StrictMode (development: mounted, unmounted and mounted again) forgot it before it was shown.
+  const [libraryDirection, setLibraryDirection] = useState(() => useNativeModelStore.getState().libraryDirection);
+  useEffect(() => { useNativeModelStore.getState().setLibraryDirection(null); }, []);
   if (!native) return null;
   const settings = (entry?.settings as LocalNativeSettings | undefined) ?? LOCAL_NATIVE_DEFAULTS;
   const pair = entry?.pair ?? { source: 'en', target: 'ja' };
@@ -69,7 +70,7 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
       {direction && (
         <div className="models-page__notice" role="status">
           <span>{t('models.page.otherDirection', 'Showing the models for {{from}} → {{to}}, the direction you came from.', names(direction))}</span>
-          <button type="button" className="models-page__link" onClick={() => useNativeModelStore.getState().setLibraryDirection(null)}>
+          <button type="button" className="models-page__link" onClick={() => setLibraryDirection(null)}>
             {t('models.page.showDirection', 'Show {{from}} → {{to}}', names(forward))}
           </button>
         </div>

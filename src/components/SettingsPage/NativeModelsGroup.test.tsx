@@ -1,6 +1,7 @@
 // The native engine's library on Local models and storage (#578): its engine card, then each stage's models under the
 // anchors an engine slot's "Browse library…" goes to, fed Local Native's own settings.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { StrictMode } from 'react';
 import { render, screen, cleanup, act, fireEvent } from '@testing-library/react';
 
 const seen = vi.hoisted(() => ({ libraries: [] as Array<Record<string, unknown>>, engines: [] as Array<Record<string, unknown>>, previews: [] as unknown[] }));
@@ -133,17 +134,24 @@ describe('NativeModelsGroup', () => {
   // opened the forward pair's lists. The library shows the direction it was opened for, says so, and goes back.
   it("shows the direction a slot opened it for, says which, and goes back to the session's own", () => {
     useNativeModelStore.getState().setLibraryDirection('ja→en');
-    const { unmount } = render(<NativeModelsGroup locked={false} />);
+    render(<NativeModelsGroup locked={false} />);
     expect(seen.libraries.slice(-3).map((l) => l.direction)).toEqual(['ja→en', 'ja→en', 'ja→en']);
     const note = screen.getByRole('status');
     expect(note.textContent).toMatch(/Japanese → English/);
+    // Taken by this visit: the next one opens on the session's own direction.
+    expect(useNativeModelStore.getState().libraryDirection).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /English → Japanese/ }));
-    expect(useNativeModelStore.getState().libraryDirection).toBeNull();
     expect(seen.libraries.slice(-3).map((l) => l.direction)).toEqual([undefined, undefined, undefined]);
-    // Leaving the page forgets it too: the next visit opens on the session's own direction.
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  // Sophie on a Mac dev build: the note never showed. The app runs under StrictMode, which mounts, unmounts and mounts
+  // again in development; forgetting the direction on unmount forgot it before it was shown.
+  it('keeps the direction it was opened for under StrictMode', () => {
     useNativeModelStore.getState().setLibraryDirection('ja→en');
-    unmount();
-    expect(useNativeModelStore.getState().libraryDirection).toBeNull();
+    render(<StrictMode><NativeModelsGroup locked={false} /></StrictMode>);
+    expect(seen.libraries.slice(-3).map((l) => l.direction)).toEqual(['ja→en', 'ja→en', 'ja→en']);
+    expect(screen.getByRole('status').textContent).toMatch(/Japanese → English/);
   });
 
   it("shows no note for the session's own direction", () => {
