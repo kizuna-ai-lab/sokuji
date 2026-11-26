@@ -56,6 +56,7 @@ using LogTsfn = Napi::TypedThreadSafeFunction<LogContext, LogLine, DeliverLog>;
 
 struct State {
     std::atomic<bool> initialised{false};   // sk_init has succeeded
+    std::mutex init_mu;                     // one init() at a time: two worker_threads may call it in parallel
     std::mutex mu;                          // guards the three fields below
     LogTsfn tsfn;                           // empty until init() is given an onLog
     LogContext *ctx = nullptr;              // tsfn's context, owned by tsfn's finalizer
@@ -234,7 +235,16 @@ Napi::Value Init(const Napi::CallbackInfo &info) {
     State &s = state();
     if (s.initialised.load()) return InitResult(env);
 
+    // Outside the lock: it runs the global JSON.parse, which user code may replace with a function that calls init()
+    // on this same thread, and a second lock of a mutex this thread holds is undefined.
     ReadContract(env, dir);
+
+    // Held across sk_init (which logs through LogToJs, which takes `mu`, not this one): a second caller waits here,
+    // then sees `initialised` and returns the first call's result, instead of running sk_init and the log-sink
+    // install a second time and replacing the first caller's onLog.
+    std::lock_guard<std::mutex> init_lock(s.init_mu);
+    if (s.initialised.load()) return InitResult(env);
+
     if (sk_abi_version() != SK_ABI_VERSION) {
         throw MakeNativeError(env, SK_ERR_INVALID_ARGUMENT,
                               "library ABI " + std::to_string(sk_abi_version()) +
