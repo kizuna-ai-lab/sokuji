@@ -131,6 +131,24 @@ describe('EngineHost', () => {
     expect(host.status()).toEqual({ running: false, port: null });
   });
 
+  it('an engine that dies before ready counts toward the crash budget', async () => {
+    const { host, children } = setup();
+    for (let i = 0; i < 3; i++) {
+      const p = host.start().catch(() => {});
+      children[i].emit('exit', 134);
+      await p;
+    }
+    await expect(host.start()).rejects.toThrow(/stopped unexpectedly three times/);
+    expect(children).toHaveLength(3);
+  });
+
+  it('a utility-process error event is logged and does not throw', async () => {
+    const { host, children, log } = setup();
+    await ready(host, children);
+    expect(() => children[0].emit('error', 'FatalError', 'oom')).not.toThrow();
+    expect(log).toHaveBeenCalledWith('error', expect.stringMatching(/FatalError/));
+  });
+
   it('three hangs in 60 s count like three crashes', async () => {
     const { host, children } = setup();
     for (let i = 0; i < 3; i++) {

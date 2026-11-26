@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fetchNative } from './fetch-native.mjs';
@@ -99,6 +99,18 @@ describe('fetchNative', () => {
     writeFileSync(marker, 'm');
     await run();
     expect(existsSync(marker)).toBe(true);
+  });
+
+  it('a second platform at the same version is fetched, not skipped', async () => {
+    await run();
+    const other = 'linux-arm64';
+    const name = `sokuji-native-${other}-v${VERSION}.tar.zst`;
+    copyFileSync(join(from, NAME), join(from, name));
+    const sum = createHash('sha256').update(readFileSync(join(from, name))).digest('hex');
+    const logs = [];
+    await run({ sku: other, archives: { version: VERSION, sha256: { [other]: sum } }, log: (m) => logs.push(m) });
+    expect(logs.join('\n')).toMatch(/linux-arm64/);
+    expect(logs.join('\n')).not.toMatch(/already/);
   });
 
   it('replaces an older unpack', async () => {

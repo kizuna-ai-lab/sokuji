@@ -99,7 +99,9 @@ export async function fetchNative({ root, sku, from, nativeVersion, archives, lo
   if (!expected) throw new Error(`scripts/native-archives.json has no sha256 for ${sku}`);
 
   const dest = path.join(root, 'resources', 'native');
-  if (installedVersion(dest) === nativeVersion) {
+  // The version and the SKU: the same checkout may be prepared for two platforms in turn (x64 and arm64 packages).
+  const installedSku = (() => { try { return fs.readFileSync(path.join(dest, '.sku'), 'utf8').trim(); } catch { return null; } })();
+  if (installedVersion(dest) === nativeVersion && installedSku === sku) {
     log(`resources/native is already ${nativeVersion}`);
     return dest;
   }
@@ -134,6 +136,7 @@ export async function fetchNative({ root, sku, from, nativeVersion, archives, lo
     fs.rmSync(dest, { recursive: true, force: true });
     fs.mkdirSync(path.dirname(dest), { recursive: true });
     fs.renameSync(dir, dest);
+    fs.writeFileSync(path.join(dest, '.sku'), `${sku}\n`);
     log(`resources/native is ${nativeVersion} (${sku})`);
     return dest;
   } finally {

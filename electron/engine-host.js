@@ -123,11 +123,16 @@ class EngineHost {
         }
       });
 
+      // A fatal V8/OS error in the process is reported here before it exits; without a listener the event throws.
+      child.on('error', (type, location) => this.log('error', `[engine] fatal error ${type} ${location ?? ''}`.trim()));
+
       child.on('exit', (code) => {
         const wasCurrent = this.child === child;
         forget();
-        if (!settled) settle(reject, new Error(`The local engine exited before it was ready (code ${code})`));
-        else if (wasCurrent && !stopping && !child.__stopRequested) this.crashes.push(this.now());
+        if (!settled) {
+          if (!stopping && !child.__stopRequested) this.crashes.push(this.now());   // a bad driver that aborts at load counts too
+          settle(reject, new Error(`The local engine exited before it was ready (code ${code})`));
+        } else if (wasCurrent && !stopping && !child.__stopRequested) this.crashes.push(this.now());
         if (child.__stopRequested) child.__stopRequested = false;
         for (const w of this.exitWaiters.splice(0)) w();
       });
