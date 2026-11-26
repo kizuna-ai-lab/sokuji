@@ -38,6 +38,10 @@ function initializePostHog() {
       debug: isDevelopment(),
       persistence: 'localStorage',
       autocapture: true,
+      // Silent until the saved "Share usage data" choice has been read (usageSharing opts the client in when it says
+      // share): the popup's first events are captured while that read is still pending. The client keeps an opt-in
+      // across popup openings, so this costs one opt-in, not one per opening.
+      defaultOptIn: false,
       preloadFeatureFlags: false, // no flags are used, and the construction-time request would ignore the sharing switch
       captureHistoryEvents: false // Not needed for popup
     });
