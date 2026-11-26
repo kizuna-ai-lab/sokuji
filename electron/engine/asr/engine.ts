@@ -179,7 +179,11 @@ export class AsrEngine {
     this.stop = true;
     this.closing = true;
     this.audioQ?.put(null);
+    // A newer init may take over while this close waits (a connection's teardown runs outside the init queue): after
+    // every wait, what is in the engine then is that session's, and is not this close's to free or clear.
+    const gen = this.gen;
     if (this.loop !== null) await this.loop;
+    if (this.gen !== gen) return;
     this.loop = null;
     const stream = this.stream;
     this.stream = null;
@@ -199,6 +203,7 @@ export class AsrEngine {
         // best effort
       }
     }
+    if (this.gen !== gen) return;
     this.resetOffline();
     this.streaming = false;
   }

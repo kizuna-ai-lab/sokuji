@@ -253,6 +253,28 @@ describe('one engine, several connections', () => {
     await Promise.all([a.h.done, b.h.done]);
   });
 
+  it('a queued asr_init whose connection has closed loads nothing', async () => {
+    const state = createState();
+    let inits = 0;
+    let closed = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    state.asr_engine = { generation: 0, init: async () => { inits++; if (inits === 1) await gate; return 1; }, feed: () => [], close: () => { closed++; } };
+    register(state);
+    const a = connect(state);
+    const b = connect(state);
+    a.socket.message(msg({ type: 'asr_init', id: 1 }));
+    b.socket.message(msg({ type: 'asr_init', id: 1 }));
+    await new Promise((r) => setTimeout(r, 10));
+    b.socket.close();
+    release();
+    await Promise.all([a.h.settled(), b.h.done]);
+    expect(inits).toBe(1);
+    expect(closed).toBe(0);                                             // nothing was unloaded on the owner's behalf
+    a.socket.close();
+    await a.h.done;
+  });
+
   it('two inits at once load one after the other', async () => {
     const state = createState();
     let running = 0;

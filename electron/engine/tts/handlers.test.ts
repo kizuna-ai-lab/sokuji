@@ -382,6 +382,28 @@ describe('teardown', () => {
   });
 });
 
+describe('a queued init whose connection has closed', () => {
+  it('loads nothing and unloads nothing', async () => {
+    let inits = 0;
+    let closed = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const eng = { sampleRate: 24000, generation: 0, nextGeneration() { return ++this.generation; }, resolved: null, init: async () => { inits++; if (inits === 1) await gate; return 1; }, close: () => { closed++; } };
+    const state = stateWith(eng);
+    const a = connOf();
+    const b = connOf();
+    const first = call(state, { type: 'tts_init', id: 1 }, a.conn);
+    const second = call(state, { type: 'tts_init', id: 2 }, b.conn);
+    await new Promise((r) => setTimeout(r, 10));
+    b.conn.markClosed();
+    release();
+    const [, [reply]] = await Promise.all([first, second]);
+    expect(reply).toBeNull();
+    expect(inits).toBe(1);
+    expect(closed).toBe(0);
+  });
+});
+
 describe('concurrent inits', () => {
   it('two tts_inits at once load one after the other', async () => {
     let running = 0;
