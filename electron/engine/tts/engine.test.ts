@@ -183,12 +183,14 @@ describe('streaming output', () => {
     const sent: string[] = [];
     let release!: () => void;
     const gate = new Promise<void>((r) => { release = r; });
-    const send = async (m: Record<string, any>) => { sent.push(m.type); if (sent.length === 1) { controller.abort(); await gate; } };
+    let doneTotal = -1;
+    const send = async (m: Record<string, any>) => { sent.push(m.type); if (m.type === 'tts_done') doneTotal = m.totalSamples; if (sent.length === 1) { controller.abort(); await gate; } };
     const done = eng.generateStream('hi', 1, send, controller.signal, 'q');
     await new Promise((r) => setTimeout(r, 10));
     release();
     await done;
     expect(sent.filter((t) => t === 'tts_chunk')).toHaveLength(1);
+    expect(doneTotal).toBe(8000);                                          // only the chunk that was sent counts
   });
 
   it('a synthesis failure sends an error, not tts_done', async () => {
