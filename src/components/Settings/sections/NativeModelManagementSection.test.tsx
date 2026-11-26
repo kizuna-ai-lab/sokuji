@@ -802,6 +802,14 @@ describe('NativeModelManagementSection — recognition facts from the catalog', 
       expect(within(card).getByTestId(`grade-${best}-en`)).toHaveTextContent(/EN\s*[A-DF][+-]?/);
       expect(within(card).getByTestId(`grade-${best}-de`)).toHaveTextContent(/DE\s*[A-DF][+-]?/);
       expect(within(card).getByTestId(`speed-${best}`).querySelectorAll('i')).toHaveLength(5);
+      // Its buttons sit in a column as wide as their widest state, held by a hidden copy of each state, so the facts
+      // beside them line up from card to card (owner, 2026-11-27); the copy is out of reach of focus and of the tree.
+      const sizer = within(card).getByTestId('actions-sizer');
+      expect(sizer.closest('.model-card__actions')).toHaveClass('model-card__actions--aligned');
+      expect(sizer).toHaveAttribute('aria-hidden', 'true');
+      expect([...sizer.querySelectorAll('button')].every((b) => b.tabIndex === -1)).toBe(true);
+      expect(sizer).toHaveTextContent(/Download.*Import.*Active.*Downloaded/);
+      expect(within(card).getAllByRole('button', { name: /Download/ })).toHaveLength(1);
       if (fast) expect(within(screen.getByTestId(`model-card-${fast}`)).getByTestId(`faster-${fast}`)).toHaveTextContent('Faster');
     } finally {
       mockCatalogOverride = null;

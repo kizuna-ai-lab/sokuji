@@ -92,6 +92,35 @@ type VariantCardProps = {
 };
 
 // One selectable + downloadable card — reuses ModelManagementSection's model-card__* classes.
+/**
+ * Invisible: each state a card's buttons can be in (Download and Import; Active or Downloaded with Delete), laid over
+ * one another, so a recognition card's button column is as wide as the widest of them in this language, whatever
+ * state the card is in — and the accuracy grades and speed meter beside it sit in the same place on every card
+ * (owner, 2026-11-27). Real buttons, so they take the same styles as the ones they stand for; hidden, never focused.
+ */
+const ActionsSizer: React.FC = () => {
+  const { t } = useTranslation();
+  const state = (active: boolean) => (
+    <span className="model-card__downloaded">
+      <span className={`model-card__status-label${active ? ' model-card__status-label--active' : ''}`}>
+        <span className="model-card__status-icon"><CheckCircle size={14} /></span>
+        <span>{active ? t('models.active', 'Active') : t('models.downloaded', 'Downloaded')}</span>
+      </span>
+      <button type="button" tabIndex={-1} className="model-card__btn model-card__btn--delete"><Trash2 size={12} /></button>
+    </span>
+  );
+  return (
+    <span className="model-card__actions-sizer" aria-hidden="true" data-testid="actions-sizer">
+      <span className="model-card__offer">
+        <button type="button" tabIndex={-1} className="model-card__btn model-card__btn--download"><Download size={14} /><span>{t('models.download', 'Download')}</span></button>
+        <button type="button" tabIndex={-1} className="model-card__btn model-card__btn--import"><FolderInput size={14} /><span>{t('models.import', 'Import')}</span></button>
+      </span>
+      {state(true)}
+      {state(false)}
+    </span>
+  );
+};
+
 const NativeModelCard: React.FC<{
   spec: NativeModelCardSpec;
   selected: boolean;
@@ -367,7 +396,8 @@ const NativeModelCard: React.FC<{
               </Tooltip>
             </div>
           )}
-          <div className="model-card__actions">
+          <div className={`model-card__actions${asr ? ' model-card__actions--aligned' : ''}`}>
+            {asr && <ActionsSizer />}
             {noDownload ? null : status === 'downloading' ? (
               <div className="model-card__progress">
                 <div className="model-card__progress-bar">
@@ -400,7 +430,7 @@ const NativeModelCard: React.FC<{
                 </button>
               </div>
             ) : (
-              <>
+              <div className="model-card__offer">
                 <button
                   className="model-card__btn model-card__btn--download"
                   onClick={handleDownload}
@@ -422,7 +452,7 @@ const NativeModelCard: React.FC<{
                     <span>{t('models.import', 'Import')}</span>
                   </button>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>

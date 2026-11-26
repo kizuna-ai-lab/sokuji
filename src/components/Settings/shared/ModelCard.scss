@@ -257,7 +257,7 @@
     cursor: help;
   }
   &__grade-lang { color: vars.$text-muted; font-size: 11px; }
-  &__grade-letter { min-width: 22px; text-align: center; padding: 1px 4px; border-radius: 3px; background: vars.$bg-control; color: vars.$text-primary; font-weight: vars.$weight-semibold; }
+  &__grade-letter { box-sizing: border-box; min-width: 2.2em; text-align: center; padding: 1px 4px; border-radius: 3px; background: vars.$bg-control; color: vars.$text-primary; font-weight: vars.$weight-semibold; }
   &__speed {
     display: inline-flex;
     align-items: flex-end;
@@ -282,6 +282,27 @@
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+  &__offer {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  // A recognition card's buttons: one cell as wide as their widest state (the invisible sizer under them), each state
+  // at its right end, so the grades and speed beside them line up from card to card. A download's progress takes the row.
+  &__actions--aligned {
+    display: grid;
+    justify-items: end;
+    align-items: center;
+    > * { grid-area: 1 / 1; }
+    > .model-card__progress { justify-self: stretch; }
+  }
+  &__actions-sizer {
+    display: grid;
+    justify-items: end;
+    visibility: hidden;
+    pointer-events: none;
+    > * { grid-area: 1 / 1; }
   }
 
   &__btn {
