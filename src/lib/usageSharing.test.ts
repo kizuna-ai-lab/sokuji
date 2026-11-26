@@ -96,6 +96,9 @@ describe('following the saved setting (extension popup)', () => {
   it('leaves the client as it is when the saved choice cannot be read', () => {
     const c = client(true);
     attachUsageSharingClient(c);
+    // Attaching settles the client by what earlier tests left known; only what the failed read does counts here.
+    c.optIn.mockClear();
+    c.optOut.mockClear();
     const st = storage({});
     const failing = { get: (_key: string, cb: (r?: Record<string, unknown>) => void) => cb(undefined) };
     expect(() => followUsageSharingSetting(failing as never, st.onChanged, 'sync', KEY)).not.toThrow();
