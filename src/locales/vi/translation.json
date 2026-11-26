@@ -1020,7 +1020,6 @@
       "webgpuTab": "Công cụ WASM/WebGPU",
       "webgpuTitle": "Công cụ WASM/WebGPU",
       "nativeHint": "Đi kèm ứng dụng và chạy trên máy tính này.",
-      "webgpuHint": "Chạy ngay trong cửa sổ của ứng dụng và dùng GPU nếu có. Các bước đặt là “Thiết bị này” trong “Ngôn ngữ và cách phối hợp” sẽ dùng các mô hình đã tải xuống ở đây.",
       "engineHintNative": "Công cụ mà các mô hình gốc chạy trên đó.",
       "tabMeta": "Đã tải xuống {{count}}, {{size}}",
       "tabNone": "Chưa tải xuống gì",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Mô hình phụ trợ",
       "downloadedChoose": "Đã tải xuống. Hãy chọn nó trong “Ngôn ngữ và cách phối hợp” để dùng trong một phiên.",
       "goChoose": "Chọn",
-      "dismiss": "Bỏ qua"
+      "dismiss": "Bỏ qua",
+      "webgpuHintNamed": "Chạy ngay trong cửa sổ của ứng dụng và dùng GPU nếu có. Các bước đặt là “{{provider}}” trong “Ngôn ngữ và cách phối hợp” sẽ dùng các mô hình đã tải xuống ở đây.",
+      "otherDirection": "Đang hiển thị các mô hình cho {{from}} → {{to}}, hướng bạn vừa chuyển từ đó.",
+      "showDirection": "Hiện {{from}} → {{to}}"
     },
     "streaming": "Phát trực tiếp",
     "faster": "Nhanh hơn",
@@ -1068,7 +1070,8 @@
       "json": "nội dung không phải JSON hợp lệ",
       "empty": "tệp trống",
       "invalid": "không hợp lệ"
-    }
+    },
+    "importNeedAll": "Vẫn thiếu {{count}} — thêm đủ mọi tệp để nhập mô hình."
   },
   "notes": {
     "stageAsr": "nhận dạng giọng nói",

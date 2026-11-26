@@ -1020,7 +1020,6 @@
       "webgpuTab": "WASM/WebGPU motoru",
       "webgpuTitle": "WASM/WebGPU motoru",
       "nativeHint": "Uygulamayla birlikte gelir ve bu bilgisayarda çalışır.",
-      "webgpuHint": "Uygulamanın kendi penceresinde çalışır ve varsa GPU’yu kullanır. “Diller ve düzen” bölümünde “Bu cihaz” olarak ayarlanan aşamalar buraya indirilen modelleri kullanır.",
       "engineHintNative": "Native modellerin üzerinde çalıştığı motor.",
       "tabMeta": "{{count}} indirildi, {{size}}",
       "tabNone": "Hiçbiri indirilmedi",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Yardımcı modeller",
       "downloadedChoose": "İndirildi. Bir oturumda kullanmak için “Diller ve düzen” bölümünden seçin.",
       "goChoose": "Seç",
-      "dismiss": "Kapat"
+      "dismiss": "Kapat",
+      "webgpuHintNamed": "Uygulamanın kendi penceresinde çalışır ve varsa GPU’yu kullanır. “Diller ve düzen” bölümünde “{{provider}}” olarak ayarlanan aşamalar buraya indirilen modelleri kullanır.",
+      "otherDirection": "{{from}} → {{to}} modelleri gösteriliyor; geldiğiniz yön bu.",
+      "showDirection": "{{from}} → {{to}} yönünü göster"
     },
     "streaming": "Akışlı",
     "faster": "Daha hızlı",
@@ -1068,7 +1070,8 @@
       "json": "içerik geçerli bir JSON değil",
       "empty": "dosya boş",
       "invalid": "geçersiz"
-    }
+    },
+    "importNeedAll": "{{count}} tanesi hâlâ eksik — modeli içe aktarmak için tüm dosyaları ekleyin."
   },
   "notes": {
     "stageAsr": "konuşma tanıma",

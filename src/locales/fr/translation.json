@@ -1020,7 +1020,6 @@
       "webgpuTab": "Moteur WASM/WebGPU",
       "webgpuTitle": "Moteur WASM/WebGPU",
       "nativeHint": "Fourni avec l’application et exécuté sur cet ordinateur.",
-      "webgpuHint": "S’exécute dans la fenêtre même de l’application et utilise le GPU s’il y en a un. Les étapes réglées sur « Cet appareil » dans « Langues et composition » utilisent les modèles téléchargés ici.",
       "engineHintNative": "Le moteur sur lequel s’exécutent les modèles natifs.",
       "tabMeta": "{{count}} téléchargés, {{size}}",
       "tabNone": "Aucun téléchargé",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Modèles d’appoint",
       "downloadedChoose": "Téléchargé. Choisissez-le dans « Langues et composition » pour l’utiliser pendant une session.",
       "goChoose": "Choisir",
-      "dismiss": "Ignorer"
+      "dismiss": "Ignorer",
+      "webgpuHintNamed": "S’exécute dans la fenêtre même de l’application et utilise le GPU s’il y en a un. Les étapes réglées sur « {{provider}} » dans « Langues et composition » utilisent les modèles téléchargés ici.",
+      "otherDirection": "Affichage des modèles pour {{from}} → {{to}}, la direction d’où vous venez.",
+      "showDirection": "Afficher {{from}} → {{to}}"
     },
     "streaming": "Streaming",
     "faster": "Plus rapide",
@@ -1068,7 +1070,8 @@
       "json": "le contenu n'est pas un JSON valide",
       "empty": "le fichier est vide",
       "invalid": "non valide"
-    }
+    },
+    "importNeedAll": "{{count}} encore manquant(s) — ajoutez tous les fichiers pour importer le modèle."
   },
   "notes": {
     "stageAsr": "reconnaissance vocale",

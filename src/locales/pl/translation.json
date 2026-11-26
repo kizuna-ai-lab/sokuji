@@ -1020,7 +1020,6 @@
       "webgpuTab": "Silnik WASM/WebGPU",
       "webgpuTitle": "Silnik WASM/WebGPU",
       "nativeHint": "Dołączony do aplikacji, działa na tym komputerze.",
-      "webgpuHint": "Działa w oknie samej aplikacji i korzysta z GPU, jeśli jest dostępne. Etapy ustawione na „To urządzenie” w „Języki i zestaw” używają modeli pobranych tutaj.",
       "engineHintNative": "Silnik, na którym działają modele natywne.",
       "tabMeta": "Pobrano: {{count}}, {{size}}",
       "tabNone": "Nic nie pobrano",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Modele pomocnicze",
       "downloadedChoose": "Pobrano. Wybierz go w „Języki i zestaw”, aby użyć w sesji.",
       "goChoose": "Wybierz",
-      "dismiss": "Odrzuć"
+      "dismiss": "Odrzuć",
+      "webgpuHintNamed": "Działa w oknie samej aplikacji i korzysta z GPU, jeśli jest dostępne. Etapy ustawione na „{{provider}}” w „Języki i zestaw” używają modeli pobranych tutaj.",
+      "otherDirection": "Wyświetlane są modele dla {{from}} → {{to}}, czyli kierunku, z którego otwarto tę stronę.",
+      "showDirection": "Pokaż {{from}} → {{to}}"
     },
     "streaming": "Strumieniowe",
     "faster": "Szybsze",
@@ -1068,7 +1070,8 @@
       "json": "zawartość nie jest prawidłowym JSON-em",
       "empty": "plik jest pusty",
       "invalid": "nieprawidłowy"
-    }
+    },
+    "importNeedAll": "Nadal brakuje {{count}} — dodaj wszystkie pliki, aby zaimportować model."
   },
   "notes": {
     "stageAsr": "rozpoznawania mowy",

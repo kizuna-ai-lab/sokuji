@@ -1020,7 +1020,6 @@
       "webgpuTab": "WASM/WebGPU na engine",
       "webgpuTitle": "WASM/WebGPU na engine",
       "nativeHint": "Kasama ng app at tumatakbo sa computer na ito.",
-      "webgpuHint": "Tumatakbo sa sariling window ng app at gumagamit ng GPU kung mayroon. Ang mga yugtong nakatakda sa “Ang device na ito” sa “Mga wika at line-up” ay gumagamit ng mga model na na-download dito.",
       "engineHintNative": "Ang engine kung saan tumatakbo ang mga native na model.",
       "tabMeta": "{{count}} ang na-download, {{size}}",
       "tabNone": "Walang na-download",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Mga pantulong na model",
       "downloadedChoose": "Na-download. Piliin ito sa “Mga wika at line-up” para magamit sa isang session.",
       "goChoose": "Piliin",
-      "dismiss": "I-dismiss"
+      "dismiss": "I-dismiss",
+      "webgpuHintNamed": "Tumatakbo sa sariling window ng app at gumagamit ng GPU kung mayroon. Ang mga yugtong nakatakda sa “{{provider}}” sa “Mga wika at line-up” ay gumagamit ng mga model na na-download dito.",
+      "otherDirection": "Ipinapakita ang mga model para sa {{from}} → {{to}}, ang direksyong pinanggalingan mo.",
+      "showDirection": "Ipakita ang {{from}} → {{to}}"
     },
     "streaming": "Streaming",
     "faster": "Mas mabilis",
@@ -1068,7 +1070,8 @@
       "json": "hindi wastong JSON ang nilalaman",
       "empty": "walang laman ang file",
       "invalid": "hindi wasto"
-    }
+    },
+    "importNeedAll": "Kulang pa ng {{count}} — idagdag ang bawat file para ma-import ang model."
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",

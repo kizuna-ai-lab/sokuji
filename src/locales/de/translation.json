@@ -1020,7 +1020,6 @@
       "webgpuTab": "WASM/WebGPU-Engine",
       "webgpuTitle": "WASM/WebGPU-Engine",
       "nativeHint": "Wird mit der App geliefert und läuft auf diesem Computer.",
-      "webgpuHint": "Läuft im eigenen Fenster der App und nutzt die GPU, sofern vorhanden. Stufen, die unter „Sprachen und Aufstellung“ auf „Dieses Gerät“ gestellt sind, verwenden die hier heruntergeladenen Modelle.",
       "engineHintNative": "Die Engine, auf der die nativen Modelle laufen.",
       "tabMeta": "{{count}} heruntergeladen, {{size}}",
       "tabNone": "Nichts heruntergeladen",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Hilfsmodelle",
       "downloadedChoose": "Heruntergeladen. Unter „Sprachen und Aufstellung“ auswählen, um es in einer Sitzung zu verwenden.",
       "goChoose": "Auswählen",
-      "dismiss": "Ausblenden"
+      "dismiss": "Ausblenden",
+      "webgpuHintNamed": "Läuft im eigenen Fenster der App und nutzt die GPU, sofern vorhanden. Stufen, die unter „Sprachen und Aufstellung“ auf „{{provider}}“ gestellt sind, verwenden die hier heruntergeladenen Modelle.",
+      "otherDirection": "Angezeigt werden die Modelle für {{from}} → {{to}} – die Richtung, von der aus diese Seite geöffnet wurde.",
+      "showDirection": "{{from}} → {{to}} anzeigen"
     },
     "streaming": "Streaming",
     "faster": "Schneller",
@@ -1068,7 +1070,8 @@
       "json": "Inhalt ist kein gültiges JSON",
       "empty": "Die Datei ist leer",
       "invalid": "ungültig"
-    }
+    },
+    "importNeedAll": "{{count}} fehlen noch — alle Dateien hinzufügen, um das Modell zu importieren."
   },
   "notes": {
     "stageAsr": "Spracherkennung",

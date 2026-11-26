@@ -1020,7 +1020,6 @@
       "webgpuTab": "WASM/WebGPU-engine",
       "webgpuTitle": "WASM/WebGPU-engine",
       "nativeHint": "Wordt met de app meegeleverd en draait op deze computer.",
-      "webgpuHint": "Draait in het eigen venster van de app en gebruikt de GPU als die er is. Stappen die op “Dit apparaat” staan in “Talen en opstelling” gebruiken de hier gedownloade modellen.",
       "engineHintNative": "De engine waarop de native modellen draaien.",
       "tabMeta": "{{count}} gedownload, {{size}}",
       "tabNone": "Niets gedownload",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Hulpmodellen",
       "downloadedChoose": "Gedownload. Kies het in “Talen en opstelling” om het in een sessie te gebruiken.",
       "goChoose": "Kiezen",
-      "dismiss": "Sluiten"
+      "dismiss": "Sluiten",
+      "webgpuHintNamed": "Draait in het eigen venster van de app en gebruikt de GPU als die er is. Stappen die op “{{provider}}” staan in “Talen en opstelling” gebruiken de hier gedownloade modellen.",
+      "otherDirection": "De modellen voor {{from}} → {{to}} worden getoond, de richting waar je vandaan komt.",
+      "showDirection": "Toon {{from}} → {{to}}"
     },
     "streaming": "Streaming",
     "faster": "Sneller",
@@ -1068,7 +1070,8 @@
       "json": "inhoud is geen geldige JSON",
       "empty": "het bestand is leeg",
       "invalid": "ongeldig"
-    }
+    },
+    "importNeedAll": "{{count}} ontbreken nog — voeg alle bestanden toe om het model te importeren."
   },
   "notes": {
     "stageAsr": "spraakherkenning",

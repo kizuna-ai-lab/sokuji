@@ -1020,7 +1020,6 @@
       "webgpuTab": "WASM/WebGPU-moottori",
       "webgpuTitle": "WASM/WebGPU-moottori",
       "nativeHint": "Tulee sovelluksen mukana ja toimii tällä tietokoneella.",
-      "webgpuHint": "Toimii sovelluksen omassa ikkunassa ja käyttää näytönohjainta, jos sellainen on. Vaiheet, jotka on asetettu kohtaan ”Tämä laite” kohdassa ”Kielet ja kokoonpano”, käyttävät tänne ladattuja malleja.",
       "engineHintNative": "Moottori, jolla natiivimallit toimivat.",
       "tabMeta": "{{count}} ladattu, {{size}}",
       "tabNone": "Ei ladattuja",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Apumallit",
       "downloadedChoose": "Ladattu. Valitse se kohdassa ”Kielet ja kokoonpano”, jotta voit käyttää sitä istunnossa.",
       "goChoose": "Valitse",
-      "dismiss": "Hylkää"
+      "dismiss": "Hylkää",
+      "webgpuHintNamed": "Toimii sovelluksen omassa ikkunassa ja käyttää näytönohjainta, jos sellainen on. Vaiheet, jotka on asetettu kohtaan ”{{provider}}” kohdassa ”Kielet ja kokoonpano”, käyttävät tänne ladattuja malleja.",
+      "otherDirection": "Näytetään kielten {{from}} → {{to}} mallit, eli suunta, josta tulit.",
+      "showDirection": "Näytä {{from}} → {{to}}"
     },
     "streaming": "Suoratoisto",
     "faster": "Nopeampi",
@@ -1068,7 +1070,8 @@
       "json": "sisältö ei ole kelvollista JSON-muotoa",
       "empty": "tiedosto on tyhjä",
       "invalid": "virheellinen"
-    }
+    },
+    "importNeedAll": "{{count}} puuttuu edelleen — lisää kaikki tiedostot tuodaksesi mallin."
   },
   "notes": {
     "stageAsr": "puheentunnistus",

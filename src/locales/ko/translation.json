@@ -1020,7 +1020,6 @@
       "webgpuTab": "WASM/WebGPU 엔진",
       "webgpuTitle": "WASM/WebGPU 엔진",
       "nativeHint": "앱에 포함되어 있으며 이 컴퓨터에서 실행됩니다.",
-      "webgpuHint": "앱 자체 창 안에서 실행되며 GPU가 있으면 사용합니다. “언어와 구성”에서 “이 기기”로 설정한 단계는 여기서 다운로드한 모델을 사용합니다.",
       "engineHintNative": "네이티브 모델이 실행되는 엔진입니다.",
       "tabMeta": "{{count}}개 다운로드됨, {{size}}",
       "tabNone": "다운로드한 항목 없음",
@@ -1028,7 +1027,10 @@
       "toHelpers": "보조 모델",
       "downloadedChoose": "다운로드됨. 세션에서 사용하려면 “언어와 구성”에서 선택하세요.",
       "goChoose": "선택",
-      "dismiss": "닫기"
+      "dismiss": "닫기",
+      "webgpuHintNamed": "앱 자체 창 안에서 실행되며 GPU가 있으면 사용합니다. “언어와 구성”에서 “{{provider}}”로 설정한 단계는 여기서 다운로드한 모델을 사용합니다.",
+      "otherDirection": "{{from}} → {{to}} 모델을 표시하고 있습니다. 직전에 보던 방향입니다.",
+      "showDirection": "{{from}} → {{to}} 보기"
     },
     "streaming": "스트리밍",
     "faster": "더 빠름",
@@ -1068,7 +1070,8 @@
       "json": "내용이 올바른 JSON이 아닙니다",
       "empty": "파일이 비어 있습니다",
       "invalid": "유효하지 않음"
-    }
+    },
+    "importNeedAll": "{{count}}개가 아직 없습니다 — 모델을 가져오려면 모든 파일을 추가하세요."
   },
   "notes": {
     "stageAsr": "음성 인식",

@@ -1020,7 +1020,6 @@
       "webgpuTab": "Mesin WASM/WebGPU",
       "webgpuTitle": "Mesin WASM/WebGPU",
       "nativeHint": "Disertakan bersama aplikasi dan berjalan di komputer ini.",
-      "webgpuHint": "Berjalan di jendela aplikasi itu sendiri dan memakai GPU jika ada. Tahap yang diatur ke “Perangkat ini” di “Bahasa dan susunan” memakai model yang diunduh di sini.",
       "engineHintNative": "Mesin tempat model native berjalan.",
       "tabMeta": "{{count}} terunduh, {{size}}",
       "tabNone": "Belum ada yang diunduh",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Model pembantu",
       "downloadedChoose": "Terunduh. Pilih di “Bahasa dan susunan” untuk dipakai dalam sesi.",
       "goChoose": "Pilih",
-      "dismiss": "Abaikan"
+      "dismiss": "Abaikan",
+      "webgpuHintNamed": "Berjalan di jendela aplikasi itu sendiri dan memakai GPU jika ada. Tahap yang diatur ke “{{provider}}” di “Bahasa dan susunan” memakai model yang diunduh di sini.",
+      "otherDirection": "Menampilkan model untuk {{from}} → {{to}}, arah asal Anda datang.",
+      "showDirection": "Tampilkan {{from}} → {{to}}"
     },
     "streaming": "Streaming",
     "faster": "Lebih cepat",
@@ -1068,7 +1070,8 @@
       "json": "konten bukan JSON yang valid",
       "empty": "file kosong",
       "invalid": "tidak valid"
-    }
+    },
+    "importNeedAll": "{{count}} masih kurang — tambahkan semua berkas untuk mengimpor model."
   },
   "notes": {
     "stageAsr": "pengenalan suara",

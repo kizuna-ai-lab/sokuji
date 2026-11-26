@@ -1020,7 +1020,6 @@
       "webgpuTab": "WASM/WebGPU 引擎",
       "webgpuTitle": "WASM/WebGPU 引擎",
       "nativeHint": "隨應用程式附帶，在這台電腦上執行。",
-      "webgpuHint": "在應用程式自己的視窗中執行，有 GPU 時會使用。在「語言與工作階段組成」中設為「本機」的階段，會使用在此下載的模型。",
       "engineHintNative": "原生模型所執行的引擎。",
       "tabMeta": "已下載 {{count}} 個，{{size}}",
       "tabNone": "尚未下載",
@@ -1028,7 +1027,10 @@
       "toHelpers": "輔助模型",
       "downloadedChoose": "已下載。請在「語言與工作階段組成」中選擇它，即可在工作階段中使用。",
       "goChoose": "選擇",
-      "dismiss": "關閉"
+      "dismiss": "關閉",
+      "webgpuHintNamed": "在應用程式自己的視窗中執行，有 GPU 時會使用。在「語言與工作階段組成」中設為「{{provider}}」的階段，會使用在此下載的模型。",
+      "otherDirection": "目前顯示 {{from}} → {{to}} 的模型，也就是你剛才所在的方向。",
+      "showDirection": "顯示 {{from}} → {{to}}"
     },
     "streaming": "串流",
     "faster": "較快",
@@ -1068,7 +1070,8 @@
       "json": "內容不是有效的 JSON",
       "empty": "檔案是空的",
       "invalid": "無效"
-    }
+    },
+    "importNeedAll": "仍缺少 {{count}} 個 — 請加入所有檔案，才能匯入模型。"
   },
   "notes": {
     "stageAsr": "語音辨識",

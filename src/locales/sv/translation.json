@@ -1020,7 +1020,6 @@
       "webgpuTab": "WASM/WebGPU-motor",
       "webgpuTitle": "WASM/WebGPU-motor",
       "nativeHint": "Följer med appen och körs på den här datorn.",
-      "webgpuHint": "Körs i appens eget fönster och använder grafikprocessorn om det finns en. Steg som är inställda på ”Den här enheten” i ”Språk och uppsättning” använder modellerna som laddats ned här.",
       "engineHintNative": "Motorn som de nativa modellerna körs på.",
       "tabMeta": "{{count}} nedladdade, {{size}}",
       "tabNone": "Inget nedladdat",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Hjälpmodeller",
       "downloadedChoose": "Nedladdad. Välj den i ”Språk och uppsättning” för att använda den i en session.",
       "goChoose": "Välj",
-      "dismiss": "Avfärda"
+      "dismiss": "Avfärda",
+      "webgpuHintNamed": "Körs i appens eget fönster och använder grafikprocessorn om det finns en. Steg som är inställda på ”{{provider}}” i ”Språk och uppsättning” använder modellerna som laddats ned här.",
+      "otherDirection": "Visar modellerna för {{from}} → {{to}}, riktningen du kom från.",
+      "showDirection": "Visa {{from}} → {{to}}"
     },
     "streaming": "Strömmande",
     "faster": "Snabbare",
@@ -1068,7 +1070,8 @@
       "json": "innehållet är inte giltig JSON",
       "empty": "filen är tom",
       "invalid": "ogiltig"
-    }
+    },
+    "importNeedAll": "{{count}} saknas fortfarande — lägg till alla filer för att importera modellen."
   },
   "notes": {
     "stageAsr": "taligenkänning",

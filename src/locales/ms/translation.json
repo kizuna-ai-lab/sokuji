@@ -1020,7 +1020,6 @@
       "webgpuTab": "Enjin WASM/WebGPU",
       "webgpuTitle": "Enjin WASM/WebGPU",
       "nativeHint": "Disertakan bersama aplikasi dan dijalankan pada komputer ini.",
-      "webgpuHint": "Dijalankan dalam tetingkap aplikasi itu sendiri dan menggunakan GPU jika ada. Peringkat yang ditetapkan kepada “Peranti ini” dalam “Bahasa dan susunan” menggunakan model yang dimuat turun di sini.",
       "engineHintNative": "Enjin tempat model natif dijalankan.",
       "tabMeta": "{{count}} dimuat turun, {{size}}",
       "tabNone": "Tiada yang dimuat turun",
@@ -1028,7 +1027,10 @@
       "toHelpers": "Model pembantu",
       "downloadedChoose": "Dimuat turun. Pilih dalam “Bahasa dan susunan” untuk menggunakannya dalam sesi.",
       "goChoose": "Pilih",
-      "dismiss": "Ketepikan"
+      "dismiss": "Ketepikan",
+      "webgpuHintNamed": "Dijalankan dalam tetingkap aplikasi itu sendiri dan menggunakan GPU jika ada. Peringkat yang ditetapkan kepada “{{provider}}” dalam “Bahasa dan susunan” menggunakan model yang dimuat turun di sini.",
+      "otherDirection": "Memaparkan model untuk {{from}} → {{to}}, arah asal anda datang.",
+      "showDirection": "Papar {{from}} → {{to}}"
     },
     "streaming": "Penstriman",
     "faster": "Lebih pantas",
@@ -1068,7 +1070,8 @@
       "json": "kandungan bukan JSON yang sah",
       "empty": "fail kosong",
       "invalid": "tidak sah"
-    }
+    },
+    "importNeedAll": "{{count}} masih tiada — tambah semua fail untuk mengimport model."
   },
   "notes": {
     "stageAsr": "pengecaman suara",
