@@ -228,7 +228,7 @@ it('agrees with the Python engine on a real cache', async () => {
 **Files:** Create `electron/engine/translate/{strategies,backend,engine,handlers}.ts`; Test `electron/engine/translate/*.test.ts`
 
 **Interfaces:**
-- Produces: `QwenStrategy`, `HunyuanStrategy`, `GemmaStrategy` with `build(text, systemPrompt, src, tgt, wrap, config)`; `cleanOutput(text)`, `chatmlFallback(messages, prefill)`, `GEMMA_LANG_NAME`; `NativeTranslateBackend` (`native_translate`) with `load`, `translate(text, systemPrompt, src, tgt, opts: { wrap: boolean; signal: AbortSignal; onPartial?: (text: string) => void }): Promise<string>`, `unload()`; `TranslateEngine` (generation token); handlers `translate_init`, `translate`. Each `translate` call owns an `AbortController`; the connection's `onClose` aborts that connection's controllers only.
+- Produces: `QwenStrategy`, `HunyuanStrategy`, `GemmaStrategy` with `build(text, systemPrompt, src, tgt, wrap, config)`; `cleanOutput(text)`, `chatmlFallback(messages, prefill)`, `GEMMA_LANG_NAME`; `NativeTranslateBackend` (`native_translate`) with `load`, `translate(text, systemPrompt, src, tgt, opts: { wrap: boolean; signal: AbortSignal; onPartial?: (text: string) => void }): Promise<string>`, `unload()`; `TranslateEngine` (generation token); handlers `translate_init`, `translate`. Each `translate` call owns an `AbortController`; the connection's `waitClosed()` aborts that connection's controllers only (not `onClose`: those cleanups run only after the in-flight call returns, so the abort hangs on `waitClosed()`).
 
 - [ ] **Step 1: Write the failing tests.** Port `test_translate_backend.py` (28) and `test_translate_engine.py` (22). Add:
 
