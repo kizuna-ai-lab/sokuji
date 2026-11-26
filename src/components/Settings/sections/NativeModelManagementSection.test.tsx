@@ -253,6 +253,12 @@ const mockResolve = (src: string, tgt: string, selections: typeof mockSettings.s
   return { asr: pick('asr'), translation: pick('translation'), tts: pick('tts'), notes: [], prunes: [] };
 };
 
+// The import window: its own tests cover it; here only what the card hands it.
+const importModal = vi.hoisted(() => ({ props: [] as Array<{ isOpen: boolean; modelId: string; modelName: string; repo?: string }> }));
+vi.mock('./NativeImportModal', () => ({
+  NativeImportModal: (p: { isOpen: boolean; modelId: string; modelName: string; repo?: string }) => { importModal.props.push(p); return null; },
+}));
+
 vi.mock('../../../stores/nativeModelStore', () => {
   const mockStoreState = () => ({
     statuses: mockStatuses,
@@ -819,6 +825,54 @@ describe('NativeModelManagementSection — recognition facts from the catalog', 
       const card = await screen.findByTestId('model-card-sense-voice');
       expect(within(card).getByTestId('grade-sense-voice-ja')).toHaveTextContent('—');
       expect(within(card).getByText('Recommended')).toBeInTheDocument();
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
+});
+
+describe('NativeModelManagementSection — the Import button', () => {
+  const pairProps = { settings: mockSettings, update: mockUpdate, pair: { source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage } };
+  const lastFor = (id: string) => [...importModal.props].reverse().find((p) => p.modelId === id);
+
+  it('sits beside Download on a model that is not downloaded, and opens the import window for that model', async () => {
+    importModal.props.length = 0;
+    render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+    const card = await screen.findByTestId('model-card-sense-voice');
+    expect(lastFor('sense-voice')?.isOpen).toBe(false);
+    fireEvent.click(within(card).getByRole('button', { name: /^Import: SenseVoice$/ }));
+    await waitFor(() => expect(lastFor('sense-voice')).toMatchObject({ isOpen: true, modelName: 'SenseVoice' }));
+  });
+
+  it('hands the window the chosen variant\'s repo, so it names that variant\'s file', async () => {
+    importModal.props.length = 0;
+    render(<NativeModelManagementSection {...pairProps} />);
+    const card = await waitFor(() => {
+      const c = screen.getByTestId('model-card-hy-mt2-7b');
+      within(c).getByTestId('variant-label-hy-mt2-7b');
+      return c;
+    });
+    fireEvent.click(within(card).getByRole('button', { name: /^Import: / }));
+    await waitFor(() => expect(lastFor('hy-mt2-7b')).toMatchObject({ isOpen: true, repo: 'tencent/Hy-MT2-7B-GGUF/Hy-MT2-7B-Q4_K_M.gguf' }));
+  });
+
+  it('is gone once the model is downloaded', async () => {
+    mockStatuses['sense-voice'] = 'ready';
+    render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+    const card = await screen.findByTestId('model-card-sense-voice');
+    expect(within(card).queryByRole('button', { name: /^Import: / })).toBeNull();
+  });
+
+  it('is not offered on a model for another language', async () => {
+    mockCatalogOverride = {
+      ...mockCatalog,
+      'whisper-en-only': { id: 'whisper-en-only', name: 'Whisper EN-only', languages: ['en'], recommended: false, tiers: [], order: 5, repo: 'whisper-en-only', kind: 'asr' } as NativeModelInfo,
+    };
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" {...pairProps} />);
+      fireEvent.click(await screen.findByRole('button', { name: /\d+ more/ }));
+      const card = await screen.findByTestId('model-card-whisper-en-only');
+      expect(within(card).queryByRole('button', { name: /^Import: / })).toBeNull();
     } finally {
       mockCatalogOverride = null;
     }

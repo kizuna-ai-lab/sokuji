@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Độ chính xác với {{language}}: {{grade}}",
     "gradeNone": "Chưa đo độ chính xác với {{language}}",
     "speedTooltip": "Tốc độ: {{level}}/{{max}} (đo trên máy thử nghiệm của danh mục, không phải trên máy tính này)",
-    "speedNone": "Chưa đo tốc độ"
+    "speedNone": "Chưa đo tốc độ",
+    "nativeImport": {
+      "title": "Nhập {{name}}",
+      "intro": "Hãy tự tải xuống các tệp bên dưới, rồi chọn chúng tại đây. Tên tệp phải được giữ nguyên.",
+      "loading": "Đang tìm các tệp…",
+      "openPage": "Mở trang tải xuống",
+      "choose": "Chọn tệp…",
+      "pickTitle": "Chọn các tệp đã tải xuống"
+    }
   },
   "notes": {
     "stageAsr": "nhận dạng giọng nói",

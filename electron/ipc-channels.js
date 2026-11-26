@@ -77,6 +77,8 @@ export const INVOKE_CHANNELS = [
   'native-host:start',
   'native-host:stop',
   'native-host:status',
+  // The system's Open dialog, for importing a model file the person downloaded
+  'native-models:pick-files',
   // Self-contained sidecar bundle install/status
   'sidecar-bundle:status',
   'sidecar-bundle:install',

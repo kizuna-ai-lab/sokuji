@@ -5,6 +5,7 @@
   "list_tts_voices_result": {"required": ["id", "voices"], "optional": []},
   "list_variants_result": {"required": ["id", "variants", "recommended"], "optional": []},
   "model_delete_result": {"required": ["id", "model", "freed"], "optional": []},
+  "model_files_result": {"required": ["id", "model", "files"], "optional": []},
   "model_download_done": {"required": ["model", "status"], "optional": []},
   "model_progress": {"required": ["model", "downloaded", "total"], "optional": []},
   "model_status_result": {"required": ["id", "statuses"], "optional": []},

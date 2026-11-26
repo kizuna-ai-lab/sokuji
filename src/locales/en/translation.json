@@ -1182,6 +1182,14 @@
     "hwRepo": "Repo",
     "computeDevice": "Hardware acceleration",
     "streaming": "Streaming",
+    "nativeImport": {
+      "title": "Import {{name}}",
+      "intro": "Download the file(s) below yourself, then choose them here. The file names must stay as they are.",
+      "loading": "Looking up the files…",
+      "openPage": "Open the download page",
+      "choose": "Choose files…",
+      "pickTitle": "Choose the downloaded files"
+    },
     "faster": "Faster",
     "gradeTooltip": "Accuracy in {{language}}: {{grade}}",
     "gradeNone": "Accuracy in {{language}} was not measured",

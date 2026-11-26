@@ -6,11 +6,13 @@
 import type { Conn } from '../conn';
 import { register as registerHandler, type EngineState, type Handler } from '../server';
 import { downloadModel } from './download';
+import { importModel, ImportError } from './import';
+import { downloadSpecs } from './specs';
 import { deleteModel } from './remove';
 import { modelStatus } from './status';
 
 /** What the handlers call, patched by tests. */
-const DEFAULTS = { downloadModel, deleteModel, modelStatus };
+const DEFAULTS = { downloadModel, deleteModel, modelStatus, importModel };
 export const handlerSeams = { ...DEFAULTS };
 export function restoreHandlerSeams(): void {
   Object.assign(handlerSeams, DEFAULTS);
@@ -75,6 +77,42 @@ export const modelDownloadHandler: Handler = async (state, msg, _binary, conn) =
   return [null, null];
 };
 
+async function runImport(state: EngineState, model: string, conn: Conn, paths: string[], repo: string | null, entry: Download): Promise<void> {
+  void conn.waitClosed().then(() => entry.controller.abort());
+  try {
+    const status = await handlerSeams.importModel(model, paths, (m) => conn.send(m), { repo, signal: entry.controller.signal });
+    await conn.send({ type: 'model_download_done', model, status });
+  } catch (e) {
+    // An ImportError is worded for the person; anything else is the engine's own message.
+    await conn.send({ type: 'error', model, message: e instanceof ImportError || e instanceof Error ? e.message : String(e) });
+  } finally {
+    const downloads = downloadsOf(state);
+    if (downloads.get(model) === entry) downloads.delete(model);
+  }
+}
+
+/** model_import: the files the person chose, put into the cache like a download (same slot, same progress and end messages). */
+export const modelImportHandler: Handler = async (state, msg, _binary, conn) => {
+  if (!conn) return [{ type: 'error', id: msg.id, message: 'no connection' }, null];
+  const model = String(msg.model ?? '');
+  const paths = (Array.isArray(msg.paths) ? msg.paths : []).filter((p): p is string => typeof p === 'string' && p !== '');
+  if (paths.length === 0) return [{ type: 'error', id: msg.id, model, message: 'no files were chosen' }, null];
+  const downloads = downloadsOf(state);
+  if (downloads.has(model) && !downloads.get(model)!.conn.closed) return [{ type: 'error', id: msg.id, model, message: `${model} is already downloading` }, null];
+  const entry: Download = { controller: new AbortController(), conn, task: Promise.resolve() };
+  downloads.set(model, entry);
+  entry.task = runImport(state, model, conn, paths, str(msg.repo), entry).catch(() => {});
+  return [null, null];
+};
+
+/** model_files: the files a card is made of, where each is published — what a person downloading it by hand needs to know. */
+export const modelFilesHandler: Handler = async (_state, msg) => {
+  const model = String(msg.model ?? '');
+  const specs = downloadSpecs(model, str(msg.repo));
+  const files = (specs.files ?? []).map(([repo, file]) => ({ repo, file, url: `https://huggingface.co/${repo}/resolve/main/${file}` }));
+  return [{ type: 'model_files_result', id: msg.id, model, files }, null];
+};
+
 export const modelCancelHandler: Handler = async (state, msg) => {
   downloadsOf(state).get(String(msg.model ?? ''))?.controller.abort();
   return [{ type: 'ok', id: msg.id }, null];
@@ -89,6 +127,8 @@ export const modelDeleteHandler: Handler = async (_state, msg) => {
 export function register(state: EngineState): void {
   registerHandler(state, 'model_status', modelStatusHandler);
   registerHandler(state, 'model_download', modelDownloadHandler);
+  registerHandler(state, 'model_files', modelFilesHandler);
+  registerHandler(state, 'model_import', modelImportHandler);
   registerHandler(state, 'model_cancel', modelCancelHandler);
   registerHandler(state, 'model_delete', modelDeleteHandler);
 }

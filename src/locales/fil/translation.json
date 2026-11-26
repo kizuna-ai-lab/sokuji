@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Katumpakan sa {{language}}: {{grade}}",
     "gradeNone": "Hindi sinukat ang katumpakan sa {{language}}",
     "speedTooltip": "Bilis: {{level}} sa {{max}} (sinukat sa test machine ng catalog, hindi sa computer na ito)",
-    "speedNone": "Hindi sinukat ang bilis"
+    "speedNone": "Hindi sinukat ang bilis",
+    "nativeImport": {
+      "title": "I-import ang {{name}}",
+      "intro": "I-download mo mismo ang mga file sa ibaba, pagkatapos ay piliin ang mga ito rito. Dapat manatiling pareho ang mga pangalan ng file.",
+      "loading": "Hinahanap ang mga file…",
+      "openPage": "Buksan ang pahina ng pag-download",
+      "choose": "Pumili ng mga file…",
+      "pickTitle": "Piliin ang mga na-download na file"
+    }
   },
   "notes": {
     "stageAsr": "pagkilala sa pagsasalita",

@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Dokładność ({{language}}): {{grade}}",
     "gradeNone": "Nie zmierzono dokładności ({{language}})",
     "speedTooltip": "Szybkość: {{level}} z {{max}} (zmierzona na maszynie testowej katalogu, a nie na tym komputerze)",
-    "speedNone": "Nie zmierzono szybkości"
+    "speedNone": "Nie zmierzono szybkości",
+    "nativeImport": {
+      "title": "Importuj {{name}}",
+      "intro": "Pobierz poniższe pliki samodzielnie, a następnie wybierz je tutaj. Nazwy plików muszą pozostać bez zmian.",
+      "loading": "Wyszukiwanie plików…",
+      "openPage": "Otwórz stronę pobierania",
+      "choose": "Wybierz pliki…",
+      "pickTitle": "Wybierz pobrane pliki"
+    }
   },
   "notes": {
     "stageAsr": "rozpoznawania mowy",

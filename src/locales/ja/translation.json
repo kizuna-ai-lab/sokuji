@@ -950,6 +950,14 @@
     "hwRepo": "リポジトリ",
     "computeDevice": "ハードウェアアクセラレーション",
     "streaming": "ストリーミング",
+    "nativeImport": {
+      "title": "{{name}} をインポート",
+      "intro": "下のファイルを自分でダウンロードしてから、ここで選んでください。ファイル名は変えないでください。",
+      "loading": "ファイルを調べています…",
+      "openPage": "ダウンロードページを開く",
+      "choose": "ファイルを選ぶ…",
+      "pickTitle": "ダウンロードしたファイルを選ぶ"
+    },
     "faster": "より高速",
     "gradeTooltip": "{{language}}の精度：{{grade}}",
     "gradeNone": "{{language}}の精度は測定されていません",

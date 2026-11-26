@@ -950,6 +950,14 @@
     "hwRepo": "仓库",
     "computeDevice": "硬件加速",
     "streaming": "流式",
+    "nativeImport": {
+      "title": "导入 {{name}}",
+      "intro": "请先自己下载下面的文件，再在这里选择它们。文件名不能改。",
+      "loading": "正在查找文件…",
+      "openPage": "打开下载页面",
+      "choose": "选择文件…",
+      "pickTitle": "选择已下载的文件"
+    },
     "faster": "更快",
     "gradeTooltip": "{{language}}的准确度：{{grade}}",
     "gradeNone": "没有测过{{language}}的准确度",

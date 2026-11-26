@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Noggrannhet för {{language}}: {{grade}}",
     "gradeNone": "Noggrannheten för {{language}} mättes inte",
     "speedTooltip": "Hastighet: {{level}} av {{max}} (uppmätt på katalogens testdator, inte på den här datorn)",
-    "speedNone": "Hastigheten mättes inte"
+    "speedNone": "Hastigheten mättes inte",
+    "nativeImport": {
+      "title": "Importera {{name}}",
+      "intro": "Ladda ner filerna nedan själv och välj dem sedan här. Filnamnen måste vara oförändrade.",
+      "loading": "Söker efter filerna…",
+      "openPage": "Öppna nedladdningssidan",
+      "choose": "Välj filer…",
+      "pickTitle": "Välj de nedladdade filerna"
+    }
   },
   "notes": {
     "stageAsr": "taligenkänning",

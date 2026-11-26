@@ -206,3 +206,36 @@ describe('a download and its connection', () => {
     expect(order).toEqual(['first-stopped', 'second-started']);
   });
 });
+
+describe('model_import', () => {
+  it('runs in the background like a download: progress, then model_download_done', async () => {
+    const calls: Array<[string, string[], string | null | undefined]> = [];
+    handlerSeams.importModel = async (model, paths, send, opts) => {
+      calls.push([model, [...paths], opts?.repo]);
+      await send({ type: 'model_progress', model, downloaded: 1, total: 1 });
+      return 'ready';
+    };
+    const { state, socket, call } = setup();
+    expect((await call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/a.gguf'], repo: 'org/r/f.gguf' }))[0]).toBeNull();
+    await terminal(socket);
+    expect(calls).toEqual([['m', ['/x/a.gguf'], 'org/r/f.gguf']]);
+    expect(socket.sent.map((m) => m.type)).toEqual(['model_progress', 'model_download_done']);
+    expect(socket.sent[1]).toMatchObject({ model: 'm', status: 'ready' });
+    await vi.waitFor(() => expect(downloadsOf(state).size).toBe(0));
+  });
+
+  it('reports a refused file as an error tagged with the model', async () => {
+    handlerSeams.importModel = async () => { throw new Error('missing: a.gguf'); };
+    const { socket, call } = setup();
+    await call({ type: 'model_import', id: 1, model: 'm', paths: ['/x/b.gguf'] });
+    await terminal(socket);
+    expect(socket.sent.at(-1)).toEqual({ type: 'error', model: 'm', message: 'missing: a.gguf' });
+  });
+
+  it('asks for files when none were chosen, and does not import over a download in flight', async () => {
+    const { state, conn, call } = setup();
+    expect((await call({ type: 'model_import', id: 1, model: 'm', paths: [] }))[0]).toMatchObject({ type: 'error', message: 'no files were chosen' });
+    downloadsOf(state).set('m', { controller: new AbortController(), conn, task: Promise.resolve() });
+    expect((await call({ type: 'model_import', id: 2, model: 'm', paths: ['/x/a.gguf'] }))[0]).toMatchObject({ type: 'error', message: 'm is already downloading' });
+  });
+});

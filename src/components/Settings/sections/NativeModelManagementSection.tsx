@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, Download, CheckCircle, Star, Zap, Trash2, X, AlertTriangle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Download, FolderInput, CheckCircle, Star, Zap, Trash2, X, AlertTriangle } from 'lucide-react';
 import Tooltip from '../../Tooltip/Tooltip';
 import type { NativeEngineSettings } from '../engine/useNativeEngineAdapter';
 import type { LanguagePair } from '../../../lib/run/types';
@@ -28,6 +28,7 @@ import { voiceStoreFor } from '../../../lib/local-inference/native/nativeVoiceSt
 import { languageNameFor } from '../engine/languageName';
 import { TierIcon } from './TierIcon';
 import LicenseConsentModal from '../shared/LicenseConsentModal';
+import { NativeImportModal } from './NativeImportModal';
 import { hasAcceptedLicense, acceptLicense } from '../../../stores/licenseConsentStore';
 import {
   useNativeModelStore,
@@ -160,6 +161,7 @@ const NativeModelCard: React.FC<{
   // (default True), but a producer that omitted it would otherwise silently drop
   // OmniVoice's gate. A license descriptor is opt-OUT of the gate, never opt-in.
   const [consentOpen, setConsentOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // The download button fetches the chosen variant's repo (undefined → default repo,
   // for single-variant cards). Keeps download in lock-step with the variant load.
@@ -369,15 +371,29 @@ const NativeModelCard: React.FC<{
                 </button>
               </div>
             ) : (
-              <button
-                className="model-card__btn model-card__btn--download"
-                onClick={handleDownload}
-                disabled={disabled || hwGated}
-                title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
-              >
-                <Download size={14} />
-                <span>{t('models.download', 'Download')}</span>
-              </button>
+              <>
+                {!incompatible && (
+                  <button
+                    className="model-card__btn model-card__btn--import"
+                    onClick={(e) => { e.stopPropagation(); setImportOpen(true); }}
+                    disabled={disabled || hwGated}
+                    title={t('models.importTitle', 'Import model')}
+                    aria-label={`${t('models.import', 'Import')}: ${spec.name}`}
+                  >
+                    <FolderInput size={14} />
+                    <span>{t('models.import', 'Import')}</span>
+                  </button>
+                )}
+                <button
+                  className="model-card__btn model-card__btn--download"
+                  onClick={handleDownload}
+                  disabled={disabled || hwGated}
+                  title={hwGated ? t('models.requiresGpu', 'Requires a GPU') : t('models.download', 'Download')}
+                >
+                  <Download size={14} />
+                  <span>{t('models.download', 'Download')}</span>
+                </button>
+              </>
             )}
           </div>
           {err && status !== 'downloading' && (
@@ -392,6 +408,8 @@ const NativeModelCard: React.FC<{
           {children}
         </div>
       )}
+      <NativeImportModal isOpen={importOpen} onClose={() => setImportOpen(false)}
+        modelId={spec.downloadId as string} modelName={spec.name} repo={chosenVariant?.repo} />
       {spec.license && (
         <LicenseConsentModal
           isOpen={consentOpen}

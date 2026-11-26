@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { NativeModelClient } from '../lib/local-inference/native/NativeModelClient';
-import type { NativeModelState, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg, NativeDeviceProfile } from '../lib/local-inference/native/nativeProtocol';
+import type { NativeModelState, ModelFileInfo, NativeModelInfo, NativeVoiceInfo, VariantInfo, HardwareInfoResultMsg, NativeDeviceProfile } from '../lib/local-inference/native/nativeProtocol';
 import {
   statusReposFor,
   nativeAsrCards, nativeTranslationCards, nativeTtsCards,
@@ -126,6 +126,11 @@ interface NativeModelStore {
   /** Download one model, streaming progress into the store. `repo` selects a chosen
    *  variant's repo (the sidecar fetches it instead of the model's default repo). */
   download: (model: string, repo?: string) => Promise<void>;
+  /** Import files the person downloaded themselves, streaming progress into the store like a download; a refused file
+   *  lands as the model's error, in the engine's words. */
+  importFiles: (model: string, paths: string[], repo?: string) => Promise<void>;
+  /** The files a model is made of and where each is published (for downloading by hand). */
+  modelFiles: (model: string, repo?: string) => Promise<ModelFileInfo[]>;
   /** Ask the sidecar to stop an in-flight download (takes effect at a file boundary). */
   cancelDownload: (model: string) => Promise<void>;
   /** Delete one model from the sidecar cache (flips its status to absent). */
@@ -578,6 +583,26 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       }));
     }
   },
+
+  importFiles: async (model, paths, repo) => {
+    set((s) => ({
+      statuses: { ...s.statuses, [model]: 'downloading' },
+      progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
+      errors: { ...s.errors, [model]: '' },
+    }));
+    try {
+      const status = await client.importFiles(model, paths, (p) =>
+        set((s) => ({ progress: { ...s.progress, [model]: { downloaded: p.downloaded, total: p.total } } })), repo);
+      set((s) => ({ statuses: { ...s.statuses, [model]: status === 'ready' ? 'ready' : 'absent' }, errors: { ...s.errors, [model]: '' } }));
+    } catch (err) {
+      set((s) => ({
+        statuses: { ...s.statuses, [model]: 'absent' },
+        errors: { ...s.errors, [model]: err instanceof Error ? err.message : String(err) },
+      }));
+    }
+  },
+
+  modelFiles: (model, repo) => client.files(model, repo),
 
   cancelDownload: async (model) => {
     // Fire the signal; the in-flight download() resolves 'cancelled' and flips the

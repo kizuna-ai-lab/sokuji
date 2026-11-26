@@ -1035,7 +1035,15 @@
     "gradeTooltip": "{{language}}準確度：{{grade}}",
     "gradeNone": "尚未測量{{language}}的準確度",
     "speedTooltip": "速度：{{level}} / {{max}}（於型錄的測試機器上測得，並非在這台電腦上）",
-    "speedNone": "尚未測量速度"
+    "speedNone": "尚未測量速度",
+    "nativeImport": {
+      "title": "匯入 {{name}}",
+      "intro": "請自行下載下列檔案，然後在此選擇。檔案名稱必須保持不變。",
+      "loading": "正在尋找檔案…",
+      "openPage": "開啟下載頁面",
+      "choose": "選擇檔案…",
+      "pickTitle": "選擇已下載的檔案"
+    }
   },
   "notes": {
     "stageAsr": "語音辨識",

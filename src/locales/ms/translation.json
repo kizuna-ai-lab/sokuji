@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Ketepatan dalam {{language}}: {{grade}}",
     "gradeNone": "Ketepatan dalam {{language}} tidak diukur",
     "speedTooltip": "Kelajuan: {{level}} daripada {{max}} (diukur pada mesin ujian katalog, bukan pada komputer ini)",
-    "speedNone": "Kelajuan tidak diukur"
+    "speedNone": "Kelajuan tidak diukur",
+    "nativeImport": {
+      "title": "Import {{name}}",
+      "intro": "Muat turun sendiri fail di bawah, kemudian pilih fail itu di sini. Nama fail mesti kekal seperti asal.",
+      "loading": "Mencari fail…",
+      "openPage": "Buka halaman muat turun",
+      "choose": "Pilih fail…",
+      "pickTitle": "Pilih fail yang telah dimuat turun"
+    }
   },
   "notes": {
     "stageAsr": "pengecaman suara",

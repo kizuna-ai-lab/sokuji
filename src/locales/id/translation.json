@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Akurasi dalam {{language}}: {{grade}}",
     "gradeNone": "Akurasi dalam {{language}} tidak diukur",
     "speedTooltip": "Kecepatan: {{level}} dari {{max}} (diukur pada mesin uji katalog, bukan pada komputer ini)",
-    "speedNone": "Kecepatan tidak diukur"
+    "speedNone": "Kecepatan tidak diukur",
+    "nativeImport": {
+      "title": "Impor {{name}}",
+      "intro": "Unduh sendiri file di bawah ini, lalu pilih di sini. Nama file harus tetap seperti semula.",
+      "loading": "Mencari file…",
+      "openPage": "Buka halaman unduhan",
+      "choose": "Pilih file…",
+      "pickTitle": "Pilih file yang telah diunduh"
+    }
   },
   "notes": {
     "stageAsr": "pengenalan suara",

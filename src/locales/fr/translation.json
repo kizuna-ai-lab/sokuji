@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Précision en {{language}} : {{grade}}",
     "gradeNone": "La précision en {{language}} n’a pas été mesurée",
     "speedTooltip": "Vitesse : {{level}} sur {{max}} (mesurée sur la machine de test du catalogue, et non sur cet ordinateur)",
-    "speedNone": "La vitesse n’a pas été mesurée"
+    "speedNone": "La vitesse n’a pas été mesurée",
+    "nativeImport": {
+      "title": "Importer {{name}}",
+      "intro": "Téléchargez vous-même le ou les fichiers ci-dessous, puis choisissez-les ici. Les noms des fichiers doivent rester inchangés.",
+      "loading": "Recherche des fichiers…",
+      "openPage": "Ouvrir la page de téléchargement",
+      "choose": "Choisir des fichiers…",
+      "pickTitle": "Choisissez les fichiers téléchargés"
+    }
   },
   "notes": {
     "stageAsr": "reconnaissance vocale",

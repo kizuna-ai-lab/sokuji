@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Tarkkuus ({{language}}): {{grade}}",
     "gradeNone": "Tarkkuutta ({{language}}) ei ole mitattu",
     "speedTooltip": "Nopeus: {{level}}/{{max}} (mitattu luettelon testikoneella, ei tällä tietokoneella)",
-    "speedNone": "Nopeutta ei ole mitattu"
+    "speedNone": "Nopeutta ei ole mitattu",
+    "nativeImport": {
+      "title": "Tuo {{name}}",
+      "intro": "Lataa alla olevat tiedostot itse ja valitse ne sitten tästä. Tiedostojen nimien on pysyttävä ennallaan.",
+      "loading": "Haetaan tiedostoja…",
+      "openPage": "Avaa lataussivu",
+      "choose": "Valitse tiedostot…",
+      "pickTitle": "Valitse ladatut tiedostot"
+    }
   },
   "notes": {
     "stageAsr": "puheentunnistus",

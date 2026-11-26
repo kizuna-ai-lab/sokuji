@@ -199,3 +199,28 @@
     margin-bottom: 4px;
   }
 }
+
+// The window that names the file(s) of a native model to download by hand, then imports what was chosen.
+.native-import-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: vars.$font-body;
+  p { margin: 0; color: vars.$text-secondary; }
+  &__files { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  &__repo { color: vars.$text-muted; font-size: vars.$font-caption; }
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: vars.$color-primary;
+    font-size: vars.$font-caption;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .model-card__btn { align-self: flex-start; }
+}

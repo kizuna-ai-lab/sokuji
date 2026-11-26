@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Nauwkeurigheid in {{language}}: {{grade}}",
     "gradeNone": "Nauwkeurigheid in {{language}} is niet gemeten",
     "speedTooltip": "Snelheid: {{level}} van {{max}} (gemeten op de testmachine van de catalogus, niet op deze computer)",
-    "speedNone": "Snelheid is niet gemeten"
+    "speedNone": "Snelheid is niet gemeten",
+    "nativeImport": {
+      "title": "{{name}} importeren",
+      "intro": "Download de onderstaande bestanden zelf en kies ze daarna hier. De bestandsnamen moeten ongewijzigd blijven.",
+      "loading": "Bestanden opzoeken…",
+      "openPage": "Downloadpagina openen",
+      "choose": "Bestanden kiezen…",
+      "pickTitle": "Kies de gedownloade bestanden"
+    }
   },
   "notes": {
     "stageAsr": "spraakherkenning",

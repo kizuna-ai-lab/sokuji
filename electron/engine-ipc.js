@@ -28,7 +28,7 @@ function engineEnv({ env, userData, nativeDir, origins }) {
   };
 }
 
-function registerEngineIpc({ ipcMain, app, detectSku, nativeVersion, repoRoot, enginePath, env = process.env, resourcesPath = process.resourcesPath, platform = process.platform, arch = process.arch, log = () => {}, fork, exists = fs.existsSync }) {
+function registerEngineIpc({ ipcMain, app, showOpenDialog, detectSku, nativeVersion, repoRoot, enginePath, env = process.env, resourcesPath = process.resourcesPath, platform = process.platform, arch = process.arch, log = () => {}, fork, exists = fs.existsSync }) {
   const sku = detectSku(platform, { arch });
   const nativeDir = resolveNativeDir({ isPackaged: app.isPackaged, resourcesPath, env, repoRoot });
   const host = new EngineHost({
@@ -45,6 +45,14 @@ function registerEngineIpc({ ipcMain, app, detectSku, nativeVersion, repoRoot, e
   });
   ipcMain.handle('native-host:stop', async () => { await host.stop(); return { ok: true }; });
   ipcMain.handle('native-host:status', () => ({ ok: true, ...host.status() }));
+  // The files a person picks to import as a model: the system's Open dialog, over the window. Only paths come back; the
+  // engine reads them, and checks what they are before anything is copied.
+  ipcMain.handle('native-models:pick-files', async (_event, options) => {
+    if (!showOpenDialog) return { ok: false, error: 'no dialog' };
+    const title = typeof options?.title === 'string' ? options.title : undefined;
+    const answer = await showOpenDialog({ title, properties: ['openFile', 'multiSelections'] });
+    return { ok: true, paths: answer.canceled ? [] : answer.filePaths };
+  });
 
   ipcMain.handle('sidecar-bundle:status', () => {
     if (sku === null) {

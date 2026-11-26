@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Genauigkeit für {{language}}: {{grade}}",
     "gradeNone": "Genauigkeit für {{language}} wurde nicht gemessen",
     "speedTooltip": "Geschwindigkeit: {{level}} von {{max}} (auf dem Testrechner des Katalogs gemessen, nicht auf diesem Computer)",
-    "speedNone": "Geschwindigkeit wurde nicht gemessen"
+    "speedNone": "Geschwindigkeit wurde nicht gemessen",
+    "nativeImport": {
+      "title": "{{name}} importieren",
+      "intro": "Laden Sie die folgenden Dateien selbst herunter und wählen Sie sie dann hier aus. Die Dateinamen dürfen nicht geändert werden.",
+      "loading": "Dateien werden gesucht…",
+      "openPage": "Seite zum Herunterladen öffnen",
+      "choose": "Dateien wählen…",
+      "pickTitle": "Heruntergeladene Dateien wählen"
+    }
   },
   "notes": {
     "stageAsr": "Spracherkennung",

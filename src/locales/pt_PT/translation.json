@@ -1035,7 +1035,15 @@
     "gradeTooltip": "Precisão em {{language}}: {{grade}}",
     "gradeNone": "A precisão em {{language}} não foi medida",
     "speedTooltip": "Velocidade: {{level}} de {{max}} (medida na máquina de teste do catálogo, não neste computador)",
-    "speedNone": "A velocidade não foi medida"
+    "speedNone": "A velocidade não foi medida",
+    "nativeImport": {
+      "title": "Importar {{name}}",
+      "intro": "Transfira o(s) ficheiro(s) abaixo por si e, depois, escolha-os aqui. Os nomes dos ficheiros têm de permanecer inalterados.",
+      "loading": "A procurar os ficheiros…",
+      "openPage": "Abrir a página de transferência",
+      "choose": "Escolher ficheiros…",
+      "pickTitle": "Escolha os ficheiros transferidos"
+    }
   },
   "notes": {
     "stageAsr": "reconhecimento de voz",

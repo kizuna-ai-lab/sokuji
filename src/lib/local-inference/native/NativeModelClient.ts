@@ -1,4 +1,4 @@
-import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, NativeModelInfo, NativeVoiceInfo, VariantInfo } from './nativeProtocol';
+import type { ServerMsg, NativeModelState, ModelProgressMsg, ModelDownloadStatus, ModelFileInfo, NativeModelInfo, NativeVoiceInfo, VariantInfo } from './nativeProtocol';
 import { SidecarConnection, type ISidecarConnection } from './SidecarConnection';
 
 interface DownloadHandle {
@@ -106,6 +106,32 @@ export class NativeModelClient {
       this.downloads.set(model, { onProgress, resolve, reject });
       const payload: { type: 'model_download'; model: string; id: number; repo?: string } =
         { type: 'model_download', model, id: this.conn.nextId() };
+      if (repo) payload.repo = repo;
+      this.conn.send(payload);
+    });
+  }
+
+  /** The files a model is made of, and where each is published: what a person downloading it by hand needs. */
+  async files(model: string, repo?: string): Promise<ModelFileInfo[]> {
+    const payload: { type: 'model_files'; model: string; repo?: string } = { type: 'model_files', model };
+    if (repo) payload.repo = repo;
+    const msg = await this.conn.request(payload);
+    return (msg as Extract<ServerMsg, { type: 'model_files_result' }>).files;
+  }
+
+  /**
+   * Import files the person downloaded themselves (paths on this computer): the engine checks them and puts them in
+   * the cache as a download would, with the same progress and the same end. Resolves 'ready', or 'cancelled' if
+   * cancel() stopped it; rejects with the engine's sentence when a file is missing, not the one named, or damaged.
+   */
+  async importFiles(model: string, paths: string[], onProgress?: (p: ModelProgressMsg) => void, repo?: string): Promise<ModelDownloadStatus> {
+    await this.conn.connect();
+    return new Promise<ModelDownloadStatus>((resolve, reject) => {
+      const existing = this.downloads.get(model);
+      if (existing) existing.reject(new Error(`download for '${model}' superseded by a newer request`));
+      this.downloads.set(model, { onProgress, resolve, reject });
+      const payload: { type: 'model_import'; model: string; id: number; paths: string[]; repo?: string } =
+        { type: 'model_import', model, id: this.conn.nextId(), paths };
       if (repo) payload.repo = repo;
       this.conn.send(payload);
     });
