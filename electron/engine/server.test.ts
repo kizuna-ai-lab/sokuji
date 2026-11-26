@@ -301,6 +301,16 @@ describe('the server', () => {
     expect(await closing).toBe(1009);
   });
 
+  it('initialises the native library before it says it is ready, so the first-run Metal compile happens at start', async () => {
+    const native = makeFakeNative();
+    let inits = 0;
+    const init = native.init.bind(native);
+    native.init = ((...a: Parameters<typeof init>) => { inits++; return init(...a); }) as typeof native.init;
+    const eng = await startEngine({ nativeDir: '', allowedOrigins: [], log: quiet, native });
+    engines.push(eng);
+    expect(inits).toBe(1);
+  });
+
   it('rejects a browser Origin that is not allowed', async () => {
     const eng = await startEngine({ nativeDir: '', allowedOrigins: ['http://localhost:5173'], log: quiet, native: makeFakeNative() });
     engines.push(eng);

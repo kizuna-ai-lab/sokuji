@@ -2,17 +2,20 @@
  * Runs the Node engine (dist-electron/engine.js) in an Electron utilityProcess and keeps it honest.
  *
  * start()   forks it and resolves { port } from its `ready` message; a `failed` message, an exit before ready, or no
- *           ready within 30 s rejects. A running engine answers again with the same port.
+ *           ready within 120 s rejects. A running engine answers again with the same port.
  * watchdog  pings every 5 s; no pong for 15 s, or a `stuck` message (a native call missed its deadline), kills it. The
  *           renderer's next connect() calls start() and gets a fresh one.
  * crashes   three unexpected exits within 60 s and start() refuses until the app restarts.
  * stop()    asks it to stop, kills it after 2 s.
  * The IPC reply shapes are the ones the Python host had: { ok: true, port } / { ok: false, error }.
  */
-const START_TIMEOUT_MS = 30_000;
+// Generous: before it says ready the engine initialises the native library, and on a Mac the first run compiles the Metal
+// shaders (about 15 s measured on an M4 with a cold cache, longer on older machines).
+const START_TIMEOUT_MS = 120_000;
 const PING_EVERY_MS = 5_000;
 const PONG_WITHIN_MS = 15_000;
 const STOP_GRACE_MS = 2_000;
+const EXIT_WAIT_MS = 5_000;
 const CRASH_WINDOW_MS = 60_000;
 const CRASH_LIMIT = 3;
 
@@ -32,6 +35,8 @@ class EngineHost {
     this.port = null;
     this.starting = null;
     this.crashes = [];
+    this.tripped = false;   // the crash limit was hit: stays until the app restarts
+    this.dying = null;      // a child that was told to die and may not have exited yet
   }
 
   status() {
@@ -41,20 +46,37 @@ class EngineHost {
   start() {
     if (this.child && this.port !== null) return Promise.resolve({ port: this.port });
     if (this.starting) return this.starting;
-    const t = this.now();
-    this.crashes = this.crashes.filter((c) => t - c < CRASH_WINDOW_MS);
-    if (this.crashes.length >= CRASH_LIMIT) {
+    if (this.tripped) {
       return Promise.reject(new Error('The local engine stopped unexpectedly three times in a minute. Restart Sokuji to try again.'));
     }
     this.starting = this.launch().finally(() => { this.starting = null; });
     return this.starting;
   }
 
-  launch() {
+  /** Counts one unexpected end of the engine; the third within a minute stops further starts until the app restarts. */
+  recordCrash() {
+    const t = this.now();
+    this.crashes.push(t);
+    this.crashes = this.crashes.filter((c) => t - c < CRASH_WINDOW_MS);
+    if (this.crashes.length >= CRASH_LIMIT) this.tripped = true;
+  }
+
+  /** Tells a child to die and remembers it, so the next start does not fork beside a process that is still dying. */
+  killChild(child) {
+    this.dying = child;
+    try { child.kill(); } catch { /* already gone */ }
+  }
+
+  async launch() {
+    const prev = this.dying;
+    if (prev && !prev.__done) {
+      await Promise.race([prev.__exit, new Promise((r) => setTimeout(r, EXIT_WAIT_MS))]);
+    }
     return new Promise((resolve, reject) => {
       const child = this.fork(this.enginePath, [], { serviceName: 'Sokuji Engine', stdio: 'pipe', env: this.env });
       this.child = child;
       this.port = null;
+      child.__exit = new Promise((r) => child.on('exit', r));
       let settled = false;
       let stopping = false;
       let pingTimer = null;
@@ -74,8 +96,8 @@ class EngineHost {
       };
 
       startTimer = setTimeout(() => {
-        settle(reject, new Error('The local engine did not start within 30 s'));
-        try { child.kill(); } catch { /* already gone */ }
+        settle(reject, new Error('The local engine did not start within 120 s'));
+        this.killChild(child);
       }, START_TIMEOUT_MS);
 
       for (const stream of [child.stdout, child.stderr]) {
@@ -90,11 +112,12 @@ class EngineHost {
             this.port = m.port;
             lastPong = this.now();
             pingTimer = setInterval(() => {
+              if (this.child !== child) { clearInterval(pingTimer); return; }   // stopped or killed meanwhile
               if (this.now() - lastPong > PONG_WITHIN_MS) {
                 this.log('error', '[engine] no answer to ping for 15 s; killing it');
-                this.crashes.push(this.now());
+                this.recordCrash();
                 forget();
-                try { child.kill(); } catch { /* already gone */ }
+                this.killChild(child);
                 return;
               }
               child.postMessage({ type: 'ping', seq: ++seq });
@@ -104,16 +127,16 @@ class EngineHost {
           case 'failed':
             settle(reject, new Error(String(m.error)));
             forget();
-            try { child.kill(); } catch { /* already gone */ }
+            this.killChild(child);
             break;
           case 'pong':
             lastPong = this.now();
             break;
           case 'stuck':
             this.log('error', `[engine] ${m.job} missed its deadline; killing the engine`);
-            this.crashes.push(this.now());
+            this.recordCrash();
             forget();
-            try { child.kill(); } catch { /* already gone */ }
+            this.killChild(child);
             break;
           case 'log':
             this.log(m.level, `[engine] ${m.message}`);
@@ -127,17 +150,28 @@ class EngineHost {
 
       child.on('exit', (code) => {
         const wasCurrent = this.child === child;
+        child.__done = true;
         forget();
         if (!settled) {
-          if (!stopping && !child.__stopRequested) this.crashes.push(this.now());   // a bad driver that aborts at load counts too
+          if (!stopping && !child.__stopRequested) this.recordCrash();   // a bad driver that aborts at load counts too
           settle(reject, new Error(`The local engine exited before it was ready (code ${code})`));
-        } else if (wasCurrent && !stopping && !child.__stopRequested) this.crashes.push(this.now());
+        } else if (wasCurrent && !stopping && !child.__stopRequested) this.recordCrash();
         if (child.__stopRequested) child.__stopRequested = false;
         for (const w of (child.__exitWaiters ?? []).splice(0)) w();   // only the waiters of this child
       });
 
       child.__markStopping = () => { stopping = true; child.__stopRequested = true; };
     });
+  }
+
+  /** Ends the engine at once. For the quit paths, which exit the app and cannot wait for a graceful stop. */
+  kill() {
+    const child = this.child;
+    if (!child) return;
+    child.__markStopping?.();
+    this.child = null;
+    this.port = null;
+    this.killChild(child);
   }
 
   stop() {
@@ -149,7 +183,7 @@ class EngineHost {
       const finish = () => { if (!done) { done = true; clearTimeout(timer); resolve(); } };
       (child.__exitWaiters ??= []).push(finish);
       const timer = setTimeout(() => {
-        try { child.kill(); } catch { /* already gone */ }
+        this.killChild(child);
         // kill() reports through 'exit'; do not wait forever for it
         setTimeout(finish, 500);
       }, STOP_GRACE_MS);

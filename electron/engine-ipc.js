@@ -8,6 +8,9 @@ const { EngineHost } = require('./engine-host');
 const { resolveNativeDir } = require('./native-dir');
 
 const DEV_ORIGIN = 'http://localhost:5173';
+// What a packaged page's WebSocket really sends: Electron's loadFile() page has the origin `file://` (measured on
+// Electron 44.11.5). Not Better Auth's `file://sokuji` marker, and never `null`.
+const PACKAGED_PAGE_ORIGIN = 'file://';
 
 function engineEnv({ env, userData, nativeDir, origins }) {
   return {
@@ -19,14 +22,14 @@ function engineEnv({ env, userData, nativeDir, origins }) {
   };
 }
 
-function registerEngineIpc({ ipcMain, app, detectSku, nativeVersion, packagedOrigin, repoRoot, enginePath, env = process.env, platform = process.platform, arch = process.arch, log = () => {}, fork }) {
+function registerEngineIpc({ ipcMain, app, detectSku, nativeVersion, repoRoot, enginePath, env = process.env, resourcesPath = process.resourcesPath, platform = process.platform, arch = process.arch, log = () => {}, fork }) {
   const sku = detectSku(platform, { arch });
-  const nativeDir = resolveNativeDir({ isPackaged: app.isPackaged, resourcesPath: process.resourcesPath, env, repoRoot });
+  const nativeDir = resolveNativeDir({ isPackaged: app.isPackaged, resourcesPath, env, repoRoot });
   const host = new EngineHost({
     fork,
     enginePath,
     log,
-    env: engineEnv({ env, userData: app.getPath('userData'), nativeDir, origins: [DEV_ORIGIN, packagedOrigin] }),
+    env: engineEnv({ env, userData: app.getPath('userData'), nativeDir, origins: app.isPackaged ? [PACKAGED_PAGE_ORIGIN] : [DEV_ORIGIN, PACKAGED_PAGE_ORIGIN] }),
   });
 
   ipcMain.handle('native-host:start', async () => {

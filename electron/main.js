@@ -61,7 +61,7 @@ const isMainPageSender = (sender) => sender === mainWindow?.webContents && isApp
 
 const { UpdateManager } = require('./update-manager');
 // The local engine: registered with the IPC below, once `app` is ready to answer getPath().
-let nativeHost = { stop: () => Promise.resolve() };
+let nativeHost = { stop: () => Promise.resolve(), kill: () => {} };
 
 // LAN caption sharing (spec 2026-10-04): handlers registered once, here;
 // createWindow() hands each new main window to attachWindow(). The closures
@@ -240,7 +240,7 @@ ipcMain.handle('theme:set', (event, setting) => {
 // sandbox-recovery relaunches via app.exit(), which skips before-quit/will-quit,
 // so it must run the sidecar teardown itself or the native sidecar orphans and
 // keeps its Windows file locks. (removeVirtualAudioDevices is a Linux-only no-op.)
-const sandboxRecoveryOptions = { deps: { beforeExit: () => { try { nativeHost.stop(); } catch (_) {} } } };
+const sandboxRecoveryOptions = { deps: { beforeExit: () => { try { nativeHost.kill(); } catch (_) {} } } };
 if (sandboxRecovery) {
   sandboxRecovery.applyNoSandboxFlag(app, sandboxRecoveryOptions);
   sandboxRecovery.registerCrashDetection(app, sandboxRecoveryOptions);
@@ -742,7 +742,7 @@ const cleanupAndExit = () => {
   if (isDuplicateInstance) return;
   console.log('[Sokuji] [Main] Cleaning up virtual audio devices before exit...');
   removeVirtualAudioDevices();
-  nativeHost.stop();
+  nativeHost.kill();   // synchronous: the process is about to exit and cannot wait for a graceful stop
   closeHistoryStore();
   console.log('[Sokuji] [Main] Virtual audio devices cleaned up successfully');
 };
@@ -797,7 +797,6 @@ nativeHost = registerEngineIpc({
   app,
   detectSku: require('./sidecar-sku').detectSku,
   nativeVersion: require('../package.json').nativeVersion,
-  packagedOrigin: PACKAGED_ORIGIN,
   repoRoot: path.join(__dirname, '..'),
   enginePath: path.join(__dirname, 'engine.js'),
   log: (level, message) => console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](`[Sokuji] ${message}`),

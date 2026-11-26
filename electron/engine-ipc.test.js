@@ -12,18 +12,18 @@ class FakeChild extends EventEmitter {
   kill() { queueMicrotask(() => this.emit('exit', 137)); }
 }
 
-function setup({ sku = 'linux-x64', env = {} } = {}) {
+function setup({ sku = 'linux-x64', env = {}, packaged = false } = {}) {
   const handlers = {};
   const children = [];
   const fork = vi.fn((_p, _a, opts) => { const c = new FakeChild(); c.opts = opts; children.push(c); return c; });
   registerEngineIpc({
     ipcMain: { handle: (ch, fn) => { handlers[ch] = fn; } },
-    app: { isPackaged: false, getPath: () => '/userData' },
+    app: { isPackaged: packaged, getPath: () => '/userData' },
     detectSku: () => sku,
     nativeVersion: '1.2.0',
-    packagedOrigin: 'file://',
     repoRoot: '/repo',
     enginePath: '/repo/dist-electron/engine.js',
+    resourcesPath: '/app/resources',
     env,
     fork,
   });
@@ -71,8 +71,20 @@ describe('engine IPC', () => {
     const p = handlers['native-host:start']();
     const env = children[0].opts.env;
     expect(env.SOKUJI_NATIVE_DIR).toBe(path.join('/repo', 'resources', 'native'));
-    expect(env.SOKUJI_ENGINE_ORIGINS).toBe('http://localhost:5173,file://');
+    expect(env.SOKUJI_ENGINE_ORIGINS).toBe('http://localhost:5173,file://');   // a dev build: both
     expect(env.HF_HOME).toBe(path.join('/userData', 'hf-cache'));
+    children[0].emit('message', { type: 'ready', port: 1 });
+    await p;
+  });
+
+  it('allows the origin a packaged page really sends (file://), never null, never the Better Auth marker', async () => {
+    const { handlers, children } = setup({ packaged: true });
+    const p = handlers['native-host:start']();
+    const origins = children[0].opts.env.SOKUJI_ENGINE_ORIGINS.split(',');
+    expect(origins).toContain('file://');
+    expect(origins).not.toContain('null');
+    expect(origins).not.toContain('file://sokuji');
+    expect(origins).not.toContain('http://localhost:5173');                   // the dev server's origin is for a dev build only
     children[0].emit('message', { type: 'ready', port: 1 });
     await p;
   });

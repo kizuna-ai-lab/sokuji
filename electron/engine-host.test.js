@@ -58,11 +58,11 @@ describe('EngineHost', () => {
     expect(host.status().running).toBe(false);
   });
 
-  it('rejects if no ready arrives within 30 s', async () => {
+  it('rejects if no ready arrives within 120 s', async () => {
     const { host, children } = setup();
     const caught = host.start().catch((e) => e.message);
-    await vi.advanceTimersByTimeAsync(30_000);
-    expect(await caught).toMatch(/did not start within 30 s/);
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(await caught).toMatch(/did not start within 120 s/);
     expect(children[0].killed).toBe(true);
   });
 
@@ -157,6 +157,41 @@ describe('EngineHost', () => {
       await vi.advanceTimersByTimeAsync(1_000);
     }
     await expect(host.start()).rejects.toThrow(/stopped unexpectedly three times/);
+  });
+
+  it('once the crash limit is hit, start refuses for good, not only for a minute', async () => {
+    const { host, children } = setup();
+    for (let i = 0; i < 3; i++) {
+      await ready(host, children, 4000 + i);
+      children[i].emit('exit', 134);
+      await vi.advanceTimersByTimeAsync(1_000);
+    }
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    await expect(host.start()).rejects.toThrow(/stopped unexpectedly three times/);
+    expect(children).toHaveLength(3);
+  });
+
+  it('a start after a hung engine was killed waits for it to exit, so two engines never run at once', async () => {
+    const { host, children, fork } = setup();
+    await ready(host, children);
+    children[0].kill = function () { this.killed = true; return true; };      // the process is slow to die
+    children[0].say({ type: 'stuck', job: 'asr_run' });
+    const second = host.start();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(fork).toHaveBeenCalledTimes(1);                                     // still waiting for the first to exit
+    children[0].emit('exit', 137);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(fork).toHaveBeenCalledTimes(2);
+    children[1].say({ type: 'ready', port: 9 });
+    await expect(second).resolves.toEqual({ port: 9 });
+  });
+
+  it('kill() ends the engine at once, for the quit paths that cannot wait', async () => {
+    const { host, children } = setup();
+    await ready(host, children);
+    host.kill();
+    expect(children[0].killed).toBe(true);
+    expect(host.status()).toEqual({ running: false, port: null });
   });
 
   it('stop posts stop and kills after 2 s', async () => {

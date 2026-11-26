@@ -133,7 +133,7 @@ export class NativeStream implements AsrStreamLike {
     if (this.done) return this.committed.trim();
     let final: string;
     try {
-      final = (await this.raw.finalize()) || '';
+      final = (await guarded(this.raw.finalize(), FEED_MS, 'asr_finalize')) || '';
     } finally {
       this.close();
     }
