@@ -88,6 +88,10 @@ class EngineHost {
       this.child = child;
       this.port = null;
       child.__exit = new Promise((r) => child.on('exit', r));
+      // Whether a process ever existed: Electron leaves pid undefined until `spawn` and clears it again at exit, so the
+      // exit handler cannot read it; remember it when it happens.
+      let spawned = child.pid !== undefined;
+      child.on('spawn', () => { spawned = true; });
       let settled = false;
       let stopping = false;
       let pingTimer = null;
@@ -167,7 +171,7 @@ class EngineHost {
         if (!settled) {
           // A bad driver that aborts at load counts; a launch that never got a process (no pid: the stdio pipes could
           // not be made) is not an engine crash.
-          if (!stopping && !child.__stopRequested && child.pid !== undefined) this.recordCrash();
+          if (!stopping && !child.__stopRequested && spawned) this.recordCrash();
           settle(reject, new Error(`The local engine exited before it was ready (code ${code})`));
         } else if (wasCurrent && !stopping && !child.__stopRequested) this.recordCrash();
         if (child.__stopRequested) child.__stopRequested = false;

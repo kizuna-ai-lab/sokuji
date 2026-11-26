@@ -9,9 +9,10 @@ class FakeChild extends EventEmitter {
   say(m) { this.emit('message', m); }
 }
 
-function setup(over = {}) {
+function setup({ noPidAtFork = false, ...over } = {}) {
   const children = [];
-  const fork = vi.fn(() => { const c = new FakeChild(); children.push(c); return c; });
+  // Electron's utilityProcess has no pid when fork() returns; the fakes have one unless a test says otherwise.
+  const fork = vi.fn(() => { const c = new FakeChild(); if (noPidAtFork) c.pid = undefined; children.push(c); return c; });
   const log = vi.fn();
   const host = new EngineHost({ fork, enginePath: '/app/engine.js', env: { SOKUJI_NATIVE_DIR: '/n' }, log, ...over });
   return { host, children, fork, log };
@@ -252,14 +253,26 @@ describe('EngineHost', () => {
   });
 
   it('a launch that never got a process (no pid) does not count as a crash', async () => {
-    const { host, children } = setup();
+    const { host, children } = setup({ noPidAtFork: true });
     for (let i = 0; i < 3; i++) {
       const p = host.start().catch(() => {});
-      children[i].pid = undefined;
-      children[i].emit('exit', 1);
+      children[i].emit('exit', 1);                                 // never emitted 'spawn'
       await p;
     }
     await expect(ready(host, children, 77)).resolves.toEqual({ port: 77 });
+  });
+
+  it('a spawned child that dies before ready counts even though Electron has cleared its pid by then', async () => {
+    const { host, children } = setup();
+    for (let i = 0; i < 3; i++) {
+      const p = host.start().catch(() => {});
+      children[i].pid = undefined;                                 // no pid yet at fork, as in Electron...
+      children[i].pid = 100 + i; children[i].emit('spawn');        // ...set when it spawns...
+      children[i].pid = undefined;                                 // ...and gone again by the time 'exit' is emitted
+      children[i].emit('exit', 134);
+      await p;
+    }
+    await expect(host.start()).rejects.toThrow(/stopped unexpectedly three times/);
   });
 
   it('stop() withdraws the port at once; a start waits for the old engine and then forks', async () => {
