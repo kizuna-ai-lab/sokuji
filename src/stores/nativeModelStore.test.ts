@@ -404,6 +404,17 @@ describe('nativeModelStore.refresh — a running download', () => {
   });
 });
 
+// Review on #888: a download kept the coded reason of an earlier import refusal, so a download that then failed showed
+// the old refusal instead of its own cause.
+describe('nativeModelStore.download — after an import was refused', () => {
+  it("forgets the import's coded reason when a download starts", () => {
+    useNativeModelStore.setState({ errorInfo: { 'asr-a': { code: 'import_mismatch', params: { name: 'a.gguf' } } } });
+    mockModelNotReady('asr-a');
+    void useNativeModelStore.getState().download('asr-a');
+    expect(useNativeModelStore.getState().errorInfo['asr-a']).toBeUndefined();
+  });
+});
+
 describe('nativeModelStore TTS resolved', () => {
   beforeEach(() => { useNativeModelStore.setState({ ttsLoading: false, ttsResolved: null }); });
 

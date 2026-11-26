@@ -22,6 +22,11 @@ export interface ImportBackend {
   commit(files: NamedBlob[]): Promise<void>;
   /** The line under the drop area, where the engine's files are not a folder with an onnx/ subfolder. */
   dropHint?: string;
+  /**
+   * True when the model is taken whole (the native engine): Import waits for every file, and there is no "import some
+   * now, the rest later". Absent: files may be imported a few at a time (the WASM/WebGPU engine's store keeps them).
+   */
+  allAtOnce?: boolean;
 }
 
 interface ModelImportModalProps {
@@ -142,17 +147,8 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
     [targets],
   );
 
-  // ── Merge newly-picked files, then match + validate for the preview ──
-  const addFiles = useCallback(async (incoming: ArrayLike<NamedBlob>) => {
-    setError(null);
-    // Read/write the ref (not the render closure) so successive same-tick picks
-    // accumulate rather than the later one clobbering the earlier.
-    const merged = new Map(selectedRef.current);
-    const asMap = filesToImportMap(incoming);
-    for (const [k, v] of asMap) merged.set(k, v);
-    selectedRef.current = merged;
-    setSelected(merged);
-
+  // ── Match the picked files against the expected list and validate each for the preview ──
+  const validateSelection = useCallback(async (merged: Map<string, NamedBlob>) => {
     const match = matchImportedFiles(expectedNames, [...merged.keys()]);
     const results: Record<string, { ok: boolean; reason?: string }> = {};
     await Promise.all(
@@ -175,6 +171,27 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
     setValidation((prev) => ({ ...prev, ...results }));
   }, [expectedNames, sizeByName, backend, t]);
 
+  // ── Merge newly-picked files, then validate ──
+  const addFiles = useCallback(async (incoming: ArrayLike<NamedBlob>) => {
+    setError(null);
+    // Read/write the ref (not the render closure) so successive same-tick picks
+    // accumulate rather than the later one clobbering the earlier.
+    const merged = new Map(selectedRef.current);
+    const asMap = filesToImportMap(incoming);
+    for (const [k, v] of asMap) merged.set(k, v);
+    selectedRef.current = merged;
+    setSelected(merged);
+    await validateSelection(merged);
+  }, [validateSelection]);
+
+  // Files picked while the list was still on its way matched nothing then: check them once it is here. Keyed on the
+  // list alone (the check itself is read through a ref): re-checking on every render would loop.
+  const validateRef = useRef(validateSelection);
+  validateRef.current = validateSelection;
+  useEffect(() => {
+    if (expectedNames.length > 0 && selectedRef.current.size > 0) void validateRef.current(selectedRef.current);
+  }, [expectedNames]);
+
   // ── Per-file display state ──
   const stateOf = useCallback((filename: string): FileState => {
     const v = validation[filename];
@@ -194,7 +211,9 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
     return { ready, invalid, pickedOk, total: expectedNames.length };
   }, [expectedNames, stateOf]);
 
-  const canImport = !importing && counts.invalid === 0 && counts.pickedOk > 0;
+  const allAtOnce = backend.allAtOnce === true;
+  const canImport = !importing && counts.invalid === 0 && counts.pickedOk > 0
+    && (!allAtOnce || counts.ready === counts.total);
 
   const handleImport = useCallback(async () => {
     setImporting(true);
@@ -410,7 +429,9 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
                 : counts.ready === counts.total && counts.total > 0
                   ? t('models.importAllPresent', 'All files present.')
                   : counts.pickedOk > 0
-                    ? t('models.importSomeReady', '{{count}} still missing — import now and add the rest later.', { count: counts.total - counts.ready })
+                    ? allAtOnce
+                      ? t('models.importNeedAll', '{{count}} still missing — add every file to import the model.', { count: counts.total - counts.ready })
+                      : t('models.importSomeReady', '{{count}} still missing — import now and add the rest later.', { count: counts.total - counts.ready })
                     : t('models.importAddToBegin', 'Add the files above to begin.')}
           </span>
           <button className="import-btn" onClick={onClose} disabled={importing}>
@@ -420,7 +441,7 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
             {importing && <Loader size={13} className="import-spin" />}
             {counts.ready === counts.total && counts.total > 0
               ? t('models.importFinish', 'Import & finish')
-              : counts.pickedOk > 0
+              : counts.pickedOk > 0 && !allAtOnce
                 ? t('models.importNow', 'Import {{count}} now', { count: counts.pickedOk })
                 : t('models.import', 'Import')}
           </button>

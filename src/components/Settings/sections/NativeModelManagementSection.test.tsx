@@ -258,7 +258,7 @@ let mockErrors: Record<string, string> = {};
 let mockErrorInfo: Record<string, { code: string; params: Record<string, string> }> = {};
 const importModal = vi.hoisted(() => ({ props: [] as Array<{ isOpen: boolean; modelId: string; modelName: string; repo?: string }> }));
 vi.mock('./NativeImportModal', () => ({
-  NativeImportModal: (p: { isOpen: boolean; modelId: string; modelName: string; repo?: string }) => { importModal.props.push(p); return null; },
+  NativeImportModal: (p: { isOpen: boolean; modelId: string; modelName: string; repo?: string }) => { importModal.props.push(p); return p.isOpen ? <div data-testid={`import-window-${p.modelId}`} /> : null; },
 }));
 
 vi.mock('../../../stores/nativeModelStore', () => {
@@ -855,6 +855,10 @@ describe('NativeModelManagementSection — the Import button', () => {
     expect(lastFor('sense-voice')?.isOpen).toBe(false);
     fireEvent.click(within(card).getByRole('button', { name: /^Import: SenseVoice$/ }));
     await waitFor(() => expect(lastFor('sense-voice')).toMatchObject({ isOpen: true, modelName: 'SenseVoice' }));
+    // Outside the card, as the WASM/WebGPU engine's is: inside, it took the card's hand cursor and its clicks reached
+    // the card (owner, 2026-11-27).
+    const win = await screen.findByTestId(`import-window-${lastFor('sense-voice')!.modelId}`);
+    expect(card.contains(win)).toBe(false);
   });
 
   it('hands the window the chosen variant\'s repo, so it names that variant\'s file', async () => {

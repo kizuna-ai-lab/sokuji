@@ -570,6 +570,8 @@ export const useNativeModelStore = create<NativeModelStore>((set, get) => ({
       statuses: { ...s.statuses, [model]: 'downloading' },
       progress: { ...s.progress, [model]: { downloaded: 0, total: 0 } },
       errors: { ...s.errors, [model]: '' },
+      // An earlier import's coded refusal goes too: a download that fails shows its own cause.
+      errorInfo: Object.fromEntries(Object.entries(s.errorInfo).filter(([k]) => k !== model)),
     }));
     try {
       const status = await client.download(model, (p) =>

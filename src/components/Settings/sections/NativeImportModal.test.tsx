@@ -113,4 +113,35 @@ describe('NativeImportModal — the shared import window over the native engine'
     expect(await screen.findByText(/location of a chosen file could not be read/)).toBeInTheDocument();
     expect(store.importFiles).not.toHaveBeenCalled();
   });
+
+  // Review on #888: the engine takes a model whole, so the window must not offer "import 1 now, add the rest later"
+  // for a speech model whose GGUF and preset are both needed.
+  it('asks for every file of the model before importing: no part of it now and the rest later', async () => {
+    store.modelFiles.mockResolvedValue([
+      ...FILES,
+      { repo: 'handy-computer/x-gguf', file: 'dir/preset.safetensors', url: 'https://huggingface.co/handy-computer/x-gguf/resolve/main/dir/preset.safetensors' },
+    ]);
+    mount();
+    await screen.findByText('dir/preset.safetensors');
+    addFiles(gguf());
+    await waitFor(() => expect(screen.getByText('1 / 2')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /now/ })).toBeNull();
+    expect(screen.getByRole('button', { name: /^Import$/ })).toBeDisabled();
+    expect(document.querySelector('.import-modal__msg')?.textContent).toMatch(/1 still missing/);
+    expect(document.querySelector('.import-modal__msg')?.textContent).not.toMatch(/later/);
+    addFiles(new File(['preset bytes'], 'preset.safetensors'));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Import & finish/ })).toBeEnabled());
+  });
+
+  // Review on #888: a file chosen while the window was still asking the engine for the list was kept but never checked,
+  // so Import stayed off until it was chosen again.
+  it('checks a file chosen before the list of files arrived, once it arrives', async () => {
+    let arrive!: (v: typeof FILES) => void;
+    store.modelFiles.mockReturnValue(new Promise((resolve) => { arrive = resolve; }));
+    mount();
+    addFiles(gguf());
+    arrive(FILES);
+    await screen.findByText('dir/x-Q8_0.gguf');
+    await waitFor(() => expect(screen.getByRole('button', { name: /Import & finish/ })).toBeEnabled());
+  });
 });

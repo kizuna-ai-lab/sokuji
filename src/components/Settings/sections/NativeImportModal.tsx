@@ -35,6 +35,8 @@ export const NativeImportModal: React.FC<{
       return { repo: files[0]?.repo, files: files.map((f) => ({ filename: f.file, url: f.url, sizeBytes: f.size ?? 0 })) };
     },
     dropHint: t('models.importDropSubFile', 'Choose the downloaded file(s). Keep their names as they are.'),
+    // The engine takes a model whole: a speech model's GGUF and its preset go in together.
+    allAtOnce: true,
     // What is already in the cache is the card's business (it reads "downloaded"); the window lists what to add.
     stored: async () => new Set<string>(),
     // As the WASM/WebGPU engine's window does: an HTML error page in place of the file, and — where the catalog lists the

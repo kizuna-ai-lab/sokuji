@@ -232,6 +232,7 @@ const NativeModelCard: React.FC<{
   };
 
   return (
+    <>
     <div className={classNames} data-testid={`model-card-${spec.selectId}`} onClick={handleClick}>
       <div className="model-card__top-row">
         <div className="model-card__content">
@@ -457,8 +458,6 @@ const NativeModelCard: React.FC<{
           {children}
         </div>
       )}
-      <NativeImportModal isOpen={importOpen} onClose={() => setImportOpen(false)}
-        modelId={spec.downloadId as string} modelName={spec.name} repo={chosenVariant?.repo} />
       {spec.license && (
         <LicenseConsentModal
           isOpen={consentOpen}
@@ -469,6 +468,11 @@ const NativeModelCard: React.FC<{
         />
       )}
     </div>
+    {/* Beside the card, not in it, as the WASM/WebGPU engine's window is: inside, it took the card's hand cursor and its
+        clicks reached the card's own. */}
+    <NativeImportModal isOpen={importOpen} onClose={() => setImportOpen(false)}
+      modelId={spec.downloadId as string} modelName={spec.name} repo={chosenVariant?.repo} />
+    </>
   );
 };
 

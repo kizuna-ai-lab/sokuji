@@ -181,16 +181,24 @@
   }
 
   // A well set into the modal (bg-base): white with an edge in light, the way inputs are drawn.
+  // The command and its Copy button side by side: the box is never shorter than the button (a one-line command, the
+  // native engine's, made it so when the button floated over the box), and a long line scrolls without running under it.
   &__term {
-    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
     background: vars.$bg-page;
     border: 1px solid vars.$border-default;
     border-radius: 0 vars.$radius-md vars.$radius-md vars.$radius-md;
-    padding: 11px 12px;
-    overflow-x: auto;
+    padding: 7px 7px 7px 12px;
 
     pre {
+      order: 1;
+      flex: 1;
+      min-width: 0;
+      overflow-x: auto;
       margin: 0;
+      padding: 4px 0;
       font-family: ui-monospace, Menlo, Consolas, monospace;
       font-size: 11.5px;
       line-height: 1.6;
@@ -200,9 +208,8 @@
   }
 
   &__copy {
-    position: absolute;
-    top: 7px;
-    right: 7px;
+    order: 2;
+    flex: none;
     font: inherit;
     font-size: 11px;
     cursor: pointer;
