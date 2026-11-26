@@ -782,14 +782,16 @@ export const NativeModelManagementSection: React.FC<{
     () => [...new Set(allDownloadIds.filter((id) => statuses[id] === 'ready'))],
     [allDownloadIds, statuses]);
 
-  // Lifecycle gate — all hooks above; early returns are safe here.
+  // Lifecycle gate — all hooks above; early returns are safe here. A stage of the library keeps its anchor through
+  // them: a jump to it made while the engine starts must still find where to land.
+  const stageAnchor = stageFilter ? (anchorId ?? `native-models-${stageFilter}-section`) : undefined;
   if (sidecarStatus === 'starting' || sidecarStatus === 'idle') {
-    return <div className="native-models-loading">{t('settings.localNativeStarting', 'Starting the local engine')}</div>;
+    return <div className="native-models-loading" id={stageAnchor}>{t('settings.localNativeStarting', 'Starting the local engine')}</div>;
   }
   if (sidecarStatus === 'unavailable') {
     // The runtime error (+ retry) is rendered inside EngineSection's card — an
     // engine concern belongs on the engine surface, not floating down here.
-    return null;
+    return stageAnchor ? <div id={stageAnchor} /> : null;
   }
 
   // Voice picker body for the selected TTS card, embedded via renderCards' renderBody.

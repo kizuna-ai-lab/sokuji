@@ -562,6 +562,16 @@ describe('NativeModelManagementSection — sidecar lifecycle states', () => {
     const { container } = render(<NativeModelManagementSection settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
     expect(container.firstChild).toBeNull();
   });
+
+  // Review on #888: a jump to a stage's native models made while the engine was starting found no anchor, and was lost.
+  it("keeps a stage's anchor on the page while the engine starts or is unavailable", () => {
+    for (const status of ['starting', 'idle', 'unavailable']) {
+      mockSidecarStatus = status;
+      const { unmount } = render(<NativeModelManagementSection stageFilter="asr" anchorId="native-models-asr-section" settings={mockSettings} update={mockUpdate} pair={{ source: mockSettings.sourceLanguage, target: mockSettings.targetLanguage }} />);
+      expect(document.getElementById('native-models-asr-section')).not.toBeNull();
+      unmount();
+    }
+  });
 });
 
 describe('NativeModelManagementSection — embedded voice section on the selected MOSS card', () => {

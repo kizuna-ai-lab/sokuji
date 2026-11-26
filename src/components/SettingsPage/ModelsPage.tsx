@@ -116,13 +116,14 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const [tab, setTab] = useState<'native' | 'webgpu'>('native');
   const tabs = useRef<HTMLDivElement>(null);
   const navTarget = useSettingsNavigationTarget();
+  const chosen = useRef(false);
   // A navigation target lands in its engine's library: the anchor must be on the page when the settings page looks for it.
+  // It counts as a choice: the fallback below (no native engine here) does not move the page off the library asked for.
   useEffect(() => {
     if (!navTarget) return;
-    if (navTarget.startsWith('native-models-')) setTab('native');
-    else if (navTarget.startsWith('models-')) setTab('webgpu');
+    if (navTarget.startsWith('native-models-')) { chosen.current = true; setTab('native'); }
+    else if (navTarget.startsWith('models-')) { chosen.current = true; setTab('webgpu'); }
   }, [navTarget]);
-  const chosen = useRef(false);
   const chooseTab = (next: 'native' | 'webgpu') => {
     chosen.current = true;
     setTab(next);
@@ -268,6 +269,10 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
 
   const clearAll = async () => {
     setAsking(null);
+    // The native engine's models too: the summary counts them, and the question is "delete all models". Each from the
+    // quant its status was found for (the engine's own files stay: they are not models).
+    const native = useNativeModelStore.getState();
+    await Promise.all(nativeReady.map((id) => native.deleteModel(id, native.statusRepos[id])));
     await useModelStore.getState().deleteAllModels();
     // The clear wipes the whole model storage, the helper models' included: their own stores are told.
     await useSegmentationStore.getState().refresh();

@@ -111,4 +111,25 @@ describe('NativeModelsGroup', () => {
     render(<NativeModelsGroup locked={false} />);
     expect(ensureCatalog).not.toHaveBeenCalled();
   });
+
+  // Review on #888: an edit made before Local Native's settings had loaded threw (there was no entry to write to) and
+  // was lost. It waits for the load and then lands.
+  it('keeps an edit made before its settings have loaded: it lands once they are', async () => {
+    // As the real store does: no entry, nothing to write to.
+    const updateSettings = vi.fn(() => { if (!useProviderStore.getState().entries.local_native) throw new Error('local_native is not loaded'); });
+    useProviderStore.setState({ entries: {}, updateSettings } as never);
+    // The load is still reading storage when the edit is made.
+    let finish!: () => void;
+    load.mockImplementation(() => new Promise<void>((resolve) => {
+      finish = () => { useProviderStore.setState({ entries: { local_native: { settings: own, pair: { source: 'en', target: 'ja' } } } } as never); resolve(); };
+    }));
+    render(<NativeModelsGroup locked={false} />);
+    const update = seen.libraries[0].update as (patch: Record<string, unknown>) => unknown;
+    let edit!: Promise<unknown>;
+    expect(() => { edit = Promise.resolve(update({ asrDevice: 'cpu' })); }).not.toThrow();
+    expect(updateSettings).not.toHaveBeenCalled();
+    await act(async () => { finish(); await edit; });
+    expect(updateSettings).toHaveBeenCalledWith({ id: 'local_native' }, { asrDevice: 'cpu' });
+    load.mockReset().mockImplementation(async () => {});
+  });
 });

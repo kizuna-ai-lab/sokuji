@@ -523,4 +523,34 @@ describe('Local models and storage — the engines as tabs', () => {
     await waitFor(() => expect(tabs()[0].getAttribute('aria-selected')).toBe('true'));
     useSettingsStore.setState({ settingsNavigationTarget: null } as never);
   });
+
+  // Review on #888: where this computer has no native engine, the page fell back to WASM/WebGPU even when it was opened
+  // on purpose for the native library, which then had no anchor to land on.
+  // Review on #888: the page's one summary counts the native models, so "Clear all" (asked as "Delete all models?") must
+  // delete them too; before, they stayed on disk and in the count.
+  it('clears the native models with the rest, each from the quant on disk', async () => {
+    desktopWithNative();
+    const deleteModel = vi.fn(async () => {});
+    useNativeModelStore.setState({ statuses: { a: 'ready', b: 'ready', c: 'absent' }, sizes: { a: 1, b: 1 }, statusRepos: { a: 'org/a-gguf/a-Q8_0.gguf' }, deleteModel } as never);
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear all' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+    await waitFor(() => expect(store.deleteAllModels).toHaveBeenCalled());
+    await waitFor(() => expect(deleteModel).toHaveBeenCalledTimes(2));
+    expect(deleteModel).toHaveBeenCalledWith('a', 'org/a-gguf/a-Q8_0.gguf');
+    expect(deleteModel).toHaveBeenCalledWith('b', undefined);
+  });
+
+  it('opens the native library when asked for it, even where this computer has no native engine', async () => {
+    desktopWithNative();
+    const { useSettingsStore } = await import('../../stores/settingsStore');
+    useNativeModelStore.setState({ bundleStatus: 'unsupported' } as never);
+    useSettingsStore.setState({ settingsNavigationTarget: 'native-models-asr' } as never);
+    try {
+      mount();
+      expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    } finally {
+      useSettingsStore.setState({ settingsNavigationTarget: null } as never);
+    }
+  });
 });

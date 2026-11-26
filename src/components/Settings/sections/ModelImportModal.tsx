@@ -166,9 +166,15 @@ export function ModelImportModal({ modelId, modelName, isOpen, onClose, backend:
         }
       }),
     );
+    // Only the verdicts on files still picked: one a later pick replaced (same name), or a selection the window has
+    // since dropped, says nothing about what is there now.
+    const current = Object.fromEntries(Object.entries(results).filter(([filename]) => {
+      const key = match.matched[filename];
+      return selectedRef.current.get(key) === merged.get(key);
+    }));
     // Merge (not overwrite) so results from an earlier, slower validation batch
     // that resolves out of order aren't dropped.
-    setValidation((prev) => ({ ...prev, ...results }));
+    setValidation((prev) => ({ ...prev, ...current }));
   }, [expectedNames, sizeByName, backend, t]);
 
   // ── Merge newly-picked files, then validate ──

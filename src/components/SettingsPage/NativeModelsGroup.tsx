@@ -48,7 +48,13 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
   if (!native) return null;
   const settings = (entry?.settings as LocalNativeSettings | undefined) ?? LOCAL_NATIVE_DEFAULTS;
   const pair = entry?.pair ?? { source: 'en', target: 'ja' };
-  const update = (patch: Partial<NativeEngineSettings>) => useProviderStore.getState().updateSettings(native, patch as Partial<LocalNativeSettings>);
+  // An edit made before Local Native's settings have loaded (the list shows the defaults meanwhile) waits for the load,
+  // then lands: the store has nothing to write it to before then.
+  const update = (patch: Partial<NativeEngineSettings>): void | Promise<void> => {
+    const store = useProviderStore.getState();
+    if (store.entries.local_native) return store.updateSettings(native, patch as Partial<LocalNativeSettings>);
+    return store.load(native).then(() => useProviderStore.getState().updateSettings(native, patch as Partial<LocalNativeSettings>));
+  };
   return (
     <VoicePreviewContext.Provider value={appVoicePreview}>
       <EngineSection isSessionActive={locked} />
