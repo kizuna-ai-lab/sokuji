@@ -13,6 +13,18 @@ vi.mock('../../../stores/modelStore', () => ({
 import '../../../locales';
 import { NativeImportModal } from './NativeImportModal';
 
+// jsdom's Blob has no arrayBuffer(), which the window's file check reads the first bytes through.
+if (!Blob.prototype.arrayBuffer) {
+  Blob.prototype.arrayBuffer = function arrayBuffer(this: Blob) {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as ArrayBuffer);
+      r.onerror = () => reject(r.error);
+      r.readAsArrayBuffer(this);
+    });
+  };
+}
+
 const FILES = [{ repo: 'handy-computer/x-gguf', file: 'dir/x-Q8_0.gguf', url: 'https://huggingface.co/handy-computer/x-gguf/resolve/main/dir/x-Q8_0.gguf', size: 2048 }];
 const pathFor = vi.fn();
 
@@ -28,7 +40,8 @@ const mount = (onClose = vi.fn()) => {
   render(<NativeImportModal isOpen onClose={onClose} modelId="x" modelName="Model X" repo="handy-computer/x-gguf/dir/x-Q8_0.gguf" />);
   return onClose;
 };
-const gguf = (name = 'x-Q8_0.gguf', body = 'GGUF....') => new File([body], name);
+// 2048 bytes by default: the size the catalog lists in these tests.
+const gguf = (name = 'x-Q8_0.gguf', body = `GGUF${'.'.repeat(2044)}`) => new File([body], name);
 const addFiles = (...files: File[]) => {
   const input = document.querySelectorAll('input[type="file"]')[1] as HTMLInputElement;   // "Choose files"
   Object.defineProperty(input, 'files', { value: files, configurable: true });
@@ -63,6 +76,14 @@ describe('NativeImportModal — the shared import window over the native engine'
     await waitFor(() => expect(document.querySelector('.import-file--invalid')).not.toBeNull());
     expect(within(document.querySelector('.import-file--invalid') as HTMLElement).getByText(/empty/)).toBeInTheDocument();
     expect(store.importFiles).not.toHaveBeenCalled();
+  });
+
+  it('refuses a file far from the size the catalog lists, as soon as it is chosen', async () => {
+    mount();
+    await screen.findByText('dir/x-Q8_0.gguf');
+    addFiles(gguf('x-Q8_0.gguf', 'GGUF....'));   // 8 bytes, where the catalog says 2048
+    await waitFor(() => expect(document.querySelector('.import-file--invalid')).not.toBeNull());
+    expect(within(document.querySelector('.import-file--invalid') as HTMLElement).getByText(/size mismatch/i)).toBeInTheDocument();
   });
 
   it('shows the size where the catalog lists it, and says so when the files cannot be looked up', async () => {

@@ -9,7 +9,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ModelImportModal, type ImportBackend } from './ModelImportModal';
-import { ModelFileValidationError } from '../../../lib/local-inference/modelFileValidation';
+import { ModelFileValidationError, validateModelFile } from '../../../lib/local-inference/modelFileValidation';
 import { useNativeModelStore } from '../../../stores/nativeModelStore';
 
 /** The path of a file the page was given (the preload's `nativeFiles`); File.path is gone from Electron. */
@@ -37,8 +37,11 @@ export const NativeImportModal: React.FC<{
     dropHint: t('models.importDropSubFile', 'Choose the downloaded file(s). Keep their names as they are.'),
     // What is already in the cache is the card's business (it reads "downloaded"); the window lists what to add.
     stored: async () => new Set<string>(),
-    validate: async (filename, blob) => {
+    // As the WASM/WebGPU engine's window does: an HTML error page in place of the file, and — where the catalog lists the
+    // file's size — one far off it, are told at once; the engine's own check (the published bytes) comes at import.
+    validate: async (filename, blob, expectedSizeBytes) => {
       if (blob.size === 0) throw new ModelFileValidationError(`Invalid file ${filename}: it is empty`);
+      await validateModelFile(filename, blob, expectedSizeBytes);
     },
     commit: async (files) => {
       const paths = files.map(pathOf);
