@@ -56,6 +56,7 @@ using LogTsfn = Napi::TypedThreadSafeFunction<LogContext, LogLine, DeliverLog>;
 
 struct State {
     std::atomic<bool> initialised{false};   // sk_init has succeeded
+    std::mutex init_mu;                     // one init() at a time: two worker_threads may call it in parallel
     std::mutex mu;                          // guards the three fields below
     LogTsfn tsfn;                           // empty until init() is given an onLog
     LogContext *ctx = nullptr;              // tsfn's context, owned by tsfn's finalizer
@@ -232,6 +233,10 @@ Napi::Value Init(const Napi::CallbackInfo &info) {
     if (has_log && !log_v.IsFunction()) throw Napi::TypeError::New(env, "init: onLog must be a function");
 
     State &s = state();
+    // Held across sk_init (which logs through LogToJs, which takes `mu`, not this one): a second caller waits here,
+    // then sees `initialised` and returns the first call's result, instead of running sk_init and the log-sink
+    // install a second time and replacing the first caller's onLog.
+    std::lock_guard<std::mutex> init_lock(s.init_mu);
     if (s.initialised.load()) return InitResult(env);
 
     ReadContract(env, dir);
