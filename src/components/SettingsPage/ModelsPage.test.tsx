@@ -131,8 +131,8 @@ describe('Models and storage — the session models', () => {
     expect(stageGroup('Translation').querySelectorAll('.models-stage__shown .model-card')).toHaveLength(1);
   });
 
-  // B-20: the model library's card — its size, its languages, Recommended, and In use for what a session runs now.
-  it('draws each model as a library card: size, languages, Recommended, and In use for what a session runs', () => {
+  // B-20: the model library's card — its size, its languages and In use for what a session runs now.
+  it('draws each model as a library card: size, languages and In use for what a session runs', () => {
     useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'opus-mt-ja-en': 'downloaded' } } as never);
     // Every stage on "This device", as the line-up stores it.
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true } as never);
@@ -144,7 +144,8 @@ describe('Models and storage — the session models', () => {
     expect(within(sense).getByText('Active')).toBeInTheDocument();
     expect(within(card('Opus-MT (en → ja)')).getByText('Active')).toBeInTheDocument();
     expect(card('SenseVoice (int8)')).toHaveClass('model-card--selected');
-    expect(within(card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByText('Recommended')).toBeInTheDocument();
+    // No "Recommended" badge on a model: that label is for Kizuna AI's own service.
+    expect(within(card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).queryByText('Recommended')).toBeNull();
     // The stage is the group's title; the cards carry no tag of their own.
     expect(stageGroup('Recognition').querySelector('.model-row__tag')).toBeNull();
   });

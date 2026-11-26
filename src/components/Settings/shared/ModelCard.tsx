@@ -5,7 +5,7 @@
 // in-panel library; Models and storage draws its session models with it (owner, 2026-11-17: B-20).
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, Trash2, X, AlertCircle, CheckCircle, AlertTriangle, Zap, Star, FolderInput } from 'lucide-react';
+import { Download, Trash2, X, AlertCircle, CheckCircle, AlertTriangle, Zap, FolderInput } from 'lucide-react';
 import { getModelSizeMb, type ModelManifestEntry, type ModelStatus } from '../../../lib/local-inference/modelManifest';
 import { formatBytes } from '../../../lib/local-inference/formatBytes';
 import { LanguageTags } from '../sections/LanguageTags';
@@ -102,12 +102,6 @@ export function ModelCard({
               <div className="model-card__languages">
                 <LanguageTags languages={entry.languages} />
               </div>
-              {entry.recommended && (
-                <span className="model-card__recommended-badge">
-                  <Star size={10} />
-                  {t('models.recommended', 'Recommended')}
-                </span>
-              )}
               {isAutoSelected && (
                 <span className="model-card__auto-badge">
                   <Zap size={10} />
