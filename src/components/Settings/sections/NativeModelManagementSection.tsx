@@ -90,6 +90,8 @@ type VariantCardProps = {
   recommendedVariantId: string;
   pinnedVariantId?: string;
   onPinVariant: (id: string) => void;
+  /** The repo the card's status was asked for (`statusReposFor`): another quant on disk can be what makes it ready. */
+  statusRepo?: string;
 };
 
 // One selectable + downloadable card — reuses ModelManagementSection's model-card__* classes.
@@ -183,9 +185,12 @@ const NativeModelCard: React.FC<{
   // both the resolved label and which repo the download button fetches.
   const chosenVariant = useMemo(() => {
     if (!variantProps) return undefined;
+    // A ready card is the quant its status was found for, which may be another one on disk: named and deleted as that.
+    const onDisk = ready && variantProps.statusRepo ? variantProps.variants.find((v) => v.repo === variantProps.statusRepo) : undefined;
+    if (onDisk) return onDisk;
     const chosenId = variantProps.pinnedVariantId ?? variantProps.recommendedVariantId;
     return variantProps.variants.find((v) => v.id === chosenId);
-  }, [variantProps]);
+  }, [variantProps, ready]);
 
   // Resolved variant label shown post-download: "FP8 · 7.8 GB"
   const resolvedVariantLabel = useMemo(() => {
@@ -252,9 +257,21 @@ const NativeModelCard: React.FC<{
                 // one an earlier version pinned), named with its size. There is no picker: the list shows one quant
                 // per model (owner, 2026-11-27, as Handy does).
                 chosenVariant && (
-                  <span className="model-card__size" data-testid={`variant-label-${spec.selectId}`}>
-                    {`${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(Math.round((chosenVariant.sizeBytes ?? 0) / 1e6))}`}
-                  </span>
+                  <>
+                    <span className="model-card__size" data-testid={`variant-label-${spec.selectId}`}>
+                      {`${chosenVariant.computeType.toUpperCase()} · ${formatMemMb(Math.round((chosenVariant.sizeBytes ?? 0) / 1e6))}`}
+                    </span>
+                    {/* What the quant picker used to say about it, said before it is downloaded. */}
+                    {!chosenVariant.supported ? (
+                      <span className="model-card__lang-tag model-card__lang-tag--warn" data-testid={`variant-note-${spec.selectId}`}>
+                        {chosenVariant.reason || t('models.wontFit', "Won't fit on this machine")}
+                      </span>
+                    ) : chosenVariant.unsupportedTiers && chosenVariant.unsupportedTiers.length > 0 ? (
+                      <span className="model-card__lang-tag model-card__lang-tag--warn" data-testid={`variant-note-${spec.selectId}`}>
+                        {t('models.variantRunsOnCpu', 'Runs on CPU on this machine')}
+                      </span>
+                    ) : null}
+                  </>
                 )
               ) : (
                 // Normal single-variant card: GB-aware label (formatMemMb switches
@@ -722,6 +739,7 @@ export const NativeModelManagementSection: React.FC<{
       recommendedVariantId: vd.recommended,
       pinnedVariantId,
       onPinVariant: (id: string) => onPin?.(field, c.selectId, id),
+      statusRepo: c.downloadId ? statusRepos[c.downloadId] : undefined,
     } : undefined;
     return (
       <NativeModelCard key={c.selectId || 'auto'} spec={c} disabled={isSessionActive}

@@ -24,7 +24,9 @@ export interface NativeModelLicense {
 export interface NativeModelInfo {
   id: string; name: string; languages: string[]; recommended: boolean; tiers: NativeTier[];
   order: number; repo: string; kind: 'asr' | 'translate' | 'tts';
-  clones?: boolean; streaming?: boolean;   // tts only
+  clones?: boolean;   // tts only
+  /** A speech model that speaks as it generates, or a recognition model run by the streaming backend. */
+  streaming?: boolean;
   /** tts only; native_tts has no style-vector custom voice equivalent.
    *  `required` (catalog.VOICE_REQUIRED_FAMILIES) is its OWN axis, not a shape
    *  inference: moss_tts_nano, voxcpm1, voxcpm2 and irodori_tts all report

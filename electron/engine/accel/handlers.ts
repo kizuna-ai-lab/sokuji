@@ -179,6 +179,8 @@ export const modelsCatalog: Handler = async (_state, msg) => {
       id: mdl.id, name: mdl.name, languages: [...mdl.languages], recommended: mdl.recommended, tiers,
       order: mdl.sortOrder, repo: mdl.deployments[0].artifact, kind, sizeBytes: mdl.sizeBytes,
     };
+    // A recognition model streams when the streaming backend runs it (its partials come as it hears).
+    if (kind === 'asr') entry.streaming = mdl.deployments.some((d) => d.backend === 'native_asr_stream');
     if (kind === 'tts') {
       const tts = mdl as TtsModel;
       entry.clones = tts.clones;

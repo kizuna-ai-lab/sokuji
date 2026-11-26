@@ -941,4 +941,66 @@ describe('NativeModelManagementSection — a recognition model\'s one quant', ()
       mockCatalogOverride = null;
     }
   });
+
+  // Review on #888: another quant already on disk (from before the one quant was fixed) makes the card ready; the card
+  // must name and delete that one, not the measured quant it would download.
+  it('names and deletes the quant on disk when that is what makes the card ready', async () => {
+    const info = catalogModelFor({ repo: 'handy-computer/cohere-transcribe-03-2026-gguf' })!;
+    const measured = info.quant.toLowerCase();
+    const other = measured === 'q4_k_m' ? 'q6_k' : 'q4_k_m';
+    const variant = (id: string, downloaded: boolean) => ({ id, computeType: id, repo: `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${id}.gguf`, sizeBytes: 1e9, needBytes: 1e9, supported: true, recommended: false, downloaded });
+    mockCatalogOverride = {
+      'cohere-transcribe-03-2026': {
+        id: 'cohere-transcribe-03-2026', name: 'Cohere Transcribe', languages: ['ja', 'en'], recommended: true, tiers: [], order: 0, kind: 'asr',
+        repo: 'handy-computer/cohere-transcribe-03-2026-gguf', sizeBytes: 1e9,
+        variants: [variant(other, true), variant(measured, false)],
+      } as unknown as NativeModelInfo,
+    };
+    mockStatuses['cohere-transcribe-03-2026'] = 'ready';
+    mockSizes['cohere-transcribe-03-2026'] = 1e9;
+    try {
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: 'ja', target: 'en' }} />);
+      const card = await screen.findByTestId('model-card-cohere-transcribe-03-2026');
+      expect(await within(card).findByTestId('variant-resolved-cohere-transcribe-03-2026')).toHaveTextContent(other.toUpperCase());
+      fireEvent.click(within(card).getByRole('button', { name: /Delete/i }));
+      expect(mockDeleteModel).toHaveBeenCalledWith('cohere-transcribe-03-2026', `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${other}.gguf`);
+    } finally {
+      mockCatalogOverride = null;
+      delete mockStatuses['cohere-transcribe-03-2026'];
+      delete mockSizes['cohere-transcribe-03-2026'];
+    }
+  });
+
+  // Review on #888: the quant picker said when a quant would run on the CPU here, or not fit at all; the one fixed quant
+  // must still say so before it is downloaded.
+  it("says when the one quant would run on the CPU here, or would not fit, before it is downloaded", async () => {
+    const info = catalogModelFor({ repo: 'handy-computer/cohere-transcribe-03-2026-gguf' })!;
+    const measured = info.quant.toLowerCase();
+    const card = (extra: Record<string, unknown>) => ({
+      'cohere-transcribe-03-2026': {
+        id: 'cohere-transcribe-03-2026', name: 'Cohere Transcribe', languages: ['ja', 'en'], recommended: true, tiers: [], order: 0, kind: 'asr',
+        repo: 'handy-computer/cohere-transcribe-03-2026-gguf', sizeBytes: 1e9,
+        variants: [
+          { id: measured, computeType: measured, repo: `handy-computer/cohere-transcribe-03-2026-gguf/cohere-${measured}.gguf`, sizeBytes: 1e9, needBytes: 1e9, supported: true, recommended: true, downloaded: false, ...extra },
+          { id: 'q2_k', computeType: 'q2_k', repo: 'handy-computer/cohere-transcribe-03-2026-gguf/cohere-q2_k.gguf', sizeBytes: 5e8, needBytes: 5e8, supported: true, recommended: false, downloaded: false },
+        ],
+      } as unknown as NativeModelInfo,
+    });
+    try {
+      mockCatalogOverride = card({ unsupportedTiers: ['gpu-vulkan'] });
+      const { unmount } = render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: 'ja', target: 'en' }} />);
+      let c = await screen.findByTestId('model-card-cohere-transcribe-03-2026');
+      await within(c).findByTestId('variant-label-cohere-transcribe-03-2026');
+      expect(within(c).getByTestId('variant-note-cohere-transcribe-03-2026')).toHaveTextContent('Runs on CPU on this machine');
+      unmount();
+      mockCatalogOverride = card({ supported: false });
+      render(<NativeModelManagementSection stageFilter="asr" settings={mockSettings} update={mockUpdate} pair={{ source: 'ja', target: 'en' }} />);
+      c = await screen.findByTestId('model-card-cohere-transcribe-03-2026');
+      await within(c).findByTestId('variant-label-cohere-transcribe-03-2026');
+      // Its own reason where the catalog gives one ("Needs ~954 MB of GPU memory"), else the general one.
+      expect(within(c).getByTestId('variant-note-cohere-transcribe-03-2026')).toHaveTextContent(/Needs ~\d+ MB|Won't fit on this machine/);
+    } finally {
+      mockCatalogOverride = null;
+    }
+  });
 });
