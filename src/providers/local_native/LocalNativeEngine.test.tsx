@@ -59,7 +59,7 @@ describe('LocalNativeEngine', () => {
     expect(seen.surfaces.map((s) => s.effectiveMode)).toEqual(['participant', 'participant']);
   });
 
-  it("a slot's Browse opens that stage of the native library in Models and storage", () => {
+  it("a slot's Browse opens that stage of the native library in Local models and storage", () => {
     const navigate = vi.spyOn(useSettingsStore.getState(), 'navigateToSettings').mockImplementation(() => {});
     render(<LocalNativeEngine settings={LOCAL_NATIVE_DEFAULTS} update={vi.fn()} pair={{ source: 'ja', target: 'en' }} legs={['speaker']} />);
     for (const stage of ['asr', 'translation', 'tts']) {

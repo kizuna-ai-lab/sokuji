@@ -44,7 +44,7 @@ const StepCredentials: React.FC<Props> = ({ draft, dispatch }) => {
       <section className="setup-step">
         <h2>{t('setup.steps.credentials.offlineTitle', 'Nothing to enter')}</h2>
         <StatusMessage variant="info">
-          <span className="setup-notice-line">{t('setup.credentials.offlineNotice', 'The recognition model is downloaded after setup, from Settings → Models and storage. Translation uses Bing and speech uses Edge: nothing to download and no account; the text to translate and the translation to speak are sent to Microsoft.')}</span>
+          <span className="setup-notice-line">{t('setup.credentials.offlineNotice', 'The recognition model is downloaded after setup, from Settings → Local models and storage. Translation uses Bing and speech uses Edge: nothing to download and no account; the text to translate and the translation to speak are sent to Microsoft.')}</span>
           <span className="setup-notice-line">{t('setup.credentials.offlineHardware', 'Sokuji runs well with a GPU and enough VRAM; on CPU alone it is noticeably slower.')}</span>
         </StatusMessage>
       </section>

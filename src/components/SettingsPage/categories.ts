@@ -62,7 +62,7 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'model-tts': { category: 'lineup', anchor: 'model-tts' },
   // Edge's voices, in the speech card when Edge speaks.
   'edge-voices': { category: 'lineup', anchor: 'edge-voices' },
-  // Each stage's models in Models and storage, where an engine slot's "Browse library…" goes (B-20).
+  // Each stage's models in Local models and storage, where an engine slot's "Browse library…" goes (B-20).
   'models-asr': { category: 'models', anchor: 'models-asr' },
   'models-translation': { category: 'models', anchor: 'models-translation' },
   'models-tts': { category: 'models', anchor: 'models-tts' },
@@ -70,7 +70,7 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'native-models-asr': { category: 'models', anchor: 'native-models-asr' },
   'native-models-translation': { category: 'models', anchor: 'native-models-translation' },
   'native-models-tts': { category: 'models', anchor: 'native-models-tts' },
-  // Models and storage itself, from This device's row in Accounts and keys.
+  // Local models and storage itself, from This device's row in Accounts and keys.
   models: { category: 'models', anchor: null },
   // The local engine's voices, in the speech card when this device speaks (B-20).
   'local-voices': { category: 'lineup', anchor: 'local-voices' },

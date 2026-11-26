@@ -1,4 +1,4 @@
-// The native engine's library on Models and storage (#578): its engine card, then each stage's models under the
+// The native engine's library on Local models and storage (#578): its engine card, then each stage's models under the
 // anchors an engine slot's "Browse library…" goes to, fed Local Native's own settings.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, act, fireEvent } from '@testing-library/react';

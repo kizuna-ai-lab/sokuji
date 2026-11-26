@@ -1,4 +1,4 @@
-// "Models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
+// "Local models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
 // "This device" service can use, downloaded or not, as the model library's cards (B-20: Download and Import side by
 // side, In use, the progress, Delete); the helper models; the imported voices; a summary line with Clear all.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -87,7 +87,7 @@ const card = (name: string) => screen.getByText(name, { selector: '.model-card__
 const stageGroup = (name: string) => screen.getByRole('group', { name });
 const more = (name: string) => fireEvent.click(within(stageGroup(name)).getByRole('button', { name: /more/ }));
 
-describe('Models and storage — the session models', () => {
+describe('Local models and storage — the session models', () => {
   it('splits the models this pair can use into recognition, translation and speech', () => {
     mount();
     const session = screen.getByRole('region', { name: /Models for the session/ });
@@ -254,7 +254,7 @@ describe('Models and storage — the session models', () => {
   });
 });
 
-describe('Models and storage — the helper models', () => {
+describe('Local models and storage — the helper models', () => {
   it('manages Smart Turn here: Delete when it is on disk, Download when not', async () => {
     const first = mount();
     fireEvent.click(within(row('Smart Turn v3.2')).getByRole('button', { name: /^Delete/ }));
@@ -288,7 +288,7 @@ describe('Models and storage — the helper models', () => {
   });
 });
 
-describe('Models and storage — imported voices and the summary', () => {
+describe('Local models and storage — imported voices and the summary', () => {
   it('lists the imported voices, each deleted from its row', async () => {
     voices.list = [{ id: 4, engine: 'supertonic-3', name: 'My voice 1', jsonData: new Blob(['x'.repeat(300_000)]), importedAt: Date.UTC(2026, 10, 2) }];
     mount();
@@ -356,7 +356,7 @@ describe('Models and storage — imported voices and the summary', () => {
 });
 
 // PR review (#711): a row's buttons say which model they act on, so a screen reader's list of buttons is not a column of "Delete".
-describe('Models and storage — buttons named by their model', () => {
+describe('Local models and storage — buttons named by their model', () => {
   it('names the model in each Download, Import, Delete and Cancel', () => {
     useModelStore.setState({ downloads: { 'moonshine-tiny-ja-quant': { downloadedBytes: 1, totalBytes: 4, currentFile: 'a', percent: 25 } } } as never);
     mount();
@@ -368,8 +368,8 @@ describe('Models and storage — buttons named by their model', () => {
 });
 
 // B-19: the desktop engine earlier versions downloaded for on-device models takes several GB, and nothing else in
-// the app can remove it now: Models and storage lists it, with what it takes, and removes it after asking.
-describe('Models and storage — the on-device engine (B-19)', () => {
+// the app can remove it now: Local models and storage lists it, with what it takes, and removes it after asking.
+describe('Local models and storage — the on-device engine (B-19)', () => {
   const group = () => screen.queryByRole('region', { name: 'On-device engine' });
 
   it('on the desktop, shows the engine on disk, its version and what it takes', async () => {
@@ -443,7 +443,7 @@ describe('Models and storage — the on-device engine (B-19)', () => {
 
 
 // Two engines, two libraries (#578): the desktop with the native engine offered shows them under tabs.
-describe('Models and storage — the engines as tabs', () => {
+describe('Local models and storage — the engines as tabs', () => {
   const tabs = () => screen.getAllByRole('tab');
   const desktopWithNative = () => { env.electron = true; offered.native = true; };
 

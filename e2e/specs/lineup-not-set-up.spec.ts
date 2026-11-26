@@ -47,13 +47,13 @@ test('a service with no key yet can be chosen: the list and the shown choice say
   await sokuji.close();
 });
 
-test("Accounts and keys: Bing and Edge have no button, and This device's goes to Models and storage", async ({ launchApp }) => {
+test("Accounts and keys: Bing and Edge have no button, and This device's goes to Local models and storage", async ({ launchApp }) => {
   const sokuji = await launchApp({ seed });
   const { page } = sokuji;
   await openSettings(page, /^Accounts and keys/);
 
   for (const name of ['Bing', 'Edge']) await expect(page.getByRole('group', { name, exact: true }).getByRole('button')).toHaveCount(0);
   await page.getByRole('group', { name: 'This device', exact: true }).getByRole('button', { name: 'Manage models' }).click();
-  await expect(page.getByRole('heading', { name: 'Models and storage' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Local models and storage' })).toBeVisible();
   await sokuji.close();
 });

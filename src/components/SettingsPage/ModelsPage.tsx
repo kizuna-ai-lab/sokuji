@@ -1,6 +1,6 @@
 // src/components/SettingsPage/ModelsPage.tsx
 //
-// "Models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
+// "Local models and storage" as the mock draws it (v18; the owner chose the mock, 2026-11-15): every model the
 // "This device" service can use for the current languages, downloaded or not, as the model library's cards — Download
 // and Import side by side, In use, the progress, Delete (B-20; the rest folded under "other languages"); the helper
 // models (Smart Turn, the punctuation models, the

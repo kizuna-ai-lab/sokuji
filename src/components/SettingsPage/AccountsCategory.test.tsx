@@ -96,7 +96,7 @@ describe('accounts and keys', () => {
   });
 
   // Owner, 2026-11-22: a row opens only where there is something to fill in. Bing and Edge need nothing; This
-  // device's models are set up in Models and storage, so its button goes there.
+  // device's models are set up in Local models and storage, so its button goes there.
   it('gives Bing and Edge no button, and This device a way to its models', () => {
     useSettingsStore.setState({ settingsNavigationTarget: null });
     render(<AccountsCategory locked={false} />);
@@ -378,7 +378,7 @@ describe('accounts and keys — the two local engines', () => {
     expect(screen.queryByText(/Recommended/i)).toBeNull();
   });
 
-  it("opens each engine's own tab of Models and storage", () => {
+  it("opens each engine's own tab of Local models and storage", () => {
     offered.native = true;
     render(<AccountsCategory locked={false} />);
     fireEvent.click(within(row('This device (Native)')).getByRole('button', { name: 'Manage models' }));

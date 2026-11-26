@@ -161,7 +161,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
         return t('settingsPage.lineup.state.keyNotVerified', 'Key not verified');
       }
       // Where both local engines are offered, each row says what separates it from the other; the models downloaded
-      // are counted on the tabs of Models and storage, not here.
+      // are counted on the tabs of Local models and storage, not here.
       case 'local':
         if (a.engine === 'native') return t('settingsPage.accounts.localNative', 'Native engine, supports more recognition models and performs better. Runs on this computer; no cloud key needed');
         if (a.engine === 'webgpu') return t('settingsPage.accounts.localWebgpu', 'Shares one engine with the browser extension, so it is not as fast. Runs on this computer; no cloud key needed');
@@ -233,7 +233,7 @@ export function AccountsCategory({ locked, openedBy = null }: CategoryBodyProps)
                 </span>
               </div>
               {/* A row opens only where there is something to fill in (owner, 2026-11-22): a sign-in or a key. This
-                  device's models are set up in Models and storage, so its button goes there; Bing and Edge need
+                  device's models are set up in Local models and storage, so its button goes there; Bing and Edge need
                   nothing, and their line says so. */}
               {a.kind === 'local' ? (
                 // Where both engines are offered, each row opens its own engine's tab; else the one list.

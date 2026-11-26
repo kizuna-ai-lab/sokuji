@@ -753,7 +753,7 @@ export const NativeModelManagementSection: React.FC<{
     />
   ) : null);
 
-  // On Models and storage (a stage named): the same list as the WASM/WebGPU engine's — the stage's title, what is on disk
+  // On Local models and storage (a stage named): the same list as the WASM/WebGPU engine's — the stage's title, what is on disk
   // and the recommended models shown, the rest folded under "N more", the models of other languages last.
   if (stageFilter) {
     const cfg = {
@@ -878,7 +878,7 @@ export const NativeModelManagementSection: React.FC<{
         </ModelGroup>
       )}
 
-      {/* The Models and storage page owns Clear-all now — this duplicate footer only
+      {/* The Local models and storage page owns Clear-all now — this duplicate footer only
           belongs on the standalone (prop-less stageFilter) render; the Library
           push is already scoped to one stage and its gating differs. */}
       {!stageFilter && (

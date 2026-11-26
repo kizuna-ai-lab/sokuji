@@ -1,6 +1,6 @@
 // src/components/Settings/shared/ModelStageList.tsx
 //
-// One stage's list of model cards on Models and storage, the same for both engines (the WASM/WebGPU list and the
+// One stage's list of model cards on Local models and storage, the same for both engines (the WASM/WebGPU list and the
 // native one): the stage's title, what is on disk and what is recommended shown, the rest folded under "N more", and
 // the models of other languages last under their caption. Each card sits in a `.models-card`, with its own Delete
 // confirmation right under it. The cards themselves stay the engine's: they arrive as nodes.

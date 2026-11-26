@@ -1,7 +1,7 @@
 // The model library's lists, as the native engine's library draws them (NativeModelManagementSection and the shared
 // controls in ModelManagementControls): the per-stage group, its "show all" toggle, the Recommended / Others split,
 // the storage footer and the warming-up placeholder. B-20 removed these rules along with the in-panel library; the
-// native library is on Models and storage now, so they are back (#578).
+// native library is on Local models and storage now, so they are back (#578).
 @use '../shared/variables' as vars;
 @use '../../../styles/tokens' as tk;
 

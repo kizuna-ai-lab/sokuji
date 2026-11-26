@@ -45,7 +45,7 @@ export const CATEGORY_BODIES: CategoryBodies = {
 
 
 const TITLES: Record<CategoryId, string> = {
-  lineup: 'Languages and line-up', words: 'Word list and background', accounts: 'Accounts and keys', models: 'Models and storage',
+  lineup: 'Languages and line-up', words: 'Word list and background', accounts: 'Accounts and keys', models: 'Local models and storage',
   audio: 'Audio', display: 'Display', history: 'History and notes', general: 'General',
 };
 /** The line under a category's title (the mock's): what the category is for. Categories without one show none. */

@@ -116,8 +116,8 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(tts.options[0].textContent).toBe('Auto');
   });
 
-  // B-20: the model library is Models and storage now; Browse library… opens that slot's stage there.
-  it("the Browse library option opens THAT slot's stage in Models and storage and keeps the selection", async () => {
+  // B-20: the model library is Local models and storage now; Browse library… opens that slot's stage there.
+  it("the Browse library option opens THAT slot's stage in Local models and storage and keeps the selection", async () => {
     useSettingsStore.setState({ settingsNavigationTarget: null });
     const a = adapter();
     surface(a);
@@ -131,7 +131,7 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     await waitFor(() => expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models-tts'));
   });
 
-  it("a host's onBrowse takes the slot; without one, Browse goes to Models and storage", async () => {
+  it("a host's onBrowse takes the slot; without one, Browse goes to Local models and storage", async () => {
     useSettingsStore.setState({ settingsNavigationTarget: null });
     const onBrowse = vi.fn();
     render(<EngineSurface adapter={adapter()} effectiveMode="speaker" onBrowse={onBrowse} />);
@@ -149,7 +149,7 @@ describe('EngineSurface / EnginePage (dropdown form, 2026-08-23)', () => {
     expect(asrSelect()).toBeInTheDocument();
   });
 
-  it('has no storage footer: usage, deleting and importing live on the Models and storage page (B-18)', () => {
+  it('has no storage footer: usage, deleting and importing live on the Local models and storage page (B-18)', () => {
     surface();
     expect(screen.queryByRole('button', { name: /Storage/ })).toBeNull();
     expect(document.querySelector('.engine-storage-footer')).toBeNull();

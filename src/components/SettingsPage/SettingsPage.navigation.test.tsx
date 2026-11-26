@@ -21,7 +21,7 @@ const bodies: CategoryBodies = Object.fromEntries(IDS.map((id) => [id, () => <di
 
 const EN_GROUPS = [
   ['Session', ['Languages and line-up', 'Word list and background']],
-  ['Providers and models', ['Accounts and keys', 'Models and storage']],
+  ['Providers and models', ['Accounts and keys', 'Local models and storage']],
   ['Devices and display', ['Audio', 'Display']],
   ['Data', ['History and notes']],
   ['App', ['General']],
@@ -61,7 +61,7 @@ describe('settings categories and groups', () => {
     render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
     expect(drawnGroups()).toEqual([
       ['会话', ['语言与会话组成', '词表与背景']],
-      ['服务商与模型', ['账号与密钥', '模型与存储']],
+      ['服务商与模型', ['账号与密钥', '本地模型与存储']],
       ['设备与显示', ['音频', '显示']],
       ['数据', ['历史与纪要']],
       ['应用', ['通用']],
@@ -164,7 +164,7 @@ describe('locked during a session (page level)', () => {
     render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
     expect(note(/^Languages and line-up/)).toBe('Locked during a session');
     expect(note(/^Word list and background/)).toBe('Locked during a session');
-    expect(note(/^Models and storage/)).toBe('Locked during a session');
+    expect(note(/^Local models and storage/)).toBe('Locked during a session');
     expect(note(/^Accounts and keys/)).toBe('Partly locked during a session');
     expect(note(/^Audio/)).toBe('Partly locked during a session');
     expect(note(/^Display/)).toBe('Changeable during a session');

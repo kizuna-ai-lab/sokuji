@@ -1115,7 +1115,7 @@ describe('nativeModelStore bundle state machine (distribution spec)', () => {
     expect(s.bundleStatus).toBe('absent');
   });
 
-  // B-19: what the installed engine takes on disk, for the "On-device engine" row in Models and storage.
+  // B-19: what the installed engine takes on disk, for the "On-device engine" row in Local models and storage.
   it('refreshBundleUsage reads what the installed engine takes on disk', async () => {
     useNativeModelStore.setState({ bundleUsage: null });
     const invoke = vi.fn(async (channel: string) => (channel === 'sidecar-bundle:usage' ? { ok: true, bytes: 3_400_000_000 } : { ok: false }));

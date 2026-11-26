@@ -14,7 +14,7 @@ const fitsTheModelUi = (s: LocalNativeSettings): NativeEngineSettings => s;
  * Local Native's `Engine`, in the manner of LocalInference's: `EngineSurface` over `useNativeEngineAdapter` fed from
  * `settings` / `update` / the pair — the engine page draws the engine card at its top through the adapter's gate (it
  * draws only the states a person can act on) — and, while a slot's
- * "Browse library…" goes to that stage of the native library in Models and storage (#578 ruling 27). Voice previews
+ * "Browse library…" goes to that stage of the native library in Local models and storage (#578 ruling 27). Voice previews
  * take the app's route through the preview port its host hands it (#578 ruling 13).
  */
 export function LocalNativeEngine({

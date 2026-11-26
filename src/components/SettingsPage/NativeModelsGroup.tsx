@@ -1,6 +1,6 @@
 // src/components/SettingsPage/NativeModelsGroup.tsx
 //
-// The native engine's model library, on Models and storage (#578 ruling 27): the engine's own card when it needs an
+// The native engine's model library, on Local models and storage (#578 ruling 27): the engine's own card when it needs an
 // action, then each stage's models under the anchors an engine slot's "Browse library…" goes to. It is the body of the
 // page's first tab; the page decides whether Local Native is offered at all.
 import { useEffect, useMemo, useRef, useState } from 'react';

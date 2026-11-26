@@ -807,7 +807,7 @@ describe('NativeModelManagementSection — Library surface keeps the original mo
   });
 });
 
-// C1 folded finding: the Models and storage page owns Clear-all now — the bottom
+// C1 folded finding: the Local models and storage page owns Clear-all now — the bottom
 // ModelStorageFooter duplicate must not render on the Library push
 // (stageFilter set), only on the standalone (prop-less) Settings-page render.
 describe('NativeModelManagementSection — ModelStorageFooter only on the standalone render (C1)', () => {
