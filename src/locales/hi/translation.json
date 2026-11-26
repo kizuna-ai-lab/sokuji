@@ -1014,7 +1014,20 @@
       "engineHint": "वह डेस्कटॉप इंजन जिसे पिछले संस्करणों ने इस कंप्यूटर पर मॉडल चलाने के लिए डाउनलोड किया था। “यह डिवाइस” सेवा अब इसका उपयोग नहीं करती; जगह खाली करने के लिए इसे हटाएँ।",
       "remove": "हटाएँ",
       "engineConfirm": "स्थानीय इंजन हटाएँ?",
-      "engineFrees": "{{size}} खाली होगा।"
+      "engineFrees": "{{size}} खाली होगा।",
+      "nativeTab": "Native engine",
+      "webgpuTab": "WASM/WebGPU engine",
+      "webgpuTitle": "WASM/WebGPU engine",
+      "nativeHint": "Ships with the app and runs on this computer.",
+      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
+      "engineHintNative": "The engine the native models run on.",
+      "tabMeta": "{{count}} downloaded, {{size}}",
+      "tabNone": "None downloaded",
+      "tabs": "Engine",
+      "toHelpers": "Helper models",
+      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
+      "goChoose": "Choose",
+      "dismiss": "Dismiss"
     }
   },
   "notes": {

@@ -1014,7 +1014,20 @@
       "engineHint": "Enjin desktop yang dimuat turun oleh versi terdahulu untuk menjalankan model pada komputer ini. Perkhidmatan “Peranti ini” tidak lagi menggunakannya; alih keluar untuk mengosongkan ruang.",
       "remove": "Alih keluar",
       "engineConfirm": "Alih keluar enjin setempat?",
-      "engineFrees": "Mengosongkan {{size}}."
+      "engineFrees": "Mengosongkan {{size}}.",
+      "nativeTab": "Native engine",
+      "webgpuTab": "WASM/WebGPU engine",
+      "webgpuTitle": "WASM/WebGPU engine",
+      "nativeHint": "Ships with the app and runs on this computer.",
+      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
+      "engineHintNative": "The engine the native models run on.",
+      "tabMeta": "{{count}} downloaded, {{size}}",
+      "tabNone": "None downloaded",
+      "tabs": "Engine",
+      "toHelpers": "Helper models",
+      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
+      "goChoose": "Choose",
+      "dismiss": "Dismiss"
     }
   },
   "notes": {

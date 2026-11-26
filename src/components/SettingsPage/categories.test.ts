@@ -37,6 +37,11 @@ describe('the settings categories', () => {
       expect(targetToCategory(`models-${stage}`)).toEqual({ category: 'models', anchor: `models-${stage}` });
   });
 
+  it("maps each stage's native models to the native tab's group in Models and storage", () => {
+    for (const stage of ['asr', 'translation', 'tts'])
+      expect(targetToCategory(`native-models-${stage}`)).toEqual({ category: 'models', anchor: `native-models-${stage}` });
+  });
+
   it("maps Models and storage itself, where This device's row in the accounts goes", () => {
     expect(targetToCategory('models')).toEqual({ category: 'models', anchor: null });
   });

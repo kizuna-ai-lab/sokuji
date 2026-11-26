@@ -27,6 +27,13 @@ vi.mock('../../utils/environment', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../utils/environment')>()),
   isElectron: () => env.electron,
 }));
+// Whether the native engine is offered: the desktop build, with its provider registered.
+const offered = vi.hoisted(() => ({ native: false }));
+vi.mock('../../providers/registry', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../providers/registry')>();
+  return { ...real, presentProviders: (...a: Parameters<typeof real.presentProviders>) => [...real.presentProviders(...a), ...(offered.native ? [{ id: 'local_native' } as never] : [])] };
+});
+vi.mock('./NativeModelsGroup', () => ({ NativeModelsGroup: () => <div data-testid="native-library" /> }));
 vi.mock('../Settings/sections/ModelImportModal', () => ({
   ModelImportModal: ({ modelName }: { modelName: string }) => <div data-testid="import-modal">{modelName}</div>,
 }));
@@ -53,6 +60,7 @@ const engine = { refreshBundle: vi.fn(async () => {}), refreshBundleUsage: vi.fn
 beforeEach(() => {
   for (const f of [...Object.values(store), ...Object.values(turn), ...Object.values(punct), ...Object.values(engine), dict.deleteDictionary, voices.deleteVoice]) f.mockClear();
   env.electron = false;
+  offered.native = false;
   useLineUpStore.setState({ lineUp: null, stored: false } as never);
   useNativeModelStore.setState({ bundleStatus: 'ready', bundleVersion: '0.31.2', bundleUsage: 3_435_973_837, ...engine } as never);
   dict.stored = true;
@@ -430,5 +438,80 @@ describe('Models and storage — the on-device engine (B-19)', () => {
     useNativeModelStore.setState({ bundleUsage: null } as never);
     mount();
     expect(group()).toBeNull();
+  });
+});
+
+
+// Two engines, two libraries (#578): the desktop with the native engine offered shows them under tabs.
+describe('Models and storage — the engines as tabs', () => {
+  const tabs = () => screen.getAllByRole('tab');
+  const desktopWithNative = () => { env.electron = true; offered.native = true; };
+
+  it('shows no tabs in the extension or where the native engine is not offered', () => {
+    mount();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    cleanup();
+    env.electron = true;
+    mount();
+    expect(screen.queryByRole('tablist')).toBeNull();
+    expect(screen.getByRole('region', { name: /Models for the session/ })).toBeTruthy();
+  });
+
+  it('puts the native engine first and opens on it', () => {
+    desktopWithNative();
+    mount();
+    expect(tabs().map((t) => t.querySelector('.models-tabs__name')?.textContent)).toEqual(['Native engine', 'WASM/WebGPU engine']);
+    expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByTestId('native-library')).toBeTruthy();
+    expect(screen.queryByRole('group', { name: 'Recognition' })).toBeNull();
+  });
+
+  it("labels each tab with what its library holds, so the other engine's models stay in sight", () => {
+    desktopWithNative();
+    useNativeModelStore.setState({ statuses: { a: 'ready', b: 'ready', c: 'absent' }, sizes: { a: 1_073_741_824, b: 1_073_741_824, c: 5 } } as never);
+    mount();
+    expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('2 downloaded, 2.0 GB');
+    expect(tabs()[1].querySelector('.models-tabs__meta')?.textContent).toMatch(/^2 downloaded, /);
+  });
+
+  it('says so when a library is empty', () => {
+    desktopWithNative();
+    useNativeModelStore.setState({ statuses: {}, sizes: {} } as never);
+    mount();
+    expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('None downloaded');
+  });
+
+  it('switches to the WASM/WebGPU library without touching the line-up, and keeps the helper models on both', () => {
+    desktopWithNative();
+    const before = JSON.stringify(useLineUpStore.getState());
+    mount();
+    expect(screen.getByRole('region', { name: 'Helper models' })).toBeTruthy();
+    fireEvent.click(tabs()[1]);
+    expect(tabs()[1].getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryByTestId('native-library')).toBeNull();
+    expect(screen.getByRole('group', { name: 'Recognition' })).toBeTruthy();
+    expect(screen.getByRole('region', { name: 'Helper models' })).toBeTruthy();
+    expect(JSON.stringify(useLineUpStore.getState())).toBe(before);
+  });
+
+  it('jumps to the helper models from the page head', () => {
+    desktopWithNative();
+    const scroll = vi.fn();
+    Element.prototype.scrollIntoView = scroll;
+    mount();
+    fireEvent.click(screen.getByRole('button', { name: 'Helper models' }));
+    expect(scroll).toHaveBeenCalled();
+    expect((scroll.mock.instances[0] as HTMLElement).id).toBe('models-helpers-section');
+  });
+
+  it("opens the engine a navigation target belongs to", async () => {
+    desktopWithNative();
+    const { useSettingsStore } = await import('../../stores/settingsStore');
+    mount();
+    useSettingsStore.setState({ settingsNavigationTarget: 'models-asr' } as never);
+    await waitFor(() => expect(tabs()[1].getAttribute('aria-selected')).toBe('true'));
+    useSettingsStore.setState({ settingsNavigationTarget: 'native-models-asr' } as never);
+    await waitFor(() => expect(tabs()[0].getAttribute('aria-selected')).toBe('true'));
+    useSettingsStore.setState({ settingsNavigationTarget: null } as never);
   });
 });

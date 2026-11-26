@@ -1014,7 +1014,20 @@
       "engineHint": "ఈ కంప్యూటర్‌లో మోడల్‌లను నడపడానికి పాత వెర్షన్‌లు డౌన్‌లోడ్ చేసిన డెస్క్‌టాప్ ఇంజిన్. “ఈ పరికరం” సేవ ఇకపై దీన్ని ఉపయోగించదు; స్థలం ఖాళీ చేయడానికి దీన్ని తీసివేయండి.",
       "remove": "తీసివేయి",
       "engineConfirm": "స్థానిక ఇంజిన్‌ను తీసివేయాలా?",
-      "engineFrees": "{{size}} ఖాళీ అవుతుంది."
+      "engineFrees": "{{size}} ఖాళీ అవుతుంది.",
+      "nativeTab": "Native engine",
+      "webgpuTab": "WASM/WebGPU engine",
+      "webgpuTitle": "WASM/WebGPU engine",
+      "nativeHint": "Ships with the app and runs on this computer.",
+      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
+      "engineHintNative": "The engine the native models run on.",
+      "tabMeta": "{{count}} downloaded, {{size}}",
+      "tabNone": "None downloaded",
+      "tabs": "Engine",
+      "toHelpers": "Helper models",
+      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
+      "goChoose": "Choose",
+      "dismiss": "Dismiss"
     }
   },
   "notes": {

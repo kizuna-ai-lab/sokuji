@@ -66,6 +66,10 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'models-asr': { category: 'models', anchor: 'models-asr' },
   'models-translation': { category: 'models', anchor: 'models-translation' },
   'models-tts': { category: 'models', anchor: 'models-tts' },
+  // The native engine's models, in its own tab (#578 ruling 27): where its slot's "Browse library…" goes.
+  'native-models-asr': { category: 'models', anchor: 'native-models-asr' },
+  'native-models-translation': { category: 'models', anchor: 'native-models-translation' },
+  'native-models-tts': { category: 'models', anchor: 'native-models-tts' },
   // Models and storage itself, from This device's row in Accounts and keys.
   models: { category: 'models', anchor: null },
   // The local engine's voices, in the speech card when this device speaks (B-20).

@@ -1014,7 +1014,20 @@
       "engineHint": "محرك سطح المكتب الذي نزّلته الإصدارات السابقة لتشغيل النماذج على هذا الحاسوب. خدمة «هذا الجهاز» لم تعد تستخدمه؛ أزِله لتحرير المساحة.",
       "remove": "إزالة",
       "engineConfirm": "هل تريد إزالة المحرك المحلي؟",
-      "engineFrees": "يحرّر {{size}}."
+      "engineFrees": "يحرّر {{size}}.",
+      "nativeTab": "Native engine",
+      "webgpuTab": "WASM/WebGPU engine",
+      "webgpuTitle": "WASM/WebGPU engine",
+      "nativeHint": "Ships with the app and runs on this computer.",
+      "webgpuHint": "Runs in the app’s own window and uses the GPU when there is one. Stages set to “This device” in “Languages and line-up” use the models downloaded here.",
+      "engineHintNative": "The engine the native models run on.",
+      "tabMeta": "{{count}} downloaded, {{size}}",
+      "tabNone": "None downloaded",
+      "tabs": "Engine",
+      "toHelpers": "Helper models",
+      "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",
+      "goChoose": "Choose",
+      "dismiss": "Dismiss"
     }
   },
   "notes": {
