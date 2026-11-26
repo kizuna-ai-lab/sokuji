@@ -38,6 +38,7 @@ function initializePostHog() {
       debug: isDevelopment(),
       persistence: 'localStorage',
       autocapture: true,
+      preloadFeatureFlags: false, // no flags are used, and the construction-time request would ignore the sharing switch
       captureHistoryEvents: false // Not needed for popup
     });
     

@@ -86,6 +86,9 @@ const initializePostHog = async (): Promise<PostHog | null> => {
     // Enable SPA navigation tracking
     captureHistoryEvents: true,
     defaultOptIn: true,
+    // The client asks PostHog for feature flags at construction, with the visitor's id, before the "Share usage data"
+    // choice is known and whatever it is; nothing here uses flags.
+    preloadFeatureFlags: false,
     autocapture: true,
     disableCompression: isDevelopment(),
     // // Disable batching - send events immediately
