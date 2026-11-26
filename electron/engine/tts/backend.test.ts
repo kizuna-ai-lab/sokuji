@@ -263,7 +263,11 @@ describe('default voices and the warm-up', () => {
     try {
       const b = backend();
       const loading = b.load(REF, 'vulkan', 'q8_0', cfg('moss_tts_nano'));
-      for (let i = 0; i < 200 && !fake.ttsModels.at(-1)?.log.some((e) => (e as unknown[])[0] === 'synth'); i++) await new Promise((r) => setImmediate(r));
+      // Wait, on the real clock, until the warm-up synth is really waiting; the fake clock starts only then.
+      const entered = () => fake.ttsModels.at(-1)?.log.some((e) => (e as unknown[])[0] === 'synth') === true;
+      const until = performance.now() + 20_000;
+      while (!entered() && performance.now() < until) await new Promise((r) => setImmediate(r));
+      expect(entered()).toBe(true);
       await vi.advanceTimersByTimeAsync(120_000);                // far past the 34 s a short text gets
       expect(stuck).toEqual([]);
       fake.ttsModels.at(-1)!.release();
