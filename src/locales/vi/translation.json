@@ -1345,7 +1345,8 @@
       "anyUseCase": "Mọi mục đích",
       "anyStyle": "Mọi phong cách"
     },
-    "noneChosen": "Chưa chọn giọng nói"
+    "noneChosen": "Chưa chọn giọng nói",
+    "defaultVoice": "Giọng mặc định"
   },
   "echoNotice": {
     "ttsEcho": "Loa của bạn đang đưa giọng dịch của Sokuji quay lại micro.",

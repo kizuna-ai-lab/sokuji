@@ -1345,7 +1345,8 @@
       "anyUseCase": "Tüm kullanım amaçları",
       "anyStyle": "Tüm stiller"
     },
-    "noneChosen": "Ses seçilmedi"
+    "noneChosen": "Ses seçilmedi",
+    "defaultVoice": "Varsayılan ses"
   },
   "echoNotice": {
     "ttsEcho": "Hoparlörleriniz Sokuji'nin çevrilmiş sesini mikrofona geri besliyor.",

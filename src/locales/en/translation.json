@@ -1450,6 +1450,7 @@
   },
   "voiceLibrary": {
     "noneChosen": "No voice chosen",
+    "defaultVoice": "Default voice",
     "filter": {
       "genderLabel": "Gender",
       "ageLabel": "Age",

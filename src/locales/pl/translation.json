@@ -1345,7 +1345,8 @@
       "anyUseCase": "Dowolne zastosowanie",
       "anyStyle": "Dowolny styl"
     },
-    "noneChosen": "Nie wybrano głosu"
+    "noneChosen": "Nie wybrano głosu",
+    "defaultVoice": "Domyślny głos"
   },
   "echoNotice": {
     "ttsEcho": "Głośniki zawracają przetłumaczoną mowę Sokuji do mikrofonu.",

@@ -1345,7 +1345,8 @@
       "anyUseCase": "Qualquer uso",
       "anyStyle": "Qualquer estilo"
     },
-    "noneChosen": "Nenhuma voz escolhida"
+    "noneChosen": "Nenhuma voz escolhida",
+    "defaultVoice": "Voz padrão"
   },
   "echoNotice": {
     "ttsEcho": "Seus alto-falantes estão devolvendo a fala traduzida do Sokuji ao microfone.",

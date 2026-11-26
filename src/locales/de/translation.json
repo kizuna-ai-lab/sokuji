@@ -1345,7 +1345,8 @@
       "anyUseCase": "Beliebiger Anwendungsfall",
       "anyStyle": "Beliebiger Stil"
     },
-    "noneChosen": "Keine Stimme gewählt"
+    "noneChosen": "Keine Stimme gewählt",
+    "defaultVoice": "Standardstimme"
   },
   "echoNotice": {
     "ttsEcho": "Ihre Lautsprecher speisen Sokujis übersetzte Sprache zurück ins Mikrofon.",

@@ -1345,7 +1345,8 @@
       "anyUseCase": "أي حالة استخدام",
       "anyStyle": "أي أسلوب"
     },
-    "noneChosen": "لم يتم اختيار صوت"
+    "noneChosen": "لم يتم اختيار صوت",
+    "defaultVoice": "الصوت الافتراضي"
   },
   "echoNotice": {
     "ttsEcho": "مكبرات الصوت لديك تعيد كلام Sokuji المترجم إلى الميكروفون.",

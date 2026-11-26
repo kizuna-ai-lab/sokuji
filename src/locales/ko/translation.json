@@ -1345,7 +1345,8 @@
       "anyUseCase": "용도 무관",
       "anyStyle": "스타일 무관"
     },
-    "noneChosen": "선택한 음성 없음"
+    "noneChosen": "선택한 음성 없음",
+    "defaultVoice": "기본 음성"
   },
   "echoNotice": {
     "ttsEcho": "스피커에서 나온 Sokuji의 번역 음성이 마이크로 되돌아오고 있습니다.",

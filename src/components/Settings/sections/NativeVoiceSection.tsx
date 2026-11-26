@@ -486,6 +486,9 @@ const NativeVoiceSection: React.FC<NativeVoiceSectionProps> = ({
       <VoiceLibrarySection
         voices={voices}
         selectedId={selectedId}
+        // Nothing chosen is the model's own default voice (Pocket TTS's first preset, MOSS-TTS-Nano's built-in one),
+        // except for a model that cannot speak without one: that one says nothing is chosen, with the warning below.
+        noneLabel={requiresVoiceClip(capability) ? undefined : t('voiceLibrary.defaultVoice', 'Default voice')}
         onSelect={onSelect}
         onImport={handleImport}
         onRecord={store?.onRecord ? handleRecord : undefined}

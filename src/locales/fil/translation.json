@@ -1345,7 +1345,8 @@
       "anyUseCase": "Anumang gamit",
       "anyStyle": "Anumang istilo"
     },
-    "noneChosen": "Walang napiling boses"
+    "noneChosen": "Walang napiling boses",
+    "defaultVoice": "Default na boses"
   },
   "echoNotice": {
     "ttsEcho": "Ibinabalik ng iyong speaker ang isinaling boses ng Sokuji sa mikropono.",

@@ -157,6 +157,19 @@ describe('NativeVoiceSection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  // Sophie on #888: Pocket TTS showed "No voice chosen" while the engine speaks with its first preset; MOSS-TTS-Nano
+  // speaks with its own voice too. Only a model that cannot speak without a voice says nothing is chosen.
+  it('says Default voice when nothing is chosen and the model speaks without one, No voice chosen when it cannot', () => {
+    const { unmount } = render(<NativeVoiceSection {...baseProps} capability={{ builtin: 'named', custom: 'none' }} builtinVoices={[]}
+      store={null} selected="" />);
+    expect(screen.getByText('Default voice')).toBeInTheDocument();
+    unmount();
+    render(<NativeVoiceSection {...baseProps} capability={{ builtin: 'none', custom: 'clip', required: true }} builtinVoices={[]}
+      store={makeClipStore()} selected="" />);
+    expect(screen.getByText('No voice chosen')).toBeInTheDocument();
+    expect(screen.queryByText('Default voice')).toBeNull();
+  });
+
   it('lists builtin voices and writes ttsVoice on select', async () => {
     const store = makeClipStore();
     const onSelect = vi.fn();

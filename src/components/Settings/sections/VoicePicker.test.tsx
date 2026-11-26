@@ -766,4 +766,10 @@ describe('VoicePicker — nothing chosen', () => {
     expect(screen.getByText('No voice chosen')).toBeInTheDocument();
     expect(screen.queryByText('custom:21')).toBeNull();
   });
+
+  it('names what nothing chosen means where the host knows it (a model that speaks with its own default)', () => {
+    render(<VoicePicker {...base} selectedId="" voices={[]} noneLabel="Default voice" />);
+    expect(screen.getByText('Default voice')).toBeInTheDocument();
+    expect(screen.queryByText('No voice chosen')).toBeNull();
+  });
 });

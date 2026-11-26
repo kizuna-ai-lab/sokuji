@@ -1345,7 +1345,8 @@
       "anyUseCase": "Alla användningsområden",
       "anyStyle": "Alla stilar"
     },
-    "noneChosen": "Ingen röst vald"
+    "noneChosen": "Ingen röst vald",
+    "defaultVoice": "Standardröst"
   },
   "echoNotice": {
     "ttsEcho": "Dina högtalare matar tillbaka Sokujis översatta tal in i mikrofonen.",

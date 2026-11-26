@@ -1345,7 +1345,8 @@
       "anyUseCase": "Elke toepassing",
       "anyStyle": "Elke stijl"
     },
-    "noneChosen": "Geen stem gekozen"
+    "noneChosen": "Geen stem gekozen",
+    "defaultVoice": "Standaardstem"
   },
   "echoNotice": {
     "ttsEcho": "Uw luidsprekers voeren Sokuji's vertaalde spraak terug in de microfoon.",

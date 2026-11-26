@@ -1218,6 +1218,7 @@
   },
   "voiceLibrary": {
     "noneChosen": "音声が選ばれていません",
+    "defaultVoice": "既定の声",
     "addVoice": "音声を追加…",
     "addVoiceTitle": "音声を追加",
     "clipSilent": "音声が検出されませんでした — マイクを確認してもう一度お試しください。",

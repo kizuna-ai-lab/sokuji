@@ -1345,7 +1345,8 @@
       "anyUseCase": "כל שימוש",
       "anyStyle": "כל סגנון"
     },
-    "noneChosen": "לא נבחר קול"
+    "noneChosen": "לא נבחר קול",
+    "defaultVoice": "קול ברירת מחדל"
   },
   "echoNotice": {
     "ttsEcho": "הרמקולים שלך מחזירים את הדיבור המתורגם של Sokuji אל המיקרופון.",
