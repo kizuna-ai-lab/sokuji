@@ -1,0 +1,4409 @@
+{
+  "cases": [
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal.",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from en to ja. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from ja to en. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "You are a translator. Translate the text from zh to fr. Output only the translation, no explanations, no refusal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "en",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "ja",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal. /no_think",
+            "role": "system"
+          },
+          {
+            "content": "",
+            "role": "user"
+          }
+        ],
+        "prefill": "<think>\n\n</think>\n\n"
+      },
+      "src": "zh",
+      "strategy": "qwen",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "fn": "max_tokens",
+      "result": 512,
+      "strategy": "qwen"
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: <transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: <transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: <transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: <transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: <transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: <transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: <transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: ",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: <transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: ",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: <transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: ",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: <transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: <transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: <transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>Hello.</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.Hello.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: <transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: <transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: <transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript>こんにちは。</transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.こんにちは。",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: <transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into ja. Note that you should only output the translated result without any additional explanation: ",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: <transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into en. Note that you should only output the translated result without any additional explanation: ",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: <transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Translate the following text into fr. Note that you should only output the translated result without any additional explanation: ",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.<transcript></transcript>",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "chat",
+        "payload": [
+          {
+            "content": "Be formal.",
+            "role": "user"
+          }
+        ],
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "hunyuan",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "fn": "max_tokens",
+      "result": 512,
+      "strategy": "hunyuan"
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "plain",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nHello.<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "Hello.",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\nこんにちは。<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "こんにちは。",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional English (en) to Japanese (ja) translator. Your goal is to accurately convey the meaning and nuances of the original English text while adhering to Japanese grammar, vocabulary, and cultural sensitivities.\nProduce only the Japanese translation, without any additional explanations or commentary. Please translate the following English text into Japanese:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "en",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "ja",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Japanese (ja) to English (en) translator. Your goal is to accurately convey the meaning and nuances of the original Japanese text while adhering to English grammar, vocabulary, and cultural sensitivities.\nProduce only the English translation, without any additional explanations or commentary. Please translate the following Japanese text into English:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "ja",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "en",
+      "wrap": false
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": true
+    },
+    {
+      "config": "no_thinking",
+      "fn": "build",
+      "result": {
+        "mode": "complete",
+        "payload": "<start_of_turn>user\nYou are a professional Chinese (zh) to French (fr) translator. Your goal is to accurately convey the meaning and nuances of the original Chinese text while adhering to French grammar, vocabulary, and cultural sensitivities.\nProduce only the French translation, without any additional explanations or commentary. Please translate the following Chinese text into French:\n\n\n<end_of_turn>\n<start_of_turn>model\n",
+        "prefill": null
+      },
+      "src": "zh",
+      "strategy": "gemma",
+      "system_prompt": "Be formal.",
+      "text": "",
+      "tgt": "fr",
+      "wrap": false
+    },
+    {
+      "fn": "max_tokens",
+      "result": 256,
+      "strategy": "gemma"
+    },
+    {
+      "fn": "_clean_output",
+      "result": "hello",
+      "text": "<think>reasoning</think>  hello"
+    },
+    {
+      "fn": "_clean_output",
+      "result": "plain",
+      "text": "plain"
+    },
+    {
+      "fn": "_clean_output",
+      "result": "The weather today is nice.",
+      "text": "The weather today is nice.</transcript>"
+    },
+    {
+      "fn": "_clean_output",
+      "result": "hi",
+      "text": "<transcript>hi</transcript>"
+    },
+    {
+      "fn": "_clean_output",
+      "result": "Hello",
+      "text": "<think>x</think> Hello</transcript>"
+    },
+    {
+      "fn": "_clean_output",
+      "result": "Mixed",
+      "text": "  <TRANSCRIPT>Mixed</Transcript>  "
+    },
+    {
+      "fn": "_clean_output",
+      "result": "b</think>c",
+      "text": "a</think>b</think>c"
+    },
+    {
+      "fn": "_clean_output",
+      "result": "",
+      "text": ""
+    },
+    {
+      "fn": "_chatml_fallback",
+      "messages": [
+        {
+          "content": "Translate.",
+          "role": "system"
+        },
+        {
+          "content": "<transcript>Hi</transcript>",
+          "role": "user"
+        }
+      ],
+      "prefill": null,
+      "result": "<|im_start|>system\nTranslate.<|im_end|>\n<|im_start|>user\n<transcript>Hi</transcript><|im_end|>\n<|im_start|>assistant\n"
+    },
+    {
+      "fn": "_chatml_fallback",
+      "messages": [
+        {
+          "content": "Translate.",
+          "role": "system"
+        },
+        {
+          "content": "<transcript>Hi</transcript>",
+          "role": "user"
+        }
+      ],
+      "prefill": "<think>\n\n</think>\n\n",
+      "result": "<|im_start|>system\nTranslate.<|im_end|>\n<|im_start|>user\n<transcript>Hi</transcript><|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+    },
+    {
+      "fn": "_chatml_fallback",
+      "messages": [
+        {
+          "content": "x",
+          "role": "user"
+        }
+      ],
+      "prefill": "",
+      "result": "<|im_start|>user\nx<|im_end|>\n<|im_start|>assistant\n"
+    },
+    {
+      "fn": "_GEMMA_LANG_NAME",
+      "result": {
+        "af": "Afrikaans",
+        "ar": "Arabic",
+        "bg": "Bulgarian",
+        "bn": "Bengali",
+        "ca": "Catalan",
+        "cs": "Czech",
+        "da": "Danish",
+        "de": "German",
+        "el": "Greek",
+        "en": "English",
+        "es": "Spanish",
+        "et": "Estonian",
+        "fa": "Persian",
+        "fi": "Finnish",
+        "fr": "French",
+        "gu": "Gujarati",
+        "he": "Hebrew",
+        "hi": "Hindi",
+        "hr": "Croatian",
+        "hu": "Hungarian",
+        "id": "Indonesian",
+        "is": "Icelandic",
+        "it": "Italian",
+        "ja": "Japanese",
+        "kn": "Kannada",
+        "ko": "Korean",
+        "lt": "Lithuanian",
+        "lv": "Latvian",
+        "ml": "Malayalam",
+        "mr": "Marathi",
+        "mt": "Maltese",
+        "nl": "Dutch",
+        "no": "Norwegian",
+        "pa": "Punjabi",
+        "pl": "Polish",
+        "pt": "Portuguese",
+        "ro": "Romanian",
+        "ru": "Russian",
+        "sk": "Slovak",
+        "sl": "Slovenian",
+        "sr": "Serbian",
+        "sv": "Swedish",
+        "sw": "Swahili",
+        "ta": "Tamil",
+        "te": "Telugu",
+        "th": "Thai",
+        "tl": "Tagalog",
+        "tr": "Turkish",
+        "uk": "Ukrainian",
+        "ur": "Urdu",
+        "vi": "Vietnamese",
+        "xh": "Xhosa",
+        "zh": "Chinese",
+        "zu": "Zulu"
+      }
+    }
+  ],
+  "generator": "export_goldens.py",
+  "sidecar_commit": "353f3e026f523dde35a09da2e091a42905c05a47"
+}
