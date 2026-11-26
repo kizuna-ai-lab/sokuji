@@ -205,6 +205,22 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
         <HearingButton />
         {/* LAN caption sharing (spec 2026-10-04 §7.1): the desktop app only. */}
         {isElectron() && <CaptionShareButton />}
+        {/* The live notes in the conversation's area are shown beside it, alone or hidden here, the switch staying while
+            they are hidden; hiding does not stop them (owner and design review, 2026-11-17 and 2026-11-18; B-30, B-40). A
+            feature's button, so third from the end: the display settings and the clear button end the toolbar (owner, 2026-11-27). */}
+        {liveNotesPresent && (
+          <button
+            className="font-size-btn live-notes-switch"
+            onClick={() => setLiveNotesLayout(NEXT_LAYOUT[liveNotesLayout])}
+            title={liveNotesSwitchTitle}
+            aria-label={t('liveNotes.title', 'Live notes')}
+            aria-pressed={liveNotesLayout !== 'conversation'}
+            aria-controls="live-notes-panel"
+            type="button"
+          >
+            {liveNotesIcon}
+          </button>
+        )}
         <button
           className="font-size-btn"
           ref={displayPopoverFloating.refs.setReference}
@@ -225,21 +241,6 @@ const PanelToolbar: React.FC<PanelToolbarProps> = ({ legs, exporter, hasConversa
         >
           <Trash2 size={14} />
         </button>
-        {/* The live notes in the conversation's area are shown beside it, alone or hidden here, the switch staying while
-            they are hidden; hiding does not stop them (owner and design review, 2026-11-17 and 2026-11-18; B-30, B-40). */}
-        {liveNotesPresent && (
-          <button
-            className="font-size-btn live-notes-switch"
-            onClick={() => setLiveNotesLayout(NEXT_LAYOUT[liveNotesLayout])}
-            title={liveNotesSwitchTitle}
-            aria-label={t('liveNotes.title', 'Live notes')}
-            aria-pressed={liveNotesLayout !== 'conversation'}
-            aria-controls="live-notes-panel"
-            type="button"
-          >
-            {liveNotesIcon}
-          </button>
-        )}
       </div>
       {displayPopoverOpen && (
         <FloatingPortal>

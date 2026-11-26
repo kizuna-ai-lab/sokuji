@@ -210,7 +210,7 @@ describe('PanelToolbar — what I hear', () => {
   });
 });
 
-// Owner and design review, 2026-11-17 (B-30, B-40): the live notes are shown and hidden from a switch here, at the end of
+// Owner and design review, 2026-11-17 (B-30, B-40): the live notes are shown and hidden from a switch here, in
 // the conversation's toolbar, where it stays while they are hidden. Owner, 2026-11-18: it goes round three layouts of the
 // conversation's area — side by side, the notes alone, the conversation alone.
 describe('PanelToolbar — live notes switch', () => {
@@ -245,6 +245,18 @@ describe('PanelToolbar — live notes switch', () => {
     useSettingsStore.setState({ liveNotes: false } as never);
     renderToolbar(['speaker']);
     expect(liveSwitch()).toBeNull();
+  });
+
+  // Owner, 2026-11-27: a feature's button, not one of the toolbar's own two — third from the end, before the display
+  // settings and the clear button.
+  it('sits before the display settings and the clear button, which end the toolbar', () => {
+    env.electron = true;
+    useSettingsStore.setState({ liveNotes: true } as never);
+    useLiveNotes.getState().begin('run-0001-aaaa');
+    const { container } = renderToolbar(['speaker']);
+    const buttons = [...container.querySelectorAll('.conversation-toolbar > button')];
+    const names = buttons.slice(-3).map((b) => b.getAttribute('aria-label'));
+    expect(names).toEqual(['liveNotes.title', 'mainPanel.displaySettings', 'mainPanel.clearConversation']);
   });
 
   it('is not there outside the desktop app, live notes or not', () => {
