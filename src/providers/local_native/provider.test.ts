@@ -42,12 +42,11 @@ describe('localNativeProvider', () => {
     expect(localNativeProvider.credentials.keys).toEqual([]);
   });
 
-  it('is flagged, Electron only, and unlocked by its tester switch (#578 ruling 1)', () => {
-    expect(localNativeProvider.flagged).toBe(true);
-    expect(localNativeProvider.testerSwitch).toBe(LOCAL_NATIVE_DEBUG_KEY);
-    expect(isPresent(localNativeProvider, env())).toBe(false);
-    expect(isPresent(localNativeProvider, env({ switchOn: (k) => k === LOCAL_NATIVE_DEBUG_KEY }))).toBe(true);
-    expect(isPresent(localNativeProvider, env({ enabled: new Set(['local_native']) }))).toBe(true);
+  it('is offered like any provider, on the desktop only: no flag, no tester switch', () => {
+    expect(localNativeProvider.flagged).toBeUndefined();
+    expect(localNativeProvider.testerSwitch).toBeUndefined();
+    expect(isPresent(localNativeProvider, env())).toBe(true);
+    expect(isPresent(localNativeProvider, env({ platform: 'web' }))).toBe(false);
     expect(isPresent(localNativeProvider, env({ platform: 'web', dev: true }))).toBe(false);
   });
 

@@ -2,7 +2,6 @@ import { KizunaAIIcon } from '../../components/Icons/ProviderIcons';
 import { SP, TL, TR } from '../../lib/lineup/types';
 import { wholeUnitOf } from '../../lib/plan/wholeUnit';
 import type { Provider } from '../../lib/provider/types';
-import { LOCAL_NATIVE_DEBUG_KEY } from '../../utils/environment';
 import { createLocalNativeAdapter, type LocalNativeCredentials } from './adapter';
 import { checkLocalNative } from './check';
 import { admitLocalNative, buildLocalNative, describeLocalNative, type LocalNativeConfig } from './config';
@@ -17,15 +16,14 @@ import { admitNativeTranslation, areNativeTranslationConfigs, nativeTranslationU
 const adapter = createLocalNativeAdapter();
 
 /**
- * Local Native's definition: LocalInference's sibling on the Electron sidecar, flagged until it ships (#578 ruling 1).
+ * Local Native's definition: LocalInference's sibling on the engine the Electron app runs, offered like any other provider
+ * (it was flagged while it was tested; the owner opened it, 2026-11-27).
  * A line-up all on it runs its whole session; any other stage of it combines with another provider's (#578 ruling 17).
  */
 export const localNativeProvider: Provider<LocalNativeSettings, LocalNativeCredentials, LocalNativeConfig> & { id: 'local_native' } = {
   id: 'local_native',
   kind: 'local',
   platforms: ['electron'],
-  flagged: true,
-  testerSwitch: LOCAL_NATIVE_DEBUG_KEY,
   icon: KizunaAIIcon,
   guideUrl: 'https://sokuji.kizuna.ai/docs/tutorials/local-native-setup',
 

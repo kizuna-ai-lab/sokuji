@@ -8,7 +8,7 @@ Worktree directory: `.claude/worktrees/` (gitignored)
 
 ## Project Overview
 
-Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar's engine, runs on the same provider structure, flagged while it is tested.
+Sokuji is a real-time AI-powered translation application available as both an Electron desktop app and a browser extension. It provides live speech translation through Kizuna AI (managed Soniox), free on-device inference, Google Gemini, Doubao AST 2.0, OpenAI Realtime, OpenAI Translate, OpenAI Live, Soniox, Qwen LiveTranslate and Palabra AI, with modern audio processing capabilities. Local Native, the Electron sidecar's engine, runs on the same provider structure and is offered like the others, on the desktop.
 
 ## Development Commands
 
@@ -99,8 +99,8 @@ The codebase supports both Electron desktop app and Chrome/Edge browser extensio
      that only a pick writes (each provider shows it within what it offers); a load never writes
    - The runner (`src/lib/session/`, `src/app/`) runs the legs; L1
      (`src/lib/conversation/Conversation.ts`) folds each leg's events into segments
-   - Local Native (`src/providers/local_native/`) runs on this structure: flagged, Electron
-     only, offered by its tester switch `debug:local-native` or `VITE_ENABLED_PROVIDERS=local_native`.
+   - Local Native (`src/providers/local_native/`) runs on this structure: offered like any
+     other provider, on the desktop only (it was flagged while it was tested; opened 2026-11-27).
      Like LocalInference it has four units (its whole session, its recognition, its
      translation, its voice), so any stage of it combines with another provider's. It reads
      this device's native facts through `NativeModels` (`src/stores/nativeModels.ts`), handed
@@ -431,10 +431,8 @@ useSettingsStore.subscribe(
 - `VITE_ENABLED_PROVIDERS`: the comma-separated ids of the `flagged` providers a release
   offers (`enabledProviderIds` in `src/utils/environment.ts`, read by `isPresent`);
   development builds offer every flagged provider regardless, and a definition's tester
-  switch offers it on one device. Local Native (`local_native`) is flagged today: on a
-  packaged Electron build its tester switch is DevTools →
-  `localStorage.setItem('debug:local-native', '1')` → restart;
-  `localStorage.removeItem('debug:local-native')` + restart hides it again
+  switch offers it on one device. No provider is flagged at present: Local Native
+  (`local_native`) is offered like the others, on the desktop.
 - `VITE_ENABLE_LOCAL_NATIVE`: gates only Local Native's old path (its descriptor in
   `ProviderConfigFactory`); unset in releases. It goes with the old path.
 - Environment detection via `src/utils/environment.ts`
@@ -690,7 +688,7 @@ corrected on 2026-09-05.
 
 ### Main Components
 - **SpeechOutputSection** (`src/components/Settings/sections/SpeechOutputSection.tsx`, on the settings page's device categories, `src/components/SettingsPage/DeviceCategories.tsx`): the Speech block — who hears what, each row with its own output device and channel; `textOnly` shows inverted as Translation the other side hears, the monitor as I hear it too, the participant-speech switch as Translation I hear. The mode popover's rows mirror the Speech block (a pick in an outlet row writes the outlet and never flips its switch); the face-to-face ears strip and the conversation's ear tags read the outlets (a centred outlet gives no tag); the wizard's Both scenarios write Translation I hear (voice on, text off). Sentence segmentation is hidden and held at Off while `SENTENCE_SEGMENTATION_SHOWN` in `settingsStore.ts` is false
-- **ModelsPage** (`src/components/SettingsPage/ModelsPage.tsx`, Models and storage): where Local Native is offered (the desktop, flagged: see above) it shows the two engines' libraries as tabs, the native engine first and opened first (`NativeModelsGroup.tsx`: its engine card and each stage's models under the anchors `native-models-asr|translation|tts`), then the WASM/WebGPU engine (LocalInference's own list, anchors `models-asr|translation|tts`). Each tab's label says how many models its library holds and what they take. The helper models and the imported voices sit under the tabs, shared by both, with a link to them at the page's head. Switching a tab only changes the list: it never changes what a session runs on. A finished native download says where to choose the model (Languages and line-up) and changes nothing itself. A navigation target opens the tab its anchor is in. Elsewhere (the extension, or Local Native not offered) the page is the one list it was. Where both engines are offered, Accounts and keys has one row for each, and their names read "This device (Native)" and "This device (WASM/WebGPU)" (`providerNameKey`, `src/providers/nameKey.ts`); no "Recommended" label goes on either: that label is for Kizuna AI's own service.
+- **ModelsPage** (`src/components/SettingsPage/ModelsPage.tsx`, Models and storage): where Local Native is offered (the desktop) it shows the two engines' libraries as tabs, the native engine first and opened first (`NativeModelsGroup.tsx`: its engine card and each stage's models under the anchors `native-models-asr|translation|tts`), then the WASM/WebGPU engine (LocalInference's own list, anchors `models-asr|translation|tts`). Each tab's label says how many models its library holds and what they take. The helper models and the imported voices sit under the tabs, shared by both, with a link to them at the page's head. Switching a tab only changes the list: it never changes what a session runs on. A finished native download says where to choose the model (Languages and line-up) and changes nothing itself. A navigation target opens the tab its anchor is in. Elsewhere (the extension, or Local Native not offered) the page is the one list it was. Where both engines are offered, Accounts and keys has one row for each, and their names read "This device (Native)" and "This device (WASM/WebGPU)" (`providerNameKey`, `src/providers/nameKey.ts`); no "Recommended" label goes on either: that label is for Kizuna AI's own service.
 - **MainPanel**: Unified conversation panel: bubble messages and, for everyone, the full footer (waveform and controls); a stored `uiMode` is still read but nothing writes it
 - **Tooltip**: @floating-ui/react powered tooltips with hover/click/focus triggers
 
