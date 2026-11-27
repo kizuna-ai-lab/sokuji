@@ -654,10 +654,13 @@ export const MODEL_MANIFEST: ModelManifestEntry[] = [
   // Downloaded from jiangzhuo9357/sherpa-onnx-asr-models dataset. Uses cdnPath.
   // SenseVoice
   {
+    // Not the multilingual SenseVoice Small: ASLP-lab's Cantonese fine-tune of it (WSYue-ASR, sherpa-onnx's
+    // sense-voice-zh-en-ja-ko-yue-int8-2025-09-09). It writes Japanese in Chinese characters without kana, told the
+    // language or not, so it is offered for Cantonese only. The id stays, so a download already made is kept.
     id: 'sensevoice-int8',
     type: 'asr',
-    name: 'SenseVoice (int8)',
-    languages: ['zh', 'en', 'ja', 'ko', 'yue'],
+    name: 'SenseVoice Cantonese (int8)',
+    languages: ['yue'],
     cdnPath: 'wasm-sensevoice-int8',
     variants: { default: { dtype: 'default', files: asrFiles(238_075_295, 229) } },
     asrEngine: 'sensevoice',

@@ -67,7 +67,7 @@ beforeEach(() => {
   voices.list = [];
   useModelStore.setState({
     initialized: true, webgpuAvailable: false, deviceFeatures: [], storageUsedMb: 2867,
-    modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded' },
+    modelStatuses: { 'sensevoice-nano-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded' },
     downloads: {}, downloadErrors: {},
     ...store,
   } as never);
@@ -105,7 +105,7 @@ describe('Local models and storage — the session models', () => {
   it('shows what is on disk and the recommended ones it can run; the rest wait under "N more"', () => {
     mount();
     const asr = stageGroup('Recognition');
-    expect(within(asr).getByText('SenseVoice (int8)')).toBeInTheDocument();
+    expect(within(asr).getByText('SenseVoice Nano (int8)')).toBeInTheDocument();
     expect(within(asr).getByText('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).toBeInTheDocument();
     expect(within(asr).queryByText('Moonshine Tiny EN (quantized)')).toBeNull();
     expect(within(asr).queryByText('Cohere Transcribe (WebGPU)')).toBeNull();
@@ -133,24 +133,24 @@ describe('Local models and storage — the session models', () => {
 
   // B-20: the model library's card — its size, its languages, Recommended, and In use for what a session runs now.
   it('draws each model as a library card: size, languages, Recommended, and In use for what a session runs', () => {
-    useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'opus-mt-ja-en': 'downloaded' } } as never);
+    useModelStore.setState({ modelStatuses: { 'sensevoice-nano-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'opus-mt-ja-en': 'downloaded' } } as never);
     // Every stage on "This device", as the line-up stores it.
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true } as never);
     mount();
-    const sense = card('SenseVoice (int8)');
+    const sense = card('SenseVoice Nano (int8)');
     expect(sense.querySelector('.model-card__size')?.textContent).toMatch(/^\d+\.\d (MB|GB)$/);
     expect(sense.querySelector('.model-card__languages')).not.toBeNull();
     // The models the session would run for this pair, both ways: In use.
     expect(within(sense).getByText('Active')).toBeInTheDocument();
     expect(within(card('Opus-MT (en → ja)')).getByText('Active')).toBeInTheDocument();
-    expect(card('SenseVoice (int8)')).toHaveClass('model-card--selected');
+    expect(card('SenseVoice Nano (int8)')).toHaveClass('model-card--selected');
     expect(within(card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByText('Recommended')).toBeInTheDocument();
     // The stage is the group's title; the cards carry no tag of their own.
     expect(stageGroup('Recognition').querySelector('.model-row__tag')).toBeNull();
   });
 
   it('says Downloaded for a model on disk the session does not use', () => {
-    useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-de': 'downloaded' } } as never);
+    useModelStore.setState({ modelStatuses: { 'sensevoice-nano-int8': 'downloaded', 'opus-mt-en-de': 'downloaded' } } as never);
     mount();
     expect(within(card('Opus-MT (en → de)')).getByText('Downloaded')).toBeInTheDocument();
     expect(card('Opus-MT (en → de)')).not.toHaveClass('model-card--selected');
@@ -182,19 +182,19 @@ describe('Local models and storage — the session models', () => {
   it('says what deleting the last model of a stage a session runs on this computer does', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true } as never);
     mount();
-    fireEvent.click(within(card('SenseVoice (int8)')).getByRole('button', { name: 'Delete: SenseVoice (int8)' }));
-    expect(screen.getByRole('group', { name: 'Delete SenseVoice (int8)?' })).toHaveTextContent('sessions cannot start');
+    fireEvent.click(within(card('SenseVoice Nano (int8)')).getByRole('button', { name: 'Delete: SenseVoice Nano (int8)' }));
+    expect(screen.getByRole('group', { name: 'Delete SenseVoice Nano (int8)?' })).toHaveTextContent('sessions cannot start');
   });
 
   // Review (#728): a line-up on another service (Soniox here) uses none of these models.
   it('marks nothing In use, and warns of nothing on delete, when sessions run on another service', () => {
-    useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'opus-mt-ja-en': 'downloaded' } } as never);
+    useModelStore.setState({ modelStatuses: { 'sensevoice-nano-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'opus-mt-ja-en': 'downloaded' } } as never);
     useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null }, stored: true } as never);
     mount();
-    expect(within(card('SenseVoice (int8)')).getByText('Downloaded')).toBeInTheDocument();
-    expect(card('SenseVoice (int8)')).not.toHaveClass('model-card--selected');
-    fireEvent.click(within(card('SenseVoice (int8)')).getByRole('button', { name: 'Delete: SenseVoice (int8)' }));
-    expect(screen.getByRole('group', { name: 'Delete SenseVoice (int8)?' })).not.toHaveTextContent('sessions cannot start');
+    expect(within(card('SenseVoice Nano (int8)')).getByText('Downloaded')).toBeInTheDocument();
+    expect(card('SenseVoice Nano (int8)')).not.toHaveClass('model-card--selected');
+    fireEvent.click(within(card('SenseVoice Nano (int8)')).getByRole('button', { name: 'Delete: SenseVoice Nano (int8)' }));
+    expect(screen.getByRole('group', { name: 'Delete SenseVoice Nano (int8)?' })).not.toHaveTextContent('sessions cannot start');
   });
 
   it('deletes a downloaded model after asking', async () => {
@@ -207,7 +207,7 @@ describe('Local models and storage — the session models', () => {
   });
 
   it('says a download failed, and offers it again', () => {
-    useModelStore.setState({ modelStatuses: { 'sensevoice-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'moonshine-tiny-ja-quant': 'error' }, downloadErrors: { 'moonshine-tiny-ja-quant': 'network down' } } as never);
+    useModelStore.setState({ modelStatuses: { 'sensevoice-nano-int8': 'downloaded', 'opus-mt-en-jap': 'downloaded', 'moonshine-tiny-ja-quant': 'error' }, downloadErrors: { 'moonshine-tiny-ja-quant': 'network down' } } as never);
     mount();
     more('Recognition');
     const failed = card('Moonshine Tiny JA (quantized)');
@@ -250,7 +250,7 @@ describe('Local models and storage — the session models', () => {
     mount(true);
     expect(within(card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByRole('button', { name: /^Download/ })).toBeDisabled();
     expect(within(card('NeMo Parakeet TDT 0.6B (int8, 25 EU langs)')).getByRole('button', { name: /^Import/ })).toBeDisabled();
-    expect(within(card('SenseVoice (int8)')).getByRole('button', { name: /^Delete/ })).toBeDisabled();
+    expect(within(card('SenseVoice Nano (int8)')).getByRole('button', { name: /^Delete/ })).toBeDisabled();
   });
 });
 
@@ -326,7 +326,7 @@ describe('Local models and storage — imported voices and the summary', () => {
     more('Recognition');
     const names = [...stageGroup('Recognition').querySelectorAll('.model-card__name')].map((n) => n.textContent);
     expect(names[0]).toBe('Moonshine Tiny JA (quantized)');
-    expect(names.indexOf('SenseVoice (int8)')).toBeLessThan(names.indexOf('Cohere Transcribe (WebGPU)'));
+    expect(names.indexOf('SenseVoice Nano (int8)')).toBeLessThan(names.indexOf('Cohere Transcribe (WebGPU)'));
   });
 
   it('writes a size in the unit that reads best', () => {
@@ -360,7 +360,7 @@ describe('Local models and storage — buttons named by their model', () => {
   it('names the model in each Download, Import, Delete and Cancel', () => {
     useModelStore.setState({ downloads: { 'moonshine-tiny-ja-quant': { downloadedBytes: 1, totalBytes: 4, currentFile: 'a', percent: 25 } } } as never);
     mount();
-    expect(screen.getByRole('button', { name: 'Delete: SenseVoice (int8)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete: SenseVoice Nano (int8)' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Download: NeMo Parakeet TDT 0.6B (int8, 25 EU langs)' })).toHaveTextContent('Download');
     expect(screen.getByRole('button', { name: 'Import: NeMo Parakeet TDT 0.6B (int8, 25 EU langs)' })).toHaveTextContent('Import');
     expect(screen.getByRole('button', { name: 'Cancel: Moonshine Tiny JA (quantized)' })).toBeInTheDocument();

@@ -45,7 +45,7 @@ describe('a direction resolved under a stored line-up', () => {
   });
 
   it('another provider transcribes and this one translates: a downloaded translation model resolves, and nothing resolves or is noted for recognition', () => {
-    const downloaded = { ...ctx, modelStatuses: { 'opus-mt-en-jap': 'downloaded' as const, 'sensevoice-int8': 'downloaded' as const } };
+    const downloaded = { ...ctx, modelStatuses: { 'opus-mt-en-jap': 'downloaded' as const, 'sensevoice-nano-int8': 'downloaded' as const } };
     const r = resolveWasmDirection('en', 'ja', {}, downloaded, { translation: 'local', speech: null, transcription: null });
     expect(r.translation?.modelId).toBe('opus-mt-en-jap');
     expect(r.asr).toBeNull();
@@ -57,9 +57,9 @@ describe('a direction resolved under a stored line-up', () => {
   });
 
   it('this one transcribes and another provider translates: a downloaded recognition model resolves, and nothing resolves or is noted for translation', () => {
-    const downloaded = { ...ctx, modelStatuses: { 'opus-mt-en-jap': 'downloaded' as const, 'sensevoice-int8': 'downloaded' as const } };
+    const downloaded = { ...ctx, modelStatuses: { 'opus-mt-en-jap': 'downloaded' as const, 'sensevoice-nano-int8': 'downloaded' as const } };
     const r = resolveWasmDirection('en', 'ja', {}, downloaded, { translation: null, speech: null, transcription: 'local' });
-    expect(r.asr?.modelId).toBe('sensevoice-int8');
+    expect(r.asr?.modelId).toBe('sensevoice-nano-int8');
     expect(r.translation).toBeNull();
     expect(r.notes.some((n) => n.stage === 'translation')).toBe(false);
     // Not downloaded: nothing recognises, and that is noted.

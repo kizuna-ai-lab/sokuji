@@ -19,7 +19,7 @@ describe('AST cross-stage guard', () => {
     // resolver, not a stub.
     useModelStore.setState({
       modelStatuses: {
-        'sensevoice-int8': 'downloaded',
+        'sensevoice-nano-int8': 'downloaded',
         'opus-mt-ja-en': 'downloaded',
         'opus-mt-en-jap': 'downloaded',
         'granite-speech': 'downloaded',
