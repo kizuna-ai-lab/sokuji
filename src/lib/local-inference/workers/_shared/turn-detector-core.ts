@@ -120,7 +120,10 @@ export class TurnDetectorCore {
   private readonly pressCapSamples: number;
   /** Frames since the processor's SpeechStart, counted as the workers count them for the cap. */
   private speechFrames = 0;
-  /** capAtPause: the latest frames' ends and how quiet each was (Silero's probability, or loudness under manual turns), oldest first. */
+  /**
+   * capAtPause: the latest frames' ends, a window and a frame back, and how quiet each was (Silero's probability, or
+   * loudness under manual turns), oldest first.
+   */
   private recent: Array<{ end: number; score: number }> = [];
   /** capAtPause: how many of the latest frames a cap looks back over (0: it cuts where it falls). */
   private readonly lookbackFrames: number;
@@ -541,11 +544,16 @@ export class TurnDetectorCore {
     return chosen === null ? cap : window[chosen].end;
   }
 
-  /** capAtPause: remembers how quiet the frame ending at `end` was, for the latest `lookbackFrames` frames. */
+  /**
+   * capAtPause: remembers how quiet the frame ending at `end` was. Kept by distance, not count: the frame that meets a
+   * press's cap can end up to a frame past it (a partial frame settled inside the press moves its frames off the cap's
+   * grid), so what is kept reaches back a window and one frame from the latest end.
+   */
   private note(end: number, score: number): void {
     if (this.lookbackFrames === 0) return;
     this.recent.push({ end, score });
-    if (this.recent.length > this.lookbackFrames) this.recent.shift();
+    const keep = end - (this.lookbackFrames + 1) * VAD_FRAME_SAMPLES;
+    while (this.recent.length > 0 && this.recent[0].end <= keep) this.recent.shift();
   }
 
   /** A release: the press ends with the samples it has; with none, the empty segment is dropped (in the trace only, so every open ends). */

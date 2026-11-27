@@ -1301,6 +1301,20 @@ describe('TurnDetectorCore — a cap cut at the pause before it (capAtPause)', (
     expect(m.segments()[1].start).toBe(quietestEnd);
   });
 
+  it('a press off the cap\'s grid can still cut at the first frame of its window: the frames are kept by distance, not count', async () => {
+    const m = manual({ limit: pressLimit, capAtPause: true });
+    m.core.begin(1);
+    await m.push(100);
+    m.core.drain(99);
+    await m.settle();
+    // The frame ending at 100 + 24 · 512 = 12388 is the earliest in the cap's window (12288, 16384]; the cap is met by
+    // the frame ending at 16484, eight frames later.
+    for (let i = 0; i < 40; i++) await m.push(FRAME, i === 23 ? 2000 : 8000);
+    m.core.drain(1);
+    await m.settle();
+    expect(m.segments()[0]).toMatchObject({ start: 0, end: 100 + 24 * FRAME, endedBy: 'cap' });
+  });
+
   it('random presses, cancels and releases with a cap that cuts at pauses: every segment is its timeline, a press cut end to end', async () => {
     const problems: string[] = [];
     for (let seed = 1; seed <= 60; seed++) {
