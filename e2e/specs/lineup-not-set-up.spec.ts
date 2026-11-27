@@ -47,13 +47,18 @@ test('a service with no key yet can be chosen: the list and the shown choice say
   await sokuji.close();
 });
 
-test("Accounts and keys: Bing and Edge have no button, and This device's goes to Local models and storage", async ({ launchApp }) => {
+test("Accounts and keys: Bing and Edge have no button, and each engine's row goes to its library in Local models and storage", async ({ launchApp }) => {
   const sokuji = await launchApp({ seed });
   const { page } = sokuji;
   await openSettings(page, /^Accounts and keys/);
 
   for (const name of ['Bing', 'Edge']) await expect(page.getByRole('group', { name, exact: true }).getByRole('button')).toHaveCount(0);
-  await page.getByRole('group', { name: 'This device', exact: true }).getByRole('button', { name: 'Manage models' }).click();
-  await expect(page.getByRole('heading', { name: 'Local models and storage' })).toBeVisible();
+  // The desktop offers both local engines, one row each (#888): each row's button opens its own engine's tab.
+  for (const [row, tab] of [['This device (Native)', 'Native engine'], ['This device (WASM/WebGPU)', 'WASM/WebGPU engine']] as const) {
+    await page.getByRole('navigation').getByRole('button', { name: /^Accounts and keys/ }).click();
+    await page.getByRole('group', { name: row, exact: true }).getByRole('button', { name: 'Manage models' }).click();
+    await expect(page.getByRole('heading', { name: 'Local models and storage' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: tab })).toHaveAttribute('aria-selected', 'true');
+  }
   await sokuji.close();
 });

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { baseStorage, mainAction, REPO, type Sokuji } from '../support/app';
 import { readHistory } from '../support/history';
+import { openFolds } from '../support/library';
 import { clip, PAUSES_MS, say, SENTENCES } from '../support/speech';
 import { expect, test } from '../support/test';
 
@@ -27,11 +28,12 @@ import { expect, test } from '../support/test';
 // Runbook. Every step builds with vite, opens Electron windows or downloads models: do it only with the machine's
 // owner at hand, never from CI.
 //   1. Before: `git worktree add <dir> 17642a804`, then `npm ci` in it. Copy this spec, e2e/support/history.ts,
-//      e2e/support/app.ts and scripts/dev/turn-fixtures/compare-runs.mjs in, uncommitted. Run `npm run e2e:build`.
+//      e2e/support/library.ts, e2e/support/app.ts and scripts/dev/turn-fixtures/compare-runs.mjs in, uncommitted. Run
+//      `npm run e2e:build`.
 //   2. Prepare, once per profile and model:
 //        E2E_LOCAL_PREPARE=1 E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
 //      It downloads the recognizer and the ja-en translation model through Local models and storage into the profile.
-//      Roughly 0.3 GB for Whisper base plus Opus-MT ja-en, 0.25 GB for SenseVoice, about 2.8 GB for Voxtral 4B.
+//      Roughly 0.3 GB for Whisper base plus the translation model (Qwen 2.5 0.5B, about 0.5 GB), 0.27 GB for SenseVoice Nano, about 2.8 GB for Voxtral 4B.
 //   3. Measure, five runs per model, on the before build:
 //        E2E_LOCAL_OUT=<before> E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
 //   4. After: the same in the branch's worktree (`npm ci`, `npm run e2e:build`), with E2E_LOCAL_OUT=<after> and the same
@@ -53,7 +55,8 @@ const MODELS = {
   'voxtral-mini-4b-webgpu': { name: 'Voxtral Mini 4B Realtime (WebGPU)', webgpu: true },
 } as const;
 type ModelId = keyof typeof MODELS;
-const TRANSLATION_MODEL = { id: 'opus-mt-ja-en', name: 'Opus-MT (ja → en)' };
+// Opus-MT ja → en, which this spec first used, has left the catalogue: the smallest translation model that remains.
+const TRANSLATION_MODEL = { id: 'qwen2.5-0.5b-translation', name: 'Qwen 2.5 0.5B (multilingual, WebGPU)' };
 
 const ASR = process.env.E2E_LOCAL_ASR ?? '';
 const PROFILE = process.env.E2E_LOCAL_PROFILE ?? '';
@@ -151,6 +154,7 @@ test(`@real prepare: downloads the models of ${ASR || 'the chosen recognizer'} i
   // Where the native engine is offered the page opens on its tab: these models are the WASM/WebGPU engine's.
   const webgpuTab = page.getByRole('tab', { name: /WASM\/WebGPU engine/ });
   if (await webgpuTab.count() > 0) await webgpuTab.click();
+  await openFolds(page);
   for (const { name } of [MODELS[asr], TRANSLATION_MODEL]) {
     // Two catalogue entries carry the translation model's name: both are downloaded (a second or two of clicking, 50 MB more).
     const download = page.getByRole('button', { name: `Download: ${name}` });
