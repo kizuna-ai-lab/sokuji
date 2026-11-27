@@ -20,8 +20,10 @@ const INSTALLED_DRIVER_PATH = path.join(HAL_DIR, DRIVER_BUNDLE);
 // Where electron-forge's `extraResource: ['assets', 'resources']` puts the copy
 // the app ships; the pkg's postinstall reads it from the same place.
 const BUNDLED_DRIVER_REL_PATH = path.join('resources', 'drivers', DRIVER_BUNDLE);
-// The device the driver publishes, as macos-audio-utils.js matches it.
+// The devices the driver publishes: the microphone, matched as a substring as
+// macos-audio-utils.js does, and the speaker that only the split driver has.
 const VIRTUAL_DEVICE_NAME = 'SokujiVirtualAudio';
+const OUTPUT_DEVICE_NAME = 'SokujiVirtualAudio Output';
 
 /**
  * The driver the app ships: under the packaged app's resources, or in the repo
@@ -118,11 +120,41 @@ function driverSwapScript(sourcePath) {
 }
 
 /**
+ * Whether Core Audio has registered the new driver: its speaker device exists.
+ * The microphone alone is not enough, since the old driver publishes one too.
+ *
+ * The helper answers first, and puts both devices back to unity gain on the
+ * way. It needs macOS 14.2, while the app and the driver run on 12: where it
+ * cannot tell (null), the system's own device list decides.
+ */
+async function newDriverRegistered({
+  host = audioHost,
+  listAudioDevices = async () => (await require('util').promisify(require('child_process').execFile)('/usr/sbin/system_profiler', ['SPAudioDataType'])).stdout,
+} = {}) {
+  let result = null;
+  try {
+    result = await host.ensureUnityGain(VIRTUAL_DEVICE_NAME);
+  } catch {
+    result = null;
+  }
+  if (result && typeof result.found === 'boolean') {
+    if (!result.found) return false;
+    const names = Array.isArray(result.devices) ? result.devices.map((d) => d?.name) : [result.name];
+    return names.includes(OUTPUT_DEVICE_NAME);
+  }
+  try {
+    return String(await listAudioDevices()).includes(`${OUTPUT_DEVICE_NAME}:`);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Copy the app's driver over the installed one behind macOS's administrator
  * prompt, restart Core Audio, and wait for the device to register.
  *
  * @param {{prompt: string, bundledPath?: string|null, execFile?: Function, host?: object,
- *          sleep?: Function, now?: Function, deadlineMs?: number}} options
+ *          listAudioDevices?: Function, sleep?: Function, now?: Function, deadlineMs?: number}} options
  * @returns {Promise<{ok: true} | {ok: false, cancelled: boolean, error?: string}>}
  */
 async function installBundledDriver({
@@ -130,6 +162,7 @@ async function installBundledDriver({
   bundledPath = resolveBundledDriverPath(),
   execFile = require('util').promisify(require('child_process').execFile),
   host = audioHost,
+  listAudioDevices,
   sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   now = Date.now,
   deadlineMs = 15000,
@@ -158,13 +191,7 @@ async function installBundledDriver({
   await sleep(1500);
   const deadline = now() + deadlineMs;
   do {
-    let result = null;
-    try {
-      result = await host.ensureUnityGain(VIRTUAL_DEVICE_NAME);
-    } catch {
-      result = null;
-    }
-    if (result?.found) {
+    if (await newDriverRegistered({ host, ...(listAudioDevices ? { listAudioDevices } : {}) })) {
       console.log('[Sokuji] [macOS Audio] Driver updated and registered');
       return { ok: true };
     }
@@ -178,7 +205,9 @@ module.exports = {
   readDriverVersion,
   checkDriverUpdate,
   driverSwapScript,
+  newDriverRegistered,
   installBundledDriver,
+  OUTPUT_DEVICE_NAME,
   INSTALLED_DRIVER_PATH,
   BUNDLED_DRIVER_REL_PATH,
 };

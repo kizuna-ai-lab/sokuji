@@ -15,6 +15,7 @@ import {
   readDriverVersion,
   checkDriverUpdate,
   driverSwapScript,
+  newDriverRegistered,
   installBundledDriver,
   INSTALLED_DRIVER_PATH,
 } from './macos-driver-update.js';
@@ -73,7 +74,7 @@ describe('checkDriverUpdate', () => {
 
 describe('resolveBundledDriverPath', () => {
   it("prefers the packaged app's resources, then the repo", () => {
-    const exists = (p) => p.startsWith('/res/') || p.startsWith('/repo/');
+    const exists = (p) => p.startsWith(path.join('/res', path.sep)) || p.startsWith(path.join('/repo', path.sep));
     expect(resolveBundledDriverPath({ resourcesPath: '/res', appPath: '/repo', existsSync: exists }))
       .toBe(path.join('/res', 'resources', 'drivers', 'SokujiVirtualAudio.driver'));
     expect(resolveBundledDriverPath({ resourcesPath: '/none', appPath: '/repo', existsSync: exists }))
@@ -95,7 +96,8 @@ describe("the driver this repo ships", () => {
   });
 });
 
-describe('driverSwapScript', () => {
+// The swap is sh, run by macOS; the tests that execute it need a POSIX shell.
+describe.skipIf(process.platform === 'win32')('driverSwapScript', () => {
   // Run against a scratch directory standing in for the HAL directory: the
   // script is sh, and what matters is what it leaves behind.
   const run = (source, halDir) => {
@@ -146,6 +148,27 @@ describe('driverSwapScript', () => {
   });
 });
 
+describe('newDriverRegistered', () => {
+  const both = { found: true, name: 'SokujiVirtualAudio', devices: [{ name: 'SokujiVirtualAudio' }, { name: 'SokujiVirtualAudio Output' }] };
+  const hostAnswering = (r) => ({ ensureUnityGain: vi.fn(async () => r) });
+
+  it('needs the speaker device, not just the microphone the old driver also has', async () => {
+    expect(await newDriverRegistered({ host: hostAnswering(both) })).toBe(true);
+    expect(await newDriverRegistered({ host: hostAnswering({ found: true, name: 'SokujiVirtualAudio', devices: [{ name: 'SokujiVirtualAudio' }] }) })).toBe(false);
+    expect(await newDriverRegistered({ host: hostAnswering({ found: true, name: 'SokujiVirtualAudio' }) })).toBe(false);
+    expect(await newDriverRegistered({ host: hostAnswering({ found: false }) })).toBe(false);
+  });
+
+  // The helper needs macOS 14.2; the app and the driver run on 12.
+  it("asks the system's device list when the helper cannot tell", async () => {
+    const listAudioDevices = vi.fn(async () => 'Audio:\n    Devices:\n        SokujiVirtualAudio Output:\n          Output Channels: 2\n');
+    expect(await newDriverRegistered({ host: hostAnswering(null), listAudioDevices })).toBe(true);
+    expect(await newDriverRegistered({ host: hostAnswering(null), listAudioDevices: async () => '        SokujiVirtualAudio:\n' })).toBe(false);
+    expect(await newDriverRegistered({ host: hostAnswering(null), listAudioDevices: async () => { throw new Error('x'); } })).toBe(false);
+    expect(listAudioDevices).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('installBundledDriver', () => {
   const host = (...results) => {
     const ensureUnityGain = vi.fn();
@@ -157,7 +180,7 @@ describe('installBundledDriver', () => {
 
   it('runs the swap behind the administrator prompt and waits for the device', async () => {
     const execFile = vi.fn(async () => ({ stdout: '', stderr: '' }));
-    const h = host({ found: false }, { found: true, name: 'SokujiVirtualAudio' });
+    const h = host({ found: false }, { found: true, name: 'SokujiVirtualAudio', devices: [{ name: 'SokujiVirtualAudio' }, { name: 'SokujiVirtualAudio Output' }] });
     const result = await installBundledDriver({ prompt: 'Update "it"', bundledPath: '/app/d.driver', execFile, host: h, sleep: noSleep });
     expect(result).toEqual({ ok: true });
     const [cmd, args] = execFile.mock.calls[0];
