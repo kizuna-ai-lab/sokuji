@@ -60,7 +60,7 @@ user-data directory when they end (`forgetSecrets`), passed or failed. Credentia
 only; never put them in a file of the repository.
 
 `real-local-turns.spec.ts` is an opt-in before/after measurement of the local recognizers (Whisper base and Voxtral 4B on
-WebGPU, SenseVoice on WASM) on the eight Japanese sentences, run with the same models, settings and clips on two builds.
+WebGPU, SenseVoice Nano on WASM) on the eight Japanese sentences, run with the same models, settings and clips on two builds.
 Each run writes how many sentences were heard and translated, each segment's start and end, and the delay from the end of the
 clip to its text; `node scripts/dev/turn-fixtures/compare-runs.mjs <before> <after>` judges the two folders against the before
 side's own run-to-run spread. It runs on a profile you name (`E2E_LOCAL_PROFILE`, never deleted) that holds the downloaded

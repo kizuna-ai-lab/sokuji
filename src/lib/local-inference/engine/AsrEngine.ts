@@ -255,6 +255,8 @@ export class AsrEngine {
         type: 'init',
         fileUrls: dataFileUrls,
         asrEngine: model.asrEngine,
+        // The leg's language, for an engine that takes one (SenseVoice); without it, the model guesses the language.
+        ...(language ? { language } : {}),
         runtimeBaseUrl: new URL(ASR_BUNDLED_RUNTIME_PATH, window.location.href).href,
         dataPackageMetadata,
         segmentPort,

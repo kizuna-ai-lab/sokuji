@@ -38,9 +38,21 @@ var inbox = null;
 // The engine type is passed explicitly from the manifest via AsrEngine.ts,
 // matching the TTS worker pattern (no filesystem probing).
 
-function buildSenseVoiceConfig() {
+/** The languages SenseVoice can be told; for any other it decides itself (''). */
+var SENSE_VOICE_LANGUAGES = ['zh', 'en', 'ja', 'ko', 'yue'];
+
+/**
+ * SenseVoice is told the leg's language where it knows it ('ja-JP' and 'zh_TW' by their base). Left to decide, it
+ * wrote a Japanese session's speech in Chinese characters without kana (会议, 电车).
+ */
+function buildSenseVoiceConfig(language) {
+  var base = String(language || '').toLowerCase().split(/[-_]/)[0];
   return {
-    senseVoice: { model: './sense-voice.onnx', useInverseTextNormalization: 1 },
+    senseVoice: {
+      model: './sense-voice.onnx',
+      language: SENSE_VOICE_LANGUAGES.indexOf(base) >= 0 ? base : '',
+      useInverseTextNormalization: 1,
+    },
   };
 }
 
@@ -144,12 +156,12 @@ function buildOmnilingualConfig() {
  * Build OfflineRecognizer config for the given engine type.
  * Engine type comes from modelManifest.ts asrEngine field.
  */
-function buildAsrConfig(engine) {
+function buildAsrConfig(engine, language) {
   var base = { modelConfig: { debug: 1, tokens: './tokens.txt' } };
   var engineConfig;
 
   switch (engine) {
-    case 'sensevoice':       engineConfig = buildSenseVoiceConfig(); break;
+    case 'sensevoice':       engineConfig = buildSenseVoiceConfig(language); break;
     case 'whisper':          engineConfig = buildWhisperConfig(); break;
     case 'transducer':       engineConfig = buildTransducerConfig(); break;
     case 'nemo-transducer':  engineConfig = buildNemoTransducerConfig(); break;
@@ -184,6 +196,7 @@ function buildAsrConfig(engine) {
 function handleInit(msg) {
   var fileUrls = msg.fileUrls;
   var asrEngine = msg.asrEngine;
+  var language = msg.language;
   var runtimeBaseUrl = msg.runtimeBaseUrl;
   var dataPackageMetadata = msg.dataPackageMetadata;
   var segmentPort = msg.segmentPort;
@@ -240,7 +253,7 @@ function handleInit(msg) {
       postMessage({ type: 'status', message: 'Creating recognizer (' + asrEngine + ')...' });
 
       // Build engine-specific config and create OfflineRecognizer
-      recognizer = new OfflineRecognizer(buildAsrConfig(asrEngine), Module);
+      recognizer = new OfflineRecognizer(buildAsrConfig(asrEngine, language), Module);
 
       // Listen to the detector only now the recognizer exists: nothing it sends is lost, and nothing is decoded before.
       inbox = createSegmentInbox(segmentPort);

@@ -55,7 +55,7 @@ describe('AsrEngine: the turn detector\'s segment port', () => {
     expect(message).not.toHaveProperty('vadModelUrl');
     expect(message).not.toHaveProperty('turnPort');
     expect(message.type).toBe('init');
-    if (modelId !== 'sensevoice-int8') expect(message.language).toBe('ja');
+    expect(message.language).toBe('ja');
     engine.dispose();
   });
 
@@ -82,6 +82,8 @@ describe('AsrEngine: the turn detector\'s segment port', () => {
     expect(transfer).toEqual([channel.port1]);
     expect(message).not.toHaveProperty('vadConfig');
     expect(message.asrEngine).toBe('sensevoice');
+    // The leg's language goes with it: SenseVoice left to decide wrote Japanese in Chinese characters.
+    expect(message.language).toBe('ja');
     engine.dispose();
   });
 
