@@ -97,6 +97,7 @@ interface HarnessOptions {
   smart?: TurnDetectorCoreOptions['smart'];
   infer?: TurnDetectorCoreOptions['infer'];
   seed?: number;
+  capAtPause?: boolean;
 }
 
 /** A core and its assembler, as the worker wires them; `infer` answers `probs[i]` for the i-th frame it is asked about. */
@@ -123,6 +124,7 @@ function harness(probs: number[], o: HarnessOptions = {}) {
     turns: 'auto',
     vad: { ...VAD, ...o.vad },
     limit: o.limit ?? {},
+    capAtPause: o.capAtPause,
     infer: o.infer ?? (async (frame) => {
       inferred.push(frame.slice());
       return probs[inferred.length - 1] ?? SILENCE;
@@ -673,7 +675,7 @@ function pressTraceProblems(trace: TurnTrace[]): string[] {
   return problems;
 }
 
-function manual(o: { limit?: SegmentLimit; maxSpeech?: number } = {}) {
+function manual(o: { limit?: SegmentLimit; maxSpeech?: number; capAtPause?: boolean } = {}) {
   const trace: TurnTrace[] = [];
   manualTraces.push(trace);
   const outputs: DetectorOutput[] = [];
@@ -690,6 +692,7 @@ function manual(o: { limit?: SegmentLimit; maxSpeech?: number } = {}) {
     turns: 'manual',
     vad: { ...VAD, maxSpeechDuration: o.maxSpeech ?? 30 },
     limit: o.limit ?? {},
+    capAtPause: o.capAtPause,
     infer: async () => {
       infers++;
       return SPEECH;
@@ -1163,5 +1166,112 @@ describe('TurnDetectorCore — a release names its press', () => {
     m.core.drain();
     await m.settle();
     expect(m.segments().map((s) => s.press)).toEqual([1, 2]);
+  });
+});
+
+describe('TurnDetectorCore — a cap cut at the pause before it (capAtPause)', () => {
+  // maxSpeechSeconds 1: a 32-frame cap, so the cut looks back over the last 32 / 4 = 8 frames (the frames ending 28..35).
+  const limit = { maxSpeechSeconds: 1 };
+  /** Speech from frame 3 to 46, with `dips` (frame index → probability) inside it, then silence. */
+  const speechWith = (dips: Record<number, number>) => {
+    const probs = [...run(3, SILENCE), ...run(44, SPEECH), ...run(8, SILENCE)];
+    for (const [i, p] of Object.entries(dips)) probs[Number(i)] = p;
+    return probs;
+  };
+
+  it('cuts after the quietest frame of the last quarter of the cap, and the next piece starts there with every sample', async () => {
+    const h = harness(speechWith({ 31: GRAY }), { limit, capAtPause: true });
+    await h.feed(55);
+    expect(h.segments().map(span)).toEqual([
+      { start: 1, end: 32, endedBy: 'cap' },
+      { start: 32, end: 51, endedBy: 'silence' },
+    ]);
+    const [first, second] = h.segments();
+    const timeline = h.timeline();
+    expect(difference(first.audio, timeline.slice(first.start, first.end))).toBeNull();
+    expect(difference(second.audio, timeline.slice(second.start, second.end))).toBeNull();
+    expect(traceProblems(h.trace)).toEqual([]);
+  });
+
+  it('of two quiet frames it takes the quieter, and of equals the later one', async () => {
+    const quieter = harness(speechWith({ 29: GRAY, 32: SILENCE + 0.2 }), { limit, capAtPause: true });
+    await quieter.feed(55);
+    expect(quieter.segments()[0].end / FRAME).toBe(33);
+    const equal = harness(speechWith({ 29: GRAY, 32: GRAY }), { limit, capAtPause: true });
+    await equal.feed(55);
+    expect(equal.segments()[0].end / FRAME).toBe(33);
+  });
+
+  it('with no quieter frame in reach it cuts at the cap, as without it', async () => {
+    const flat = harness(speechWith({}), { limit, capAtPause: true });
+    await flat.feed(55);
+    expect(flat.segments().map(span)[0]).toEqual({ start: 1, end: 35, endedBy: 'cap' });
+    // A pause before the last quarter is out of reach: the piece is never cut short by more than it.
+    const early = harness(speechWith({ 26: SILENCE }), { limit, capAtPause: true });
+    await early.feed(55);
+    expect(early.segments().map(span)[0]).toEqual({ start: 1, end: 35, endedBy: 'cap' });
+  });
+
+  it('without capAtPause the cap cuts where it falls, the pause or not', async () => {
+    const h = harness(speechWith({ 31: GRAY }), { limit });
+    await h.feed(55);
+    expect(h.segments().map(span)[0]).toEqual({ start: 1, end: 35, endedBy: 'cap' });
+  });
+
+  it('the speech between the pause and the cap is heard: the piece after it is kept though silence follows at once', async () => {
+    // Speech to frame 34 only: after the cut at 32, frames 32-34 are speech and then the turn goes quiet.
+    const probs = [...run(3, SILENCE), ...run(32, SPEECH), ...run(10, SILENCE)];
+    probs[31] = GRAY;
+    const h = harness(probs, { limit, capAtPause: true });
+    await h.feed(45);
+    expect(h.segments().map(span)).toEqual([
+      { start: 1, end: 32, endedBy: 'cap' },
+      { start: 32, end: 39, endedBy: 'silence' },
+    ]);
+  });
+
+  it('a continuation is cut at its own pause too, and never outgrows pad + cap frames from where it began', async () => {
+    const probs = [...run(3, SILENCE), ...run(80, SPEECH), ...run(8, SILENCE)];
+    probs[31] = GRAY;
+    probs[60] = GRAY;
+    const h = harness(probs, { limit, capAtPause: true, vad: { minSilenceDuration: 0.32 } });
+    await h.feed(91);
+    const spans = h.segments().map(span);
+    expect(spans.slice(0, 2)).toEqual([
+      { start: 1, end: 32, endedBy: 'cap' },
+      { start: 32, end: 61, endedBy: 'cap' },
+    ]);
+    for (let i = 1; i < spans.length; i++) expect(spans[i].start).toBe(spans[i - 1].end);
+    expect(h.segments().every((s) => s.audio.length <= (2 + 32) * FRAME)).toBe(true);
+    expect(traceProblems(h.trace)).toEqual([]);
+  });
+
+  it('a press is cut at its quietest frame of the last quarter of its cap, by loudness, every sample kept', async () => {
+    // A 4096-sample (8-frame) press cap: the cut looks back over the last 2 frames before 4096.
+    const m = manual({ limit: { maxSegmentSamples: 4096 }, capAtPause: true });
+    m.core.begin(1);
+    await m.push(6 * FRAME);
+    await m.push(FRAME, 300);
+    await m.push(5 * FRAME);
+    m.core.drain(1);
+    await m.settle();
+    expect(m.segments().map((s) => [s.start, s.end, s.endedBy])).toEqual([
+      [0, 7 * FRAME, 'cap'],
+      [7 * FRAME, 12 * FRAME, 'release'],
+    ]);
+    const timeline = m.timeline();
+    for (const seg of m.segments()) expect(difference(seg.audio, timeline.slice(seg.start, seg.end))).toBeNull();
+  });
+
+  it('a press with no quieter frame in reach is cut at its cap', async () => {
+    const m = manual({ limit: { maxSegmentSamples: 4096 }, capAtPause: true });
+    m.core.begin(1);
+    await m.push(12 * FRAME);
+    m.core.drain(1);
+    await m.settle();
+    expect(m.segments().map((s) => [s.start, s.end, s.endedBy])).toEqual([
+      [0, 8 * FRAME, 'cap'],
+      [8 * FRAME, 12 * FRAME, 'release'],
+    ]);
   });
 });

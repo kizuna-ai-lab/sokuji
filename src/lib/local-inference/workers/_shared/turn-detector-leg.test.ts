@@ -252,3 +252,43 @@ describe('DetectorLeg with the marks delivery', () => {
     expect(notices).toEqual([]);
   });
 });
+
+describe('DetectorLeg: where a cap cuts', () => {
+  // An 8-frame press cap (4096 samples); the seventh frame is near silence.
+  const limit = { maxSegmentSamples: 4096 };
+  const loud = (frames: number) => new Int16Array(frames * 768).fill(8000);
+  const quiet = (frames: number) => new Int16Array(frames * 768).fill(20);
+  const feed = async (l: DetectorLeg) => {
+    l.begin(1);
+    l.push(loud(6));
+    l.push(quiet(1));
+    l.push(loud(5));
+    l.drain();
+    await l.core.idle();
+    await Promise.resolve();
+  };
+
+  it('segments: after the quiet frame before the cap, the next piece starting there', async () => {
+    const posted: DetectorOutput[] = [];
+    const l = new DetectorLeg({ core: { turns: 'manual', vad: {}, limit }, post: (msg) => posted.push(msg as DetectorOutput), notify: () => {} });
+    await feed(l);
+    const segments = posted.filter((m) => m.type === 'segment');
+    expect(segments.map((s) => [s.start, s.end, s.endedBy])).toEqual([
+      [0, 7 * 512, 'cap'],
+      [7 * 512, 12 * 512, 'release'],
+    ]);
+  });
+
+  it('marks: at the cap itself, since the audio before it has already gone out', async () => {
+    const posted: MarksOutput[] = [];
+    const l = new DetectorLeg({ core: { turns: 'manual', vad: {}, limit }, delivery: 'marks', post: (msg) => posted.push(msg as MarksOutput), notify: () => {} });
+    await feed(l);
+    let samples = 0;
+    let firstEnd: number | null = null;
+    for (const m of posted) {
+      if (m.type === 'audio') samples += m.pcm.length;
+      else if (m.type === 'mark' && m.event === 'end' && firstEnd === null) firstEnd = samples;
+    }
+    expect(firstEnd).toBe(8 * 768);
+  });
+});
