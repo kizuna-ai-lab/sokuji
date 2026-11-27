@@ -19,6 +19,12 @@
  *   a continuation starts at the cut, so it is held to it from there.
  * - A drain processes the last partial frame at once, zero-padded for the VAD,
  *   and closes the open segment with its real samples.
+ * - With `capAtPause`, a cap does not cut where it falls but after the last
+ *   frame of its last quarter (at most CAP_LOOKBACK_MS) that Silero calls
+ *   silence, or else after the quietest one: a cut inside a word
+ *   leaves the next piece starting on half of it, and Whisper can take that
+ *   fragment for the whole piece and end its text there. The frames between
+ *   the cut and the cap open the continuation; none is lost.
  */
 import { FrameProcessor, Message } from '@ricky0123/vad-web';
 import type { FrameProcessorEvent } from '@ricky0123/vad-web/dist/frame-processor';
@@ -30,6 +36,10 @@ import type { FrameProcessorParams, TurnLink } from './turn-gate';
 import { resolveVadThresholds } from './vad-thresholds';
 
 const VAD_FRAME_MS = (VAD_FRAME_SAMPLES / VAD_SAMPLE_RATE) * 1000;
+/** The furthest back a cap looks for a pause to cut at. */
+export const CAP_LOOKBACK_MS = 3000;
+/** Under manual turns (no Silero), a frame is a pause to cut at when it is under this share of the window's median loudness. */
+const PRESS_PAUSE_LOUDNESS = 0.5;
 
 export type SmartLink = Pick<TurnLink, 'afterFrame' | 'rescue' | 'reset' | 'close'>;
 
@@ -47,6 +57,11 @@ export interface TurnDetectorCoreOptions {
   smart?: (processor: FrameProcessorParams) => SmartLink | null;
   trace: (event: TurnTrace) => void;
   notify: (notice: DetectorNotice) => void;
+  /**
+   * A cap cuts after the quietest frame of its last quarter instead of where it falls. Only for segment delivery: the
+   * marks relay has already sent the audio before a cap, so it cannot place an `end` back there.
+   */
+  capAtPause?: boolean;
 }
 
 type Op =
@@ -105,6 +120,15 @@ export class TurnDetectorCore {
   private readonly pressCapSamples: number;
   /** Frames since the processor's SpeechStart, counted as the workers count them for the cap. */
   private speechFrames = 0;
+  /**
+   * capAtPause: the latest frames' ends, a window and a frame back, and how quiet each was (Silero's probability, or
+   * loudness under manual turns), oldest first.
+   */
+  private recent: Array<{ end: number; score: number }> = [];
+  /** capAtPause: how many of the latest frames a cap looks back over (0: it cuts where it falls). */
+  private readonly lookbackFrames: number;
+  /** A cap cut here and the continuation is not open yet: the audio from here on is still needed. */
+  private reopening: number | null = null;
 
   constructor(private readonly o: TurnDetectorCoreOptions) {
     this.resampler = new TimelineResampler(o.inputRate);
@@ -112,6 +136,10 @@ export class TurnDetectorCore {
     this.vad = o.turns === 'auto' ? this.createVad() : null;
     // A press runs to the engine's limit and no sooner: the automatic Max speech setting does not shorten a held key.
     this.pressCapSamples = resolveMaxSpeechFrames(Number.POSITIVE_INFINITY, 0, o.limit) * VAD_FRAME_SAMPLES;
+    const capFrames = this.vad ? this.vad.maxSpeechFrames : this.pressCapSamples / VAD_FRAME_SAMPLES;
+    this.lookbackFrames = o.capAtPause && Number.isFinite(capFrames)
+      ? Math.min(Math.floor(CAP_LOOKBACK_MS / VAD_FRAME_MS), Math.floor(capFrames / 4))
+      : 0;
   }
 
   /**
@@ -174,6 +202,7 @@ export class TurnDetectorCore {
    * never past where the frame's own events open a segment.
    */
   earliestNeeded(): number {
+    if (this.reopening !== null) return this.reopening;
     if (this.open) return this.open.at;
     return Math.max(this.lastCloseTo, this.held[0] ?? this.position);
   }
@@ -237,6 +266,8 @@ export class TurnDetectorCore {
   /** No open segment, no pad held, the processor and the Smart Turn gate back to silence. */
   private resetTurn(): void {
     this.open = null;
+    this.reopening = null;
+    this.recent = [];
     this.held = [];
     this.emptied = false;
     this.speechFrames = 0;
@@ -371,6 +402,7 @@ export class TurnDetectorCore {
     const vad = this.vad;
     if (!vad) {
       this.o.trace({ kind: 'frame', from, to, samples, raw: this.takeRaw(to, samples.length < VAD_FRAME_SAMPLES) });
+      this.note(to, loudness(samples));
       this.position = to;
       this.capPress();
       return;
@@ -394,6 +426,7 @@ export class TurnDetectorCore {
 
     let probability = 0;
     for (const ev of events) if (ev.msg === Message.FrameProcessed) probability = ev.probs.isSpeech;
+    this.note(to, probability);
     if (this.open?.continuation && probability >= processor.options.negativeSpeechThreshold) this.open.heard = true;
 
     for (const ev of events) {
@@ -452,22 +485,75 @@ export class TurnDetectorCore {
     this.position = to;
   }
 
-  /** The cap: end the segment here and go on with the turn from the cut. */
+  /**
+   * The cap: end the segment and go on with the turn from the cut. With capAtPause the cut is after the last frame of
+   * the cap's last quarter that Silero calls silence (else the quietest one), and what was heard between it and the cap
+   * belongs to the continuation.
+   */
   private cut(vad: Vad, to: number): void {
     const kept = this.counts(this.endSegment(vad.processor));
-    if (kept) this.close(to, 'cap');
-    else this.drop(to);
+    if (!kept) {
+      this.drop(to);
+      vad.smart?.reset();
+      return;
+    }
+    // Of the frames Silero calls silence, the latest: what lies between two pauses (a half-heard word, say) stays at
+    // the end of this piece rather than opening the next. With none, the quietest frame.
+    const silence = vad.processor.options.negativeSpeechThreshold;
+    const at = this.pauseBefore(this.current().at, to, (scores) => {
+      for (let i = scores.length - 1; i >= 0; i--) if (scores[i] < silence) return i;
+      return quietest(scores);
+    });
+    this.reopening = at;
+    this.close(at, 'cap');
     vad.smart?.reset();
-    if (kept) this.openAt(to, true);
+    this.openAt(at, true);
+    const after = this.recent.filter((frame) => frame.end > at);
+    if (after.some((frame) => frame.score >= vad.processor.options.negativeSpeechThreshold)) this.open!.heard = true;
   }
 
-  /** A press runs to the engine's limit, then goes on from the cut as the same press. No VAD, no minSpeech, no Smart. */
+  /**
+   * A press runs to the engine's limit, then goes on from the cut as the same press. No VAD, no minSpeech, no Smart.
+   * With capAtPause the cut is after the quietest frame of the last quarter, if it is clearly quieter than the rest.
+   */
   private capPress(): void {
     for (let open = this.open; open && this.position - open.at >= this.pressCapSamples; open = this.open) {
-      const cut = open.at + this.pressCapSamples;
+      const cap = open.at + this.pressCapSamples;
+      const cut = this.pauseBefore(open.at, cap, (scores) => {
+        const best = quietest(scores);
+        const median = [...scores].sort((a, b) => a - b)[Math.floor(scores.length / 2)];
+        return scores[best] < PRESS_PAUSE_LOUDNESS * median ? best : null;
+      });
+      this.reopening = cut;
       this.close(cut, 'cap');
       this.openAt(cut, false, open.press);
     }
+  }
+
+  /**
+   * Where a cap at `cap` cuts: the end of the frame `pick` chooses among the frames that end in its last quarter, after
+   * `from`, oldest first; `cap` itself without capAtPause, with no such frame, or when `pick` finds no pause. A press
+   * whose frames no longer meet its cap (a partial frame settled inside it) still has frames that end before it.
+   */
+  private pauseBefore(from: number, cap: number, pick: (scores: number[]) => number | null): number {
+    if (this.lookbackFrames === 0) return cap;
+    const reach = cap - this.lookbackFrames * VAD_FRAME_SAMPLES;
+    const window = this.recent.filter((frame) => frame.end > Math.max(from, reach) && frame.end <= cap);
+    if (window.length === 0) return cap;
+    const chosen = pick(window.map((frame) => frame.score));
+    return chosen === null ? cap : window[chosen].end;
+  }
+
+  /**
+   * capAtPause: remembers how quiet the frame ending at `end` was. Kept by distance, not count: the frame that meets a
+   * press's cap can end up to a frame past it (a partial frame settled inside the press moves its frames off the cap's
+   * grid), so what is kept reaches back a window and one frame from the latest end.
+   */
+  private note(end: number, score: number): void {
+    if (this.lookbackFrames === 0) return;
+    this.recent.push({ end, score });
+    const keep = end - (this.lookbackFrames + 1) * VAD_FRAME_SAMPLES;
+    while (this.recent.length > 0 && this.recent[0].end <= keep) this.recent.shift();
   }
 
   /** A release: the press ends with the samples it has; with none, the empty segment is dropped (in the trace only, so every open ends). */
@@ -512,6 +598,7 @@ export class TurnDetectorCore {
   }
 
   private openAt(at: number, continuation: boolean, press?: number): void {
+    this.reopening = null;
     this.open = { at, press, continuation, heard: false, quiet: 0 };
     this.o.trace({ kind: 'open', at, ...(press !== undefined ? { press } : {}) });
   }
@@ -535,4 +622,18 @@ export class TurnDetectorCore {
     this.open = null;
     this.o.trace({ kind: 'drop', from: at, to });
   }
+}
+
+/** The index of the lowest score, the latest of equals: the cut keeps as much of the piece as it can. */
+function quietest(scores: number[]): number {
+  let best = scores.length - 1;
+  for (let i = scores.length - 2; i >= 0; i--) if (scores[i] < scores[best]) best = i;
+  return best;
+}
+
+/** A frame's loudness: the root mean square of its samples. */
+function loudness(samples: Float32Array): number {
+  let sum = 0;
+  for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+  return samples.length > 0 ? Math.sqrt(sum / samples.length) : 0;
 }

@@ -47,6 +47,8 @@ export class DetectorLeg {
     }) : null;
     this.core = new TurnDetectorCore({
       ...o.core,
+      // A cap may cut back at a pause only where nothing before the cap has gone out yet: in a segment, not a relay.
+      capAtPause: !marks,
       trace: (event) => {
         if (this.failed) return;
         this.assembler?.trace(event);

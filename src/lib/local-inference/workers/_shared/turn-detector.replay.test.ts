@@ -223,23 +223,38 @@ describe('the detector cuts the recorded Japanese sentences as the worker VAD di
     after.cuts.forEach((c, i) => expect(difference(c.audio, before[i].audio)).toBeNull());
   });
 
-  it('Max speech 10 s over the sentences played without pauses: the same cuts, plus each post-cap tail the worker dropped and nothing else', async () => {
+  it('Max speech 10 s over the sentences played without pauses: each cap cuts at the pause before it, and the pieces still cover the speech end to end', async () => {
     const scenario: Scenario = { frames: fixture.framesNoPause, chunks: chunks(false), vad: { ...VAD, maxSpeechDuration: 10 } };
     const before = await worker(scenario);
     const after = await detector(scenario);
     expect(after.notices.filter((n) => n.type === 'failed')).toEqual([]);
-    expect(before.some((c) => c.endedBy === 'cap')).toBe(true);
-    // The worker dropped the tail after a cap that was shorter than minSpeech; the detector continues the turn and
-    // emits it, starting exactly at the cut. Those are the only extras allowed, and with them removed the lists agree.
-    const capEnds = new Set(after.cuts.filter((c) => c.endedBy === 'cap').map((c) => c.end));
-    // A tail is shorter than minSpeech (the speech the worker dropped), plus the redemption that closes it; a longer
-    // segment that merely starts at a cut, or one that ends at another cap, is not one and stays in the exact comparison.
-    const tailMax = Math.ceil((VAD.minSpeechDuration! + VAD.minSilenceDuration!) * 16000);
-    const extras = after.cuts.filter((c, i) => i > 0 && capEnds.has(c.start) && c.end - c.start <= tailMax && c.endedBy !== 'cap'
-      && !before.some((b) => b.start === c.start && b.end === c.end && b.endedBy === c.endedBy));
-    const rest = after.cuts.filter((c) => !extras.includes(c));
-    expect(spans(rest)).toEqual(spans(before));
-    rest.forEach((c, i) => expect(difference(c.audio, before[i].audio)).toBeNull());
+    // The worker cut where each cap fell: the first on a pause, the second inside a sentence (Silero 0.361).
+    expect(spans(before)).toEqual([
+      { start: 0, end: 314, endedBy: 'cap' },
+      { start: 314, end: 629, endedBy: 'cap' },
+      { start: 629, end: 712, endedBy: 'flush' },
+    ]);
+    // The detector cuts after the last frame of each cap's last quarter that Silero calls silence: the first where it
+    // fell, the second 22 frames back, at the end of the pause between two sentences.
+    expect(spans(after.cuts)).toEqual([
+      { start: 0, end: 314, endedBy: 'cap' },
+      { start: 314, end: 607, endedBy: 'cap' },
+      { start: 607, end: 712, endedBy: 'flush' },
+    ]);
+    const silenceUnder = VAD.threshold! - 0.15;
+    for (const c of after.cuts.filter((x) => x.endedBy === 'cap')) expect(fixture.framesNoPause[c.end / FRAME - 1]).toBeLessThan(silenceUnder);
+    expect(fixture.framesNoPause[629 - 1]).toBeGreaterThan(silenceUnder);
+    // Not a sample lost or repeated: end to end, the pieces are the worker's audio.
+    const joined = (cuts: Cut[]) => {
+      const out = new Float32Array(cuts.reduce((n, c) => n + c.audio.length, 0));
+      let at = 0;
+      for (const c of cuts) {
+        out.set(c.audio, at);
+        at += c.audio.length;
+      }
+      return out;
+    };
+    expect(difference(joined(after.cuts), joined(before))).toBeNull();
   });
 
   it('Smart with a long Normal wait: the same segments, a kept segment ending one frame later (T6-2) and labelled a frame earlier (T11-2)', async () => {
