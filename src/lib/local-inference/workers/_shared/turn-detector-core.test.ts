@@ -83,6 +83,8 @@ function difference(a: Float32Array, b: Float32Array): string | null {
 
 const isSegment = (o: DetectorOutput): o is DetectorSegment => o.type === 'segment';
 
+const rms = (samples: Float32Array) => Math.sqrt(samples.reduce((n, x) => n + x * x, 0) / samples.length);
+
 /** In frames, for reading. */
 const span = (s: DetectorSegment) => ({
   start: s.start / FRAME,
@@ -583,6 +585,8 @@ describe('TurnDetectorCore — automatic turns', () => {
         limit,
         vad: { minSilenceDuration: rand() < 0.5 ? 0.128 : 0.32 },
         smart: port ? smartVia(port, 0.064) : undefined,
+        // Half the seeds as segment delivery runs, a cap cutting back at a pause.
+        capAtPause: seed % 2 === 0,
       });
       let drains = 0;
       for (let sent = 0; sent < probs.length * IN_FRAME;) {
@@ -1246,32 +1250,76 @@ describe('TurnDetectorCore — a cap cut at the pause before it (capAtPause)', (
     expect(traceProblems(h.trace)).toEqual([]);
   });
 
-  it('a press is cut at its quietest frame of the last quarter of its cap, by loudness, every sample kept', async () => {
-    // A 4096-sample (8-frame) press cap: the cut looks back over the last 2 frames before 4096.
-    const m = manual({ limit: { maxSegmentSamples: 4096 }, capAtPause: true });
+  // A 32-frame press cap (16384 samples): the cut looks back over the frames ending 25..32 (frame indices 24..31).
+  const pressLimit = { maxSegmentSamples: 32 * FRAME };
+  /** A press of 40 frames at `loud`, with `frames` (index → amplitude) set apart, released. */
+  const pressWith = async (frames: Record<number, number>, loud = 8000) => {
+    const m = manual({ limit: pressLimit, capAtPause: true });
     m.core.begin(1);
-    await m.push(6 * FRAME);
-    await m.push(FRAME, 300);
-    await m.push(5 * FRAME);
+    for (let i = 0; i < 40; i++) await m.push(FRAME, frames[i] ?? loud);
     m.core.drain(1);
     await m.settle();
-    expect(m.segments().map((s) => [s.start, s.end, s.endedBy])).toEqual([
-      [0, 7 * FRAME, 'cap'],
-      [7 * FRAME, 12 * FRAME, 'release'],
-    ]);
+    return m;
+  };
+  const cuts = (m: ReturnType<typeof manual>) => m.segments().map((s) => [s.start / FRAME, s.end / FRAME, s.endedBy]);
+
+  it('a press is cut after a frame under half the median loudness of the last quarter of its cap, every sample kept', async () => {
+    const m = await pressWith({ 27: 3000 });
+    expect(cuts(m)).toEqual([[0, 28, 'cap'], [28, 40, 'release']]);
     const timeline = m.timeline();
     for (const seg of m.segments()) expect(difference(seg.audio, timeline.slice(seg.start, seg.end))).toBeNull();
   });
 
-  it('a press with no quieter frame in reach is cut at its cap', async () => {
-    const m = manual({ limit: { maxSegmentSamples: 4096 }, capAtPause: true });
+  it('a press frame quieter than the rest but not under half their median is no pause: the press is cut at its cap', async () => {
+    // Half the loudest frame (30000) would let 4500 through; half the median (8000) does not.
+    expect(cuts(await pressWith({ 27: 4500, 31: 30000 }))).toEqual([[0, 32, 'cap'], [32, 40, 'release']]);
+    expect(cuts(await pressWith({}))).toEqual([[0, 32, 'cap'], [32, 40, 'release']]);
+  });
+
+  it('a press whose frames no longer meet its cap (a partial frame settled inside it) is still cut at its pause', async () => {
+    const m = manual({ limit: pressLimit, capAtPause: true });
     m.core.begin(1);
-    await m.push(12 * FRAME);
+    await m.push(100);
+    // A release naming another press only settles the timeline: the 100 samples go as a partial frame, and every
+    // frame after them ends 100 samples off the press's 512-sample grid.
+    m.core.drain(99);
+    await m.settle();
+    for (let i = 0; i < 40; i++) await m.push(FRAME, i === 27 ? 2000 : 8000);
     m.core.drain(1);
     await m.settle();
-    expect(m.segments().map((s) => [s.start, s.end, s.endedBy])).toEqual([
-      [0, 8 * FRAME, 'cap'],
-      [8 * FRAME, 12 * FRAME, 'release'],
-    ]);
+    const frames = m.trace.filter((e): e is Extract<TurnTrace, { kind: 'frame' }> => e.kind === 'frame');
+    const quietestEnd = frames.reduce((best, f) => (rms(f.samples) < rms(best.samples) ? f : best)).to;
+    expect(quietestEnd % FRAME).not.toBe(0);
+    expect(m.segments()[0]).toMatchObject({ start: 0, end: quietestEnd, endedBy: 'cap' });
+    expect(m.segments()[1].start).toBe(quietestEnd);
+  });
+
+  it('random presses, cancels and releases with a cap that cuts at pauses: every segment is its timeline, a press cut end to end', async () => {
+    const problems: string[] = [];
+    for (let seed = 1; seed <= 60; seed++) {
+      const rand = mulberry32(seed);
+      const m = manual({ limit: { maxSegmentSamples: (8 + Math.floor(rand() * 40)) * FRAME }, capAtPause: true });
+      let press = 0;
+      for (let step = 0; step < 40; step++) {
+        const r = rand();
+        if (r < 0.15) m.core.begin(++press);
+        else if (r < 0.2) m.core.cancel(press);
+        else if (r < 0.3) m.core.drain(rand() < 0.7 ? press : press - 1);
+        else await m.push(1 + Math.floor(rand() * 3 * FRAME), rand() < 0.2 ? 500 : 20000);
+      }
+      m.core.drain();
+      await m.settle();
+      const timeline = m.timeline();
+      const segs = m.segments();
+      for (const s of segs) {
+        if (s.end <= s.start) problems.push(`seed ${seed}: empty segment ${s.seq}`);
+        const differs = difference(s.audio, timeline.subarray(s.start, s.end));
+        if (differs) problems.push(`seed ${seed}: segment ${s.seq} ${differs}`);
+      }
+      for (let i = 1; i < segs.length; i++) {
+        if (segs[i - 1].endedBy === 'cap' && segs[i].press === segs[i - 1].press && segs[i].start !== segs[i - 1].end) problems.push(`seed ${seed}: a gap after cap ${segs[i - 1].seq}`);
+      }
+    }
+    expect(problems.slice(0, 10)).toEqual([]);
   });
 });

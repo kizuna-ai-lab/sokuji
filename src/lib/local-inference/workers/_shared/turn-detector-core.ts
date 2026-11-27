@@ -511,7 +511,7 @@ export class TurnDetectorCore {
       const cut = this.pauseBefore(open.at, cap, (scores) => {
         const best = quietest(scores);
         const median = [...scores].sort((a, b) => a - b)[Math.floor(scores.length / 2)];
-        return scores[best] < PRESS_PAUSE_LOUDNESS * median ? best : scores.length - 1;
+        return scores[best] < PRESS_PAUSE_LOUDNESS * median ? best : null;
       });
       this.reopening = cut;
       this.close(cut, 'cap');
@@ -521,14 +521,16 @@ export class TurnDetectorCore {
 
   /**
    * Where a cap at `cap` cuts: the end of the frame `pick` chooses among the frames that end in its last quarter, after
-   * `from`, oldest first; `cap` itself without capAtPause or with no such frame.
+   * `from`, oldest first; `cap` itself without capAtPause, with no such frame, or when `pick` finds no pause. A press
+   * whose frames no longer meet its cap (a partial frame settled inside it) still has frames that end before it.
    */
-  private pauseBefore(from: number, cap: number, pick: (scores: number[]) => number): number {
+  private pauseBefore(from: number, cap: number, pick: (scores: number[]) => number | null): number {
     if (this.lookbackFrames === 0) return cap;
     const reach = cap - this.lookbackFrames * VAD_FRAME_SAMPLES;
     const window = this.recent.filter((frame) => frame.end > Math.max(from, reach) && frame.end <= cap);
-    if (window.length === 0 || window[window.length - 1].end !== cap) return cap;
-    return window[pick(window.map((frame) => frame.score))].end;
+    if (window.length === 0) return cap;
+    const chosen = pick(window.map((frame) => frame.score));
+    return chosen === null ? cap : window[chosen].end;
   }
 
   /** capAtPause: remembers how quiet the frame ending at `end` was, for the latest `lookbackFrames` frames. */
