@@ -129,7 +129,10 @@ function driverSwapScript(sourcePath) {
  */
 async function newDriverRegistered({
   host = audioHost,
-  listAudioDevices = async () => (await require('util').promisify(require('child_process').execFile)('/usr/sbin/system_profiler', ['SPAudioDataType'])).stdout,
+  // Bounded, so a slow scan cannot hold the update past its deadline: a scan
+  // that times out reads as not registered yet, and the loop tries again.
+  listAudioDevices = async () => (await require('util').promisify(require('child_process').execFile)(
+    '/usr/sbin/system_profiler', ['SPAudioDataType'], { timeout: 5000 })).stdout,
 } = {}) {
   let result = null;
   try {
