@@ -48,6 +48,8 @@ export interface AsrInitMessage {
   fileUrls: Record<string, string>;
   /** ASR engine type — determines which config builder the worker uses */
   asrEngine: string;
+  /** The leg's language, for an engine that takes one (SenseVoice); absent, the model guesses it. */
+  language?: string;
   /** The turn detector's segments: the worker runs no VAD and decodes what arrives on it. */
   segmentPort: MessagePort;
   /** Base URL for bundled ASR runtime (JS/WASM shared across all models) */

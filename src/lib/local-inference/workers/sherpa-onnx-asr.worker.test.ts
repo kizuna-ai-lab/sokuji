@@ -32,7 +32,7 @@ function fakePort(): FakePort {
 
 interface Harness {
   posted: any[];
-  calls: { createVad: number; decodes: number[] };
+  calls: { createVad: number; decodes: number[]; config: any };
   send(msg: unknown): void;
   /** Runs the Emscripten ready callback the worker installed. */
   runtimeReady(): void;

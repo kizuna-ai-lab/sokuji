@@ -55,7 +55,7 @@ describe('AsrEngine: the turn detector\'s segment port', () => {
     expect(message).not.toHaveProperty('vadModelUrl');
     expect(message).not.toHaveProperty('turnPort');
     expect(message.type).toBe('init');
-    if (modelId !== 'sensevoice-int8') expect(message.language).toBe('ja');
+    expect(message.language).toBe('ja');
     engine.dispose();
   });
 

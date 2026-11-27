@@ -122,9 +122,9 @@
   </a>
 
   <a class="card" href="sensevoice.html?model=sensevoice-int8">
-    <h2>SenseVoice Standard (int8)</h2>
-    <p>Standard SenseVoice model. Supports Chinese, English, Japanese, Korean, and Cantonese.</p>
-    <span class="tag tag-multi">Multi-lang &middot; zh/en/ja/ko/yue</span>
+    <h2>SenseVoice Cantonese (int8)</h2>
+    <p>ASLP-lab's Cantonese fine-tune of SenseVoice Small (WSYue-ASR). It writes Japanese in Chinese characters.</p>
+    <span class="tag tag-fast">Cantonese &middot; yue</span>
   </a>
 </div>
 
@@ -390,7 +390,7 @@
   // ---- Language detection per model ----
   var MODEL_LANGS = {
     'sensevoice-nano-int8': ['zh','en','ja','ko','yue'],
-    'sensevoice-int8': ['zh','en','ja','ko','yue'],
+    'sensevoice-int8': ['yue'],
     'moonshine-tiny-en-quant': ['en'],
     'moonshine-base-zh-quant': ['zh'],
     'moonshine-base-ja-quant': ['ja'],
