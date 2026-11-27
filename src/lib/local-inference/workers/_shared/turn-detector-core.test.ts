@@ -1206,6 +1206,13 @@ describe('TurnDetectorCore — a cap cut at the pause before it (capAtPause)', (
     expect(equal.segments()[0].end / FRAME).toBe(33);
   });
 
+  it('of frames Silero calls silence it takes the latest, though an earlier one is quieter: the piece after starts at the last pause', async () => {
+    // Both under the negative threshold (0.35): a pause each. The earlier is deeper, the later keeps what lies between.
+    const h = harness(speechWith({ 29: 0.01, 32: 0.3 }), { limit, capAtPause: true });
+    await h.feed(55);
+    expect(h.segments()[0].end / FRAME).toBe(33);
+  });
+
   it('with no quieter frame in reach it cuts at the cap, as without it', async () => {
     const flat = harness(speechWith({}), { limit, capAtPause: true });
     await flat.feed(55);

@@ -234,12 +234,12 @@ describe('the detector cuts the recorded Japanese sentences as the worker VAD di
       { start: 314, end: 629, endedBy: 'cap' },
       { start: 629, end: 712, endedBy: 'flush' },
     ]);
-    // The detector cuts after the quietest frame of each cap's last quarter: the first where it fell, the second 24
-    // frames back, on the pause between two sentences.
+    // The detector cuts after the last frame of each cap's last quarter that Silero calls silence: the first where it
+    // fell, the second 22 frames back, at the end of the pause between two sentences.
     expect(spans(after.cuts)).toEqual([
       { start: 0, end: 314, endedBy: 'cap' },
-      { start: 314, end: 605, endedBy: 'cap' },
-      { start: 605, end: 712, endedBy: 'flush' },
+      { start: 314, end: 607, endedBy: 'cap' },
+      { start: 607, end: 712, endedBy: 'flush' },
     ]);
     const silenceUnder = VAD.threshold! - 0.15;
     for (const c of after.cuts.filter((x) => x.endedBy === 'cap')) expect(fixture.framesNoPause[c.end / FRAME - 1]).toBeLessThan(silenceUnder);

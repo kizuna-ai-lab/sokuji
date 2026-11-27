@@ -19,8 +19,9 @@
  *   a continuation starts at the cut, so it is held to it from there.
  * - A drain processes the last partial frame at once, zero-padded for the VAD,
  *   and closes the open segment with its real samples.
- * - With `capAtPause`, a cap does not cut where it falls but after the quietest
- *   frame of its last quarter (at most CAP_LOOKBACK_MS): a cut inside a word
+ * - With `capAtPause`, a cap does not cut where it falls but after the last
+ *   frame of its last quarter (at most CAP_LOOKBACK_MS) that Silero calls
+ *   silence, or else after the quietest one: a cut inside a word
  *   leaves the next piece starting on half of it, and Whisper can take that
  *   fragment for the whole piece and end its text there. The frames between
  *   the cut and the cap open the continuation; none is lost.
@@ -482,8 +483,9 @@ export class TurnDetectorCore {
   }
 
   /**
-   * The cap: end the segment and go on with the turn from the cut. With capAtPause the cut is after the quietest frame
-   * of the cap's last quarter, and what was heard between it and the cap belongs to the continuation.
+   * The cap: end the segment and go on with the turn from the cut. With capAtPause the cut is after the last frame of
+   * the cap's last quarter that Silero calls silence (else the quietest one), and what was heard between it and the cap
+   * belongs to the continuation.
    */
   private cut(vad: Vad, to: number): void {
     const kept = this.counts(this.endSegment(vad.processor));
@@ -492,7 +494,13 @@ export class TurnDetectorCore {
       vad.smart?.reset();
       return;
     }
-    const at = this.pauseBefore(this.current().at, to, quietest);
+    // Of the frames Silero calls silence, the latest: what lies between two pauses (a half-heard word, say) stays at
+    // the end of this piece rather than opening the next. With none, the quietest frame.
+    const silence = vad.processor.options.negativeSpeechThreshold;
+    const at = this.pauseBefore(this.current().at, to, (scores) => {
+      for (let i = scores.length - 1; i >= 0; i--) if (scores[i] < silence) return i;
+      return quietest(scores);
+    });
     this.reopening = at;
     this.close(at, 'cap');
     vad.smart?.reset();
