@@ -34,8 +34,9 @@ test.use({ trace: 'off', screenshot: 'off' });
 const RECOGNIZERS = {
   // The WebGPU recognizers take the detector's segments (#873).
   'whisper-base-webgpu': { name: 'Whisper Base (WebGPU, 99+ languages)', webgpu: true },
-  // The sherpa-onnx offline recognizers take its segments in their classic worker (#875).
-  'sensevoice-int8': { name: 'SenseVoice (int8)', webgpu: false },
+  // The sherpa-onnx offline recognizers take its segments in their classic worker (#875). SenseVoice Nano, not the
+  // catalogue's other SenseVoice: that one is a Cantonese fine-tune, which writes Japanese in Chinese characters.
+  'sensevoice-nano-int8': { name: 'SenseVoice Nano (int8)', webgpu: false },
   'moonshine-base-ja-quant': { name: 'Moonshine Base JA (quantized)', webgpu: false },
   // Voxtral 4B takes the leg's audio with start, end and cancel marks (#876).
   'voxtral-mini-4b-webgpu': { name: 'Voxtral Mini 4B Realtime (WebGPU)', webgpu: true },
@@ -54,10 +55,9 @@ const sources = (record: StoredRecord) => record.segments.filter((s) => s.side =
 /**
  * Whether a sentence's audio reached the recognizer, told by any of several of its words: small models mishear one word
  * (傘 as 草, 夕食 as 有職) though the turn that carried it was cut right, and that is the model's accuracy, not the
- * turn detection's. SenseVoice, given no language, writes this Japanese in Chinese characters without kana (会议, 午后,
- * 电车; v0.51.2 did the same, before the shared turn detection), so those forms count too. In the order of `SENTENCES`.
+ * turn detection's. In the order of `SENTENCES`.
  */
-const TRACES: readonly RegExp[] = [/雨|降|傘|かさ/, /ドア|閉め/, /会議|会议|午後|午后/, /本|面白/, /家族|週末|周末|夕食|夕飯/, /カフェ|駅/, /電車|电车|遅れ|送れ|送/, /待/];
+const TRACES: readonly RegExp[] = [/雨|降|傘|かさ/, /ドア|閉め/, /会議|午後/, /本|面白/, /家族|週末|夕食|夕飯/, /カフェ|駅/, /電車|遅れ|送れ/, /待/];
 if (TRACES.length !== SENTENCES.length) throw new Error('one trace per sentence');
 
 /** How many of the sentences said (by index, once per time said) left a trace in the record's heard text. */
@@ -209,7 +209,7 @@ for (const asr of chosen) {
     await start(page);
     // The key goes to the page, not to a button that kept focus.
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
-    // The meeting, the book and the wait: sentences every one of these models hears (SenseVoice loses the door's).
+    // The meeting, the book and the wait: sentences every one of these models hears.
     const pressed = [2, 3, 7];
     for (const i of pressed) {
       await page.keyboard.down('Space');

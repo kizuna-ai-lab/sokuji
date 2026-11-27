@@ -15,7 +15,7 @@ import { expect, test } from '../support/test';
 // A step ships only if each median is no worse than before by more than the before side's own run-to-run spread.
 //
 // Environment:
-//   E2E_LOCAL_ASR      one of whisper-base-webgpu, sensevoice-int8, voxtral-mini-4b-webgpu
+//   E2E_LOCAL_ASR      one of whisper-base-webgpu, sensevoice-nano-int8, voxtral-mini-4b-webgpu
 //   E2E_LOCAL_PROFILE  an absolute path to the profile (user-data directory) to run on. It holds the downloaded models and
 //                      is never deleted by this suite; its name must not start with `sokuji-e2e-` (those are deleted
 //                      when a test passes). Created when missing.
@@ -31,7 +31,7 @@ import { expect, test } from '../support/test';
 //   2. Prepare, once per profile and model:
 //        E2E_LOCAL_PREPARE=1 E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
 //      It downloads the recognizer and the ja-en translation model through Local models and storage into the profile.
-//      Roughly 0.3 GB for Whisper base plus the translation model (Qwen 2.5 0.5B, about 0.5 GB), 0.25 GB for SenseVoice, about 2.8 GB for Voxtral 4B.
+//      Roughly 0.3 GB for Whisper base plus the translation model (Qwen 2.5 0.5B, about 0.5 GB), 0.27 GB for SenseVoice Nano, about 2.8 GB for Voxtral 4B.
 //   3. Measure, five runs per model, on the before build:
 //        E2E_LOCAL_OUT=<before> E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
 //   4. After: the same in the branch's worktree (`npm ci`, `npm run e2e:build`), with E2E_LOCAL_OUT=<after> and the same
@@ -48,7 +48,8 @@ test.use({ trace: 'off', screenshot: 'off' });
 
 const MODELS = {
   'whisper-base-webgpu': { name: 'Whisper Base (WebGPU, 99+ languages)', webgpu: true },
-  'sensevoice-int8': { name: 'SenseVoice (int8)', webgpu: false },
+  // SenseVoice Nano: the catalogue's other SenseVoice is a Cantonese fine-tune, which writes Japanese in Chinese characters.
+  'sensevoice-nano-int8': { name: 'SenseVoice Nano (int8)', webgpu: false },
   'voxtral-mini-4b-webgpu': { name: 'Voxtral Mini 4B Realtime (WebGPU)', webgpu: true },
 } as const;
 type ModelId = keyof typeof MODELS;

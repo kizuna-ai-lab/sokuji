@@ -60,7 +60,7 @@ user-data directory when they end (`forgetSecrets`), passed or failed. Credentia
 only; never put them in a file of the repository.
 
 `real-local-turns.spec.ts` is an opt-in before/after measurement of the local recognizers (Whisper base and Voxtral 4B on
-WebGPU, SenseVoice on WASM) on the eight Japanese sentences, run with the same models, settings and clips on two builds.
+WebGPU, SenseVoice Nano on WASM) on the eight Japanese sentences, run with the same models, settings and clips on two builds.
 Each run writes how many sentences were heard and translated, each segment's start and end, and the delay from the end of the
 clip to its text; `node scripts/dev/turn-fixtures/compare-runs.mjs <before> <after>` judges the two folders against the before
 side's own run-to-run spread. It runs on a profile you name (`E2E_LOCAL_PROFILE`, never deleted) that holds the downloaded
@@ -68,7 +68,7 @@ models, needs a hardware WebGPU adapter for the WebGPU recognizers, and download
 opens windows and downloads, so it is run by hand, never in CI. The spec's header comment is the runbook.
 
 `real-local-turn-detection.spec.ts` is the pass/fail check of the same change: for each recognizer on the shared turn
-detection (Whisper base on WebGPU, SenseVoice and Moonshine Base JA on sherpa-onnx, Voxtral 4B, and Local Native with Whisper
+detection (Whisper base on WebGPU, SenseVoice Nano and Moonshine Base JA on sherpa-onnx, Voxtral 4B, and Local Native with Whisper
 base) it runs three sessions in one app on the eight Japanese sentences: automatic turns (every sentence heard, no turn empty),
 then, stopped and started again, one unbroken utterance of about a minute (cut at the model's limit, nothing lost), then
 push-to-talk (one turn per press, none for a press with nothing said). A sentence counts as heard by any of several of its
