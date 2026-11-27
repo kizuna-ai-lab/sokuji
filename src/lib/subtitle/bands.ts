@@ -5,8 +5,10 @@
  * drawn as the text was written. Rows of one segment join as they are, since
  * they tile its text; a segment's outer whitespace goes where it meets
  * another segment or a band's end, and between two segments a space goes in
- * only where the script wants one. A notice goes into its leg's translation
- * band, as today's error rows do (a UI rule the rendered pages settle).
+ * only where the script wants one. Two Han or kana letters with no stop of
+ * their own take a katakana middle dot instead: a space there would vanish.
+ * A notice goes into its leg's translation band, as today's error rows do
+ * (a UI rule the rendered pages settle).
  */
 import type { Side } from '../contract/adapter';
 import type { LegName, SegmentId } from '../conversation/types';
@@ -21,7 +23,7 @@ export interface BandPiece {
   key: string;
   /** What to draw. */
   text: string;
-  /** Drawn before `text`: '' or ' '. */
+  /** Drawn before `text`: '', ' ', or '・'. */
   before: string;
   /** A row's segment, for karaoke; absent on a notice. */
   segmentId?: SegmentId;
@@ -45,6 +47,27 @@ export interface Band {
 
 /** How much text a band keeps: it shows only its tail (today's `BUCKET_MAX_CHARS`). */
 export const BAND_MAX_CHARS = 2000;
+
+/**
+ * A Han, Hiragana, or Katakana code point by script extension, so the kana
+ * prolonged sound mark (`ー`) counts; paired with `\p{L}` in `cjkBreak`,
+ * punctuation (`。`, `、`, `！`, `・`) does not.
+ */
+const CJK_LETTER = /[\p{Script_Extensions=Han}\p{Script_Extensions=Hiragana}\p{Script_Extensions=Katakana}]/u;
+
+/**
+ * `・` when both sides of a boundary are Han, Hiragana, or Katakana letters;
+ * '' otherwise. Code points are read as `needsSpace` reads them, a surrogate
+ * pair kept whole, so a Han character outside the basic plane counts. A stop
+ * already there is not a letter, and takes no second mark.
+ */
+function cjkBreak(before: string, after: string): string {
+  if (before.length === 0 || after.length === 0) return '';
+  const low = before.charCodeAt(before.length - 1);
+  const last = low >= 0xdc00 && low <= 0xdfff && before.length > 1 ? before.slice(-2) : before.slice(-1);
+  const first = String.fromCodePoint(after.codePointAt(0)!);
+  return CJK_LETTER.test(last) && /\p{L}/u.test(last) && CJK_LETTER.test(first) && /\p{L}/u.test(first) ? '・' : '';
+}
 
 const ORDER: ReadonlyArray<{ leg: LegName; side: Side }> = [
   { leg: 'speaker', side: 'source' },
@@ -94,8 +117,9 @@ export function buildBands(
  * run of its own): its rows joined are its text as written, and only that
  * joined text's outer whitespace goes — each row keeps the part of itself
  * inside the trimmed stretch, so blank rows at either edge vanish whole. A
- * run's first piece gets a separator only where `needsSpace` says; inside a
- * run there is none. A run whose person differs from the previous run's (a
+ * run's first piece gets a space where `needsSpace` says, or a middle dot
+ * where two segments meet on Han or kana letters; inside a run, and beside
+ * a notice, there is none. A run whose person differs from the previous run's (a
  * notice is not a run of anyone) gets a mark on its first piece. Then only the newest `maxChars` are kept.
  */
 function piecesOf(items: readonly Item[], maxChars: number): BandPiece[] {
@@ -122,7 +146,11 @@ function piecesOf(items: readonly Item[], maxChars: number): BandPiece[] {
       if (end > start) {
         const text = item.text.slice(start - at, end - at);
         const previous = pieces[pieces.length - 1];
-        const before = first && previous !== undefined && needsSpace(previous.text, text) ? ' ' : '';
+        let before = '';
+        if (first && previous !== undefined) {
+          if (needsSpace(previous.text, text)) before = ' ';
+          else if (previous.segmentId !== undefined && item.segmentId !== undefined) before = cjkBreak(previous.text, text);
+        }
         pieces.push({
           key: item.key,
           text,

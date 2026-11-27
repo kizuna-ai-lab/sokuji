@@ -50,6 +50,15 @@ describe('SubtitleBody — compact', () => {
     expect(lines).toEqual(['One. Two.', '一つ。二つ。']);
   });
 
+  it('shows a middle dot between unpunctuated CJK segments', () => {
+    const entries = [
+      exchange('a', [], [row('t1', 0, 0, '優れています', 'translation')]),
+      exchange('b', [], [row('t2', 0, 0, 'これらの金のサンプル啊。', 'translation')]),
+    ];
+    const { container } = render(<SubtitleBody {...props({ entries })} />);
+    expect(container.querySelector('.subtitle-stream__line--translation')?.textContent).toContain('・');
+  });
+
   it('lights the spoken characters of a stretch', () => {
     const { container } = render(<SubtitleBody {...props({ lit: new Map([['t1', 3]]) })} />);
     expect(container.querySelector('.subtitle-stream__line--translation .karaoke-played')?.textContent).toBe('こんに');

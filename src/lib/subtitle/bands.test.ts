@@ -28,6 +28,24 @@ describe('buildBands', () => {
     expect(text(bands[0])).toBe('今天天气很好。我们去公园吧。');
   });
 
+  it('puts a middle dot between unpunctuated CJK segments', () => {
+    const bands = buildBands([
+      exchange('a', 'speaker', [], [row('t1', 0, 0, '優れています', 'translation')]),
+      exchange('b', 'speaker', [], [row('t2', 0, 0, 'これらの金のサンプル啊。', 'translation')]),
+    ], both, words);
+    expect(bands[0].pieces[1].before).toBe('・');
+    expect(text(bands[0])).toBe('優れています・これらの金のサンプル啊。');
+  });
+
+  it('counts the kana prolonged sound mark as a CJK letter at a segment boundary', () => {
+    const bands = buildBands([
+      exchange('a', 'speaker', [], [row('t1', 0, 0, 'サーバー', 'translation')]),
+      exchange('b', 'speaker', [], [row('t2', 0, 0, 'こちらです', 'translation')]),
+    ], both, words);
+    expect(bands[0].pieces[1].before).toBe('・');
+    expect(text(bands[0])).toBe('サーバー・こちらです');
+  });
+
   it("trims a segment's edges where it meets another, and keeps karaoke's offset on the trimmed text", () => {
     const bands = buildBands([
       exchange('a', 'speaker', [row('s1', 0, 0, 'Hi. ')]),
