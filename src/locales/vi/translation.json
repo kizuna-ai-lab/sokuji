@@ -1121,7 +1121,7 @@
     "repair": "Sửa",
     "repairing": "Đang sửa...",
     "macRepairPrompt": "Sokuji muốn sửa micro ảo của mình.",
-    "macDriverUpdateBody": "Đã có phiên bản mới của micrô ảo Sokuji. Với nó, các ứng dụng như WhatsApp cũng dùng được micrô này trong cuộc gọi. Hãy cập nhật; macOS sẽ hỏi mật khẩu quản trị viên.",
+    "macDriverUpdateBody": "Đã có phiên bản mới của micrô ảo Sokuji. Với nó, các ứng dụng như WhatsApp cũng dùng được micrô này trong cuộc gọi. Hãy thoát các ứng dụng họp trước rồi cập nhật; macOS sẽ hỏi mật khẩu quản trị viên.",
     "macDriverUpdateFailedBody": "Chưa cập nhật được micrô ảo. Hãy thử lại, hoặc cài lại Sokuji bằng trình cài đặt .pkg.",
     "updateDriver": "Cập nhật",
     "updatingDriver": "Đang cập nhật...",

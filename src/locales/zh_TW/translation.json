@@ -1121,7 +1121,7 @@
     "repair": "修復",
     "repairing": "正在修復...",
     "macRepairPrompt": "Sokuji 需要修復它的虛擬麥克風。",
-    "macDriverUpdateBody": "Sokuji 的虛擬麥克風有新版本，更新後 WhatsApp 等軟體在通話中也能使用它。點擊更新，macOS 會要求輸入管理員密碼。",
+    "macDriverUpdateBody": "Sokuji 的虛擬麥克風有新版本，更新後 WhatsApp 等軟體在通話中也能使用它。請先結束會議軟體再點擊更新，macOS 會要求輸入管理員密碼。",
     "macDriverUpdateFailedBody": "虛擬麥克風沒有更新成功。請重試，或用 .pkg 安裝程式重新安裝 Sokuji。",
     "updateDriver": "更新",
     "updatingDriver": "正在更新...",

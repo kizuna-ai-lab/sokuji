@@ -1121,7 +1121,7 @@
     "repair": "Ripara",
     "repairing": "Riparazione in corso...",
     "macRepairPrompt": "Sokuji vuole riparare il suo microfono virtuale.",
-    "macDriverUpdateBody": "È disponibile una nuova versione del microfono virtuale di Sokuji. Consente ad app come WhatsApp di usarlo nelle chiamate. Aggiornalo; macOS chiederà la password di amministratore.",
+    "macDriverUpdateBody": "È disponibile una nuova versione del microfono virtuale di Sokuji. Consente ad app come WhatsApp di usarlo nelle chiamate. Chiudi le app per riunioni, poi aggiorna; macOS chiederà la password di amministratore.",
     "macDriverUpdateFailedBody": "L'aggiornamento del microfono virtuale non è riuscito. Riprova o reinstalla Sokuji con il programma di installazione .pkg.",
     "updateDriver": "Aggiorna",
     "updatingDriver": "Aggiornamento...",

@@ -1121,7 +1121,7 @@
     "repair": "Ayusin",
     "repairing": "Inaayos...",
     "macRepairPrompt": "Gustong ayusin ng Sokuji ang virtual na mikropono nito.",
-    "macDriverUpdateBody": "May bagong bersyon ng virtual microphone ng Sokuji. Dahil dito, magagamit din ito ng mga app tulad ng WhatsApp sa mga tawag. I-update ito; hihingin ng macOS ang password ng administrator mo.",
+    "macDriverUpdateBody": "May bagong bersyon ng virtual microphone ng Sokuji. Dahil dito, magagamit din ito ng mga app tulad ng WhatsApp sa mga tawag. Isara muna ang mga meeting app mo, saka i-update; hihingin ng macOS ang password ng administrator mo.",
     "macDriverUpdateFailedBody": "Hindi natapos ang pag-update ng virtual microphone. Subukang muli, o i-install muli ang Sokuji gamit ang .pkg installer.",
     "updateDriver": "I-update",
     "updatingDriver": "Nag-a-update...",

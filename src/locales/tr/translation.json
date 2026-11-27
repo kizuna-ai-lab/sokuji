@@ -1121,7 +1121,7 @@
     "repair": "Onar",
     "repairing": "Onarılıyor...",
     "macRepairPrompt": "Sokuji sanal mikrofonunu onarmak istiyor.",
-    "macDriverUpdateBody": "Sokuji sanal mikrofonunun yeni bir sürümü var. Bununla WhatsApp gibi uygulamalar da onu aramalarda kullanabilir. Güncelleyin; macOS yönetici parolanızı isteyecek.",
+    "macDriverUpdateBody": "Sokuji sanal mikrofonunun yeni bir sürümü var. Bununla WhatsApp gibi uygulamalar da onu aramalarda kullanabilir. Toplantı uygulamalarınızı kapatın, sonra güncelleyin; macOS yönetici parolanızı isteyecek.",
     "macDriverUpdateFailedBody": "Sanal mikrofon güncellenemedi. Yeniden deneyin veya Sokuji'yi .pkg yükleyicisiyle yeniden yükleyin.",
     "updateDriver": "Güncelle",
     "updatingDriver": "Güncelleniyor...",

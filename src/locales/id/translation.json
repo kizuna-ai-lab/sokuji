@@ -1121,7 +1121,7 @@
     "repair": "Perbaiki",
     "repairing": "Memperbaiki...",
     "macRepairPrompt": "Sokuji ingin memperbaiki mikrofon virtualnya.",
-    "macDriverUpdateBody": "Versi baru mikrofon virtual Sokuji tersedia. Dengan versi ini, aplikasi seperti WhatsApp juga dapat memakainya saat panggilan. Perbarui; macOS akan meminta kata sandi administrator Anda.",
+    "macDriverUpdateBody": "Versi baru mikrofon virtual Sokuji tersedia. Dengan versi ini, aplikasi seperti WhatsApp juga dapat memakainya saat panggilan. Tutup aplikasi rapat Anda, lalu perbarui; macOS akan meminta kata sandi administrator Anda.",
     "macDriverUpdateFailedBody": "Pembaruan mikrofon virtual tidak selesai. Coba lagi, atau instal ulang Sokuji dengan penginstal .pkg.",
     "updateDriver": "Perbarui",
     "updatingDriver": "Memperbarui...",

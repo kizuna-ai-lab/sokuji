@@ -1121,7 +1121,7 @@
     "repair": "修复",
     "repairing": "正在修复...",
     "macRepairPrompt": "Sokuji 需要修复它的虚拟麦克风。",
-    "macDriverUpdateBody": "Sokuji 的虚拟麦克风有新版本，更新后 WhatsApp 等软件在通话中也能使用它。点击更新，macOS 会要求输入管理员密码。",
+    "macDriverUpdateBody": "Sokuji 的虚拟麦克风有新版本，更新后 WhatsApp 等软件在通话中也能使用它。请先退出会议软件再点击更新，macOS 会要求输入管理员密码。",
     "macDriverUpdateFailedBody": "虚拟麦克风没有更新成功。请重试，或用 .pkg 安装包重新安装 Sokuji。",
     "updateDriver": "更新",
     "updatingDriver": "正在更新...",
