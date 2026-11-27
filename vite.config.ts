@@ -173,6 +173,7 @@ export default defineConfig(({ command, mode }) => {
             'capture-sources': 'electron/capture-sources.js',
             'distribution-channel': 'electron/distribution-channel.js',
             'macos-audio-utils': 'electron/macos-audio-utils.js',
+            'macos-driver-update': 'electron/macos-driver-update.js',
             'main': 'electron/main.js',
             'engine': 'electron/engine/entry.ts',
             'main-window-navigation': 'electron/main-window-navigation.js',

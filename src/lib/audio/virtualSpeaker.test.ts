@@ -21,6 +21,16 @@ describe('findVirtualSpeaker', () => {
     expect(findVirtualSpeaker([device('speakers', 'Speakers'), device('cable', 'Cable Input')])).toBe('cable');
   });
 
+  // The driver publishes its two sides as two devices: the microphone keeps the
+  // name, and the speaker Sokuji plays into is "SokujiVirtualAudio Output". The
+  // speaker is the only one in an output list, so the name match lands on it.
+  it("finds the macOS driver's speaker device, as Chromium labels it", () => {
+    expect(findVirtualSpeaker([
+      device('speakers', 'MacBook Pro Speakers (Built-in)'),
+      device('mac-out', 'SokujiVirtualAudio Output (PCI)'),
+    ])).toBe('mac-out');
+  });
+
   it('finds none among ordinary devices', () => {
     expect(findVirtualSpeaker([device('speakers', 'Speakers'), device('hdmi', 'HDMI Output')])).toBeUndefined();
   });

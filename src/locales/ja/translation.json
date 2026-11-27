@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "修復しても仮想マイクが表示されませんでした。Mac を再起動するか、.pkg インストーラーから Sokuji を再インストールしてください。",
     "repair": "修復",
     "repairing": "修復中...",
-    "macRepairPrompt": "Sokuji が仮想マイクを修復しようとしています。"
+    "macRepairPrompt": "Sokuji が仮想マイクを修復しようとしています。",
+    "macDriverUpdateBody": "Sokuji の仮想マイクの新しいバージョンがあります。更新すると、WhatsApp などのアプリの通話でも使えるようになります。会議アプリを終了してから更新してください。macOS が管理者パスワードを求めます。",
+    "macDriverUpdateFailedBody": "仮想マイクを更新できませんでした。もう一度試すか、.pkg インストーラーから Sokuji を再インストールしてください。",
+    "updateDriver": "更新",
+    "updatingDriver": "更新中...",
+    "macDriverUpdatePrompt": "Sokuji が仮想マイクを更新しようとしています。"
   },
   "vbCable": {
     "title": "相手に翻訳を聞かせる",

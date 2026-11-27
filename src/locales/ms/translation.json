@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "Pembaikan tidak memulihkan mikrofon maya. Mulakan semula Mac anda, atau pasang semula Sokuji daripada pemasang .pkg.",
     "repair": "Baiki",
     "repairing": "Membaiki...",
-    "macRepairPrompt": "Sokuji ingin membaiki mikrofon mayanya."
+    "macRepairPrompt": "Sokuji ingin membaiki mikrofon mayanya.",
+    "macDriverUpdateBody": "Versi baharu mikrofon maya Sokuji tersedia. Dengannya, apl seperti WhatsApp juga boleh menggunakannya dalam panggilan. Tutup apl mesyuarat anda, kemudian kemas kini; macOS akan meminta kata laluan pentadbir anda.",
+    "macDriverUpdateFailedBody": "Kemas kini mikrofon maya tidak selesai. Cuba lagi, atau pasang semula Sokuji dengan pemasang .pkg.",
+    "updateDriver": "Kemas kini",
+    "updatingDriver": "Mengemas kini...",
+    "macDriverUpdatePrompt": "Sokuji mahu mengemas kini mikrofon mayanya."
   },
   "vbCable": {
     "title": "Biarkan pihak lain mendengar terjemahan",

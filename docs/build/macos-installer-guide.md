@@ -44,26 +44,45 @@ The Sokuji Virtual Audio driver is a customized version of the open-source Black
 
 ### Driver Customization
 
-#### Configuration File (`BlackHole/BlackHole/SokujiConfig.h`)
+`scripts/build-sokuji-driver.sh` builds the pinned BlackHole submodule with
+preprocessor definitions; nothing in the submodule is edited permanently.
 
-```c
-#define kDriver_Name                    "Sokuji"
-#define kPlugIn_BundleID               "com.sokuji.virtualaudio"
-#define kPlugIn_Name                   "Sokuji Virtual Audio"
-#define kDevice_Name                   "Sokuji Virtual Audio"
-#define kNumber_Of_Channels            2
-#define kNumber_Of_Input_Channels      2
-#define kNumber_Of_Output_Channels     2
-#define kLatency_Frame_Size            512
-#define kSampleRates                   {44100.0, 48000.0}
-```
+| Setting | Value | Why |
+|---|---|---|
+| `kDriver_Name`, `kDevice_Name` | `SokujiVirtualAudio` | Device name and UID (`SokujiVirtualAudio2ch_UID`); meeting apps remember the microphone by it |
+| `kPlugIn_BundleID` | `com.sokuji.virtualaudio` | No conflict with an installed BlackHole |
+| `kNumber_Of_Channels` | `2` | Stereo |
+| `kDevice_HasOutput=false` | | The first device is a microphone only |
+| `kDevice2_IsHidden=false`, `kDevice2_HasInput=false`, `kDevice2_Name` | `SokujiVirtualAudio Output` | BlackHole's mirror device, as a speaker only: Sokuji plays the translation into it |
+| `MARKETING_VERSION` | `DRIVER_VERSION` in the script | The app compares it with the installed driver's and offers to update |
+| `MACOSX_DEPLOYMENT_TARGET` | `12.0` | The oldest target current Xcode builds; Sokuji itself needs macOS 12 |
 
-#### Key Modifications from BlackHole
+The two devices share one loopback buffer, so whatever Sokuji plays into
+"SokujiVirtualAudio Output" comes out of the "SokujiVirtualAudio" microphone.
 
-1. **Unique Bundle ID**: `com.sokuji.virtualaudio` prevents conflicts with original BlackHole
-2. **Custom Device Name**: "Sokuji Virtual Audio" for clear identification in system preferences
-3. **Optimized Configuration**: 2-channel stereo optimized for voice communication
-4. **Sample Rate Support**: 44.1kHz and 48kHz for compatibility with video conferencing
+**Why two devices, not one with both sides.** Apps that use macOS voice
+processing for calls (WhatsApp Desktop, FaceTime) cancel echo against the
+microphone device's own output. On a loopback device with both sides, that
+output is exactly what the microphone carries, so the translation is cancelled
+to silence. With the output on a separate device there is nothing to cancel
+against. Measured with voice processing on: about -59 dB with one device,
+about -20 dB with two (the plain level is about -25 dB), and the far end of a
+WhatsApp Desktop call hears the translation, also while Sokuji plays it to the
+user's own headphones.
+
+**Why PCI.** BlackHole reports its devices as virtual
+(`kAudioDeviceTransportTypeVirtual`), and WhatsApp Desktop leaves virtual and
+aggregate devices out of its call microphone list. The constant has no build
+setting, so `scripts/patches/blackhole-transport-type-pci.patch` changes it to
+`kAudioDeviceTransportTypePCI` for the build, and the script reverts it after.
+The transport type is a label only; it changes nothing about how audio flows.
+
+**Updating installed drivers.** Only the pkg's postinstall copies the driver
+into `/Library/Audio/Plug-Ins/HAL`; in-app updates replace Sokuji.app alone.
+When the installed driver's version differs from the one the app ships, the
+app offers to update it (`electron/macos-driver-update.js`): the same staged
+copy as the postinstall, behind macOS's administrator prompt, then a Core Audio
+restart. Change `DRIVER_VERSION` whenever the driver changes.
 
 ### Building the Driver
 

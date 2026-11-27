@@ -16,6 +16,27 @@ BUNDLE_ID="com.sokuji.virtualaudio"
 ICON="Sokuji.icns"
 DEVICE_NAME="SokujiVirtualAudio"  # Simplified to avoid space issues
 CHANNELS=2
+# The driver's own version (CFBundleShortVersionString). The app compares the
+# copy it ships with the installed one and offers to update on any difference,
+# so change it whenever the driver changes. Kept on BlackHole's 0.6.1 base with a
+# fourth number, so it is never mistaken for an upstream BlackHole release.
+DRIVER_VERSION="0.6.1.1"
+
+# Two devices over one shared loopback buffer (BlackHole's mirror device):
+#   SokujiVirtualAudio         input only  - what meeting apps pick as the microphone
+#   SokujiVirtualAudio Output  output only - where Sokuji plays the translation
+# One device with both sides breaks apps that use macOS voice processing
+# (WhatsApp Desktop, FaceTime): its echo canceller takes the device's own output
+# as the echo reference, and on a loopback device that output is exactly what
+# the input carries, so it cancels the translation to silence. The input
+# device keeps its name and UID, so meeting apps keep their selection.
+OUTPUT_DEVICE_NAME="SokujiVirtualAudio Output"
+
+# BlackHole reports its devices as "virtual" (kAudioDeviceTransportTypeVirtual).
+# WhatsApp Desktop leaves virtual and aggregate devices out of its call
+# microphone list, so the driver reports PCI instead. The constant has no build
+# setting upstream, hence a patch applied for the build and reverted after it.
+TRANSPORT_PATCH="$(pwd)/scripts/patches/blackhole-transport-type-pci.patch"
 
 # Copy Sokuji icon to BlackHole source directory
 cp assets/icon.icns BlackHole/Sokuji.icns
@@ -23,6 +44,15 @@ echo "  Using Sokuji.icns as driver icon"
 
 # Navigate to BlackHole directory
 cd BlackHole
+
+BLACKHOLE_DIR="$(pwd)"
+# Idempotent: a run killed before its trap fired leaves the patch applied.
+if ! git apply --reverse --check "$TRANSPORT_PATCH" 2>/dev/null; then
+  git apply "$TRANSPORT_PATCH"
+fi
+# Revert exactly the patch, so nothing else in the submodule is touched.
+trap 'git -C "$BLACKHOLE_DIR" apply --reverse "$TRANSPORT_PATCH"' EXIT
+echo "  Applied $(basename "$TRANSPORT_PATCH")"
 
 # Clean previous builds
 echo "Cleaning previous builds..."
@@ -34,7 +64,9 @@ echo "Building driver with custom configuration..."
 echo "  Driver Name: $DRIVER_NAME"
 echo "  Bundle ID: $BUNDLE_ID"
 echo "  Device Name: $DEVICE_NAME"
+echo "  Output Device Name: $OUTPUT_DEVICE_NAME"
 echo "  Channels: $CHANNELS"
+echo "  Driver Version: $DRIVER_VERSION"
 echo ""
 
 xcodebuild \
@@ -45,10 +77,11 @@ xcodebuild \
   CODE_SIGN_IDENTITY="" \
   CODE_SIGN_ENTITLEMENTS="" \
   DEVELOPMENT_TEAM="" \
-  MACOSX_DEPLOYMENT_TARGET=10.13 \
+  MACOSX_DEPLOYMENT_TARGET=12.0 \
+  MARKETING_VERSION="$DRIVER_VERSION" \
   PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
   PRODUCT_NAME="SokujiVirtualAudio" \
-  GCC_PREPROCESSOR_DEFINITIONS="\$GCC_PREPROCESSOR_DEFINITIONS kDriver_Name=\\\"${DRIVER_NAME}\\\" kPlugIn_BundleID=\\\"${BUNDLE_ID}\\\" kPlugIn_Icon=\\\"${ICON}\\\" kDevice_Name=\\\"${DEVICE_NAME}\\\" kNumber_Of_Channels=${CHANNELS}"
+  GCC_PREPROCESSOR_DEFINITIONS="\$GCC_PREPROCESSOR_DEFINITIONS kDriver_Name=\\\"${DRIVER_NAME}\\\" kPlugIn_BundleID=\\\"${BUNDLE_ID}\\\" kPlugIn_Icon=\\\"${ICON}\\\" kDevice_Name=\\\"${DEVICE_NAME}\\\" kNumber_Of_Channels=${CHANNELS} kDevice_HasOutput=false kDevice2_IsHidden=false kDevice2_HasInput=false kDevice2_HasOutput=true 'kDevice2_Name=\\\"${OUTPUT_DEVICE_NAME}\\\"'"
 
 echo "Build completed!"
 echo ""

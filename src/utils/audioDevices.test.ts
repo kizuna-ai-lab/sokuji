@@ -18,6 +18,17 @@ describe('isVirtualMic', () => {
     expect(isVirtualMic(d('sokuji_virtual_speaker.monitor'))).toBe(true);
   });
 
+  // The macOS driver publishes its microphone and speaker as two devices; both
+  // are Sokuji's own, so both stay out of Sokuji's own pickers. Chromium appends
+  // the transport type it reports, now PCI.
+  it("matches both of the macOS driver's devices, as Chromium labels them", () => {
+    for (const label of ['SokujiVirtualAudio (PCI)', 'SokujiVirtualAudio Output (PCI)']) {
+      expect(isVirtualMic(d(label))).toBe(true);
+      expect(isVirtualSpeaker(d(label))).toBe(true);
+      expect(isVirtualDevice(d(label))).toBe(true);
+    }
+  });
+
   it('leaves real microphones alone', () => {
     expect(isVirtualMic(d('Built-in Microphone'))).toBe(false);
     expect(isVirtualMic(d('USB Microphone (Blue Yeti)'))).toBe(false);

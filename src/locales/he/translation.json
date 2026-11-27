@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "התיקון לא החזיר את המיקרופון הווירטואלי. הפעל מחדש את ה-Mac, או התקן מחדש את Sokuji מתוכנית ההתקנה .pkg.",
     "repair": "תיקון",
     "repairing": "מתקן...",
-    "macRepairPrompt": "Sokuji רוצה לתקן את המיקרופון הווירטואלי שלו."
+    "macRepairPrompt": "Sokuji רוצה לתקן את המיקרופון הווירטואלי שלו.",
+    "macDriverUpdateBody": "יש גרסה חדשה של המיקרופון הווירטואלי של Sokuji. בעזרתה גם אפליקציות כמו WhatsApp יכולות להשתמש בו בשיחות. סגרו את אפליקציות הפגישות ואז עדכנו; macOS יבקש את סיסמת המנהל.",
+    "macDriverUpdateFailedBody": "עדכון המיקרופון הווירטואלי לא הושלם. נסו שוב, או התקינו מחדש את Sokuji באמצעות מתקין ה‑.pkg.",
+    "updateDriver": "עדכון",
+    "updatingDriver": "מעדכן...",
+    "macDriverUpdatePrompt": "Sokuji רוצה לעדכן את המיקרופון הווירטואלי שלו."
   },
   "vbCable": {
     "title": "תן לצד השני לשמוע את התרגום",

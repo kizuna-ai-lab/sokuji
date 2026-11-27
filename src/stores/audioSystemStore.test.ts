@@ -191,4 +191,57 @@ describe('audioSystemStore', () => {
     await useAudioSystemStore.getState().repair('p');
     expect(electron.invoke).not.toHaveBeenCalledWith('repair-virtual-audio', expect.anything());
   });
+
+  describe('macOS driver update', () => {
+    const outdatedStatus = { ok: true, platform: 'darwin', reason: 'mac-driver-outdated', message: 'x', driverVersion: { installed: '0.6.1', bundled: '0.6.1.1' } };
+
+    beforeEach(() => {
+      localStorage.removeItem('audioSystem.driverUpdateDismissed');
+      useAudioSystemStore.setState({ driverUpdate: null, updatingDriver: false, driverUpdateFailed: false, driverUpdateDismissedFor: null });
+    });
+
+    it('takes both versions from an outdated-driver status, and clears them once it is not', () => {
+      const { receivedHandlers } = mockElectron();
+      useAudioSystemStore.getState().initListeners();
+      receivedHandlers['audio-status'](outdatedStatus);
+      expect(useAudioSystemStore.getState().status).toBe('ok');
+      expect(useAudioSystemStore.getState().driverUpdate).toEqual({ installed: '0.6.1', bundled: '0.6.1.1' });
+      receivedHandlers['audio-status']({ ok: true, platform: 'darwin', reason: null, message: null });
+      expect(useAudioSystemStore.getState().driverUpdate).toBeNull();
+    });
+
+    it('runs the update over IPC with the prompt; a cancelled dialog is not a failure', async () => {
+      const { electron } = mockElectron({ invoke: vi.fn(async () => ({ ok: false, cancelled: true })) });
+      await useAudioSystemStore.getState().updateDriver('prompt text');
+      expect(electron.invoke).toHaveBeenCalledWith('update-virtual-audio-driver', { prompt: 'prompt text' });
+      expect(useAudioSystemStore.getState().driverUpdateFailed).toBe(false);
+      expect(useAudioSystemStore.getState().updatingDriver).toBe(false);
+    });
+
+    it('reads the devices again after a successful update', async () => {
+      mockElectron({ invoke: vi.fn(async () => ({ ok: true })) });
+      const syncDevices = vi.fn(async () => {});
+      const before = useAudioStore.getState().syncDevices;
+      useAudioStore.setState({ syncDevices } as never);
+      try {
+        await useAudioSystemStore.getState().updateDriver('p');
+        expect(syncDevices).toHaveBeenCalledWith({ retryUnusable: true });
+      } finally {
+        useAudioStore.setState({ syncDevices: before } as never);
+      }
+    });
+
+    it('marks a failed update', async () => {
+      mockElectron({ invoke: vi.fn(async () => ({ ok: false, cancelled: false, error: 'boom' })) });
+      await useAudioSystemStore.getState().updateDriver('p');
+      expect(useAudioSystemStore.getState().driverUpdateFailed).toBe(true);
+    });
+
+    it('remembers which driver version was dismissed', () => {
+      useAudioSystemStore.setState({ driverUpdate: { installed: '0.6.1', bundled: '0.6.1.1' } });
+      useAudioSystemStore.getState().dismissDriverUpdate();
+      expect(useAudioSystemStore.getState().driverUpdateDismissedFor).toBe('0.6.1.1');
+      expect(localStorage.getItem('audioSystem.driverUpdateDismissed')).toBe('0.6.1.1');
+    });
+  });
 });

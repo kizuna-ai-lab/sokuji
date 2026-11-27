@@ -34,11 +34,15 @@
 //       destroys and recreates them - see retarget() below.
 //
 //   sokuji-audio-host --ensure-unity-gain <device name substring>
-//       Restores that device's volume to unity and clears its mute, then writes
-//       one JSON object to stdout and exits 0:
+//       Restores the volume of every device whose name contains the substring
+//       to unity and clears its mute, then writes one JSON object to stdout and
+//       exits 0. The top-level name/before/after are the first device's;
+//       changed/unmuted are true if any device changed; devices lists each:
 //         {"found":true,"name":"SokujiVirtualAudio","changed":true,
-//          "before":{"output":0.5,"input":0.5},"after":{"output":1,"input":1},
-//          "unmuted":false}
+//          "unmuted":false,"before":{"output":null,"input":0.5},
+//          "after":{"output":null,"input":1},
+//          "devices":[{"name":"SokujiVirtualAudio",...},
+//                     {"name":"SokujiVirtualAudio Output",...}]}
 //       A device that is not present is {"found":false} and still exit 0 - not
 //       having the driver installed is a normal state, not a failure.
 //
@@ -269,22 +273,36 @@ func jsonNumber(_ value: Float32?) -> String {
     return String(format: "%.4f", value)
 }
 
-func runEnsureUnityGain(deviceName needle: String) -> Int32 {
+/// What unity gain found and did on one device.
+struct UnityGainReport {
+    let name: String
+    let before: [String: Float32?]
+    let after: [String: Float32?]
+    let changed: Bool
+    let unmuted: Bool
+    let writeFailed: Bool
+
+    /// The name, levels and flags as JSON members, without the braces.
+    var jsonMembers: String {
+        "\"name\":\"\(jsonEscape(name))\"," +
+        "\"before\":{\"output\":\(jsonNumber(before["output"] ?? nil)),\"input\":\(jsonNumber(before["input"] ?? nil))}," +
+        "\"after\":{\"output\":\(jsonNumber(after["output"] ?? nil)),\"input\":\(jsonNumber(after["input"] ?? nil))}"
+    }
+
+    var json: String { "{\(jsonMembers),\"changed\":\(changed),\"unmuted\":\(unmuted)}" }
+}
+
+/// Puts one device's volume back to unity and clears its mute.
+func unityGain(_ device: AudioObjectID, fallbackName: String) -> UnityGainReport {
     // Both scopes carry a control, and in BlackHole-derived drivers they are two
     // faces of one value - but that is the driver's business, not ours. Setting
-    // each independently keeps this correct for any device.
+    // each independently keeps this correct for any device. A scope the device
+    // does not have (the input-only or output-only half of the driver) reads as
+    // null and is skipped.
     let scopes: [(String, AudioObjectPropertyScope)] = [
         ("output", kAudioObjectPropertyScopeOutput),
         ("input", kAudioObjectPropertyScopeInput),
     ]
-
-    let device = objectIDs(kAudioHardwarePropertyDevices).first {
-        (stringProp($0, kAudioObjectPropertyName) ?? "").localizedCaseInsensitiveContains(needle)
-    }
-    guard let device else {
-        FileHandle.standardOutput.write("{\"found\":false}".data(using: .utf8)!)
-        return 0
-    }
 
     var before: [String: Float32?] = [:]
     var after: [String: Float32?] = [:]
@@ -315,16 +333,40 @@ func runEnsureUnityGain(deviceName needle: String) -> Int32 {
 
     for (label, scope) in scopes { after[label] = volumeScalar(device, scope) }
 
-    let name = stringProp(device, kAudioObjectPropertyName) ?? needle
-    let json = "{\"found\":true,\"name\":\"\(jsonEscape(name))\"," +
+    return UnityGainReport(name: stringProp(device, kAudioObjectPropertyName) ?? fallbackName,
+                           before: before, after: after,
+                           changed: changed, unmuted: unmuted, writeFailed: writeFailed)
+}
+
+/// Every device whose name contains `needle`. The driver publishes two - the
+/// microphone "SokujiVirtualAudio" and the speaker "SokujiVirtualAudio Output" -
+/// and either one left at a low stored volume makes the other side hear
+/// near-silence, so all of them are put back. An older driver publishes one
+/// device with both sides, which this handles the same way.
+///
+/// The top-level name/before/after describe the first device found, as they
+/// always have; `changed`/`unmuted` are true if any device changed, and
+/// `devices` lists each one.
+func runEnsureUnityGain(deviceName needle: String) -> Int32 {
+    let devices = objectIDs(kAudioHardwarePropertyDevices).filter {
+        (stringProp($0, kAudioObjectPropertyName) ?? "").localizedCaseInsensitiveContains(needle)
+    }
+    guard !devices.isEmpty else {
+        FileHandle.standardOutput.write("{\"found\":false}".data(using: .utf8)!)
+        return 0
+    }
+
+    let reports = devices.map { unityGain($0, fallbackName: needle) }
+    let changed = reports.contains { $0.changed }
+    let unmuted = reports.contains { $0.unmuted }
+    let json = "{\"found\":true,\(reports[0].jsonMembers)," +
         "\"changed\":\(changed),\"unmuted\":\(unmuted)," +
-        "\"before\":{\"output\":\(jsonNumber(before["output"] ?? nil)),\"input\":\(jsonNumber(before["input"] ?? nil))}," +
-        "\"after\":{\"output\":\(jsonNumber(after["output"] ?? nil)),\"input\":\(jsonNumber(after["input"] ?? nil))}}"
+        "\"devices\":[\(reports.map { $0.json }.joined(separator: ","))]}"
     FileHandle.standardOutput.write(json.data(using: .utf8)!)
 
     // A device that is present but refuses the write is worth surfacing: the
     // caller cannot tell it apart from success by the audio alone.
-    if writeFailed {
+    if reports.contains(where: { $0.writeFailed }) {
         emitError("volume_write_failed")
         return 1
     }

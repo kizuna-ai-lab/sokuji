@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "A reparação não recuperou o microfone virtual. Reinicie o Mac ou reinstale o Sokuji com o instalador .pkg.",
     "repair": "Reparar",
     "repairing": "A reparar...",
-    "macRepairPrompt": "O Sokuji pretende reparar o seu microfone virtual."
+    "macRepairPrompt": "O Sokuji pretende reparar o seu microfone virtual.",
+    "macDriverUpdateBody": "Existe uma nova versão do microfone virtual do Sokuji. Com ela, aplicações como o WhatsApp também o podem usar em chamadas. Feche as aplicações de reuniões e depois atualize; o macOS vai pedir a sua palavra-passe de administrador.",
+    "macDriverUpdateFailedBody": "O microfone virtual não foi atualizado. Tente novamente ou reinstale o Sokuji com o instalador .pkg.",
+    "updateDriver": "Atualizar",
+    "updatingDriver": "A atualizar...",
+    "macDriverUpdatePrompt": "O Sokuji quer atualizar o microfone virtual."
   },
   "vbCable": {
     "title": "Deixe o outro lado ouvir a tradução",
