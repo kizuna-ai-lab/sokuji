@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { Page } from '@playwright/test';
 import { baseStorage, mainAction, type Sokuji } from '../support/app';
 import { readHistory, type StoredRecord } from '../support/history';
 import { downloadNative } from '../support/native';
@@ -29,8 +30,10 @@ test.use({ trace: 'off', screenshot: 'off' });
 const PROFILE = process.env.E2E_NATIVE_PROFILE ?? '';
 const PREPARE = process.env.E2E_NATIVE_PREPARE === '1';
 const MODELS = { asr: 'whisper-base', translation: 'qwen2.5-0.5b', ttsEn: 'pocket-tts-en', ttsJa: 'moss-tts-nano' } as const;
-/** How long a session is given, once the last sentence is said, for its last translation to be read aloud. */
-const TAIL_MS = 30_000;
+/** How long the session's output must stay the same (as many rows, as many of them with audio) to count as finished. */
+const QUIET_MS = 30_000;
+/** How long, once the last sentence is said, the session is given to finish: past it, the test fails. */
+const SETTLE_MS = 10 * 60_000;
 
 /** The profile to run on, checked: absolute, and named so that this suite never deletes it. */
 function profileDir(): string {
@@ -73,6 +76,27 @@ async function applySettings(sokuji: Sokuji, entries: Record<string, string>): P
 }
 
 const side = (record: StoredRecord, which: 'source' | 'translation') => record.segments.filter((s) => s.side === which);
+
+/**
+ * Waits for the session to finish what it was given: the rows that can be read aloud, and how many of them have their
+ * audio, stop changing for `QUIET_MS`. Translation and speech take one turn at a time, so a fixed wait ends too early on
+ * a slower machine. A row whose speech failed keeps no audio for good, so not every row need have it: the assertions
+ * judge how many do. Fails past `SETTLE_MS`. Returns how many rows were read aloud.
+ */
+async function settled(page: Page): Promise<number> {
+  const rows = page.getByRole('button', { name: "Play this item's audio" });
+  const spoken = page.getByRole('button', { name: "Play this item's audio", disabled: false });
+  const deadline = Date.now() + SETTLE_MS;
+  let seen = '';
+  let since = Date.now();
+  for (;;) {
+    const [all, ready] = [await rows.count(), await spoken.count()];
+    if (`${all}/${ready}` !== seen) { seen = `${all}/${ready}`; since = Date.now(); }
+    if (all > 0 && Date.now() - since >= QUIET_MS) return ready;
+    if (Date.now() > deadline) throw new Error(`the session did not finish: ${ready} of ${all} rows read aloud`);
+    await page.waitForTimeout(1_000);
+  }
+}
 /** A sentence's audio reached the recognizer, told by any of its words (a small model mishears one now and then). */
 const TRACES: readonly RegExp[] = [/雨|降り|傘|かさ/, /ドア|閉め/, /会議|午後/, /本|面白/, /家族|週末|夕食|夕飯/, /カフェ|駅/, /電車|遅れ|送れ/, /待/];
 
@@ -107,11 +131,8 @@ test('@real native session: all three stages on the native engine hear, translat
     await say(page, clip(SENTENCES[i].file));
     await page.waitForTimeout(PAUSES_MS[i]);
   }
-  await page.waitForTimeout(TAIL_MS);
   // Read aloud: a row can be replayed once the voice's audio for it has arrived.
-  const replays = page.getByRole('button', { name: "Play this item's audio", disabled: false });
-  await expect(replays.first()).toBeVisible({ timeout: 60_000 });
-  const spoken = await replays.count();
+  const spoken = await settled(page);
   await mainAction(page).click();
   await expect(mainAction(page)).toBeEnabled({ timeout: 60_000 });
   await sokuji.close();
@@ -124,12 +145,17 @@ test('@real native session: all three stages on the native engine hear, translat
   const heardText = side(record, 'source').map((s) => s.text).join('\n');
   const heard = TRACES.filter((trace) => trace.test(heardText)).length;
   const translations = side(record, 'translation').filter((s) => /[A-Za-z]{3,}/.test(s.text));
+  // What the translations say: each sentence's English gist (`said`), told by a word a small model keeps.
+  const english = translations.map((s) => s.text).join('\n');
+  const meant = SENTENCES.filter((sentence) => sentence.said.test(english)).length;
   test.info().annotations.push({
     type: 'native session',
-    description: `${heard} of ${SENTENCES.length} heard in ${side(record, 'source').length} turns, ${translations.length} English translations, ${spoken} read aloud`,
+    description: `${heard} of ${SENTENCES.length} heard in ${side(record, 'source').length} turns, ${translations.length} English translations saying ${meant} of the sentences, ${spoken} read aloud`,
   });
   expect(heard, 'what is said is heard').toBeGreaterThanOrEqual(SENTENCES.length - 1);
   expect(translations.length, 'each turn is translated into English').toBeGreaterThanOrEqual(side(record, 'source').length - 1);
+  // One sentence may be lost to recognition and one to a small model's wording (傘 as "raincoats").
+  expect(meant, 'the translations say what was said').toBeGreaterThanOrEqual(SENTENCES.length - 2);
   expect(spoken, 'the translations are read aloud').toBeGreaterThanOrEqual(Math.min(3, translations.length));
   expect(sokuji.errors).toEqual([]);
 });
@@ -160,5 +186,7 @@ test("@real native session: the native engine translates and reads aloud another
   const japanese = side(fresh[0], 'translation').filter((s) => /[぀-ヿ一-鿿]/.test(s.text));
   test.info().annotations.push({ type: 'translations', description: japanese.map((s) => s.text).join(' / ') });
   expect(japanese.length, 'the transcription is translated into Japanese').toBeGreaterThanOrEqual(1);
+  // "Hello. How are you today?" and "I am fine, thank you.", told by a word a small model keeps.
+  expect(japanese.map((s) => s.text).join('\n'), 'the translation says what was said').toMatch(/こんにちは|今日|元気/);
   expect(sokuji.errors).toEqual([]);
 });

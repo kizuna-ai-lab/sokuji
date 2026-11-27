@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { openFolds } from './library';
 import { expect } from './test';
 
 /**
@@ -8,9 +9,12 @@ import { expect } from './test';
  */
 export async function downloadNative(page: Page, modelId: string): Promise<void> {
   await page.getByRole('tab', { name: /Native engine/ }).click();
-  for (const more of await page.getByRole('button', { name: /^\d+ more/, expanded: false }).all()) await more.click().catch(() => {});
   const card = page.getByTestId(`model-card-${modelId}`);
-  await expect(card, `the native ${modelId} card is listed`).toBeVisible({ timeout: 5 * 60_000 });
+  // The tab draws its lists, folds and all, only once the engine is up: until then there is no fold to open.
+  await expect(async () => {
+    await openFolds(page);
+    await expect(card).toBeVisible({ timeout: 1_000 });
+  }, `the native ${modelId} card is listed`).toPass({ timeout: 5 * 60_000 });
   const download = card.getByRole('button', { name: /^Download$/ });
   if (await download.count() > 0) await download.click();
   await expect(card.getByRole('button', { name: /^Delete$/ }), `the native ${modelId} is downloaded`).toBeVisible({ timeout: 40 * 60_000 });

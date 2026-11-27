@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { baseStorage, mainAction, REPO, type Sokuji } from '../support/app';
 import { readHistory } from '../support/history';
+import { openFolds } from '../support/library';
 import { clip, PAUSES_MS, say, SENTENCES } from '../support/speech';
 import { expect, test } from '../support/test';
 
@@ -27,7 +28,8 @@ import { expect, test } from '../support/test';
 // Runbook. Every step builds with vite, opens Electron windows or downloads models: do it only with the machine's
 // owner at hand, never from CI.
 //   1. Before: `git worktree add <dir> 17642a804`, then `npm ci` in it. Copy this spec, e2e/support/history.ts,
-//      e2e/support/app.ts and scripts/dev/turn-fixtures/compare-runs.mjs in, uncommitted. Run `npm run e2e:build`.
+//      e2e/support/library.ts, e2e/support/app.ts and scripts/dev/turn-fixtures/compare-runs.mjs in, uncommitted. Run
+//      `npm run e2e:build`.
 //   2. Prepare, once per profile and model:
 //        E2E_LOCAL_PREPARE=1 E2E_LOCAL_PROFILE=<dir> E2E_LOCAL_ASR=whisper-base-webgpu npm run e2e:real -- real-local-turns
 //      It downloads the recognizer and the ja-en translation model through Local models and storage into the profile.
@@ -152,6 +154,7 @@ test(`@real prepare: downloads the models of ${ASR || 'the chosen recognizer'} i
   // Where the native engine is offered the page opens on its tab: these models are the WASM/WebGPU engine's.
   const webgpuTab = page.getByRole('tab', { name: /WASM\/WebGPU engine/ });
   if (await webgpuTab.count() > 0) await webgpuTab.click();
+  await openFolds(page);
   for (const { name } of [MODELS[asr], TRANSLATION_MODEL]) {
     // Two catalogue entries carry the translation model's name: both are downloaded (a second or two of clicking, 50 MB more).
     const download = page.getByRole('button', { name: `Download: ${name}` });

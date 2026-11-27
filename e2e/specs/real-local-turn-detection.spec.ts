@@ -3,6 +3,7 @@ import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { baseStorage, mainAction, type Sokuji } from '../support/app';
 import { readHistory, type StoredRecord } from '../support/history';
+import { openFolds } from '../support/library';
 import { downloadNative } from '../support/native';
 import { clip, PAUSES_MS, say, SENTENCES, type Clip } from '../support/speech';
 import { expect, test } from '../support/test';
@@ -54,26 +55,59 @@ const sources = (record: StoredRecord) => record.segments.filter((s) => s.side =
 
 /**
  * Whether a sentence's audio reached the recognizer, told by any of several of its words: small models mishear one word
- * (傘 as 草, 夕食 as 有職) though the turn that carried it was cut right, and that is the model's accuracy, not the
- * turn detection's. In the order of `SENTENCES`.
+ * (傘 as 草, 夕食 as 有職) or write one in kana (会議 as かいぎ) though the turn that carried it was cut right, and that is
+ * the model's accuracy, not the turn detection's. In the order of `SENTENCES`.
  */
-const TRACES: readonly RegExp[] = [/雨|降|傘|かさ/, /ドア|閉め/, /会議|午後/, /本|面白/, /家族|週末|夕食|夕飯/, /カフェ|駅/, /電車|遅れ|送れ/, /待/];
+const TRACES: readonly RegExp[] = [
+  /雨|降|傘|かさ/, /ドア|閉め|しめて/, /会議|午後|かいぎ|ごご/, /本|面白|ほん|おもしろ/,
+  /家族|週末|夕食|夕飯|かぞく|しゅうまつ|ゆうしょく/, /カフェ|駅|えき/, /電車|遅れ|送れ|でんしゃ|おくれ/, /待|おまち/,
+];
 if (TRACES.length !== SENTENCES.length) throw new Error('one trace per sentence');
+
+/**
+ * How far apart, in characters of heard text, two of a sentence's words can be and still be one time it was said. Every
+ * sentence is shorter; a sentence said again comes after the seven others (well over 80 characters).
+ */
+const ONE_SENTENCE = 24;
+
+/** How many times a sentence's trace occurs in `text`: its words within `ONE_SENTENCE` of each other are one time. */
+function occurrences(text: string, trace: RegExp): number {
+  let times = 0;
+  let last = Number.NEGATIVE_INFINITY;
+  for (const match of text.matchAll(new RegExp(trace.source, 'g'))) {
+    if (match.index - last > ONE_SENTENCE) times++;
+    last = match.index;
+  }
+  return times;
+}
 
 /** How many of the sentences said (by index, once per time said) left a trace in the record's heard text. */
 function heard(record: StoredRecord, spoken: readonly number[]): number {
   const text = sources(record).map((s) => s.text).join('\n');
-  return TRACES.reduce((n, trace, i) => {
-    const times = spoken.filter((said) => said === i).length;
-    const found = text.match(new RegExp(trace.source, 'g'))?.length ?? 0;
-    return n + Math.min(times, found);
-  }, 0);
+  return TRACES.reduce((n, trace, i) => n + Math.min(spoken.filter((said) => said === i).length, occurrences(text, trace)), 0);
 }
 
 /** How long a session is given, once the last sentence is said, for its last turn to come out. */
 const TAIL_MS = 20_000;
 /** At most one sentence in eight may leave no trace: small models on short clips. */
 const ALLOWED_MISSES = 1;
+/**
+ * The longest stretch of the long turn, in ms, that its pieces may leave uncovered: the detector cuts at the model's limit
+ * and hands on the next audio at once (0-10 ms seen), so a longer hole is audio the recognizer never got.
+ */
+const MAX_HOLE_MS = 300;
+
+/** The longest stretch, in ms, between a record's first heard piece and its last that no piece covers. */
+function longestHole(spans: StoredRecord['heard']): number {
+  const sorted = [...spans].sort((a, b) => a.startMs - b.startMs);
+  let reach = sorted[0]?.startMs ?? 0;
+  let hole = 0;
+  for (const span of sorted) {
+    hole = Math.max(hole, span.startMs - reach);
+    reach = Math.max(reach, span.endMs);
+  }
+  return hole;
+}
 
 const NATIVE = 'native:';
 const isNative = (asr: RecognizerId) => asr.startsWith(NATIVE);
@@ -155,8 +189,7 @@ test('@real local turn detection: download the recognizers into the profile', as
   await page.getByRole('navigation').getByRole('button', { name: /^Local models and storage/ }).click();
   for (const id of chosen.filter((asr) => !isNative(asr))) {
     await page.getByRole('tab', { name: /WASM\/WebGPU engine/ }).click();
-    // A model neither on disk nor recommended waits under an "N more" fold.
-    for (const more of await page.getByRole('button', { name: /^\d+ more/, expanded: false }).all()) await more.click().catch(() => {});
+    await openFolds(page);
     const { name } = RECOGNIZERS[id];
     const download = page.getByRole('button', { name: `Download: ${name}` });
     await expect(download.or(page.locator('.model-card--downloaded', { hasText: name })).first(), `${name} is listed`).toBeVisible({ timeout: 60_000 });
@@ -238,9 +271,23 @@ for (const asr of chosen) {
 
     const twice = [...all, ...all];
     const longHeard = heard(long, twice);
-    test.info().annotations.push({ type: 'one long turn', description: `${longHeard} of ${twice.length} heard in ${sources(long).length} turns` });
-    expect(longHeard, 'one long turn: nothing is lost where it is cut').toBeGreaterThanOrEqual(twice.length - 2 * ALLOWED_MISSES);
+    // Where the record keeps the audio each piece came from, the cut is judged by it: every piece starts where the one
+    // before it ended. How much of it a model writes down is its own accuracy (Whisper base and Moonshine Base JA drop
+    // text in long, dense pieces whose audio they were given whole), so the count need only reach half, which a lost
+    // piece would not. Where it keeps no audio (a recognizer taking marks, the native engine), the count is the evidence.
+    const timed = long.heard.length > 0 && long.heard.every((span) => span.timeKind === 'given');
+    const hole = timed ? longestHole(long.heard) : null;
+    test.info().annotations.push({
+      type: 'one long turn',
+      description: `${longHeard} of ${twice.length} heard in ${sources(long).length} turns${hole === null ? '' : `, longest hole between pieces ${hole} ms`}`,
+    });
     expect(sources(long).length, 'one long turn: cut at the model\'s limit').toBeGreaterThanOrEqual(2);
+    if (hole !== null) {
+      expect(hole, 'one long turn: each piece starts where the one before it ended').toBeLessThanOrEqual(MAX_HOLE_MS);
+      expect(longHeard, 'one long turn: at least half of it is written down').toBeGreaterThanOrEqual(twice.length / 2);
+    } else {
+      expect(longHeard, 'one long turn: nothing is lost where it is cut').toBeGreaterThanOrEqual(twice.length - 2 * ALLOWED_MISSES);
+    }
 
     const pttHeard = heard(ptt, pressed);
     test.info().annotations.push({ type: 'push-to-talk', description: `${pttHeard} of ${pressed.length} presses heard in ${sources(ptt).length} turns` });
