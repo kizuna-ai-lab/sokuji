@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "การซ่อมแซมไม่ได้ทำให้ไมโครโฟนเสมือนกลับมา โปรดรีสตาร์ท Mac หรือติดตั้ง Sokuji ใหม่จากตัวติดตั้ง .pkg",
     "repair": "ซ่อมแซม",
     "repairing": "กำลังซ่อมแซม...",
-    "macRepairPrompt": "Sokuji ต้องการซ่อมแซมไมโครโฟนเสมือนของตน"
+    "macRepairPrompt": "Sokuji ต้องการซ่อมแซมไมโครโฟนเสมือนของตน",
+    "macDriverUpdateBody": "ไมโครโฟนเสมือนของ Sokuji มีเวอร์ชันใหม่ ช่วยให้แอปอย่าง WhatsApp ใช้ในการโทรได้ด้วย อัปเดตเลย macOS จะขอรหัสผ่านผู้ดูแลระบบ",
+    "macDriverUpdateFailedBody": "อัปเดตไมโครโฟนเสมือนไม่สำเร็จ ลองอีกครั้ง หรือติดตั้ง Sokuji ใหม่ด้วยตัวติดตั้ง .pkg",
+    "updateDriver": "อัปเดต",
+    "updatingDriver": "กำลังอัปเดต...",
+    "macDriverUpdatePrompt": "Sokuji ต้องการอัปเดตไมโครโฟนเสมือน"
   },
   "vbCable": {
     "title": "ให้อีกฝ่ายได้ยินคำแปล",

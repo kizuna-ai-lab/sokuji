@@ -4,7 +4,18 @@ import { reportError, describeCause } from '../lib/diagnostics/report';
 import useAudioStore from './audioStore';
 
 export type AudioSystemStatus = 'unknown' | 'ok' | 'unavailable';
-export type AudioSystemReason = 'pactl-missing' | 'pulseaudio-unavailable' | 'mac-driver-not-loaded' | 'other' | null;
+export type AudioSystemReason = 'pactl-missing' | 'pulseaudio-unavailable' | 'mac-driver-not-loaded' | 'mac-driver-outdated' | 'other' | null;
+
+/** macOS: the installed driver and the one this app ships, when they differ. */
+export interface DriverVersions { installed: string; bundled: string }
+
+// The bundled driver version whose update offer the user dismissed: the offer
+// comes back only for the next driver, not on every launch.
+const DRIVER_UPDATE_DISMISSED_KEY = 'audioSystem.driverUpdateDismissed';
+
+function readDismissedDriverVersion(): string | null {
+  try { return localStorage.getItem(DRIVER_UPDATE_DISMISSED_KEY); } catch { return null; }
+}
 
 interface AudioSystemState {
   status: AudioSystemStatus;
@@ -17,12 +28,24 @@ interface AudioSystemState {
   repairing: boolean;
   /** macOS: the last repair ran but the device still did not appear. */
   repairFailed: boolean;
+  /** macOS: the installed driver is not the one this app ships (in-app updates never replace it). */
+  driverUpdate: DriverVersions | null;
+  /** macOS: the driver update (administrator prompt + copy + Core Audio restart) is running. */
+  updatingDriver: boolean;
+  /** macOS: the last driver update did not complete. */
+  driverUpdateFailed: boolean;
+  /** The bundled driver version whose update offer was dismissed. */
+  driverUpdateDismissedFor: string | null;
 }
 
 interface AudioSystemActions {
   retry: () => Promise<void>;
   /** macOS: restart Core Audio so it loads the installed driver; `prompt` is the administrator dialog's text. */
   repair: (prompt: string) => Promise<void>;
+  /** macOS: install the driver this app ships over the installed one; `prompt` is the administrator dialog's text. */
+  updateDriver: (prompt: string) => Promise<void>;
+  /** Stop offering this driver update; the next driver version offers again. */
+  dismissDriverUpdate: () => void;
   dismiss: () => void;
   initListeners: () => void;
   cleanupListeners: () => void;
@@ -42,6 +65,10 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
   retrying: false,
   repairing: false,
   repairFailed: false,
+  driverUpdate: null,
+  updatingDriver: false,
+  driverUpdateFailed: false,
+  driverUpdateDismissedFor: readDismissedDriverVersion(),
 
   retry: async () => {
     if (!isElectron() || get().retrying) return;
@@ -84,6 +111,36 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
     }
   },
 
+  updateDriver: async (prompt: string) => {
+    if (!isElectron() || get().updatingDriver) return;
+    set({ updatingDriver: true, driverUpdateFailed: false });
+    try {
+      const result = await (window as any).electron?.invoke('update-virtual-audio-driver', { prompt });
+      // Success arrives as an 'audio-status' push without the outdated reason.
+      // A dialog the user cancelled is not a failure: the offer simply stays.
+      if (!result?.ok && !result?.cancelled) {
+        set({ driverUpdateFailed: true });
+        reportError('AudioSystemStore', `The virtual microphone driver update did not work: ${result?.error ?? 'no result'}`);
+      }
+    } catch (error) {
+      set({ driverUpdateFailed: true });
+      reportError(
+        'AudioSystemStore',
+        `Failed to update the virtual microphone driver: ${describeCause(error)}`,
+        { cause: error },
+      );
+    } finally {
+      set({ updatingDriver: false });
+    }
+  },
+
+  dismissDriverUpdate: () => {
+    const bundled = get().driverUpdate?.bundled ?? null;
+    if (!bundled) return;
+    try { localStorage.setItem(DRIVER_UPDATE_DISMISSED_KEY, bundled); } catch { /* the offer returns next launch */ }
+    set({ driverUpdateDismissedFor: bundled });
+  },
+
   dismiss: () => set({ dismissed: true }),
 
   initListeners: () => {
@@ -116,6 +173,9 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
         reason: data.reason ?? null,
         message: data.message ?? null,
         dismissed: (isLiveUpdate && !data.ok) ? false : get().dismissed,
+        driverUpdate: data.reason === 'mac-driver-outdated' && data.driverVersion?.installed && data.driverVersion?.bundled
+          ? { installed: String(data.driverVersion.installed), bundled: String(data.driverVersion.bundled) }
+          : null,
       });
       // A recovery is a change the OS reported: devices marked unusable while
       // it was down (a Repair restarting Core Audio mid-run) are tried again.
@@ -156,6 +216,12 @@ export const useAudioSystemRepairing = () => useAudioSystemStore(state => state.
 export const useAudioSystemRepairFailed = () => useAudioSystemStore(state => state.repairFailed);
 export const useAudioSystemRepair = () => useAudioSystemStore(state => state.repair);
 export const useAudioSystemDismiss = () => useAudioSystemStore(state => state.dismiss);
+export const useAudioSystemDriverUpdate = () => useAudioSystemStore(state => state.driverUpdate);
+export const useAudioSystemUpdatingDriver = () => useAudioSystemStore(state => state.updatingDriver);
+export const useAudioSystemDriverUpdateFailed = () => useAudioSystemStore(state => state.driverUpdateFailed);
+export const useAudioSystemDriverUpdateDismissedFor = () => useAudioSystemStore(state => state.driverUpdateDismissedFor);
+export const useAudioSystemUpdateDriver = () => useAudioSystemStore(state => state.updateDriver);
+export const useAudioSystemDismissDriverUpdate = () => useAudioSystemStore(state => state.dismissDriverUpdate);
 export const useInitAudioSystemListeners = () => useAudioSystemStore(state => state.initListeners);
 export const useCleanupAudioSystemListeners = () => useAudioSystemStore(state => state.cleanupListeners);
 

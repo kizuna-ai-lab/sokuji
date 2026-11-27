@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "修復後虛擬麥克風仍未出現。請重新啟動 Mac，或用 .pkg 安裝檔重新安裝 Sokuji。",
     "repair": "修復",
     "repairing": "正在修復...",
-    "macRepairPrompt": "Sokuji 需要修復它的虛擬麥克風。"
+    "macRepairPrompt": "Sokuji 需要修復它的虛擬麥克風。",
+    "macDriverUpdateBody": "Sokuji 的虛擬麥克風有新版本，更新後 WhatsApp 等軟體在通話中也能使用它。點擊更新，macOS 會要求輸入管理員密碼。",
+    "macDriverUpdateFailedBody": "虛擬麥克風沒有更新成功。請重試，或用 .pkg 安裝程式重新安裝 Sokuji。",
+    "updateDriver": "更新",
+    "updatingDriver": "正在更新...",
+    "macDriverUpdatePrompt": "Sokuji 需要更新它的虛擬麥克風。"
   },
   "vbCable": {
     "title": "讓對方聽到翻譯",

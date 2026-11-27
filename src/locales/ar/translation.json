@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "لم يُعِد الإصلاح الميكروفون الافتراضي. أعد تشغيل جهاز Mac، أو أعد تثبيت Sokuji من مُثبّت .pkg.",
     "repair": "إصلاح",
     "repairing": "جارٍ الإصلاح...",
-    "macRepairPrompt": "يريد Sokuji إصلاح الميكروفون الافتراضي الخاص به."
+    "macRepairPrompt": "يريد Sokuji إصلاح الميكروفون الافتراضي الخاص به.",
+    "macDriverUpdateBody": "يتوفر إصدار جديد من الميكروفون الافتراضي في Sokuji. يتيح لتطبيقات مثل WhatsApp استخدامه في المكالمات. حدّثه؛ سيطلب macOS كلمة مرور المسؤول.",
+    "macDriverUpdateFailedBody": "لم يكتمل تحديث الميكروفون الافتراضي. حاول مرة أخرى، أو أعد تثبيت Sokuji باستخدام مثبّت ‎.pkg.",
+    "updateDriver": "تحديث",
+    "updatingDriver": "جارٍ التحديث...",
+    "macDriverUpdatePrompt": "يريد Sokuji تحديث الميكروفون الافتراضي."
   },
   "vbCable": {
     "title": "اجعل الطرف الآخر يسمع الترجمة",

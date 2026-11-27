@@ -1,0 +1,22 @@
+diff --git a/BlackHole/BlackHole.c b/BlackHole/BlackHole.c
+index 5be7d5b..9d1ebe1 100644
+--- a/BlackHole/BlackHole.c
++++ b/BlackHole/BlackHole.c
+@@ -1958,7 +1958,7 @@ static OSStatus	BlackHole_GetBoxPropertyData(AudioServerPlugInDriverRef inDriver
+ 			//	any 32 bit integer, but common values for this property are defined in
+ 			//	<CoreAudio/AudioHardwareBase.h>
+ 			FailWithAction(inDataSize < sizeof(UInt32), theAnswer = kAudioHardwareBadPropertySizeError, Done, "BlackHole_GetBoxPropertyData: not enough space for the return value of kAudioDevicePropertyTransportType for the box");
+-			*((UInt32*)outData) = kAudioDeviceTransportTypeVirtual;
++			*((UInt32*)outData) = kAudioDeviceTransportTypePCI;
+ 			*outDataSize = sizeof(UInt32);
+ 			break;
+ 			
+@@ -2540,7 +2540,7 @@ static OSStatus	BlackHole_GetDevicePropertyData(AudioServerPlugInDriverRef inDri
+ 			//	any 32 bit integer, but common values for this property are defined in
+ 			//	<CoreAudio/AudioHardwareBase.h>
+ 			FailWithAction(inDataSize < sizeof(UInt32), theAnswer = kAudioHardwareBadPropertySizeError, Done, "BlackHole_GetDevicePropertyData: not enough space for the return value of kAudioDevicePropertyTransportType for the device");
+-			*((UInt32*)outData) = kAudioDeviceTransportTypeVirtual;
++			*((UInt32*)outData) = kAudioDeviceTransportTypePCI;
+ 			*outDataSize = sizeof(UInt32);
+ 			break;
+ 

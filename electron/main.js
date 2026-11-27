@@ -273,6 +273,19 @@ function getDistributionChannel() {
  */
 async function buildAudioStatus(devicesCreated) {
   if (devicesCreated) {
+    // macOS: the device works, but the installed driver is not the one this app
+    // ships (in-app updates never replace it). Still ok: the banner offers the
+    // update rather than reporting a failure.
+    const driverUpdate = process.platform === 'darwin' ? await checkMacDriverUpdate() : null;
+    if (driverUpdate) {
+      return {
+        ok: true,
+        platform: 'darwin',
+        reason: 'mac-driver-outdated',
+        message: `The installed SokujiVirtualAudio driver is ${driverUpdate.installed}; this version of Sokuji ships ${driverUpdate.bundled}`,
+        driverVersion: driverUpdate,
+      };
+    }
     return { ok: true, platform: process.platform, reason: null, message: null };
   }
 
@@ -305,6 +318,17 @@ async function buildAudioStatus(devicesCreated) {
   }
 
   return { ok: false, platform: process.platform, reason: 'other', message: 'Failed to create virtual audio devices' };
+}
+
+// macOS: the installed driver's and the app's driver versions when they differ,
+// else null. Never throws: a check that fails leaves the app as it is.
+async function checkMacDriverUpdate() {
+  try {
+    return await require('./macos-driver-update').checkDriverUpdate();
+  } catch (error) {
+    console.warn('[Sokuji] [macOS Audio] Could not compare driver versions:', error);
+    return null;
+  }
 }
 
 function sendAudioStatus(status) {
@@ -990,10 +1014,26 @@ ipcMain.handle('repair-virtual-audio', async (_event, data) => {
     return { ok: false, cancelled: false, error: 'Only the macOS driver can be repaired' };
   }
   const prompt = typeof data?.prompt === 'string' && data.prompt ? data.prompt.slice(0, 300) : 'Sokuji wants to repair its virtual microphone.';
-  const result = await audioUtils.repairVirtualDevice({ prompt });
+  // An outdated driver is replaced rather than merely reloaded: the update also
+  // restarts Core Audio, so it is the repair and then some.
+  const result = (await checkMacDriverUpdate())
+    ? await require('./macos-driver-update').installBundledDriver({ prompt })
+    : await audioUtils.repairVirtualDevice({ prompt });
   // The repair's last probe found the device (and put its gain back to unity),
   // so the status follows from that same check: a second one could disagree
   // with the result returned here.
+  if (result.ok) sendAudioStatus(await buildAudioStatus(true));
+  return result;
+});
+
+// macOS: replace an installed driver older than the one this app ships, behind
+// the administrator prompt (macos-driver-update.js), then report the new status.
+ipcMain.handle('update-virtual-audio-driver', async (_event, data) => {
+  if (process.platform !== 'darwin') {
+    return { ok: false, cancelled: false, error: 'Only the macOS driver can be updated' };
+  }
+  const prompt = typeof data?.prompt === 'string' && data.prompt ? data.prompt.slice(0, 300) : 'Sokuji wants to update its virtual microphone.';
+  const result = await require('./macos-driver-update').installBundledDriver({ prompt });
   if (result.ok) sendAudioStatus(await buildAudioStatus(true));
   return result;
 });

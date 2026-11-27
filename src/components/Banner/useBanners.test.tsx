@@ -64,6 +64,56 @@ describe('Banners — the audio system (today’s AudioSystemBanner cases)', () 
   });
 });
 
+describe('Banners — a macOS driver older than the one the app ships', () => {
+  const outdated = (extra: Record<string, unknown> = {}) =>
+    useAudioSystemStore.setState({
+      status: 'ok', platform: 'darwin', reason: 'mac-driver-outdated', dismissed: false,
+      driverUpdate: { installed: '0.6.1', bundled: '0.6.1.1' }, driverUpdateDismissedFor: null,
+      updatingDriver: false, driverUpdateFailed: false,
+      updateDriver: vi.fn(async () => {}), dismissDriverUpdate: vi.fn(), ...extra,
+    });
+  afterEach(() => useAudioSystemStore.setState({ driverUpdate: null }));
+
+  it('offers the update, brand-toned, and runs it with the prompt', () => {
+    outdated();
+    const { container } = render(<Banners />);
+    expect(screen.getByText('audioSystem.macDriverUpdateBody')).toBeTruthy();
+    expect(container.querySelector('.banner--brand')).not.toBeNull();
+    fireEvent.click(screen.getByText('audioSystem.updateDriver'));
+    expect(useAudioSystemStore.getState().updateDriver).toHaveBeenCalledWith('audioSystem.macDriverUpdatePrompt');
+  });
+  it('dismissing it dismisses this driver version', () => {
+    outdated();
+    const { container } = render(<Banners />);
+    fireEvent.click(container.querySelector('.banner__dismiss')!);
+    expect(useAudioSystemStore.getState().dismissDriverUpdate).toHaveBeenCalled();
+  });
+  it('stays away once this version was dismissed, and comes back for the next one', () => {
+    outdated({ driverUpdateDismissedFor: '0.6.1.1' });
+    const { unmount } = render(<Banners />);
+    expect(screen.queryByText('audioSystem.macDriverUpdateBody')).toBeNull();
+    unmount();
+    outdated({ driverUpdateDismissedFor: '0.6.1.1', driverUpdate: { installed: '0.6.1.1', bundled: '0.6.1.2' } });
+    render(<Banners />);
+    expect(screen.getByText('audioSystem.macDriverUpdateBody')).toBeTruthy();
+  });
+  it('says so when the update did not complete, and disables the button while it runs', () => {
+    outdated({ driverUpdateFailed: true });
+    const { unmount } = render(<Banners />);
+    expect(screen.getByText('audioSystem.macDriverUpdateFailedBody')).toBeTruthy();
+    unmount();
+    outdated({ updatingDriver: true });
+    render(<Banners />);
+    expect((screen.getByText('audioSystem.updatingDriver').closest('button') as HTMLButtonElement).disabled).toBe(true);
+  });
+  it('is not offered while the device is unavailable: the repair banner is', () => {
+    outdated({ status: 'unavailable', reason: 'mac-driver-not-loaded' });
+    render(<Banners />);
+    expect(screen.queryByText('audioSystem.macDriverUpdateBody')).toBeNull();
+    expect(screen.getByText('audioSystem.repair')).toBeTruthy();
+  });
+});
+
 describe('Banners — the update (spec 2026-10-05 §4)', () => {
   it('available: brand tone, update.available, Download Now starts the download, dismissible', () => {
     update({ status: 'available' });

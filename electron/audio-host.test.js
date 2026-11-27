@@ -340,6 +340,22 @@ describe('ensureUnityGain', () => {
     expect(result.before).toEqual({ output: 0.5, input: 0.5 });
   });
 
+  // The driver's microphone and speaker are two devices; the helper repairs both
+  // and lists each, keeping the first one's fields at the top level.
+  it("passes through the helper's report for both of the driver's devices", async () => {
+    const child = fakeChild();
+    const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });
+    child.stdout.emit('data', Buffer.from('{"found":true,"name":"SokujiVirtualAudio",'
+      + '"before":{"output":null,"input":1.0000},"after":{"output":null,"input":1.0000},"changed":true,"unmuted":false,'
+      + '"devices":[{"name":"SokujiVirtualAudio","before":{"output":null,"input":1.0000},"after":{"output":null,"input":1.0000},"changed":false,"unmuted":false},'
+      + '{"name":"SokujiVirtualAudio Output","before":{"output":0.5000,"input":null},"after":{"output":1.0000,"input":null},"changed":true,"unmuted":false}]}'));
+    child.emit('close', 0);
+    const result = await p;
+    expect(result.found).toBe(true);
+    expect(result.changed).toBe(true);
+    expect(result.devices.map((d) => d.name)).toEqual(['SokujiVirtualAudio', 'SokujiVirtualAudio Output']);
+  });
+
   it('reports a device that is not registered rather than guessing', async () => {
     const child = fakeChild();
     const p = ensureUnityGain('SokujiVirtualAudio', { spawn: () => child, resolvePath });

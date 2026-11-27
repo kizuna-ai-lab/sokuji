@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "Na de reparatie is de virtuele microfoon nog steeds niet terug. Start je Mac opnieuw op of installeer Sokuji opnieuw met het .pkg-installatieprogramma.",
     "repair": "Repareren",
     "repairing": "Bezig met repareren...",
-    "macRepairPrompt": "Sokuji wil zijn virtuele microfoon repareren."
+    "macRepairPrompt": "Sokuji wil zijn virtuele microfoon repareren.",
+    "macDriverUpdateBody": "Er is een nieuwe versie van de virtuele microfoon van Sokuji. Daarmee kunnen ook apps zoals WhatsApp hem in gesprekken gebruiken. Werk hem bij; macOS vraagt om je beheerderswachtwoord.",
+    "macDriverUpdateFailedBody": "De virtuele microfoon is niet bijgewerkt. Probeer het opnieuw of installeer Sokuji opnieuw met het .pkg-installatieprogramma.",
+    "updateDriver": "Bijwerken",
+    "updatingDriver": "Bijwerken...",
+    "macDriverUpdatePrompt": "Sokuji wil zijn virtuele microfoon bijwerken."
   },
   "vbCable": {
     "title": "Laat de ander de vertaling horen",

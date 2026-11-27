@@ -2,8 +2,10 @@
 import { Download, RefreshCw, TriangleAlert, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
-  useAudioSystemDismiss, useAudioSystemDismissed, useAudioSystemReason, useAudioSystemRepair, useAudioSystemRepairFailed,
-  useAudioSystemRepairing, useAudioSystemRetry, useAudioSystemRetrying, useAudioSystemStatus,
+  useAudioSystemDismiss, useAudioSystemDismissDriverUpdate, useAudioSystemDismissed, useAudioSystemDriverUpdate,
+  useAudioSystemDriverUpdateDismissedFor, useAudioSystemDriverUpdateFailed, useAudioSystemReason, useAudioSystemRepair,
+  useAudioSystemRepairFailed, useAudioSystemRepairing, useAudioSystemRetry, useAudioSystemRetrying, useAudioSystemStatus,
+  useAudioSystemUpdateDriver, useAudioSystemUpdatingDriver,
 } from '../../stores/audioSystemStore';
 import {
   useDismissBanner, useDownloadUpdate, useInstallUpdate, useOpenUpdateDialog, useShownUpdateStatus, useUpdateBannerDismissed,
@@ -51,6 +53,32 @@ export function useBanners(): BannerProps[] {
         ? { label: repairing ? t('audioSystem.repairing') : t('audioSystem.repair'), icon: <Wrench size={12} aria-hidden="true" className={repairing ? 'spinning' : ''} />, onClick: () => { void repair(t('audioSystem.macRepairPrompt')); }, busy: repairing }
         : { label: retrying ? t('audioSystem.retrying') : t('audioSystem.retry'), icon: <RefreshCw size={12} aria-hidden="true" className={retrying ? 'spinning' : ''} />, onClick: () => { void retry(); }, busy: retrying },
       onDismiss: dismissAudio,
+      dismissLabel,
+    });
+  }
+
+  // macOS: the device works, but the installed driver is older than the one this
+  // app ships, which in-app updates never install. Offered once per driver
+  // version: dismissing it keeps it away until the next driver.
+  const driverUpdate = useAudioSystemDriverUpdate();
+  const driverUpdateDismissedFor = useAudioSystemDriverUpdateDismissedFor();
+  const updatingDriver = useAudioSystemUpdatingDriver();
+  const driverUpdateFailed = useAudioSystemDriverUpdateFailed();
+  const updateDriver = useAudioSystemUpdateDriver();
+  const dismissDriverUpdate = useAudioSystemDismissDriverUpdate();
+  if (audioStatus === 'ok' && driverUpdate && driverUpdateDismissedFor !== driverUpdate.bundled) {
+    banners.push({
+      id: 'audio-driver-update',
+      tone: 'brand',
+      icon: <Download size={14} aria-hidden="true" />,
+      text: driverUpdateFailed ? t('audioSystem.macDriverUpdateFailedBody') : t('audioSystem.macDriverUpdateBody'),
+      action: {
+        label: updatingDriver ? t('audioSystem.updatingDriver') : t('audioSystem.updateDriver'),
+        icon: <Wrench size={12} aria-hidden="true" className={updatingDriver ? 'spinning' : ''} />,
+        onClick: () => { void updateDriver(t('audioSystem.macDriverUpdatePrompt')); },
+        busy: updatingDriver,
+      },
+      onDismiss: dismissDriverUpdate,
       dismissLabel,
     });
   }

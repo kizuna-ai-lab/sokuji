@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "Korjaus ei palauttanut virtuaalista mikrofonia. Käynnistä Mac uudelleen tai asenna Sokuji uudelleen .pkg-asennusohjelmalla.",
     "repair": "Korjaa",
     "repairing": "Korjataan...",
-    "macRepairPrompt": "Sokuji haluaa korjata virtuaalisen mikrofoninsa."
+    "macRepairPrompt": "Sokuji haluaa korjata virtuaalisen mikrofoninsa.",
+    "macDriverUpdateBody": "Sokujin virtuaalimikrofonista on uusi versio. Sen avulla myös WhatsAppin kaltaiset sovellukset voivat käyttää sitä puheluissa. Päivitä se; macOS kysyy järjestelmänvalvojan salasanaa.",
+    "macDriverUpdateFailedBody": "Virtuaalimikrofonin päivitys ei onnistunut. Yritä uudelleen tai asenna Sokuji uudelleen .pkg-asennusohjelmalla.",
+    "updateDriver": "Päivitä",
+    "updatingDriver": "Päivitetään...",
+    "macDriverUpdatePrompt": "Sokuji haluaa päivittää virtuaalimikrofoninsa."
   },
   "vbCable": {
     "title": "Anna toisen osapuolen kuulla käännös",

@@ -1120,7 +1120,12 @@
     "macRepairFailedBody": "복구 후에도 가상 마이크가 나타나지 않았습니다. Mac을 재시동하거나 .pkg 설치 프로그램으로 Sokuji를 다시 설치하세요.",
     "repair": "복구",
     "repairing": "복구 중...",
-    "macRepairPrompt": "Sokuji가 가상 마이크를 복구하려고 합니다."
+    "macRepairPrompt": "Sokuji가 가상 마이크를 복구하려고 합니다.",
+    "macDriverUpdateBody": "Sokuji 가상 마이크의 새 버전이 있습니다. 업데이트하면 WhatsApp 같은 앱의 통화에서도 사용할 수 있습니다. 업데이트하면 macOS가 관리자 암호를 요청합니다.",
+    "macDriverUpdateFailedBody": "가상 마이크 업데이트를 완료하지 못했습니다. 다시 시도하거나 .pkg 설치 프로그램으로 Sokuji를 다시 설치하세요.",
+    "updateDriver": "업데이트",
+    "updatingDriver": "업데이트 중...",
+    "macDriverUpdatePrompt": "Sokuji가 가상 마이크를 업데이트하려고 합니다."
   },
   "vbCable": {
     "title": "상대방이 번역을 듣게 하기",
