@@ -42,7 +42,7 @@ interface Harness {
 /** `decodeText` is what the fake recognizer returns for a segment of `n` samples. */
 function load(decodeText: (n: number) => string = (n) => `text${n}`): Harness {
   const posted: any[] = [];
-  const calls = { createVad: 0, decodes: [] as number[] };
+  const calls = { createVad: 0, decodes: [] as number[], config: null as any };
   const self: any = {};
   const sandbox: any = {
     self,
@@ -59,6 +59,7 @@ function load(decodeText: (n: number) => string = (n) => `text${n}`): Harness {
       };
       sandbox.CircularBuffer = class { push() {} size() { return 0; } head() { return 0; } get() { return new Float32Array(0); } pop() {} free() {} };
       sandbox.OfflineRecognizer = class {
+        constructor(config: unknown) { calls.config = config; }
         createStream() {
           return { samples: new Float32Array(0) as Float32Array, acceptWaveform(_sr: number, s: Float32Array) { this.samples = s; }, free() {} };
         }
@@ -106,6 +107,31 @@ async function ready(port: FakePort, decodeText?: (n: number) => string): Promis
 describe('sherpa-onnx worker, with a segment port', () => {
   let port: FakePort;
   beforeEach(() => { port = fakePort(); });
+
+  // Left to decide, SenseVoice wrote the Japanese of a Japanese session in Chinese characters without kana (会议,
+  // 电车): it is told the leg's language where it knows it, and decides only for a language it does not.
+  it("tells SenseVoice the leg's language where SenseVoice knows it, and lets it decide otherwise", async () => {
+    const senseVoiceLanguage = async (language?: string) => {
+      const h = load();
+      h.send({ ...INIT, ...(language === undefined ? {} : { language }), segmentPort: fakePort() });
+      h.runtimeReady();
+      await settle();
+      return h.calls.config?.modelConfig?.senseVoice?.language;
+    };
+    expect(await senseVoiceLanguage('ja')).toBe('ja');
+    expect(await senseVoiceLanguage('zh')).toBe('zh');
+    expect(await senseVoiceLanguage('yue')).toBe('yue');
+    expect(await senseVoiceLanguage('fr')).toBe('');
+    expect(await senseVoiceLanguage(undefined)).toBe('');
+  });
+
+  it('gives another engine no language field it does not take', async () => {
+    const h = load();
+    h.send({ ...INIT, asrEngine: 'whisper', language: 'ja', segmentPort: fakePort() });
+    h.runtimeReady();
+    await settle();
+    expect(h.calls.config.modelConfig.whisper).not.toHaveProperty('language');
+  });
 
   it('runs no VAD, and is ready', async () => {
     const h = await ready(port);
