@@ -117,7 +117,11 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
     try {
       const result = await (window as any).electron?.invoke('update-virtual-audio-driver', { prompt });
       // Success arrives as an 'audio-status' push without the outdated reason.
-      // A dialog the user cancelled is not a failure: the offer simply stays.
+      // The update restarted Core Audio and replaced the devices (the speaker
+      // Sokuji plays into is a new device), so read the device list again and
+      // try once more any device a session marked unusable meanwhile, as a
+      // repair's recovery does. A cancelled dialog is not a failure: the offer stays.
+      if (result?.ok) void useAudioStore.getState().syncDevices({ retryUnusable: true });
       if (!result?.ok && !result?.cancelled) {
         set({ driverUpdateFailed: true });
         reportError('AudioSystemStore', `The virtual microphone driver update did not work: ${result?.error ?? 'no result'}`);
@@ -176,6 +180,8 @@ const useAudioSystemStore = create<AudioSystemStore>()((set, get) => ({
         driverUpdate: data.reason === 'mac-driver-outdated' && data.driverVersion?.installed && data.driverVersion?.bundled
           ? { installed: String(data.driverVersion.installed), bundled: String(data.driverVersion.bundled) }
           : null,
+        // A failure belongs to the offer it was for; a status without one ends it.
+        driverUpdateFailed: data.reason === 'mac-driver-outdated' ? get().driverUpdateFailed : false,
       });
       // A recovery is a change the OS reported: devices marked unusable while
       // it was down (a Repair restarting Core Audio mid-run) are tried again.

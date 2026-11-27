@@ -111,7 +111,9 @@ function driverSwapScript(sourcePath) {
     `if [ -d ${dest} ] && ! mv ${dest} ${prev}; then rm -rf ${stage}; echo 'sokuji: moving the installed driver aside failed' >&2; exit 1; fi`,
     `if ! mv ${stage} ${dest}; then [ -d ${prev} ] && mv ${prev} ${dest}; rm -rf ${stage}; echo 'sokuji: moving the new driver into place failed' >&2; exit 1; fi`,
     `rm -rf ${prev}`,
-    '/usr/bin/killall coreaudiod',
+    // The new driver is in place by now; a Core Audio that is not running (and
+    // so has nothing to kill) still loads it when it next starts.
+    '/usr/bin/killall coreaudiod || true',
   ].join('; ');
 }
 
@@ -149,8 +151,11 @@ async function installBundledDriver({
   }
 
   // Core Audio restarts on its own and registers the device once it has loaded
-  // the new driver. Bounded by time, as the repair is: a Core Audio that hangs
+  // the new driver. killall only signals it, so the old process can still be
+  // answering - with the old driver's device - for a moment: wait before the
+  // first probe. Bounded by time, as the repair is: a Core Audio that hangs
   // makes every probe wait out the helper's timeout.
+  await sleep(1500);
   const deadline = now() + deadlineMs;
   do {
     let result = null;

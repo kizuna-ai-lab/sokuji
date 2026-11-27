@@ -46,8 +46,12 @@ echo "  Using Sokuji.icns as driver icon"
 cd BlackHole
 
 BLACKHOLE_DIR="$(pwd)"
-git apply "$TRANSPORT_PATCH"
-trap 'git -C "$BLACKHOLE_DIR" checkout -- BlackHole/BlackHole.c' EXIT
+# Idempotent: a run killed before its trap fired leaves the patch applied.
+if ! git apply --reverse --check "$TRANSPORT_PATCH" 2>/dev/null; then
+  git apply "$TRANSPORT_PATCH"
+fi
+# Revert exactly the patch, so nothing else in the submodule is touched.
+trap 'git -C "$BLACKHOLE_DIR" apply --reverse "$TRANSPORT_PATCH"' EXIT
 echo "  Applied $(basename "$TRANSPORT_PATCH")"
 
 # Clean previous builds

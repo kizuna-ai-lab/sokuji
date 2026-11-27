@@ -218,6 +218,19 @@ describe('audioSystemStore', () => {
       expect(useAudioSystemStore.getState().updatingDriver).toBe(false);
     });
 
+    it('reads the devices again after a successful update', async () => {
+      mockElectron({ invoke: vi.fn(async () => ({ ok: true })) });
+      const syncDevices = vi.fn(async () => {});
+      const before = useAudioStore.getState().syncDevices;
+      useAudioStore.setState({ syncDevices } as never);
+      try {
+        await useAudioSystemStore.getState().updateDriver('p');
+        expect(syncDevices).toHaveBeenCalledWith({ retryUnusable: true });
+      } finally {
+        useAudioStore.setState({ syncDevices: before } as never);
+      }
+    });
+
     it('marks a failed update', async () => {
       mockElectron({ invoke: vi.fn(async () => ({ ok: false, cancelled: false, error: 'boom' })) });
       await useAudioSystemStore.getState().updateDriver('p');

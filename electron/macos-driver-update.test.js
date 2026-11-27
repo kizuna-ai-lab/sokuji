@@ -102,7 +102,7 @@ describe('driverSwapScript', () => {
     const script = driverSwapScript(source)
       .split(INSTALLED_DRIVER_PATH).join(path.join(halDir, 'SokujiVirtualAudio.driver'))
       .replace(/! chown -R root:wheel '[^']*' \|\| /g, '') // not root here
-      .replace('/usr/bin/killall coreaudiod', 'true');
+      .replace('/usr/bin/killall coreaudiod || true', 'true');
     return execFileSync('/bin/sh', ['-c', script], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   };
   const driver = (dir, content) => {
@@ -142,7 +142,7 @@ describe('driverSwapScript', () => {
   });
 
   it('restarts Core Audio last', () => {
-    expect(driverSwapScript('/a').trim().endsWith('/usr/bin/killall coreaudiod')).toBe(true);
+    expect(driverSwapScript('/a').trim().endsWith('/usr/bin/killall coreaudiod || true')).toBe(true);
   });
 });
 
