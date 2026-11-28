@@ -1,0 +1,12 @@
+[
+  {
+    "file": "src/ggml-cpu/arch/arm/repack.cpp",
+    "old": "            int8x8x4_t  a_chunks = vld1_s8_x4(a_ptr->qs);\n            int8x16_t   a0       = vcombine_s8(a_chunks.val[0], a_chunks.val[0]);\n            int8x16_t   a1       = vcombine_s8(a_chunks.val[1], a_chunks.val[1]);\n            int8x16_t   a2       = vcombine_s8(a_chunks.val[2], a_chunks.val[2]);\n            int8x16_t   a3       = vcombine_s8(a_chunks.val[3], a_chunks.val[3]);\n",
+    "new": "            // sokuji-native (ggml-arm-gcc11-vld1-x4.json): four 64-bit loads, not vld1_s8_x4 -- gcc 11 spills\n            // the int8x8x4_t tuple in 16-byte slots and reloads .val[1..3] at 8-byte offsets (wrong code).\n            const int8x8_t a_c0 = vld1_s8(a_ptr->qs + 0);\n            const int8x8_t a_c1 = vld1_s8(a_ptr->qs + 8);\n            const int8x8_t a_c2 = vld1_s8(a_ptr->qs + 16);\n            const int8x8_t a_c3 = vld1_s8(a_ptr->qs + 24);\n            int8x16_t   a0       = vcombine_s8(a_c0, a_c0);\n            int8x16_t   a1       = vcombine_s8(a_c1, a_c1);\n            int8x16_t   a2       = vcombine_s8(a_c2, a_c2);\n            int8x16_t   a3       = vcombine_s8(a_c3, a_c3);\n"
+  },
+  {
+    "file": "src/ggml-cpu/arch/arm/repack.cpp",
+    "old": "                int8x8x4_t  a_chunks = vld1_s8_x4(a_blk->qs);\n                int8x16_t   a0       = vcombine_s8(a_chunks.val[0], a_chunks.val[0]);\n                int8x16_t   a1       = vcombine_s8(a_chunks.val[1], a_chunks.val[1]);\n                int8x16_t   a2       = vcombine_s8(a_chunks.val[2], a_chunks.val[2]);\n                int8x16_t   a3       = vcombine_s8(a_chunks.val[3], a_chunks.val[3]);\n",
+    "new": "                // sokuji-native (ggml-arm-gcc11-vld1-x4.json): four 64-bit loads, not vld1_s8_x4 -- gcc 11 spills\n                // the int8x8x4_t tuple in 16-byte slots and reloads .val[1..3] at 8-byte offsets (wrong code).\n                const int8x8_t a_c0 = vld1_s8(a_blk->qs + 0);\n                const int8x8_t a_c1 = vld1_s8(a_blk->qs + 8);\n                const int8x8_t a_c2 = vld1_s8(a_blk->qs + 16);\n                const int8x8_t a_c3 = vld1_s8(a_blk->qs + 24);\n                int8x16_t   a0       = vcombine_s8(a_c0, a_c0);\n                int8x16_t   a1       = vcombine_s8(a_c1, a_c1);\n                int8x16_t   a2       = vcombine_s8(a_c2, a_c2);\n                int8x16_t   a3       = vcombine_s8(a_c3, a_c3);\n"
+  }
+]

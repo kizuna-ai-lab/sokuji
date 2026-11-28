@@ -68,6 +68,18 @@ endif()
 # output for the types it covers: it is a read-shape change only.
 list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-gguf-bulk-array-read.json")
 
+# gcc 11 (the linux-arm64 lane's ubuntu-22.04 compiler) miscompiles the int8x8x4_t tuple from
+# vld1_s8_x4 in ggml 1.1.1's i8mm Q8_0 / Q1_0 GEMV kernels (ggml_gemv_q8_0_4x8_q8_0,
+# ggml_gemv_q1_0_4x8_q8_0 in src/ggml-cpu/arch/arm/repack.cpp): it spills the tuple in 16-byte
+# slots and reloads .val[1..3] at 8-byte offsets, so every repacked Q8_0 matmul with 1-3 leftover
+# rows is wrong and llama.cpp's translation turns to gibberish -- in the armv8.6_x (i8mm) modules
+# only, which are the ones that pick the 4x8 repack. The patch loads the four 64-bit chunks with
+# plain vld1_s8, which gcc 11 compiles correctly; the values are identical. Selected on every arm64
+# build: gcc 13 and clang are verified/expected unaffected, and MSVC never compiles that code.
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64|ARM64")
+    list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-arm-gcc11-vld1-x4.json")
+endif()
+
 # No Metal patches since ggml 1.1.1 (native-v1.4.0). Up to 0.25.3 the Metal lane carried two:
 # - ggml-metal-diag-mask-inf: Metal had no GGML_OP_DIAG_MASK_INF kernel, and audio.cpp's attention
 #   blocks build that op. ggml 1.0.0 removed the op from every backend ("ggml : prune"), so

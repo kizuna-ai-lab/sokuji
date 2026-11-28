@@ -73,6 +73,10 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   - `ggml-drop-sme.json` — drops the Linux armv9.2 +sme CPU variants when the compiler cannot build them
   - `ggml-drop-sme-apple.json` — drops the apple_m4 (+sme) CPU variant; Apple clang cannot build it
   - `ggml-gguf-bulk-array-read.json` — every lane; see [GGUF array reads](#gguf-array-reads)
+  - `ggml-arm-gcc11-vld1-x4.json` — every arm64 build: gcc 11 (the linux-arm64 lane's compiler)
+    miscompiles the `vld1_s8_x4` tuple in ggml 1.1.1's i8mm Q8_0/Q1_0 GEMV kernels, which made
+    translation gibberish in the armv8.6 CPU modules; four plain loads instead (see the comment in
+    `cmake/ggml_options.cmake`)
   - `SOKUJI_GGML_PATCH_SPEC` (set in `cmake/ggml_options.cmake`) is a **list**: ggml can carry
     an always-on portability spec and lane-specific ones at once, and `patch_upstream.py`
     concatenates every spec it is given. The Metal lane carried two more until ggml 1.1.1
