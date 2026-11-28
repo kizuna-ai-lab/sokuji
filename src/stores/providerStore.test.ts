@@ -548,6 +548,10 @@ describe('the pair a provider is checked for when another provider transcribes',
     useProviderStore.getState().setStages({ heard: ['transcription'], translator: ['translation', 'speech'] });
     await useProviderStore.getState().refreshReadiness(translator, auth);
     expect(pairsAsked(check)).toEqual([{ source: 'en', target: 'de' }]);
+    // The line-up page reads the same pair for what each local card needs (owner, 2026-11-28).
+    expect(useProviderStore.getState().checkedPair('translator')).toEqual({ source: 'en', target: 'de' });
+    expect(useProviderStore.getState().checkedPair('heard')).toEqual({ source: 'en', target: 'de' });
+    expect(useProviderStore.getState().checkedPair('nobody')).toBeUndefined();
   });
 
   it('is the pair as picked, not the nearest its own lists offer, and a new pick forgets its answer though its own pair did not move', async () => {

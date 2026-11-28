@@ -105,6 +105,8 @@ import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
+import { useModelStore } from '../../stores/modelStore';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { providerTarget } from './accountRows';
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null };
@@ -1180,6 +1182,121 @@ describe('languages and line-up — the way in from a notice', () => {
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
   });
 
+  // Owner, 2026-11-28: "Needs a model" is each card's own: shown on a card whose stage has no model, for the directions a
+  // session runs, and leading to that stage's models in Local models and storage, in its engine's library.
+  describe('"Needs a model", stage by stage', () => {
+    const wasmResolve = useModelStore.getState().resolve;
+    const nativeResolve = useNativeModelStore.getState().resolve;
+    afterEach(() => {
+      useModelStore.setState({ resolve: wasmResolve });
+      useNativeModelStore.setState({ resolve: nativeResolve });
+    });
+    const has = (ids: Partial<Record<'asr' | 'translation' | 'tts', string>>) => () => ({
+      asr: ids.asr ? { modelId: ids.asr, source: 'auto' as const } : null,
+      translation: ids.translation ? { modelId: ids.translation, source: 'auto' as const } : null,
+      tts: ids.tts ? { modelId: ids.tts, source: 'auto' as const } : null,
+      notes: [], prunes: [],
+    });
+    const entry = { settings: { selections: {} }, pair: { source: 'ja', target: 'en' } };
+    const states = () => [...document.querySelectorAll('.lineup-stage')].slice(0, 3).map((c) => {
+      const tag = c.querySelector('.lineup-stage__state');
+      return `${tag?.textContent}${tag?.tagName === 'BUTTON' ? ' (link)' : ''}`;
+    });
+    const follow = (index: number) => {
+      fireEvent.click(document.querySelectorAll('.lineup-stage')[index].querySelector('button.lineup-stage__state')!);
+      return useSettingsStore.getState().settingsNavigationTarget;
+    };
+
+    it('on this device (WASM/WebGPU): only the stages with no model say so, each leading to its own models', () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: has({ asr: 'a' }) });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing', params: { stage: 'translation' } } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states()).toEqual(['Ready', 'Needs a model (link)', 'Needs a model (link)']);
+      expect(follow(1)).toBe('models-translation');
+      expect(follow(2)).toBe('models-tts');
+    });
+
+    it('with no model at all, each card leads to its own stage', () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: has({}) });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing', params: { stage: 'asr' } } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states()).toEqual(['Needs a model (link)', 'Needs a model (link)', 'Needs a model (link)']);
+      expect(follow(0)).toBe('models-asr');
+      expect(follow(1)).toBe('models-translation');
+      expect(follow(2)).toBe('models-tts');
+    });
+
+    it("with both directions running, the transcription needs the other side's recognition model too", () => {
+      useAudioStore.setState({ mode: 'both' });
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'edge', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: (src: string) => has(src === 'ja' ? { asr: 'a', translation: 't' } : { translation: 't' })() });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'no_asr', params: { source: 'en' } } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states().slice(0, 2)).toEqual(['Needs a model (link)', 'Ready']);
+      expect(follow(0)).toBe('models-asr');
+    });
+
+    it('a stage the check names as missing says so, whatever this page resolves', () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'edge', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: has({ asr: 'a', translation: 't' }) });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing', params: { stage: 'translation' } } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states().slice(0, 2)).toEqual(['Ready', 'Needs a model (link)']);
+    });
+
+    it("on the native engine: its own library; and the engine's card when the engine itself is missing", () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_native', translation: 'local_native', speech: 'edge', summarisation: null }, stored: true });
+      runsOn('local_native');
+      useNativeModelStore.setState({ resolve: has({ translation: 't' }) });
+      useProviderStore.setState({ entries: { local_native: entry } as never, readiness: { local_native: { state: 'not-ready', reason: 'x', code: 'native_asr_missing' } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states().slice(0, 2)).toEqual(['Needs a model (link)', 'Ready']);
+      expect(follow(0)).toBe('native-models-asr');
+      cleanup();
+      useProviderStore.setState({ readiness: { local_native: { state: 'not-ready', reason: 'x', code: 'native_engine_required' } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states().slice(0, 2)).toEqual(['Needs a model (link)', 'Needs a model (link)']);
+      expect(follow(1)).toBe('native-engine');
+    });
+
+    // Review: translating what another provider transcribes, it is checked for the transcriber's pair, not its own.
+    it("translating what another provider hears, the translation card reads the pair that provider runs", () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'local_inference', speech: 'edge', summarisation: null }, stored: true });
+      useModelStore.setState({ resolve: (src: string) => has(src === 'ko' ? { translation: 't' } : {})() });
+      useProviderStore.setState({
+        stages: { soniox: ['transcription'], local_inference: ['translation'] }, intent: { source: 'ko', target: 'en' },
+        entries: { soniox: { settings: {}, credentials: { apiKey: 'k' }, pair: { source: 'ko', target: 'en' } }, local_inference: entry } as never,
+        readiness: { local_inference: { state: 'ready' } } as never,
+      });
+      render(<LineUpCategory locked={false} />);
+      const card = screen.getByRole('combobox', { name: 'Translation' }).closest('.lineup-stage') as HTMLElement;
+      expect(card.querySelector('.lineup-stage__state')?.textContent).toBe('Ready');
+    });
+
+    it('ready, a speech model that is missing is said on the speech card alone', () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: has({ asr: 'a', translation: 't' }) });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'ready' } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states()).toEqual(['Ready', 'Ready', 'Needs a model (link)']);
+    });
+  });
+
+  it("a local provider that is not ready for another reason keeps a plain state: nothing in Local models and storage answers it", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_native', translation: 'local_native', speech: 'edge', summarisation: null }, stored: true });
+    runsOn('local_native');
+    useProviderStore.setState({ readiness: { local_native: { state: 'not-ready', reason: 'x', code: 'native_starting' } } as never });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByRole('button', { name: 'Needs a model' })).toBeNull();
+  });
+
   it('Bing and Edge need no model: their rows read Ready while the local models are missing', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     runsOn('local_inference');
@@ -1279,8 +1396,13 @@ describe('languages and line-up — as the mock draws them', () => {
     const joint = cards[0];
     expect([...joint.querySelectorAll('.lineup-stage__head .lineup-stage__name')].map((n) => n.textContent)).toEqual(['Transcription', 'Translation']);
     expect(joint.querySelectorAll('.lineup-stage__head .lineup-stage__state')).toHaveLength(2);
-    // Soniox's translation can be given to another service: the card's one choice for both, and the translation's own.
+    // Soniox's translation can be given to another service: the card's one choice for both, and the translation's own,
+    // each under its stage's name and state as a card of one stage has it (owner, 2026-11-28: the card's choice sat over
+    // the card, above the transcription's name).
     expect(within(joint as HTMLElement).getAllByRole('combobox').map((c) => c.getAttribute('aria-label'))).toEqual(['Transcription and translation', 'Translation']);
+    for (const part of joint.querySelectorAll('.lineup-stage__part')) {
+      expect(part.querySelector('.lineup-stage__head')?.nextElementSibling?.tagName).toBe('SELECT');
+    }
     expect(within(joint as HTMLElement).getByText('Transcription and translation go over one connection. Another service can do the translation: choose it below.')).toBeInTheDocument();
     // An end-to-end service holds its stages jointly: one choice for them all, and they change together.
     cleanup();

@@ -1024,7 +1024,7 @@
       "nativeHint": "Dołączony do aplikacji, działa na tym komputerze.",
       "engineHintNative": "Silnik, na którym działają modele natywne.",
       "tabMeta": "Pobrano: {{count}}, {{size}}",
-      "tabNone": "Nic nie pobrano",
+      "tabNone": "Nie pobrano żadnych modeli",
       "tabs": "Silnik",
       "toHelpers": "Modele pomocnicze",
       "downloadedChoose": "Pobrano. Wybierz go w „Języki i zestaw”, aby użyć w sesji.",

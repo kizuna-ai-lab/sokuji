@@ -1024,7 +1024,7 @@
       "nativeHint": "Tulee sovelluksen mukana ja toimii tällä tietokoneella.",
       "engineHintNative": "Moottori, jolla natiivimallit toimivat.",
       "tabMeta": "{{count}} ladattu, {{size}}",
-      "tabNone": "Ei ladattuja",
+      "tabNone": "Malleja ei ladattu",
       "tabs": "Moottori",
       "toHelpers": "Apumallit",
       "downloadedChoose": "Ladattu. Valitse se kohdassa ”Kielet ja kokoonpano”, jotta voit käyttää sitä istunnossa.",

@@ -36,6 +36,7 @@ import { providerNameKey } from '../../providers/nameKey';
 import { ModelCard } from '../Settings/shared/ModelCard';
 import { ModelStageList } from '../Settings/shared/ModelStageList';
 import { NativeModelsGroup } from './NativeModelsGroup';
+import { EngineStatusLine } from '../Settings/sections/EngineStatusLine';
 import type { LocalInferenceSettings } from '../../providers/localInference/settings';
 import type { LanguagePair } from '../../lib/run/types';
 
@@ -78,7 +79,7 @@ function Confirm({ question, notes = [], onYes, onNo, locked }: { question: stri
   );
 }
 
-function Group({ title, hint, children, id }: { title: string; hint: string; children: ReactNode; id?: string }) {
+function Group({ title, hint, children, id }: { title: string; hint: ReactNode; children: ReactNode; id?: string }) {
   return (
     <section className="models-group" aria-label={title} id={id}>
       <h3 className="models-group__title">{title}</h3>
@@ -122,7 +123,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   // It counts as a choice: the fallback below (no native engine here) does not move the page off the library asked for.
   useEffect(() => {
     if (!navTarget) return;
-    if (navTarget.startsWith('native-models-')) { chosen.current = true; setTab('native'); }
+    if (navTarget.startsWith('native-models-') || navTarget === 'native-engine') { chosen.current = true; setTab('native'); }
     else if (navTarget.startsWith('models-')) { chosen.current = true; setTab('webgpu'); }
   }, [navTarget]);
   const chooseTab = (next: 'native' | 'webgpu') => {
@@ -324,7 +325,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const tabLabel = (name: string, n: number, bytes: number) => (
     <>
       <span className="models-tabs__name">{name}</span>
-      <span className="models-tabs__meta">{n > 0 ? t('models.page.tabMeta', '{{count}} downloaded, {{size}}', { count: n, size: formatBytes(bytes) }) : t('models.page.tabNone', 'None downloaded')}</span>
+      <span className="models-tabs__meta">{n > 0 ? t('models.page.tabMeta', '{{count}} downloaded, {{size}}', { count: n, size: formatBytes(bytes) }) : t('models.page.tabNone', 'No models downloaded')}</span>
     </>
   );
 
@@ -368,7 +369,8 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
           <div role="tabpanel" id="models-panel" aria-labelledby={`models-tab-${tab}`}>
             {tab === 'native' ? (
               <>
-                <Group title={t('models.page.nativeTab', 'Native engine')} hint={t('models.page.nativeHint', 'Ships with the app and runs on this computer.')}>
+                {/* The engine's version, backend and device end its hint (owner, 2026-11-28): shown nowhere else since the side panel went. */}
+                <Group title={t('models.page.nativeTab', 'Native engine')} hint={<>{t('models.page.nativeHint', 'Ships with the app and runs on this computer.')} <EngineStatusLine inline /></>}>
                   <NativeModelsGroup locked={locked} />
                 </Group>
                 {engineGroup}

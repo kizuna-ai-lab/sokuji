@@ -1024,7 +1024,7 @@
       "nativeHint": "Wird mit der App geliefert und läuft auf diesem Computer.",
       "engineHintNative": "Die Engine, auf der die nativen Modelle laufen.",
       "tabMeta": "{{count}} heruntergeladen, {{size}}",
-      "tabNone": "Nichts heruntergeladen",
+      "tabNone": "Keine Modelle heruntergeladen",
       "tabs": "Engine",
       "toHelpers": "Hilfsmodelle",
       "downloadedChoose": "Heruntergeladen. Unter „Sprachen und Aufstellung“ auswählen, um es in einer Sitzung zu verwenden.",

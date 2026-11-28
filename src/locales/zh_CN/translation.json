@@ -1064,7 +1064,7 @@
       "showDirection": "显示 {{from}} → {{to}}",
       "engineHintNative": "原生模型运行所依赖的引擎。",
       "tabMeta": "已下载 {{count}} 个，{{size}}",
-      "tabNone": "尚未下载",
+      "tabNone": "尚未下载模型",
       "tabs": "引擎",
       "toHelpers": "辅助模型",
       "downloadedChoose": "已下载。要在会话里使用，请到“语言与会话组成”里选择它。",

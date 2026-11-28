@@ -1024,7 +1024,7 @@
       "nativeHint": "Incluso nell’app, gira su questo computer.",
       "engineHintNative": "Il motore su cui girano i modelli nativi.",
       "tabMeta": "{{count}} scaricati, {{size}}",
-      "tabNone": "Nessuno scaricato",
+      "tabNone": "Nessun modello scaricato",
       "tabs": "Motore",
       "toHelpers": "Modelli di supporto",
       "downloadedChoose": "Scaricato. Sceglilo in «Lingue e composizione» per usarlo in una sessione.",

@@ -76,12 +76,18 @@ describe('checkLocalInference', () => {
     expect(await checkLocalInference(defaults, withModels({ pair: { source: 'ja', target: 'en' }, legs: ['speaker'] }))).toEqual({ ok: true });
   });
 
+  // The stage it lacks is the notice's `stage`: its action opens that stage's models in Local models and storage.
   it('names what the speaker direction lacks', async () => {
     resolved({ 'ja>en': { asr: 'a', translation: null } });
     expect(await checkLocalInference(defaults, withModels({ pair: { source: 'ja', target: 'en' }, legs: ['speaker'] }))).toEqual({
       ok: false,
       reason: 'Required models are not available for the selected language pair.',
       code: 'local_models_missing',
+      params: { stage: 'translation' },
+    });
+    resolved({ 'ja>en': { asr: null, translation: 't' } });
+    expect(await checkLocalInference(defaults, withModels({ pair: { source: 'ja', target: 'en' }, legs: ['speaker'] }))).toMatchObject({
+      code: 'local_models_missing', params: { stage: 'asr' },
     });
   });
 
@@ -106,6 +112,7 @@ describe('checkLocalInference', () => {
       ok: false,
       reason: 'Required models are not available for the selected language pair.',
       code: 'local_models_missing',
+      params: { stage: 'asr' },
     });
   });
 
@@ -133,6 +140,7 @@ describe('checkLocalInference', () => {
       ok: false,
       reason: 'Required models are not available for the selected language pair.',
       code: 'local_models_missing',
+      params: { stage: 'translation' },
     });
   });
 
@@ -178,7 +186,7 @@ describe('readiness when this device translates what another provider transcribe
 
   it('a recognition model is not enough: without the translation model it is not ready, in the code of models that are missing', async () => {
     resolved({ 'ja>en': { asr: 'a', translation: null } });
-    expect(await checkLocalInference(defaults, withModels(told()))).toMatchObject({ ok: false, code: 'local_models_missing' });
+    expect(await checkLocalInference(defaults, withModels(told()))).toMatchObject({ ok: false, code: 'local_models_missing', params: { stage: 'translation' } });
   });
 
   it('with both legs, each direction needs its translation: no leg runs transcription-only here', async () => {

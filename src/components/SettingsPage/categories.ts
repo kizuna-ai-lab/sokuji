@@ -70,6 +70,8 @@ const TARGETS: Record<string, { category: CategoryId; anchor: string | null }> =
   'native-models-asr': { category: 'models', anchor: 'native-models-asr' },
   'native-models-translation': { category: 'models', anchor: 'native-models-translation' },
   'native-models-tts': { category: 'models', anchor: 'native-models-tts' },
+  // The native engine's card at the top of its tab, where it is downloaded and updated: a notice about the engine.
+  'native-engine': { category: 'models', anchor: 'native-engine' },
   // Local models and storage itself, from This device's row in Accounts and keys.
   models: { category: 'models', anchor: null },
   // The local engine's voices, in the speech card when this device speaks (B-20).

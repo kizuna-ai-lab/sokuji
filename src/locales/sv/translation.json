@@ -1024,7 +1024,7 @@
       "nativeHint": "Följer med appen och körs på den här datorn.",
       "engineHintNative": "Motorn som de nativa modellerna körs på.",
       "tabMeta": "{{count}} nedladdade, {{size}}",
-      "tabNone": "Inget nedladdat",
+      "tabNone": "Inga modeller nedladdade",
       "tabs": "Motor",
       "toHelpers": "Hjälpmodeller",
       "downloadedChoose": "Nedladdad. Välj den i ”Språk och uppsättning” för att använda den i en session.",

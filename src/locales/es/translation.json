@@ -1024,7 +1024,7 @@
       "nativeHint": "Se incluye con la aplicación y se ejecuta en este equipo.",
       "engineHintNative": "El motor en el que se ejecutan los modelos nativos.",
       "tabMeta": "{{count}} descargados, {{size}}",
-      "tabNone": "Ninguno descargado",
+      "tabNone": "Ningún modelo descargado",
       "tabs": "Motor",
       "toHelpers": "Modelos auxiliares",
       "downloadedChoose": "Descargado. Elígelo en «Idiomas y combinación» para usarlo en una sesión.",

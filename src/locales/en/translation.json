@@ -1296,7 +1296,7 @@
       "showDirection": "Show {{from}} → {{to}}",
       "engineHintNative": "The engine the native models run on.",
       "tabMeta": "{{count}} downloaded, {{size}}",
-      "tabNone": "None downloaded",
+      "tabNone": "No models downloaded",
       "tabs": "Engine",
       "toHelpers": "Helper models",
       "downloadedChoose": "Downloaded. Choose it in “Languages and line-up” to use it in a session.",

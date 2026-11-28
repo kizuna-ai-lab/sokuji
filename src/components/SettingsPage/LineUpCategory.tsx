@@ -10,7 +10,7 @@
 import { useWordList } from '../../lib/words/list';
 import { modelTakesWords, wordServiceOf, wordsFor } from '../../lib/words/forService';
 import { effectiveGeminiModel } from '../../providers/gemini/settings';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AudioLines, ChevronDown, ChevronRight, Link2, ListX } from 'lucide-react';
 import { useAnalytics } from '../../lib/analytics';
@@ -21,20 +21,24 @@ import { usePlan } from '../../lib/plan/fromStores';
 import type { PlanRefusalCode } from '../../lib/plan/types';
 import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
 import { noticeText } from '../../lib/view/noticeText';
+import { settingsTargetForCode } from '../../lib/view/noticeTargets';
 import {
   COMPATIBLE_NOTES, GEMINI_KEY_HOLDERS, GEMINI_NOTES, KIZUNA_NOTES, notesProviderOf, notesServiceOf, OPENAI_KEY_HOLDERS, OPENAI_NOTES,
 } from '../../lib/notes/notesService';
 import { perHour, useNotesPricing } from '../../lib/notes/notesPricing';
 import { RUN_STAGES, type LineUp, type RunStage, type StageName } from '../../lib/lineup/types';
 import { presentProviders } from '../../providers/registry';
-import { lineUpChangedEvent, useLineUpStore } from '../../stores/lineUpStore';
+import { lineUpChangedEvent, useLineUpStore, useStoredLocalStages } from '../../stores/lineUpStore';
+import { useModelStatuses, useModelStore } from '../../stores/modelStore';
+import { useNativeModelStatuses, useNativeModelStore } from '../../stores/nativeModelStore';
+import { ALL_LOCAL_STAGES } from '../../lib/lineup/localStages';
 import { useProviderStore } from '../../stores/providerStore';
 import { useMode } from '../../stores/audioStore';
 import { useEngineSlotTarget, useNavigateToSettings, useSetEngineSlotTarget, useSetTextOnly, useSettingsNavigationTarget, useTextOnly } from '../../stores/settingsStore';
 import { supportsBaseSelect } from '../../utils/supportsBaseSelect';
 import { isElectron } from '../../utils/environment';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
-import { directionKey, type Selections } from '../../lib/local-inference/selection/types';
+import { directionKey, type Selections, type Stage } from '../../lib/local-inference/selection/types';
 import { ProviderLanguages } from '../providers/ProviderLanguages';
 import type { ReceiveChoice } from '../providers/LanguagePairSection';
 import { useHearingRows } from '../MainPanel/useHearingRows';
@@ -48,6 +52,7 @@ import { SpeechSection } from '../Settings/sections/SpeechSection';
 import { asSonioxRegion, SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
 import { LocalVoices } from './LocalVoices';
 import { providerTarget } from './accountRows';
+import { targetToCategory } from './categories';
 import type { AnyProvider } from '../../lib/provider/types';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -88,6 +93,19 @@ function carriedWith(id: string, stage: RunStage): readonly RunStage[] | undefin
   return group && group.length > 1 && group.includes(stage) ? group : undefined;
 }
 
+/** The model stage a line-up stage runs on a local engine. */
+const MODEL_STAGE: Readonly<Record<RunStage, Stage>> = { transcription: 'asr', translation: 'translation', speech: 'tts' };
+/** A local engine's own codes for the engine itself: they hold every stage. */
+const ENGINE_CODES: ReadonlySet<string> = new Set(['native_engine_required', 'native_engine_update_required']);
+
+/** The stage a local provider's check names as missing, or null for a code about something else. */
+function stageNamed(code: string | undefined, params: Readonly<Record<string, string | number>> | undefined): Stage | null {
+  if (code === 'local_models_missing') return params?.stage === 'translation' ? 'translation' : 'asr';
+  if (code === 'no_asr' || code === 'native_asr_missing') return 'asr';
+  if (code === 'native_translation_missing') return 'translation';
+  return null;
+}
+
 /**
  * Whether a provider's key or sign-in is in place, as far as this page can tell without a check. A field that may
  * be left empty (a compatible service's key) is not missing; a compatible service's address is said as such.
@@ -120,6 +138,31 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const textOnly = useTextOnly();
   const lineUp = useLineUpStore((s) => s.lineUp);
   const entries = useProviderStore((s) => s.entries);
+  // What a local card says is read from this device's models: drawn again when a download finishes or is deleted.
+  const wasmStatuses = useModelStatuses();
+  const nativeStatuses = useNativeModelStatuses();
+  const localStages = useStoredLocalStages();
+  /**
+   * Whether a local provider has no model for a card's stage, for the directions a session runs, as its check asks
+   * (owner, 2026-11-28: "Needs a model" is each card's own): recognition in every direction that runs, translation and
+   * speech in the one the session cannot run without (mine, or the other side's when only theirs runs).
+   */
+  const lacksModel = useCallback((id: string, stage: RunStage): boolean => {
+    // The pair its check is asked about: the transcriber's, where another provider transcribes (review).
+    const pair = useProviderStore.getState().checkedPair(id);
+    if (!pair) return false;
+    const selections = (entries[id]?.settings as { selections?: Selections } | undefined)?.selections ?? {};
+    const resolve = (src: string, tgt: string) => (id === 'local_native'
+      ? useNativeModelStore.getState().resolve(src, tgt, selections)
+      : useModelStore.getState().resolve(src, tgt, selections, localStages ?? ALL_LOCAL_STAGES));
+    const forward = resolve(pair.source, pair.target);
+    const reverse = mode === 'speaker' ? null : resolve(pair.target, pair.source);
+    const main = mode === 'participant' && reverse ? reverse : forward;
+    const want = MODEL_STAGE[stage];
+    if (want === 'asr') return !main.asr || (mode === 'both' && !reverse?.asr);
+    return !main[want];
+    // The statuses are what the resolution reads: a change to them is a new answer.
+  }, [entries, mode, localStages, wasmStatuses, nativeStatuses]); // eslint-disable-line react-hooks/exhaustive-deps
   const readiness = useProviderStore((s) => s.readiness);
   const target = useSettingsNavigationTarget();
   const navigateToSettings = useNavigateToSettings();
@@ -385,15 +428,32 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   }
 
   /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work, or a sign-in it waits for, takes you to
-   *  that provider's row in Accounts and keys. `own`: a readiness of the card's own in place of the provider's (the notes'). */
-  const stateOf = (id: string, own?: Readiness): { ok: boolean; text: string; toAccount?: boolean } => {
+   *  that provider's row in Accounts and keys, and a model or engine it lacks to Local models and storage. `own`: a readiness of the
+   *  card's own in place of the provider's (the notes'). */
+  const stateOf = (id: string, own?: Readiness, stage?: RunStage): { ok: boolean; text: string; toAccount?: boolean; toModels?: string } => {
     const p = providers.find((x) => x.id === id);
     const missing = credentialsMissing(p, auth.signedIn);
     if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toAccount: true };
     if (missing === 'address') return { ok: false, text: t('settingsPage.lineup.state.needsAddress', 'Needs an address'), toAccount: true };
     if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in'), toAccount: true };
     const r = own ?? (p ? readiness[p.id] : undefined);
-    if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
+    if (p?.kind === 'local' && (r?.state === 'not-ready' || r?.state === 'ready')) {
+      // What is missing is downloaded in Local models and storage (owner, 2026-11-28), and each card says its own: a
+      // card whose stage has no model, or the stage the check names, leads to that stage in its engine's library. The
+      // native engine missing or old holds every stage: its card. Not ready for another reason (the engine
+      // starting), nothing there answers it.
+      const needs = (to?: string | null) => ({ ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model'), ...(to ? { toModels: to } : {}) });
+      if (r.state === 'not-ready' && r.code !== undefined && ENGINE_CODES.has(r.code)) return needs('native-engine');
+      const named = r.state === 'not-ready' ? stageNamed(r.code, r.params) : null;
+      if (r.state === 'not-ready' && !named) return needs();
+      if (!stage) {
+        const target = r.state === 'not-ready' ? settingsTargetForCode(r.code, r.params) : null;
+        return r.state === 'not-ready' ? needs(target && targetToCategory(target).category === 'models' ? target : null) : { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
+      }
+      const want = MODEL_STAGE[stage];
+      if (named === want || lacksModel(p.id, stage)) return needs(`${p.id === 'local_native' ? 'native-models' : 'models'}-${want}`);
+      return { ok: true, text: t('settingsPage.lineup.state.ready', 'Ready') };
+    }
     // A saved key is Ready only once its check passed (B-11; Rudolf's review: saved is not working). The store keeps a
     // passed check for the same key and region, so a key that worked before stays Ready when the service is out of reach.
     if (p?.kind === 'own-key') {
@@ -423,11 +483,12 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
    * A row's state as drawn: a key it lacks or that does not work, or a sign-in it waits for, is a way to its account row.
    * `o.readiness`: the card's own (the notes'); `o.target`: the id whose account row it leads to, when not `id`.
    */
-  const stateTag = (id: string, o: { readiness?: Readiness; target?: string } = {}) => {
-    const s = stateOf(id, o.readiness);
+  const stateTag = (id: string, o: { readiness?: Readiness; target?: string; stage?: RunStage } = {}) => {
+    const s = stateOf(id, o.readiness, o.stage);
     const className = `lineup-stage__state${s.ok ? ' is-ready' : ''}`;
-    return s.toAccount
-      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(providerTarget(o.target ?? id))}>{s.text}</button>
+    const to = s.toAccount ? providerTarget(o.target ?? id) : s.toModels;
+    return to
+      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(to)}>{s.text}</button>
       : <em className={className}>{s.text}</em>;
   };
 
@@ -573,7 +634,7 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               <span className="lineup-stage__name">{titleOf(stage)}</span>
               {(refusal?.stage === stage ? refusalTag(refusal.code) : undefined) ?? (idle(stage)
                 ? <em className="lineup-stage__state is-unused">{t('settingsPage.lineup.state.notUsed', 'Not used this time')}</em>
-                : stateTag(id))}
+                : stateTag(id, { stage }))}
             </div>
           );
           // Idle: why the line-up cannot run, and why speech is not used; no options (the choice stays for next time).
@@ -643,6 +704,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               </select>
             );
           };
+          // The card's choice: over a card whose stages change together; in one whose translation can be given to another
+          // service, under the first stage's name, as each stage's choice is (owner, 2026-11-28). Named for both stages
+          // there too: another service chosen in it takes the translation that goes with it.
           const select = selectFor(first, title);
           const partnersLine = partners.length > 0 && (
             <p className="lineup-stage__joint">
@@ -664,13 +728,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                       ? t('settingsPage.lineup.partableCard', '{{stages}} go over one connection. Another service can do the translation: choose it below.', { stages: title })
                       : t('settingsPage.lineup.jointCard', '{{stages}} go over one connection; they change together.', { stages: title })}
                   </p>
-                  {select}
+                  {!partable && select}
                   {partnersLine}
                   {stages.map((stage) => (
                     <div className="lineup-stage__part" key={stage}>
                       {head(stage)}
                       {/* A stage that can be given to another service keeps a choice of its own in the shared card. */}
-                      {partable && stage !== first && selectFor(stage, titleOf(stage))}
+                      {partable && (stage === first ? select : selectFor(stage, titleOf(stage)))}
                       {stageBody(stage)}
                     </div>
                   ))}

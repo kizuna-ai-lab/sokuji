@@ -1024,7 +1024,7 @@
       "nativeHint": "앱에 포함되어 있으며 이 컴퓨터에서 실행됩니다.",
       "engineHintNative": "네이티브 모델이 실행되는 엔진입니다.",
       "tabMeta": "{{count}}개 다운로드됨, {{size}}",
-      "tabNone": "다운로드한 항목 없음",
+      "tabNone": "다운로드된 모델 없음",
       "tabs": "엔진",
       "toHelpers": "보조 모델",
       "downloadedChoose": "다운로드됨. 세션에서 사용하려면 “언어와 구성”에서 선택하세요.",

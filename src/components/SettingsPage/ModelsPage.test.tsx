@@ -34,6 +34,9 @@ vi.mock('../../providers/registry', async (importOriginal) => {
   return { ...real, presentProviders: (...a: Parameters<typeof real.presentProviders>) => [...real.presentProviders(...a), ...(offered.native ? [{ id: 'local_native' } as never] : [])] };
 });
 vi.mock('./NativeModelsGroup', () => ({ NativeModelsGroup: () => <div data-testid="native-library" /> }));
+vi.mock('../Settings/sections/EngineStatusLine', () => ({
+  EngineStatusLine: ({ inline }: { inline?: boolean }) => <span data-testid="engine-status" data-inline={String(Boolean(inline))} />,
+}));
 vi.mock('../Settings/sections/ModelImportModal', () => ({
   ModelImportModal: ({ modelName }: { modelName: string }) => <div data-testid="import-modal">{modelName}</div>,
 }));
@@ -483,14 +486,29 @@ describe('Local models and storage — the engines as tabs', () => {
     expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
   });
 
-  it('says so when a library is empty', () => {
+  // Owner, 2026-11-28: under "Native engine", "None downloaded" read as the engine not downloaded; it is the models.
+  it('says so when a library is empty, naming the models', () => {
     desktopWithNative();
     useNativeModelStore.setState({ statuses: {}, sizes: {} } as never);
     mount();
-    expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('None downloaded');
+    expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('No models downloaded');
   });
 
   // Review on #888: with two engines on offer, "This device" alone no longer names the service that uses this library.
+  // Owner, 2026-11-28: the engine's version, backend and device, at the end of the native engine's hint line.
+  it("ends the native engine's hint with its status line: version, backend and device", () => {
+    desktopWithNative();
+    mount();
+    const hint = screen.getByRole('region', { name: 'Native engine' }).querySelector('.models-group__hint')!;
+    // The sentence, then the status line at its end (PR review: in that order).
+    expect(hint.textContent?.trim()).toBe('Ships with the app and runs on this computer.');
+    const status = within(hint as HTMLElement).getByTestId('engine-status');
+    expect(status.dataset.inline).toBe('true');
+    expect(hint.lastElementChild).toBe(status);
+    expect(hint.firstChild?.nodeType).toBe(Node.TEXT_NODE);
+    expect(hint.firstChild?.textContent).toContain('Ships with the app');
+  });
+
   it('names the service that uses the WASM/WebGPU library by its full name', () => {
     desktopWithNative();
     mount();
@@ -528,6 +546,11 @@ describe('Local models and storage — the engines as tabs', () => {
     useSettingsStore.setState({ settingsNavigationTarget: 'models-asr' } as never);
     await waitFor(() => expect(tabs()[1].getAttribute('aria-selected')).toBe('true'));
     useSettingsStore.setState({ settingsNavigationTarget: 'native-models-asr' } as never);
+    await waitFor(() => expect(tabs()[0].getAttribute('aria-selected')).toBe('true'));
+    // The native engine's card is at the top of the native tab.
+    useSettingsStore.setState({ settingsNavigationTarget: 'models-translation' } as never);
+    await waitFor(() => expect(tabs()[1].getAttribute('aria-selected')).toBe('true'));
+    useSettingsStore.setState({ settingsNavigationTarget: 'native-engine' } as never);
     await waitFor(() => expect(tabs()[0].getAttribute('aria-selected')).toBe('true'));
     useSettingsStore.setState({ settingsNavigationTarget: null } as never);
   });

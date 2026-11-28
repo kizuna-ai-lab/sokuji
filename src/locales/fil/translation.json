@@ -1024,7 +1024,7 @@
       "nativeHint": "Kasama ng app at tumatakbo sa computer na ito.",
       "engineHintNative": "Ang engine kung saan tumatakbo ang mga native na model.",
       "tabMeta": "{{count}} ang na-download, {{size}}",
-      "tabNone": "Walang na-download",
+      "tabNone": "Walang na-download na modelo",
       "tabs": "Engine",
       "toHelpers": "Mga pantulong na model",
       "downloadedChoose": "Na-download. Piliin ito sa “Mga wika at line-up” para magamit sa isang session.",

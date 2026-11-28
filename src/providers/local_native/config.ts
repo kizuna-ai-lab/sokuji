@@ -99,9 +99,12 @@ export function asrLoadsFirst(
   return (sizes[asrId] ?? 0) >= (sizes[translationId] ?? 0);
 }
 
-/** A direction with no recognition model, as the whole session and the transcription unit refuse it. */
+/**
+ * A direction with no recognition model, as the whole session and the transcription unit refuse it. It names this
+ * provider: the code is the WASM/WebGPU engine's too, and its action opens the native engine's library.
+ */
 export function noAsr(source: string): ProviderRefusal {
-  return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source } };
+  return { refused: `No speech recognition model for ${source}.`, code: 'no_asr', params: { source, provider: 'local_native' } };
 }
 
 /**

@@ -90,7 +90,7 @@ describe('buildLocalNative', () => {
 
   it('refuses a leg with no speech recognition model', () => {
     useNativeModelStore.setState({ statuses: { ...READY, 'asr-a': 'absent' } });
-    expect(buildLocalNative(forward, s(), shared())).toEqual({ refused: 'No speech recognition model for ja.', code: 'no_asr', params: { source: 'ja' } });
+    expect(buildLocalNative(forward, s(), shared())).toEqual({ refused: 'No speech recognition model for ja.', code: 'no_asr', params: { source: 'ja', provider: 'local_native' } });
   });
 
   it('runs transcription only when no translation model resolves', () => {

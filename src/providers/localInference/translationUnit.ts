@@ -119,7 +119,7 @@ export function createLocalTranslationUnit(deps: LocalTranslationUnitDeps = {}):
       // not downloaded does not resolve, and one that only translates speech itself is no translator of text.
       const modelId = resolveLocal(context.direction, s, stages, localModelsOf(shared)).translation?.modelId;
       if (!modelId || getManifestEntry(modelId)?.type !== 'translation') {
-        return { refused: `No translation model for ${source} → ${target}.`, code: LOCAL_MODELS_MISSING };
+        return { refused: `No translation model for ${source} → ${target}.`, code: LOCAL_MODELS_MISSING, params: { stage: 'translation' } };
       }
       return { modelId, ...localTranslationPrompt(context, s, shared) };
     },

@@ -1469,6 +1469,21 @@
   font-size: 11.5px;
   color: vars.$text-muted;
 
+  // At the end of a sentence (the native engine's hint on Local models and storage): it flows with the text, takes
+  // its size and colour, and wraps there instead of being cut.
+  &--inline {
+    display: inline-flex;
+    margin: 0 0 0 4px;
+    font-size: inherit;
+    color: inherit;
+    vertical-align: baseline;
+  }
+
+  &--inline &__text {
+    white-space: normal;
+    overflow: visible;
+  }
+
   &__dot {
     flex: none;
     width: 7px;

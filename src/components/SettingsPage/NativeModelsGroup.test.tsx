@@ -51,12 +51,24 @@ describe('NativeModelsGroup', () => {
   it("lists its library by stage under the native anchors, fed its own settings and the app's voice preview", () => {
     render(<NativeModelsGroup locked />);
     expect(screen.getByTestId('engine-card')).toBeTruthy();
-    expect(seen.engines[0]).toEqual({ isSessionActive: true });
+    // The engine's card owns the `native-engine` target's anchor, where a notice about the engine leads (owner, 2026-11-28).
+    expect(seen.engines[0]).toEqual({ isSessionActive: true, anchorId: 'native-engine-section' });
     // Each stage's list owns its anchor (the section is handed the id), so a jump lands on it.
     expect(seen.libraries.map((l) => l.anchorId)).toEqual(['asr', 'translation', 'tts'].map((s) => `native-models-${s}-section`));
     expect(seen.libraries.map((l) => l.stageFilter)).toEqual(['asr', 'translation', 'tts']);
     expect(seen.libraries[0]).toMatchObject({ settings: own, pair: { source: 'en', target: 'ja' }, isSessionActive: true });
     expect(seen.previews.every((p) => p === appVoicePreview)).toBe(true);
+  });
+
+  // PR review: translating what another provider hears, its library lists the models for that provider's pair.
+  it("lists the models for the pair a session runs: the transcriber's where another provider transcribes", () => {
+    useProviderStore.setState({
+      stages: { soniox: ['transcription'], local_native: ['translation'] }, intent: { source: 'ko', target: 'en' },
+      entries: { soniox: { settings: {}, pair: { source: 'ko', target: 'en' } }, local_native: { settings: own, pair: { source: 'en', target: 'ja' } } } as never,
+    });
+    render(<NativeModelsGroup locked={false} />);
+    expect(seen.libraries[0]).toMatchObject({ pair: { source: 'ko', target: 'en' } });
+    useProviderStore.setState({ stages: {} });
   });
 
   it('writes a change to Local Native’s own settings', () => {

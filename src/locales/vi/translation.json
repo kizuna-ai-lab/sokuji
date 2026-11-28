@@ -1024,7 +1024,7 @@
       "nativeHint": "Đi kèm ứng dụng và chạy trên máy tính này.",
       "engineHintNative": "Công cụ mà các mô hình gốc chạy trên đó.",
       "tabMeta": "Đã tải xuống {{count}}, {{size}}",
-      "tabNone": "Chưa tải xuống gì",
+      "tabNone": "Chưa tải xuống mô hình nào",
       "tabs": "Công cụ",
       "toHelpers": "Mô hình phụ trợ",
       "downloadedChoose": "Đã tải xuống. Hãy chọn nó trong “Ngôn ngữ và cách phối hợp” để dùng trong một phiên.",

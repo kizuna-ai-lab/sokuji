@@ -90,7 +90,7 @@ describe('the config it builds', () => {
   });
 
   it('refuses a direction with no recognition model (no_asr)', () => {
-    expect(buildNativeTranscription(context, LOCAL_NATIVE_DEFAULTS, shared(null))).toEqual({ refused: 'No speech recognition model for ja.', code: 'no_asr', params: { source: 'ja' } });
+    expect(buildNativeTranscription(context, LOCAL_NATIVE_DEFAULTS, shared(null))).toEqual({ refused: 'No speech recognition model for ja.', code: 'no_asr', params: { source: 'ja', provider: 'local_native' } });
   });
 });
 

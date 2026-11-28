@@ -82,8 +82,15 @@ export function SettingsPage({ onClose, bodies = CATEGORY_BODIES }: { onClose():
   /** The open category; null in the narrow form means the list. */
   const [open, setOpenState] = useState<CategoryId | null>(null);
   const [openedBy, setOpenedBy] = useState<string | null>(null);
-  /** The user's own pick: no target opened it. */
-  const setOpen = (id: CategoryId | null) => { setOpenedBy(null); setOpenState(id); };
+  /**
+   * The user's own pick: no target opened it. A way in still under way ends here (its highlight with it): left set, the
+   * same target sent again before its highlight ran out would change nothing, and the page would stay where it is.
+   */
+  const setOpen = (id: CategoryId | null) => {
+    setOpenedBy(null);
+    setOpenState(id);
+    if (useSettingsStore.getState().settingsNavigationTarget) navigateToSettings(null);
+  };
   const navigationRun = useRef(0);
   const heading = useRef<HTMLHeadingElement>(null);
   /** The category last open in the narrow form: Back returns the focus to its entry in the list. */

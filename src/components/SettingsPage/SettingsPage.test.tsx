@@ -138,6 +138,21 @@ describe('the settings page — a navigation target never outlives the page', ()
     expect(target()).toBeNull();
   });
 
+  // Found with "Needs a model" (2026-11-28): sent to a category, the user picked another by hand and, within the
+  // highlight's 3 s, was sent to the same place again; the target was still set, so the second way in did nothing.
+  it('a category picked by hand ends the way in, so the same target opens its category again', async () => {
+    vi.useFakeTimers();
+    render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);
+    act(() => { useSettingsStore.getState().navigateToSettings('microphone'); });
+    act(() => { vi.advanceTimersByTime(200); });
+    fireEvent.click(within(screen.getByRole('navigation')).getByRole('button', { name: /Accounts and keys/ }));
+    await flushMicrotasks();
+    expect(target()).toBeNull();
+    expect(document.getElementById('provider-section')).not.toBeNull();
+    act(() => { useSettingsStore.getState().navigateToSettings('microphone'); });
+    expect(document.getElementById('microphone-section')).not.toBeNull();
+  });
+
   it('a newer target set meanwhile is kept', async () => {
     vi.useFakeTimers();
     render(<SettingsPage onClose={vi.fn()} bodies={bodies} />);

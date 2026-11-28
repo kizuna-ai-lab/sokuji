@@ -6,7 +6,10 @@ import type { LocalStages } from '../../lib/lineup/localStages';
 import { getManifestEntry } from '../../lib/local-inference/modelManifest';
 import type { LocalInferenceSettings } from './settings';
 
-/** The mandatory direction lacks ASR or translation: the code for this check's "selected language pair" refusal. */
+/**
+ * The mandatory direction lacks ASR or translation: the code for this check's "selected language pair" refusal. Its
+ * `params.stage` names the stage it lacks (`asr`, else `translation`), where its action opens Local models and storage.
+ */
 export const LOCAL_MODELS_MISSING = 'local_models_missing';
 
 /**
@@ -99,6 +102,7 @@ export async function checkLocalInference(
       ok: false,
       reason: `A translation model is not available for the ${reverse ? 'reverse' : 'selected'} language pair.`,
       code: LOCAL_MODELS_MISSING,
+      params: { stage: 'translation' },
     });
     if (ctx.legs.includes('speaker') && !translates(speaker)) return missing(false);
     if (participant && !translates(participant)) return missing(participantOnly ? false : true);
@@ -111,6 +115,7 @@ export async function checkLocalInference(
       ok: false,
       reason: 'Required models are not available for the selected language pair.',
       code: LOCAL_MODELS_MISSING,
+      params: { stage: mandatory?.asr ? 'translation' : 'asr' },
     };
   }
   if (participant && !participantOnly && !participant.asr) {

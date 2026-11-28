@@ -176,7 +176,7 @@ describe('the config it builds', () => {
   it('a model is never swapped for Bing: with none for the direction, the build is refused as models that are missing', () => {
     mockTable = {};
     const refusal = unit.build(ctx(EN_JA), SETTINGS, shared({ lineUp: WITH_MODEL })) as ProviderRefusal;
-    expect(refusal).toEqual({ refused: 'No translation model for en → ja.', code: 'local_models_missing' });
+    expect(refusal).toEqual({ refused: 'No translation model for en → ja.', code: 'local_models_missing', params: { stage: 'translation' } });
   });
 
   it('a source that is not known yet is refused', () => {

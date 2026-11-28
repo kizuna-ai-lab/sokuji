@@ -1024,7 +1024,7 @@
       "nativeHint": "Disertakan bersama aplikasi dan berjalan di komputer ini.",
       "engineHintNative": "Mesin tempat model native berjalan.",
       "tabMeta": "{{count}} terunduh, {{size}}",
-      "tabNone": "Belum ada yang diunduh",
+      "tabNone": "Belum ada model yang diunduh",
       "tabs": "Mesin",
       "toHelpers": "Model pembantu",
       "downloadedChoose": "Terunduh. Pilih di “Bahasa dan susunan” untuk dipakai dalam sesi.",

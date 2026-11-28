@@ -42,6 +42,11 @@ describe('the settings categories', () => {
       expect(targetToCategory(`native-models-${stage}`)).toEqual({ category: 'models', anchor: `native-models-${stage}` });
   });
 
+  // Owner, 2026-11-28: a notice that the native engine is missing or old leads to where it is downloaded.
+  it("maps the native engine to its card at the top of the native tab in Local models and storage", () => {
+    expect(targetToCategory('native-engine')).toEqual({ category: 'models', anchor: 'native-engine' });
+  });
+
   it("maps Local models and storage itself, where This device's row in the accounts goes", () => {
     expect(targetToCategory('models')).toEqual({ category: 'models', anchor: null });
   });
