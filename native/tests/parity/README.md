@@ -4,8 +4,9 @@
 `native/patches/audio.cpp.json`'s reuse patch, plus `native/src/audiocpp_compat.h`'s shim for
 the eight symbols audio.cpp's own ggml fork adds). This gate proves that swap is behavior
 preserving, by comparing `sk_tts`'s output against the OFFICIAL `audiocpp_cli` — built from
-the exact same vendored audio.cpp source, but completely unpatched, with audio.cpp's OWN fork
-ggml — on CPU, sample-exact where that is achievable and within a ±1-LSB (16-bit PCM)
+the exact same vendored audio.cpp source without our reuse patch, with audio.cpp's OWN fork
+ggml (carrying only the two narrow ggml patches `build_reference_cli.sh` documents: the SME
+variant drop, and the CPU-precision backport in "F16 dot products and softplus" below) — on CPU, sample-exact where that is achievable and within a ±1-LSB (16-bit PCM)
 tolerance otherwise (see §3 for which case gets which, and why).
 
 **Round 2 / ledger ruling R10(s4)**: a full numeric investigation
@@ -13,8 +14,8 @@ tolerance otherwise (see §3 for which case gets which, and why).
 found that audio.cpp's forked ggml 0.12.0 has a genuine bug — `ggml_vec_dot_f32`'s SVE
 tail-lane handling (`svmad_f32_m` instead of `svmla_f32_m`) silently corrupts F32 matmul
 accumulators whenever the reduction length isn't a multiple of 4 AND an SVE-capable CPU
-module gets selected. Our upstream ggml (0.25.3 as of native-v1.2.0) already has the fix and
-is correct. On any
+module gets selected. Our upstream ggml (1.1.1 at the 2026-11-28 pin) has the fix and is
+correct. On any
 SVE-capable aarch64 box (this dev box included), that makes the OFFICIAL reference binary
 itself numerically wrong for some shapes — so both sides now run with the SVE-capable CPU
 modules excluded (§2), and the comparator only requires agreement to the nearest 16-bit PCM
@@ -27,7 +28,11 @@ reference is wrong, not `sk_tts`** — read the investigation report before assu
   stamp. Idempotent per pin: a second run is a no-op while the stamp equals the audio.cpp commit
   `native/cmake/upstreams.cmake` pins, and a pin bump rebuilds the reference on the next run
   (the source and build directories are reused). `test_tts_parity.py` fails — not skips — when
-  the stamp and the pin differ, so a stale reference can never produce a clean pass.
+  the stamp and the pin differ, so a stale reference can never produce a clean pass. A second
+  stamp, `REFERENCE_PATCH_SHA256`, holds the hash of the reference's CPU-precision patch and is
+  checked the same way, so editing the patch rebuilds (and gates) exactly like a pin bump.
+- `reference-ggml-cpu-precision.json` — that patch, in `native/cmake/patch_upstream.py`'s format
+  (exact anchors, idempotent, loud on drift); see "F16 dot products and softplus" below.
 - `test_tts_parity.py` — the pytest cases, one per family, each independently env-gated.
 - `compare_pcm.py` — the comparator (`--exact` for CPU, `--min-snr <dB>` for the Vulkan leg);
   pre-existing, not part of this gate's own deliverable.
@@ -107,7 +112,7 @@ Each case skips independently, on two separate gates:
 | supertonic | offline, preset `M1` | `SK_TEST_TTS_SUPERTONIC_DIR` | ran in this task |
 | moss_tts_nano | text-only | `SK_TEST_TTS_MOSS_DIR` | ran in this task |
 | moss_tts_nano | voice clone | `SK_TEST_TTS_MOSS_DIR` | ran in this task; ref clip generated at test time (below), never committed |
-| qwen3_tts | Base clone | `SK_TEST_TTS_QWEN3_DIR` | skipped — model download deferred to the live-gate task (plan Task 7) |
+| qwen3_tts | Base clone | `SK_TEST_TTS_QWEN3_DIR` | voice reference is transcribe.cpp's `samples/jfk.wav` (`$SK_TEST_SAMPLE_WAV`, else `<build>/_deps/transcribe-src`), with its transcript |
 | pocket_tts | preset `alba` | `SK_TEST_TTS_POCKET_DIR` | skipped — model download deferred to the live-gate task |
 | omnivoice | clone | `SK_TEST_TTS_OMNIVOICE_DIR` | skipped — model download deferred to the live-gate task |
 
@@ -134,6 +139,39 @@ executable's own directory*, resolved via `/proc/self/exe` — which the kernel 
 a symlink to the target's original location, so a symlinked `audiocpp_cli` would silently keep
 searching the original (SVE-including) directory. Comparing SVE-vs-non-SVE across sides would
 just reintroduce the drift this exists to eliminate, so both sides get the identical treatment.
+
+**F16 dot products and softplus (round 5, the ggml 1.1.1 / audio.cpp v0.9.6 bump).** ggml 1.x
+made the CPU backend more accurate in two places the fork never followed, and on this reference
+that alone failed `test_supertonic_streaming_voice_id_m1` (exact gate: 15.81 dB SNR,
+max_abs 0.182) and `test_pocket_preset_alba` (6.86 dB, max_abs 0.521):
+
+- *F16 dot products.* Upstream's F16 CPU type trait is `{ggml_vec_dot_f16_f32, vec_dot_type
+  F32}`: an F32 activation multiplied by F16 weights stays F32, the weights are widened, and the
+  sum accumulates in F32. The fork (like ggml 0.25.3) rounds the activations to F16 and, on
+  aarch64, accumulates in FP16 vector lanes. `conv_transpose_1d`/`_2d` changed the same way. On
+  identical operands, against a float64 product: supertonic's first F16 matmul is 4.7e-4
+  relative L2 off on the fork and 4.4e-8 on upstream; pocket_tts's Mimi `conv_transpose_1d`
+  4.6e-4 vs 5.5e-8.
+- *softplus* is `log1pf(expf(x))` upstream, `logf(1 + expf(x))` in the fork.
+
+Evidence that nothing else differs, bisected node by node (an `LD_PRELOAD` hook running each graph
+one node at a time, comparing every node's output hash between audio.cpp v0.9.6's own CLI on
+each ggml): the first divergent node of each family is an F16-weight `MUL_MAT` with bit-identical
+inputs (supertonic graph 1, pocket's first FlowLM step); reverting just these sites in OUR ggml
+made both families sample-exact against the old reference; and with the backport applied to the
+reference instead, both are sample-exact against our build (max_abs 0). Both sides load
+`libggml-cpu-armv8.2_2.so`, so this is independent of the SVE exclusion. The perceptual impact
+was nil — identical whisper-tiny transcripts, 0.5-1.7 dB log-mel RMS — but this is precisely
+the class of difference an exact gate exists to see, so `build_reference_cli.sh` brings the
+reference UP to upstream's arithmetic instead of loosening the gate: it backports the F16
+trait, `ggml_vec_dot_f16_f32` (with upstream's `GGML_F32x8_FMA` for its AVX path), mul_mat's
+widening of an F16/BF16 `src1` into the F32 work buffer plus the matching CPU `supports_op`
+clause, both conv_transpose kernels and their work-buffer sizes, sgemm's x86 F16 × F32
+tinyBLAS branches (identical on aarch64), and both softplus sites — all verbatim from ggml
+v1.1.1, through `reference-ggml-cpu-precision.json`. The reference is therefore "the fork as
+audio.cpp ships it, minus two arithmetic regressions upstream has fixed", the same stance as
+the SVE exclusion. A future ggml bump that changes CPU arithmetic again shows up here as a
+fresh exact-gate failure; bisect it the same way before assuming `sk_tts` is at fault.
 
 The candidate side runs in its own subprocess for this reason (among others — see
 `test_tts_parity.py`'s module docstring, "Candidate isolation"): `sokuji_native.native_dir()`

@@ -21,6 +21,11 @@ const cpu = sk.devices().find((d) => d.kind === 'cpu')?.index;
 
 // Starts the process-wide worker that loads run on, so it is not counted as the handle's thread.
 await sk.asrLoad('/nonexistent.gguf', null).catch(() => {});
+// One load and unload of the same kind first: the first load on a GPU lane starts the backend's own
+// threads (the Vulkan driver's, which llama.cpp 1.x brings up even for a model placed on the CPU), and
+// they stay for the life of the process. The baseline is taken after them, so what is counted is the
+// dropped handle's own thread, which must end.
+if (kind === 'asr' || kind === 'translate' || kind === 'tts') await (await load()).unload();
 const baseline = threadCount();
 
 let stall = 0, last = performance.now();
@@ -31,10 +36,14 @@ const ticker = setInterval(() => {
 }, 5);
 
 // The handle lives only in this function's frame: once it returns, nothing refers to it.
+function load() {
+  if (kind === 'translate') return sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, cpuDevice(), { nCtx: 2048 });
+  if (kind === 'tts') return sk.ttsLoad(env.SK_TEST_TTS_SUPERTONIC_DIR, cpu, { family: 'supertonic' });
+  return sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
+}
+
 async function loadAndDrop() {
-  if (kind === 'translate') return void await sk.translateLoad(env.SK_TEST_TRANSLATE_GGUF, cpuDevice(), { nCtx: 2048 });
-  if (kind === 'tts') return void await sk.ttsLoad(env.SK_TEST_TTS_SUPERTONIC_DIR, cpu, { family: 'supertonic' });
-  const m = await sk.asrLoad(env.SK_TEST_ASR_GGUF, cpuDevice());
+  const m = await load();
   if (kind === 'asr-unloaded') await m.unload();
 }
 

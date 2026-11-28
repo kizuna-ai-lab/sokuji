@@ -73,16 +73,25 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   - `ggml-drop-sme.json` — drops the Linux armv9.2 +sme CPU variants when the compiler cannot build them
   - `ggml-drop-sme-apple.json` — drops the apple_m4 (+sme) CPU variant; Apple clang cannot build it
   - `ggml-gguf-bulk-array-read.json` — every lane; see [GGUF array reads](#gguf-array-reads)
-  - `ggml-metal-diag-mask-inf.json`, `ggml-metal-pad-leading.json` — metal lane only; see
-    [Metal (Apple Silicon)](#metal-apple-silicon). `SOKUJI_GGML_PATCH_SPEC` (set in
-    `cmake/ggml_options.cmake`) is a **list**: ggml can carry an always-on portability spec
-    and lane-specific ones at once, and `patch_upstream.py` concatenates every spec it is given.
-  - `transcribe.cpp.json` — makes transcribe.cpp reuse our ggml target instead of building its own copy
+  - `SOKUJI_GGML_PATCH_SPEC` (set in `cmake/ggml_options.cmake`) is a **list**: ggml can carry
+    an always-on portability spec and lane-specific ones at once, and `patch_upstream.py`
+    concatenates every spec it is given. The Metal lane carried two more until ggml 1.1.1
+    (native-v1.4.0); see [Metal (Apple Silicon)](#metal-apple-silicon).
+  - `transcribe.cpp.json` — makes transcribe.cpp reuse our ggml target instead of building its own
+    copy, and (since transcribe.cpp 0.5.x) skips installing transcribe.cpp's backend-registration
+    filter: that needs a ggml patch transcribe.cpp carries on its own copy
+    (`patches/ggml/0002-backend-reg-filter.patch`), serves only its allowed-backend mask, which we never
+    set, and in our shared registry it would filter llama.cpp's and audio.cpp's backends too
   - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy, and
     keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the wheels target 11.0)
 - `src/audiocpp_compat.h` — the bridge between audio.cpp's forked ggml (base 0.12.0) and the
-  pristine upstream ggml we build on (0.25.3 as of native-v1.2.0). Two kinds of difference, and
-  the second is the dangerous one; read the header comment before touching it.
+  pristine upstream ggml we build on (1.1.1 as of native-v1.4.0; 0.25.3 for native-v1.2.0/1.3.0).
+  Two kinds of difference, and the second is the dangerous one; read the header comment before
+  touching it. Its RESCAN note for ggml 1.1.1 / audio.cpp 0.9.6 lists every fork-only symbol
+  (62 functions against 1.1.1), the ops ggml 1.0 pruned that audio.cpp still calls
+  (`ggml_diag_mask_inf`), the 1.x precision API (`GGML_PREC_DEFAULT`, `*_set_prec` →
+  `ggml_prec_set_acc`), and the strided-view rule 1.x added (a view with explicit strides of a
+  source whose dim 0 is not contiguous aborts; pocket_tts's Mimi decoder takes such a slice).
   - the **seven symbols the fork adds** at the 0.12→0.22 gap (ruling R11), provided here. Two
     of them reproduce the fork's graph node for node rather than aliasing a nearby upstream
     call. native-v1.2.0's audio.cpp bump (0.7.1 → 0.8.2-audio8-perf-hotfix) widened the fork's
@@ -320,48 +329,29 @@ page-cache reads instead of 57 M stdio calls each, so they no longer dominate.
 
 ## Metal (Apple Silicon)
 
-The metal lane patches **two op kernels back into our vendored upstream ggml**, through the
-same `native/patches/*.json` mechanism the SME drops use, and only when
-`SOKUJI_GPU_RESOLVED` is `metal` (both specs touch `src/ggml-metal/`, which no other lane
-compiles):
+Up to ggml 0.25.3 the metal lane patched two op kernels back into our vendored upstream ggml
+(`ggml-metal-diag-mask-inf.json`, `ggml-metal-pad-leading.json`). Since ggml 1.1.1
+(native-v1.4.0) it carries none:
 
-- **`ggml-metal-diag-mask-inf.json`** — ggml 0.25.3's Metal backend still implements
-  `GGML_OP_DIAG_MASK_INF` *not at all* (re-verified at the native-v1.2.0 bump): no
-  `supports_op` case, no kernel. ggml-cpu,
-  ggml-vulkan and ggml-cuda all have it; Metal is the only backend that dropped it, because
-  llama.cpp itself moved to masked `soft_max_ext` and stopped needing it. audio.cpp did not:
-  every attention block it reaches without an explicit mask builds the op — **16 call sites
-  across 13 files** under audio.cpp 0.7.0's `src/` (`external/` excluded), of which the live
-  ones for our five families are `moss_tts_nano`'s global transformer and local frame decoder
-  and `qwen3_tts`'s `qwen_decoder`. The spec restores the kernel Metal used to carry — it is
-  still in audio.cpp's own fork — so it puts back an op every other backend has rather than
-  inventing one.
-- **`ggml-metal-pad-leading.json`** — ggml 0.25.3's Metal `GGML_OP_PAD` still pads only at the
-  END of an axis (re-verified at the native-v1.2.0 bump; `supports_op` rejects any non-zero
-  leading pad), while ggml-cpu and ggml-vulkan implement the full lp/rp form `ggml_pad_ext`
-  builds. `qwen3_tts`'s speech-tokenizer decoder
-  pads *causally* (`left_pad = kernel_extent - stride`, `tokenizer_speech_decoder.cpp`'s
-  `causal_conv1d`), so every one of its depthwise convs is a leading pad. The spec teaches
-  `kernel_pad_impl` the leading pads with exactly ggml-cpu's non-circular semantics —
-  including walking `src0` through `nb00` instead of assuming an element stride of
-  `sizeof(T)`, which a permuted `src0` really does reach here; circular padding stays
-  unimplemented, as upstream leaves it. Both kernels were checked against the CPU reference
-  with ggml's own `test-backend-ops` — DIAG_MASK_INF 3/3, PAD 21/21 non-circular (the 6
-  `circular=1` cases report "not supported", as they do upstream). Those runs were made
-  during the experiment phase on an Apple M4, from a ggml tree patched with the
-  diag-mask-inf spec **byte for byte as it ships here** and the pad spec differing only by a
-  later-added `GGML_ASSERT(args.lp0 % 4 == 0)` inside the `pipeline.c4` branch, which ggml
-  0.22.0 never enters (`is_c4` is hard-coded `false`) — so the kernels measured are the
-  kernels built. They are not re-run per build: treat them as evidence about the kernels,
-  not as a gate that runs in CI.
+- **`GGML_OP_DIAG_MASK_INF`** — Metal never implemented it, and audio.cpp's attention blocks build
+  it whenever no explicit mask is given (the live ones for our families: `moss_tts_nano`,
+  `qwen3_tts`, `voxcpm1`, `voxcpm2`, `index_tts2`). ggml 1.0.0 removed the op from every backend
+  (`5f295554` "ggml : prune"), so `src/audiocpp_compat.h` now builds `ggml_diag_mask_inf` from
+  `fill` / `tri` / `concat` / `pad_ext` / `add`, all of which Metal, Vulkan and CPU implement.
+  `tests/test_audiocpp_compat.cpp` checks it against a plain loop on every device a lane loads, so
+  the Metal lane checks itself in CI.
+- **Leading pads in `GGML_OP_PAD`** — `qwen3_tts`'s speech-tokenizer decoder pads causally
+  (`left_pad = kernel_extent - stride`), and 0.25.3's Metal pad kernel padded only at the end of an
+  axis. ggml 1.1's Metal pad kernel takes the leading pads (`lp0..lp3`) itself.
 
 **Why a single missing kernel is fatal here and nowhere else.** transcribe.cpp and llama.cpp
 drive ggml through `ggml_backend_sched`, which splits an unsupported node onto CPU. audio.cpp
 0.7.0 has **zero** references to it: every runtime pins weights plus its `ggml_gallocr`
 compute buffer to one backend and calls `ggml_backend_graph_compute` directly, so
 `ggml_metal_op_encode_impl` logs `unsupported op '<OP>'` and calls `GGML_ABORT` — SIGABRT of
-the whole process, not a catchable `NativeError`. That structural gap is not closed by these
-patches; they close the two holes our five families actually hit.
+the whole process, not a catchable `NativeError`. That structural gap is still open: what keeps our
+families off it is that every op they build exists on Metal (the op recordings and the Metal CI lane's
+compat test are the evidence).
 
 Two supporting changes ride along: `sokuji_ggml_sub` (in `src/audiocpp_compat.h`) now
 `ggml_cont`s **`src1`** as well as `src0` — Metal's `supports_op` demands
@@ -500,5 +490,11 @@ transcribe.cpp's v0.2.4 tag was re-pointed twice upstream on 2026-09-25 (CI/pack
 commits), so that pin alone is the release commit `7d37cea2` fetched WITHOUT
 `GIT_SHALLOW`; the other three pins stay shallow. `sk_asr` leaves PnC/ITN at `DEFAULT`
 (unchanged); transcribe.cpp 0.2.4 turns `DEFAULT` on for sensevoice/canary (#157), so those
-two now output cased, punctuated text by default. Current native version is 1.3.0 (1.3.0 adds the Node-API addon and the app archives; the engine libraries are unchanged from 1.2.0) (ABI
-unchanged at 2).
+two now output cased, punctuated text by default. `native-v1.3.0` added the Node-API addon and
+the app archives (engine libraries unchanged from 1.2.0). `native-v1.4.0` moves ggml to 1.1.1,
+transcribe.cpp to 0.5.1, llama.cpp to v1.1.0 and audio.cpp to v0.9.6; the two Metal ggml patches
+are gone (see [Metal](#metal-apple-silicon)), and `audiocpp_compat.h` is rescanned for the 1.x API.
+ggml 1.1.1's CPU backend multiplies F16 weights by F32 activations without first rounding them to
+F16 (the fork and 0.25.3 did, and accumulated in FP16 on aarch64): about 10^4 times closer to
+exact per op, which the TTS parity gate's reference build gets as a backport (tests/parity/README.md).
+Current native version is 1.4.0 (ABI unchanged at 2).

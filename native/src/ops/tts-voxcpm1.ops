@@ -1,5 +1,5 @@
 # stage: tts ; family: voxcpm1
-# engine: ggml=0.25.3;transcribe=0.2.4;llama=0.5.0;audiocpp=0.8.2;lane=cpu-vulkan
+# engine: ggml=1.1.1;transcribe=0.5.1;llama=1.1.0;audiocpp=0.9.6;lane=cpu-vulkan
 # source: voxcpm-0.5b-q8_0-audiovae-f16.gguf
 # recorded-on: vulkan
 # dtypes-in-file: f16 f32 q8_0
@@ -14,7 +14,9 @@ op=ROPE params=0000000000000040000000020000000000008000461c40003f800000000000003
 op=MUL_MAT params=- dst=f32 src=[WEIGHT,f32,-,-,-] ne0=[1024,1024,1024] max0=[1024,1024,1,1] max1=[1024,11,1,1] maxd=[1024,11,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=1114112
 op=MUL_MAT params=- dst=f32 src=[f32,f32,-,-,-] ne0=[64,64,11] max0=[64,11,16,1] max1=[64,11,16,1] maxd=[11,11,16,1] layout=[0123d,0213d,0123d] host=0 maxbytes=45056
 op=SCALE params=3e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[11,1,11] max0=[11,11,16,1] max1=[1,1,1,1] maxd=[11,11,16,1] layout=[0123d,0123d,0123d] host=0 maxbytes=7744
-op=DIAG_MASK_INF params=- dst=f32 src=[f32,-,-,-,-] ne0=[11,1,11] max0=[11,11,16,1] max1=[1,1,1,1] maxd=[11,11,16,1] layout=[0123d,0123d,0123d] host=0 maxbytes=7744
+op=FILL params=ff800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[11,1,11] max0=[11,11,1,1] max1=[1,1,1,1] maxd=[11,11,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=484
+op=TRI params=00000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[11,1,11] max0=[11,11,1,1] max1=[1,1,1,1] maxd=[11,11,1,1] layout=[0123d,0123d,0123d] host=0 maxbytes=484
+op=ADD params=- dst=f32 src=[f32,f32,-,-,-] ne0=[11,11,11] max0=[11,11,16,1] max1=[11,11,1,1] maxd=[11,11,16,1] layout=[0123d,0123d,0123d] host=0 maxbytes=7744
 op=SOFT_MAX params=3f800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 dst=f32 src=[f32,-,-,-,-] ne0=[11,1,11] max0=[11,11,16,1] max1=[1,1,1,1] maxd=[11,11,16,1] layout=[0123d,0123d,0123d] host=0 maxbytes=7744
 op=MUL_MAT params=- dst=f32 src=[f32,f32,-,-,-] ne0=[11,11,64] max0=[11,64,16,1] max1=[11,11,16,1] maxd=[64,11,16,1] layout=[0123d,0123d,0123d] host=0 maxbytes=45056
 op=CONT params=- dst=f32 src=[f32,-,-,-,-] ne0=[64,1,64] max0=[64,4096,11,2] max1=[1,1,1,1] maxd=[64,4096,11,2] layout=[0213d,0123d,0123d] host=0 maxbytes=2097152

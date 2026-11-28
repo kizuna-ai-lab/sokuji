@@ -8,5 +8,10 @@
     "file": "src/CMakeLists.txt",
     "old": "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>",
     "new": "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+  },
+  {
+    "file": "src/transcribe.cpp",
+    "old": "static const bool s_backend_reg_filter_installed = [] {\n    ggml_backend_set_reg_filter(&backend_reg_filter);\n    return true;\n}();",
+    "new": "// sokuji-native: transcribe.cpp 0.5.x installs a backend-registration filter into ggml through its own ggml\n// patch (patches/ggml/0002-backend-reg-filter.patch), which our shared upstream ggml does not carry. The\n// filter only serves transcribe's allowed-backend mask, which sokuji-native never sets, and in a shared\n// registry it would filter llama.cpp's and audio.cpp's backends too. Not installed.\nstatic const bool s_backend_reg_filter_installed = [] {\n    (void)&backend_reg_filter;\n    return true;\n}();"
   }
 ]

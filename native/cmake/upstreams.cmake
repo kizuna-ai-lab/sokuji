@@ -7,9 +7,9 @@ set(FETCHCONTENT_QUIET OFF)
 # and every tag, one commit deep) and then checks the SHA out. That works only while each
 # pin is a commit some tag or branch tip points at — three of the four below (ggml,
 # llama.cpp, audio.cpp) are release-tag commits fetched shallow this way, which is what
-# their pin comments record. transcribe.cpp is the exception: it is pinned to its release
-# commit on main, not to the v0.2.4 tag, because that tag keeps moving past the commit
-# (see its own comment below), so it is fetched without GIT_SHALLOW. A mid-history SHA
+# their pin comments record. transcribe.cpp is the exception: it is fetched without
+# GIT_SHALLOW because its release tags have moved after the fact (see its own comment
+# below), and a full clone finds a pinned commit whether or not a tag still names it. A mid-history SHA
 # fails at configure with "Failed to checkout tag: '<sha>'"; if a pin ever has to be one,
 # drop GIT_SHALLOW for that upstream. Kept because a full llama.cpp history is several
 # hundred MB per lane.
@@ -27,15 +27,15 @@ if(SOKUJI_GGML_PATCH_SPEC)
 endif()
 FetchContent_Declare(ggml
     GIT_REPOSITORY https://github.com/ggml-org/ggml.git
-    GIT_TAG        353b63b439f27ab2cc19dac97ab1681ba6d2d084   # v0.25.3
+    GIT_TAG        bb877c0c51f38c52ee2d5e41d58e3d0c20f3fed4   # v1.1.1
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
     ${_ggml_patch})
-set(SOKUJI_GGML_VERSION "0.25.3")
+set(SOKUJI_GGML_VERSION "1.1.1")
 
 FetchContent_MakeAvailable(ggml)
 set(SOKUJI_GGML_SOURCE_DIR "${ggml_SOURCE_DIR}")
-# ggml gives its two shared libraries VERSION/SOVERSION, i.e. libggml.so.0.25.3 plus the
+# ggml gives its two shared libraries VERSION/SOVERSION, i.e. libggml.so.1.1.1 plus the
 # libggml.so.0 and libggml.so symlinks (same on macOS). A wheel is a zip: it cannot carry
 # symlinks, so each link became a full third copy of the library. Nothing outside this
 # wheel ever links these — the engines are static inside libsokuji_native and the backend
@@ -49,18 +49,15 @@ set_property(TARGET ggml ggml-base PROPERTY SOVERSION)
 # own include path, which breaks when it is nested instead of top-level.
 FetchContent_Declare(transcribe
     GIT_REPOSITORY https://github.com/handy-computer/transcribe.cpp.git
-    # The pin is the "release: 0.2.4 (#173)" commit on main, not the v0.2.4 tag
-    # itself: upstream keeps re-pointing that tag forward (twice on 2026-09-25,
-    # to 6e45c7ce then to 4807edaf — both moves are CI/packaging-only, no source
-    # or CMake change). Pinning the release commit directly makes the build
-    # immune to further tag moves. A depth-1 clone only sees branch tips and
-    # tags, so a mid-history commit like this one is fetched without
-    # GIT_SHALLOW, per the rule in this file's header comment.
-    GIT_TAG        7d37cea2248a1fb6aca9652a1d37debccbbb1ff3   # release: 0.2.4 (#173)
+    # The pin is the commit the v0.5.1 tag points at. Fetched without GIT_SHALLOW, as the
+    # 0.2.4 pin before it was: upstream has re-pointed release tags after the fact (v0.2.4
+    # moved twice on 2026-09-25, CI/packaging-only), and a full clone checks a pinned commit
+    # out whether or not a tag still points at it.
+    GIT_TAG        4a4e08f99c62ae1036551c259477fe4f3127f092   # v0.5.1
     GIT_PROGRESS   TRUE
     PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
                    <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/transcribe.cpp.json)
-set(SOKUJI_TRANSCRIBE_VERSION "0.2.4")
+set(SOKUJI_TRANSCRIBE_VERSION "0.5.1")
 
 # transcribe.cpp options: static, dynamic ggml backends, nothing but the library.
 #
@@ -82,10 +79,10 @@ FetchContent_MakeAvailable(transcribe)
 # so it reuses our ggml target above instead of building its own copy: no patch needed.
 FetchContent_Declare(llama
     GIT_REPOSITORY https://github.com/ggml-org/llama.cpp.git
-    GIT_TAG        7fe450e19305b828c199d602c23a8337aaa1f03b   # v0.5.0 (in-tree ggml 0.25.1)
+    GIT_TAG        171527522610996f5f0acf12334e185156ca8f44   # v1.1.0 (in-tree ggml 1.1.1)
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE)
-set(SOKUJI_LLAMA_VERSION "0.5.0")   # upstream tag is v0.5.0; the string is normalised like the other three
+set(SOKUJI_LLAMA_VERSION "1.1.0")   # upstream tag is v1.1.0; the string is normalised like the other three
 
 set(LLAMA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(LLAMA_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -97,13 +94,13 @@ set(BUILD_SHARED_LIBS OFF)   # engines are static; ggml above was added while th
 FetchContent_MakeAvailable(llama)
 
 # audio.cpp's CMake adds AUDIOCPP_GGML_SOURCE_DIR as a subdirectory unconditionally
-# (CMakeLists.txt line 365 at v0.8.2-audio8-perf-hotfix); the JSON patch guards that one line with
+# (CMakeLists.txt, also at v0.9.6); the JSON patch guards that one line with
 # `if(NOT TARGET ggml)` so it reuses our ggml target instead of building its own copy.
 # The directory-exists check just above that line stays satisfied because we point
 # AUDIOCPP_GGML_SOURCE_DIR at our already-fetched upstream tree below.
 FetchContent_Declare(audiocpp
     GIT_REPOSITORY https://github.com/0xShug0/audio.cpp.git
-    GIT_TAG        ac16661d144f00f84ea0483f3574c374c9868e2d   # v0.8.2-audio8-perf-hotfix
+    GIT_TAG        04a37f2e80ff2dbcdd84cc67848a970bd02a73e0   # v0.9.6
     GIT_SHALLOW    TRUE
     GIT_PROGRESS   TRUE
     # No submodules. FetchContent clones every submodule recursively by default, and 0.8.x
@@ -117,7 +114,7 @@ FetchContent_Declare(audiocpp
     EXCLUDE_FROM_ALL
     PATCH_COMMAND  ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/patch_upstream.py
                    <SOURCE_DIR> ${CMAKE_CURRENT_LIST_DIR}/../patches/audio.cpp.json)
-set(SOKUJI_AUDIOCPP_VERSION "0.8.2")   # upstream tag is v0.8.2-audio8-perf-hotfix; normalised like llama's
+set(SOKUJI_AUDIOCPP_VERSION "0.9.6")   # upstream tag is v0.9.6; normalised like llama's
 
 set(AUDIOCPP_GGML_SOURCE_DIR "${SOKUJI_GGML_SOURCE_DIR}" CACHE PATH "" FORCE)
 set(AUDIOCPP_MODEL_SET "custom" CACHE STRING "" FORCE)

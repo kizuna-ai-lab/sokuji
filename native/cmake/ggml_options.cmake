@@ -68,31 +68,14 @@ endif()
 # output for the types it covers: it is a read-shape change only.
 list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-gguf-bulk-array-read.json")
 
-# ggml 0.25.3's Metal backend still implements no GGML_OP_DIAG_MASK_INF at all (re-verified
-# at the native-v1.2.0 bump) - no supports_op case, no kernel - while ggml-cpu, ggml-vulkan
-# and ggml-cuda all do. Every audio.cpp
-# attention block reached without an explicit mask builds that op (16 call sites across 13
-# files under audio.cpp 0.7.0's src/, external/ excluded; on our five families the live
-# ones are moss_tts_nano and qwen3_tts), and engine_core and the nine families we build never
-# use ggml_backend_sched (0.8.2 references it only in unbuilt models: moonshine_asr,
-# liveavatar), so there is no per-node CPU fallback: the single missing kernel
-# aborts the process. The patch re-adds the kernel ggml's own Metal backend carried until
-# llama.cpp moved to masked soft_max_ext, so it restores an op every other backend has
-# rather than inventing one. Metal lane only: it touches src/ggml-metal/, which no other
-# lane compiles.
-#
-# The second Metal gap on the same families: ggml 0.25.3's Metal GGML_OP_PAD still pads only
-# at the END of an axis (re-verified at the native-v1.2.0 bump; its supports_op rejects any
-# non-zero leading pad), while ggml-cpu and ggml-vulkan both implement the full lp/rp form
-# ggml_pad_ext builds. qwen3_tts's speech
-# tokenizer decoder pads causally - left_pad = kernel_extent - stride, in
-# tokenizer_speech_decoder.cpp's causal_conv1d - so every one of its depthwise convs is a
-# leading pad. The patch teaches kernel_pad_impl the leading pads with exactly ggml-cpu's
-# non-circular semantics; circular padding stays unimplemented, as upstream leaves it.
-if(SOKUJI_GPU_RESOLVED STREQUAL "metal")
-    list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-metal-diag-mask-inf.json")
-    list(APPEND SOKUJI_GGML_PATCH_SPEC "ggml-metal-pad-leading.json")
-endif()
+# No Metal patches since ggml 1.1.1 (native-v1.4.0). Up to 0.25.3 the Metal lane carried two:
+# - ggml-metal-diag-mask-inf: Metal had no GGML_OP_DIAG_MASK_INF kernel, and audio.cpp's attention
+#   blocks build that op. ggml 1.0.0 removed the op from every backend ("ggml : prune"), so
+#   audiocpp_compat.h now builds ggml_diag_mask_inf from fill/tri/concat/pad, which Metal, Vulkan
+#   and CPU all implement; there is no kernel to add any more.
+# - ggml-metal-pad-leading: Metal's GGML_OP_PAD padded only at the end of an axis, and qwen3_tts's
+#   causal convs pad at the start. ggml 1.x's Metal pad kernel takes the leading pads (lp0..lp3) itself.
+# The two spec files are gone with them.
 
 set(BUILD_SHARED_LIBS ON)                                   # ggml itself is shared …
 set(GGML_BACKEND_DL ON  CACHE BOOL "" FORCE)                # … and its backends are modules

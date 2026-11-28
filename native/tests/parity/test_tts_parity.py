@@ -8,8 +8,8 @@ Round 2 / ledger ruling R10(s4): a full numeric investigation
 found that audio.cpp's forked ggml 0.12.0 has a real bug — `ggml_vec_dot_f32`'s SVE
 tail-lane handling (`svmad_f32_m` instead of `svmla_f32_m`) silently corrupts F32 matmul
 accumulators whenever the reduction length isn't a multiple of 4 AND an SVE-capable CPU
-module is selected. Our upstream ggml (0.25.3 as of native-v1.2.0) has the fix and is
-correct. On any SVE-capable
+module is selected. Our upstream ggml (1.1.1 at the 2026-11-28 pin; the fix has been
+upstream since before 0.22) has it fixed and is correct. On any SVE-capable
 aarch64 box (this one included), the OFFICIAL reference binary is therefore itself numerically
 broken for some shapes — comparing sample-exact against it conflates "the ggml swap changed
 behavior" with "the official binary's own arithmetic is wrong for this input." Two
@@ -62,6 +62,20 @@ a sampled draw). `test_moss_clone` therefore keeps its existing soft xfail-on-fa
 (assert only if the comparison actually fails) with its reason string updated to describe
 sampling-draw amplification rather than argmax-tie amplification — not flipped to a hard
 assert, since a clean pass on today's fixed input is not evidence the class of risk is gone.
+
+Round 5 (ggml 1.1.1 / audio.cpp v0.9.6 bump, 2026-11-28): the reference's F16 dot products.
+ggml 1.x keeps F32 activations in F32 when it multiplies them by F16 weights (the F16 CPU type
+trait and the conv_transpose_1d/2d kernels); the fork still rounds them to F16 and, on aarch64,
+accumulates in FP16 lanes. With identical operands the fork's F16 matmul is 4.7e-4 relative L2
+off a float64 product and upstream's 4.4e-8 (conv_transpose_1d: 4.6e-4 vs 5.5e-8); upstream
+also computes softplus as log1pf(expf(x)). That alone failed supertonic (exact gate, 15.8 dB)
+and pocket_tts (6.9 dB): reverting those sites in OUR ggml made both sample-exact against the
+old reference. build_reference_cli.sh therefore backports them, verbatim from v1.1.1, into the
+fork's ggml (reference-ggml-cpu-precision.json, hash-stamped like PIN_SHA and checked in
+_official_cli_nosve), so the exact gate keeps measuring the ggml swap instead of the fork's
+rounding; with it both cases are sample-exact again. README.md "F16 dot products and softplus"
+has the evidence. test_qwen3_base_clone also changed: a sine is not speech, so qwen3 never emitted EOS
+for it and ran to its 8192-frame cap (23 minutes per side); the case now clones jfk.wav.
 
 Every case is gated on two independent things, so each one skips on its own:
   - the reference CLI existing at all (native/tests/parity/build_reference_cli.sh must have
@@ -144,7 +158,7 @@ MAX_ABS_TOLERANCE = 1.5 / 32768
 # zeroing part of the accumulator whenever a matmul's reduction length isn't a multiple of
 # 4) — confirmed by direct investigation, ledger ruling R10(s4):
 # .superpowers/sdd/2026-08-31-sidecar-ggml-only-slice4-tts/moss-divergence-investigation.md.
-# Our upstream ggml (0.25.3 as of native-v1.2.0) already has the fix (`svmla_f32_m`) and is
+# Our upstream ggml (1.1.1 at the 2026-11-28 pin) already has the fix (`svmla_f32_m`) and is
 # correct. Excluding
 # these three module files from BOTH sides' module-search directories forces the best
 # REMAINING tier (armv8.2_2 on this box) — correct on both ggml versions — out of the
@@ -258,6 +272,7 @@ def _sve_free_copy(src_dir: pathlib.Path, key_file: str) -> pathlib.Path:
 
 
 _UPSTREAMS_CMAKE = pathlib.Path(__file__).resolve().parents[2] / "cmake" / "upstreams.cmake"
+_REFERENCE_PATCH = pathlib.Path(__file__).resolve().parent / "reference-ggml-cpu-precision.json"
 
 
 def _pinned_audiocpp_sha() -> str:
@@ -281,6 +296,14 @@ def _official_cli_nosve() -> pathlib.Path:
     if built_for != pinned:
         pytest.fail(f"reference audiocpp_cli at {OFFICIAL_CLI} was built for audio.cpp {built_for}, "
                     f"but upstreams.cmake pins {pinned} — re-run native/tests/parity/build_reference_cli.sh")
+    # Same rule for the reference's CPU-precision patch (README "F16 dot products"): a reference
+    # built from another version of it — or before it existed — measures different arithmetic.
+    patch_stamp = OFFICIAL_CLI.parent / "REFERENCE_PATCH_SHA256"
+    built_patch = patch_stamp.read_text().strip() if patch_stamp.exists() else "none (built before the reference patch)"
+    want_patch = hashlib.sha256(_REFERENCE_PATCH.read_bytes()).hexdigest()
+    if built_patch != want_patch:
+        pytest.fail(f"reference audiocpp_cli at {OFFICIAL_CLI} was built with reference patch {built_patch}, "
+                    f"but {_REFERENCE_PATCH.name} is {want_patch} — re-run native/tests/parity/build_reference_cli.sh")
     dst_dir = _sve_free_copy(OFFICIAL_CLI.parent, "audiocpp_cli")
     return dst_dir / "audiocpp_cli"
 
@@ -653,31 +676,62 @@ def test_moss_clone(tmp_path):
     )
 
 
+JFK_TRANSCRIPT = ("And so my fellow Americans, ask not what your country can do for you, "
+                  "ask what you can do for your country.")
+
+
+def _jfk_sample_wav() -> pathlib.Path | None:
+    """transcribe.cpp's samples/jfk.wav (16 kHz, 16-bit mono, 11 s) — the same file test_asr and
+    ci/build.sh use: $SK_TEST_SAMPLE_WAV when set (ci/build.sh exports it), else the transcribe
+    source CMake fetched next to the staged tree (<build>/_deps/transcribe-src). Local files
+    only, so the case stays hermetic."""
+    env = os.environ.get("SK_TEST_SAMPLE_WAV")
+    candidates = [pathlib.Path(env)] if env else []
+    if HAVE_TREE:
+        candidates.append(pathlib.Path(sokuji_native.native_dir()).resolve().parent
+                          / "_deps" / "transcribe-src" / "samples" / "jfk.wav")
+    return next((p for p in candidates if p.is_file()), None)
+
+
 @needs_cli
 @needs_tree
 @needs_qwen3
 def test_qwen3_base_clone(tmp_path):
     """qwen3-tts-0.6b Base: cloning is REQUIRED (report §3), so this is the family's only
-    offline mode. Model download deferred to the live-gate task (Task 7) — this case only
-    exercises the harness's env-var skip until SK_TEST_TTS_QWEN3_DIR is set."""
+    offline mode.
+
+    The voice reference is REAL SPEECH (jfk.wav with its transcript). Until 2026-11-28 it was
+    the suite's 1 s sine: qwen3 never emits EOS for a sine prompt and ran to the checkpoint's
+    max_new_tokens=8192 (8191 frames, 655 s of audio, ~23 minutes per side on 4 threads — past
+    this file's 600 s subprocess timeout); measured bit-identical on both engines all the same.
+    Both sides get the identical float32 samples, through the same lossless float WAV.
+
+    subtalker_do_sample keeps its default (true, seeded by seed=0) on BOTH sides: sk_tts sets
+    its request options itself and exposes no pass-through, so pinning it false on the CLI only
+    would compare two different decoders."""
+    import soundfile as sf
+
+    jfk = _jfk_sample_wav()
+    if jfk is None:
+        pytest.skip("needs transcribe.cpp's samples/jfk.wav (set SK_TEST_SAMPLE_WAV, or stage from a CMake build tree)")
+    pcm, rate = sf.read(str(jfk), dtype="float32", always_2d=False)
     text = "Hello from Qwen3 TTS."
-    ref_clip = _sine_wav_f32()
     ref_clip_wav = tmp_path / "voice-ref.wav"
-    _write_ref_wav(ref_clip_wav, 24000, ref_clip)
+    _write_ref_wav(ref_clip_wav, rate, pcm)
     ref_wav = tmp_path / "ref.wav"
     got_wav = tmp_path / "got.wav"
 
     _run_cli([
         "--task", "tts", "--family", "qwen3_tts", "--model", str(QWEN3_DIR),
         "--backend", "cpu", "--threads", str(THREADS),
-        "--text", text, "--voice-ref", str(ref_clip_wav), "--reference-text", REFERENCE_TEXT,
+        "--text", text, "--voice-ref", str(ref_clip_wav), "--reference-text", JFK_TRANSCRIPT,
         "--seed", "0", "--request-option", "do_sample=false",
         "--out", str(ref_wav),
     ])
 
     _run_candidate(
         native_dir=_candidate_native_dir_nosve(), model_dir=QWEN3_DIR, family="qwen3_tts",
-        text=text, voice_ref_wav=ref_clip_wav, voice_ref_text=REFERENCE_TEXT, out_wav=got_wav,
+        text=text, voice_ref_wav=ref_clip_wav, voice_ref_text=JFK_TRANSCRIPT, out_wav=got_wav,
     )
 
     failure = _compare_lsb_tolerant(ref_wav, got_wav)
