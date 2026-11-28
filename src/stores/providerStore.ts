@@ -80,6 +80,11 @@ export interface ProviderStore {
    * unknown and reports nothing.
    */
   refreshReadiness(p: AnyProvider, auth: AuthContext, from?: ReadinessInputs, signal?: AbortSignal): Promise<Readiness>;
+  /**
+   * The pair a provider's check is asked about: the transcriber's when another provider transcribes in the plan,
+   * otherwise its own entry's. Undefined while it is not loaded. What a surface resolves against to agree with the check.
+   */
+  checkedPair(id: string): LanguagePair | undefined;
   /** Forgets `p`'s readiness — a sign-in flip, for a managed provider: it is unknown, and a check still in flight no longer counts. The last ready answer, kept with its inputs, stays: a check for exactly those inputs is served from it. */
   forgetReadiness(p: Pick<AnyProvider, 'id'>): void;
   /** The legs a start would open now, speaker first (appShape's `watchLegsFromStores` keeps them); the speaker alone until then. */
@@ -397,6 +402,10 @@ export const useProviderStore = create<ProviderStore>()((set, get) => {
       }
       await Promise.all([...writing]);
       return ![...unsaved.keys()].some(covers);
+    },
+
+    checkedPair(id) {
+      return heardElsewhere(id) ?? get().entries[id]?.pair;
     },
 
     async refreshReadiness(p, auth, from, signal) {

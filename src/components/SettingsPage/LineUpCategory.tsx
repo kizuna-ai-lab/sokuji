@@ -148,14 +148,15 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
    * speech in the one the session cannot run without (mine, or the other side's when only theirs runs).
    */
   const lacksModel = useCallback((id: string, stage: RunStage): boolean => {
-    const entry = entries[id];
-    if (!entry?.pair) return false;
-    const selections = (entry.settings as { selections?: Selections } | undefined)?.selections ?? {};
+    // The pair its check is asked about: the transcriber's, where another provider transcribes (review).
+    const pair = useProviderStore.getState().checkedPair(id);
+    if (!pair) return false;
+    const selections = (entries[id]?.settings as { selections?: Selections } | undefined)?.selections ?? {};
     const resolve = (src: string, tgt: string) => (id === 'local_native'
       ? useNativeModelStore.getState().resolve(src, tgt, selections)
       : useModelStore.getState().resolve(src, tgt, selections, localStages ?? ALL_LOCAL_STAGES));
-    const forward = resolve(entry.pair.source, entry.pair.target);
-    const reverse = mode === 'speaker' ? null : resolve(entry.pair.target, entry.pair.source);
+    const forward = resolve(pair.source, pair.target);
+    const reverse = mode === 'speaker' ? null : resolve(pair.target, pair.source);
     const main = mode === 'participant' && reverse ? reverse : forward;
     const want = MODEL_STAGE[stage];
     if (want === 'asr') return !main.asr || (mode === 'both' && !reverse?.asr);

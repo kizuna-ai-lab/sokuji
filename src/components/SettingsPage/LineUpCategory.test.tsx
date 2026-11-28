@@ -1265,6 +1265,20 @@ describe('languages and line-up — the way in from a notice', () => {
       expect(follow(1)).toBe('native-engine');
     });
 
+    // Review: translating what another provider transcribes, it is checked for the transcriber's pair, not its own.
+    it("translating what another provider hears, the translation card reads the pair that provider runs", () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'soniox', translation: 'local_inference', speech: 'edge', summarisation: null }, stored: true });
+      useModelStore.setState({ resolve: (src: string) => has(src === 'ko' ? { translation: 't' } : {})() });
+      useProviderStore.setState({
+        stages: { soniox: ['transcription'], local_inference: ['translation'] }, intent: { source: 'ko', target: 'en' },
+        entries: { soniox: { settings: {}, credentials: { apiKey: 'k' }, pair: { source: 'ko', target: 'en' } }, local_inference: entry } as never,
+        readiness: { local_inference: { state: 'ready' } } as never,
+      });
+      render(<LineUpCategory locked={false} />);
+      const card = screen.getByRole('combobox', { name: 'Translation' }).closest('.lineup-stage') as HTMLElement;
+      expect(card.querySelector('.lineup-stage__state')?.textContent).toBe('Ready');
+    });
+
     it('ready, a speech model that is missing is said on the speech card alone', () => {
       useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
       runsOn('local_inference');
