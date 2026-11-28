@@ -1,13 +1,14 @@
 # .github/workflows/native-build.yml
-# Build the sokuji-native wheels (spec §4.6): one ggml + transcribe.cpp + llama.cpp +
-# audio.cpp behind the sk_* C ABI, per platform. Two lanes:
+# Build sokuji-native (spec §4.6): one ggml + transcribe.cpp + llama.cpp + audio.cpp behind the sk_* C ABI,
+# per platform, and pack it with the Node addon as the app archive. Two lanes:
 #   - workflow_dispatch: dry run — artifacts only.
 #   - native-vX.Y.Z tag push: build all five and publish a PRERELEASE GitHub Release
 #     (prerelease so electron-updater's "latest release" lookup never lands on it).
-# Each platform yields two artifacts: the wheel, and the app archive
-# sokuji-native-<sku>-v<version>.tar.zst (libraries + backend modules + the Node addon +
-# NOTICES.txt) with its .sha256, which the app downloads. The release also carries
-# manifest.json, the five archives' names, hashes and sizes (native/ci/make_app_archive.py).
+# Each platform yields the app archive sokuji-native-<sku>-v<version>.tar.zst (libraries + backend
+# modules + the Node addon + NOTICES.txt) with its .sha256, which the app downloads. The release also
+# carries manifest.json, the five archives' names, hashes and sizes (native/ci/make_app_archive.py).
+# Until native-v1.4.0 each platform also built a Python wheel for the sidecar; the app has used the
+# Node addon since #883, so no wheel is made any more (the Python binding stays, as a test harness).
 name: native-build
 
 permissions:
@@ -37,9 +38,10 @@ jobs:
           # 22.04, not 24.04 (R37): manylinux_2_35 is the lowest floor this tree's own
           # glibc symbols support (measured max is 2.34, one notch under the tag — see
           # .superpowers/linux-x64-vulkan-validation.md §5). `pip install` still needs
-          # glibc >= 2.35 (Ubuntu 22.04+, Debian 12+) — pip enforces the manylinux tag,
-          # not actual symbol references — so RHEL 9 (2.34) can run this wheel only via a
-          # bundle (files copied in, no pip tag check), never via pip; the previous 2.39
+          # glibc >= 2.35 (Ubuntu 22.04+, Debian 12+) for a pip-installed wheel — pip enforced
+          # the manylinux tag, not actual symbol references. The app archive has no such tag
+          # check: RHEL 9 (2.34) can run it, since no shipped object references a newer
+          # glibc symbol. (No wheel is made since native-v1.4.0.) The previous 2.39
           # floor (24.04) covered none of Ubuntu 22.04, Debian 12 or RHEL 9 at all.
           # 22.04's own apt has no glslc package at all — that was the old floor's
           # reason for 24.04 — so the Vulkan toolchain step below builds glslc plus the
@@ -95,7 +97,7 @@ jobs:
         if: runner.os == 'Linux' && matrix.lane == 'vulkan'
         run: |
           # R38: only the Vulkan LOADER comes from 22.04's own apt — libvulkan-dev's
-          # library + its dev symlink (.so), so the wheel keeps linking the exact
+          # library + its dev symlink (.so), so the libraries keep linking the exact
           # system loader every target machine already has. Its bundled headers
           # (1.3.204-era) are NOT relied on: the next step's VULKAN_SDK env var makes
           # CMake prefer the fresher headers native/ci/vulkan-toolchain.sh builds.
@@ -137,7 +139,7 @@ jobs:
           Start-Process -Wait -FilePath .\vulkansdk-windows-X64.exe -ArgumentList '--accept-licenses','--default-answer','--confirm-command','install'
           "VULKAN_SDK=C:\VulkanSDK\$env:VULKAN_SDK_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append
           "C:\VulkanSDK\$env:VULKAN_SDK_VERSION\Bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-      - name: Build, test, wheel, app archive (POSIX)
+      - name: Build, test, app archive (POSIX)
         if: runner.os != 'Windows'
         env:
           # Set => build.sh also packs native/build/archive/sokuji-native-<sku>-v<version>.tar.zst.
@@ -164,7 +166,7 @@ jobs:
           # non-paravirtual macOS runner exists, the coverage turns on by itself.
           SK_TEST_TTS_GPU: ${{ matrix.lane == 'metal' && '1' || '' }}
         run: native/ci/build.sh ${{ matrix.lane }} ${{ matrix.plat }}
-      - name: Build, test, wheel, app archive (Windows)
+      - name: Build, test, app archive (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         env:
@@ -243,10 +245,9 @@ jobs:
         if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/native-v') && vars.SIGNPATH_NATIVE_CONFIGURATION_SLUG == ''
         shell: bash
         run: echo "::warning::SIGNPATH_NATIVE_CONFIGURATION_SLUG is not set, so the Windows native files ship unsigned."
-      - name: Wheel and archive sizes
+      - name: Archive sizes
         shell: bash
         run: |
-          ls -la native/python/dist/ | tee -a "$GITHUB_STEP_SUMMARY"
           ls -la native/build/archive/ | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Electron's shared libraries (Linux)
         if: runner.os == 'Linux'
@@ -291,11 +292,6 @@ jobs:
           JS
           npx --yes electron@44.11.5 native/build/electron-smoke.cjs "${dirs[0]}"
       - uses: actions/upload-artifact@v6
-        with:
-          name: sokuji-native-${{ matrix.sku }}
-          path: native/python/dist/*.whl
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
         with:
           name: sokuji-native-archive-${{ matrix.sku }}
@@ -314,7 +310,7 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout: native/ci
-      # Every artifact into one directory: the five archives, five .sha256 files and the wheels (not attached).
+      # Every artifact into one directory: the five archives and their five .sha256 files.
       - uses: actions/download-artifact@v7
         with:
           path: release

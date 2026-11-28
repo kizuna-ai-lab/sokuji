@@ -11,19 +11,21 @@ see Amendment A1 in the client-VAD-unification spec.
 
 ## Build
 
-    native/ci/build.sh vulkan manylinux_2_39_x86_64     # Linux/macOS: <none|vulkan|metal> <wheel plat tag>
+    native/ci/build.sh vulkan manylinux_2_35_x86_64     # Linux/macOS: <none|vulkan|metal> <platform tag>
     native\ci\build.ps1 -Lane vulkan -Plat win_amd64    # Windows
 
-The plat tag above is illustrative, not a requirement: it is only baked into the wheel's
-filename and the floor `check_linux_deps.py` enforces, so a local/dev build can pass
-whatever `manylinux_2_<N>_*` matches its own machine (see the R37 floor note below for
-what CI actually publishes).
+The platform tag is illustrative, not a requirement: on Linux it names the glibc / libstdc++
+floor `check_linux_deps.py` enforces (see the R37 floor note below for what CI uses), and it is
+ignored elsewhere, so a local/dev build can pass whatever `manylinux_2_<N>_*` matches its own
+machine. (Until native-v1.4.0 it also named a Python wheel for the sidecar; no wheel is built
+any more — the app loads the library through the Node addon, and the Python binding in
+`native/python` is a test harness.)
 
 Requires CMake ≥ 3.28, a C++17 compiler, Python 3.10+, and for the Vulkan lane a Vulkan
 loader + `glslc` — on Linux that's `libvulkan-dev` (apt) plus the pinned Khronos-source
 toolchain `native/ci/vulkan-toolchain.sh` builds (see below); on Windows, the LunarG SDK.
-Output: a wheel in `native/python/dist/`; the staged binaries in
-`native/build/<lane>/stage/` (`native/build/cpu/stage/` for `none`).
+Output: the staged binaries in `native/build/<lane>/stage/` (`native/build/cpu/stage/` for
+`none`), and with `SOKUJI_SKU` the app archive below.
 
 With `SOKUJI_SKU=<linux-x64|linux-arm64|win-x64|mac-arm64|mac-x64>` set (CI sets it from its
 matrix), the script also packs the **app archive**
@@ -35,14 +37,11 @@ directory holding the stage, `sokuji_native_node.node` (the Node-API addon, `nat
 `make_app_archive.py --manifest`. A new vendored or fetched upstream gets a line in
 `ci/NOTICES.in`.
 
-**Linux wheel floor (R37): `manylinux_2_35`, built on `ubuntu-22.04`/`ubuntu-22.04-arm`.**
-`pip install` needs glibc ≥ 2.35 (Ubuntu 22.04+, Debian 12+) no matter which symbols are
-actually used — pip enforces the manylinux tag itself, not the object's real references.
-RHEL 9 (2.34, one notch under the tag but within this tree's own measured margin: no
-shipped object references a glibc symbol newer than 2.34) can run this wheel only via a
-bundle — files copied in, no pip tag check — never via `pip install` directly.
-`check_linux_deps.py` (below) enforces both the glibc floor and a per-tag C++ runtime
-ceiling (`CXX_CEILINGS`) on every staged `.so` before the wheel is built. 22.04's own apt
+**Linux floor (R37): `manylinux_2_35`, built on `ubuntu-22.04`/`ubuntu-22.04-arm`.** No shipped
+object references a glibc symbol newer than 2.34, so the app archive runs on Ubuntu 22.04+, Debian
+12+ and RHEL 9 (the tag's 2.35 is one notch above what the objects need; it was pip's floor when a
+wheel was built). `check_linux_deps.py` (below) enforces both the glibc floor and a per-tag C++
+runtime ceiling (`CXX_CEILINGS`) on every staged `.so` and on the app archive's stage. 22.04's own apt
 has no `glslc` package at all, and its `spirv-headers` package ships no CMake config
 ggml-vulkan's `find_package(SPIRV-Headers CONFIG REQUIRED)` needs —
 CI does **not** paper over that with an apt source (R38): LunarG's jammy repo has no
@@ -51,19 +50,19 @@ build outright. Instead, `native/ci/vulkan-toolchain.sh <prefix>` builds pinned
 Vulkan-Headers, SPIRV-Headers and shaderc (for `glslc`) from source into a small prefix —
 arch-native, cached across runs via `actions/cache` since the shaderc build is the
 expensive part (several minutes uncached). Only the Vulkan **loader** (`libvulkan-dev`'s
-`.so`) still comes from 22.04's own apt, so the wheel keeps linking the same system
+`.so`) still comes from 22.04's own apt, so the libraries keep linking the same system
 loader every target machine already has. Full recipe, per-object glibc/GLIBCXX evidence
 and the validation run: `.superpowers/linux-x64-vulkan-validation.md`.
 
-Developer loop without a wheel:
+Developer loop:
 
     cmake -S native -B native/build/cpu -DSOKUJI_GPU=none && cmake --build native/build/cpu -j
     cmake --install native/build/cpu --prefix native/build/cpu/stage --component sokuji
     SOKUJI_NATIVE_DIR=$PWD/native/build/cpu/stage python -c "import sokuji_native as s; s.init(); print(s.devices())"
     SOKUJI_NATIVE_DIR=$PWD/native/build/cpu/stage python -m pytest native/python/tests native/tests/parity -q
 
-The package tests import `sokuji_native` from `native/python` (pytest `pythonpath`), never
-from an installed wheel; `build.sh` / `build.ps1` run both suites against the fresh stage.
+The package tests import `sokuji_native` from `native/python` (pytest `pythonpath`); `build.sh` /
+`build.ps1` run both suites against the fresh stage.
 
 The `--component sokuji` flag is mandatory: without it the upstreams' own install rules dump headers and static libs into the stage.
 
@@ -87,7 +86,7 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
     (`patches/ggml/0002-backend-reg-filter.patch`), serves only its allowed-backend mask, which we never
     set, and in our shared registry it would filter llama.cpp's and audio.cpp's backends too
   - `audio.cpp.json` — makes audio.cpp reuse our ggml target instead of building its own copy, and
-    keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the wheels target 11.0)
+    keeps its trace-log formatter off `std::to_chars(double)` (macOS 13.3+; the libraries target 11.0)
 - `src/audiocpp_compat.h` — the bridge between audio.cpp's forked ggml (base 0.12.0) and the
   pristine upstream ggml we build on (1.1.1 as of native-v1.4.0; 0.25.3 for native-v1.2.0/1.3.0).
   Two kinds of difference, and the second is the dangerous one; read the header comment before
@@ -132,11 +131,11 @@ The `--component sokuji` flag is mandatory: without it the upstreams' own instal
   Given the lane (`build.sh` passes it), it also requires the lane's runtime to be complete:
   `libggml`, `libggml-base`, a CPU backend module, and the Vulkan/Metal module. Those backends
   are dlopen'd, so no `DT_NEEDED` check sees them, and CI runners have no GPU — a missing GPU
-  module would otherwise ship green under a Vulkan/Metal wheel name. `build.ps1` is not gated.
-- `ci/check_linux_deps.py` — run by `build.sh` on Linux before the wheel is built, and again on
+  module would otherwise ship green under a Vulkan/Metal archive name. `build.ps1` is not gated.
+- `ci/check_linux_deps.py` — run by `build.sh` on Linux on the stage, and again on
   the app archive's stage (where `sokuji_native_node.node` is checked like the `.so` files): every
   staged shared object may depend only on glibc/libstdc++/libgcc, the system Vulkan loader
-  and its siblings, and may reference no glibc symbol newer than the wheel tag's floor.
+  and its siblings, and may reference no glibc symbol newer than the platform tag's floor.
   (The Vulkan loader is external by design, which is why `auditwheel` is not the gate.)
 - `ci/vulkan-toolchain.sh <prefix>` — CI's Linux+Vulkan build-time toolchain (R38):
   builds pinned Vulkan-Headers/SPIRV-Headers/shaderc from source into `<prefix>` (`glslc`
@@ -429,7 +428,7 @@ non-emptiness, never a transcript.
    `CMakeLists.txt` and `_ffi.py` when the ABI changes) — `project(sokuji_native VERSION …)`
    in `CMakeLists.txt` and the `sk_version()` assertion in `tests/test_common.cpp` (the CTest
    fails on the old string otherwise) — then tag `native-vX.Y.Z`. Nothing else needs editing:
-   the staged `contract.json` and the wheel version are both generated from the CMake project
+   the staged `contract.json` and the app archive's version are both generated from the CMake project
    version, and the tag/version match is checked by `native-build.yml`.
 5. Op recordings (`src/ops/*.ops`, spec A §3.2): configure `build/record` with
    `-DSOKUJI_RECORD_OPS=ON`, run `bash ci/ops-env.sh ctest --test-dir build/record -R test_ops_coverage`
@@ -459,7 +458,7 @@ non-emptiness, never a transcript.
    for src/ops carries CONFIGURE_DEPENDS, so an ordinary `cmake --build build/record` re-checks
    the glob on its own; no manual `cmake -S ... -B build/record` re-run is required.
 6. Re-run `ci/check_single_ggml.py` (it runs on its own inside `build.sh`, before `strip`) and
-   compare the new wheels' file lists and sizes against the previous release — a second ggml
+   compare the new app archives' file lists and sizes against the previous release — a second ggml
    or an unexpectedly larger/smaller `.so` is a sign the reuse patch stopped applying. A pin
    must also stay reachable: if the upstream re-points its release tag after you pin to it (as
    transcribe.cpp did to v0.2.4 on 2026-09-25), pin the release **commit** instead of the tag
@@ -468,12 +467,14 @@ non-emptiness, never a transcript.
 
 ## Release
 
-Tagging `native-vX.Y.Z` (a `workflow_dispatch` dry run first, verifying all five wheel
-names and a green build across every SKU) makes `native-build.yml`'s `release` job publish
-the five wheels — one per SKU, `py3-none-<platform>` — as a **prerelease** GitHub Release
-(never the repo's "latest", so electron-updater's app-update lookup can't land on it). The
-tag-vs-version guard reads `project(sokuji_native VERSION …)` straight out of
-`CMakeLists.txt`, so a mismatched tag fails fast instead of shipping a mislabeled wheel.
+Tagging `native-vX.Y.Z` (a `workflow_dispatch` dry run first, verifying a green build across
+every SKU) makes `native-build.yml`'s `release` job publish the five app archives, their `.sha256`
+files and `manifest.json` as a **prerelease** GitHub Release (never the repo's "latest", so
+electron-updater's app-update lookup can't land on it). The tag-vs-version guard reads
+`project(sokuji_native VERSION …)` straight out of `CMakeLists.txt`, so a mismatched tag fails fast
+instead of shipping mislabeled archives. Releases up to native-v1.3.0 also carried five Python
+wheels (`py3-none-<platform>`) for the sidecar; native-v1.4.0 and later carry none. The history
+below is from the wheel era.
 `native-v1.0.0` is the first release built under the R37 floor above: the two Linux wheels
 carry `manylinux_2_35_*` instead of the earlier `manylinux_2_39_*`, everything else
 (win-x64, mac-arm64, mac-x64) is unchanged. Downstream, these wheel URLs are what

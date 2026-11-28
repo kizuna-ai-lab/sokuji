@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)   # FetchContent_Declare(EXCLUDE_FROM_ALL)
-# The macOS wheels are tagged macosx_11_0_*; pin the deployment target to match, before
+# The macOS app archives target macOS 11.0 (macosx_11_0_*); pin the deployment target to match, before
 # project() reads it. CMAKE_HOST_APPLE is one of the few variables CMake defines that
 # early (we never cross-compile to macOS, so host == target here).
 if(CMAKE_HOST_APPLE)
@@ -147,7 +147,7 @@ endif()
 # would be exported from our .so and could shadow another copy loaded by the host process.
 # Windows needs nothing: only __declspec(dllexport) is exported there.
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    # Also the glibc/libstdc++ floor: the wheels must run on distributions older than the
+    # Also the glibc/libstdc++ floor: the libraries must run on distributions older than the
     # build runner, and --no-undefined turns a missing symbol into a link error here
     # instead of a dlopen failure on a user's machine.
     target_link_options(sokuji_native PRIVATE
@@ -191,7 +191,7 @@ if(SOKUJI_NODE_ADDON)
     add_subdirectory(node)
 endif()
 
-# ---- install: one flat directory, exactly what the wheel ships -------------------------
+# ---- install: one flat directory, exactly what the app archive ships ------------------
 # Everything here is COMPONENT sokuji. The fetched upstreams carry their own install()
 # rules (headers, static libs, cmake configs) in the default component; installing with
 # `cmake --install <build> --prefix <dir> --component sokuji` runs only ours.

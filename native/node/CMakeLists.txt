@@ -81,7 +81,7 @@ add_custom_command(
 add_custom_target(sokuji_native_node_contract DEPENDS ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/contract.json)
 add_dependencies(sokuji_native_node sokuji_native_node_contract)
 
-# Its own component, so the wheel's `cmake --install ... --component sokuji` is unchanged.
+# Its own component, so the stage's `cmake --install ... --component sokuji` is unchanged.
 # A MODULE library is a LIBRARY artifact on every platform; RUNTIME is listed for symmetry.
 install(TARGETS sokuji_native_node
         LIBRARY DESTINATION . COMPONENT sokuji_node

@@ -1,7 +1,8 @@
-"""sokuji_native — the sidecar's one native dependency.
+"""sokuji_native — the Python binding to libsokuji_native, kept as a test harness (the app uses the
+Node addon; the Python sidecar this was written for is gone, and no wheel is built since native-v1.4.0).
 
-Loads libsokuji_native from the packaged _native/ directory (or SOKUJI_NATIVE_DIR for a
-development tree), refuses a contract.json whose ABI differs from _ffi.SK_ABI_VERSION,
+Loads libsokuji_native from SOKUJI_NATIVE_DIR (a built stage), or from a _native/ directory next to
+this file if one was copied there, refuses a contract.json whose ABI differs from _ffi.SK_ABI_VERSION,
 and exposes the C surface as plain Python. Slice 4 adds tts."""
 from __future__ import annotations
 

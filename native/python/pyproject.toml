@@ -1,25 +1,6 @@
-[build-system]
-requires = ["setuptools>=70.1", "wheel"]     # 70.1 is where setuptools.command.bdist_wheel landed
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "sokuji-native"
-# The version is the native library's own, read by setup.py out of the staged
-# _native/contract.json: native/CMakeLists.txt is the single place it is written.
-dynamic = ["version"]
-description = "One native library for the Sokuji sidecar: transcribe.cpp, llama.cpp and audio.cpp on one ggml, behind one C ABI"
-requires-python = ">=3.10"
-license = { text = "Apache-2.0" }
-# numpy: TtsModel.synth()/on_chunk hand back real np.float32 arrays (slice 4's contract),
-# not just anything satisfying the buffer protocol like the ASR/translate PCM helper.
-dependencies = ["numpy"]
-
-[tool.setuptools]
-packages = ["sokuji_native"]
-include-package-data = true
-
-[tool.setuptools.package-data]
-sokuji_native = ["_native/*"]
+# The Python binding to libsokuji_native (sokuji_native/): a test harness only. The app loads the
+# library through the Node addon (native/node); until native-v1.4.0 this directory also built a wheel
+# for the Python sidecar, which is gone. Tests point it at a built stage with SOKUJI_NATIVE_DIR.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

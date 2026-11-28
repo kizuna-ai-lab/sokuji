@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# One build, used by CI and by developers. Usage: native/ci/build.sh <none|vulkan|metal> <wheel-platform-tag>
+# One build, used by CI and by developers. Usage: native/ci/build.sh <none|vulkan|metal> <platform-tag>
+# The platform tag (e.g. manylinux_2_35_x86_64) names the Linux glibc / libstdc++ floor check_linux_deps.py
+# enforces on the staged libraries and the app archive; it is ignored elsewhere.
 set -euo pipefail
 LANE="${1:?lane: none|vulkan|metal}"
-PLAT="${2:?wheel platform tag, e.g. manylinux_2_28_x86_64}"
+PLAT="${2:?platform tag, e.g. manylinux_2_35_x86_64}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PYTHON="${PYTHON:-python3}"
 # Lane `none` reuses the pre-existing `build/cpu` tree (the developer default from before
@@ -38,11 +40,10 @@ else
     cmake --build "$RECORD_BUILD" -j"$JOBS"
     ctest --test-dir "$RECORD_BUILD" -R test_ops_coverage --output-on-failure
 fi
-# python/build is setuptools' own scratch tree and is NOT keyed by lane: a stale
-# build/lib.*/sokuji_native/_native left by an earlier lane carries that lane's
-# libggml-*.so into this lane's wheel (a CPU-lane wheel was seen reporting a Vulkan device
-# for exactly this reason). Clear it with the staged tree it feeds.
-rm -rf "$BUILD/stage" "$ROOT/python/sokuji_native/_native" "$ROOT/python/build"
+# A fresh stage per run. python/sokuji_native/_native and python/build are what the Python wheel
+# was made from until native-v1.4.0 (the app has not used a wheel since the Node addon replaced the
+# sidecar); a checkout that still has them gets them cleared too, so nothing reads a stale copy.
+rm -rf "$BUILD/stage" "$ROOT/python/sokuji_native/_native" "$ROOT/python/build" "$ROOT/python/dist"
 # Only the sokuji component: the fetched upstreams carry their own install() rules
 # (headers, static libs, cmake configs) in the default component, which must not run.
 cmake --install "$BUILD" --prefix "$BUILD/stage" --component sokuji
@@ -60,7 +61,16 @@ fi
 if [ "$(uname -s)" = "Linux" ]; then
     "$PYTHON" "$ROOT/ci/check_linux_deps.py" "$BUILD/stage" "$PLAT"
 fi
-cp -r "$BUILD/stage" "$ROOT/python/sokuji_native/_native"
+# The stage must report the lane that was asked for: a GPU backend that quietly failed to build would
+# otherwise ship as a CPU-only archive under a Vulkan/Metal name. Asked through the Python binding from
+# the source tree, on this stage.
+case "$LANE" in
+    none)   WANT_LANE=cpu ;;
+    vulkan) WANT_LANE=cpu-vulkan ;;
+    metal)  WANT_LANE=metal ;;
+    *)      echo "unknown lane: $LANE"; exit 1 ;;
+esac
+PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -c "import sys, sokuji_native as s; s.init(); ev = s.engine_versions(); lane = ev['lane']; assert lane == sys.argv[1], ('built lane', lane, 'wanted', sys.argv[1]); print(s.version(), ev, [(d.kind, d.description) for d in s.devices()])" "$WANT_LANE"
 # The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
 # against whatever sokuji_native happens to be installed in this interpreter.
 # zstandard: make_app_archive.py and its test (tests/test_make_app_archive.py).
@@ -77,7 +87,7 @@ PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -m pytest "
 # The app archive: the same stage plus the Node addon and NOTICES.txt, packed as
 # sokuji-native-<sku>-v<version>.tar.zst for the app to unpack (make_app_archive.py's docstring
 # has the layout). Only when SOKUJI_SKU names the platform (CI sets it from the matrix), so a
-# developer's build.sh run stays wheel-only unless asked. Its own stage: the wheel's stays as is.
+# developer's build.sh run makes no archive unless asked. Its own stage: the test stage stays as is.
 # The addon itself was already tested by ctest (test_node_addon) against the build tree; the
 # workflow loads the unpacked archive under Electron.
 if [ -n "${SOKUJI_SKU:-}" ]; then
@@ -98,16 +108,3 @@ if [ -n "${SOKUJI_SKU:-}" ]; then
     "$PYTHON" "$ROOT/ci/make_app_archive.py" "$APP_STAGE" "$SOKUJI_SKU" "$APP_VERSION" "$ARCHIVE_DIR"
     ls -la "$ARCHIVE_DIR"
 fi
-( cd "$ROOT/python" && rm -rf dist && SOKUJI_NATIVE_PLAT="$PLAT" "$PYTHON" -m pip wheel . --no-deps -w dist )
-ls -la "$ROOT/python/dist"
-# Import the wheel we just built, from a clean interpreter, and print the device table.
-# The wheel must report the lane that was asked for; a GPU backend that quietly failed to
-# build would otherwise ship as a CPU-only wheel under a Vulkan/Metal name.
-case "$LANE" in
-    none)   WANT_LANE=cpu ;;
-    vulkan) WANT_LANE=cpu-vulkan ;;
-    metal)  WANT_LANE=metal ;;
-    *)      echo "unknown lane: $LANE"; exit 1 ;;
-esac
-"$PYTHON" -m pip install -q --force-reinstall "$ROOT"/python/dist/*.whl
-"$PYTHON" -c "import sys, sokuji_native as s; s.init(); ev = s.engine_versions(); lane = ev['lane']; assert lane == sys.argv[1], ('built lane', lane, 'wanted', sys.argv[1]); print(s.version(), ev, [(d.kind, d.description) for d in s.devices()])" "$WANT_LANE"

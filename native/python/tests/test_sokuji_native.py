@@ -1,6 +1,5 @@
-"""Runs against a built tree: set SOKUJI_NATIVE_DIR to the install/stage dir from Task 6
-(or install the wheel). Without either, the load tests skip and only the pure-Python
-contract logic is exercised."""
+"""Runs against a built tree: set SOKUJI_NATIVE_DIR to a stage dir (native/ci/build.sh does).
+Without it, the load tests skip and only the pure-Python contract logic is exercised."""
 import json
 import os
 import pathlib

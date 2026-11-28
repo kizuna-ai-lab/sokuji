@@ -1,12 +1,12 @@
-"""Gate for the Linux wheels and app archives: what the staged shared objects may depend on.
+"""Gate for the Linux app archives: what the staged shared objects may depend on.
 
-usage: check_linux_deps.py <stage_dir> <wheel platform tag>
+usage: check_linux_deps.py <stage_dir> <platform tag>
 
-The wheels are tagged manylinux_2_<N>_* (the glibc floor of the runner that built
-them). Two things would make that tag a lie, and neither is visible from a green
+The platform tag manylinux_2_<N>_* names the glibc floor (the runner that built the
+libraries; it was the wheels' tag until native-v1.4.0, when wheels stopped being built). Two things would make that tag a lie, and neither is visible from a green
 build: a DT_NEEDED on a library that is not on every glibc-2.<N> system, or a
 versioned glibc symbol newer than 2.<N>. This checks both with readelf, on the
-staged tree, before the wheel is built. The same check runs on the app archive's stage, where
+staged tree. The same check runs on the app archive's stage, where
 sokuji_native_node.node (the Node addon: a shared object that does not have `.so` in its name)
 is held to the same floor.
 
