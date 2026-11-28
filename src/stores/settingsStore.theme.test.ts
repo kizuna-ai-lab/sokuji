@@ -25,6 +25,8 @@ vi.mock('../services/ServiceFactory', () => ({
 const { default: useSettingsStore } = await import('./settingsStore');
 
 beforeEach(() => {
+  // Each test starts from the store's initial state, so 'defaults to dark' does not depend on running first.
+  useSettingsStore.setState(useSettingsStore.getInitialState(), true);
   stored = {};
   setSetting.mockClear();
   setSetting.mockImplementation(async () => ({ success: true }));
