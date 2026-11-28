@@ -60,7 +60,7 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean; /** The card's
 
   // Dev checkout with a venv: the venv launch path keeps working (spec S2
   // exemption) with nothing to show here beyond a runtime error, if any — the
-  // status line under the provider picker already carries "dev venv" as the
+  // status line above this card already carries "dev venv" as the
   // engine's version segment. Checked BEFORE 'unsupported' so an ARM dev box
   // (sku=null, venv built) gets a working dev lane, not a dead end.
   if (bundleDevVenv && (bundleStatus === 'unsupported' || bundleStatus === 'absent' || bundleStatus === 'paused')) {
