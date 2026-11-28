@@ -220,20 +220,24 @@ int main(int argc, char **argv) {
         };
         for (int offset_source = 0; offset_source < 2; ++offset_source) {
             for (const View &v : views) {
-                size_t src_offs = 0;
-                ggml_tensor *src_seen = nullptr, *view_seen = nullptr, *leaf = nullptr;
+                // What the structure checks need, copied out while the context is alive: run() frees it
+                // before returning, and on Apple ggml_free unmaps the pages (vm_deallocate).
+                size_t src_offs = 0, view_offs = 0, view_nb[4] = {};
+                bool on_leaf = false;
+                std::string src_name, view_name;
                 const auto got = run([&](ggml_context *c, std::vector<ggml_tensor *> &in) {
                     in = {ggml_new_tensor_3d(c, GGML_TYPE_F32, C, T, B)};
-                    leaf = in[0];
+                    ggml_tensor *const leaf = in[0];
                     ggml_tensor *x = in[0];
                     if (offset_source) {   // skip the first frame: a contiguous view at view_offs = C*4
                         x = ggml_view_3d(c, x, C, T - 1, B, x->nb[1], x->nb[2], x->nb[1]);
                     }
                     ggml_tensor *a = ggml_permute(c, x, 1, 0, 2, 3);         // ne=[T',C,B] nb=[C*4,4,C*T*4]
                     assert(a->nb[0] != ggml_type_size(a->type));
-                    src_seen = a;
                     src_offs = a->view_offs;
+                    src_name = a->name;
                     const size_t ts = sizeof(float);
+                    ggml_tensor *view_seen = nullptr;
                     switch (v.rank) {
                         case 2: view_seen = ggml_view_2d(c, a, v.ne[0], v.ne[1], v.nb_el[0] * ts, v.off_el * ts); break;
                         case 3: view_seen = ggml_view_3d(c, a, v.ne[0], v.ne[1], v.ne[2], v.nb_el[0] * ts,
@@ -241,16 +245,20 @@ int main(int argc, char **argv) {
                         default: view_seen = ggml_view_4d(c, a, v.ne[0], v.ne[1], v.ne[2], v.ne[3], v.nb_el[0] * ts,
                                                           v.nb_el[1] * ts, v.nb_el[2] * ts, v.off_el * ts); break;
                     }
+                    on_leaf = view_seen->view_src == leaf;
+                    view_offs = view_seen->view_offs;
+                    for (int d = 0; d < 4; ++d) view_nb[d] = view_seen->nb[d];
+                    view_name = view_seen->name;
                     return ggml_cont(c, view_seen);
                 }, {{0, base}});
                 // Structure: the fork's base, offset and strides (dim 0 forced to the element size).
-                assert(view_seen->view_src == leaf);
-                assert(view_seen->view_offs == src_offs + v.off_el * sizeof(float));
+                assert(on_leaf);
+                assert(view_offs == src_offs + v.off_el * sizeof(float));
                 assert(src_offs == (offset_source ? (size_t)C * sizeof(float) : 0));
-                assert(view_seen->nb[0] == sizeof(float) && view_seen->nb[1] == v.nb_el[0] * sizeof(float));
-                if (v.rank >= 3) assert(view_seen->nb[2] == v.nb_el[1] * sizeof(float));
-                if (v.rank == 4) assert(view_seen->nb[3] == v.nb_el[2] * sizeof(float));
-                assert(std::strcmp(view_seen->name, (std::string(src_seen->name) + " (view)").c_str()) == 0);
+                assert(view_nb[0] == sizeof(float) && view_nb[1] == v.nb_el[0] * sizeof(float));
+                if (v.rank >= 3) assert(view_nb[2] == v.nb_el[1] * sizeof(float));
+                if (v.rank == 4) assert(view_nb[3] == v.nb_el[2] * sizeof(float));
+                assert(view_name == src_name + " (view)");
                 // Values: the same addressing done by hand.
                 const size_t nb_el[4] = {1, v.nb_el[0], v.rank >= 3 ? v.nb_el[1] : v.nb_el[0] * v.ne[1],
                                          v.rank == 4 ? v.nb_el[2] : (v.rank == 3 ? v.nb_el[1] * v.ne[2] : v.nb_el[0] * v.ne[1])};
