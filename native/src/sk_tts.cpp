@@ -1,6 +1,7 @@
 #define SOKUJI_NATIVE_BUILD 1
 #include "sokuji_native.h"
 #include "sk_internal.h"
+#include "sk_locale.h"
 
 #include "engine/framework/core/backend.h"
 #include "engine/framework/runtime/registry.h"
@@ -354,6 +355,7 @@ extern "C" {
 
 SK_API sk_status sk_tts_load(const char *model_path, const sk_device *device,
                               const sk_tts_options *opts, sk_tts **out) {
+    sk::CtypeCLocale c_ctype;   // audio.cpp classifies UTF-8 bytes with std::isspace (sk_locale.h)
     if (out) *out = nullptr;
     if (!model_path || !*model_path || !opts || !opts->family || !*opts->family || !out) {
         sk::set_error("sk_tts_load: model_path, opts->family and out-pointer are required");
@@ -487,6 +489,7 @@ SK_API sk_status sk_tts_capabilities(sk_tts *t, sk_tts_caps *out) {
 }
 
 SK_API sk_status sk_tts_presets(sk_tts *t, sk_text_cb on_name, void *user) {
+    sk::CtypeCLocale c_ctype;   // audio.cpp classifies UTF-8 bytes with std::isspace (sk_locale.h)
     if (!t) { sk::set_error("sk_tts_presets: handle is required"); return SK_ERR_INVALID_ARGUMENT; }
     std::lock_guard<std::mutex> lock(t->mutex);
     for (const auto &name : t->preset_names) {
@@ -500,6 +503,7 @@ SK_API sk_status sk_tts_presets(sk_tts *t, sk_text_cb on_name, void *user) {
 
 SK_API sk_status sk_tts_set_voice(sk_tts *t, const float *ref_pcm, size_t n, int32_t sample_rate,
                                    const char *ref_text) {
+    sk::CtypeCLocale c_ctype;   // audio.cpp classifies UTF-8 bytes with std::isspace (sk_locale.h)
     if (!t || !ref_pcm || n == 0 || sample_rate <= 0) {
         sk::set_error("sk_tts_set_voice: handle, ref_pcm (n > 0) and a positive sample_rate are required");
         return SK_ERR_INVALID_ARGUMENT;
@@ -525,6 +529,7 @@ SK_API sk_status sk_tts_set_voice(sk_tts *t, const float *ref_pcm, size_t n, int
 }
 
 SK_API sk_status sk_tts_set_preset(sk_tts *t, const char *name) {
+    sk::CtypeCLocale c_ctype;   // audio.cpp classifies UTF-8 bytes with std::isspace (sk_locale.h)
     if (!t || !name || !*name) { sk::set_error("sk_tts_set_preset: handle and name are required"); return SK_ERR_INVALID_ARGUMENT; }
     std::lock_guard<std::mutex> lock(t->mutex);
     // supertonic and pocket_tts advertise a COMPLETE, authoritative preset list (report §3:
@@ -555,6 +560,7 @@ SK_API sk_status sk_tts_set_preset(sk_tts *t, const char *name) {
 
 SK_API sk_status sk_tts_synth(sk_tts *t, const char *text, const char *language, float speed,
                                sk_audio_cb on_audio, void *user) {
+    sk::CtypeCLocale c_ctype;   // audio.cpp classifies UTF-8 bytes with std::isspace (sk_locale.h)
     if (!t || !text) { sk::set_error("sk_tts_synth: handle and text are required"); return SK_ERR_INVALID_ARGUMENT; }
     if (!(speed > 0.0f)) {   // catches <= 0 and NaN (NaN > 0.0f is false); supertonic's own
                               // speaking_rate check throws for this, which would otherwise

@@ -16,4 +16,5 @@ const std::vector<ggml_backend_dev_t> &devices();   // index == sk_device.index;
 int32_t kind_of(ggml_backend_dev_t dev);            // SK_DEVICE_CPU / VULKAN / METAL / OTHER
 std::string own_directory();                        // directory containing this shared library
 void log_line(int32_t level, const char *msg);      // the sk_init log sink, if any
+
 }  // namespace sk

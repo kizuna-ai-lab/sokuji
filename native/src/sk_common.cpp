@@ -137,6 +137,7 @@ const std::vector<ggml_backend_dev_t> &devices() { return g_devices; }
 int32_t kind_of(ggml_backend_dev_t dev) { return ::kind_of(dev); }
 std::string own_directory() { return ::own_directory(); }
 void log_line(int32_t level, const char *msg) { ::log_line(level, msg); }
+
 }  // namespace sk
 
 extern "C" {

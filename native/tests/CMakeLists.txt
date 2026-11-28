@@ -52,6 +52,12 @@ target_include_directories(test_ops_format PRIVATE ../src ../include)
 target_link_libraries(test_ops_format PRIVATE ggml)
 add_test(NAME test_ops_format COMMAND test_ops_format)
 
+# The per-thread "C" LC_CTYPE guard every audio.cpp entry point runs under (src/sk_locale.h): no
+# byte >= 0x80 is a space inside it, whatever locale the process set, and it restores the thread's own.
+add_executable(test_locale test_locale.cpp ../src/sk_locale.cpp)
+target_include_directories(test_locale PRIVATE ../src)
+add_test(NAME test_locale COMMAND test_locale)
+
 # The audio.cpp compat shims (src/audiocpp_compat.h (D)/(E)) against the fork's documented
 # equivalents, on the ggml we build. Header-only, so compiled straight in, with ggml-impl.h
 # from the ggml source tree like the engine targets that force-include it.

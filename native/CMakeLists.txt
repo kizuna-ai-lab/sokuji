@@ -104,7 +104,7 @@ add_custom_command(
     COMMENT "sokuji-native: baking op recordings")
 target_sources(sokuji_native PRIVATE src/sk_ops.cpp ${CMAKE_BINARY_DIR}/generated/sk_ops_data.cpp)
 target_sources(sokuji_native PRIVATE src/sk_selftest.cpp src/sk_asr.cpp src/sk_translate.cpp src/sk_tts.cpp
-                                     src/sk_profile.cpp src/sk_vk_enum.cpp src/sk_ops_format.cpp)
+                                     src/sk_profile.cpp src/sk_vk_enum.cpp src/sk_ops_format.cpp src/sk_locale.cpp)
 target_link_libraries(sokuji_native PRIVATE engine_runtime)
 target_include_directories(sokuji_native PRIVATE ${audiocpp_SOURCE_DIR}/include)
 
