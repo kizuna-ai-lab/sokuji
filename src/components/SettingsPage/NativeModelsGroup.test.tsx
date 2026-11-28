@@ -60,6 +60,17 @@ describe('NativeModelsGroup', () => {
     expect(seen.previews.every((p) => p === appVoicePreview)).toBe(true);
   });
 
+  // PR review: translating what another provider hears, its library lists the models for that provider's pair.
+  it("lists the models for the pair a session runs: the transcriber's where another provider transcribes", () => {
+    useProviderStore.setState({
+      stages: { soniox: ['transcription'], local_native: ['translation'] }, intent: { source: 'ko', target: 'en' },
+      entries: { soniox: { settings: {}, pair: { source: 'ko', target: 'en' } }, local_native: { settings: own, pair: { source: 'en', target: 'ja' } } } as never,
+    });
+    render(<NativeModelsGroup locked={false} />);
+    expect(seen.libraries[0]).toMatchObject({ pair: { source: 'ko', target: 'en' } });
+    useProviderStore.setState({ stages: {} });
+  });
+
   it('writes a change to Local Native’s own settings', () => {
     render(<NativeModelsGroup locked={false} />);
     const update = vi.spyOn(useProviderStore.getState(), 'updateSettings').mockImplementation(() => {});

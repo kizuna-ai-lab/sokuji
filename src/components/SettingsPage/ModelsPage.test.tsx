@@ -500,8 +500,13 @@ describe('Local models and storage — the engines as tabs', () => {
     desktopWithNative();
     mount();
     const hint = screen.getByRole('region', { name: 'Native engine' }).querySelector('.models-group__hint')!;
-    expect(hint.textContent).toContain('Ships with the app and runs on this computer.');
-    expect(within(hint as HTMLElement).getByTestId('engine-status').dataset.inline).toBe('true');
+    // The sentence, then the status line at its end (PR review: in that order).
+    expect(hint.textContent?.trim()).toBe('Ships with the app and runs on this computer.');
+    const status = within(hint as HTMLElement).getByTestId('engine-status');
+    expect(status.dataset.inline).toBe('true');
+    expect(hint.lastElementChild).toBe(status);
+    expect(hint.firstChild?.nodeType).toBe(Node.TEXT_NODE);
+    expect(hint.firstChild?.textContent).toContain('Ships with the app');
   });
 
   it('names the service that uses the WASM/WebGPU library by its full name', () => {

@@ -26,6 +26,8 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
   const { t } = useTranslation();
   const native = useMemo(() => presentProviders().find((p) => p.id === 'local_native'), []);
   const entry = useProviderStore((s) => s.entries.local_native);
+  // The pair a session runs, which its check asks about: the transcriber's where another provider transcribes (PR review).
+  const checked = useProviderStore((s) => s.checkedPair('local_native'));
   useEffect(() => {
     if (native && !entry) void useProviderStore.getState().load(native);
   }, [native, entry]);
@@ -53,7 +55,7 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
   useEffect(() => { useNativeModelStore.getState().setLibraryDirection(null); }, []);
   if (!native) return null;
   const settings = (entry?.settings as LocalNativeSettings | undefined) ?? LOCAL_NATIVE_DEFAULTS;
-  const pair = entry?.pair ?? { source: 'en', target: 'ja' };
+  const pair = checked ?? entry?.pair ?? { source: 'en', target: 'ja' };
   const forward = directionKey(pair.source, pair.target);
   const direction = libraryDirection && libraryDirection !== forward ? libraryDirection : undefined;
   const names = (dir: string) => {

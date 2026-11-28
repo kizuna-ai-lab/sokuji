@@ -6,7 +6,8 @@ const scan = vi.hoisted(() => ({ initialize: vi.fn(async () => {}), initialized:
 vi.mock('../../stores/modelStore', () => ({
   useModelStore: { getState: () => ({ initialize: scan.initialize, initialized: scan.initialized }) },
 }));
-vi.mock('./ModelsPage', () => ({ ModelsPage: () => <div data-testid="storage" /> }));
+const pageProps = vi.hoisted(() => ({ last: null as null | { pair: unknown } }));
+vi.mock('./ModelsPage', () => ({ ModelsPage: (props: { pair: unknown }) => { pageProps.last = props; return <div data-testid="storage" />; } }));
 vi.mock('../Settings/sections/AudioDeviceSection', () => ({ default: () => <div data-testid="microphone" /> }));
 vi.mock('../Settings/sections/SpeechOutputSection', () => ({ default: () => <div data-testid="speech" /> }));
 vi.mock('../Settings/sections/SystemAudioSection', () => ({ default: () => <div data-testid="their-audio" /> }));
@@ -15,6 +16,7 @@ vi.mock('./AudioModeSwitch', () => ({ AudioModeSwitch: ({ locked }: { locked: bo
 import { AudioCategory, ModelsCategory } from './DeviceCategories';
 
 import { runsOn } from '../../stores/lineUpStore.testing';
+import { useProviderStore } from '../../stores/providerStore';
 afterEach(() => { cleanup(); scan.initialize.mockClear(); scan.initialized = false; });
 
 describe('models and storage', () => {
@@ -22,6 +24,23 @@ describe('models and storage', () => {
     runsOn('soniox');
     render(<ModelsCategory locked={false} />);
     expect(scan.initialize).toHaveBeenCalledTimes(1);
+  });
+
+  // PR review: translating what another provider hears, the session runs that provider's pair (the one its check asks
+  // about), so the library a card's "Needs a model" opens lists the models for that pair, not this provider's own.
+  it("lists the models for the pair a session runs: the transcriber's where another provider transcribes", () => {
+    scan.initialized = true;
+    useProviderStore.setState({
+      stages: { soniox: ['transcription'], local_inference: ['translation'] }, intent: { source: 'ko', target: 'en' },
+      entries: { soniox: { settings: {}, pair: { source: 'ko', target: 'en' } }, local_inference: { settings: {}, pair: { source: 'ja', target: 'en' } } } as never,
+    });
+    render(<ModelsCategory locked={false} />);
+    expect(pageProps.last?.pair).toEqual({ source: 'ko', target: 'en' });
+    cleanup();
+    // Serving its own stages, its own pair.
+    useProviderStore.setState({ stages: { local_inference: ['transcription', 'translation', 'speech'] } });
+    render(<ModelsCategory locked={false} />);
+    expect(pageProps.last?.pair).toEqual({ source: 'ja', target: 'en' });
   });
 
   it('does not scan again once the models are known', () => {

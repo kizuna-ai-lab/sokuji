@@ -20,6 +20,8 @@ import { AudioModeSwitch } from './AudioModeSwitch';
 export function ModelsCategory({ locked }: CategoryBodyProps) {
   const local = useMemo(() => presentProviders().find((p) => p.id === 'local_inference'), []);
   const entry = useProviderStore((s) => s.entries.local_inference);
+  // The pair a session runs, which its check asks about: the transcriber's where another provider transcribes (PR review).
+  const checked = useProviderStore((s) => s.checkedPair('local_inference'));
   useEffect(() => {
     if (local && !entry) void useProviderStore.getState().load(local);
   }, [local, entry]);
@@ -30,7 +32,7 @@ export function ModelsCategory({ locked }: CategoryBodyProps) {
       reportWarning('ModelsCategory', `Scanning the downloaded models failed: ${describeCause(error)}`, { cause: error }));
   }, []);
   const settings = (entry?.settings as LocalInferenceSettings | undefined) ?? LOCAL_INFERENCE_DEFAULTS;
-  const pair = entry?.pair ?? { source: 'en', target: 'ja' };
+  const pair = checked ?? entry?.pair ?? { source: 'en', target: 'ja' };
   return <ModelsPage locked={locked} settings={settings} pair={pair} />;
 }
 
