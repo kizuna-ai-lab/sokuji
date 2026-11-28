@@ -660,7 +660,7 @@
     "pushToTalk": "pressionar para falar ({{key}})",
     "inputDeviceOff": "dispositivo de entrada desligado",
     "endSession": "Terminar sessão",
-    "startSession": "Iniciar sessão",
+    "startSession": "Começar sessão",
     "initializing": "A inicializar...",
     "startPreparationFailed": "Não foi possível preparar a sessão. Tente novamente.",
     "initProgress": "A carregar ({{completed}}/{{total}})...",
@@ -750,8 +750,8 @@
     "sonioxBudgetExhausted": "O saldo da sua sessão esgotou-se. Carregue o seu saldo para continuar a traduzir.",
     "sonioxTtsFailed": "A tradução falada parou. A transcrição e a tradução de texto continuam a funcionar.",
     "sonioxTtsSegmentLost": "Não foi possível reproduzir parte da tradução falada. A transcrição e a tradução de texto não foram afetadas.",
-    "sonioxSegmentEnded": "Este segmento terminou — toque em “Iniciar sessão” para continuar.",
-    "sonioxConnectionLost": "A ligação foi interrompida — toque em “Iniciar sessão” dentro de momentos para continuar.",
+    "sonioxSegmentEnded": "Este segmento terminou — toque em “Começar sessão” para continuar.",
+    "sonioxConnectionLost": "A ligação foi interrompida — toque em “Começar sessão” dentro de momentos para continuar.",
     "sonioxVoiceClipMissing": "Este dispositivo não tem nenhuma gravação de voz, pelo que esta sessão utiliza uma voz predefinida. Grave uma nas Definições para falar aqui com a sua própria voz.",
     "sonioxVoicePoolBusy": "Todas as vagas de vozes personalizadas estão neste momento em uso, pelo que esta sessão utiliza uma voz predefinida. A sua própria voz será utilizada novamente da próxima vez.",
     "sonioxVoiceBuildFailed": "Não foi possível criar a sua voz personalizada, pelo que esta sessão utiliza uma voz predefinida. Tente gravar um excerto mais claro nas Definições.",
@@ -1172,7 +1172,7 @@
       "label": "Sair das legendas"
     },
     "bar": {
-      "start": "Iniciar sessão",
+      "start": "Começar sessão",
       "stop": "Terminar sessão",
       "fontDecrease": "Diminuir tamanho da letra",
       "fontIncrease": "Aumentar tamanho da letra",
