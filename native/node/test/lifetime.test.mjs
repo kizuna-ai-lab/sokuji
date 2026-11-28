@@ -28,9 +28,12 @@ const skipMoss = have('SK_TEST_TTS_MOSS_DIR');
 const fixture = (name) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));
 const noop = () => {};
 // A child that hangs (a worker that never joins, a native call that never returns) must fail
-// its test, not the CI job's six-hour limit. Generous: the slowest child waits out a ~12 s
-// offline synth under ASan on a loaded runner.
-const CHILD_TIMEOUT_MS = 120_000;
+// its test, not the CI job's six-hour limit. Generous: the slowest child waits out an offline
+// synth on the CPU, and GitHub's macOS arm64 runner is a VM whose GPU cannot run the TTS families.
+// Since ggml 1.1.1 an F16 model on an ARM CPU (supertonic here) multiplies with F32 activations
+// instead of native FP16 arithmetic — more accurate, about 3x slower — and that runner's synth went
+// past the old 120 s (owner, 2026-11-28: keep the accuracy, widen the bound).
+const CHILD_TIMEOUT_MS = 300_000;
 
 // ---- unload ---------------------------------------------------------------------------------
 
