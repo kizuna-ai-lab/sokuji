@@ -471,6 +471,9 @@ describe('audioStore — following the OS (syncDevices)', () => {
       savedMonitorDeviceId: 'spk-a',
       unusableInputIds: [],
       isMicMuted: false,
+      // The default output's form factor too: several cases below leave it at speakers, and
+      // syncDevices() resets it from the listing, which the 'notifies no subscriber' cases count.
+      defaultOutputForm: { formFactor: 'unknown', transport: 'unknown' },
     } as any);
   });
 
@@ -978,6 +981,9 @@ describe('echo cancellation', () => {
 });
 
 describe('the outlets (spec 2026-10-10 §3)', () => {
+  // The stored outlets live in localStorage, as the other suites' settings do: a device one
+  // case stores ('usb-gone') must not come back in the next case's refreshDevices().
+  beforeEach(() => { localStorage.clear(); });
   const fresh = () => useAudioStore.setState({ outlets: { other: { device: null, channel: 'auto' }, me: { device: null, channel: 'auto' }, them: { device: null, channel: 'auto' } } });
 
   it('follows the default device on auto channels until something is chosen', () => {
