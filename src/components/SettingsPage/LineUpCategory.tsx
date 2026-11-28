@@ -21,6 +21,7 @@ import { usePlan } from '../../lib/plan/fromStores';
 import type { PlanRefusalCode } from '../../lib/plan/types';
 import { useLineUpNotice } from '../../lib/session/useLineUpNotice';
 import { noticeText } from '../../lib/view/noticeText';
+import { settingsTargetForCode } from '../../lib/view/noticeTargets';
 import {
   COMPATIBLE_NOTES, GEMINI_KEY_HOLDERS, GEMINI_NOTES, KIZUNA_NOTES, notesProviderOf, notesServiceOf, OPENAI_KEY_HOLDERS, OPENAI_NOTES,
 } from '../../lib/notes/notesService';
@@ -48,6 +49,7 @@ import { SpeechSection } from '../Settings/sections/SpeechSection';
 import { asSonioxRegion, SONIOX_REGION_LABELS } from '../../lib/soniox/regions';
 import { LocalVoices } from './LocalVoices';
 import { providerTarget } from './accountRows';
+import { targetToCategory } from './categories';
 import type { AnyProvider } from '../../lib/provider/types';
 import type { CategoryBodyProps } from './SettingsPage';
 
@@ -385,15 +387,23 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   }
 
   /** A row's state: what the chosen provider lacks, or Ready; a key it lacks or that does not work, or a sign-in it waits for, takes you to
-   *  that provider's row in Accounts and keys. `own`: a readiness of the card's own in place of the provider's (the notes'). */
-  const stateOf = (id: string, own?: Readiness): { ok: boolean; text: string; toAccount?: boolean } => {
+   *  that provider's row in Accounts and keys, and a model or engine it lacks to Local models and storage. `own`: a readiness of the
+   *  card's own in place of the provider's (the notes'). */
+  const stateOf = (id: string, own?: Readiness): { ok: boolean; text: string; toAccount?: boolean; toModels?: string } => {
     const p = providers.find((x) => x.id === id);
     const missing = credentialsMissing(p, auth.signedIn);
     if (missing === 'key') return { ok: false, text: t('settingsPage.lineup.state.needsKey', 'Needs a key'), toAccount: true };
     if (missing === 'address') return { ok: false, text: t('settingsPage.lineup.state.needsAddress', 'Needs an address'), toAccount: true };
     if (missing === 'sign-in') return { ok: false, text: t('settingsPage.lineup.state.needsSignIn', 'Needs a sign-in'), toAccount: true };
     const r = own ?? (p ? readiness[p.id] : undefined);
-    if (p?.kind === 'local' && r?.state === 'not-ready') return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model') };
+    if (p?.kind === 'local' && r?.state === 'not-ready') {
+      // What is missing is downloaded in Local models and storage, where the check's code says (owner, 2026-11-28):
+      // the engine's library at the stage it lacks, or the native engine's card. Not ready for another reason (the
+      // engine starting), nothing there answers it.
+      const target = settingsTargetForCode(r.code, r.params);
+      const toModels = target && targetToCategory(target).category === 'models' ? target : undefined;
+      return { ok: false, text: t('settingsPage.lineup.state.needsModel', 'Needs a model'), ...(toModels ? { toModels } : {}) };
+    }
     // A saved key is Ready only once its check passed (B-11; Rudolf's review: saved is not working). The store keeps a
     // passed check for the same key and region, so a key that worked before stays Ready when the service is out of reach.
     if (p?.kind === 'own-key') {
@@ -426,8 +436,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
   const stateTag = (id: string, o: { readiness?: Readiness; target?: string } = {}) => {
     const s = stateOf(id, o.readiness);
     const className = `lineup-stage__state${s.ok ? ' is-ready' : ''}`;
-    return s.toAccount
-      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(providerTarget(o.target ?? id))}>{s.text}</button>
+    const to = s.toAccount ? providerTarget(o.target ?? id) : s.toModels;
+    return to
+      ? <button type="button" className={`${className} lineup-stage__state--link`} onClick={() => navigateToSettings(to)}>{s.text}</button>
       : <em className={className}>{s.text}</em>;
   };
 
@@ -643,6 +654,9 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
               </select>
             );
           };
+          // The card's choice: over a card whose stages change together; in one whose translation can be given to another
+          // service, under the first stage's name, as each stage's choice is (owner, 2026-11-28). Named for both stages
+          // there too: another service chosen in it takes the translation that goes with it.
           const select = selectFor(first, title);
           const partnersLine = partners.length > 0 && (
             <p className="lineup-stage__joint">
@@ -664,13 +678,13 @@ export function LineUpCategory({ locked }: CategoryBodyProps) {
                       ? t('settingsPage.lineup.partableCard', '{{stages}} go over one connection. Another service can do the translation: choose it below.', { stages: title })
                       : t('settingsPage.lineup.jointCard', '{{stages}} go over one connection; they change together.', { stages: title })}
                   </p>
-                  {select}
+                  {!partable && select}
                   {partnersLine}
                   {stages.map((stage) => (
                     <div className="lineup-stage__part" key={stage}>
                       {head(stage)}
                       {/* A stage that can be given to another service keeps a choice of its own in the shared card. */}
-                      {partable && stage !== first && selectFor(stage, titleOf(stage))}
+                      {partable && (stage === first ? select : selectFor(stage, titleOf(stage)))}
                       {stageBody(stage)}
                     </div>
                   ))}

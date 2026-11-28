@@ -1024,7 +1024,7 @@
       "nativeHint": "Vem com a aplicação e funciona neste computador.",
       "engineHintNative": "O motor em que os modelos nativos funcionam.",
       "tabMeta": "{{count}} transferidos, {{size}}",
-      "tabNone": "Nenhum transferido",
+      "tabNone": "Nenhum modelo transferido",
       "tabs": "Motor",
       "toHelpers": "Modelos auxiliares",
       "downloadedChoose": "Transferido. Escolha-o em “Idiomas e composição” para o usar numa sessão.",

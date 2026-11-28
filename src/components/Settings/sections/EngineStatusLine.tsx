@@ -11,14 +11,15 @@ const backendLabel = (kind: string): string => BACKEND_LABELS[kind] ?? kind;
 type DotKind = 'ready' | 'hollow' | 'warn' | 'error';
 
 /**
- * One-line engine status shown under the provider picker for local_native:
- * the installed engine (sidecar bundle) version, the sokuji-native runtime
- * version, its backend and device once ready, or an actionable one-liner for
- * every other bundle/sidecar state.
+ * One-line engine status at the top of the native engine's tab in Local
+ * models and storage (owner, 2026-11-28; it was under the old panel's
+ * provider picker): the engine's version, the sokuji-native runtime version,
+ * its backend and device once ready, or an actionable one-liner for every
+ * other bundle/sidecar state.
  *
  * Reads the native store directly — the same shape as its sibling
- * EngineSection — so the caller only decides WHETHER to mount it
- * (`provider === Provider.LOCAL_NATIVE`); it takes no props.
+ * EngineSection — so the caller only decides WHETHER to mount it; it takes
+ * no props.
  *
  * Display only, in both UI modes (decision 2026-09-03): the Engine page is
  * one tab away in Advanced mode and Simple mode has no reusable route to

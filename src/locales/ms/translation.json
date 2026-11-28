@@ -1024,7 +1024,7 @@
       "nativeHint": "Disertakan bersama aplikasi dan dijalankan pada komputer ini.",
       "engineHintNative": "Enjin tempat model natif dijalankan.",
       "tabMeta": "{{count}} dimuat turun, {{size}}",
-      "tabNone": "Tiada yang dimuat turun",
+      "tabNone": "Tiada model dimuat turun",
       "tabs": "Enjin",
       "toHelpers": "Model pembantu",
       "downloadedChoose": "Dimuat turun. Pilih dalam “Bahasa dan susunan” untuk menggunakannya dalam sesi.",

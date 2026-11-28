@@ -483,11 +483,12 @@ describe('Local models and storage — the engines as tabs', () => {
     expect(tabs()[0].getAttribute('aria-selected')).toBe('true');
   });
 
-  it('says so when a library is empty', () => {
+  // Owner, 2026-11-28: under "Native engine", "None downloaded" read as the engine not downloaded; it is the models.
+  it('says so when a library is empty, naming the models', () => {
     desktopWithNative();
     useNativeModelStore.setState({ statuses: {}, sizes: {} } as never);
     mount();
-    expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('None downloaded');
+    expect(tabs()[0].querySelector('.models-tabs__meta')?.textContent).toBe('No models downloaded');
   });
 
   // Review on #888: with two engines on offer, "This device" alone no longer names the service that uses this library.
@@ -528,6 +529,11 @@ describe('Local models and storage — the engines as tabs', () => {
     useSettingsStore.setState({ settingsNavigationTarget: 'models-asr' } as never);
     await waitFor(() => expect(tabs()[1].getAttribute('aria-selected')).toBe('true'));
     useSettingsStore.setState({ settingsNavigationTarget: 'native-models-asr' } as never);
+    await waitFor(() => expect(tabs()[0].getAttribute('aria-selected')).toBe('true'));
+    // The native engine's card is at the top of the native tab.
+    useSettingsStore.setState({ settingsNavigationTarget: 'models-translation' } as never);
+    await waitFor(() => expect(tabs()[1].getAttribute('aria-selected')).toBe('true'));
+    useSettingsStore.setState({ settingsNavigationTarget: 'native-engine' } as never);
     await waitFor(() => expect(tabs()[0].getAttribute('aria-selected')).toBe('true'));
     useSettingsStore.setState({ settingsNavigationTarget: null } as never);
   });

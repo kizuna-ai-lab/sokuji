@@ -122,7 +122,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   // It counts as a choice: the fallback below (no native engine here) does not move the page off the library asked for.
   useEffect(() => {
     if (!navTarget) return;
-    if (navTarget.startsWith('native-models-')) { chosen.current = true; setTab('native'); }
+    if (navTarget.startsWith('native-models-') || navTarget === 'native-engine') { chosen.current = true; setTab('native'); }
     else if (navTarget.startsWith('models-')) { chosen.current = true; setTab('webgpu'); }
   }, [navTarget]);
   const chooseTab = (next: 'native' | 'webgpu') => {
@@ -324,7 +324,7 @@ export function ModelsPage({ locked, settings, pair }: { locked: boolean; settin
   const tabLabel = (name: string, n: number, bytes: number) => (
     <>
       <span className="models-tabs__name">{name}</span>
-      <span className="models-tabs__meta">{n > 0 ? t('models.page.tabMeta', '{{count}} downloaded, {{size}}', { count: n, size: formatBytes(bytes) }) : t('models.page.tabNone', 'None downloaded')}</span>
+      <span className="models-tabs__meta">{n > 0 ? t('models.page.tabMeta', '{{count}} downloaded, {{size}}', { count: n, size: formatBytes(bytes) }) : t('models.page.tabNone', 'No models downloaded')}</span>
     </>
   );
 

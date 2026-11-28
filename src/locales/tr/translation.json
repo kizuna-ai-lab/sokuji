@@ -1024,7 +1024,7 @@
       "nativeHint": "Uygulamayla birlikte gelir ve bu bilgisayarda çalışır.",
       "engineHintNative": "Native modellerin üzerinde çalıştığı motor.",
       "tabMeta": "{{count}} indirildi, {{size}}",
-      "tabNone": "Hiçbiri indirilmedi",
+      "tabNone": "İndirilen model yok",
       "tabs": "Motor",
       "toHelpers": "Yardımcı modeller",
       "downloadedChoose": "İndirildi. Bir oturumda kullanmak için “Diller ve düzen” bölümünden seçin.",

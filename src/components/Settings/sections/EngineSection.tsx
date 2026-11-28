@@ -14,11 +14,10 @@ const fmtMB = (n: number) => `${Math.round(n / MB)} MB`;
  * model list (distribution spec S10). Only appears for an ACTIONABLE state:
  * unsupported / absent / mismatch / paused / installing (phased) / error, or a
  * sidecar runtime failure needing retry. A healthy ready engine renders
- * nothing here — its identity/version live in the status line under the
- * provider picker, and its on-disk size + remove affordance live on the
- * Storage page.
+ * nothing here — its identity/version live in the status line above it, at
+ * the top of the native engine's tab in Local models and storage.
  */
-export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessionActive = false }) => {
+export const EngineSection: React.FC<{ isSessionActive?: boolean; /** The card's element id, where a navigation target lands. */ anchorId?: string }> = ({ isSessionActive = false, anchorId }) => {
   const { t } = useTranslation();
   const {
     bundleStatus, bundleSku, bundleVersion, bundleRequiredVersion, bundleProgress,
@@ -66,12 +65,12 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
   // (sku=null, venv built) gets a working dev lane, not a dead end.
   if (bundleDevVenv && (bundleStatus === 'unsupported' || bundleStatus === 'absent' || bundleStatus === 'paused')) {
     if (!sidecarError) return null;
-    return <div className="engine-section">{sidecarError}</div>;
+    return <div className="engine-section" id={anchorId}>{sidecarError}</div>;
   }
 
   if (bundleStatus === 'unsupported') {
     return (
-      <div className="engine-section">
+      <div className="engine-section" id={anchorId}>
         <div className="engine-section__row engine-section__row--muted">
           <AlertTriangle size={14} />
           <span>{t('engine.unsupported', 'Local inference is not supported on this device')}</span>
@@ -86,7 +85,7 @@ export const EngineSection: React.FC<{ isSessionActive?: boolean }> = ({ isSessi
     : 0;
 
   return (
-    <div className="engine-section">
+    <div className="engine-section" id={anchorId}>
       <div className="engine-section__header">
         <Cpu size={16} />
         <span className="engine-section__title">{t('engine.title', 'Inference Engine')}</span>

@@ -1180,6 +1180,32 @@ describe('languages and line-up — the way in from a notice', () => {
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
   });
 
+  // Owner, 2026-11-28: "Needs a model" leads to where the model is downloaded, as the status line's Settings does.
+  it("a local provider's missing model is a way to Local models and storage, at what its check found missing", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
+    runsOn('local_inference');
+    useProviderStore.setState({ readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing', params: { stage: 'translation' } } } as never });
+    render(<LineUpCategory locked={false} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Needs a model' }));
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models-translation');
+    cleanup();
+    // The native engine: its models, or its card when the engine itself is what is missing.
+    useLineUpStore.setState({ lineUp: { transcription: 'local_native', translation: 'local_native', speech: 'edge', summarisation: null }, stored: true });
+    runsOn('local_native');
+    useProviderStore.setState({ readiness: { local_native: { state: 'not-ready', reason: 'x', code: 'native_engine_required' } } as never });
+    render(<LineUpCategory locked={false} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Needs a model' })[0]);
+    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('native-engine');
+  });
+
+  it("a local provider that is not ready for another reason keeps a plain state: nothing in Local models and storage answers it", () => {
+    useLineUpStore.setState({ lineUp: { transcription: 'local_native', translation: 'local_native', speech: 'edge', summarisation: null }, stored: true });
+    runsOn('local_native');
+    useProviderStore.setState({ readiness: { local_native: { state: 'not-ready', reason: 'x', code: 'native_starting' } } as never });
+    render(<LineUpCategory locked={false} />);
+    expect(screen.queryByRole('button', { name: 'Needs a model' })).toBeNull();
+  });
+
   it('Bing and Edge need no model: their rows read Ready while the local models are missing', () => {
     useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
     runsOn('local_inference');
@@ -1279,8 +1305,13 @@ describe('languages and line-up — as the mock draws them', () => {
     const joint = cards[0];
     expect([...joint.querySelectorAll('.lineup-stage__head .lineup-stage__name')].map((n) => n.textContent)).toEqual(['Transcription', 'Translation']);
     expect(joint.querySelectorAll('.lineup-stage__head .lineup-stage__state')).toHaveLength(2);
-    // Soniox's translation can be given to another service: the card's one choice for both, and the translation's own.
+    // Soniox's translation can be given to another service: the card's one choice for both, and the translation's own,
+    // each under its stage's name and state as a card of one stage has it (owner, 2026-11-28: the card's choice sat over
+    // the card, above the transcription's name).
     expect(within(joint as HTMLElement).getAllByRole('combobox').map((c) => c.getAttribute('aria-label'))).toEqual(['Transcription and translation', 'Translation']);
+    for (const part of joint.querySelectorAll('.lineup-stage__part')) {
+      expect(part.querySelector('.lineup-stage__head')?.nextElementSibling?.tagName).toBe('SELECT');
+    }
     expect(within(joint as HTMLElement).getByText('Transcription and translation go over one connection. Another service can do the translation: choose it below.')).toBeInTheDocument();
     // An end-to-end service holds its stages jointly: one choice for them all, and they change together.
     cleanup();

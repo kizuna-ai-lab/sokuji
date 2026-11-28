@@ -38,18 +38,21 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
   text_model_unset: 'lineup',
   // A managed provider signed out: the provider section's account row carries the sign-in link (Stage 2 Kizuna Soniox).
   sign_in_required: 'provider',
-  // The missing models are chosen and downloaded in the local engine, among the provider's options.
-  local_models_missing: 'provider-options',
-  no_asr: 'provider-options',
+  // A model that is missing is downloaded in Local models and storage (owner, 2026-11-28): the WASM/WebGPU engine's
+  // library, at the stage the notice names (`modelTarget` narrows them).
+  local_models_missing: 'models-asr',
+  no_asr: 'models-asr',
   memory_exceeded: 'provider-options',
   gpu_out_of_memory: 'provider-options',
-  // Local Native's readiness codes (#578 ruling 5): the engine and its models are the provider's options.
-  native_engine_update_required: 'provider-options',
-  native_engine_required: 'provider-options',
+  // Local Native's readiness codes (#578 ruling 5). Its engine is downloaded and updated on its card at the top of its
+  // tab in Local models and storage, and its models under it (owner, 2026-11-28); the line-up does neither. Starting, or
+  // unavailable, it is the provider's options.
+  native_engine_update_required: 'native-engine',
+  native_engine_required: 'native-engine',
   native_unavailable: 'provider-options',
   native_starting: 'provider-options',
-  native_asr_missing: 'provider-options',
-  native_translation_missing: 'provider-options',
+  native_asr_missing: 'native-models-asr',
+  native_translation_missing: 'native-models-translation',
   // The leg's turn detection is tuned among the provider's options; a device that cannot keep up picks a lighter model there.
   turn_detection_overloaded: 'provider-options',
   turn_detection_unavailable: 'provider-options',
@@ -79,11 +82,23 @@ export const NOTICE_TARGETS: Readonly<Record<string, string>> = {
 const NAMED_ACCOUNT_TARGETS: Readonly<Record<string, string>> = { auth: 'provider', quota: 'provider' };
 
 /**
+ * A missing model's place in Local models and storage, by what its notice says: the stage the WASM/WebGPU engine lacks
+ * (`params.stage`, recognition when not said), and the native engine's library for a recognizer Local Native lacks.
+ */
+function modelTarget(code: string, params?: Readonly<Record<string, string | number>>): string | undefined {
+  if (code === 'local_models_missing') return params?.stage === 'translation' ? 'models-translation' : 'models-asr';
+  if (code === 'no_asr') return params?.provider === 'local_native' ? 'native-models-asr' : 'models-asr';
+  return undefined;
+}
+
+/**
  * Where Settings fixes a notice. One about a key or a sign-in that names its provider (`params.provider`) lands on
  * that provider's row in "Accounts and keys"; without a name, on the accounts as before.
  */
 export function settingsTargetForCode(code: string | undefined, params?: Readonly<Record<string, string | number>>): string | null {
   if (code === undefined) return null;
+  const model = modelTarget(code, params);
+  if (model) return model;
   const named = typeof params?.provider === 'string' && params.provider !== '';
   const target = NOTICE_TARGETS[code] ?? (named ? NAMED_ACCOUNT_TARGETS[code] : undefined) ?? null;
   const provider = params?.provider;

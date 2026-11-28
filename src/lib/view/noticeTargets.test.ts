@@ -2,19 +2,49 @@ import { describe, it, expect } from 'vitest';
 import { PLAN_REFUSAL_CODES } from '../plan/types';
 import { NOTICE_TARGETS, settingsTargetForCode } from './noticeTargets';
 import { NOTICE_ALIASES, NOTICE_WORDS } from './noticeText';
+import { targetToCategory } from '../../components/SettingsPage/categories';
 
 describe('settingsTargetForCode', () => {
   it('sends a missing microphone to the microphone section', () => {
     expect(settingsTargetForCode('no_microphone')).toBe('microphone');
   });
 
-  // On the settings page a key is in "Accounts and keys"; models and the engine are the provider's own options in the line-up.
-  it("sends a missing key to the accounts, a missing model to the provider's options, and no provider to the line-up", () => {
+  // On the settings page a key is in "Accounts and keys"; memory and turn detection are the provider's own options in the line-up.
+  it("sends a missing key to the accounts, memory and turn detection to the provider's options, and no provider to the line-up", () => {
     expect(settingsTargetForCode('credentials_missing')).toBe('provider');
     expect(settingsTargetForCode('no_provider')).toBe('lineup');
-    for (const code of ['no_asr', 'memory_exceeded', 'gpu_out_of_memory', 'local_models_missing', 'turn_detection_overloaded', 'turn_detection_unavailable']) {
+    for (const code of ['memory_exceeded', 'gpu_out_of_memory', 'turn_detection_overloaded', 'turn_detection_unavailable']) {
       expect(settingsTargetForCode(code), code).toBe('provider-options');
     }
+  });
+
+  // Owner, 2026-11-28: a model that is missing is downloaded in Local models and storage, so its notice leads there, to the
+  // library of the engine that lacks it and the stage it lacks, not to the line-up.
+  it('sends a missing model to Local models and storage: the library of the engine that lacks it, at the stage it lacks', () => {
+    expect(settingsTargetForCode('local_models_missing')).toBe('models-asr');
+    expect(settingsTargetForCode('local_models_missing', { stage: 'asr' })).toBe('models-asr');
+    expect(settingsTargetForCode('local_models_missing', { stage: 'translation' })).toBe('models-translation');
+    expect(settingsTargetForCode('no_asr', { source: 'en' })).toBe('models-asr');
+    expect(settingsTargetForCode('no_asr', { source: 'en', provider: 'local_inference' })).toBe('models-asr');
+    expect(settingsTargetForCode('no_asr', { source: 'en', provider: 'local_native' })).toBe('native-models-asr');
+    expect(settingsTargetForCode('native_asr_missing')).toBe('native-models-asr');
+    expect(settingsTargetForCode('native_translation_missing')).toBe('native-models-translation');
+  });
+
+  // The native engine is downloaded and updated on its card, at the top of its tab in Local models and storage: the
+  // line-up has no way to do either.
+  it("sends a native engine to download or to update to its card in Local models and storage", () => {
+    expect(settingsTargetForCode('native_engine_required')).toBe('native-engine');
+    expect(settingsTargetForCode('native_engine_update_required')).toBe('native-engine');
+  });
+
+  it('every target a missing model or engine leads to is in Local models and storage', () => {
+    const targets = [
+      settingsTargetForCode('local_models_missing'), settingsTargetForCode('local_models_missing', { stage: 'translation' }),
+      settingsTargetForCode('no_asr', { provider: 'local_native' }), settingsTargetForCode('native_asr_missing'),
+      settingsTargetForCode('native_translation_missing'), settingsTargetForCode('native_engine_required'),
+    ];
+    for (const target of targets) expect(targetToCategory(target!).category, String(target)).toBe('models');
   });
 
   it("sends a key or a sign-in that names its provider to that provider's row", () => {
@@ -24,7 +54,6 @@ describe('settingsTargetForCode', () => {
     expect(settingsTargetForCode('credentials_missing', { provider: '' })).toBe('provider');
     // Only a target in the accounts is narrowed to a row.
     expect(settingsTargetForCode('lineup_voice_not_alone', { provider: 'kizunaai_soniox', stage: 'speech' })).toBe('lineup');
-    expect(settingsTargetForCode('no_asr', { provider: 'local_inference' })).toBe('provider-options');
   });
 
   it('sends every refusal of the line-up to the line-up', () => {
@@ -39,8 +68,8 @@ describe('settingsTargetForCode', () => {
     expect(settingsTargetForCode('participant_unsupported')).toBe('languages');
   });
 
-  it("Local Native's six readiness codes lead to the provider's options (#578 ruling 5)", () => {
-    for (const code of ['native_engine_update_required', 'native_engine_required', 'native_unavailable', 'native_starting', 'native_asr_missing', 'native_translation_missing']) {
+  it("Local Native's engine starting or unavailable leads to the provider's options (#578 ruling 5)", () => {
+    for (const code of ['native_unavailable', 'native_starting']) {
       expect(settingsTargetForCode(code), code).toBe('provider-options');
     }
   });

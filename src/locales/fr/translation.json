@@ -1024,7 +1024,7 @@
       "nativeHint": "Fourni avec l’application et exécuté sur cet ordinateur.",
       "engineHintNative": "Le moteur sur lequel s’exécutent les modèles natifs.",
       "tabMeta": "{{count}} téléchargés, {{size}}",
-      "tabNone": "Aucun téléchargé",
+      "tabNone": "Aucun modèle téléchargé",
       "tabs": "Moteur",
       "toHelpers": "Modèles d’appoint",
       "downloadedChoose": "Téléchargé. Choisissez-le dans « Langues et composition » pour l’utiliser pendant une session.",

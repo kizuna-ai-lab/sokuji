@@ -1024,7 +1024,7 @@
       "nativeHint": "Vem com o app e roda neste computador.",
       "engineHintNative": "O motor em que os modelos nativos rodam.",
       "tabMeta": "{{count}} baixados, {{size}}",
-      "tabNone": "Nenhum baixado",
+      "tabNone": "Nenhum modelo baixado",
       "tabs": "Motor",
       "toHelpers": "Modelos auxiliares",
       "downloadedChoose": "Baixado. Escolha-o em “Idiomas e composição” para usá-lo em uma sessão.",

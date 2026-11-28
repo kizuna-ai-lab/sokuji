@@ -1024,7 +1024,7 @@
       "nativeHint": "隨應用程式附帶，在這台電腦上執行。",
       "engineHintNative": "原生模型所執行的引擎。",
       "tabMeta": "已下載 {{count}} 個，{{size}}",
-      "tabNone": "尚未下載",
+      "tabNone": "尚未下載模型",
       "tabs": "引擎",
       "toHelpers": "輔助模型",
       "downloadedChoose": "已下載。請在「語言與工作階段組成」中選擇它，即可在工作階段中使用。",

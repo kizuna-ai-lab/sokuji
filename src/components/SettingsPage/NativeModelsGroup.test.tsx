@@ -12,6 +12,9 @@ vi.mock('../../providers/registry', () => ({
 vi.mock('../Settings/sections/EngineSection', () => ({
   EngineSection: (props: Record<string, unknown>) => { seen.engines.push(props); return <div data-testid="engine-card" />; },
 }));
+vi.mock('../Settings/sections/EngineStatusLine', () => ({
+  EngineStatusLine: () => <div data-testid="engine-status" />,
+}));
 vi.mock('../Settings/sections/NativeModelManagementSection', async () => {
   const { useContext } = await import('react');
   const { VoicePreviewContext } = await import('../providers/VoicePreviewContext');
@@ -51,12 +54,21 @@ describe('NativeModelsGroup', () => {
   it("lists its library by stage under the native anchors, fed its own settings and the app's voice preview", () => {
     render(<NativeModelsGroup locked />);
     expect(screen.getByTestId('engine-card')).toBeTruthy();
-    expect(seen.engines[0]).toEqual({ isSessionActive: true });
+    // The engine's card owns the `native-engine` target's anchor, where a notice about the engine leads (owner, 2026-11-28).
+    expect(seen.engines[0]).toEqual({ isSessionActive: true, anchorId: 'native-engine-section' });
     // Each stage's list owns its anchor (the section is handed the id), so a jump lands on it.
     expect(seen.libraries.map((l) => l.anchorId)).toEqual(['asr', 'translation', 'tts'].map((s) => `native-models-${s}-section`));
     expect(seen.libraries.map((l) => l.stageFilter)).toEqual(['asr', 'translation', 'tts']);
     expect(seen.libraries[0]).toMatchObject({ settings: own, pair: { source: 'en', target: 'ja' }, isSessionActive: true });
     expect(seen.previews.every((p) => p === appVoicePreview)).toBe(true);
+  });
+
+  // Owner, 2026-11-28: the engine's version, backend and device were shown under the provider picker of the old panel and
+  // nowhere since; they head the native engine's library now, above its card.
+  it("heads the library with the engine's status line: its version, backend and device", () => {
+    render(<NativeModelsGroup locked={false} />);
+    const line = screen.getByTestId('engine-status');
+    expect(line.compareDocumentPosition(screen.getByTestId('engine-card')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('writes a change to Local Native’s own settings', () => {

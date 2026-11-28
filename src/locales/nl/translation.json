@@ -1024,7 +1024,7 @@
       "nativeHint": "Wordt met de app meegeleverd en draait op deze computer.",
       "engineHintNative": "De engine waarop de native modellen draaien.",
       "tabMeta": "{{count}} gedownload, {{size}}",
-      "tabNone": "Niets gedownload",
+      "tabNone": "Geen modellen gedownload",
       "tabs": "Engine",
       "toHelpers": "Hulpmodellen",
       "downloadedChoose": "Gedownload. Kies het in “Talen en opstelling” om het in een sessie te gebruiken.",
