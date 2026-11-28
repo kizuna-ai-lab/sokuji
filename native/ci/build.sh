@@ -61,9 +61,13 @@ fi
 if [ "$(uname -s)" = "Linux" ]; then
     "$PYTHON" "$ROOT/ci/check_linux_deps.py" "$BUILD/stage" "$PLAT"
 fi
+# The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
+# against whatever sokuji_native happens to be installed in this interpreter.
+# zstandard: make_app_archive.py and its test (tests/test_make_app_archive.py).
+"$PYTHON" -m pip install -q pytest numpy soundfile zstandard
 # The stage must report the lane that was asked for: a GPU backend that quietly failed to build would
 # otherwise ship as a CPU-only archive under a Vulkan/Metal name. Asked through the Python binding from
-# the source tree, on this stage.
+# the source tree, on this stage (after the pip install above: the binding imports numpy).
 case "$LANE" in
     none)   WANT_LANE=cpu ;;
     vulkan) WANT_LANE=cpu-vulkan ;;
@@ -71,10 +75,6 @@ case "$LANE" in
     *)      echo "unknown lane: $LANE"; exit 1 ;;
 esac
 PYTHONPATH="$ROOT/python" SOKUJI_NATIVE_DIR="$BUILD/stage" "$PYTHON" -c "import sys, sokuji_native as s; s.init(); ev = s.engine_versions(); lane = ev['lane']; assert lane == sys.argv[1], ('built lane', lane, 'wanted', sys.argv[1]); print(s.version(), ev, [(d.kind, d.description) for d in s.devices()])" "$WANT_LANE"
-# The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
-# against whatever sokuji_native happens to be installed in this interpreter.
-# zstandard: make_app_archive.py and its test (tests/test_make_app_archive.py).
-"$PYTHON" -m pip install -q pytest numpy soundfile zstandard
 export SK_TEST_SAMPLE_WAV="$BUILD/_deps/transcribe-src/samples/jfk.wav"
 # -s: keep pytest from capturing stderr — a GGML_ASSERT abort otherwise dies with
 # its message trapped in the capture buffer, unrecoverable from the CI log.

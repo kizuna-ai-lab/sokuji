@@ -53,18 +53,18 @@ foreach ($d in "$Root\python\build", "$Root\python\dist") { if (Test-Path $d) { 
 # (headers, static libs, cmake configs) in the default component, which must not run.
 cmake --install $Build --config Release --prefix "$Build\stage" --component sokuji
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
-# The stage must report the lane that was asked for (build.sh has the reason).
+# The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
+# against whatever sokuji_native happens to be installed in this interpreter.
+# zstandard: make_app_archive.py and its test (tests\test_make_app_archive.py).
+& $Python -m pip install -q pytest numpy soundfile zstandard
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+# The stage must report the lane that was asked for (build.sh has the reason); after the pip install: the binding imports numpy.
 $WantLane = @{ none = "cpu"; vulkan = "cpu-vulkan"; metal = "metal" }[$Lane]
 $env:PYTHONPATH = "$Root\python"
 $env:SOKUJI_NATIVE_DIR = "$Build\stage"
 & $Python -c "import sys, sokuji_native as s; s.init(); ev = s.engine_versions(); lane = ev['lane']; assert lane == sys.argv[1], ('built lane', lane, 'wanted', sys.argv[1]); print(s.version(), ev, [(d.kind, d.description) for d in s.devices()])" $WantLane
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Remove-Item Env:PYTHONPATH, Env:SOKUJI_NATIVE_DIR
-# The binding's own tests, against the SOURCE package (PYTHONPATH) and this stage — not
-# against whatever sokuji_native happens to be installed in this interpreter.
-# zstandard: make_app_archive.py and its test (tests\test_make_app_archive.py).
-& $Python -m pip install -q pytest numpy soundfile zstandard
-if ($LASTEXITCODE) { exit $LASTEXITCODE }
 $env:PYTHONPATH = "$Root\python"
 $env:SOKUJI_NATIVE_DIR = "$Build\stage"
 $env:SK_TEST_SAMPLE_WAV = "$Build\_deps\transcribe-src\samples\jfk.wav"
