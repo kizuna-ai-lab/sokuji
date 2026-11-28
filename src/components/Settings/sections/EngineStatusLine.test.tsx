@@ -68,6 +68,20 @@ describe('EngineStatusLine', () => {
     expect(dotClass(container)).toContain('engine-status-line__dot--ready');
   });
 
+  // Owner, 2026-11-28: in the native engine's hint on Local models and storage, after its sentence.
+  it('inline: the same line as a span, to sit in a sentence', () => {
+    setNative({
+      bundleStatus: 'ready', bundleVersion: '0.2.0', sidecarStatus: 'ready',
+      engineInfo: { nativeVersion: '1.0.1', engineVersions: {}, lane: 'cpu-vulkan', preferredDevice: { kind: 'vulkan', name: 'gpu0', description: 'NVIDIA GB10' } },
+    });
+    const { container } = render(<p><EngineStatusLine inline /></p>);
+    const line = container.querySelector('.engine-status-line')!;
+    expect(line.tagName).toBe('SPAN');
+    expect(line).toHaveClass('engine-status-line--inline');
+    expect(line.textContent).toContain('Engine 0.2.0');
+    expect(line.querySelector('div')).toBeNull();
+  });
+
   it('ready: dev venv (no bundleVersion) uses the "dev venv" label', () => {
     setNative({
       bundleStatus: 'ready', bundleVersion: null, bundleDevVenv: true, sidecarStatus: 'ready',

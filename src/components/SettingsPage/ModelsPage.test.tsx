@@ -34,6 +34,9 @@ vi.mock('../../providers/registry', async (importOriginal) => {
   return { ...real, presentProviders: (...a: Parameters<typeof real.presentProviders>) => [...real.presentProviders(...a), ...(offered.native ? [{ id: 'local_native' } as never] : [])] };
 });
 vi.mock('./NativeModelsGroup', () => ({ NativeModelsGroup: () => <div data-testid="native-library" /> }));
+vi.mock('../Settings/sections/EngineStatusLine', () => ({
+  EngineStatusLine: ({ inline }: { inline?: boolean }) => <span data-testid="engine-status" data-inline={String(Boolean(inline))} />,
+}));
 vi.mock('../Settings/sections/ModelImportModal', () => ({
   ModelImportModal: ({ modelName }: { modelName: string }) => <div data-testid="import-modal">{modelName}</div>,
 }));
@@ -492,6 +495,15 @@ describe('Local models and storage — the engines as tabs', () => {
   });
 
   // Review on #888: with two engines on offer, "This device" alone no longer names the service that uses this library.
+  // Owner, 2026-11-28: the engine's version, backend and device, at the end of the native engine's hint line.
+  it("ends the native engine's hint with its status line: version, backend and device", () => {
+    desktopWithNative();
+    mount();
+    const hint = screen.getByRole('region', { name: 'Native engine' }).querySelector('.models-group__hint')!;
+    expect(hint.textContent).toContain('Ships with the app and runs on this computer.');
+    expect(within(hint as HTMLElement).getByTestId('engine-status').dataset.inline).toBe('true');
+  });
+
   it('names the service that uses the WASM/WebGPU library by its full name', () => {
     desktopWithNative();
     mount();

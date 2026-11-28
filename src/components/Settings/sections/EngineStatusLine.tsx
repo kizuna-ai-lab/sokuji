@@ -11,7 +11,7 @@ const backendLabel = (kind: string): string => BACKEND_LABELS[kind] ?? kind;
 type DotKind = 'ready' | 'hollow' | 'warn' | 'error';
 
 /**
- * One-line engine status at the top of the native engine's tab in Local
+ * One-line engine status at the end of the native engine's hint in Local
  * models and storage (owner, 2026-11-28; it was under the old panel's
  * provider picker): the engine's version, the sokuji-native runtime version,
  * its backend and device once ready, or an actionable one-liner for every
@@ -26,7 +26,7 @@ type DotKind = 'ready' | 'hollow' | 'warn' | 'error';
  * it, so a click target on a status line bought nothing — the actionable
  * states name what to do, and the Engine page's own controls do it.
  */
-export const EngineStatusLine: React.FC = () => {
+export const EngineStatusLine: React.FC<{ /** In a line of text: a span that flows with the sentence it ends. */ inline?: boolean }> = ({ inline = false }) => {
   const { t } = useTranslation();
   const {
     bundleStatus, bundleVersion, bundleRequiredVersion, bundleDevVenv,
@@ -103,14 +103,15 @@ export const EngineStatusLine: React.FC = () => {
   const preferredHint = t('engine.status.preferredHint',
     'Preferred device for this machine; per-stage overrides live in the model library.');
 
+  const Root = inline ? 'span' : 'div';
   return (
-    <div className="engine-status-line" title={`${fullText}\n${preferredHint}`}>
+    <Root className={`engine-status-line${inline ? ' engine-status-line--inline' : ''}`} title={`${fullText}\n${preferredHint}`}>
       <span className={`engine-status-line__dot engine-status-line__dot--${dot}`} />
       <span className="engine-status-line__text">
         {text}
         {device && <span className="engine-status-line__device"> · {device}</span>}
       </span>
-    </div>
+    </Root>
   );
 };
 

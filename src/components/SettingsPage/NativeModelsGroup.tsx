@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next';
 import { appVoicePreview } from '../../app/voicePreview';
 import { VoicePreviewContext } from '../providers/VoicePreviewContext';
 import { EngineSection } from '../Settings/sections/EngineSection';
-import { EngineStatusLine } from '../Settings/sections/EngineStatusLine';
 import { NativeModelManagementSection } from '../Settings/sections/NativeModelManagementSection';
 import type { NativeEngineSettings } from '../Settings/engine/useNativeEngineAdapter';
 import { presentProviders } from '../../providers/registry';
@@ -67,8 +66,6 @@ export function NativeModelsGroup({ locked }: { locked: boolean }) {
   const unloaded = !entry;
   return (
     <VoicePreviewContext.Provider value={appVoicePreview}>
-      {/* The engine's version, backend and device, display only (owner, 2026-11-28): shown nowhere else since the side panel went. */}
-      <EngineStatusLine />
       {/* Anchored for the `native-engine` target: a notice that the engine is missing or old lands on its card. */}
       <EngineSection isSessionActive={locked} anchorId="native-engine-section" />
       {direction && (

@@ -105,6 +105,8 @@ import { runsOn } from '../../stores/lineUpStore.testing';
 import useSettingsStore from '../../stores/settingsStore';
 import useAudioStore from '../../stores/audioStore';
 import { useRoutingStore } from '../../stores/routingStore';
+import { useModelStore } from '../../stores/modelStore';
+import { useNativeModelStore } from '../../stores/nativeModelStore';
 import { providerTarget } from './accountRows';
 
 const soniox = { transcription: 'soniox', translation: 'soniox', speech: 'soniox', summarisation: null };
@@ -1180,22 +1182,97 @@ describe('languages and line-up — the way in from a notice', () => {
     expect(useSettingsStore.getState().engineSlotTarget).toBeNull();
   });
 
-  // Owner, 2026-11-28: "Needs a model" leads to where the model is downloaded, as the status line's Settings does.
-  it("a local provider's missing model is a way to Local models and storage, at what its check found missing", () => {
-    useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'bing', speech: 'edge', summarisation: null }, stored: true });
-    runsOn('local_inference');
-    useProviderStore.setState({ readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing', params: { stage: 'translation' } } } as never });
-    render(<LineUpCategory locked={false} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Needs a model' }));
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('models-translation');
-    cleanup();
-    // The native engine: its models, or its card when the engine itself is what is missing.
-    useLineUpStore.setState({ lineUp: { transcription: 'local_native', translation: 'local_native', speech: 'edge', summarisation: null }, stored: true });
-    runsOn('local_native');
-    useProviderStore.setState({ readiness: { local_native: { state: 'not-ready', reason: 'x', code: 'native_engine_required' } } as never });
-    render(<LineUpCategory locked={false} />);
-    fireEvent.click(screen.getAllByRole('button', { name: 'Needs a model' })[0]);
-    expect(useSettingsStore.getState().settingsNavigationTarget).toBe('native-engine');
+  // Owner, 2026-11-28: "Needs a model" is each card's own: shown on a card whose stage has no model, for the directions a
+  // session runs, and leading to that stage's models in Local models and storage, in its engine's library.
+  describe('"Needs a model", stage by stage', () => {
+    const wasmResolve = useModelStore.getState().resolve;
+    const nativeResolve = useNativeModelStore.getState().resolve;
+    afterEach(() => {
+      useModelStore.setState({ resolve: wasmResolve });
+      useNativeModelStore.setState({ resolve: nativeResolve });
+    });
+    const has = (ids: Partial<Record<'asr' | 'translation' | 'tts', string>>) => () => ({
+      asr: ids.asr ? { modelId: ids.asr, source: 'auto' as const } : null,
+      translation: ids.translation ? { modelId: ids.translation, source: 'auto' as const } : null,
+      tts: ids.tts ? { modelId: ids.tts, source: 'auto' as const } : null,
+      notes: [], prunes: [],
+    });
+    const entry = { settings: { selections: {} }, pair: { source: 'ja', target: 'en' } };
+    const states = () => [...document.querySelectorAll('.lineup-stage')].slice(0, 3).map((c) => {
+      const tag = c.querySelector('.lineup-stage__state');
+      return `${tag?.textContent}${tag?.tagName === 'BUTTON' ? ' (link)' : ''}`;
+    });
+    const follow = (index: number) => {
+      fireEvent.click(document.querySelectorAll('.lineup-stage')[index].querySelector('button.lineup-stage__state')!);
+      return useSettingsStore.getState().settingsNavigationTarget;
+    };
+
+    it('on this device (WASM/WebGPU): only the stages with no model say so, each leading to its own models', () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: has({ asr: 'a' }) });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing', params: { stage: 'translation' } } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states()).toEqual(['Ready', 'Needs a model (link)', 'Needs a model (link)']);
+      expect(follow(1)).toBe('models-translation');
+      expect(follow(2)).toBe('models-tts');
+    });
+
+    it('with no model at all, each card leads to its own stage', () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: has({}) });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing', params: { stage: 'asr' } } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states()).toEqual(['Needs a model (link)', 'Needs a model (link)', 'Needs a model (link)']);
+      expect(follow(0)).toBe('models-asr');
+      expect(follow(1)).toBe('models-translation');
+      expect(follow(2)).toBe('models-tts');
+    });
+
+    it("with both directions running, the transcription needs the other side's recognition model too", () => {
+      useAudioStore.setState({ mode: 'both' });
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'edge', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: (src: string) => has(src === 'ja' ? { asr: 'a', translation: 't' } : { translation: 't' })() });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'no_asr', params: { source: 'en' } } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states().slice(0, 2)).toEqual(['Needs a model (link)', 'Ready']);
+      expect(follow(0)).toBe('models-asr');
+    });
+
+    it('a stage the check names as missing says so, whatever this page resolves', () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'edge', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: has({ asr: 'a', translation: 't' }) });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'not-ready', reason: 'x', code: 'local_models_missing', params: { stage: 'translation' } } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states().slice(0, 2)).toEqual(['Ready', 'Needs a model (link)']);
+    });
+
+    it("on the native engine: its own library; and the engine's card when the engine itself is missing", () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_native', translation: 'local_native', speech: 'edge', summarisation: null }, stored: true });
+      runsOn('local_native');
+      useNativeModelStore.setState({ resolve: has({ translation: 't' }) });
+      useProviderStore.setState({ entries: { local_native: entry } as never, readiness: { local_native: { state: 'not-ready', reason: 'x', code: 'native_asr_missing' } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states().slice(0, 2)).toEqual(['Needs a model (link)', 'Ready']);
+      expect(follow(0)).toBe('native-models-asr');
+      cleanup();
+      useProviderStore.setState({ readiness: { local_native: { state: 'not-ready', reason: 'x', code: 'native_engine_required' } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states().slice(0, 2)).toEqual(['Needs a model (link)', 'Needs a model (link)']);
+      expect(follow(1)).toBe('native-engine');
+    });
+
+    it('ready, a speech model that is missing is said on the speech card alone', () => {
+      useLineUpStore.setState({ lineUp: { transcription: 'local_inference', translation: 'local_inference', speech: 'local_inference', summarisation: null }, stored: true });
+      runsOn('local_inference');
+      useModelStore.setState({ resolve: has({ asr: 'a', translation: 't' }) });
+      useProviderStore.setState({ entries: { local_inference: entry } as never, readiness: { local_inference: { state: 'ready' } } as never });
+      render(<LineUpCategory locked={false} />);
+      expect(states()).toEqual(['Ready', 'Ready', 'Needs a model (link)']);
+    });
   });
 
   it("a local provider that is not ready for another reason keeps a plain state: nothing in Local models and storage answers it", () => {
